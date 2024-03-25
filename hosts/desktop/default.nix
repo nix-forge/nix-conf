@@ -42,7 +42,7 @@ lib.cust.mkHost {
       name = "Ian Holloway";
       extraGroups = ["wheel" "audio" "video"];
       initialPassword = "password";
-      homeModules = homeConfigs.desktop.modules;
+      homeModules = homeConfigs.desktop.modules {inherit tree;};
     };
     otherUsers = [
       {

@@ -1,3 +1,4 @@
-[
-  ../shared/profile.nix
+{tree, ...}:
+with tree.home.configs.shared; [
+  profile
 ]
