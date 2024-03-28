@@ -25,6 +25,7 @@
   # define the home-manager flake
   homeManager ? inputs.home-manager,
   # Define the users for the system
+  # TODO: move user config to a seprate function that will add users inside NixOS config
   systemUsers ? {
     rootInitialPassword = "password";
     mainUser = {
