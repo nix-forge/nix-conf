@@ -19,6 +19,9 @@
 
     # Bird Nix Lib
     bird-nix-lib.url = "github:spikespaz/bird-nix-lib";
+
+    # Hyprland Flake
+    hyprland-git.url = "github:hyprwm/Hyprland";
   };
 
   nixConfig = {

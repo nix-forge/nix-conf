@@ -19,13 +19,16 @@ lib.cust.mkHost {
     };
   };
 
-  nixosModules = with tree.hosts; [
+  nixosModules = with tree.hosts.shared; [
     # Base
-    shared.nix-settings
+    nix-settings
 
     # Boot
-    shared.boot.grub.default
-    shared.boot.grub.dual-boot
+    boot.grub.default
+    boot.grub.dual-boot
+
+    # Desktop Environments
+    (desktop-envs.hyprland {useMainUser = true;})
 
     ./filesystems.nix
   ];

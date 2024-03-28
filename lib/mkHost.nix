@@ -1,8 +1,6 @@
 {
   # The flake inputs
   inputs,
-  # Defines the lib (allows for custom lib to be passed in)
-  lib,
   # The type of system to build for
   system,
   # The tree of file paths
@@ -14,6 +12,8 @@
   # Arguments to be given to nixpkgs instantiation.
   # <https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/impure.nix>
   nixpkgsArgs ? {},
+  # Defines the lib (allows for custom lib to be passed in)
+  lib ? nixpkgs.lib,
   # State Version of the system
   stateVersion,
   # Overlays to apply to nixpkgs
@@ -52,14 +52,18 @@
     }
     // nixpkgsArgs;
 
-  # Home Lib
-  homeLib = lib.extend (self: super: {
+  # Lib for Home Manager
+  libHome = lib.extend (self: super: {
     hm = import "${homeManager}/modules/lib" {lib = self;};
   });
 
+  # Define Main User for NixOS
+  mainUser = systemUsers.mainUser;
+
   # SpecialArgs
-  nixosSpecialArgs = specialArgs // {inherit nixpkgs lib;};
-  homeSpecialArgs = specialArgs // {inherit nixpkgs inputs tree self;} // {lib = homeLib;};
+  baseArgs = specialArgs // {inherit nixpkgs inputs tree self;};
+  nixosSpecialArgs = baseArgs // {inherit lib mainUser;};
+  homeSpecialArgs = baseArgs // {lib = libHome;};
 
   # Users
   usersConfig = lib.mkMerge [
