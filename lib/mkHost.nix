@@ -57,18 +57,17 @@
     hm = import "${homeManager}/modules/lib" {lib = self;};
   });
 
-  # Define Main User for NixOS
-  mainUser = systemUsers.mainUser;
-
   # SpecialArgs
   baseArgs = specialArgs // {inherit nixpkgs inputs tree self;};
-  nixosSpecialArgs = baseArgs // {inherit lib mainUser;};
+  nixosSpecialArgs = baseArgs // {inherit lib;} // {mainUser = systemUsers.mainUser;};
   homeSpecialArgs = baseArgs // {lib = libHome;};
+
+  # Define users to add
+  usersToAdd = [systemUsers.mainUser] ++ systemUsers.otherUsers;
 
   # Users
   usersConfig = lib.mkMerge [
-    (lib.cust.mkUser systemUsers.mainUser) # Main
-    (lib.mkMerge (lib.lists.forEach systemUsers.otherUsers (user: lib.cust.mkUser user))) # Others
+    (lib.mkMerge (lib.lists.forEach usersToAdd (user: lib.cust.mkUser user)))
     (lib.cust.mkUser {
       username = "root";
       name = lib.mkDefault "System Administrator";
@@ -77,8 +76,8 @@
     })
   ];
 
-  # Other Users for home-manager
-  otherUsersHM = lib.lists.forEach systemUsers.otherUsers (
+  # Users for home-manager
+  usersHM = lib.lists.forEach usersToAdd (
     user: {
       home-manager.users.${user.username} = {
         imports = user.homeModules;
@@ -98,16 +97,9 @@
         home-manager.useUserPackages = true;
         home-manager.extraSpecialArgs = homeSpecialArgs;
       }
-      # Main User
-      {
-        home-manager.users.${systemUsers.mainUser.username} = {
-          imports = systemUsers.mainUser.homeModules;
-          home.stateVersion = stateVersion;
-        };
-      }
     ]
-    # Other Users
-    ++ otherUsersHM;
+    # Add the home manager users
+    ++ usersHM;
 in
   nixpkgs.lib.nixosSystem {
     inherit system;
