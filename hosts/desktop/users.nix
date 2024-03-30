@@ -6,12 +6,8 @@
   ...
 }: {
   imports =
-    # import extra nixos modules
-    [
-      self.nixosModules.users
-    ]
     # Set the mainUser
-    ++ [{users.mainUser = "ianmh";}]
+    [{users.mainUser = "ianmh";}]
     # Add Users
     ++ (with lib.cust.nixos; let
       homeConfigs = tree.home.configs;
