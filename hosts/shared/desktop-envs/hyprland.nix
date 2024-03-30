@@ -28,7 +28,7 @@ in
   lib.mkMerge [
     # Add the session to NixOS
     # NOTE: This has to be done because Hyprland will be configured through home manager
-    (lib.cust.NixOS.addSession {
+    (lib.cust.nixos.addSession {
       inherit pkgs lib;
       name = "Hyprland";
       package = hyprlandPkg;
