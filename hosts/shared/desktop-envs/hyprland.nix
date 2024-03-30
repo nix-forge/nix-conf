@@ -7,13 +7,13 @@
   pkgs,
   config,
   inputs,
-  mainUser,
+  self,
   ...
 }: let
   # Define the user to use for home manager
   user =
     if useMainUser || username == null
-    then mainUser.username
+    then config.users.mainUser
     else username;
   # Get the home manger config
   homeConfig = config.home-manager.users.${user};

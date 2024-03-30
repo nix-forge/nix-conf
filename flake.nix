@@ -63,7 +63,7 @@
       lib.bird.importDirRecursive configRoot excludes;
 
     # System Modules
-    nixosModules = {};
+    nixosModules = lib.bird.importDir' ./_nixosModules null;
 
     # Home Modules
     homeModules = {};
