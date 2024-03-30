@@ -47,11 +47,10 @@
   ...
 }: let
   # Pkgs
-  pkgs =
-    import nixpkgs {
+  pkgs = import nixpkgs ({
       inherit overlays system;
     }
-    // nixpkgsArgs;
+    // nixpkgsArgs);
 
   # Lib for Home Manager
   libHome = lib.extend (self: super: {
