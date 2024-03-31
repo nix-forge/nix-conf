@@ -13,6 +13,7 @@
     home = {
       inherit username;
       stateVersion = config.system.stateVersion;
+      homeDirectory = config.users.users.${username}.home;
     };
   };
 }

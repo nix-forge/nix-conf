@@ -16,8 +16,6 @@
   ####################################
   ### BASIC USER ENVIRONMENT SETUP ###
   ####################################
-  home.homeDirectory = "/home/${config.home.username}";
-
   xdg.enable = true;
   xdg.userDirs.enable = true;
   xdg.userDirs.createDirectories = true;
@@ -26,14 +24,14 @@
 
   # should already be enabled at system level
   # fontconfig required to make user-fonts by name
-  # todo: figure out how to make ~/.local/share/fonts
+  # TODO: figure out how to make ~/.local/share/fonts
   fonts.fontconfig.enable = true;
 
-  home.sessionVariables = {
-    BROWSER = "firefox";
-    TERMINAL = "kitty";
-    EDITOR = "nvim";
-  };
+  # home.sessionVariables = {
+  #   BROWSER = "firefox";
+  #   TERMINAL = "kitty";
+  #   EDITOR = "nvim";
+  # };
 
   ##########################
   ### PACKAGES & MODULES ###
