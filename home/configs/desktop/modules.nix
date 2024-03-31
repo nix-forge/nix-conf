@@ -1,4 +1,1 @@
-{tree, ...}:
-with tree.home.configs.shared; [
-  profile
-]
+{ tree, ... }: with tree.home.configs.shared; [ profile ]

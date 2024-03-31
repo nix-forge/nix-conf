@@ -9,19 +9,20 @@
   nixpkgs ? inputs.nixpkgs,
   # Arguments to be given to nixpkgs instantiation.
   # <https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/impure.nix>
-  nixpkgsArgs ? {},
+  nixpkgsArgs ? { },
   # Overlays to apply to nixpkgs
-  overlays ? [],
+  overlays ? [ ],
   # Additional `specialArgs` (overwrites `args` attributes).
-  specialArgs ? {},
+  specialArgs ? { },
   # define the home-manager flake
   home-manager ? inputs.home-manager,
   # The modules to include in the home-manager for the system
-  modules ? [],
+  modules ? [ ],
   # Define the username to use for the home-manager
   username ? "user",
   ...
-}: let
+}:
+let
   inherit (inputs) nixpkgs home-manager;
   # Define the pkgs for the system
   pkgs =
@@ -31,13 +32,11 @@
     }
     // nixpkgsArgs;
   # Define the SpecialArgs
-  extraSpecialArgs = specialArgs // {inherit nixpkgs lib;};
+  extraSpecialArgs = specialArgs // {
+    inherit nixpkgs lib;
+  };
 in
-  home-manager.lib.homeManagerConfiguration {
-    inherit system pkgs extraSpecialArgs;
-    modules =
-      [
-        {home.username = username;}
-      ]
-      ++ modules;
-  }
+home-manager.lib.homeManagerConfiguration {
+  inherit system pkgs extraSpecialArgs;
+  modules = [ { home.username = username; } ] ++ modules;
+}

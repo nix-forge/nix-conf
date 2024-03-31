@@ -1,13 +1,22 @@
 {
   username,
   description ? "",
-  extraGroups ? [],
+  extraGroups ? [ ],
   initialPassword ? "password",
   isNormalUser ? true,
-  homeModules ? [],
+  homeModules ? [ ],
   ...
-}: {config, ...}: {
-  users.users.${username} = {inherit description extraGroups initialPassword isNormalUser;};
+}:
+{ config, ... }:
+{
+  users.users.${username} = {
+    inherit
+      description
+      extraGroups
+      initialPassword
+      isNormalUser
+      ;
+  };
   home-manager.users.${username} = {
     imports = homeModules;
     home = {

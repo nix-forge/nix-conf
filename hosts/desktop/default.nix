@@ -6,10 +6,17 @@
   ...
 }:
 lib.cust.mkHost {
-  inherit inputs lib tree self;
+  inherit
+    inputs
+    lib
+    tree
+    self
+    ;
   system = "x86_64-linux";
   nixpkgs = inputs.nixpkgs;
-  nixpkgsArgs = {config.allowUnfree = true;};
+  nixpkgsArgs = {
+    config.allowUnfree = true;
+  };
   stateVersion = "24.05";
 
   specialArgs = {
@@ -24,6 +31,7 @@ lib.cust.mkHost {
     base.nix-settings
     # nix-registry
     ./users.nix
+    # Kernel
 
     ## Boot
     boot.grub.default
@@ -39,7 +47,7 @@ lib.cust.mkHost {
 
     ## Hardware
     ./filesystems.nix
-    zram
+    hardware.zram
     # networking
     # virtualization
     # bluetooth
@@ -56,7 +64,7 @@ lib.cust.mkHost {
     # fcitx
 
     ## Desktop Environments
-    (desktop-envs.hyprland {useMainUser = true;})
+    (desktop-envs.hyprland { useMainUser = true; })
     # gnome
     # plasma
     # xdg
@@ -72,5 +80,5 @@ lib.cust.mkHost {
     # polkit
   ];
 
-  overlays = [];
+  overlays = [ ];
 }

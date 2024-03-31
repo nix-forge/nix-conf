@@ -3,7 +3,8 @@
   lib,
   self,
   ...
-}: {
+}:
+{
   imports = [
     # Import NixOS modules that have options used acrossed multiple files in shared
     self.nixosModules.users
@@ -35,19 +36,26 @@
     # derivations which are associated with active store paths
     keep-outputs = true;
     # divide cores between jobs and reserve some for the system
-    cores = let
-      # number of logical cores to reserve for other processes
-      reserveCores = 2;
-    in
+    cores =
+      let
+        # number of logical cores to reserve for other processes
+        reserveCores = 2;
+      in
       (host.logicalProcessors - reserveCores) / max-jobs;
     # max concurrent jobs
     max-jobs = 4;
     # allow sudo users to mark the following values as trusted
-    trusted-users = ["root" "@wheel"];
+    trusted-users = [
+      "root"
+      "@wheel"
+    ];
     # only allow sudo users to manage the nix store
-    allowed-users = ["@wheel"];
+    allowed-users = [ "@wheel" ];
     # enable new nix command and flakes
-    extra-experimental-features = ["flakes" "nix-command"];
+    extra-experimental-features = [
+      "flakes"
+      "nix-command"
+    ];
 
     # TODO: Make this Flake nixConfig
     # continue building derivations if one fails

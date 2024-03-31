@@ -2,19 +2,18 @@
   useMainUser ? false,
   username ? null,
   ...
-}: {
+}:
+{
   lib,
   pkgs,
   config,
   inputs,
   self,
   ...
-}: let
+}:
+let
   # Define the user to use for home manager
-  user =
-    if useMainUser || username == null
-    then config.users.mainUser
-    else username;
+  user = if useMainUser || username == null then config.users.mainUser else username;
   # Get the home manger config
   homeConfig = config.home-manager.users.${user};
 
@@ -24,7 +23,8 @@
   #       a user who's Hyprland session will define all Hyprland sessions at login. Otherwise another way this could
   #       be done is to create a session for each user for a given session.
   hyprlandPkg = homeConfig.wayland.windowManager.hyprland.finalPackage;
-in {
+in
+{
   imports = [
     # Add the session to NixOS
     # NOTE: This has to be done because Hyprland will be configured through home manager

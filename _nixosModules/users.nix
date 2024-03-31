@@ -1,8 +1,5 @@
+{ config, lib, ... }:
 {
-  config,
-  lib,
-  ...
-}: {
   options.users = {
     normalUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -17,9 +14,10 @@
   };
 
   config.users = {
-    normalUsers = let
-      nomralUsersSet = lib.filterAttrs (_: user: user.isNormalUser) config.users.users;
-    in
+    normalUsers =
+      let
+        nomralUsersSet = lib.filterAttrs (_: user: user.isNormalUser) config.users.users;
+      in
       lib.mapAttrsToList (_: user: user.name) nomralUsersSet;
   };
 }

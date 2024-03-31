@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   services.xserver = {
     enable = true;
 
@@ -10,6 +11,6 @@
     };
 
     desktopManager.gnome.enable = true;
-    environment.gnome.excludePackages = [];
+    environment.gnome.excludePackages = [ ];
   };
 }

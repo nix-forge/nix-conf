@@ -15,32 +15,39 @@
   nixpkgs ? inputs.nixpkgs,
   # Arguments to be given to nixpkgs instantiation.
   # <https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/impure.nix>
-  nixpkgsArgs ? {},
+  nixpkgsArgs ? { },
   # Overlays to apply to nixpkgs
-  overlays ? [],
+  overlays ? [ ],
   # Additional `specialArgs` (overwrites `args` attributes).
-  specialArgs ? {},
+  specialArgs ? { },
   # The modules to include in the system
-  nixosModules ? [],
+  nixosModules ? [ ],
   # define the home-manager flake
   homeManager ? inputs.home-manager,
   ...
-}: let
+}:
+let
   # Pkgs
-  pkgs = import nixpkgs ({
-      inherit overlays system;
-    }
-    // nixpkgsArgs);
+  pkgs = import nixpkgs ({ inherit overlays system; } // nixpkgsArgs);
 
   # Lib for Home Manager
-  libHome = lib.extend (self: super: {
-    hm = import "${homeManager}/modules/lib" {lib = self;};
-  });
+  libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
   # SpecialArgs
-  baseArgs = specialArgs // {inherit nixpkgs inputs tree self;};
-  nixosSpecialArgs = baseArgs // {inherit lib;};
-  homeSpecialArgs = baseArgs // {lib = libHome;};
+  baseArgs = specialArgs // {
+    inherit
+      nixpkgs
+      inputs
+      tree
+      self
+      ;
+  };
+  nixosSpecialArgs = baseArgs // {
+    inherit lib;
+  };
+  homeSpecialArgs = baseArgs // {
+    lib = libHome;
+  };
 
   # Define the home-manager modules
   nixosHomeManager = [
@@ -54,14 +61,11 @@
     }
   ];
 in
-  nixpkgs.lib.nixosSystem {
-    inherit system;
-    specialArgs = nixosSpecialArgs;
-    modules =
-      [
-        {nixpkgs.pkgs = pkgs;} # Set the Pkgs for the system
-        {system.stateVersion = stateVersion;} # Set State Version
-      ]
-      ++ nixosModules
-      ++ nixosHomeManager;
-  }
+nixpkgs.lib.nixosSystem {
+  inherit system;
+  specialArgs = nixosSpecialArgs;
+  modules = [
+    { nixpkgs.pkgs = pkgs; } # Set the Pkgs for the system
+    { system.stateVersion = stateVersion; } # Set State Version
+  ] ++ nixosModules ++ nixosHomeManager;
+}
