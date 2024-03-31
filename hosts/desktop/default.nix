@@ -24,7 +24,6 @@ lib.cust.mkHost {
     base.nix-settings
     # nix-registry
     ./users.nix
-    # xdg
 
     ## Boot
     boot.grub.default
@@ -60,14 +59,17 @@ lib.cust.mkHost {
     (desktop-envs.hyprland {useMainUser = true;})
     # gnome
     # plasma
+    # xdg
 
     ## Display Manager
     # greetd
     # gdm
     # sddm
 
-    # Other
+    ## Other
     # swaylock setup (replace with hyprlock)
+    # keyring
+    # polkit
   ];
 
   overlays = [];
