@@ -9,6 +9,8 @@
   self,
   # Defines the lib (allows for custom lib to be passed in)
   lib,
+  # Define the host name
+  hostName,
   # State Version of the system
   stateVersion,
   # The input of nixpkgs to use for the host.
@@ -28,7 +30,13 @@
 }:
 let
   # Pkgs
-  pkgs = import nixpkgs ({ inherit overlays system; } // nixpkgsArgs);
+  pkgs = import nixpkgs (
+    {
+      inherit system;
+      overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
+    }
+    // nixpkgsArgs
+  );
 
   # Lib for Home Manager
   libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
@@ -46,7 +54,7 @@ let
     inherit lib;
   };
   homeSpecialArgs = baseArgs // {
-    lib = libHome;
+    lib = lib // libHome;
   };
 
   # Define the home-manager modules
@@ -67,5 +75,6 @@ nixpkgs.lib.nixosSystem {
   modules = [
     { nixpkgs.pkgs = pkgs; } # Set the Pkgs for the system
     { system.stateVersion = stateVersion; } # Set State Version
+    { networking.hostName = hostName; }
   ] ++ nixosModules ++ nixosHomeManager;
 }

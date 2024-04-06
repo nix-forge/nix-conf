@@ -6,12 +6,7 @@
   ...
 }:
 lib.cust.mkHost {
-  inherit
-    inputs
-    lib
-    tree
-    self
-    ;
+  hostName = "desktop";
   system = "x86_64-linux";
   nixpkgs = inputs.nixpkgs;
   nixpkgsArgs = {
@@ -21,7 +16,6 @@ lib.cust.mkHost {
 
   specialArgs = {
     host = {
-      name = "desktop";
       logicalProcessors = 16; # run nproc
     };
   };
@@ -29,56 +23,69 @@ lib.cust.mkHost {
   nixosModules = with tree.hosts.shared; [
     ## Base
     base.nix-settings
-    # nix-registry
+    base.nix-registry
+    base.kernel
     ./users.nix
-    # Kernel
 
     ## Boot
     boot.grub.default
     boot.grub.dual-boot
-    # kernel modules
+    ./hardware/kernel-modules.nix
     # plymouth
     # grub theme
 
-    ## Loclaization
-    # time
+    ## Locale
+    ./timezone.nix
+    locale.timesync
+    locale.fonts
     # keyboard
-    # language
+    # languages
 
     ## Hardware
-    ./filesystems.nix
+    ./hardware/filesystems.nix
+    ./hardware/gpu.nix
+    ./hardware/cpu.nix
     hardware.zram
-    # networking
+    hardware.networking
     # virtualization
     # bluetooth
     # firmware
-    # pipewire
-    # GPU
-    # CPU
+    hardware.pipewire
     # power management
-    # pheripherals (mouse, trackpad, etc)
+    peripherals.mouse
     # gaming support
 
-    ## Input
-    # fonts
-    # fcitx
-
     ## Desktop Environments
-    (desktop-envs.hyprland { useMainUser = true; })
-    # gnome
+    # (desktop-envs.hyprland { useMainUser = true; })
+    desktop-envs.gnome
     # plasma
     # xdg
 
-    ## Display Manager
-    # greetd
-    # gdm
+    ## Display Managers
+    # display-managers.greetd
+    display-managers.gdm
     # sddm
 
+    ## Services
+    services.disable-hibernate
+
     ## Other
+    packages
     # swaylock setup (replace with hyprlock)
     # keyring
     # polkit
   ];
 
-  overlays = [ ];
+  overlays = [
+    inputs.nur.overlay
+    inputs.vscode-extensions.overlays.default
+  ];
+
+  # inherit function arguments
+  inherit
+    inputs
+    lib
+    tree
+    self
+    ;
 }

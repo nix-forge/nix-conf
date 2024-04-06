@@ -23,8 +23,23 @@
     # Nixfmt
     nixfmt.url = "github:nixos/nixfmt";
 
+    # NUR
+    nur.url = "github:nix-community/NUR";
+
+    # VSCode Extensions
+    vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+
     # Hyprland Flake
     hyprland-git.url = "github:hyprwm/Hyprland";
+
+    # Firefox BetterFox
+    firefox-betterfox = {
+      url = "github:yokoffing/Betterfox";
+      flake = false;
+    };
+
+    # Spicetify
+    spicetify-nix.url = "github:the-argus/spicetify-nix";
   };
 
   nixConfig = {

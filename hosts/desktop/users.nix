@@ -13,7 +13,7 @@
         (addUser {
           username = "ianmh";
           description = "Ian Holloway";
-          groups = [
+          extraGroups = [
             "wheel"
             "audio"
             "video"
@@ -22,15 +22,16 @@
           homeModules = homeConfigs.desktop.modules { inherit tree; };
         })
 
-        (addUser {
-          username = "guest";
-          description = "Guest User";
-          groups = [
-            "audio"
-            "video"
-          ];
-          initialPassword = "password";
-        })
+        # (addUser {
+        #   username = "guest";
+        #   description = "Guest User";
+        #   extraGroups = [
+        #     "audio"
+        #     "video"
+        #   ];
+        #   initialPassword = "password";
+        #   homeModules = homeConfigs.desktop.modules { inherit tree; };
+        # })
       ]
     );
 }
