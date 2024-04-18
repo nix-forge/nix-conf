@@ -3,7 +3,7 @@
   package,
   wayland ? true,
   lib,
-  pkgs
+  pkgs,
 }:
 let
   # Create the desktop file to define the session inside of a directory
@@ -38,5 +38,5 @@ let
   };
 in
 {
-  services.xserver.displayManager.sessionPackages = [ session ];
+  services.displayManager.sessionPackages = [ session ];
 }
