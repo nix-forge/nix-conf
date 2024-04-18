@@ -63,6 +63,7 @@ args@{
 
       ### MEDIA CONSUMPTION ###
       programs.spotify
+      programs.foliate
 
       ### OFFICE & WRITING SOFTWARE ###
       programs.zoom
@@ -72,11 +73,12 @@ args@{
 
       ### CODE EDITORS ###
       programs.vscode.settings
+      programs.vscode.keybinds
       programs.vscode.languages.cpp
-      programs.vscode.languages.bash
       programs.vscode.languages.nix
       programs.vscode.languages.web
       programs.vscode.languages.python
+      programs.vscode.languages.bash
 
       ### DEVELOPMENT TOOLS ###
       development.tools.docs
