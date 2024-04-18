@@ -56,14 +56,14 @@ lib.cust.mkHost {
     # gaming support
 
     ## Desktop Environments
-    # (desktop-envs.hyprland { useMainUser = true; })
-    desktop-envs.gnome
+    (desktop-envs.hyprland { useMainUser = true; })
+    # desktop-envs.gnome
     # plasma
     # xdg
 
     ## Display Managers
-    # display-managers.greetd
-    display-managers.gdm
+    display-managers.greetd
+    # display-managers.gdm
     # sddm
 
     ## Services
