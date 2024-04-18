@@ -31,6 +31,20 @@
 
     # Hyprland Flake
     hyprland-git.url = "github:hyprwm/Hyprland";
+    hyprland-xdph-git.url = "github:hyprwm/xdg-desktop-portal-hyprland";
+    hyprland-protocols-git.url = "github:hyprwm/xdg-desktop-portal-hyprland";
+    hyprlang-git.url = "github:hyprwm/hyprlang";
+
+    # Hyprland Nix Configuration
+    hyprland-nix = {
+      url = "github:hyprland-community/hyprland-nix";
+      inputs = {
+        hyprland.follows = "hyprland-git";
+        hyprland-xdph.follows = "hyprland-xdph-git";
+        hyprland-protocols.follows = "hyprland-protocols-git";
+        hyprlang.follows = "hyprlang-git";
+      };
+    };
 
     # Firefox BetterFox
     firefox-betterfox = {
