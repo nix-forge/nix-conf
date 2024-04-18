@@ -35,6 +35,10 @@ args@{ pkgs, lib, ... }:
   ### MEDIA CONSUMPTION ###
   #########################
 
+  foliate = {
+    home.packages = [ pkgs.foliate ];
+  };
+
   #################################
   ### OFFICE & WRITING SOFTWARE ###
   #################################
