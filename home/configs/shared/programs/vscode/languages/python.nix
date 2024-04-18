@@ -1,19 +1,19 @@
-{ lib, pkgs, ... }: {
+{ pkgs, ... }:
+{
   programs.vscode.extensions =
-    #
-    with pkgs.vscode-marketplace;
-    with pkgs.vscode-marketplace-release; [
-
+    let
+      extensions = pkgs.callPackage ../marketplace.nix { };
+    in
+    with extensions.preferReleases;
+    [
       ms-python.python
       ms-python.vscode-pylance
-      ms-toolsai.jupyter
+      ms-python.debugpy
 
-      njpwerner.autodocstring
       kevinrose.vsc-python-indent
 
-      ms-python.black-formatter
-      ms-python.autopep8
-      eeyore.yapf
+      ms-toolsai.jupyter-renderers
+      ms-toolsai.jupyter
     ];
 
   programs.vscode.userSettings = {
@@ -23,6 +23,6 @@
     };
 
     "python.analysis.autoImportCompletions" = true;
-    "python.analysis.typeCheckingMode" = "basic";
+    "python.analysis.typeCheckingMode" = "standard";
   };
 }

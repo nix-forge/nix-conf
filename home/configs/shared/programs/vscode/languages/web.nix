@@ -1,13 +1,18 @@
-{ lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
+{
   programs.vscode.extensions =
-    #
-    with pkgs.vscode-marketplace;
-    with pkgs.vscode-marketplace-release; [
+    let
+      extensions = pkgs.callPackage ../marketplace.nix { };
+    in
+    with extensions.preferReleases;
+    [
       ms-vscode.live-server
       aeschli.vscode-css-formatter
     ];
 
   programs.vscode.userSettings = {
-    "[css]" = { "editor.defaultFormatter" = "aeschli.vscode-css-formatter"; };
+    "[css]" = {
+      "editor.defaultFormatter" = "aeschli.vscode-css-formatter";
+    };
   };
 }

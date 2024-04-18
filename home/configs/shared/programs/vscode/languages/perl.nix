@@ -1,9 +1,14 @@
-{ lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
+{
   programs.vscode.extensions =
-    #
-    with pkgs.vscode-marketplace;
-    with pkgs.vscode-marketplace-release;
-    [ fractalboy.pls ];
+    let
+      extensions = pkgs.callPackage ../marketplace.nix { };
+    in
+    with extensions.preferReleases;
+    [
+      #
+      fractalboy.pls
+    ];
 
   programs.vscode.userSettings = {
     "pls.cmd" = lib.getExe pkgs.perlPackages.PLS;

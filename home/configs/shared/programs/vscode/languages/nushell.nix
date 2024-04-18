@@ -1,8 +1,14 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   home.packages = [ pkgs.nushell ];
 
   programs.vscode.extensions =
-    with pkgs.vscode-marketplace;
-    with pkgs.vscode-marketplace-release;
-    [ thenuprojectcontributors.vscode-nushell-lang ];
+    let
+      extensions = pkgs.callPackage ../marketplace.nix { };
+    in
+    with extensions.preferReleases;
+    [
+      #
+      thenuprojectcontributors.vscode-nushell-lang
+    ];
 }
