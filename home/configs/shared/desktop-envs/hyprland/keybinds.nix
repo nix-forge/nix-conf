@@ -238,7 +238,7 @@
         # Open Rofi to launch a program.
         # bind."SUPER, Space" = "exec, rofi -show drun -show-icons";
         # Open Rofi to run a command.
-        bind."SUPER, R" = "exec, ${lib.getExe pkgs.rofi-wayland} -show drun -show-icons";
+        bind."SUPER, R" = "exec, ${lib.getExe config.programs.rofi.finalPackage} -show drun -show-icons";
       }
       ### FUNCTION KEYS ###
       {
