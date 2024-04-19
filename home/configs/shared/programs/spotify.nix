@@ -1,6 +1,13 @@
-{ inputs, pkgs, config, ... }:
-let spicePkgs = inputs.spicetify-nix.packages.${pkgs.system}.default;
-in {
+{
+  inputs,
+  pkgs,
+  config,
+  ...
+}:
+let
+  spicePkgs = inputs.spicetify-nix.packages.${pkgs.system}.default;
+in
+{
   # import the flake's module for your system
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
 
@@ -30,23 +37,27 @@ in {
       fullAlbumDate # show full album release date
     ];
 
-    enabledCustomApps = with spicePkgs.apps; [ new-releases lyrics-plus ];
+    enabledCustomApps = with spicePkgs.apps; [
+      new-releases
+      lyrics-plus
+    ];
 
-    #dontInstall = true;
+    dontInstall = true;
   };
 
-  # # Wrap spicetify with extra arguments and install package
-  # # TODO: make this a little bit more elegantly and make sure I am wrapping the program correctly
-  # # TODO: explain purpose of disable gpu flag
-  # home.packages = let
-  #   spicetify_pkg = config.programs.spicetify.spicedSpotify;
-  #   spicetify_wrapped = pkgs.symlinkJoin {
-  #     name = "spicetify-wrapped";
-  #     paths = [
-  #       (pkgs.writeShellScriptBin "spotify"
-  #         "exec ${spicetify_pkg}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --disable-gpu")
-  #       spicetify_pkg
-  #     ];
-  #   };
-  # in [ spicetify_wrapped ];
+  # Wrap spicetify with extra arguments and install package
+  # TODO: make this a little bit more elegantly and make sure I am wrapping the program correctly
+  # TODO: explain purpose of disable gpu flag
+  home.packages =
+    let
+      spicetify_pkg = config.programs.spicetify.spicedSpotify;
+      spicetify_wrapped = pkgs.symlinkJoin {
+        name = "spicetify-wrapped";
+        paths = [
+          (pkgs.writeShellScriptBin "spotify" "exec ${spicetify_pkg}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --disable-gpu")
+          spicetify_pkg
+        ];
+      };
+    in
+    [ spicetify_wrapped ];
 }
