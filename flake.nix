@@ -26,7 +26,11 @@
     # NUR
     nur.url = "github:nix-community/NUR";
 
-    # VSCode Extensions
+    # VS Code
+    vscode-insider = {
+      url = "github:iosmanthus/code-insiders-flake";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
     # Hyprland Flake
@@ -53,7 +57,10 @@
     };
 
     # Spicetify
-    spicetify-nix.url = "github:the-argus/spicetify-nix";
+    spicetify-nix = {
+      url = "github:the-argus/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
