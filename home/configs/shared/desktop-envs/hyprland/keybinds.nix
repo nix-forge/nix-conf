@@ -249,7 +249,7 @@
         bindl.", XF86AudioMute" = "exec, ${pkgs.wireplumber}/bin/wpctl @DEFAULT_AUDIO_SINK@ toggle";
 
         # Raise and lower the volume of the active audio output.
-        bindel.", XF86AudioRaiseVolume" = "exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+";
+        bindel.", XF86AudioRaiseVolume" = "exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+";
         bindel.", XF86AudioLowerVolume" = "exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
 
         # Raise and lower display brightness.
