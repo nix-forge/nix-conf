@@ -36,6 +36,12 @@ in
         This is useful for systems with Nvidia GPUs that are not the primary GPU.
       ''
     );
+    waylandEnvs = lib.mkEnableOption (
+      lib.mdDoc ''
+        Enable Nvidia Wayland environment variables.
+        This is useful for systems with primary GPU as Nvidia and uses Wayland.
+      ''
+    );
   };
 
   config = lib.mkIf cfg.enable {
@@ -58,8 +64,17 @@ in
       })
     ];
 
-    # Nvidia VAAPI driver direct backend
-    environment.sessionVariables.NVD_BACKEND = lib.mkIf cfg.nvidia-vaapi-driver.directBackend "direct";
+    environment.sessionVariables = lib.mkMerge [
+      { NVD_BACKEND = lib.mkIf cfg.nvidia-vaapi-driver.directBackend "direct"; }
+
+      (lib.mkIf cfg.waylandEnvs {
+        LIBVA_DRIVER_NAME = "nvidia";
+        GBM_BACKEND = "nvidia-drm"; # If you encounter crashes in Firefox then remove this line
+        __GLX_VENDOR_LIBRARY_NAME = "nvidia"; # If you face problems with Discord windows not displaying or screen sharing not working in Zoom then remove this line
+        WLR_NO_HARDWARE_CURSORS = "1";
+        XDG_SESSION_TYPE = "wayland";
+      })
+    ];
 
     # Nvidia beta driver
     hardware.nvidia.package =
