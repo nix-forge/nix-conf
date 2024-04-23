@@ -11,11 +11,11 @@
       let
         # Define greetd-tui
         greetd_tui_exec = lib.getExe pkgs.greetd.tuigreet;
-        sessions = config.services.xserver.displayManager.sessionData.desktops;
-        sessionsPath = lib.strings.concatStringsSep ":" [ 
-	  "${sessions}/share/wayland-sessions"
+        sessions = config.services.displayManager.sessionData.desktops;
+        sessionsPath = lib.strings.concatStringsSep ":" [
+          "${sessions}/share/wayland-sessions"
           "${sessions}/share/xsessions"
-	];
+        ];
         greetd_tui_args = lib.strings.concatStringsSep " " [
           "--time" # display the current date and time
           "--time-format '%I:%M %p | %a • %h | %F'" # custom strftime format for displaying date and time
