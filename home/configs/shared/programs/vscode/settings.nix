@@ -1,9 +1,14 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   programs.vscode.enable = true;
   programs.vscode.package =
     let
-      super = pkgs.vscode;
+      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
       fontPackages = with pkgs; [
         material-design-icons
         (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
