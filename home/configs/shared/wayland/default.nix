@@ -1,4 +1,0 @@
-{ ... }:
-{
-  imports = [ (import ./env) ];
-}
