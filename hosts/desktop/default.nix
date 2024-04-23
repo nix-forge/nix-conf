@@ -74,6 +74,9 @@ lib.cust.mkHost {
     # swaylock setup (replace with hyprlock)
     # keyring
     # polkit
+
+    ## Environment Variables
+    env.wayland.default
   ];
 
   overlays = [
