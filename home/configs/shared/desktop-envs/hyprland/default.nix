@@ -21,7 +21,7 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
-    package = inputs.hyprland-git.packages.${pkgs.system}.hyprland;
+    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
     reloadConfig = true;
     systemdIntegration = true;
     recommendedEnvironment = true;

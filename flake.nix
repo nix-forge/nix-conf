@@ -20,9 +20,6 @@
     # Bird Nix Lib
     bird-nix-lib.url = "github:spikespaz/bird-nix-lib";
 
-    # Nixfmt
-    nixfmt.url = "github:nixos/nixfmt";
-
     # NUR
     nur.url = "github:nix-community/NUR";
 
@@ -34,19 +31,19 @@
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
     # Hyprland Flake
-    hyprland-git.url = "github:hyprwm/Hyprland";
-    hyprland-xdph-git.url = "github:hyprwm/xdg-desktop-portal-hyprland";
-    hyprland-protocols-git.url = "github:hyprwm/xdg-desktop-portal-hyprland";
-    hyprlang-git.url = "github:hyprwm/hyprlang";
+    hyprland.url = "github:hyprwm/Hyprland/v0.39.1";
+    hyprland-xdph.url = "github:hyprwm/xdg-desktop-portal-hyprland";
+    hyprland-protocols.url = "github:hyprwm/xdg-desktop-portal-hyprland";
+    hyprlang.url = "github:hyprwm/hyprlang";
 
     # Hyprland Nix Configuration
     hyprland-nix = {
       url = "github:hyprland-community/hyprland-nix";
       inputs = {
-        hyprland.follows = "hyprland-git";
-        hyprland-xdph.follows = "hyprland-xdph-git";
-        hyprland-protocols.follows = "hyprland-protocols-git";
-        hyprlang.follows = "hyprlang-git";
+        hyprland.follows = "hyprland";
+        hyprland-xdph.follows = "hyprland-xdph";
+        hyprland-protocols.follows = "hyprland-protocols";
+        hyprlang.follows = "hyprlang";
       };
     };
 
@@ -103,8 +100,14 @@
         in
         lib.bird.importDirRecursive configRoot excludes;
 
-      # Define the formatter for the config
-      formatter = eachSystem (system: inputs.nixfmt.packages.${system}.default);
+      # Nix formatter for this flake
+      formatter = eachSystem (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.nixfmt-rfc-style
+      );
 
       # System Modules
       nixosModules = lib.bird.importDir' ./_nixosModules null;
