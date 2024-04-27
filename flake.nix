@@ -37,8 +37,8 @@
     hyprlang.url = "github:hyprwm/hyprlang";
 
     # Hyprland Nix Configuration
-    hyprland-nix = {
-      url = "github:hyprland-community/hyprland-nix";
+    hyprnix = {
+      url = "github:hyprland-community/hyprnix";
       inputs = {
         hyprland.follows = "hyprland";
         hyprland-xdph.follows = "hyprland-xdph";

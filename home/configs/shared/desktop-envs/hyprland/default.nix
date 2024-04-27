@@ -8,7 +8,7 @@
 }:
 {
   imports = [
-    inputs.hyprland-nix.homeManagerModules.hyprland
+    inputs.hyprnix.homeManagerModules.hyprland
     ./config.nix
     ./windowrules.nix
     ./keybinds.nix
