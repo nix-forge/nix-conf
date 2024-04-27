@@ -86,6 +86,7 @@ args@{
       ### DEVELOPMENT TOOLS ###
       programs.dev.tools.docs
       programs.dev.tools.direnv
+      programs.dev.tools.nix-formatter
 
       ## DEVELOPMENT ##
       programs.dev.languages.c
