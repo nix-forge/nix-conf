@@ -1,12 +1,18 @@
-{ lib, pkgs, config, ... }:
-let inherit (pkgs.nur.repos.rycee) firefox-addons;
-in {
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+let
+  inherit (pkgs.nur.repos.rycee) firefox-addons;
+in
+{
   # this nix configuration requires two extensions
-  programs.firefox.profiles."${config.home.username}.default".extensions =
-    with firefox-addons; [
-      localcdn
-      ublock-origin
-    ];
+  programs.firefox.profiles."${config.home.username}.default".extensions = with firefox-addons; [
+    localcdn
+    ublock-origin
+  ];
 
   # this file adds default user settings to uBlock Origin's config
   # it is pre-configured to use Steven Black's Unified Hosts
@@ -22,15 +28,14 @@ in {
   # <https://github.com/gorhill/uBlock/wiki/Blocking-mode:-medium-mode>
   # it is probably not necessary because of the aggregate list that is added,
   # and it is definitely not worth breaking sites for your average user.
-  home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text =
-    builtins.toJSON {
-      name = "uBlock0@raymondhill.net";
-      description = "ignored";
-      type = "storage";
-      data = let
+  home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
+    name = "uBlock0@raymondhill.net";
+    description = "ignored";
+    type = "storage";
+    data =
+      let
         # https://github.com/StevenBlack/hosts
-        stevenBlackHosts =
-          "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
+        stevenBlackHosts = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
         defaultFilteringString = ''
           behind-the-scene * * noop
           behind-the-scene * 1p-script noop
@@ -108,7 +113,8 @@ in {
           * use.fontawesome.com.cdn.cloudflare.net * noop
           * vo.aicdn.com * noop
         '';
-      in {
+      in
+      {
         adminSettings = builtins.toJSON {
           userSettings = {
             advancedUserEnabled = true;
@@ -158,5 +164,5 @@ in {
           '';
         };
       };
-    };
+  };
 }

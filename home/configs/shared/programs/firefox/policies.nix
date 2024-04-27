@@ -1,4 +1,4 @@
-{ ... }: {
+{
   programs.firefox.policies = {
     # DisableFirefoxAccounts = true;
     # PasswordManagerEnabled = false;

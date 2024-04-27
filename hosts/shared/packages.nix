@@ -1,8 +1,5 @@
+{ pkgs, config, ... }:
 {
-  pkgs,
-  config,
-  ...
-}: {
   # Packages which are appropriate for a typical Linux system.
   # There should be **no GUI programs** in this list.
   environment.systemPackages = with pkgs; [

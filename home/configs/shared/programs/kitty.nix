@@ -34,7 +34,9 @@
     shellIntegration.enableZshIntegration = true;
     settings.shell = "${lib.getExe pkgs.zsh} --login --interactive";
 
-    keybindings = { "ctrl+shift+m" = "toggle_maximized"; };
+    keybindings = {
+      "ctrl+shift+m" = "toggle_maximized";
+    };
 
     settings = {
       background_opacity = "0.93";

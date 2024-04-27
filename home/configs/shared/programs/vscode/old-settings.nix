@@ -7,11 +7,7 @@
         super = pkgs.vscode;
         fontPackages = with pkgs; [
           material-design-icons
-          (nerdfonts.override {
-            fonts = [
-              "JetBrainsMono"
-            ];
-          })
+          (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
         ];
       in
       (pkgs.symlinkJoin {
@@ -336,4 +332,3 @@
       ];
   };
 }
-

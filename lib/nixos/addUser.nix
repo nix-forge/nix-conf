@@ -4,7 +4,7 @@
   extraGroups ? [ ],
   initialPassword ? "password",
   isNormalUser ? true,
-  homeModules ? [ ]
+  homeModules ? [ ],
 }:
 { config, ... }:
 {

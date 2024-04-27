@@ -1,11 +1,6 @@
+{ pkgs, tree, ... }:
 {
-  pkgs,
-  tree,
-  ...
-}: {
-  imports = [
-    ./touchpad-fix.nix
-  ];
+  imports = [ ./touchpad-fix.nix ];
 
   services.xserver.libinput = {
     enable = true;
