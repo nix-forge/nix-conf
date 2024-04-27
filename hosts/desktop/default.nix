@@ -58,7 +58,7 @@ lib.cust.mkHost {
     ## Desktop Environments
     (desktop-envs.hyprland { useMainUser = true; })
     # desktop-envs.gnome
-    # plasma
+    # desktop-envs.plasma
     # xdg
 
     ## Display Managers
