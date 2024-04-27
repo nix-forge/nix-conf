@@ -41,14 +41,17 @@ args@{
     let
       shared = lib.bird.importDir' ./. "profile.nix";
       programs = shared.programs args;
-      development = shared.development;
+      wayland = shared.wayland;
     in
     [
       ###############################
       ### MODULES & MISCELLANEOUS ###
       ###############################
+      wayland.electron-flags
 
       ### DEFAULT PROGRAMS ###
+      programs.gnome-files
+      programs.gnome-pdf
 
       ##############################
       ### USER-SPECIFIC PROGRAMS ###
@@ -81,11 +84,11 @@ args@{
       programs.vscode.languages.bash
 
       ### DEVELOPMENT TOOLS ###
-      development.tools.docs
-      development.tools.direnv
+      programs.dev.tools.docs
+      programs.dev.tools.direnv
 
       ## DEVELOPMENT ##
-      development.languages.c
+      programs.dev.languages.c
 
       ### SHELL ENVIRONMENTS ###
       programs.zsh
