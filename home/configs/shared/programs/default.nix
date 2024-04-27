@@ -4,6 +4,17 @@ args@{ pkgs, lib, ... }:
 ))
 // {
   ####################
+  ### DESKTOP APPS ###
+  ####################
+
+  gnome-files = {
+    home.packages = [ pkgs.gnome.nautilus ];
+  };
+  gnome-pdf = {
+    home.packages = [ pkgs.evince ];
+  };
+
+  ####################
   ### WEB BROWSERS ###
   ####################
 
