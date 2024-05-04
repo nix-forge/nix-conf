@@ -1,5 +1,7 @@
-{ pkgs, lib, ... }:
+{ inputs, lib, ... }:
 {
+  imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
+
   hardware.pulseaudio.enable = lib.mkForce false;
 
   services.pipewire = {
@@ -11,7 +13,9 @@
     jack.enable = true;
 
     wireplumber.enable = true;
+
+    lowLatency.enable = true;
   };
 
-  environment.systemPackages = [ pkgs.xwaylandvideobridge ];
+  # TODO: setup xwayland bridge
 }
