@@ -19,7 +19,7 @@
             "video"
           ];
           initialPassword = "password";
-          homeModules = homeConfigs.desktop.modules { inherit tree; };
+          homeModules = homeConfigs.desktop.modules { inherit tree lib; };
         })
 
         # (addUser {

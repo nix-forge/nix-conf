@@ -71,17 +71,19 @@ lib.cust.mkHost {
 
     ## Other
     packages
+    gaming.default
     # swaylock setup (replace with hyprlock)
     # keyring
     # polkit
 
     ## Environment Variables
-    env.wayland.default
+    { environment.sessionVariables = lib.cust.env.wayland.all; }
   ];
 
   overlays = [
     inputs.nur.overlay
     inputs.vscode-extensions.overlays.default
+    inputs.nixpkgs-wayland.overlays.default
   ];
 
   # inherit function arguments
