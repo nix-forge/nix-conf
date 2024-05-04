@@ -58,7 +58,8 @@
             background-color = bg0;
 
             width = mkLiteral "640";
-            border-radius = mkLiteral "8";
+            # border-radius = mkLiteral "8";
+            border = mkLiteral "2px";
           };
 
           "inputbar" = {
