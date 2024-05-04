@@ -2,7 +2,7 @@
 {
   imports = [ ./touchpad-fix.nix ];
 
-  services.xserver.libinput = {
+  services.libinput = {
     enable = true;
 
     touchpad = {

@@ -1,6 +1,6 @@
 { pkgs, ... }:
 {
-  services.xserver.libinput = {
+  services.libinput = {
     enable = true;
 
     mouse = {
