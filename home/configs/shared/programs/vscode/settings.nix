@@ -3,32 +3,27 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   programs.vscode.enable = true;
-  programs.vscode.package =
-    let
-      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
-      fontPackages = with pkgs; [
-        material-design-icons
-        (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
-      ];
-    in
-    (pkgs.symlinkJoin {
-      inherit (super) name pname version;
-      paths = [ super ] ++ fontPackages;
-    });
+  programs.vscode.package = let
+    super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
+    fontPackages = with pkgs; [
+      material-design-icons
+      (nerdfonts.override {fonts = ["JetBrainsMono"];})
+    ];
+  in (pkgs.symlinkJoin {
+    inherit (super) name pname version;
+    paths = [super] ++ fontPackages;
+  });
 
   programs.vscode.enableExtensionUpdateCheck = false;
   programs.vscode.enableUpdateCheck = false;
   programs.vscode.mutableExtensionsDir = false;
 
-  programs.vscode.extensions =
-    let
-      extensions = pkgs.callPackage ./marketplace.nix { };
-    in
-    with extensions.preferReleases;
-    [
+  programs.vscode.extensions = let
+    extensions = pkgs.callPackage ./marketplace.nix {};
+  in
+    with extensions.preferReleases; [
       ## Appearances ##
       # jdinhlife.gruvbox
       monokai.theme-monokai-pro-vscode
@@ -64,6 +59,9 @@
       kdl-org.kdl
       redhat.vscode-yaml
       tamasfe.even-better-toml
+
+      ## Environment ##
+      mkhl.direnv
 
       # Extra
       github.copilot
@@ -104,16 +102,14 @@
     # only color the lines, not the whitespace characters
     "indentRainbow.indicatorStyle" = "light";
     # indent guide colors generated from a count
-    "indentRainbow.colors" =
-      let
-        count = 12;
-        saturation = 0.425;
-        lightness = 0.35;
-        alpha = 0.5;
-      in
+    "indentRainbow.colors" = let
+      count = 12;
+      saturation = 0.425;
+      lightness = 0.35;
+      alpha = 0.5;
+    in
       map (
-        hue:
-        "hsla(${
+        hue: "hsla(${
           lib.concatStringsSep "," [
             (toString hue)
             (lib.bird.toPercent 1 saturation)
