@@ -66,6 +66,7 @@ let
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
       home-manager.extraSpecialArgs = homeSpecialArgs;
+      home-manager.backupFileExtension = "backup";
     }
   ];
 in
