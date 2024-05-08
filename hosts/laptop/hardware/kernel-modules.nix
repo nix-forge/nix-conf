@@ -1,6 +1,7 @@
 {
   boot.initrd.availableKernelModules = [
     "nvme"
+    "ahci"
     "thunderbolt"
     "xhci_pci"
     "usbhid"

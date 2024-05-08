@@ -48,7 +48,7 @@ lib.cust.mkHost {
     hardware.zram
     hardware.networking
     # virtualization
-    # bluetooth
+    hardware.bluetooth
     # firmware
     hardware.pipewire
     # power management
@@ -56,7 +56,7 @@ lib.cust.mkHost {
     # gaming support
 
     ## Desktop Environments
-    (desktop-envs.hyprland {useMainUser = true;})
+    (desktop-envs.hyprland { useMainUser = true; })
     # desktop-envs.gnome
     # desktop-envs.plasma
     # xdg
@@ -77,7 +77,7 @@ lib.cust.mkHost {
     # polkit
 
     ## Environment Variables
-    {environment.sessionVariables = lib.cust.env.wayland.all;}
+    { environment.sessionVariables = lib.cust.env.wayland.all; }
   ];
 
   overlays = [
