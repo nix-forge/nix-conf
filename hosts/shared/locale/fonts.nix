@@ -28,6 +28,12 @@
       # Google Fonts
       google-fonts
 
+      # Base fonts
+      corefonts
+      vistafonts
+      liberation_ttf
+      dejavu_fonts
+
       # Nerdfonts
       (nerdfonts.override {
         fonts = [
