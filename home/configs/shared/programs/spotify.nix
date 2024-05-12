@@ -17,29 +17,15 @@ in
 
   # configure spicetify :)
   programs.spicetify = {
-    theme = spicePkgs.themes.catppuccin;
-    colorScheme = "mocha";
-
-    # set the spotify and spicetify packages
-    spotifyPackage = pkgs.spotify;
-    spicetifyPackage = pkgs.spicetify-cli;
+    theme = spicePkgs.themes.Comfy;
+    colorScheme = "Spotify";
 
     # actually enable the installation of spotify and spicetify
     enable = true;
 
     enabledExtensions = with spicePkgs.extensions; [
       adblock
-      volumePercentage # Show volume percentage
-      wikify # Show artists wiki page
-      playlistIntersection # Show intersection of two playlists or songs unique to a playlist
-      shuffle # Shuffle without bias
-      seekSong # allows you to seek songs with arrow keys
-      fullAlbumDate # show full album release date
-    ];
-
-    enabledCustomApps = with spicePkgs.apps; [
-      new-releases
-      lyrics-plus
+      volumePercentage
     ];
 
     dontInstall = true;
