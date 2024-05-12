@@ -63,6 +63,12 @@ args@{ pkgs, lib, ... }:
   apostrophe = {
     home.packages = [ pkgs.apostrophe ];
   };
+  spellcheck = {
+    home.packages = [
+      pkgs.hunspell
+      pkgs.hunspellDicts.en_US
+    ];
+  };
 
   ##########################
   ### TERMINAL EMULATORS ###
@@ -110,6 +116,9 @@ args@{ pkgs, lib, ... }:
   ####################
   ### FILE SHARING ###
   ####################
+  rclone = {
+    home.packages = [ pkgs.rclone ];
+  };
 
   ###################
   ### 3D PRINTING ###
