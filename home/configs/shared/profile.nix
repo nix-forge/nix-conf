@@ -61,6 +61,7 @@ args@{
       programs.firefox
 
       ### COMMUNICATION & MESSAGING ###
+      programs.zoom
 
       ### MEDIA CREATION ###
 
@@ -69,7 +70,8 @@ args@{
       programs.foliate
 
       ### OFFICE & WRITING SOFTWARE ###
-      programs.zoom
+      programs.libreoffice
+      programs.spellcheck
 
       ### TERMINAL EMULATORS ###
       programs.kitty
@@ -82,6 +84,7 @@ args@{
       programs.vscode.languages.web
       programs.vscode.languages.python
       programs.vscode.languages.bash
+      programs.vscode.languages.verilog
 
       ### DEVELOPMENT TOOLS ###
       programs.dev.tools.docs
@@ -103,6 +106,7 @@ args@{
       ### AUTHENTICATION ###
 
       ### FILE SHARING ###
+      programs.rclone
 
       ### 3D PRINTING ###
 
