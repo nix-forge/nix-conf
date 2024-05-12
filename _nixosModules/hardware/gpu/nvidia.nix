@@ -101,5 +101,11 @@ in
       "nvidia_uvm"
       "nvidia_drm"
     ];
+
+    # Fine-grained power management. Turns off GPU when not in use.
+    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
+    # Requires Nvidia offload to be enabled.
+    hardware.nvidia.powerManagement.finegrained =
+      config.hardware.nvidia.prime.offload.enable || config.hardware.nvidia.prime.reverseSync.enable;
   };
 }

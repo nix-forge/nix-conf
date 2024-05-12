@@ -1,6 +1,9 @@
 { self, ... }:
 {
-  imports = [ self.nixosModules.hardware.gpu.nvidia ];
+  imports = [
+    self.nixosModules.hardware.gpu.nvidia
+    self.nixosModules.hardware.gpu.amd
+  ];
 
   hardware.nvidia = {
     enable = true;
@@ -18,6 +21,15 @@
 
     nvidiaSettings = true;
 
-    waylandEnvs = true;
+    prime = {
+      offload.enable = true;
+      amdgpuBusId = "PCI:01:00:0"; # card 0
+      nvidiaBusId = "PCI:10:00:0"; # card 1
+    };
+  };
+
+  hardware.amdgpu = {
+    enable = true;
+    amdvlk = true;
   };
 }

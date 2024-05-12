@@ -29,11 +29,7 @@
 
     # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
     powerManagement.enable = true;
-    # Fine-grained power management. Turns off GPU when not in use.
-    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
-    # Requires Nvidia offload to be enabled.
-    powerManagement.finegrained =
-      config.hardware.nvidia.prime.offload.enable || config.hardware.nvidia.prime.reverseSync.enable;
+
   };
 
   hardware.intelgpu = {
