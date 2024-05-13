@@ -25,6 +25,7 @@ lib.cust.mkHost {
     base.nix-settings
     base.nix-registry
     base.kernel
+    base.packages
     ./users.nix
 
     ## Boot
@@ -62,15 +63,14 @@ lib.cust.mkHost {
     # xdg
 
     ## Display Managers
-    display-managers.greetd
+    # display-managers.greetd
     # display-managers.gdm
-    # sddm
+    display-managers.sddm
 
     ## Services
     services.disable-hibernate
 
     ## Other
-    packages
     gaming.default
     # swaylock setup (replace with hyprlock)
     # keyring
