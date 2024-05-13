@@ -24,9 +24,6 @@
   nix.daemonCPUSchedPolicy = "batch";
   nix.daemonIOSchedClass = "idle";
 
-  # enable dconf
-  programs.dconf.enable = true;
-
   nix.settings = rec {
     # allow the flake settings
     # accept-flake-config = true;
