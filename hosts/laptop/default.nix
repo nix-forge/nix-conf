@@ -25,6 +25,8 @@ lib.cust.mkHost {
     base.nix-settings
     base.nix-registry
     base.kernel
+    base.packages
+    base.base
     ./users.nix
 
     ## Boot
@@ -70,7 +72,6 @@ lib.cust.mkHost {
     services.disable-hibernate
 
     ## Other
-    packages
     gaming.default
     # swaylock setup (replace with hyprlock)
     # keyring

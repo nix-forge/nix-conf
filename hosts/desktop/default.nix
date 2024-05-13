@@ -26,6 +26,7 @@ lib.cust.mkHost {
     base.nix-registry
     base.kernel
     base.packages
+    base.base
     ./users.nix
 
     ## Boot
