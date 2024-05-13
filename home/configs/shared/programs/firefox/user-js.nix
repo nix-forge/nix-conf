@@ -7,7 +7,7 @@
 let
   profile = "${config.home.username}.default";
 
-  toUserJs =
+  toUserJS =
     kv:
     lib.concatLines (
       lib.mapAttrsToList (k: v: "user_pref(${builtins.toJSON k}, ${builtins.toJSON v});") kv
@@ -16,7 +16,7 @@ in
 {
   programs.firefox.profiles.${profile} = {
     extraConfig = lib.strings.concatLines [
-      (toUserJs {
+      (toUserJS {
         # GeoLocation
         "geo.provider.network.url" = "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%";
         "geo.provider.ms-windows-location" = false;
@@ -155,21 +155,6 @@ in
         "webchannel.allowObject.urlWhitelist" = "";
         "network.IDN_show_punycode" = true;
         "pdfjs.disabled" = false;
-        "pdfjs.enableScripting" = false;
-        "browser.tabs.searchclipboardfor.middleclick" = false;
-
-        # Downloads
-        "browser.download.useDownloadDir" = true; # NOTE: This can be annoying when false as it will ask the user where to download each file
-        "browses.download.alwaysOpenPanel" = false;
-        "browser.download.manager.addToRecentDocs" = false;
-        "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
-
-        # Extensions
-        "extensions.enabledScopes" = 5;
-        "extensions.postDownloadThirdPartyPrompt" = false;
-
-        # ETP (Enhanced Tracking Protection)
-        # Handled by Firefox policies
 
         # Enable RFP
         "privacy.resistFingerprinting" = false; # NOTE: (if changed true) This causes issues with google suite apps like google docs and causes blurry fonts
@@ -208,6 +193,7 @@ in
         "media.av1.enabled" = true; # Enable AV1 Decoding (already assumming new enough hardware) (Default true)
         "gfx.x11-egl.force-enabled" = true; # Enforce the EGL backend (Default false)
         "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
+        "gfx.canvas.accelerated" = true; # Enforce hardware acceleration (Default true)
 
         # Fonts
         # From Firefox Arch Wiki: https://wiki.archlinux.org/title/Firefox#Font_troubleshooting
@@ -226,10 +212,31 @@ in
       (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
-      (builtins.readFile "${inputs.firefox-betterfox}/Smoothfox.js")
+      (toUserJS {
+        /**
+          **************************************************************************************
+          * OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                      *
+          ***************************************************************************************
+        */
+        # credit: https://github.com/AveYo/fox/blob/cf56d1194f4e5958169f9cf335cd175daa48d349/Natural%20Smooth%20Scrolling%20for%20user.js
+        # recommended for 120hz+ displays
+        # largely matches Chrome flags: Windows Scrolling Personality and Smooth Scrolling
+        "apz.overscroll.enabled" = true; # DEFAULT NON-LINUX
+        "general.smoothScroll" = true; # DEFAULT
+        "general.smoothScroll.msdPhysics.continuousMotionMaxDeltaMS" = 12;
+        "general.smoothScroll.msdPhysics.enabled" = true;
+        "general.smoothScroll.msdPhysics.motionBeginSpringConstant" = 600;
+        "general.smoothScroll.msdPhysics.regularSpringConstant" = 650;
+        "general.smoothScroll.msdPhysics.slowdownMinDeltaMS" = 25;
+        "general.smoothScroll.msdPhysics.slowdownMinDeltaRatio" = 2.0;
+        "general.smoothScroll.msdPhysics.slowdownSpringConstant" = 250;
+        "general.smoothScroll.currentVelocityWeighting" = 1.0;
+        "general.smoothScroll.stopDecelerationWeighting" = 1.0;
+        "mousewheel.default.delta_multiplier_y" = 300; # 250-400; adjust this number to your liking
+      })
 
       # Overides
-      (toUserJs {
+      (toUserJS {
         "identity.fxaccounts.enabled" = true;
         "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
       })
