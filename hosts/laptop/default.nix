@@ -62,9 +62,9 @@ lib.cust.mkHost {
     # xdg
 
     ## Display Managers
-    display-managers.greetd
+    # display-managers.greetd
     # display-managers.gdm
-    # sddm
+    display-managers.sddm
 
     ## Services
     services.disable-hibernate
