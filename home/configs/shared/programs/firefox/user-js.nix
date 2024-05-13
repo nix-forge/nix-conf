@@ -215,9 +215,6 @@ in
         "font.name-list.emoji" = "emoji"; # Use system emoji font
         "gfx.font_rendering.opentype_svg.enabled" = false; # Prevent Mozilla font from interfering with system emoji font
 
-        # File Chooser
-        "widget.use-xdg-desktop-portal.file-picker" = 1; # Use xdg-desktop-portal for file picker
-
         # Enable pre-release CSS
         "layout.css.has-selector.enabled" = true;
       })
