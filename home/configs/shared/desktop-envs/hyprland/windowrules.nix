@@ -36,10 +36,7 @@ in
       ### SYSTEM MODALS ###
       filePickerPortal = {
         # I'm guessing that almost all portal interfaces are going to be modals
-        class = [
-          "xdg-desktop-portal-gtk"
-          "org.freedesktop.impl.portal.desktop.kde"
-        ];
+        class = [ "org.freedesktop.impl.portal.FileChooser" ];
         # title = ["Open Files.+Portal"];
       };
       polkitAgent.class = [ "lxqt-policykit-agent" ];

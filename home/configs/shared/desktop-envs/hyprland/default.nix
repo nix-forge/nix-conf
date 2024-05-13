@@ -12,6 +12,7 @@
     ./config.nix
     ./windowrules.nix
     ./keybinds.nix
+    ./xdg.nix
   ];
 
   home.packages = [
