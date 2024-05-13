@@ -31,10 +31,16 @@
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
     # Hyprland Flake
-    hyprland.url = "github:hyprwm/Hyprland/v0.40.0";
     hyprland-xdph.url = "github:hyprwm/xdg-desktop-portal-hyprland";
     hyprland-protocols.url = "github:hyprwm/xdg-desktop-portal-hyprland";
     hyprlang.url = "github:hyprwm/hyprlang";
+    hyprland = {
+      url = "github:hyprwm/Hyprland/v0.40.0";
+      inputs = {
+        xdph.follows = "hyprland-xdph";
+        hyprlang.follows = "hyprlang";
+      };
+    };
 
     # Hyprland Nix Configuration
     hyprnix = {
