@@ -24,9 +24,9 @@ lib.cust.mkHost {
     ## Base
     base.nix-settings
     base.nix-registry
+    base.base
     base.kernel
     base.packages
-    base.base
     ./users.nix
 
     ## Boot
@@ -50,7 +50,7 @@ lib.cust.mkHost {
     hardware.zram
     hardware.networking
     # virtualization
-    # bluetooth
+    hardware.bluetooth
     # firmware
     hardware.pipewire
     # power management
@@ -61,12 +61,11 @@ lib.cust.mkHost {
     (desktop-envs.hyprland { useMainUser = true; })
     # desktop-envs.gnome
     # desktop-envs.plasma
-    # xdg
 
     ## Display Managers
     # display-managers.greetd
-    # display-managers.gdm
-    display-managers.sddm
+    display-managers.gdm
+    # display-managers.sddm
 
     ## Services
     services.disable-hibernate
