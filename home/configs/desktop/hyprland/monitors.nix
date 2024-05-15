@@ -30,7 +30,7 @@ in
         name = "DP-1";
         resolution.x = 2560;
         resolution.y = 1440;
-        scale = 1.25;
+        scale = 1.333333;
         position.x = origin.x;
         position.y = origin.y;
         refreshRate = 165;
