@@ -16,15 +16,13 @@ in
     with extensions.preferReleases;
     [
       jnoortheen.nix-ide
-      # kamadorueda.alejandra
-      arrterian.nix-env-selector
       ionutvmi.path-autocomplete
     ];
 
   programs.vscode.userSettings = {
     "nix.enableLanguageServer" = true;
-    "nix.serverPath" = lib.getExe pkgs.nil;
-    "nix.serverSettings".nil = {
+    "nix.serverPath" = lib.getExe pkgs.nixd;
+    "nix.serverSettings".nixd = {
       formatting.command = [
         "nix"
         "fmt"
