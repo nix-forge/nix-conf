@@ -3,29 +3,33 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   programs.vscode.enable = true;
-  programs.vscode.package = let
-    super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
-    fontPackages = with pkgs; [
-      material-design-icons
-      (nerdfonts.override {fonts = ["JetBrainsMono"];})
-    ];
-  in (pkgs.symlinkJoin {
-    inherit (super) name pname version;
-    paths = [super] ++ fontPackages;
-  });
+  programs.vscode.package =
+    let
+      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
+      fontPackages = with pkgs; [
+        material-design-icons
+        (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+      ];
+    in
+    (pkgs.symlinkJoin {
+      inherit (super) name pname version;
+      paths = [ super ] ++ fontPackages;
+    });
 
   programs.vscode.enableExtensionUpdateCheck = false;
   programs.vscode.enableUpdateCheck = false;
   programs.vscode.mutableExtensionsDir = false;
 
-  programs.vscode.extensions = let
-    extensions = pkgs.callPackage ./marketplace.nix {};
-  in
-    with extensions.preferReleases; [
+  programs.vscode.extensions =
+    let
+      extensions = pkgs.callPackage ./marketplace.nix { };
+    in
+    with extensions.preferReleases;
+    [
       ## Appearances ##
-      # jdinhlife.gruvbox
       monokai.theme-monokai-pro-vscode
       bottledlactose.darkbox
       oderwat.indent-rainbow
@@ -34,7 +38,7 @@
 
       ## Intelligence ##
       usernamehw.errorlens
-      ionutvmi.path-autocomplete
+      christian-kohler.path-intellisense
       streetsidesoftware.code-spell-checker
 
       # phind.phind
@@ -102,14 +106,16 @@
     # only color the lines, not the whitespace characters
     "indentRainbow.indicatorStyle" = "light";
     # indent guide colors generated from a count
-    "indentRainbow.colors" = let
-      count = 12;
-      saturation = 0.425;
-      lightness = 0.35;
-      alpha = 0.5;
-    in
+    "indentRainbow.colors" =
+      let
+        count = 12;
+        saturation = 0.425;
+        lightness = 0.35;
+        alpha = 0.5;
+      in
       map (
-        hue: "hsla(${
+        hue:
+        "hsla(${
           lib.concatStringsSep "," [
             (toString hue)
             (lib.bird.toPercent 1 saturation)
@@ -121,7 +127,7 @@
 
     # icons
     "workbench.iconTheme" = "material-icon-theme";
-    "material-icon-theme.folders.theme" = "classic";
+    "material-icon-theme.folders.theme" = "specific";
 
     # title
     "window.titleSeparator" = " - ";
@@ -195,16 +201,6 @@
 
     # prevent pollute history with whitespace changes
     "diffEditor.ignoreTrimWhitespace" = false;
-    # show blames at the end of current line
-    "gitblame.inlineMessageEnabled" = true;
-    # blame message format for inline, remove "Blame"
-    "gitblame.inlineMessageFormat" = "\${author.name} (\${time.ago})";
-    "gitblame.inlineMessageNoCommit" = "Uncommitted changes";
-    # blame message format for status bar
-    "gitblame.statusBarMessageFormat" = "Blame \${author.name} (\${time.ago})";
-    "gitblame.statusBarMessageNoCommit" = "Uncommitted changes";
-    # open the changes in browser when clicking blame on status bar
-    "gitblame.statusBarMessageClickAction" = "Open tool URL";
 
     ## Navigation Behavior ##
 
@@ -251,12 +247,33 @@
     ];
     # files can be recovered with undo
     "explorer.confirmDelete" = false;
-    # set the integrated terminal to use zsh
-    "terminal.integrated.defaultProfile.linux" = "zsh";
     # remove reccomendations for extentions
     "extensions.ignoreRecommendations" = true;
     # remove popup out moving files
     "explorer.confirmDragAndDrop" = false;
+
+    # set the integrated terminal to use zsh
+    "terminal.integrated.defaultProfile.linux" = "zsh";
+
+    # define the terminal profiles
+    "terminal.integrated.profiles.linux" = {
+      "zsh" = {
+        "path" = lib.getExe pkgs.zsh;
+      };
+      "bash" = {
+        "path" = lib.getExe pkgs.bashInteractive;
+      };
+      "fish" = {
+        "path" = lib.getExe pkgs.fish;
+      };
+      "pwsh" = {
+        "path" = lib.getExe pkgs.powershell;
+      };
+      "nushell" = {
+        "path" = lib.getExe pkgs.nushell;
+      };
+    };
+
     # remove telemetry
     "redhat.telemetry.enabled" = false;
   };
