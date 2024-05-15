@@ -85,6 +85,8 @@ args@{
       programs.vscode.languages.python
       programs.vscode.languages.bash
       programs.vscode.languages.verilog
+      programs.vscode.languages.javascript
+      programs.vscode.languages.typescript
 
       ### DEVELOPMENT TOOLS ###
       programs.dev.tools.docs
