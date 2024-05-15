@@ -164,7 +164,6 @@ in
         "widget.non-native-theme.enabled" = true;
         "browser.link.open_newwindow" = 3;
         "browser.link.open_newwindow.restriction" = 0;
-        # Could disable WebGL but we can keep it for compatibility
 
         # Enforce Settings
         "extensions.blocklist.enabled" = true; # enforce Firefox blocklist
@@ -175,43 +174,12 @@ in
         "security.tls.version.enable-deprecated" = false; # enforce no deprecated TLS
         "extensions.webcompat-reporter.enabled" = false; # enforce no webcompat reporter
         "extensions.quarantinedDomains.enabled" = true; # enforce quarantined domains
-
-        # Extra
-        "browser.startup.homepage_override.mstone" = "ignore";
-        "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons" = false;
-        "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features" = false;
-        "browser.messaging-system.whatsNewPanel.enabled" = false;
-        "browser.urlbar.showSearchTerms.enabled" = false;
-
-        # Hardware Acceleration
-        # These options are from the firefox Arch Wiki as well as the nvidia-vaapi-driver GitHub page
-        # even though some of these options are from an Nvidia GPU guide they should work for most modern GPUs
-        # https://wiki.archlinux.org/title/Firefox#Hardware_video_acceleration
-        # https://github.com/elFarto/nvidia-vaapi-driver/#firefox
-        "gfx.webrender.all" = true; # Enforce hardware WebRender (Default false)
-        "media.ffmpeg.vaapi.enabled" = true; # Enable VA-API (Default false)
-        "media.av1.enabled" = true; # Enable AV1 Decoding (already assumming new enough hardware) (Default true)
-        "gfx.x11-egl.force-enabled" = true; # Enforce the EGL backend (Default false)
-        "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
-        "gfx.canvas.accelerated" = true; # Enforce hardware acceleration (Default true)
-
-        # Fonts
-        # From Firefox Arch Wiki: https://wiki.archlinux.org/title/Firefox#Font_troubleshooting
-        "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127; # Increase the maximum number of generic substitutions (127 is the highest possible value)
-        "font.name-list.emoji" = "emoji"; # Use system emoji font
-        "gfx.font_rendering.opentype_svg.enabled" = false; # Prevent Mozilla font from interfering with system emoji font
-
-        # Enable pre-release CSS
-        "layout.css.has-selector.enabled" = true;
       })
 
-      # Firefox Lepton UI
-      #  (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
-
       # Betterfox
-      (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
+      (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (toUserJS {
         /**
           **************************************************************************************
@@ -237,9 +205,42 @@ in
 
       # Overides
       (toUserJS {
+        # Start Page
+        "browser.startup.homepage_override.mstone" = "ignore";
+        "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons" = false;
+        "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features" = false;
+        "browser.messaging-system.whatsNewPanel.enabled" = false;
+        "browser.urlbar.showSearchTerms.enabled" = false;
+
+        # Hardware Acceleration
+        # These options are from the firefox Arch Wiki as well as the nvidia-vaapi-driver GitHub page
+        # even though some of these options are from an Nvidia GPU guide they should work for most modern GPUs
+        # https://wiki.archlinux.org/title/Firefox#Hardware_video_acceleration
+        # https://github.com/elFarto/nvidia-vaapi-driver/#firefox
+        "gfx.webrender.all" = true; # Enforce hardware WebRender (Default false)
+        "media.ffmpeg.vaapi.enabled" = true; # Enable VA-API (Default false)
+        "media.rdd-ffmpeg.enabled" = true; # Forces ffmpeg usage into the RDD process (Default true)
+        "media.av1.enabled" = true; # Enable AV1 Decoding (already assumming new enough hardware) (Default true)
+        "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
+        "gfx.canvas.accelerated" = true; # Enforce hardware acceleration (Default true)
+
+        # Fonts
+        # From Firefox Arch Wiki: https://wiki.archlinux.org/title/Firefox#Font_troubleshooting
+        "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127; # Increase the maximum number of generic substitutions (127 is the highest possible value)
+        "font.name-list.emoji" = "emoji"; # Use system emoji font
+        "gfx.font_rendering.opentype_svg.enabled" = false; # Prevent Mozilla font from interfering with system emoji font
+
+        # Firefox Accounts
         "identity.fxaccounts.enabled" = true;
+
+        # Downloads
         "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
+        "browser.download.start_downloads_in_tmp_dir" = false; # (if changed true) This can be annoying when true as it will download to the temp directory making it harder to find the file
       })
+
+      # Firefox Lepton UI
+      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
+
     ];
   };
 }
