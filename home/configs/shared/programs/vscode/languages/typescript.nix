@@ -22,5 +22,10 @@
       "editor.tabSize" = 2;
       "prettier.tabWidth" = 2;
     };
+    "[typescriptreact]" = {
+      "editor.defaultFormatter" = "esbenp.prettier-vscode";
+      "editor.tabSize" = 2;
+      "prettier.tabWidth" = 2;
+    };
   };
 }
