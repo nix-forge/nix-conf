@@ -83,7 +83,12 @@ lib.cust.mkHost {
   overlays = [
     inputs.nur.overlay
     inputs.vscode-extensions.overlays.default
+    inputs.nixd.overlays.default
+
     inputs.nixpkgs-wayland.overlays.default
+
+    inputs.birdos.overlays.allowUnfree
+    inputs.birdos.overlays.ttf-ms-win11
   ];
 
   # inherit function arguments
