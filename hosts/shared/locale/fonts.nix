@@ -1,9 +1,10 @@
 { pkgs, ... }:
 {
   fonts = {
-    # use fonts specified by user rather than default ones
     enableDefaultPackages = true;
     fontDir.enable = true;
+    fontDir.decompressFonts = true;
+    fontconfig.enable = true;
 
     # TODO: add more fonts related to languages enabled in the system
 
@@ -33,6 +34,11 @@
       vistafonts
       liberation_ttf
       dejavu_fonts
+      open-sans
+      ubuntu_font_family
+
+      # Microsoft Fonts
+      (ttf-ms-win11.override { acceptEula = true; })
 
       # Nerdfonts
       (nerdfonts.override {
