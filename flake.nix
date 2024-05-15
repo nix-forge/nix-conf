@@ -59,6 +59,12 @@
       flake = false;
     };
 
+    # Firefox Lepton UI
+    firefox-lepton-ui = {
+      url = "github:black7375/Firefox-UI-Fix";
+      flake = false;
+    };
+
     # Spicetify
     spicetify-nix = {
       url = "github:the-argus/spicetify-nix";
@@ -73,6 +79,12 @@
 
     # Wayland Packages
     nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
+
+    # Nix Language Server
+    nixd.url = "github:nix-community/nixd";
+
+    # BirdOS
+    birdos.url = "github:spikespaz/dotfiles";
   };
 
   nixConfig = {
@@ -132,7 +144,7 @@
       nixosModules = lib.bird.importDir' ./_nixosModules null;
 
       # Home Modules
-      homeModules = { };
+      homeModules = lib.bird.importDir' ./_homeModules null;
 
       # System Configuration
       # Look at each host in the hosts directory and allow them to inherit the vars if needed
