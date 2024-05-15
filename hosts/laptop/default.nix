@@ -24,9 +24,9 @@ lib.cust.mkHost {
     ## Base
     base.nix-settings
     base.nix-registry
+    base.base
     base.kernel
     base.packages
-    base.base
     ./users.nix
 
     ## Boot
@@ -61,12 +61,11 @@ lib.cust.mkHost {
     (desktop-envs.hyprland { useMainUser = true; })
     # desktop-envs.gnome
     # desktop-envs.plasma
-    # xdg
 
     ## Display Managers
     # display-managers.greetd
-    # display-managers.gdm
-    display-managers.sddm
+    display-managers.gdm
+    # display-managers.sddm
 
     ## Services
     services.disable-hibernate
@@ -84,7 +83,12 @@ lib.cust.mkHost {
   overlays = [
     inputs.nur.overlay
     inputs.vscode-extensions.overlays.default
+    inputs.nixd.overlays.default
+
     inputs.nixpkgs-wayland.overlays.default
+
+    inputs.birdos.overlays.allowUnfree
+    inputs.birdos.overlays.ttf-ms-win11
   ];
 
   # inherit function arguments
