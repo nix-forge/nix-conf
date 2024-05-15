@@ -8,14 +8,22 @@
   programs.vscode.enable = true;
   programs.vscode.package =
     let
-      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider;
+      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
+        meta.mainProgram = "code-insiders";
+      });
       fontPackages = with pkgs; [
         material-design-icons
         (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
       ];
     in
     (pkgs.symlinkJoin {
-      inherit (super) name pname version;
+      inherit (super)
+        name
+        pname
+        version
+        meta
+        src
+        ;
       paths = [ super ] ++ fontPackages;
     });
 
@@ -63,9 +71,6 @@
       kdl-org.kdl
       redhat.vscode-yaml
       tamasfe.even-better-toml
-
-      ## Environment ##
-      mkhl.direnv
 
       # Extra
       github.copilot
@@ -255,24 +260,7 @@
     # set the integrated terminal to use zsh
     "terminal.integrated.defaultProfile.linux" = "zsh";
 
-    # define the terminal profiles
-    "terminal.integrated.profiles.linux" = {
-      "zsh" = {
-        "path" = lib.getExe pkgs.zsh;
-      };
-      "bash" = {
-        "path" = lib.getExe pkgs.bashInteractive;
-      };
-      "fish" = {
-        "path" = lib.getExe pkgs.fish;
-      };
-      "pwsh" = {
-        "path" = lib.getExe pkgs.powershell;
-      };
-      "nushell" = {
-        "path" = lib.getExe pkgs.nushell;
-      };
-    };
+    "terminal.integrated.shellIntegration.enabled" = false;
 
     # remove telemetry
     "redhat.telemetry.enabled" = false;
