@@ -16,18 +16,18 @@ in
     ./policies.nix
     ./extensions.nix
     ./user-js.nix
-    # self.homeManagerModules.firefox-userchrome
+    self.homeModules.firefox-userchrome
   ];
 
-  # programs.firefox.userChrome.profiles.${profile} = {
-  #   source = inputs.firefox-lepton-ui;
-  #   # recursive = true;
-  #   # extraSettings = { # settings specific to my theme
-  #   #   "browser.uidensity" = 1;
-  #   #   "ui.prefersReducedMotion" = 1;
-  #   #   "browser.tabs.tabMinWidth" = 130;
-  #   # };
-  # };
+  programs.firefox.userChrome.profiles.${profile} = {
+    source = inputs.firefox-lepton-ui;
+    recursive = true;
+    # extraSettings = { # settings specific to my theme
+    #   "browser.uidensity" = 1;
+    #   "ui.prefersReducedMotion" = 1;
+    #   "browser.tabs.tabMinWidth" = 130;
+    # };
+  };
 
   programs.firefox.profiles.${profile} = {
     id = 0;
