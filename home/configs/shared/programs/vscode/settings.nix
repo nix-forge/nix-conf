@@ -66,6 +66,10 @@
       sleistner.vscode-fileutils
       aaron-bond.better-comments
       kevinkyang.auto-comment-blocks
+      esbenp.prettier-vscode
+
+      # Environment
+      mkhl.direnv
 
       ## Basic Config Languages ##
       kdl-org.kdl
@@ -92,6 +96,7 @@
     "editor.cursorStyle" = "block";
     "editor.cursorBlinking" = "smooth";
     "editor.fontLigatures" = true;
+    "editor.defaultFormatter" = "esbenp.prettier-vscode";
     # "window.density.editorTabHeight" = "compact";
 
     # popups are really annoying

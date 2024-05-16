@@ -10,6 +10,8 @@
       ms-python.vscode-pylance
       ms-python.debugpy
 
+      ms-python.black-formatter
+
       kevinrose.vsc-python-indent
 
       ms-toolsai.jupyter-renderers

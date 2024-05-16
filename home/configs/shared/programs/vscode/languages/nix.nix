@@ -37,6 +37,8 @@ in
       "path-autocomplete.triggerOutsideStrings" = true;
       # don't add a trailing slash for dirs
       "path-autocomplete.enableFolderTrailingSlash" = false;
+      # unset default formatter
+      "editor.defaultFormatter" = "";
     };
 
     "cSpell.languageSettings" = [
