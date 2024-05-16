@@ -34,13 +34,7 @@
     hyprland-xdph.url = "github:hyprwm/xdg-desktop-portal-hyprland";
     hyprland-protocols.url = "github:hyprwm/xdg-desktop-portal-hyprland";
     hyprlang.url = "github:hyprwm/hyprlang";
-    hyprland = {
-      url = "github:hyprwm/Hyprland/v0.40.0";
-      inputs = {
-        xdph.follows = "hyprland-xdph";
-        hyprlang.follows = "hyprlang";
-      };
-    };
+    hyprland.url = "github:hyprwm/Hyprland/v0.40.0";
 
     # Hyprland Nix Configuration
     hyprnix = {
