@@ -79,6 +79,12 @@
 
     # BirdOS
     birdos.url = "github:spikespaz/dotfiles";
+
+    # Nix Direnv
+    nix-direnv = {
+      url = "github:nix-community/nix-direnv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
