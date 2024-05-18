@@ -8,24 +8,24 @@
   programs.vscode.enable = true;
   programs.vscode.package =
     let
-      super = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
-        meta.mainProgram = "code-insiders";
-      });
       fontPackages = with pkgs; [
         material-design-icons
-        (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+        (nerdfonts.override {
+          fonts = [
+            "JetBrainsMono"
+            "Monaspace"
+          ];
+        })
       ];
+      vscode = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
+        meta.mainProgram = "code-insiders";
+        buildInputs = oldAttrs.buildInputs ++ [
+          pkgs.krb5
+          fontPackages
+        ];
+      });
     in
-    (pkgs.symlinkJoin {
-      inherit (super)
-        name
-        pname
-        version
-        meta
-        src
-        ;
-      paths = [ super ] ++ fontPackages;
-    });
+    vscode;
 
   programs.vscode.enableExtensionUpdateCheck = false;
   programs.vscode.enableUpdateCheck = false;
@@ -88,16 +88,20 @@
     # the most important setting
     "editor.fontFamily" = lib.concatMapStringsSep ", " (s: "'${s}'") [
       "Material Design Icons"
+      "MonaspiceNe Nerd Font"
       "JetBrainsMono Nerd Font"
     ];
-    "editor.fontSize" = 16;
+    "editor.fontSize" = 14;
     "terminal.integrated.fontSize" = 14;
     "editor.cursorSmoothCaretAnimation" = "explicit";
     "editor.cursorStyle" = "block";
     "editor.cursorBlinking" = "smooth";
-    "editor.fontLigatures" = true;
+    "editor.fontLigatures" = "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'";
     "editor.defaultFormatter" = "esbenp.prettier-vscode";
     # "window.density.editorTabHeight" = "compact";
+
+    # for some reason it is not the same as the editor
+    "terminal.integrated.lineHeight" = 1.4;
 
     # popups are really annoying
     "editor.hover.delay" = 700;
@@ -137,7 +141,7 @@
 
     # icons
     "workbench.iconTheme" = "material-icon-theme";
-    "material-icon-theme.folders.theme" = "specific";
+    "material-icon-theme.folders.theme" = "classic";
 
     # title
     "window.titleSeparator" = " - ";
@@ -170,7 +174,7 @@
     # Add editor inline suggestions
     "editor.inlineSuggest.enabled" = true;
 
-    # hide the action bar, I know the keybinds
+    # top is the smallest other than hidden but you need to remember the shortcuts
     "workbench.activityBar.location" = "top";
     # put the sidebar on the right so that text doesn't jump
     "workbench.sideBar.location" = "right";
@@ -199,15 +203,14 @@
     # enable semantic highlighting
     "editor.semanticHighlighting.enabled" = true;
 
-    # Git
-    "git.openRepositoryInParentFolders" = "always";
-    "git.autofetch" = true;
-    "git.confirmSync" = false;
-
     ## VCS Behavior ##
 
     # allow 6 more characters from default 50 in commit subject
     "git.inputValidationSubjectLength" = 56;
+
+    "git.openRepositoryInParentFolders" = "always";
+    "git.autofetch" = true;
+    "git.confirmSync" = false;
 
     # prevent pollute history with whitespace changes
     "diffEditor.ignoreTrimWhitespace" = false;
@@ -237,17 +240,14 @@
     # slower updates but less buggy
     "errorLens.delayMode" = "debounce";
 
-    # don't add a trailing slash for dirs
-    "path-autocomplete.enableFolderTrailingSlash" = false;
-
     ## Miscellaneous ##
 
     # disable automatic update checking
     "update.mode" = "none";
     # don't re-open everything on start
-    #"window.restoreWindows" = "none";
+    # "window.restoreWindows" = "none";
     # don't show the welcome page
-    #"workbench.startupEditor" = "none";
+    "workbench.startupEditor" = "none";
     # unsaved files will be "untitled"
     "workbench.editor.untitled.labelFormat" = "name";
     # default hard and soft rulers
@@ -261,11 +261,8 @@
     "extensions.ignoreRecommendations" = true;
     # remove popup out moving files
     "explorer.confirmDragAndDrop" = false;
-
     # set the integrated terminal to use zsh
     "terminal.integrated.defaultProfile.linux" = "zsh";
-
-    "terminal.integrated.shellIntegration.enabled" = false;
 
     # remove telemetry
     "redhat.telemetry.enabled" = false;
