@@ -1,4 +1,7 @@
 { tree, lib, ... }:
+let
+  private = lib.bird.importDir ./private null;
+in
 with tree.home.configs.shared;
 [
   theming.basic.default
@@ -9,6 +12,9 @@ with tree.home.configs.shared;
   ./hyprland
 
   { home.sessionVariables = lib.cust.env.wayland.all; }
+
+  # private imports
+  private.services
 
   profile
 ]
