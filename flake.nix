@@ -85,6 +85,9 @@
       url = "github:nix-community/nix-direnv";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Stylix
+    stylix.url = "github:danth/stylix";
   };
 
   nixConfig = {
