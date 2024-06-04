@@ -38,6 +38,7 @@
         moveFocusOrWindow = lib.mkMerge [
           groups.moveFocus
           groups.moveWindow
+          groups.mouseMoveWindow
         ];
 
         # Focus on another window, in the specified direction.
@@ -56,9 +57,15 @@
           "SUPER_SHIFT, down, movewindow, d"
         ];
 
+        # Translate the dragged window by mouse movement.
+        mouseMoveWindow.bindm = [ "SUPER, ${MOUSE_LMB}, movewindow" ];
+
         # Toggle between vertical and horizontal split for
         # the active window and an adjacent one.
         toggleSplit.bind = [ "SUPER, tab, togglesplit," ];
+
+        # Resize a window with the mouse.
+        mouseResizeWindow.bindm = [ "SUPER, ${MOUSE_RMB}, resizewindow" ];
 
         # Switch to the next/previous tab in the active group.
         changeGroupActive.bind = [
@@ -256,6 +263,7 @@
       groups.moveFocusOrWindow
       ### WINDOW RESIZING ###
       groups.toggleSplit
+      groups.mouseResizeWindow
       ### WORKSPACE SWITCHING ###
       groups.switchWorkspace
       ### WORKSPACE WINDOW MOVEMENT ###
