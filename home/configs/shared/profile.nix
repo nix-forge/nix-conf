@@ -92,6 +92,7 @@ args@{
       programs.dev.tools.docs
       programs.dev.tools.direnv
       programs.dev.tools.nix-formatter
+      programs.dev.tools.github-cli
 
       ## DEVELOPMENT ##
       programs.dev.languages.c
