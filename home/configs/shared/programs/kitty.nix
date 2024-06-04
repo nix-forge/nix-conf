@@ -21,15 +21,9 @@
     # https://github.com/kovidgoyal/kitty-themes/tree/master/themes
     # these themes are installed by home-manager if the `theme` is specified
     # look at the contents of kitty-themes conf files to see theme names
-    theme = "Catppuccin-Mocha";
 
     # Set package
     package = pkgs.kitty;
-
-    font = {
-      name = "CaskaydiaCove Nerd Font";
-      size = 13;
-    };
 
     shellIntegration.enableZshIntegration = true;
     settings.shell = "${lib.getExe pkgs.zsh} --login --interactive";
@@ -39,7 +33,6 @@
     };
 
     settings = {
-      background_opacity = "0.93";
       scrollback_lines = 10000;
       enable_audio_bell = false;
       tab_bar_edge = "top"; # tab bar on top
