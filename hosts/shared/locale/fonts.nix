@@ -46,6 +46,7 @@
           "FiraCode"
           "JetBrainsMono"
           "CascadiaCode"
+          "Monaspace"
         ];
       })
 
@@ -57,21 +58,5 @@
       mplus-outline-fonts.githubRelease
       kanji-stroke-order-font
     ];
-
-    fontconfig.defaultFonts = {
-      serif = [
-        "Noto Serif"
-        "Source Han Serif"
-      ];
-      sansSerif = [
-        "Noto Sans"
-        "Source Han Sans"
-      ];
-      monospace = [
-        "JetBrainsMono Nerd Font"
-        "Noto Sans Mono"
-      ];
-      emoji = [ "Noto Color Emoji" ];
-    };
   };
 }
