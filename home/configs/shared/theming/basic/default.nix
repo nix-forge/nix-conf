@@ -1,6 +1,1 @@
-{
-  imports = [
-    ./cursor.nix
-    ./gtk.nix
-  ];
-}
+{ imports = [ ./icons.nix ]; }
