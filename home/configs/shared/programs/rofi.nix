@@ -1,9 +1,14 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 {
   programs.rofi =
     let
       font = {
-        name = "JetBrainsMono";
+        name = "MonaspiceNe Nerd Font";
         size = builtins.toString 12;
       };
     in
@@ -14,12 +19,12 @@
       location = "center";
       cycle = true;
       terminal = config.home.sessionVariables.TERMINAL;
-      extraConfig = {
+      extraConfig = lib.mkForce {
         modes = "run,drun";
         icon-theme = config.gtk.iconTheme.name;
       };
 
-      font = "${font.name} ${font.size}";
+      font = lib.mkForce "${font.name} ${font.size}";
       theme =
         let
           # Use `mkLiteral` for string-like values that should show without
@@ -39,7 +44,7 @@
           fg1 = mkLiteral "#FFFFFF";
           fg2 = mkLiteral "#DEDEDE80";
         in
-        {
+        lib.mkForce {
           # Theme from: https://github.com/newmanls/rofi-themes-collection
           # NOTE: some of the theme is set in the Nix options above
 

@@ -1,12 +1,13 @@
+{ lib, ... }:
 {
   wayland.windowManager.hyprland = {
     # <https://wiki.hyprland.org/Configuring/Variables/#general>
-    config.general = {
+    settings.general = {
       border_size = 2;
-      gaps_inside = 5;
-      gaps_outside = 10;
-      active_border_color = "rgba(66ee1111)";
-      inactive_border_color = "rgba(66333333)";
+      gaps_in = 5;
+      gaps_out = 10;
+      "col.active_border" = lib.mkForce "rgba(66ee1111)";
+      "col.inactive_border" = lib.mkForce "rgba(66333333)";
       #cursor_inactive_timeout = 10;
       #no_cursor_warps = true;
       resize_on_border = true;
@@ -14,12 +15,12 @@
     };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#decoration>
-    config.decoration = {
+    settings.decoration = {
       rounding = 0;
       shadow_range = 8;
       shadow_render_power = 2;
-      active_shadow_color = "rgba(00000044)";
-      inactive_shadow_color = "rgba(00000044)";
+      # "col.shadow" = "rgba(00000044)";
+      # "col.shadow_inactive" = "rgba(00000044)";
       blur = {
         size = 3; # 8
         passes = 2; # 1
@@ -32,7 +33,7 @@
     };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#input>
-    config.input =
+    settings.input =
       let
         DISABLED = 0;
         LOOSE = 2;
@@ -43,7 +44,7 @@
       };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#binds>
-    config.binds =
+    settings.binds =
       let
         LONGEST_SHARED_SIDE = 1;
       in
@@ -51,19 +52,17 @@
         focus_preferred_method = LONGEST_SHARED_SIDE;
       };
 
-    config.gestures = {
-      workspace_swipe = {
-        enable = true;
-        invert = false;
-        min_speed_to_force = 20;
-        cancel_ratio = 0.65;
-        create_new = false;
-        forever = true;
-      };
+    settings.gestures = {
+      workspace_swipe = true;
+      workspace_swipe_invert = false;
+      workspace_swipe_min_speed_to_force = 20;
+      workspace_swipe_cancel_ratio = 0.65;
+      workspace_swipe_create_new = false;
+      workspace_swipe_forever = true;
     };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#misc>
-    config.misc =
+    settings.misc =
       let
         FULLSCREEN_ONLY = 2;
       in
@@ -71,9 +70,8 @@
         # disable_hyprland_logo = true; # false
         # disable_splash_rendering = true; # false
         force_default_wallpaper = 0; # set to the base wallpaper
-        variable_framerate = true;
-        variable_refresh = FULLSCREEN_ONLY;
-        disable_autoreload = true; # false # nix takes care of that
+        vfr = true;
+        vrr = FULLSCREEN_ONLY;
 
         # works well with swayidle
         key_press_enables_dpms = true;
@@ -81,7 +79,7 @@
       };
 
     # <https://wiki.hyprland.org/Configuring/Dwindle-Layout/>
-    config.dwindle =
+    settings.dwindle =
       let
         ALWAYS_EAST = 2;
       in
@@ -91,45 +89,43 @@
         # no_gaps_when_only = true;
       };
 
-    # <https://wiki.hyprland.org/Configuring/Animations/#curves>
-    animations.animation = {
-      # window creation
-      windowsIn = {
-        enable = true;
-        duration = 200;
-        curve = "easeOutCirc";
-        style = "popin 60%";
-      };
-      fadeIn = {
-        enable = true;
-        duration = 100;
-        curve = "easeOutCirc";
-      };
-      # window destruction
-      windowsOut = {
-        enable = true;
-        duration = 200;
-        curve = "easeOutCirc";
-        style = "popin 60%";
-      };
-      fadeOut = {
-        enable = true;
-        duration = 100;
-        curve = "easeOutCirc";
-      };
-      # window movement
-      windowsMove = {
-        enable = true;
-        duration = 300;
-        curve = "easeInOutCubic";
-        style = "popin";
-      };
-      workspaces = {
-        enable = true;
-        duration = 200;
-        curve = "easeOutCirc";
-        style = "slide";
-      };
+    settings.animations = {
+      bezier = [
+        "easeInBack, 0.360000, 0, 0.660000, -0.560000"
+        "easeInCirc, 0.550000, 0, 1, 0.450000"
+        "easeInCubic, 0.320000, 0, 0.670000, 0"
+        "easeInExpo, 0.700000, 0, 0.840000, 0"
+        "easeInOutBack, 0.680000, -0.600000, 0.320000, 1.600000"
+        "easeInOutCirc, 0.850000, 0, 0.150000, 1"
+        "easeInOutCubic, 0.650000, 0, 0.350000, 1"
+        "easeInOutExpo, 0.870000, 0, 0.130000, 1"
+        "easeInOutQuad, 0.450000, 0, 0.550000, 1"
+        "easeInOutQuart, 0.760000, 0, 0.240000, 1"
+        "easeInOutQuint, 0.830000, 0, 0.170000, 1"
+        "easeInOutSine, 0.370000, 0, 0.630000, 1"
+        "easeInQuad, 0.110000, 0, 0.500000, 0"
+        "easeInQuart, 0.500000, 0, 0.750000, 0"
+        "easeInQuint, 0.640000, 0, 0.780000, 0"
+        "easeInSine, 0.120000, 0, 0.390000, 0"
+        "easeOutBack, 0.340000, 1.560000, 0.640000, 1"
+        "easeOutCirc, 0, 0.550000, 0.450000, 1"
+        "easeOutCubic, 0.330000, 1, 0.680000, 1"
+        "easeOutExpo, 0.160000, 1, 0.300000, 1"
+        "easeOutQuad, 0.500000, 1, 0.890000, 1"
+        "easeOutQuart, 0.250000, 1, 0.500000, 1"
+        "easeOutQuint, 0.220000, 1, 0.360000, 1"
+        "easeOutSine, 0.610000, 1, 0.880000, 1"
+        "linear, 0, 0, 1, 1"
+      ];
+
+      animation = [
+        "fadeIn, 1, 1, easeOutCirc"
+        "fadeOut, 1, 1, easeOutCirc"
+        "windowsIn, 1, 2, easeOutCirc, popin 60%"
+        "windowsMove, 1, 3, easeInOutCubic, popin"
+        "windowsOut, 1, 2, easeOutCirc, popin 60%"
+        "workspaces, 1, 2, easeOutCirc, slide"
+      ];
     };
   };
 }

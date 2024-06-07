@@ -70,6 +70,11 @@ lib.cust.mkHost {
     ## Services
     services.disable-hibernate
 
+    ## Theming
+    stylix.base
+    stylix.cursor
+    stylix.fonts
+
     ## Other
     gaming.default
     # swaylock setup (replace with hyprlock)
@@ -85,7 +90,7 @@ lib.cust.mkHost {
     inputs.vscode-extensions.overlays.default
     inputs.nixd.overlays.default
 
-    inputs.nixpkgs-wayland.overlays.default
+    # inputs.nixpkgs-wayland.overlays.default
 
     inputs.birdos.overlays.allowUnfree
     inputs.birdos.overlays.ttf-ms-win11

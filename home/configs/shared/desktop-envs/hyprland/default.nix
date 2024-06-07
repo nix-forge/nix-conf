@@ -8,9 +8,10 @@
 }:
 {
   imports = [
-    inputs.hyprnix.homeManagerModules.hyprland
+    # inputs.hyprnix.homeManagerModules.hyprland
+    inputs.hyprland.homeManagerModules.default
     ./config.nix
-    ./windowrules.nix
+    # ./windowrules.nix
     ./keybinds.nix
     ./xdg.nix
   ];
@@ -23,14 +24,12 @@
   wayland.windowManager.hyprland = {
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    reloadConfig = true;
-    systemdIntegration = true;
-    recommendedEnvironment = true;
-    xwayland.enable = true;
+    systemd = {
+      enable = true;
 
-    config.exec_once = [
-      # polkit agent, raises to root access with gui
-      # "${pkgs.gnome.gnome-keyring}/bin/gnome-keyring-daemon --start --components=pkcs11,secrets,ssh"
+    };
+
+    settings.exec-once = [
       # allow apps with risen perms after agent to connect to local xwayland
       "${lib.getExe pkgs.xorg.xhost} +local:"
     ];

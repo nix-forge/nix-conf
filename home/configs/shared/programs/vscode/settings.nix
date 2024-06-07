@@ -38,7 +38,7 @@
     with extensions.preferReleases;
     [
       ## Appearances ##
-      monokai.theme-monokai-pro-vscode
+      # monokai.theme-monokai-pro-vscode
       bottledlactose.darkbox
       oderwat.indent-rainbow
 
@@ -86,11 +86,13 @@
     ## Appearances ##
 
     # the most important setting
-    "editor.fontFamily" = lib.concatMapStringsSep ", " (s: "'${s}'") [
-      "Material Design Icons"
-      "MonaspiceNe Nerd Font"
-      "JetBrainsMono Nerd Font"
-    ];
+    "editor.fontFamily" = lib.mkForce (
+      lib.concatMapStringsSep ", " (s: "'${s}'") [
+        "Material Design Icons"
+        "MonaspiceNe Nerd Font"
+        "JetBrainsMono Nerd Font"
+      ]
+    );
     "editor.fontSize" = 14;
     "terminal.integrated.fontSize" = 14;
     "editor.cursorSmoothCaretAnimation" = "explicit";
@@ -107,13 +109,13 @@
     "editor.hover.delay" = 700;
 
     # colors
-    "workbench.colorTheme" = "Darkbox (Modern)";
-    "workbench.colorCustomizations" = {
-      "[Monokai Pro (Filter Spectrum)]" = {
-        "editorInlayHint.foreground" = "#69676c";
-        "editorInlayHint.background" = "#222222";
-      };
-    };
+    "workbench.colorTheme" = lib.mkForce "Darkbox (Modern)";
+    # "workbench.colorCustomizations" = {
+    #   "[Monokai Pro (Filter Spectrum)]" = {
+    #     "editorInlayHint.foreground" = "#69676c";
+    #     "editorInlayHint.background" = "#222222";
+    #   };
+    # };
 
     # hide the default indentation guides to make way for the extension
     "editor.guides.indentation" = false;
@@ -263,6 +265,9 @@
     "explorer.confirmDragAndDrop" = false;
     # set the integrated terminal to use zsh
     "terminal.integrated.defaultProfile.linux" = "zsh";
+
+    # github copilot
+    "github.copilot.editor.enableAutoCompletions" = true;
 
     # remove telemetry
     "redhat.telemetry.enabled" = false;
