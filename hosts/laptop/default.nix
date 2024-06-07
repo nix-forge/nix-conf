@@ -70,6 +70,11 @@ lib.cust.mkHost {
     ## Services
     services.disable-hibernate
 
+    ## Theming
+    stylix.base
+    stylix.cursor
+    stylix.fonts
+
     ## Other
     gaming.default
     # swaylock setup (replace with hyprlock)
