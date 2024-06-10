@@ -15,7 +15,7 @@
     };
 
     # Systems
-    systems.url = "github:nix-systems/default";
+    systems.url = "github:nix-systems/default-linux";
 
     # Bird Nix Lib
     bird-nix-lib.url = "github:spikespaz/bird-nix-lib";
