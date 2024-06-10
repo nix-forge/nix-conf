@@ -240,8 +240,8 @@
           ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
 
           # Raise and lower display brightness.
-          ", XF86MonBrightnessUp, exec, ${lib.getExe pkgs.brightnessctl} set +10"
-          ", XF86MonBrightnessDown, exec, ${lib.getExe pkgs.brightnessctl} set -10"
+          ", XF86MonBrightnessUp, exec, ${lib.getExe pkgs.brightnessctl} set +10%"
+          ", XF86MonBrightnessDown, exec, ${lib.getExe pkgs.brightnessctl} set 10%-"
         ];
 
         bindl = [
