@@ -31,7 +31,7 @@
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
     # Hyprland Flake
-    hyprland.url = "github:hyprwm/Hyprland/v0.40.0";
+    hyprland.url = "github:hyprwm/Hyprland/v0.40.0?submodules=1";
 
     # Firefox BetterFox
     firefox-betterfox = {
