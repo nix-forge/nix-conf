@@ -21,15 +21,17 @@
 
     nvidiaSettings = true;
 
-    prime = {
-      offload.enable = true;
-      amdgpuBusId = "PCI:01:00:0"; # card 0
-      nvidiaBusId = "PCI:10:00:0"; # card 1
-    };
+    # prime = {
+    #   offload.enable = true;
+    #   amdgpuBusId = "PCI:01:00:0"; # card 0
+    #   nvidiaBusId = "PCI:10:00:0"; # card 1
+    # };
+
+    waylandEnvs = true;
   };
 
-  hardware.amdgpu = {
-    enable = true;
-    amdvlk = true;
-  };
+  # hardware.amdgpu = {
+  #   enable = true;
+  #   amdvlk = true;
+  # };
 }
