@@ -1,0 +1,1 @@
+{ powerManagement.cpuFreqGovernor = "performance"; }
