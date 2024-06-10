@@ -31,21 +31,7 @@
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
     # Hyprland Flake
-    hyprland-xdph.url = "github:hyprwm/xdg-desktop-portal-hyprland";
-    hyprland-protocols.url = "github:hyprwm/xdg-desktop-portal-hyprland";
-    hyprlang.url = "github:hyprwm/hyprlang";
     hyprland.url = "github:hyprwm/Hyprland/v0.40.0";
-
-    # Hyprland Nix Configuration
-    hyprnix = {
-      url = "github:hyprland-community/hyprnix";
-      inputs = {
-        hyprland.follows = "hyprland";
-        hyprland-xdph.follows = "hyprland-xdph";
-        hyprland-protocols.follows = "hyprland-protocols";
-        hyprlang.follows = "hyprlang";
-      };
-    };
 
     # Firefox BetterFox
     firefox-betterfox = {
