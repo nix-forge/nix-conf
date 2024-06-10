@@ -97,12 +97,12 @@ in
     # Nvidia DRM (Direct Rendering Manager) KMS (Kernel Mode Setting) support
     # Based on Arch Wiki: <https://wiki.archlinux.org/title/NVIDIA#DRM_kernel_mode_setting>
     # NOTE: The kernel patameters for Nvidia use "-" instead of "_" which the Nvidia kernel modules use
-    boot.kernelParams = lib.mkIf config.hardware.nvidia.modesetting.enable [ "nvidia-drm.fbdev=1" ];
+    boot.kernelParams = lib.mkIf cfg.modesetting.enable [ "nvidia-drm.fbdev=1" ];
 
     # Early loading support for Nvidia
     # Also Based on Arch Wiki: https://wiki.archlinux.org/title/NVIDIA#Early_loading
     # NOTE: VA-API will not work if Nvidia module "nvidia_uvm" is not loaded.
-    boot.initrd.kernelModules = lib.mkIf config.hardware.nvidia.earlyLoading [
+    boot.initrd.kernelModules = lib.mkIf cfg.earlyLoading [
       "nvidia"
       "nvidia_modeset"
       "nvidia_uvm"
@@ -113,6 +113,23 @@ in
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     # Requires Nvidia offload to be enabled.
     hardware.nvidia.powerManagement.finegrained =
-      config.hardware.nvidia.prime.offload.enable || config.hardware.nvidia.prime.reverseSync.enable;
+      cfg.prime.offload.enable || cfg.prime.reverseSync.enable;
+
+    # Nvidia offload
+    environment.systemPackages =
+      [ ]
+      # Rewrote `nvidia-offload` command to include more environment variables
+      # Based NixOS Wiki: https://nixos.wiki/wiki/Nvidia
+      # Aditional env var of LIBVA_DRIVER_NAME=nvidia due to nvidia-vaapi-driver
+      ++ lib.optionals (cfg.prime.offload.enable) [
+        (pkgs.writeShellScriptBin "nvidia-offload" ''
+          export __NV_PRIME_RENDER_OFFLOAD=1
+          export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+          export __GLX_VENDOR_LIBRARY_NAME=nvidia
+          export __VK_LAYER_NV_optimus=NVIDIA_only
+          export LIBVA_DRIVER_NAME=nvidia
+          exec "$@"
+        '')
+      ];
   };
 }
