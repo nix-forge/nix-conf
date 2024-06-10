@@ -1,1 +1,1 @@
-{ imports = [ ./icons.nix ./qt.nix]; }
+{ imports = [ ./icons.nix ]; }
