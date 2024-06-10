@@ -108,6 +108,9 @@ args@{ pkgs, lib, ... }:
   ###################
   ### VIDEO GAMES ###
   ###################
+  prism-launcher = {
+    home.packages = [ pkgs.prismlauncher ];
+  };
 
   ######################
   ### AUTHENTICATION ###

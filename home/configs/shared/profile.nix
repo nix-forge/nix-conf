@@ -105,6 +105,7 @@ args@{
       ### SYSTEM ADMINISTRATION & DIAGNOSTICS ###
 
       ### VIDEO GAMES ###
+      programs.prism-launcher
 
       ### AUTHENTICATION ###
 
