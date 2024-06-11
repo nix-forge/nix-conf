@@ -5,8 +5,8 @@
       portalPackages = [
         pkgs.xdg-desktop-portal-gtk
         pkgs.xdg-desktop-portal-gnome
-        # inputs.hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland
-        pkgs.xdg-desktop-portal-hyprland
+        inputs.hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland
+        # pkgs.xdg-desktop-portal-hyprland
       ];
     in
     {
