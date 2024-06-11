@@ -20,72 +20,67 @@ lib.cust.mkHost {
     };
   };
 
-  nixosModules =
-    let
-      desktop-envs.hyprland = tree.hosts.shared.desktop-envs.hyprland { useMainUser = true; };
-    in
-    with tree.hosts.shared // lib.cust // desktop-envs;
-    [
-      ## Base
-      base.nix-settings
-      base.nix-registry
-      base.base
-      base.kernel
-      base.packages
-      ./users.nix
+  nixosModules = with tree.hosts.shared // lib.cust; [
+    ## Base
+    base.nix-settings
+    base.nix-registry
+    base.base
+    base.kernel
+    base.packages
+    ./users.nix
 
-      ## Boot
-      boot.grub.default
-      boot.grub.dual-boot
-      ./hardware/kernel-modules.nix
-      # plymouth
+    ## Boot
+    boot.grub.default
+    boot.grub.dual-boot
+    ./hardware/kernel-modules.nix
+    # plymouth
 
-      ## Locale
-      ./timezone.nix
-      locale.timesync
-      locale.fonts
-      # keyboard
+    ## Locale
+    ./timezone.nix
+    locale.timesync
+    locale.fonts
+    # keyboard
 
-      ## Hardware
-      ./hardware/filesystems.nix
-      ./hardware/gpu.nix
-      ./hardware/cpu.nix
-      ./hardware/power.nix
-      hardware.zram
-      hardware.networking
-      # virtualization
-      hardware.bluetooth
-      # firmware
-      hardware.pipewire
-      peripherals.mouse
-      gaming.default
+    ## Hardware
+    ./hardware/filesystems.nix
+    ./hardware/gpu.nix
+    ./hardware/cpu.nix
+    ./hardware/power.nix
+    hardware.zram
+    hardware.networking
+    # virtualization
+    hardware.bluetooth
+    # firmware
+    hardware.pipewire
+    peripherals.mouse
+    gaming.default
 
-      ## Desktop Environments
+    ## Desktop Environments
 
-      # desktop-envs.gnome
-      # desktop-envs.plasma
-      hyprland
-      ## Display Managers
-      # display-managers.greetd
-      display-managers.gdm
-      # display-managers.sddm
+    # desktop-envs.gnome
+    # desktop-envs.plasma
+    desktop-envs.hyprland
+    ## Display Managers
+    # display-managers.greetd
+    display-managers.gdm
+    # display-managers.sddm
 
-      ## Services
-      services.disable-hibernate
+    ## Services
+    services.disable-hibernate
 
-      ## Theming
-      stylix.base
-      stylix.cursor
-      stylix.fonts
+    ## Theming
+    stylix.base
+    stylix.cursor
+    stylix.fonts
 
-      ## Other
-      # swaylock setup (replace with hyprlock)
-      # keyring
-      # polkit
+    ## Other
+    # swaylock setup (replace with hyprlock)
+    # keyring
+    # polkit
 
-      ## Environment Variables
-      { environment.sessionVariables = env.wayland.all; }
-    ];
+    ## Environment Variables
+    { environment.sessionVariables = env.wayland.all; }
+  ];
 
   overlays = [
     inputs.nur.overlay

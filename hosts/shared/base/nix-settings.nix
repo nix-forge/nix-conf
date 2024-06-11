@@ -5,11 +5,6 @@
   ...
 }:
 {
-  imports = [
-    # Import NixOS modules that have options used acrossed multiple files in shared
-    self.nixosModules.users
-  ];
-
   # set up garbage collection to run weekly,
   # removing unused packages after seven days
   nix.gc = {
