@@ -1,16 +1,15 @@
+{ lib, tree, ... }:
 {
-  lib,
-  tree,
-  ...
-}: {
   imports =
     # Set the mainUser
-    [{users.mainUser = "ianmh";}]
+    [ { users.mainUser = "ianmh"; } ]
     # Add Users
     ++ (
-      with lib.cust.nixos; let
+      with lib.cust.nixos;
+      let
         homeConfigs = tree.home.configs;
-      in [
+      in
+      [
         (addUser {
           username = "ianmh";
           description = "Ian Holloway";
@@ -20,7 +19,7 @@
             "video"
           ];
           initialPassword = "password";
-          homeModules = homeConfigs.laptop.modules {inherit tree lib;};
+          homeModules = homeConfigs.laptop.modules { inherit tree lib; };
         })
 
         # (addUser {

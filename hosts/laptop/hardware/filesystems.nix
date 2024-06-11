@@ -1,24 +1,22 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   rootLabel = "nixos";
   swapLabel = "swap";
   bootLabel = "boot";
 
-  mkFS = label: fsType: {inherit label fsType;};
+  mkFS = label: fsType: { inherit label fsType; };
   mkEXT4 = label: mkFS label "ext4";
   mkBoot = label: mkFS label "vfat";
   bootMP = config.boot.loader.efi.efiSysMountPoint;
-in {
+in
+{
   fileSystems = {
     "/" = mkEXT4 rootLabel;
     ${bootMP} = mkBoot bootLabel;
   };
 
   # Swap
-  swapDevices = [{label = swapLabel;}];
+  swapDevices = [ { label = swapLabel; } ];
   boot.resumeDevice = "/dev/disk/by-label/${swapLabel}";
 
   # Enable SSD TRIM support

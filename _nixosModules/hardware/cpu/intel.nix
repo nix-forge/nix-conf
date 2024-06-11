@@ -1,10 +1,8 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.hardware.cpu.intel;
-in {
+in
+{
   options.hardware.cpu.intel = {
     enable = lib.mkEnableOption "Enable support for Intel CPUs.";
     iommu = lib.mkEnableOption "Enable IOMMU support.";
