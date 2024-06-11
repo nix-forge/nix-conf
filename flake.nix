@@ -1,6 +1,24 @@
 {
   description = "Ian's Nix Configuration";
 
+  # outputs =
+  #   { flake-parts, ... }@inputs:
+  #   flake-parts.lib.mkFlake { inherit inputs; } (
+  #     { withSystem, ... }:
+  #     {
+  #       # systems for which you want to build the `perSystem` attributes
+  #       systems = import inputs.systems;
+
+  #       imports = [
+  #         ./flake/checks
+
+  #         ./flake/fmt.nix
+  #       ];
+
+  #       flake = { };
+  #     }
+  #   );
+
   outputs =
     inputs@{
       self,
@@ -212,6 +230,12 @@
         home-manager.follows = "home-manager";
         flake-compat.follows = "flake-compat";
       };
+    };
+
+    # A tree-wide formatter
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs-small";
     };
   };
 
