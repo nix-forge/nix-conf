@@ -19,10 +19,7 @@
       ];
       vscode = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
         meta.mainProgram = "code-insiders";
-        buildInputs = oldAttrs.buildInputs ++ [
-          pkgs.krb5
-          fontPackages
-        ];
+        buildInputs = oldAttrs.buildInputs ++ [ fontPackages ];
       });
     in
     vscode;
