@@ -246,7 +246,7 @@
 
         bindl = [
           # Mute/unmute the active audio output.
-          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl @DEFAULT_AUDIO_SINK@ toggle"
+          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
 
           # Regular media control keys, if your laptop or bluetooth device has them.
           ", XF86AudioPlay, exec, ${lib.getExe pkgs.playerctl} play-pause"
