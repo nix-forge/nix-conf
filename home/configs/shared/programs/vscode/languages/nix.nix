@@ -24,10 +24,9 @@ in
     "nix.serverPath" = lib.getExe pkgs.nixd;
     "nix.serverSettings".nixd = {
       formatting.command = [
-        "nix"
-        "fmt"
-        "--"
-        "--"
+        "${lib.getExe pkgs.nixfmt-rfc-style}"
+        "-q"
+        "-"
       ];
     };
     "[nix]" = {
