@@ -1,12 +1,11 @@
 {
-  description = "Ian's NixOS Configuration";
+  description = "Ian's Nix Configuration";
 
   # The inputs of the flake
   inputs = {
     # The Nixpkg flakes
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.11";
-    nixpkgs.follows = "nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-small.url = "github:NixOS/nixpkgs/nixos-unstable-small"; # moves faster, has less packages
 
     # Home Manager
     home-manager = {
@@ -26,7 +25,7 @@
     # VS Code
     vscode-insider = {
       url = "github:iosmanthus/code-insiders-flake";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
@@ -78,7 +77,17 @@
     };
 
     # Stylix
-    stylix.url = "github:danth/stylix";
+    base16 = {
+      url = "github:SenchoPens/base16.nix";
+    };
+    stylix = {
+      url = "github:danth/stylix";
+      inputs = {
+        base16.follows = "base16";
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+      };
+    };
   };
 
   nixConfig = {
