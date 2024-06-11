@@ -8,8 +8,7 @@
 }:
 {
   imports = [
-    # inputs.hyprnix.homeManagerModules.hyprland
-    inputs.hyprland.homeManagerModules.default
+    # inputs.hyprland.homeManagerModules.default
     ./config.nix
     # ./windowrules.nix
     ./keybinds.nix
@@ -23,11 +22,6 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
-    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    systemd = {
-      enable = true;
-
-    };
 
     settings.exec-once = [
       # allow apps with risen perms after agent to connect to local xwayland
