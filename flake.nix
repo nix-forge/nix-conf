@@ -219,6 +219,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs-small";
         flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
       };
     };
 
