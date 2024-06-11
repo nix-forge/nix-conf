@@ -1,111 +1,6 @@
 {
   description = "Ian's Nix Configuration";
 
-  # The inputs of the flake
-  inputs = {
-    # The Nixpkg flakes
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nixpkgs-small.url = "github:NixOS/nixpkgs/nixos-unstable-small"; # moves faster, has less packages
-
-    # Home Manager
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Systems
-    systems.url = "github:nix-systems/default-linux";
-
-    # Bird Nix Lib
-    bird-nix-lib.url = "github:spikespaz/bird-nix-lib";
-
-    # NUR
-    nur.url = "github:nix-community/NUR";
-
-    # VS Code
-    vscode-insider = {
-      url = "github:iosmanthus/code-insiders-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
-
-    # Hyprland Flake
-    # hyprland = {
-    #   type = "git";
-    #   url = "https://github.com/hyprwm/Hyprland";
-    #   ref = "refs/tags/v0.41.0";
-    #   submodules = true;
-    # };
-
-    # Firefox BetterFox
-    firefox-betterfox = {
-      url = "github:yokoffing/Betterfox";
-      flake = false;
-    };
-
-    # Firefox Lepton UI
-    firefox-lepton-ui = {
-      url = "github:black7375/Firefox-UI-Fix";
-      flake = false;
-    };
-
-    # Spicetify
-    spicetify-nix = {
-      url = "github:the-argus/spicetify-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Nix gaming
-    nix-gaming = {
-      url = "github:fufexan/nix-gaming";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Wayland Packages
-    nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
-
-    # Nix Language Server
-    nixd.url = "github:nix-community/nixd";
-
-    # BirdOS
-    birdos.url = "github:spikespaz/dotfiles";
-
-    # Nix Direnv
-    nix-direnv = {
-      url = "github:nix-community/nix-direnv";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Stylix
-    base16 = {
-      url = "github:SenchoPens/base16.nix";
-    };
-    stylix = {
-      url = "github:danth/stylix";
-      inputs = {
-        base16.follows = "base16";
-        nixpkgs.follows = "nixpkgs";
-        home-manager.follows = "home-manager";
-      };
-    };
-  };
-
-  nixConfig = {
-    # instances of cachix for package derivations
-    extra-substituters = [
-      "https://cache.nixos.org"
-      "https://nix-community.cachix.org"
-      "https://hyprland.cachix.org"
-      "https://nixpkgs-wayland.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-    ];
-  };
-
   outputs =
     inputs@{
       self,
@@ -172,4 +67,165 @@
       # Define standalone Home Manager configurations
       homeConfigurations = { };
     };
+
+  # The inputs of the flake
+  inputs = {
+    # The Nixpkg flakes
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-small.url = "github:NixOS/nixpkgs/nixos-unstable-small"; # moves faster, has less packages
+
+    # Home Manager
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Systems
+    systems.url = "github:nix-systems/default-linux";
+
+    # Flake Parts
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs-small";
+    };
+
+    # Flake Utils
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+    };
+
+    # Flake Compat
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+    };
+
+    # Bird Nix Lib
+    bird-nix-lib = {
+      url = "github:spikespaz/bird-nix-lib";
+      inputs.nixpkgs.follows = "nixpkgs-small";
+    };
+
+    # NUR
+    nur.url = "github:nix-community/NUR";
+
+    # VS Code
+    vscode-insider = {
+      url = "github:iosmanthus/code-insiders-flake";
+      inputs.nixpkgs.follows = "nixpkgs-small";
+    };
+    vscode-extensions = {
+      url = "github:nix-community/nix-vscode-extensions";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+
+    # Hyprland Flake
+    hyprland = {
+      type = "git";
+      url = "https://github.com/hyprwm/Hyprland";
+      ref = "refs/tags/v0.41.0";
+      submodules = true;
+    };
+
+    # Firefox BetterFox
+    firefox-betterfox = {
+      url = "github:yokoffing/Betterfox";
+      flake = false;
+    };
+
+    # Firefox Lepton UI
+    firefox-lepton-ui = {
+      url = "github:black7375/Firefox-UI-Fix";
+      flake = false;
+    };
+
+    # Spicetify
+    spicetify-nix = {
+      url = "github:the-argus/spicetify-nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+
+    # Nix gaming
+    nix-gaming = {
+      url = "github:fufexan/nix-gaming";
+      inputs = {
+        nixpkgs.follows = "nixpkgs-small";
+        flake-parts.follows = "flake-parts";
+      };
+    };
+
+    # Nix Language Server
+    nixd = {
+      url = "github:nix-community/nixd";
+      inputs = {
+        nixpkgs.follows = "nixpkgs-small";
+        flake-parts.follows = "flake-parts";
+      };
+    };
+
+    # BirdOS
+    birdos = {
+      url = "github:spikespaz/dotfiles";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "nixpkgs";
+        nixpkgs-unstable.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+        nur.follows = "nur";
+        vscode-extensions.follows = "vscode-extensions";
+        hyprland-git.follows = "hyprland";
+        nixd.follows = "nixd";
+        bird-nix-lib.follows = "bird-nix-lib";
+        ragenix.follows = "";
+        hyprnix.follows = "";
+        slight.follows = "";
+        nil.follows = "";
+        waybar.follows = "";
+        hyprland-xdph-git.follows = "";
+        hyprland-protocols-git.follows = "";
+        hyprlang-git.follows = "";
+        nix-your-shell.follows = "";
+        homeage.follows = "";
+      };
+    };
+
+    # Nix Direnv
+    nix-direnv = {
+      url = "github:nix-community/nix-direnv";
+      inputs = {
+        nixpkgs.follows = "nixpkgs-small";
+        flake-parts.follows = "flake-parts";
+      };
+    };
+
+    # Stylix
+    stylix = {
+      url = "github:danth/stylix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs-small";
+        home-manager.follows = "home-manager";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+  };
+
+  nixConfig = {
+    # instances of cachix for package derivations
+    extra-substituters = [
+      "https://cache.nixos.org"
+      "https://nix-community.cachix.org"
+      "https://hyprland.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+    ];
+  };
 }
