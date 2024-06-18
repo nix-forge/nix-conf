@@ -29,6 +29,9 @@ args@{ pkgs, lib, ... }:
   zoom = {
     home.packages = [ pkgs.zoom-us ];
   };
+  discord = {
+    home.packages = [ pkgs.discord ];
+  };
 
   ######################
   ### MEDIA CREATION ###
@@ -68,6 +71,9 @@ args@{ pkgs, lib, ... }:
       pkgs.hunspell
       pkgs.hunspellDicts.en_US
     ];
+  };
+  qgis = {
+    home.packages = [ pkgs.qgis ];
   };
 
   ##########################

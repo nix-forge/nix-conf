@@ -62,16 +62,18 @@ args@{
 
       ### COMMUNICATION & MESSAGING ###
       programs.zoom
+      programs.discord
 
       ### MEDIA CREATION ###
 
       ### MEDIA CONSUMPTION ###
       programs.spotify
-      programs.foliate
+      # programs.foliate
 
       ### OFFICE & WRITING SOFTWARE ###
       programs.libreoffice
       programs.spellcheck
+      programs.qgis
 
       ### TERMINAL EMULATORS ###
       programs.kitty
