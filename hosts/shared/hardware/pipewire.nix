@@ -1,4 +1,9 @@
-{ inputs, lib, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 {
   imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
 
@@ -18,4 +23,5 @@
   };
 
   # TODO: setup xwayland bridge
+  environment.systemPackages = [ pkgs.xwaylandvideobridge ];
 }
