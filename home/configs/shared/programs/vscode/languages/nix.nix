@@ -13,7 +13,7 @@ in
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       jnoortheen.nix-ide
       ionutvmi.path-autocomplete

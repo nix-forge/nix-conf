@@ -32,7 +32,7 @@
     let
       extensions = pkgs.callPackage ./marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       ## Appearances ##
       # monokai.theme-monokai-pro-vscode
@@ -77,6 +77,7 @@
       github.copilot
       github.copilot-chat
       ms-vscode-remote.remote-ssh
+      ms-vsliveshare.vsliveshare
     ];
 
   programs.vscode.userSettings = {

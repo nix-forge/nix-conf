@@ -4,7 +4,7 @@
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       ms-vscode.live-server
       aeschli.vscode-css-formatter

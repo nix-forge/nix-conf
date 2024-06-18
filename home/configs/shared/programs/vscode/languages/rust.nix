@@ -6,7 +6,7 @@
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       rust-lang.rust-analyzer
       serayuzgur.crates

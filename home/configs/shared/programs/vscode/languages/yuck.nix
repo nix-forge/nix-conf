@@ -4,7 +4,7 @@
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       eww-yuck.yuck
       kress95.vscode-parinfer-kress95

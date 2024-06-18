@@ -9,7 +9,7 @@
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
-    with extensions.preferReleases;
+    with extensions.preferNixpkgs;
     [
       llvm-vs-code-extensions.vscode-clangd
       pkgs.vscode-extensions.ms-vscode.cmake-tools # wrapped by nixpkgs
