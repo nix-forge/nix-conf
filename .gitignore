@@ -1,2 +1,6 @@
+# Ignore nix stuff
 result
-.vscode
+.direnv/
+
+# Ignore pre-commit config
+.pre-commit-config.yaml
