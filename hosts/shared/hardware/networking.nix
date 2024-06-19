@@ -1,6 +1,6 @@
 { self, lib, ... }:
 {
-  imports = [ self.nixosModules.hardware.networking ];
+  imports = [ self.nixOSModules.hardware.networking ];
 
   networking = {
     generateHostId = true;

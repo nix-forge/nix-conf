@@ -1,8 +1,8 @@
 { self, ... }:
 {
   imports = [
-    self.nixosModules.hardware.gpu.nvidia
-    self.nixosModules.hardware.gpu.amd
+    self.nixOSModules.hardware.gpu.nvidia
+    self.nixOSModules.hardware.gpu.amd
   ];
 
   hardware.nvidia = {

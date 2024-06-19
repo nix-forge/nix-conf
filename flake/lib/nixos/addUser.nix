@@ -4,7 +4,7 @@
   extraGroups ? [ ],
   initialPassword ? "password",
   isNormalUser ? true,
-  homeModules ? [ ],
+  homeManagerModules ? [ ],
 }:
 { config, ... }:
 {
@@ -17,7 +17,7 @@
       ;
   };
   home-manager.users.${username} = {
-    imports = homeModules;
+    imports = homeManagerModules;
     home = {
       inherit username;
       stateVersion = config.system.stateVersion;

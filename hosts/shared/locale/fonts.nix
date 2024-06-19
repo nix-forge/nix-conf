@@ -6,8 +6,6 @@
     fontDir.decompressFonts = true;
     fontconfig.enable = true;
 
-    # TODO: add more fonts related to languages enabled in the system
-
     packages = with pkgs; [
       # icon fonts
       material-design-icons
@@ -37,8 +35,8 @@
       open-sans
       ubuntu_font_family
 
-      # Microsoft Fonts
-      (ttf-ms-win11.override { acceptEula = true; })
+      # # Microsoft Fonts
+      # (ttf-ms-win11.override { acceptEula = true; })
 
       # Nerdfonts
       (nerdfonts.override {

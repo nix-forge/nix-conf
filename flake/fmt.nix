@@ -2,15 +2,7 @@
 {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem =
-    {
-      inputs',
-      config,
-      pkgs,
-      ...
-    }:
-    let
-      lib = inputs'.nixpkgs.lib;
-    in
+    { config, pkgs, ... }:
     {
       # provide the formatter for `nix fmt`
       formatter = config.treefmt.build.wrapper;
@@ -31,9 +23,6 @@
             enable = true;
             package = pkgs.prettierd;
             excludes = [ "*.age" ];
-            settings = {
-              editorconfig = true;
-            };
           };
 
           shfmt = {

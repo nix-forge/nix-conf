@@ -16,7 +16,7 @@ in
     ./policies.nix
     ./extensions.nix
     ./user-js.nix
-    self.homeModules.firefox-userchrome
+    self.homeManagerModules.firefox-userchrome
   ];
 
   programs.firefox.userChrome.profiles.${profile} = {

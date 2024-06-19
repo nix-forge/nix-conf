@@ -1,101 +1,85 @@
 {
-  self,
   tree,
+  hostname,
   lib,
   inputs,
   ...
 }:
-lib.cust.mkHost {
-  hostName = "desktop";
+{
   system = "x86_64-linux";
-  nixpkgs = inputs.nixpkgs;
   nixpkgsArgs = {
     config.allowUnfree = true;
   };
-  stateVersion = "24.05";
+  modules =
+    with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.hosts.shared);
+    [
+      ## Base
+      base.nix-settings
+      base.nix-registry
+      base.base
+      base.kernel
+      base.packages
+      users
 
-  specialArgs = {
-    host = {
-      logicalProcessors = 16; # run nproc
-    };
-  };
+      ## Boot
+      boot.grub.default
+      boot.grub.dual-boot
+      kernel-modules
+      # plymouth
 
-  nixosModules = with tree.hosts.shared // lib.cust; [
-    ## Base
-    base.nix-settings
-    base.nix-registry
-    base.base
-    base.kernel
-    base.packages
-    ./users.nix
+      ## Locale
+      timezone
+      locale.timesync
+      locale.fonts
+      # keyboard
 
-    ## Boot
-    boot.grub.default
-    boot.grub.dual-boot
-    ./hardware/kernel-modules.nix
-    # plymouth
+      ## Hardware
+      filesystems
+      gpu
+      cpu
+      power
+      hardware.zram
+      hardware.networking
+      # virtualization
+      hardware.bluetooth
+      # firmware
+      hardware.pipewire
+      peripherals.mouse
+      gaming.default
 
-    ## Locale
-    ./timezone.nix
-    locale.timesync
-    locale.fonts
-    # keyboard
+      ## Desktop Environments
 
-    ## Hardware
-    ./hardware/filesystems.nix
-    ./hardware/gpu.nix
-    ./hardware/cpu.nix
-    ./hardware/power.nix
-    hardware.zram
-    hardware.networking
-    # virtualization
-    hardware.bluetooth
-    # firmware
-    hardware.pipewire
-    peripherals.mouse
-    gaming.default
+      # desktop-envs.gnome
+      # desktop-envs.plasma
+      desktop-envs.hyprland
+      ## Display Managers
+      # display-managers.greetd
+      display-managers.gdm
+      # display-managers.sddm
 
-    ## Desktop Environments
+      ## Services
+      services.disable-hibernate
 
-    # desktop-envs.gnome
-    # desktop-envs.plasma
-    desktop-envs.hyprland
-    ## Display Managers
-    # display-managers.greetd
-    display-managers.gdm
-    # display-managers.sddm
+      ## Theming
+      stylix.base
+      stylix.cursor
+      stylix.fonts
 
-    ## Services
-    services.disable-hibernate
+      # Other
+      # swaylock setup (replace with hyprlock)
+      # keyring
+      # polkit
 
-    ## Theming
-    stylix.base
-    stylix.cursor
-    stylix.fonts
-
-    ## Other
-    # swaylock setup (replace with hyprlock)
-    # keyring
-    # polkit
-
-    ## Environment Variables
-    { environment.sessionVariables = env.wayland.all; }
-  ];
+    ]
+    ++ [
+      ## Environment Variables
+      { environment.sessionVariables = lib.cust.env.wayland.all; }
+    ];
 
   overlays = [
     inputs.nur.overlay
     inputs.vscode-extensions.overlays.default
     inputs.nixd.overlays.default
-
-    inputs.birdos.overlays.allowUnfree
-    inputs.birdos.overlays.ttf-ms-win11
   ];
 
-  # inherit function arguments
-  inherit
-    inputs
-    lib
-    tree
-    self
-    ;
 }

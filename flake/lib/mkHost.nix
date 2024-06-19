@@ -3,8 +3,6 @@
   inputs,
   # The type of system to build for
   system,
-  # The tree of file paths
-  tree,
   # Refer to vars defined in flake
   self,
   # Defines the lib (allows for custom lib to be passed in)
@@ -26,6 +24,8 @@
   nixosModules ? [ ],
   # define the home-manager flake
   homeManager ? inputs.home-manager,
+  # withSystem
+  withSystem,
   ...
 }:
 let
@@ -43,12 +43,7 @@ let
 
   # SpecialArgs
   baseArgs = specialArgs // {
-    inherit
-      nixpkgs
-      inputs
-      tree
-      self
-      ;
+    inherit nixpkgs inputs self;
   };
   nixosSpecialArgs = baseArgs // {
     inherit lib;
@@ -70,6 +65,7 @@ let
     }
   ];
 in
+
 nixpkgs.lib.nixosSystem {
   inherit system;
   specialArgs = nixosSpecialArgs;

@@ -19,8 +19,6 @@ in
         default = true;
       };
 
-    amdvlk = lib.mkEnableOption "Enable AMDVLK support";
-
     opencl =
       lib.mkEnableOption (
         lib.mdDoc "rocm opencl runtime (Install rocmPackages.clr and rocmPackages.clr.icd)"
@@ -42,10 +40,6 @@ in
         driSupport = true;
         driSupport32Bit = true;
       }
-      (lib.mkIf cfg.amdvlk {
-        extraPackages = [ pkgs.amdvlk ];
-        extraPackages32 = [ pkgs.driversi686Linux.amdvlk ];
-      })
 
       (lib.mkIf cfg.opencl {
         extraPackages =
@@ -80,10 +74,5 @@ in
       # Allow the GPU to power down when displays are attached.
       "amdgpu.runpm=-2"
     ];
-
-    environment.variables = lib.mkIf cfg.amdvlk {
-      # From Mesa, for Vulkan, alongside `radeonsi` for OpenGL.
-      AMD_VULKAN_ICD = "RADV";
-    };
   };
 }
