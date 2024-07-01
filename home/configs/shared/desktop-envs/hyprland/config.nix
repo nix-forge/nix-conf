@@ -4,12 +4,13 @@
     # <https://wiki.hyprland.org/Configuring/Variables/#general>
     settings.general = {
       border_size = 2;
-      gaps_in = 5;
-      gaps_out = 10;
-      "col.active_border" = lib.mkForce "rgba(66ee1111)";
-      "col.inactive_border" = lib.mkForce "rgba(66333333)";
-      #cursor_inactive_timeout = 10;
-      #no_cursor_warps = true;
+      # gaps_in = 5;
+      # gaps_out = 10;
+      gaps_in = 0;
+      gaps_out = 0;
+      "col.active_border" = lib.mkForce "0xffd3c6aa"; # overriden by stylix
+      "col.inactive_border" = lib.mkForce "0xff56635f"; # overriden by stylix
+      # no_cursor_warps = true;
       resize_on_border = true;
       extend_border_grab_area = 10;
     };
@@ -62,21 +63,17 @@
     };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#misc>
-    settings.misc =
-      let
-        FULLSCREEN_ONLY = 2;
-      in
-      {
-        # disable_hyprland_logo = true; # false
-        # disable_splash_rendering = true; # false
-        force_default_wallpaper = 0; # set to the base wallpaper
-        vfr = true;
-        vrr = FULLSCREEN_ONLY;
+    settings.misc = {
+      # disable_hyprland_logo = true; # false
+      # disable_splash_rendering = true; # false
+      force_default_wallpaper = 0; # set to the base wallpaper
+      vfr = true;
+      vrr = 0; # 0 - off, 1 - on, 2 - fullscreen only [0/1/2]
 
-        # works well with swayidle
-        key_press_enables_dpms = true;
-        mouse_move_enables_dpms = true;
-      };
+      # works well with swayidle
+      key_press_enables_dpms = true;
+      mouse_move_enables_dpms = true;
+    };
 
     # <https://wiki.hyprland.org/Configuring/Dwindle-Layout/>
     settings.dwindle =
