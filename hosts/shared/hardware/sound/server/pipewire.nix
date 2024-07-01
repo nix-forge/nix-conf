@@ -7,10 +7,9 @@
 {
   imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
 
-  hardware.pulseaudio.enable = lib.mkForce false;
-
   services.pipewire = {
     enable = true;
+    audio.enable = true;
 
     alsa.enable = true;
     alsa.support32Bit = true;
@@ -21,7 +20,4 @@
 
     lowLatency.enable = true;
   };
-
-  # TODO: setup xwayland bridge
-  environment.systemPackages = [ pkgs.xwaylandvideobridge ];
 }
