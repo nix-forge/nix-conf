@@ -13,6 +13,11 @@
           "wheel"
           "audio"
           "video"
+          "input"
+          "docker"
+          "libvirtd"
+          "network"
+          "networkmanager"
         ];
         initialPassword = "password";
         homeManagerModules = homeConfigs.desktop.modules { inherit tree lib; };
