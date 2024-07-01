@@ -10,17 +10,40 @@
       wifi.backend = "iwd";
     };
 
-    useDHCP = lib.mkDefault true;
     enableIPv6 = false;
 
-    cloudflareDNS = true;
-    randomizeMacAddress = true;
+    dnscrypt-proxy.enable = true;
 
-    firewall = {
+    # randomizeMacAddress = true;
+
+    # global dhcp has been deprecated upstream
+    # use the new networkd service instead of the legacy
+    # "script-based" network setups. Host may contain individual
+    # dhcp interfaces or systemd-networkd configurations in host
+    # specific directories
+    useDHCP = lib.mkForce false;
+    # useNetworkd = lib.mkForce true;
+
+    # set static IP address on wlan0
+    interfaces.wlan0 = {
+      ipv4.addresses = [
+        {
+          address = "192.168.1.2";
+          prefixLength = 24;
+        }
+      ];
+    };
+    defaultGateway = {
+      address = "192.168.1.1";
+      interface = "wlan0";
+    };
+
+    stevenblack = {
       enable = true;
-      allowedTCPPorts = [
-        # 80 # HTTP (uncomment if needed for personal server)
-        443 # HTTPS
+      block = [
+        "fakenews"
+        "gambling"
+        "porn"
       ];
     };
   };
