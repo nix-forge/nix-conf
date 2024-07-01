@@ -2,6 +2,7 @@
   lib,
   pkgs,
   inputs,
+  config,
   ...
 }:
 {
@@ -72,6 +73,8 @@
       kdl-org.kdl
       redhat.vscode-yaml
       tamasfe.even-better-toml
+      mechatroner.rainbow-csv
+      janisdd.vscode-edit-csv
 
       # Extra
       github.copilot
