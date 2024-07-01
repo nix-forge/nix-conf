@@ -1,16 +1,30 @@
-# Partially based off of this guide <https://ayats.org/blog/channels-to-flakes/>
-# In this modudle each flake is piped from the inputs to the flake registry
-# This allows for channels to use flake inputs instead of channels
-# and for the flake Nix commands to use the flake registry defined here
-{ lib, inputs, ... }:
-lib.pipe inputs [
-  (lib.filterAttrs (_: lib.types.isType "flake"))
-  (lib.mapAttrsToList (
-    name: input: {
-      environment.etc."nix/inputs/${name}".source = input.outPath;
-      nix.nixPath = [ "${name}=/etc/nix/inputs/${name}" ];
-      nix.registry.${name}.flake = input;
-    }
-  ))
-  lib.mkMerge
-]
+{
+  pkgs,
+  inputs,
+  config,
+  lib,
+  ...
+}:
+let
+  mappedRegistry = lib.pipe inputs [
+    (lib.filterAttrs (_: lib.types.isType "flake"))
+    (builtins.mapAttrs (_: flake: { inherit flake; }))
+    (x: x // { nixpkgs.flake = inputs.nixpkgs; })
+  ];
+in
+{
+  nix = {
+    # Pin the registry to avoid downloading and evaluating a new nixpkgs version every time
+    # this will add each flake input as a registry to make nix3 commands consistent with your flake
+    # additionally we also set `registry.default`, which was added by nix-super
+    registry =
+      mappedRegistry
+      // lib.optionalAttrs (config.nix.package == inputs.nix-super.packages.${pkgs.system}.default) {
+        default = mappedRegistry.nixpkgs;
+      };
+
+    # This will additionally add your inputs to the system's legacy channels
+    # Making legacy nix commands consistent as well
+    nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") config.nix.registry;
+  };
+}
