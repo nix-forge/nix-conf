@@ -40,13 +40,13 @@ in
     boot.initrd.kernelModules = [ "i915" ];
 
     environment.variables = {
-      VDPAU_DRIVER = lib.mkIf config.hardware.opengl.enable (lib.mkDefault "va_gl");
+      VDPAU_DRIVER = lib.mkIf config.hardware.graphics.enable (lib.mkDefault "va_gl");
     };
 
-    hardware.opengl = {
+    hardware.graphics = {
       enable = true;
-      driSupport = true;
-      driSupport32Bit = true;
+
+
 
       extraPackages = with pkgs; [
         intel-vaapi-driver # replaces package "vaapiIntel" as of Nix 23.11
