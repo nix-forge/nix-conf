@@ -65,15 +65,17 @@ args@{
       programs.discord
 
       ### MEDIA CREATION ###
+      programs.reaper
 
       ### MEDIA CONSUMPTION ###
       programs.spotify
+      programs.rhythmbox
       # programs.foliate
 
       ### OFFICE & WRITING SOFTWARE ###
       programs.libreoffice
       programs.spellcheck
-      # programs.qgis
+      programs.qgis
 
       ### TERMINAL EMULATORS ###
       programs.kitty

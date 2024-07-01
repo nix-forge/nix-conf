@@ -1,4 +1,9 @@
-args@{ pkgs, lib, ... }:
+args@{
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 (lib.mapAttrs (_: expr: if lib.isFunction expr then expr args else expr) (
   lib.bird.importDir' ./. "default.nix"
 ))
@@ -30,7 +35,7 @@ args@{ pkgs, lib, ... }:
     home.packages = [ pkgs.zoom-us ];
   };
   discord = {
-    home.packages = [ pkgs.discord ];
+    home.packages = [ pkgs.webcord ];
   };
 
   ######################
@@ -45,12 +50,21 @@ args@{ pkgs, lib, ... }:
     home.packages = [ pkgs.gimp ];
   };
 
+  ## AUDIO ##
+
+  reaper = {
+    home.packages = [ pkgs.reaper ];
+  };
+
   #########################
   ### MEDIA CONSUMPTION ###
   #########################
 
   foliate = {
     home.packages = [ pkgs.foliate ];
+  };
+  rhythmbox = {
+    home.packages = [ pkgs.rhythmbox ];
   };
 
   #################################
@@ -73,7 +87,11 @@ args@{ pkgs, lib, ... }:
     ];
   };
   qgis = {
-    home.packages = [ pkgs.qgis ];
+    home.packages =
+      let
+        geonix = inputs.geospatial-nix.packages.${pkgs.system};
+      in
+      [ geonix.qgis ];
   };
 
   ##########################
