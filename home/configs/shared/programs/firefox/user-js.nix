@@ -76,10 +76,10 @@ in
         "browser.places.speculativeConnect.enabled" = false;
 
         # DNS
-        "network.proxy.socks_remote_dns" = true;
+        "network.proxy.socks_remote_dns" = false; # user system DNS
         "network.file.disable_unc_paths" = true;
         "network.gio.supported-protocols" = "";
-        "network.trr.mode" = 3; # Max Protection Setting with Cloudflare DNS
+        "network.trr.mode" = 5; # use system DNS
 
         # LOCATION BAR / SEARCH BAR / SUGGESTIONS / HISTORY
         "browser.urlbar.speculativeConnect.enabled" = false;
