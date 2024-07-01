@@ -29,7 +29,6 @@ in
 
   # Swap
   swapDevices = [ { label = swapLabel; } ];
-  boot.resumeDevice = "/dev/disk/by-label/${swapLabel}";
 
   # BTRFS Scrub
   services.btrfs.autoScrub = {
@@ -37,10 +36,4 @@ in
     interval = "monthly";
     fileSystems = [ "/" ];
   };
-
-  # Enable SSD TRIM support
-  services.fstrim.enable = lib.mkDefault true;
-
-  # Allow Nix to automatically optimise the store
-  nix.settings.auto-optimise-store = true;
 }
