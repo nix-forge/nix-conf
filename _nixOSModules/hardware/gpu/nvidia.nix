@@ -49,26 +49,25 @@ in
     services.xserver.videoDrivers = [ "nvidia" ];
 
     # Nvidia VAAPI driver
-    hardware.opengl = lib.mkMerge [
-      {
-        enable = true;
-        driSupport = true;
-        driSupport32Bit = true;
-      }
+    hardware.graphics = lib.mkMerge [
+      { enable = true; }
 
       (lib.mkIf cfg.nvidia-vaapi-driver.enable {
-        extraPackages = [
-          pkgs.nvidia-vaapi-driver
-        ] ++ lib.optionals (pkgs ? ffmpeg-full) [ pkgs.ffmpeg-full ];
+        extraPackages = [ pkgs.nvidia-vaapi-driver ];
         extraPackages32 = [ pkgs.pkgsi686Linux.nvidia-vaapi-driver ];
       })
     ];
 
     environment.sessionVariables = lib.mkMerge [
-      { NVD_BACKEND = lib.mkIf cfg.nvidia-vaapi-driver.directBackend "direct"; }
+      {
+        NVD_BACKEND = lib.mkIf (
+          cfg.nvidia-vaapi-driver.directBackend && cfg.nvidia-vaapi-driver.enable
+        ) "direct";
+      }
+
+      (lib.mkIf cfg.nvidia-vaapi-driver.enable { LIBVA_DRIVER_NAME = "nvidia"; })
 
       (lib.mkIf cfg.waylandEnvs {
-        LIBVA_DRIVER_NAME = "nvidia";
         GBM_BACKEND = "nvidia-drm"; # If you encounter crashes in Firefox then remove this line
         __GLX_VENDOR_LIBRARY_NAME = "nvidia"; # If you face problems with Discord windows not displaying or screen sharing not working in Zoom then remove this line
         WLR_NO_HARDWARE_CURSORS = "1";
@@ -86,12 +85,12 @@ in
           driver1: driver2: if (isNewer driver1.version driver2.version) then driver1 else driver2;
       in
       let
-        beta = builtins.trace "Beta Version      : ${nvidiaPkgs.beta.version}" nvidiaPkgs.beta;
-        prod = builtins.trace "Production Version: ${nvidiaPkgs.production.version}" nvidiaPkgs.production;
+        beta = nvidiaPkgs.beta;
+        prod = nvidiaPkgs.production;
 
         nvidiaDriver = chooseDriver prod beta;
       in
-      lib.mkIf cfg.betaDriver (builtins.trace "Chosen Driver     : ${nvidiaDriver.version}" nvidiaDriver);
+      lib.mkIf cfg.betaDriver nvidiaDriver;
 
     # Extra Mode Setting Config
     # Nvidia DRM (Direct Rendering Manager) KMS (Kernel Mode Setting) support
@@ -109,6 +108,9 @@ in
       "nvidia_drm"
     ];
 
+    # blacklist nouveau module so that it does not conflict with nvidia drm
+    boot.blacklistedKernelModules = [ "nouveau" ];
+
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     # Requires Nvidia offload to be enabled.
@@ -117,7 +119,27 @@ in
 
     # Nvidia offload
     environment.systemPackages =
-      [ ]
+      (with pkgs; [
+        nvtopPackages.nvidia
+
+        # mesa
+        mesa
+
+        # vulkan
+        vulkan-tools
+        vulkan-loader
+        vulkan-validation-layers
+        vulkan-extension-layer
+
+      ])
+      ++ lib.optionals (cfg.nvidia-vaapi-driver.enable) (
+        with pkgs;
+        [
+          # libva
+          libva
+          libva-utils
+        ]
+      )
       # Rewrote `nvidia-offload` command to include more environment variables
       # Based NixOS Wiki: https://nixos.wiki/wiki/Nvidia
       # Aditional env var of LIBVA_DRIVER_NAME=nvidia due to nvidia-vaapi-driver
