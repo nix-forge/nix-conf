@@ -1,9 +1,6 @@
 { self, ... }:
 {
-  imports = [
-    self.nixOSModules.hardware.gpu.nvidia
-    self.nixOSModules.hardware.gpu.amd
-  ];
+  imports = [ self.nixOSModules.hardware.gpu.nvidia ];
 
   hardware.nvidia = {
     enable = true;
@@ -29,9 +26,4 @@
 
     waylandEnvs = true;
   };
-
-  # hardware.amdgpu = {
-  #   enable = true;
-  #   amdvlk = true;
-  # };
 }
