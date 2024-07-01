@@ -6,37 +6,15 @@
     flake-parts.lib.mkFlake { inherit inputs; } (
       { withSystem, ... }:
       {
+        # Parts of the flake that are used to construct the final flake.
+        imports = [ ./parts ];
+
         # Systems for which the attributes of `perSystem` will be built
         # add more if they can be supported...
         #  - x86_64-linux: Desktops, laptops, servers
         #  - aarch64-linux: ARM-based devices, PoC server and builders
         #  - ...
         systems = import inputs.systems;
-
-        # Imports for constructing a final flake to be built.
-        imports = [
-          # Imported
-          # inputs.flake-parts.flakeModules.easyOverlay
-
-          # Explicitly import parts of the flake, which allows me to build the
-          # "final flake" from various parts, arranged in a way that makes
-          # sense to me the most. By convention, things that would usually
-          # go to flake.nix should have its own file in the `flake/` directory.
-          # ./flake/apps # apps provided by the flake
-          ./flake/checks # checks that are performed on `nix flake check`
-          ./flake/lib # extended library on top of `nixpkgs.lib`
-          ./flake/tree.nix # tree structure of the flake that imports leafs (files)
-          # ./flake/modules # nixos and home-manager modules provided by this flake
-          # ./flake/pkgs # packages exposed by the flake
-          # ./flake/pre-commit # pre-commit hooks, performed before each commit inside the devShell
-          # ./flake/templates # flake templates
-
-          # ./flake/args.nix # args that are passed to the flake, moved away from the main file
-          # ./flake/deployments.nix # deploy-rs configurations for active hosts
-          ./flake/fmt.nix # various formatter configurations for this flake
-          # ./flake/iso-images.nix # local installation media
-          # ./flake/shell.nix # devShells exposed by the flake
-        ];
 
         flake =
           let
@@ -69,10 +47,10 @@
               ) (importDirRec hostDir excludes);
 
             # NixOS Modules
-            nixOSModules = tree._nixOSModules;
+            nixOSModules = importDirRec ./_nixOSModules [ ];
 
             # Home Manager Modules
-            homeManagerModules = tree._homeModules;
+            homeManagerModules = importDirRec ./_homeModules [ ];
           };
       }
     );
@@ -140,8 +118,11 @@
     hyprland = {
       type = "git";
       url = "https://github.com/hyprwm/Hyprland";
-      ref = "refs/tags/v0.41.0";
+      ref = "refs/tags/v0.41.1";
       submodules = true;
+      inputs = {
+        nixpkgs.follows = "nixpkgs"; # should update nixpkgs when changing hyprland version
+      };
     };
 
     # Nix Language Server
@@ -217,20 +198,45 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+      };
+    };
+
+    # Geospatial Nix
+    geospatial-nix = {
+      url = "github:imincik/geospatial-nix";
+    };
+
   };
 
   nixConfig = {
     extra-substituters = [
-      "https://nix-community.cachix.org"
-      "https://hyprland.cachix.org"
-      "https://cache.privatevoid.net"
+      "https://cache.nixos.org" # official nix cache
+      "https://nixpkgs-wayland.cachix.org" # automated builds of wayland packages
+      "https://cache.privatevoid.net" # for nix-super
+      "https://nix-community.cachix.org" # nix-community cache
+      "https://hyprland.cachix.org" # hyprland
+      "https://nixpkgs-unfree.cachix.org" # unfree-package cache
+      "https://numtide.cachix.org" # another unfree package cache
+      "https://cache.garnix.io" # garnix binary cache
+      "https://geonix.cachix.org" # geospatial nix
     ];
 
     extra-trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
+      "cache.privatevoid.net:SErQ8bvNWANeAvtsOESUwVYr2VJynfuc9JRwlzTTkVg="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      "cache.privatevoid.net:SErQ8bvNWANeAvtsOESUwVYr2VJynfuc9JRwlzTTkVg="
-      "notashelf.cachix.org-1:VTTBFNQWbfyLuRzgm2I7AWSDJdqAa11ytLXHBhrprZk="
+      "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
+      "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
+      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
     ];
   };
 }
