@@ -1,12 +1,10 @@
-{ inputs, pkgs, ... }:
+{ inputs, pkgs, config, ... }:
 {
   xdg.portal =
     let
       portalPackages = [
         pkgs.xdg-desktop-portal-gtk
-        pkgs.xdg-desktop-portal-gnome
         inputs.hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland
-        # pkgs.xdg-desktop-portal-hyprland
       ];
     in
     {
@@ -20,7 +18,7 @@
             "hyprland"
             "gtk"
           ];
-          "org.freedesktop.impl.portal.FileChooser" = [ "gnome" ];
+          "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
         };
       };
     };
