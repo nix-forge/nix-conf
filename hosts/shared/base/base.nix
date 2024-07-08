@@ -5,5 +5,18 @@
 
   # enable dconf
   programs.dconf.enable = true;
-  environment.systemPackages = [ pkgs.gnome.dconf-editor ];
+  environment.systemPackages = [ pkgs.dconf-editor ];
+
+  services.dbus = {
+    enable = true;
+    packages = with pkgs; [
+      dconf
+      gcr
+      udisks2
+    ];
+
+    # Use the faster dbus-broker instead of the classic dbus-daemon
+    implementation = "broker";
+  };
+
 }
