@@ -6,13 +6,13 @@
 }:
 {
   nix = {
-    # set the nix super package
-    package = inputs.nix-super.packages.${pkgs.system}.default;
+    # set to Lix the higher performance Nix fork.
+    package = pkgs.lix;
 
-    # make builds run with low priority so my system stays responsive
-    # this is especially helpful if you have auto-upgrade on
-    daemonCPUSchedPolicy = "batch";
+    # Run the Nix daemon on lowest possible priority so that system
+    # stays responsive during demanding tasks such as GC and builds.
     daemonIOSchedClass = "idle";
+    daemonCPUSchedPolicy = "idle";
     daemonIOSchedPriority = 7;
 
     # set up garbage collection to run weekly,
@@ -21,6 +21,7 @@
       automatic = true;
       dates = "Sat *-*-* 03:00";
       options = "--delete-older-than 30d";
+      persistent = false; # don't try to catch up on missed GC runs
     };
 
     # automatically optimize nix store my removing hard links
