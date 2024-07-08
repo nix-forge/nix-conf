@@ -1,10 +1,18 @@
 { inputs, pkgs, ... }:
 {
   imports = [ inputs.stylix.nixosModules.stylix ];
-  stylix.enable = true;
-  stylix.image = ./background.jpg;
-  stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/pop.yaml";
-  stylix.polarity = "dark";
+  stylix = {
+    enable = true; # enable Stylix
+    autoEnable = true; # auto enable Stylix for all applications
 
-  stylix.opacity.terminal = 0.9;
+    # Theme
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/pop.yaml";
+    polarity = "dark";
+
+    # Wallpaper
+    image = ./background.jpg;
+
+    # Opacity
+    opacity.terminal = 0.9;
+  };
 }
