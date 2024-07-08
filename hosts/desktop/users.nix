@@ -3,7 +3,7 @@
   imports =
     with lib.cust.nixos;
     let
-      homeConfigs = tree.home.configs;
+      homeConfigs = tree.homes.configs;
     in
     [
       (addUser {
