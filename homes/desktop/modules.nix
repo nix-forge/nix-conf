@@ -1,5 +1,5 @@
 { tree, lib, ... }:
-with tree.homes.configs.shared;
+with tree.configs.home;
 [
   theming.basic.default
 

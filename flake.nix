@@ -27,7 +27,7 @@
             nixosConfigurations =
               let
                 hostDir = ./hosts;
-                excludes = [ "shared" ];
+                excludes = [ ];
                 vars = hostname: {
                   inherit withSystem;
                   inherit inputs;

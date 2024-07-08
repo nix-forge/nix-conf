@@ -10,7 +10,7 @@ rec {
   nixpkgsArgs = {
     config.allowUnfree = true;
   };
-  modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.hosts.shared); [
+  modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os); [
     ## Base
     base.nix-settings
     base.nix-registry

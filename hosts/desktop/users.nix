@@ -3,7 +3,7 @@
   imports =
     with lib.cust.nixos;
     let
-      homeConfigs = tree.homes.configs;
+      homes = tree.homes;
     in
     [
       (addUser {
@@ -20,7 +20,7 @@
           "networkmanager"
         ];
         initialPassword = "password";
-        homeManagerModules = homeConfigs.desktop.modules { inherit tree lib; };
+        homeManagerModules = homes.desktop.modules { inherit tree lib; };
       })
 
       # (addUser {
