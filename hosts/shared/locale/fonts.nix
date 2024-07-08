@@ -1,10 +1,17 @@
 { pkgs, ... }:
 {
   fonts = {
-    enableDefaultPackages = true;
-    fontDir.enable = true;
-    fontDir.decompressFonts = true;
-    fontconfig.enable = true;
+    enableDefaultPackages = false;
+    fontconfig = {
+      enable = true;
+      hinting.enable = true;
+      antialias = true;
+    };
+
+    fontDir = {
+      enable = true;
+      decompressFonts = true;
+    };
 
     packages = with pkgs; [
       # icon fonts
@@ -16,6 +23,7 @@
       noto-fonts-cjk-sans
       noto-fonts-cjk-serif
       noto-fonts-emoji
+      noto-fonts-color-emoji
       noto-fonts-extra
 
       # Adobe Fonts
@@ -33,7 +41,24 @@
       liberation_ttf
       dejavu_fonts
       open-sans
-      ubuntu_font_family
+      freefont_ttf
+      gyre-fonts
+      unifont
+      roboto
+      b612
+      material-icons
+      material-design-icons
+      work-sans
+      comic-neue
+      source-sans
+      inter
+      lato
+      lexend
+
+      # Emoji fonts
+      twemoji-color-font
+      openmoji-color
+      openmoji-black
 
       # # Microsoft Fonts
       # (ttf-ms-win11.override { acceptEula = true; })
