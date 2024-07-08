@@ -6,7 +6,7 @@
   isNormalUser ? true,
   homeManagerModules ? [ ],
 }:
-{ config, ... }:
+{ config, lib, ... }:
 {
   users.users.${username} = {
     inherit
@@ -18,10 +18,11 @@
   };
   home-manager.users.${username} = {
     imports = homeManagerModules;
+    nix.package = lib.mkForce config.nix.package;
     home = {
       inherit username;
-      stateVersion = config.system.stateVersion;
-      homeDirectory = config.users.users.${username}.home;
+      stateVersion = lib.mkForce config.system.stateVersion;
+      homeDirectory = lib.mkForce config.users.users.${username}.home;
     };
   };
 }
