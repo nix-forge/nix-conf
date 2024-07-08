@@ -45,6 +45,7 @@ rec {
     hardware.firmware
     hardware.sound.default
     hardware.ssd
+    hardware.storage
     peripherals.mouse
     gaming.default
 
@@ -66,20 +67,18 @@ rec {
     security.default
 
     ## Services
+    services.runners
     services.disable-hibernate
+
+    # Programs
+    # programs.ccache
 
     ## Theming
     stylix.base
     stylix.cursor
     stylix.fonts
 
-    # Other
-    # keyring
-
-    # server.openssh
-
-    # secrets.agenix
-
+    ## Server
     server.minecraft.default
 
     ## Environment Variables
