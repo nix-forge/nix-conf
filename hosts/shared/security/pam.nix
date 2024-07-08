@@ -21,10 +21,34 @@
 
       # allow screen lockers to also unlock the screen
       # (e.g. swaylock, gtklock)
-      services = {
-        swaylock.text = "auth include login";
-        gtklock.text = "auth include login";
-      };
+      # Also unlock GPG keyring on login
+      services =
+        let
+          gnupg = {
+            enable = true;
+            noAutostart = true;
+            storeOnly = true;
+          };
+        in
+        {
+          login = {
+            enableGnomeKeyring = true;
+            inherit gnupg;
+          };
+
+          greetd = {
+            enableGnomeKeyring = true;
+            inherit gnupg;
+          };
+
+          tuigreet = {
+            enableGnomeKeyring = true;
+            inherit gnupg;
+          };
+
+          swaylock.text = "auth include login";
+          gtklock.text = "auth include login";
+        };
     };
   };
 }
