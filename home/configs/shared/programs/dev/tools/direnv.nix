@@ -33,14 +33,16 @@
 
   home.activation = {
     removeZshBackup = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      rm -f ${config.home.homeDirectory}/.zshrc.backup
+      # Remove zsh backup files
+      rm -f ${config.home.homeDirectory}/.zshrc.*
     '';
     zshrcDirenvVscodeFix = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       rm -f ${config.home.homeDirectory}/.zshrc-temp
       mv ${config.home.homeDirectory}/.zshrc ${config.home.homeDirectory}/.zshrc-temp
       cat ${config.home.homeDirectory}/.zshrc-temp ${config.home.homeDirectory}/.zshrc-direnv-vscode-fix > ${config.home.homeDirectory}/.zshrc
       chmod 444 ${config.home.homeDirectory}/.zshrc
-      rm -f ${config.home.homeDirectory}/.zshrc-temp ${config.home.homeDirectory}/.zshrc.backup
+      # Remove zsh backup files and temporary files
+      rm -f ${config.home.homeDirectory}/.zshrc-temp ${config.home.homeDirectory}/.zshrc.*
     '';
   };
 }
