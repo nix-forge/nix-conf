@@ -64,8 +64,8 @@ let
       home-manager.backupFileExtension = "backup";
     }
   ];
-in
 
+in
 nixpkgs.lib.nixosSystem {
   inherit system;
   specialArgs = nixosSpecialArgs;

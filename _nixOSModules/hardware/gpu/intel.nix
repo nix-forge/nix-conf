@@ -46,8 +46,6 @@ in
     hardware.graphics = {
       enable = true;
 
-
-
       extraPackages = with pkgs; [
         intel-vaapi-driver # replaces package "vaapiIntel" as of Nix 23.11
         libvdpau-va-gl

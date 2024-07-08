@@ -181,11 +181,10 @@ in
       (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (toUserJS {
-        /**
-          **************************************************************************************
-          * OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                      *
-          ***************************************************************************************
-        */
+        #
+        #*************************************************************************************
+        # OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                      *
+        #**************************************************************************************
         # credit: https://github.com/AveYo/fox/blob/cf56d1194f4e5958169f9cf335cd175daa48d349/Natural%20Smooth%20Scrolling%20for%20user.js
         # recommended for 120hz+ displays
         # largely matches Chrome flags: Windows Scrolling Personality and Smooth Scrolling
