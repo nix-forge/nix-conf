@@ -59,10 +59,6 @@
     # Systems
     systems.url = "github:nix-systems/default-linux";
 
-    # Feature-rich and convenient fork of the Nix package manager
-    # NOTE: Not changing inputs due to it invalidating the cache
-    nix-super.url = "github:privatevoid-net/nix-super";
-
     # Nixpkgs
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -118,11 +114,49 @@
     hyprland = {
       type = "git";
       url = "https://github.com/hyprwm/Hyprland";
-      ref = "refs/tags/v0.41.1";
+      ref = "refs/tags/v0.41.2";
       submodules = true;
       inputs = {
         nixpkgs.follows = "nixpkgs"; # should update nixpkgs when changing hyprland version
+        hyprcursor.follows = "hyprcursor";
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+        xdph.follows = "xdph";
       };
+    };
+
+    hyprcursor = {
+      url = "github:hyprwm/hyprcursor";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
+    };
+
+    hyprlang = {
+      url = "github:hyprwm/hyprlang";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+    };
+
+    hyprutils = {
+      url = "github:hyprwm/hyprutils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+
+    hyprwayland-scanner = {
+      url = "github:hyprwm/hyprwayland-scanner";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+
+    xdph = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
     };
 
     # Nix Language Server
@@ -217,26 +251,22 @@
   nixConfig = {
     extra-substituters = [
       "https://cache.nixos.org" # official nix cache
-      "https://nixpkgs-wayland.cachix.org" # automated builds of wayland packages
       "https://cache.privatevoid.net" # for nix-super
       "https://nix-community.cachix.org" # nix-community cache
       "https://hyprland.cachix.org" # hyprland
       "https://nixpkgs-unfree.cachix.org" # unfree-package cache
-      "https://numtide.cachix.org" # another unfree package cache
       "https://cache.garnix.io" # garnix binary cache
       "https://geonix.cachix.org" # geospatial nix
     ];
 
     extra-trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
       "cache.privatevoid.net:SErQ8bvNWANeAvtsOESUwVYr2VJynfuc9JRwlzTTkVg="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
       "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
-      "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
     ];
   };
 }
