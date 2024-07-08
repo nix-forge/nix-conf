@@ -49,6 +49,8 @@ in
         enable = true;
 
         settings = {
+          Scan.DisablePeriodicScan = false;
+
           General = {
             # Enable Network Configuration
             EnableNetworkConfiguration = true;
@@ -60,9 +62,9 @@ in
             AddressRandomizationRange = lib.mkIf cfg.randomizeMacAddress "full";
           };
 
-          Network = {
-            EnableIPv6 = lib.mkIf cfg.enableIPv6 true;
-          };
+          # IPv6 Configuration
+          Network.EnableIPv6 = cfg.enableIPv6;
+          IPv6.Enabled = cfg.enableIPv6;
 
           Settings = {
             # Enable Auto Connect to WiFi
