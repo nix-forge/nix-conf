@@ -12,7 +12,7 @@
         projectRootFile = "flake.nix";
 
         programs = {
-          nixfmt-rfc-style = {
+          nixfmt = {
             enable = true;
             package = pkgs.nixfmt-rfc-style;
           };
