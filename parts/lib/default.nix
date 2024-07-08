@@ -26,6 +26,7 @@ let
       scanPaths = import ./scanPaths.nix { inherit lib; };
       files = import ./files { inherit lib; };
       applyAutoArgs = import ./applyAutoArgs.nix { inherit lib; };
+      basePkgs = import ./basePkgs.nix;
     };
   };
 
