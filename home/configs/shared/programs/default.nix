@@ -13,7 +13,7 @@ args@{
   ####################
 
   gnome-files = {
-    home.packages = [ pkgs.gnome.nautilus ];
+    home.packages = [ pkgs.nautilus ];
   };
   gnome-pdf = {
     home.packages = [ pkgs.evince ];

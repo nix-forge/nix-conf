@@ -26,7 +26,7 @@
         # Self-explanatory.
         launchPrograms.bind = [
           # Launch the program with a shortcut.
-          "SUPER, E, exec, ${lib.getExe pkgs.gnome.nautilus}"
+          "SUPER, E, exec, ${lib.getExe pkgs.nautilus}"
           "SUPER, T, exec, ${config.home.sessionVariables.TERMINAL}"
           "SUPER, C, exec, ${lib.getExe pkgs.qalculate-gtk}"
         ];
