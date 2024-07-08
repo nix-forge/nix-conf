@@ -14,6 +14,15 @@
       MOUSE_EX1 = "mouse:275";
       MOUSE_EX2 = "mouse:276";
 
+      # Clipboard Manager Setup
+      wl-paste-bin = "${pkgs.wl-clipboard}/bin/wl-paste";
+      wl-copy-bin = "${pkgs.wl-clipboard}/bin/wl-copy";
+      cliphist-bin = lib.getExe pkgs.cliphist;
+      clipboardSetup.exec-once = [
+        "${wl-paste-bin} --type text --watch ${cliphist-bin} store"
+        "${wl-paste-bin} --type image --watch ${cliphist-bin} store"
+      ];
+
       # Collections of keybinds common across multiple submaps are collected into
       # groups, which can be merged together granularly.
       groups = {
@@ -30,6 +39,16 @@
           "SUPER, T, exec, ${config.home.sessionVariables.TERMINAL}"
           "SUPER, C, exec, ${lib.getExe pkgs.qalculate-gtk}"
         ];
+
+        # Screen by window drag
+        screenshot.bind =
+          let
+            window = "${lib.getExe pkgs.grim} -g \"$(${lib.getExe pkgs.slurp} -d)\" - | ${wl-copy-bin}";
+          in
+          [
+            ", Print, exec, ${window}"
+            "SUPER_SHIFT, S, exec, ${window}"
+          ];
 
         # Kill the active window.
         killWindow.bind = [ "SUPER, Q, killactive," ];
@@ -180,6 +199,9 @@
       };
     in
     lib.mkMerge [
+      ### CLIPBOARD MANAGER ###
+      clipboardSetup
+
       ### ACTIVE WINDOW ACTIONS ###
       groups.killWindow
       {
@@ -192,10 +214,11 @@
         ];
       }
       ### MISCELLANEOUS ###
+      groups.screenshot
       {
         bind = [
           # Lock the session immediately.
-          "SUPER, l, exec, loginctl lock-session"
+          # "SUPER, l, exec, loginctl lock-session"
 
           # Kill the window manager.
           "SUPER_SHIFT, M, exit,"
@@ -225,8 +248,6 @@
       {
         bind = [
           # Open Rofi to launch a program
-          # "SUPER, Space, exec, rofi -show drun -show-icons";
-          # Open Rofi to run a command.
           "SUPER, R, exec, ${lib.getExe config.programs.rofi.finalPackage} -show drun -show-icons"
         ];
       }
