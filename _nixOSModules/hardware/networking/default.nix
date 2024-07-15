@@ -80,7 +80,9 @@ in
     # Network Manager
     {
       networking.networkmanager = lib.mkIf cfg.networkmanager.enable {
-        dns = lib.mkIf (config.services.dnscrypt-proxy2.enable) "none";
+        dns = lib.mkIf (config.services.dnscrypt-proxy2.enable || config.systemd.network.enable) (
+          if config.services.dnscrypt-proxy2.enable then "none" else "systemd-resolved"
+        );
         unmanaged = [
           "interface-name:tailscale*"
           "interface-name:br-*"
@@ -97,6 +99,12 @@ in
         wifi.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
         ethernet.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
       };
+
+      # Network Wait Online
+      # If using NetworkManager disable systemd-networkd-wait-online if NetworkManager wait-online is enabled
+      systemd.network.wait-online.enable = lib.mkIf cfg.networkmanager.enable (
+        lib.mkForce (!config.systemd.services.NetworkManager-wait-online.enable)
+      );
     }
 
     # Host ID
@@ -108,7 +116,7 @@ in
       );
     }
 
-    # DNS
+    # DNS with dnscrypt-proxy
     {
       # Set static nameservers
       networking.nameservers = lib.mkIf config.services.dnscrypt-proxy2.enable (
@@ -127,30 +135,31 @@ in
             listen_addresses = [ "127.0.0.1:53" ] ++ (lib.optionals cfg.enableIPv6 [ "[::1]:53" ]);
             ipv6_servers = cfg.enableIPv6;
             block_ipv6 = !cfg.enableIPv6;
+          }
+          # Only filter if specific servers are not specified
+          // (lib.optionalAttrs (!cfg.dnscrypt-proxy.cloudflare) {
 
             # Security settings
             require_dnssec = true;
             require_nolog = true;
-            require_nofilter = true; # Only want filtering when it is known what is being filtered
 
             # DNS Server types
             dnscrypt_servers = true;
             doh_servers = false;
             odoh_servers = false;
+            # using filtered dns is ok because if a domain is not found in a filtered dns server then another dns server will be used
+            require_nofilter = false;
 
             # Anonymized DNS
             anonymized_dns.skip_incompatible = true;
 
-          }
+          })
           # Set DNS providers
           # Servers from the "public-resolvers" source (see down below) can
           # be viewed here: https://dnscrypt.info/public-servers
           # NOTE: if no servers are specified, dnscrypt-proxy will filter and find servers
           // (lib.optionalAttrs (cfg.dnscrypt-proxy.cloudflare) {
-            server_names =
-              [ ]
-              ++ (lib.optionals cfg.dnscrypt-proxy.cloudflare [ "cloudflare" ])
-              ++ (lib.optionals (cfg.enableIPv6 && cfg.dnscrypt-proxy.cloudflare) [ "cloudflare-ipv6" ]);
+            server_names = [ "cloudflare" ] ++ (lib.optionals cfg.enableIPv6 [ "cloudflare-ipv6" ]);
           });
       };
 
@@ -159,6 +168,11 @@ in
         allowedTCPPorts = [ 53 ];
         allowedUDPPorts = [ 53 ];
       };
+
+      # Disable systemd-resolved if dnscrypt-proxy is enabled
+      services.resolved.enable = lib.mkForce (
+        if config.services.dnscrypt-proxy2.enable then false else config.systemd.network.enable
+      );
     }
 
     # Enforce IPv6 Disable at Kernel Level
