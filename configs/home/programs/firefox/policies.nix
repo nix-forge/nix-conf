@@ -41,5 +41,6 @@
       Fingerprinting = true;
       EmailTracking = true;
     };
+    ExtensionUpdate = true;
   };
 }
