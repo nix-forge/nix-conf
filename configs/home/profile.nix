@@ -1,9 +1,8 @@
 args@{
-  self,
   config,
   lib,
-  inputs,
   pkgs,
+  inputs,
   ...
 }:
 {
@@ -52,6 +51,8 @@ args@{
       ### DEFAULT PROGRAMS ###
       programs.gnome-files
       programs.gnome-pdf
+      programs.okular
+      programs.motrix
 
       ##############################
       ### USER-SPECIFIC PROGRAMS ###
@@ -59,10 +60,12 @@ args@{
 
       ### WEB BROWSERS ###
       programs.firefox
+      # programs.chromium
 
       ### COMMUNICATION & MESSAGING ###
-      programs.zoom
+      # programs.zoom
       programs.discord
+      # programs.slack
 
       ### MEDIA CREATION ###
       programs.reaper
@@ -81,6 +84,8 @@ args@{
       programs.kitty
 
       ### CODE EDITORS ###
+      programs.editors.neovim
+
       programs.vscode.settings
       programs.vscode.keybinds
       programs.vscode.languages.cpp
@@ -109,6 +114,7 @@ args@{
       ### SYSTEM ADMINISTRATION & DIAGNOSTICS ###
 
       ### VIDEO GAMES ###
+      programs.gaming
       programs.prism-launcher
 
       ### AUTHENTICATION ###
@@ -131,6 +137,7 @@ args@{
       ### FILE SYNCHRONIZATION ###
 
       ### DEVICE MANAGEMENT ###
+      programs.gparted
 
       ### SECRET MANAGEMENT ###
     ];

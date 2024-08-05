@@ -18,6 +18,19 @@ args@{
   gnome-pdf = {
     home.packages = [ pkgs.evince ];
   };
+  okular = {
+    home.packages = [ pkgs.kdePackages.okular ];
+  };
+  motrix = {
+    home.packages = [ pkgs.motrix ];
+  };
+  gparted = {
+    home.packages = [
+      pkgs.gparted
+      # pkgs.exfat
+      pkgs.exfatprogs
+    ];
+  };
 
   ####################
   ### WEB BROWSERS ###
@@ -35,7 +48,12 @@ args@{
     home.packages = [ pkgs.zoom-us ];
   };
   discord = {
-    home.packages = [ pkgs.webcord ];
+    home.packages = [ pkgs.webcord-vencord ];
+    # For Discord RPC
+    services.arrpc.enable = true;
+  };
+  slack = {
+    home.packages = [ pkgs.slack ];
   };
 
   ######################
@@ -102,10 +120,6 @@ args@{
   ### CODE EDITORS ###
   ####################
 
-  neovim = {
-    programs.neovim.enable = true;
-    home.packages = [ pkgs.neovide ];
-  };
   helix = {
     programs.helix.enable = true;
   };
