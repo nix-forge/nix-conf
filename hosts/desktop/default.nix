@@ -15,7 +15,7 @@ rec {
     base.nix-settings
     base.nix-registry
     base.base
-    base.kernel
+    base.kernel.default
     base.packages
     users
 
@@ -36,6 +36,7 @@ rec {
     filesystems
     gpu
     cpu
+    # kernel-patches
     power
     audio
     hardware.zram
@@ -69,9 +70,10 @@ rec {
     ## Services
     services.runners
     services.disable-hibernate
+    services.earlyoom
 
     # Programs
-    # programs.ccache
+    # TODO: add neovim base config and better config in home-manager
 
     ## Theming
     stylix.base
@@ -79,7 +81,7 @@ rec {
     stylix.fonts
 
     ## Server
-    server.minecraft.default
+    # server.minecraft.default
 
     ## Environment Variables
     { environment.sessionVariables = lib.cust.env.wayland.all; }
