@@ -9,10 +9,7 @@
     modesetting.enable = true;
     open = true;
 
-    nvidia-vaapi-driver = {
-      enable = true;
-      directBackend = true;
-    };
+    nvidia-vaapi-driver.enable = true;
 
     earlyLoading = true;
 
