@@ -12,15 +12,14 @@
     with extensions.preferNixpkgs;
     [
       llvm-vs-code-extensions.vscode-clangd
-      pkgs.vscode-extensions.ms-vscode.cmake-tools # wrapped by nixpkgs
-      pkgs.vscode-extensions.vadimcn.vscode-lldb # wrapped by nixpkgs
+      # ms-vscode.cmake-tools
+      vadimcn.vscode-lldb
     ];
 
   programs.vscode.userSettings = {
     "cmake.showOptionsMovedNotification" = false;
     "cmake.cmakePath" = lib.getExe pkgs.cmake;
-    # IntelliSense from Microsoft conflicts with clangd
-    "C_Cpp.intelliSenseEngine" = "disabled";
+    "C_Cpp.intelliSenseEngine" = "disabled"; # IntelliSense from Microsoft conflicts with clangd
     "clangd.path" = lib.getExe' pkgs.clang-tools "clangd";
   };
 }
