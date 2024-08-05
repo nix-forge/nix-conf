@@ -4,24 +4,24 @@
   config,
   ...
 }:
-let
-  cfg = config.networking.nftables;
-in
+# let
+#   cfg = config.networking.nftables;
+# in
 {
   imports = [
-    # ./nftables
+    # TODO: ./nftables
 
-    ./fail2ban.nix
+    # TODO: ./fail2ban.nix
   ];
 
   config = {
     # enable opensnitch firewall
     # inactive until opensnitch UI is opened
-    services.opensnitch.enable = true;
+    # services.opensnitch.enable = true;
 
     networking.firewall = {
-      enable = !cfg.enable;
-      package = if cfg.enable then pkgs.iptables-nftables-compat else pkgs.iptables;
+      enable = true;
+      package = pkgs.iptables;
       allowedTCPPorts = [
         443 # HTTPS
       ];
