@@ -5,43 +5,29 @@
   ...
 }:
 let
-  inherit (lib) types;
   cfg = config.hardware.nvidia;
 in
 {
   options.hardware.nvidia = {
     enable = lib.mkEnableOption "Enable the Nvidia driver for desktops.";
     nvidia-vaapi-driver = {
-      enable = lib.mkEnableOption (
-        lib.mdDoc ''
-          Enable the nvidia-vaapi-driver.
-          https://github.com/elFarto/nvidia-vaapi-driver
-        ''
-      );
-      directBackend = lib.mkOption {
-        type = types.bool;
-        default = false;
-        description = "Use the direct backend for nvidia-vaapi-driver.";
-      };
+      enable = lib.mkEnableOption ''
+        Enable the nvidia-vaapi-driver.
+        https://github.com/elFarto/nvidia-vaapi-driver
+      '';
     };
-    betaDriver = lib.mkEnableOption (
-      lib.mdDoc ''
-        Enable the beta nvidia driver.
-        This will choose the latest driver version available between the production and beta drivers.
-      ''
-    );
-    earlyLoading = lib.mkEnableOption (
-      lib.mdDoc ''
-        Enable early loading of the Nvidia driver.
-        This is useful for systems with Nvidia GPUs that are not the primary GPU.
-      ''
-    );
-    waylandEnvs = lib.mkEnableOption (
-      lib.mdDoc ''
-        Enable Nvidia Wayland environment variables.
-        This is useful for systems with primary GPU as Nvidia and uses Wayland.
-      ''
-    );
+    betaDriver = lib.mkEnableOption ''
+      Enable the beta nvidia driver.
+      This will choose the latest driver version available between the production and beta drivers.
+    '';
+    earlyLoading = lib.mkEnableOption ''
+      Enable early loading of the Nvidia driver.
+      This is useful for systems with Nvidia GPUs that are not the primary GPU.
+    '';
+    waylandEnvs = lib.mkEnableOption ''
+      Enable Nvidia Wayland environment variables.
+      This is useful for systems with primary GPU as Nvidia and uses Wayland.
+    '';
   };
 
   config = lib.mkIf cfg.enable {
@@ -59,18 +45,14 @@ in
     ];
 
     environment.sessionVariables = lib.mkMerge [
-      {
-        NVD_BACKEND = lib.mkIf (
-          cfg.nvidia-vaapi-driver.directBackend && cfg.nvidia-vaapi-driver.enable
-        ) "direct";
-      }
-
-      (lib.mkIf cfg.nvidia-vaapi-driver.enable { LIBVA_DRIVER_NAME = "nvidia"; })
+      (lib.mkIf cfg.nvidia-vaapi-driver.enable {
+        MOZ_DISABLE_RDD_SANDBOX = "1";
+        LIBVA_DRIVER_NAME = "nvidia";
+      })
 
       (lib.mkIf cfg.waylandEnvs {
         GBM_BACKEND = "nvidia-drm"; # If you encounter crashes in Firefox then remove this line
         __GLX_VENDOR_LIBRARY_NAME = "nvidia"; # If you face problems with Discord windows not displaying or screen sharing not working in Zoom then remove this line
-        WLR_NO_HARDWARE_CURSORS = "1";
         XDG_SESSION_TYPE = "wayland";
       })
     ];
