@@ -272,5 +272,6 @@
 
     # remove telemetry
     "redhat.telemetry.enabled" = false;
+    "telemetry.enableTelemetry" = false;
   };
 }
