@@ -10,6 +10,14 @@
       # configure treefmt
       treefmt = {
         projectRootFile = "flake.nix";
+        enableDefaultExcludes = true;
+
+        settings = {
+          global.excludes = [
+            "*.age"
+            "*.envrc"
+          ];
+        };
 
         programs = {
           nixfmt = {
@@ -22,7 +30,6 @@
           prettier = {
             enable = true;
             package = pkgs.prettierd;
-            excludes = [ "*.age" ];
           };
 
           shfmt = {
