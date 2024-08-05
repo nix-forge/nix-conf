@@ -103,61 +103,13 @@
 
     # Spicetify for theming spotify
     spicetify-nix = {
-      url = "github:the-argus/spicetify-nix";
+      url = "github:Gerg-L/spicetify-nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
+        flake-compat.follows = "flake-compat";
       };
     };
 
-    # Hyprland Flake
-    hyprland = {
-      type = "git";
-      url = "https://github.com/hyprwm/Hyprland";
-      ref = "refs/tags/v0.41.2";
-      submodules = true;
-      inputs = {
-        nixpkgs.follows = "nixpkgs"; # should update nixpkgs when changing hyprland version
-        hyprcursor.follows = "hyprcursor";
-        hyprlang.follows = "hyprlang";
-        hyprutils.follows = "hyprutils";
-        hyprwayland-scanner.follows = "hyprwayland-scanner";
-        xdph.follows = "xdph";
-      };
-    };
-
-    hyprcursor = {
-      url = "github:hyprwm/hyprcursor";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
-    };
-
-    hyprlang = {
-      url = "github:hyprwm/hyprlang";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
-    };
-
-    hyprutils = {
-      url = "github:hyprwm/hyprutils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-    };
-
-    hyprwayland-scanner = {
-      url = "github:hyprwm/hyprwayland-scanner";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-    };
-
-    xdph = {
-      url = "github:hyprwm/xdg-desktop-portal-hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
-    };
 
     # Nix Language Server
     nixd = {
@@ -217,6 +169,12 @@
       flake = false;
     };
 
+    # Firefox Arkenfox
+    firefox-arkenfox = {
+      url = "github:arkenfox/user.js";
+      flake = false;
+    };
+
     # Firefox Lepton UI
     firefox-lepton-ui = {
       url = "github:black7375/Firefox-UI-Fix";
@@ -233,17 +191,28 @@
       };
     };
 
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        home-manager.follows = "home-manager";
-      };
-    };
-
     # Geospatial Nix
     geospatial-nix = {
       url = "github:imincik/geospatial-nix";
+    };
+
+    # Nixvim
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+
+        # Optional
+        home-manager.follows = "home-manager";
+        treefmt-nix.follows = "treefmt-nix";
+        flake-compat.follows = "flake-compat";
+
+        nuschtosSearch.follows = "";
+        nix-darwin.follows = "";
+        devshell.follows = "";
+        git-hooks.follows = "";
+      };
     };
 
   };
