@@ -62,6 +62,7 @@
     # Nixpkgs
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # TODO: remove reliance on this as it makes config confusing
     bird-nix-lib = {
       url = "github:spikespaz/bird-nix-lib";
       inputs.nixpkgs.follows = "nixpkgs";
