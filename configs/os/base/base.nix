@@ -19,4 +19,11 @@
     implementation = "broker";
   };
 
+  # Enable system-wide wordlist. Some Pandoc filters and other programs
+  # depend on wordlist available in system path, and shells do not work.
+  environment.wordlist = {
+    enable = true;
+    lists.WORDLIST = [ "${pkgs.scowl}/share/dict/words.txt" ];
+  };
+
 }

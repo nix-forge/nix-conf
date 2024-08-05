@@ -64,6 +64,9 @@
       # continue building derivations if one fails
       keep-going = true;
 
+      # If we haven't received data for >= 20s, retry the download
+      stalled-download-timeout = 20;
+
       # bail early on missing cache hits
       connect-timeout = 5;
 
@@ -74,16 +77,26 @@
       extra-experimental-features = [
         "flakes" # flakes
         "nix-command" # experimental nix commands
+        "ca-derivations" # content addressed nix
+        "cgroups" # allow nix to execute builds inside cgroups
       ];
 
-      # don't warn me that my git tree is dirty, I know
+      # don't warn that my git tree is dirty it is known through git
       warn-dirty = false;
 
       # maximum number of parallel TCP connections used to fetch imports and binary caches, 0 means no limit
-      http-connections = 50;
+      http-connections = 35;
 
-      # whether to accept nix configuration from a flake without prompting
+      # Whether to accept nix configuration from a flake without displaying a Y/N prompt.
       accept-flake-config = false;
+
+      # Whether to execute builds inside cgroups. cgroups are
+      # "a Linux kernel feature that limits, accounts for, and
+      # isolates the resource usage (CPU, memory, disk I/O, etc.)
+      # of a collection of processes."
+      # See:
+      # <https://en.wikipedia.org/wiki/Cgroups>
+      use-cgroups = pkgs.stdenv.isLinux;
 
       # for direnv GC roots
       keep-derivations = true;
@@ -115,5 +128,10 @@
         nixos-rebuild = prev.nixos-rebuild.override { nix = config.nix.package; };
       })
     ];
+  };
+
+  # Enable the Nix garbage collector service on AC power only.
+  systemd.services.nix-gc = {
+    unitConfig.ConditionACPower = true;
   };
 }
