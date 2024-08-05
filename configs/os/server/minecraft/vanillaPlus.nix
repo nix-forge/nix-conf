@@ -14,7 +14,7 @@ in
 {
   enable = true;
   openFirewall = true;
-  autoStart = true; # if false then systemctl start minecraft-server-${servername}
+  autoStart = false; # if false then use systemctl start minecraft-server-${servername}
 
   package = pkgs.minecraftServers.${serverVersion};
 
