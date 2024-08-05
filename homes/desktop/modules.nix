@@ -1,6 +1,8 @@
 { tree, lib, ... }:
 with tree.configs.home;
 [
+  base.default
+
   theming.basic.default
 
   desktop-envs.hyprland.default
