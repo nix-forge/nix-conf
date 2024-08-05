@@ -17,11 +17,9 @@
 
     enableIPv6 = true;
 
-    dnscrypt-proxy = {
-      enable = true;
-    };
-
     randomizeMacAddress = true;
+
+    dnscrypt-proxy.enable = true;
 
     # global dhcp has been deprecated upstream
     # use the new networkd service instead of the legacy
@@ -76,7 +74,6 @@
           # Enable IPv6 Privacy Extensions
           # This config option is based on Official NixOS options
           IPv6PrivacyExtensions = "kernel";
-
         });
 
       linkConfig = {
@@ -92,20 +89,25 @@
           UseDNS = if config.networking.dnscrypt-proxy.enable then false else true;
           # Set the DUID type to link-layer to use the MAC address as DUID
           DUIDType = "link-layer";
-          # # Route Metric is default 1024 so 1025 will mathat if ethernet is connected it will be preferred
-          # RouteMetric = 1025;
+          # Route Metric is default 1024 so 1025 will mathat if ethernet is connected it will be preferred
+          RouteMetric = 1025;
         }
         # Make networkd follow Anonymization Standards. Only can be true MACAddressPolicy is "random"
         // (lib.optionalAttrs (config.networking.randomizeMacAddress) { Anonymize = true; });
-
-      # set the route metric to the same as the ipv4 route metric
-      # ipv6AcceptRAConfig.RouteMetric = 1025;
 
       dhcpV6Config = lib.mkIf config.networking.enableIPv6 {
         # Use DNS Servers from DHCP if dnscrypt-proxy is disabled
         UseDNS = if config.networking.dnscrypt-proxy.enable then false else true;
         # Set the DUID type to link-layer to use the MAC address as DUID
         DUIDType = "link-layer";
+      };
+
+      ipv6AcceptRAConfig = lib.mkIf config.networking.enableIPv6 {
+        # Use DNS Servers from DHCP if dnscrypt-proxy is disabled
+        UseDNS = if config.networking.dnscrypt-proxy.enable then false else true;
+
+        # set the route metric to the same as the ipv4 route metric
+        RouteMetric = 1025;
       };
     };
   };
