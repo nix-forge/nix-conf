@@ -1,5 +1,22 @@
 { config, ... }:
 {
+  boot =
+    let
+      supportedFilesystems = [
+        "vfat"
+        "ext4"
+        "btrfs"
+        "exfat"
+        "ntfs"
+      ];
+    in
+    {
+      supportedFilesystems = supportedFilesystems;
+      initrd = {
+        supportedFilesystems = supportedFilesystems;
+      };
+    };
+
   services = {
     # enable GVfs, a userspace virtual filesystem.
     gvfs.enable = true;
