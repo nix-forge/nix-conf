@@ -110,7 +110,6 @@
       };
     };
 
-
     # Nix Language Server
     nixd = {
       url = "github:nix-community/nixd";
