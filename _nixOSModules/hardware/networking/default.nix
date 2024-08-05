@@ -10,6 +10,7 @@ let
 in
 {
   imports = [
+    ./dnscrypt-proxy.nix
     ./tcp-optimizations.nix
     ./firewall
   ];
@@ -25,14 +26,6 @@ in
       default = false;
       description = "Randomize MAC address.";
     };
-    dnscrypt-proxy = {
-      enable = lib.mkEnableOption "Enable DNS configuration. If no DNS provider is selected, then dnscrypt-proxy will filter the dns servers.";
-      cloudflare = lib.mkOption {
-        type = types.bool;
-        default = false;
-        description = "Use Cloudflare DNS and do not use filtered and tested dns servers.";
-      };
-    };
     networkTools = {
       enable = lib.mkOption {
         type = types.bool;
@@ -42,160 +35,107 @@ in
     };
   };
 
-  config = lib.mkMerge [
-    # IWD Configuration
-    {
-      networking.wireless.iwd = lib.mkIf (cfg.networkmanager.wifi.backend == "iwd") {
-        enable = true;
+  config =
 
-        settings = {
-          Scan.DisablePeriodicScan = false;
+    lib.mkMerge [
+      # Host ID
+      {
+        # Generate HostID from Hostname
+        # NOTE: This hashes the hostname with sha256 then takes the first 8 characters as a substring.
+        networking.hostId = lib.mkIf cfg.generateHostId (
+          builtins.substring 0 8 (builtins.hashString "sha256" cfg.hostName)
+        );
+      }
 
-          General = {
-            # Enable Network Configuration
-            EnableNetworkConfiguration = true;
+      # IWD Configuration
+      {
+        networking.wireless.iwd = lib.mkIf (cfg.networkmanager.wifi.backend == "iwd") {
+          enable = true;
 
-            # Must be set to "network" to enable Random MAC Address
-            AddressRandomization = lib.mkIf cfg.randomizeMacAddress "network";
+          settings = {
+            Scan.DisablePeriodicScan = false;
 
-            # Set the address randomization range
-            AddressRandomizationRange = lib.mkIf cfg.randomizeMacAddress "full";
-          };
+            General = {
+              # Enable Network Configuration
+              EnableNetworkConfiguration = true;
 
-          # IPv6 Configuration
-          Network.EnableIPv6 = cfg.enableIPv6;
-          IPv6.Enabled = cfg.enableIPv6;
+              # Must be set to "network" to enable Random MAC Address
+              AddressRandomization = lib.mkIf cfg.randomizeMacAddress "network";
 
-          Settings = {
-            # Enable Auto Connect to WiFi
-            AutoConnect = true;
+              # Set the address randomization range
+              AddressRandomizationRange = lib.mkIf cfg.randomizeMacAddress "full";
+            };
 
-            # Randomize MAC Address
-            AlwaysRandomizeAddress = lib.mkIf cfg.randomizeMacAddress true;
+            # IPv6 Configuration
+            Network.EnableIPv6 = cfg.enableIPv6;
+            IPv6.Enabled = cfg.enableIPv6;
+
+            Settings = {
+              # Enable Auto Connect to WiFi
+              AutoConnect = true;
+
+              # Randomize MAC Address
+              AlwaysRandomizeAddress = lib.mkIf cfg.randomizeMacAddress true;
+            };
           };
         };
-      };
-    }
+      }
 
-    # Network Manager
-    {
-      networking.networkmanager = lib.mkIf cfg.networkmanager.enable {
-        dns = lib.mkIf (config.services.dnscrypt-proxy2.enable || config.systemd.network.enable) (
-          if config.services.dnscrypt-proxy2.enable then "none" else "systemd-resolved"
+      # Network Manager
+      {
+        networking.networkmanager = lib.mkIf cfg.networkmanager.enable {
+          dns = lib.mkIf (config.services.dnscrypt-proxy2.enable || config.systemd.network.enable) (
+            if config.services.dnscrypt-proxy2.enable then "none" else "systemd-resolved"
+          );
+          unmanaged = [
+            "interface-name:tailscale*"
+            "interface-name:br-*"
+            "interface-name:rndis*"
+            "interface-name:docker*"
+            "interface-name:virbr*"
+            "interface-name:vboxnet*"
+            "interface-name:waydroid*"
+            "type:bridge"
+          ];
+
+          # NetworkManager Random Mac Address Configuration
+          wifi.scanRandMacAddress = lib.mkIf cfg.randomizeMacAddress true;
+          wifi.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
+          ethernet.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
+        };
+
+        # Network Wait Online
+        # If using NetworkManager disable systemd-networkd-wait-online if NetworkManager wait-online is enabled
+        systemd.network.wait-online.enable = lib.mkIf cfg.networkmanager.enable (
+          lib.mkForce (!config.systemd.services.NetworkManager-wait-online.enable)
         );
-        unmanaged = [
-          "interface-name:tailscale*"
-          "interface-name:br-*"
-          "interface-name:rndis*"
-          "interface-name:docker*"
-          "interface-name:virbr*"
-          "interface-name:vboxnet*"
-          "interface-name:waydroid*"
-          "type:bridge"
-        ];
+        # systemd = {
+        #   network.wait-online.enable = lib.mkForce false;
+        #   services.NetworkManager-wait-online.enable = lib.mkForce false;
+        # };
+      }
 
-        # NetworkManager Random Mac Address Configuration
-        wifi.scanRandMacAddress = lib.mkIf cfg.randomizeMacAddress true;
-        wifi.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
-        ethernet.macAddress = lib.mkIf cfg.randomizeMacAddress "random";
-      };
+      # Enforce IPv6 Disable at Kernel Level
+      { boot.kernelParams = lib.mkIf (!cfg.enableIPv6) [ "ipv6.disable=1" ]; }
 
-      # Network Wait Online
-      # If using NetworkManager disable systemd-networkd-wait-online if NetworkManager wait-online is enabled
-      systemd.network.wait-online.enable = lib.mkIf cfg.networkmanager.enable (
-        lib.mkForce (!config.systemd.services.NetworkManager-wait-online.enable)
-      );
-    }
+      # Additional Network Tools
+      {
+        boot.kernelModules = lib.mkIf cfg.networkTools.enable [ "af_packet" ];
+        environment.systemPackages = lib.mkIf cfg.networkTools.enable (
+          with pkgs;
+          [
+            mtr
+            tcpdump
+            traceroute
+          ]
+        );
+      }
 
-    # Host ID
-    {
-      # Generate HostID from Hostname
-      # NOTE: This hashes the hostname with sha256 then takes the first 8 characters as a substring.
-      networking.hostId = lib.mkIf cfg.generateHostId (
-        builtins.substring 0 8 (builtins.hashString "sha256" cfg.hostName)
-      );
-    }
-
-    # DNS with dnscrypt-proxy
-    {
-      # Set static nameservers
-      networking.nameservers = lib.mkIf config.services.dnscrypt-proxy2.enable (
-        lib.mkForce ([ "127.0.0.1" ] ++ lib.optionals cfg.enableIPv6 [ "::1" ])
-      );
-
-      # Configure dnscrypt-proxy
-      services.dnscrypt-proxy2 = lib.mkIf cfg.dnscrypt-proxy.enable {
-        enable = true;
-        # Base settings on upstream example config (https://github.com/DNSCrypt/dnscrypt-proxy/blob/master/dnscrypt-proxy/example-dnscrypt-proxy.toml)
-        upstreamDefaults = true;
-
-        # Override default settings
-        settings =
-          {
-            listen_addresses = [ "127.0.0.1:53" ] ++ (lib.optionals cfg.enableIPv6 [ "[::1]:53" ]);
-            ipv6_servers = cfg.enableIPv6;
-            block_ipv6 = !cfg.enableIPv6;
-          }
-          # Only filter if specific servers are not specified
-          // (lib.optionalAttrs (!cfg.dnscrypt-proxy.cloudflare) {
-
-            # Security settings
-            require_dnssec = true;
-            require_nolog = true;
-
-            # DNS Server types
-            dnscrypt_servers = true;
-            doh_servers = false;
-            odoh_servers = false;
-            # using filtered dns is ok because if a domain is not found in a filtered dns server then another dns server will be used
-            require_nofilter = false;
-
-            # Anonymized DNS
-            anonymized_dns.skip_incompatible = true;
-
-          })
-          # Set DNS providers
-          # Servers from the "public-resolvers" source (see down below) can
-          # be viewed here: https://dnscrypt.info/public-servers
-          # NOTE: if no servers are specified, dnscrypt-proxy will filter and find servers
-          // (lib.optionalAttrs (cfg.dnscrypt-proxy.cloudflare) {
-            server_names = [ "cloudflare" ] ++ (lib.optionals cfg.enableIPv6 [ "cloudflare-ipv6" ]);
-          });
-      };
-
-      # Open firewall for dnscrypt-proxy
-      networking.firewall = lib.mkIf config.services.dnscrypt-proxy2.enable {
-        allowedTCPPorts = [ 53 ];
-        allowedUDPPorts = [ 53 ];
-      };
-
-      # Disable systemd-resolved if dnscrypt-proxy is enabled
-      services.resolved.enable = lib.mkForce (
-        if config.services.dnscrypt-proxy2.enable then false else config.systemd.network.enable
-      );
-    }
-
-    # Enforce IPv6 Disable at Kernel Level
-    { boot.kernelParams = lib.mkIf (!cfg.enableIPv6) [ "ipv6.disable=1" ]; }
-
-    # Additional Network Tools
-    {
-      boot.kernelModules = lib.mkIf cfg.networkTools.enable [ "af_packet" ];
-      environment.systemPackages = lib.mkIf cfg.networkTools.enable (
-        with pkgs;
-        [
-          mtr
-          tcpdump
-          traceroute
-        ]
-      );
-    }
-
-    # Warning for using DHCP
-    {
-      warnings = (
-        lib.optionals cfg.useDHCP [ "It is recommended to use systemd-networkd instead of DHCP." ]
-      );
-    }
-  ];
+      # Warning for using DHCP
+      {
+        warnings = (
+          lib.optionals cfg.useDHCP [ "It is recommended to use systemd-networkd instead of DHCP." ]
+        );
+      }
+    ];
 }
