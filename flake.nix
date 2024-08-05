@@ -18,7 +18,7 @@
 
         flake =
           let
-            inherit (inputs.self) lib tree;
+            inherit (inputs.self) lib;
             inherit (lib.cust.builders) mkHost;
             inherit (lib.cust.files) importDirRec;
           in
@@ -82,14 +82,11 @@
     # NUR
     nur.url = "github:nix-community/NUR";
 
-    # Ever wanted nix error messages to be even more cryptic?
-    # Try flake-utils today! (Devs I beg you please stop)
     flake-utils = {
       url = "github:numtide/flake-utils";
       inputs.systems.follows = "systems";
     };
 
-    # This exists, I guess
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
