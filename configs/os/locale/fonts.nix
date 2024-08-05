@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   fonts = {
-    enableDefaultPackages = false;
+    enableDefaultPackages = true;
     fontconfig = {
       enable = true;
       hinting.enable = true;
