@@ -16,6 +16,27 @@
         #  - ...
         systems = import inputs.systems;
 
+        # PerSystem attributes that are built for each system.
+        perSystem =
+          { pkgs, ... }:
+          let
+            inherit (inputs.self) lib;
+            inherit (lib.cust.files) importDirRec;
+
+            pkg_funcs = importDirRec ./pkgs [ ];
+
+            mkPkgs = import inputs.nixpkgs {
+              system = pkgs.system;
+              config.allowUnfree = true;
+            };
+
+            # import the dependencies for each package
+            packages = builtins.mapAttrs (name: value: mkPkgs.callPackage value { }) pkg_funcs;
+          in
+          {
+            inherit packages;
+          };
+
         flake =
           let
             inherit (inputs.self) lib;
@@ -65,7 +86,10 @@
     # TODO: remove reliance on this as it makes config confusing
     bird-nix-lib = {
       url = "github:spikespaz/bird-nix-lib";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     # Powered by
@@ -114,6 +138,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
       };
     };
 
@@ -134,6 +159,8 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
         flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+        systems.follows = "systems";
       };
     };
 
@@ -191,6 +218,11 @@
     # Geospatial Nix
     geospatial-nix = {
       url = "github:imincik/geospatial-nix";
+      inputs = {
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+        # Don't import nixpkgs as this could cause cache miss
+      };
     };
 
     # Nixvim
@@ -212,6 +244,14 @@
       };
     };
 
+    # Cosmic Desktop
+    cosmic = {
+      url = "github:lilyinstarlight/nixos-cosmic";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+      };
+    };
   };
 
   nixConfig = {
@@ -222,6 +262,7 @@
       "https://nixpkgs-unfree.cachix.org" # unfree-package cache
       "https://cache.garnix.io" # garnix binary cache
       "https://geonix.cachix.org" # geospatial nix
+      "https://cosmic.cachix.org" # cosmic desktop
     ];
 
     extra-trusted-public-keys = [
@@ -231,6 +272,7 @@
       "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
+      "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
     ];
   };
 }
