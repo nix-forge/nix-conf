@@ -11,10 +11,10 @@ in
   # import the flake's module for your system
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
 
-  # configure spicetify :)
+  # configure spicetify
   programs.spicetify = {
-    theme = spicePkgs.themes.default;
-    colorScheme = "Ocean";
+    theme = spicePkgs.themes.comfy;
+    colorScheme = "Spotify";
 
     # actually enable the installation of spotify and spicetify
     enable = true;
@@ -23,6 +23,8 @@ in
       adblock
       volumePercentage
       shuffle
+      copyLyrics
+      fullAlbumDate
     ];
 
     # dontInstall = true;
