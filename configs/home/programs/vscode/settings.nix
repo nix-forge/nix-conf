@@ -33,8 +33,7 @@
     let
       extensions = pkgs.callPackage ./marketplace.nix { };
     in
-    with extensions.preferNixpkgs;
-    [
+    (with extensions.preferNixpkgs; [
       ## Appearances ##
       # monokai.theme-monokai-pro-vscode
       bottledlactose.darkbox
@@ -77,11 +76,13 @@
       janisdd.vscode-edit-csv
 
       # Extra
-      github.copilot
-      github.copilot-chat
       ms-vscode-remote.remote-ssh
       ms-vsliveshare.vsliveshare
-    ];
+    ])
+    ++ (with extensions.preferReleases; [
+      github.copilot
+      github.copilot-chat
+    ]);
 
   programs.vscode.userSettings = {
     ## Appearances ##
