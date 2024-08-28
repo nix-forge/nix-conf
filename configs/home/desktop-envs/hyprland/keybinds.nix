@@ -18,6 +18,7 @@
       wl-paste-bin = "${pkgs.wl-clipboard}/bin/wl-paste";
       wl-copy-bin = "${pkgs.wl-clipboard}/bin/wl-copy";
       cliphist-bin = lib.getExe pkgs.cliphist;
+      imagemagick-convert-bin = "${pkgs.imagemagick}/bin/convert";
       clipboardSetup.exec-once = [
         "${wl-paste-bin} --type text --watch ${cliphist-bin} store"
         "${wl-paste-bin} --type image --watch ${cliphist-bin} store"
@@ -36,18 +37,23 @@
         launchPrograms.bind = [
           # Launch the program with a shortcut.
           "SUPER, E, exec, ${lib.getExe pkgs.nautilus}"
-          "SUPER, T, exec, ${config.home.sessionVariables.TERMINAL}"
+          "SUPER, Return, exec, ${config.home.sessionVariables.TERMINAL}"
           "SUPER, C, exec, ${lib.getExe pkgs.qalculate-gtk}"
         ];
 
         # Screen by window drag
         screenshot.bind =
           let
-            window = "${lib.getExe pkgs.grim} -g \"$(${lib.getExe pkgs.slurp} -d)\" - | ${wl-copy-bin}";
+            fullScreenshot = "${lib.getExe pkgs.grim} -t png";
+            windowScreenshot = "${lib.getExe pkgs.grim} -t png -g \"$(${lib.getExe pkgs.slurp})\" - | ${imagemagick-convert-bin} - -shave 1x1 PNG:-";
+            windowScreenshotOCR = "${windowScreenshot} | ${lib.getExe pkgs.tesseract} stdin stdout | ${wl-copy-bin}";
+            fullScreenshotCopy = "${fullScreenshot} | ${wl-copy-bin}";
+            windowScreenshotCopy = "${windowScreenshot} | ${wl-copy-bin}";
           in
           [
-            ", Print, exec, ${window}"
-            "SUPER_SHIFT, S, exec, ${window}"
+            ", Print, exec, ${fullScreenshotCopy}"
+            "SUPER_SHIFT, S, exec, ${windowScreenshotCopy}"
+            "SUPER_SHIFT, T, exec, ${windowScreenshotOCR}"
           ];
 
         # Kill the active window.
