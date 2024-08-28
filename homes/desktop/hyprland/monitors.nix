@@ -26,7 +26,7 @@
         name = "DP-1";
         resolution.x = ts 2560;
         resolution.y = ts 1440;
-        scale = ts 1.25;
+        scale = ts 1.333333;
         position.x = ts origin.x;
         position.y = ts origin.y;
         refreshRate = ts 165;
