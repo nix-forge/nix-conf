@@ -4,6 +4,7 @@ with tree.configs.home;
   base.default
 
   theming.basic.default
+  theming.gtk
 
   desktop-envs.hyprland.default
   programs.rofi
