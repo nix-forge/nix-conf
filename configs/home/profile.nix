@@ -60,7 +60,7 @@ args@{
 
       ### WEB BROWSERS ###
       programs.firefox
-      # programs.chromium
+      programs.chromium
 
       ### COMMUNICATION & MESSAGING ###
       # programs.zoom
