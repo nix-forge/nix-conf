@@ -50,7 +50,7 @@ args@{
   discord = {
     home.packages = [ pkgs.webcord-vencord ];
     # For Discord RPC
-    services.arrpc.enable = true;
+    # services.arrpc.enable = true;
   };
   slack = {
     home.packages = [ pkgs.slack ];
