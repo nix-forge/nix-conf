@@ -6,7 +6,6 @@
 }:
 {
   nix = {
-    # set to Lix the higher performance Nix fork.
     package = pkgs.lix;
 
     # Run the Nix daemon on lowest possible priority so that system
