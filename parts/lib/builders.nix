@@ -86,6 +86,20 @@ let
             };
           }
         ];
+
+        # Default Custom Modules
+        defaultModules = [
+          {
+            # Add a option which can be used to find all normal users if setup properly
+            options.users = {
+              normalUsers = lib.mkOption {
+                # type set
+                type = lib.types.listOf lib.types.attrs;
+                default = [ ];
+              };
+            };
+          }
+        ];
       in
       mkSystem {
         # specialArgs
@@ -100,13 +114,13 @@ let
               hostPlatform = system;
               flake.source = nixpkgs.outPath;
             } // (args.nixpkgsArgs or { });
-
           })
 
           # if host needs additional modules, append them
           (args.modules or [ ])
 
           nixosHomeManager
+          defaultModules
         ];
       }
     );
