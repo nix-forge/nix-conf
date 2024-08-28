@@ -14,7 +14,7 @@ in
 {
   enable = true;
   openFirewall = true;
-  autoStart = false; # if false then use systemctl start minecraft-server-${servername}
+  autoStart = true; # if false then use systemctl start minecraft-server-${servername}
 
   package = pkgs.minecraftServers.${serverVersion};
 
@@ -61,7 +61,7 @@ in
     "query.port" = port;
     difficulty = 3; # 0: peaceful, 1: easy, 2: normal, 3: hard
     enforce-secure-profile = true; # true: only allow secure profiles to join
-    gamemode = 0; # 0: survival, 1: creative, 2: adventure, 3: spectator
+    gamemode = 1; # 0: survival, 1: creative, 2: adventure, 3: spectator
     force-gamemode = true; # true: force gamemode on join
     motd = "Welcome to the server!"; # server message
     pvp = true; # true: players can attack each other
