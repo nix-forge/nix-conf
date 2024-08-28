@@ -78,7 +78,14 @@ in
     # Nvidia DRM (Direct Rendering Manager) KMS (Kernel Mode Setting) support
     # Based on Arch Wiki: <https://wiki.archlinux.org/title/NVIDIA#DRM_kernel_mode_setting>
     # NOTE: The kernel patameters for Nvidia use "-" instead of "_" which the Nvidia kernel modules use
-    boot.kernelParams = lib.mkIf cfg.modesetting.enable [ "nvidia-drm.fbdev=1" ];
+    #       However, we will use both just in case.
+    boot.kernelParams = lib.mkIf cfg.modesetting.enable [
+      "nvidia-drm.modeset=1"
+      "nvidia_drm.modeset=1"
+
+      "nvidia-drm.fbdev=1"
+      "nvidia_drm.fbdev=1"
+    ];
 
     # Early loading support for Nvidia
     # Also Based on Arch Wiki: https://wiki.archlinux.org/title/NVIDIA#Early_loading
