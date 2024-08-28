@@ -253,6 +253,7 @@
       "https://nixpkgs-unfree.cachix.org" # unfree-package cache
       "https://cache.garnix.io" # garnix binary cache
       "https://geonix.cachix.org" # geospatial nix
+      "https://nix-gaming.cachix.org" # nix-gaming cache
       "https://cosmic.cachix.org" # cosmic desktop
     ];
 
@@ -263,6 +264,7 @@
       "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
+      "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
       "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
     ];
   };
