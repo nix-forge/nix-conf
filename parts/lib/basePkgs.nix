@@ -48,7 +48,6 @@
   bottom # not top
   procs # process viewer
   du-dust # du but rust
-  bandwhich # network monitor
 
   ### VIRTUALIZATION ###
   libguestfs # filesystem driver for vm images
