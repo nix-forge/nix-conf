@@ -5,7 +5,7 @@
   inputs,
   ...
 }:
-rec {
+{
   system = "x86_64-linux";
   nixpkgsArgs = {
     config.allowUnfree = true;
@@ -39,6 +39,7 @@ rec {
     # kernel-patches
     power
     audio
+    monitor
     hardware.zram
     hardware.networking
     hardware.bluetooth
@@ -58,6 +59,7 @@ rec {
     # desktop-envs.gnome
     # desktop-envs.plasma
     desktop-envs.hyprland
+    # desktop-envs.cosmic
 
     ## Display Managers
     # display-managers.greetd
