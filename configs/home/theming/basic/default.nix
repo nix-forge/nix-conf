@@ -1,1 +1,6 @@
-{ imports = [ ./icons.nix ]; }
+{
+  imports = [
+    ./icons.nix
+    ./prefer-dark.nix
+  ];
+}
