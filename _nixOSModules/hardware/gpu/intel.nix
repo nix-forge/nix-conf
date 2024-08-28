@@ -47,13 +47,13 @@ in
       enable = true;
 
       extraPackages = with pkgs; [
-        intel-vaapi-driver # replaces package "vaapiIntel" as of Nix 23.11
+        intel-vaapi-driver
         libvdpau-va-gl
         intel-media-driver
       ];
 
       extraPackages32 = with pkgs.pkgsi686Linux; [
-        intel-vaapi-driver # replaced old vaapiIntel in Nix 23.11
+        intel-vaapi-driver
         libvdpau-va-gl
         intel-media-driver
       ];
