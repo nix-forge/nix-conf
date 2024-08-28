@@ -1,9 +1,24 @@
-{ lib, tree, ... }:
+{
+  lib,
+  tree,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   imports =
     with lib.cust.nixos;
     let
-      homes = tree.homes;
+      homes =
+        name:
+        tree.homes.${name}.modules {
+          inherit
+            tree
+            lib
+            inputs
+            pkgs
+            ;
+        };
     in
     [
       (addUser {
@@ -20,7 +35,7 @@
           "networkmanager"
         ];
         initialPassword = "password";
-        homeManagerModules = homes.desktop.modules { inherit tree lib; };
+        homeManagerModules = homes "desktop";
       })
 
       # (addUser {

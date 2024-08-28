@@ -27,7 +27,6 @@ args@{
   gparted = {
     home.packages = [
       pkgs.gparted
-      # pkgs.exfat
       pkgs.exfatprogs
     ];
   };
@@ -92,18 +91,13 @@ args@{
   onlyoffice = {
     home.packages = [ pkgs.onlyoffice-bin ];
   };
-  libreoffice = {
-    home.packages = [ pkgs.libreoffice-qt ];
-  };
+
   apostrophe = {
     home.packages = [ pkgs.apostrophe ];
   };
-  spellcheck = {
-    home.packages = [
-      pkgs.hunspell
-      pkgs.hunspellDicts.en_US
-    ];
-  };
+
+
+
   qgis = {
     home.packages =
       let

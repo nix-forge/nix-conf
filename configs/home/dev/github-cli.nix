@@ -14,7 +14,7 @@
     ] ++ lib.optionals (config.programs.gh-dash.enable) [ config.programs.gh-dash.package ];
 
     settings = {
-      editor = "nvim";
+      editor = config.home.sessionVariables.EDITOR;
       git_protocol = "ssh";
     };
   };
