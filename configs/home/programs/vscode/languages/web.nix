@@ -6,7 +6,6 @@
     in
     with extensions.preferNixpkgs;
     [
-      ms-vscode.live-server
       aeschli.vscode-css-formatter
 
       bradlc.vscode-tailwindcss
