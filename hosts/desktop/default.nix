@@ -10,84 +10,87 @@
   nixpkgsArgs = {
     config.allowUnfree = true;
   };
-  modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os); [
-    ## Base
-    base.nix-settings
-    base.nix-registry
-    base.base
-    base.kernel.default
-    base.packages
-    users
+  modules = builtins.map (x: if x ? "default" then x.default else x) (
+    with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os);
+    [
+      ## Base
+      base.nix-settings
+      base.nix-registry
+      base.base
+      base.kernel
+      base.packages
+      users
 
-    ## Boot
-    boot.generic
-    boot.grub.default
-    boot.grub.dual-boot
-    kernel-modules
-    # plymouth
+      ## Boot
+      boot.generic
+      boot.grub
+      boot.grub.dual-boot
+      kernel-modules
+      # plymouth
 
-    ## Locale
-    timezone
-    locale.timesync
-    locale.fonts
-    # keyboard
+      ## Locale
+      timezone
+      locale.timesync
+      locale.fonts
+      # keyboard
 
-    ## Hardware
-    filesystems
-    gpu
-    cpu
-    # kernel-patches
-    power
-    audio
-    monitor
-    hardware.zram
-    hardware.networking
-    hardware.bluetooth
-    hardware.tpm
-    hardware.firmware
-    hardware.sound.default
-    hardware.ssd
-    hardware.storage
-    peripherals.mouse
-    gaming.default
+      ## Hardware
+      filesystems
+      gpu
+      cpu
+      # kernel-patches
+      power
+      audio
+      monitor
+      hardware.zram
+      hardware.networking
+      hardware.bluetooth
+      hardware.tpm
+      hardware.firmware
+      hardware.sound
+      hardware.ssd
+      hardware.storage
+      peripherals.mouse
+      gaming
 
-    ## Virtualization
-    virtualisation.docker
-    virtualisation.libvirt
+      ## Virtualization
+      virtualisation.docker
+      virtualisation.libvirt
 
-    ## Desktop Environments
-    # desktop-envs.gnome
-    # desktop-envs.plasma
-    desktop-envs.hyprland
-    # desktop-envs.cosmic
+      ## Desktop Environments
+      # desktop-envs.gnome
+      # desktop-envs.plasma
+      desktop-envs.hyprland
+      # desktop-envs.cosmic
 
-    ## Display Managers
-    # display-managers.greetd
-    display-managers.gdm
-    # display-managers.sddm
+      ## Display Managers
+      # display-managers.greetd
+      display-managers.gdm
+      # display-managers.sddm
 
-    ## Security
-    security.default
+      ## Security
+      security
 
-    ## Services
-    services.runners
-    services.disable-hibernate
-    services.earlyoom
+      ## Services
+      services.runners
+      services.disable-hibernate
+      services.earlyoom
 
-    # Programs
-    # TODO: add neovim base config and better config in home-manager
+      # Programs
+      # TODO: add neovim base config and better config in home-manager
 
-    ## Theming
-    stylix.base
-    stylix.cursor
-    stylix.fonts
+      ## Theming
+      stylix.base
+      stylix.cursor
+      stylix.fonts
 
-    ## Server
-    # server.minecraft.default
+      ## Server
+      # server.minecraft
 
-    ## Environment Variables
-    { environment.sessionVariables = lib.cust.env.wayland.all; }
-  ];
+      ## Environment Variables
+      { environment.sessionVariables = lib.cust.env.wayland.all; }
+    ]
+  );
 
   overlays = [
     inputs.nur.overlay
