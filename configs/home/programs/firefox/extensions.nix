@@ -12,12 +12,6 @@
       "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
     };
 
-    # Skip Redirect
-    "skipredirect@sblask" = {
-      "installation_mode" = "force_installed";
-      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/skip-redirect/latest.xpi";
-    };
-
     # Dark Reader
     "addon@darkreader.org" = {
       "installation_mode" = "force_installed";
@@ -52,6 +46,11 @@
     "bypasspaywalls@bypasspaywalls" = {
       "installation_mode" = "force_installed";
       "install_url" = "https://github.com/iamadamdev/bypass-paywalls-chrome/releases/latest/download/bypass-paywalls-firefox.xpi";
+    };
+
+    "sabre@simplify.jobs" = {
+      "installation_mode" = "normal_installed";
+      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
     };
   };
 }

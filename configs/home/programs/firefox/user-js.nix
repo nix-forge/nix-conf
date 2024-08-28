@@ -26,9 +26,8 @@ in
       (toUserJS {
         #
         #*************************************************************************************
-        # OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                      *
-        #**************************************************************************************
-        # credit: https://github.com/AveYo/fox/blob/cf56d1194f4e5958169f9cf335cd175daa48d349/Natural%20Smooth%20Scrolling%20for%20user.js
+        # OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                     *
+        #*************************************************************************************
         # recommended for 120hz+ displays
         # largely matches Chrome flags: Windows Scrolling Personality and Smooth Scrolling
         "apz.overscroll.enabled" = true; # DEFAULT NON-LINUX
@@ -38,12 +37,15 @@ in
         "general.smoothScroll.msdPhysics.motionBeginSpringConstant" = 600;
         "general.smoothScroll.msdPhysics.regularSpringConstant" = 650;
         "general.smoothScroll.msdPhysics.slowdownMinDeltaMS" = 25;
-        "general.smoothScroll.msdPhysics.slowdownMinDeltaRatio" = 2.0;
+        "general.smoothScroll.msdPhysics.slowdownMinDeltaRatio" = 2;
         "general.smoothScroll.msdPhysics.slowdownSpringConstant" = 250;
-        "general.smoothScroll.currentVelocityWeighting" = 1.0;
-        "general.smoothScroll.stopDecelerationWeighting" = 1.0;
+        "general.smoothScroll.currentVelocityWeighting" = 1;
+        "general.smoothScroll.stopDecelerationWeighting" = 1;
         "mousewheel.default.delta_multiplier_y" = 300; # 250-400; adjust this number to your liking
       })
+
+      # Firefox Lepton UI
+      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
 
       # Overides
       (toUserJS {
@@ -66,8 +68,6 @@ in
         "media.rdd-ffmpeg.enabled" = true; # Forces ffmpeg usage into the RDD process (Default true)
         "media.av1.enabled" = true; # Enable AV1 Decoding (already assumming new enough hardware) (Default true)
         "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
-        # other
-        "gfx.canvas.accelerated" = true; # Enforce hardware acceleration (Default true)
 
         # Enable WebGL
         "webgl.disabled" = false;
@@ -105,10 +105,11 @@ in
 
         # Turn off resistFingerprinting so timezone and light/dark mode is correct
         "privacy.resistFingerprinting" = false;
-      })
 
-      # Firefox Lepton UI
-      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
+        # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
+        # at the expense of hardware acceleration in certain situations
+        "gfx.canvas.accelerated" = false;
+      })
     ];
   };
 }

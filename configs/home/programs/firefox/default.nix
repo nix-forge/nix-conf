@@ -2,6 +2,7 @@
   self,
   config,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -9,8 +10,6 @@ let
   profileName = "${config.home.username}-default";
 in
 {
-  programs.firefox.enable = true;
-
   imports = [
     ./blocking.nix
     ./policies.nix
@@ -19,28 +18,25 @@ in
     self.homeManagerModules.firefox-userchrome
   ];
 
-  programs.firefox.userChrome.profiles.${profile} = {
-    source = inputs.firefox-lepton-ui;
-    recursive = true;
-    # extraSettings = { # settings specific to my theme
-    #   "browser.uidensity" = 1;
-    #   "ui.prefersReducedMotion" = 1;
-    #   "browser.tabs.tabMinWidth" = 130;
-    # };
-  };
+  programs.firefox = {
+    enable = true;
+    package = pkgs.firefox-beta; # use beta as temp fix for nvidia to get to firefox 130
 
-  programs.firefox.profiles.${profile} = {
-    id = 0;
-    isDefault = true;
-    name = profileName;
+    # Custom module for Global UserChrome
+    userChrome.profiles.${profile} = {
+      source = inputs.firefox-lepton-ui;
+      recursive = true;
+      # extraSettings = { # settings specific to my theme
+      #   "browser.uidensity" = 1;
+      #   "ui.prefersReducedMotion" = 1;
+      #   "browser.tabs.tabMinWidth" = 130;
+      # };
+    };
 
-    settings = {
-      "devtools.chrome.enabled" = true;
-      "devtools.debugger.remote-enabled" = true;
-      "signon.rememberSignons" = false;
-      # "Open previous windows and tabs"
-      "browser.startup.page" = 3;
-      "trailhead.firstrun.didSeeAboutWelcome" = true;
+    profiles.${profile} = {
+      id = 0;
+      isDefault = true;
+      name = profileName;
     };
   };
 }
