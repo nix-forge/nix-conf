@@ -24,22 +24,22 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ./hyprland
 
   ## Desktop Applications
-  rofi
-  waybar.default
+  programs.rofi
+  programs.waybar.default
   { home.packages = [ pkgs.nautilus ]; }
   { home.packages = [ pkgs.apostrophe ]; }
   { home.packages = [ pkgs.motrix ]; }
-  gparted
+  programs.gparted
 
   ## Web Browsers
-  firefox.default
+  programs.firefox.default
   { programs.chromium.enable = true; }
 
   ## Shell Environments
   shells.zsh.default
 
   ## Terminal Emulators
-  kitty
+  programs.kitty
 
   ## Developement Tools
   dev.docs
@@ -51,7 +51,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.languages.c
 
   ## Code Editors
-  neovim
+  neovim.default
 
   vscode.settings
   vscode.keybinds
@@ -65,15 +65,15 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.typescript
 
   ## Communication
-  discord
+  programs.discord
   { home.packages = [ pkgs.slack ]; }
 
   ## Media Consumption
-  spotify
+  programs.spotify
   { home.packages = [ pkgs.rhythmbox ]; }
 
   ## Office Software
-  libreoffice
+  programs.libreoffice
   { home.packages = [ pkgs.kdePackages.okular ]; }
   { home.packages = [ geonix.qgis ]; }
 

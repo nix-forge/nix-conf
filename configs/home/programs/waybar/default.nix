@@ -125,6 +125,40 @@ let
       workspaceSwitchPrev = "${hyprctl} dispatch workspace m-1";
       workspaceSwitchNext = "${hyprctl} dispatch workspace m+1";
     };
+
+  lstrip =
+    pattern: str:
+    let
+      strLen = builtins.stringLength str;
+      patLen = builtins.stringLength pattern;
+      starts = pattern == builtins.substring 0 patLen str;
+    in
+    if strLen >= patLen && starts then lstrip pattern (builtins.substring patLen strLen str) else str;
+  rstrip =
+    pattern: str:
+    let
+      strLen = builtins.stringLength str;
+      patLen = builtins.stringLength pattern;
+      ends = pattern == builtins.substring (strLen - patLen) patLen str;
+    in
+    if strLen >= patLen && ends then
+      rstrip pattern (builtins.substring 0 (strLen - patLen) str)
+    else
+      str;
+  strip = pattern: str: rstrip pattern (lstrip pattern str);
+  trim =
+    str:
+    let
+      # Not two spaces, the second is a tab character.
+      white = [
+        " "
+        "	"
+        "\n"
+        "\r"
+      ];
+      stripped = lib.pipe str (map strip white);
+    in
+    if stripped == str then str else trim stripped;
 in
 {
   programs.waybar.enable = true;
@@ -221,7 +255,7 @@ in
           stopped = "󰓛";
         };
 
-        tooltip-format = lib.bird.trim ''
+        tooltip-format = trim ''
           <b>Player:</b> {player} ({status})
           <b>Title:</b> {title}
           <b>Artist:</b> {artist}
@@ -375,11 +409,11 @@ in
             "󰤨"
           ];
 
-          tooltip-format = lib.bird.trim ''
+          tooltip-format = trim ''
             <b>Interface</b>: {ifname}
             ${tooltip}
           '';
-          tooltip-format-wifi = lib.bird.trim ''
+          tooltip-format-wifi = trim ''
             <b>SSID:</b> {essid}
             <b>Strength:</b> {signaldBm} dBmW ({signalStrength}%)
             <b>Frequency:</b> {frequency} GHz

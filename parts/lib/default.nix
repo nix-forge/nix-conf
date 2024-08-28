@@ -16,7 +16,6 @@ let
   # to provided function, you would need to do something like `lib.extendedLib.aliases.foo` instead of
   # `lib.aliases.foo`, which is kinda annoying.
   extendedLib = lib // {
-    bird = lib.extend inputs.bird-nix-lib.lib.overlay; # Bird Nix Lib
     cust = {
       nixos = import ./nixos;
       mkHome = import ./mkHome.nix;

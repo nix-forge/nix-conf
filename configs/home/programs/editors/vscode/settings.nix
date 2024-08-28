@@ -130,14 +130,50 @@
         saturation = 0.425;
         lightness = 0.35;
         alpha = 0.5;
+
+        rstrip =
+          pattern: str:
+          let
+            strLen = builtins.stringLength str;
+            patLen = builtins.stringLength pattern;
+            ends = pattern == builtins.substring (strLen - patLen) patLen str;
+          in
+          if strLen >= patLen && ends then
+            rstrip pattern (builtins.substring 0 (strLen - patLen) str)
+          else
+            str;
+        toPercent =
+          decimals: n:
+          let
+            elemAtDefault =
+              default: index: list:
+              if index >= 0 && index < builtins.length list then builtins.elemAt list index else default;
+
+            pow = base: exp: lib.foldl' builtins.mul 1 (lib.replicate exp base);
+            mantissa = n: n - (builtins.floor n);
+            round =
+              decimals: n:
+              let
+                shift = pow 10.0 decimals;
+                shifted = n * shift;
+                roundFn = if mantissa shifted >= 0.5 then builtins.ceil else builtins.floor;
+              in
+              (roundFn shifted) / shift;
+
+            str = toString (round decimals (n * 100.0));
+            split = lib.splitString "." str;
+            whole = elemAtDefault "0" 0 split;
+            frac = rstrip "0" (elemAtDefault "" 1 split);
+          in
+          "${whole}${lib.optionalString (frac != "") ".${frac}"}%";
       in
       map (
         hue:
         "hsla(${
           lib.concatStringsSep "," [
             (toString hue)
-            (lib.bird.toPercent 1 saturation)
-            (lib.bird.toPercent 1 lightness)
+            (toPercent 1 saturation)
+            (toPercent 1 lightness)
             (toString alpha)
           ]
         })"

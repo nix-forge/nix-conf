@@ -114,29 +114,6 @@
         "type": "github"
       }
     },
-    "bird-nix-lib": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "systems": [
-          "systems"
-        ]
-      },
-      "locked": {
-        "lastModified": 1718015582,
-        "narHash": "sha256-VzK23WKktlJdTcoOh+rXKhSPYRWkl9ShIZh4tB44UV4=",
-        "owner": "spikespaz",
-        "repo": "bird-nix-lib",
-        "rev": "95948f65ac043078661910cb23a123b4b2b9fb8c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "spikespaz",
-        "repo": "bird-nix-lib",
-        "type": "github"
-      }
-    },
     "cosmic": {
       "inputs": {
         "flake-compat": [
@@ -646,7 +623,6 @@
     },
     "root": {
       "inputs": {
-        "bird-nix-lib": "bird-nix-lib",
         "cosmic": "cosmic",
         "firefox-arkenfox": "firefox-arkenfox",
         "firefox-betterfox": "firefox-betterfox",
