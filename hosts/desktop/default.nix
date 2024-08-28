@@ -10,6 +10,8 @@
   nixpkgsArgs = {
     config.allowUnfree = true;
   };
+
+  # TODO: rewrite map function to import everything if no default and is dir
   modules = builtins.map (x: if x ? "default" then x.default else x) (
     with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os);
     [
