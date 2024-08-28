@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ self, pkgs, ... }:
 {
   fonts = {
     enableDefaultPackages = true;
@@ -6,6 +6,10 @@
       enable = true;
       hinting.enable = true;
       antialias = true;
+
+      # Disable bitmap fonts to improve font rendering
+      allowBitmaps = false;
+      useEmbeddedBitmaps = false;
     };
 
     fontDir = {
@@ -60,8 +64,11 @@
       openmoji-color
       openmoji-black
 
-      # # Microsoft Fonts
-      # (ttf-ms-win11.override { acceptEula = true; })
+      # Microsoft Fonts
+      self.packages.${pkgs.system}.ttf-ms-win11-auto
+
+      # Apple Fonts
+      self.packages.${pkgs.system}.apple-fonts
 
       # Nerdfonts
       (nerdfonts.override {
