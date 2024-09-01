@@ -11,7 +11,7 @@
 
     package = pkgs.steam.override {
       extraEnv = {
-        MANGOHUD = true;
+        SDL_VIDEODRIVER = "wayland,x11,windows"; # add fallbacks so that easyanticheat works
       };
 
       extraPkgs =
