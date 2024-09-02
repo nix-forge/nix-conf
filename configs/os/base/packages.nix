@@ -2,6 +2,7 @@
   pkgs,
   config,
   lib,
+  tree,
   ...
 }:
 {
@@ -12,7 +13,7 @@
 
   # Packages which are appropriate for a typical Linux system.
   # There should be **no GUI programs** in this list.
-  environment.systemPackages = (lib.cust.basePkgs { inherit pkgs; }) ++ [
+  environment.systemPackages = (tree.configs.shared.base.pkgs { inherit pkgs; }) ++ [
     config.boot.kernelPackages.cpupower
   ];
 }

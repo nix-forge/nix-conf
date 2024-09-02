@@ -90,7 +90,7 @@
       # server.minecraft
 
       ## Environment Variables
-      { environment.sessionVariables = lib.cust.env.wayland.all; }
+      { environment.sessionVariables = tree.configs.shared.env.wayland.default; }
     ]
   );
 
