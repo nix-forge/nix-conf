@@ -1,16 +1,16 @@
 {
   tree,
-  lib,
-  inputs,
   pkgs,
+  inputs,
   ...
 }:
 let
   homeDir = tree.configs.home;
-
-  geonix = inputs.geospatial-nix.packages.${pkgs.system};
+  sharedDir = tree.configs.shared;
+  install = pkg: { home.packages = [ pkg ]; };
+  withTreeModules = modules: builtins.map (x: if x ? "default" then x.default else x) modules;
 in
-builtins.map (x: if x ? "default" then x.default else x) (
+withTreeModules (
   with (homeDir // homeDir.programs // homeDir.programs.editors);
   [
     ## Base
@@ -27,9 +27,12 @@ builtins.map (x: if x ? "default" then x.default else x) (
     ## Desktop Applications
     programs.rofi
     programs.waybar
-    { home.packages = [ pkgs.nautilus ]; }
-    { home.packages = [ pkgs.apostrophe ]; }
-    { home.packages = [ pkgs.motrix ]; }
+    (install pkgs.nautilus)
+    (install pkgs.apostrophe)
+    (install pkgs.motrix)
+    (install pkgs.pinta)
+
+    ## Utility
     programs.gparted
 
     ## Web Browsers
@@ -67,23 +70,23 @@ builtins.map (x: if x ? "default" then x.default else x) (
 
     ## Communication
     programs.discord
-    { home.packages = [ pkgs.slack ]; }
+    (install pkgs.slack)
 
     ## Media Consumption
     programs.spotify
-    { home.packages = [ pkgs.rhythmbox ]; }
+    (install pkgs.rhythmbox)
 
     ## Office Software
     programs.libreoffice
-    { home.packages = [ pkgs.kdePackages.okular ]; }
-    { home.packages = [ geonix.qgis ]; }
+    (install pkgs.kdePackages.okular)
+    (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
 
     ## Video Games
     gaming
-    { home.packages = [ pkgs.prismlauncher ]; }
+    (install pkgs.prismlauncher)
 
     ## Misc
-    { home.sessionVariables = lib.cust.env.wayland.all; }
+    { home.sessionVariables = sharedDir.env.wayland.default; }
     wayland.electron-flags
   ]
 )
