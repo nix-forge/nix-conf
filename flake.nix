@@ -269,6 +269,75 @@
         # Don't overwrite nixpkgs as this could cause cache miss
       };
     };
+
+    # Hyrpland Flake
+    aquamarine = {
+      url = "github:hyprwm/aquamarine";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
+    };
+
+    hyprcursor = {
+      url = "github:hyprwm/hyprcursor";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
+    };
+
+    hyprlang = {
+      url = "github:hyprwm/hyprlang";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+    };
+
+    hyprutils = {
+      url = "github:hyprwm/hyprutils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+
+    hyprwayland-scanner = {
+      url = "github:hyprwm/hyprwayland-scanner";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+
+    xdph = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
+    };
+
+    hyprpaper = {
+      url = "github:hyprwm/hyprpaper";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprutils.follows = "hyprutils";
+        hyprlang.follows = "hyprlang";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+      };
+    };
+
+    hyprland = {
+      url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        aquamarine.follows = "aquamarine";
+        hyprcursor.follows = "hyprcursor";
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+        xdph.follows = "xdph";
+      };
+    };
   };
 
   nixConfig = {
@@ -280,6 +349,7 @@
       "https://geonix.cachix.org" # geospatial nix
       "https://nix-gaming.cachix.org" # nix-gaming cache
       "https://cosmic.cachix.org" # cosmic desktop
+      "https://hyprland.cachix.org" # hyrpland cache
     ];
 
     extra-trusted-public-keys = [
@@ -290,6 +360,7 @@
       "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
       "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
       "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
+      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
 }
