@@ -6,7 +6,7 @@
   extraGroups ? [ ],
   initialPassword ? "password",
   isNormalUser ? true,
-  homeManagerModules ? [ ],
+  homeManagerModules ? ({ ... }: [ ]),
 }:
 lib.mkMerge [
   {
