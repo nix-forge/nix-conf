@@ -8,85 +8,82 @@ let
   homeDir = tree.configs.home;
   sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
-  withTreeModules = modules: builtins.map (x: if x ? "default" then x.default else x) modules;
 in
-withTreeModules (
-  with (homeDir // homeDir.programs // homeDir.programs.editors);
-  [
-    ## Base
-    base
+with (homeDir // homeDir.programs // homeDir.programs.editors);
+[
+  ## Base
+  base
 
-    ## Theming
-    theming.basic
-    theming.gtk
+  ## Theming
+  theming.basic
+  theming.gtk
 
-    ## Desktop Environment
-    desktop-envs.hyprland
-    ./hyprland
+  ## Desktop Environment
+  desktop-envs.hyprland
+  ./hyprland
 
-    ## Desktop Applications
-    programs.rofi
-    programs.waybar
-    (install pkgs.nautilus)
-    (install pkgs.apostrophe)
-    (install pkgs.motrix)
-    (install pkgs.pinta)
+  ## Desktop Applications
+  programs.rofi
+  programs.waybar
+  (install pkgs.nautilus)
+  (install pkgs.apostrophe)
+  (install pkgs.motrix)
+  (install pkgs.pinta)
 
-    ## Utility
-    programs.gparted
+  ## Utility
+  programs.gparted
 
-    ## Web Browsers
-    programs.firefox
-    { programs.chromium.enable = true; }
+  ## Web Browsers
+  programs.firefox
+  { programs.chromium.enable = true; }
 
-    ## Shell Environments
-    shells.zsh
+  ## Shell Environments
+  shells.zsh
 
-    ## Terminal Emulators
-    programs.kitty
+  ## Terminal Emulators
+  programs.kitty
 
-    ## Developement Tools
-    dev.docs
-    dev.direnv
-    dev.github-cli
-    dev.nix-formatter
+  ## Developement Tools
+  dev.docs
+  dev.direnv
+  dev.github-cli
+  dev.nix-formatter
 
-    ## Developement Languages
-    dev.languages.c
+  ## Developement Languages
+  dev.languages.c
 
-    ## Code Editors
-    neovim
+  ## Code Editors
+  neovim
 
-    vscode.settings
-    vscode.keybinds
-    vscode.languages.cpp
-    vscode.languages.nix
-    vscode.languages.web
-    vscode.languages.python
-    vscode.languages.bash
-    vscode.languages.verilog
-    vscode.languages.javascript
-    vscode.languages.typescript
+  vscode.settings
+  vscode.keybinds
+  vscode.languages.cpp
+  vscode.languages.nix
+  vscode.languages.web
+  vscode.languages.python
+  vscode.languages.bash
+  vscode.languages.verilog
+  vscode.languages.javascript
+  vscode.languages.typescript
 
-    ## Communication
-    programs.discord
-    (install pkgs.slack)
+  ## Communication
+  programs.discord
+  (install pkgs.slack)
 
-    ## Media Consumption
-    programs.spotify
-    (install pkgs.rhythmbox)
+  ## Media Consumption
+  programs.spotify
+  (install pkgs.rhythmbox)
 
-    ## Office Software
-    programs.libreoffice
-    (install pkgs.kdePackages.okular)
-    (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
+  ## Office Software
+  programs.libreoffice
+  (install pkgs.kdePackages.okular)
+  (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
 
-    ## Video Games
-    gaming
-    (install pkgs.prismlauncher)
+  ## Video Games
+  gaming
+  (install pkgs.prismlauncher)
 
-    ## Misc
-    { home.sessionVariables = sharedDir.env.wayland.default; }
-    wayland.electron-flags
-  ]
-)
+  ## Misc
+  { home.sessionVariables = sharedDir.env.wayland.default; }
+  wayland.electron-flags
+]
