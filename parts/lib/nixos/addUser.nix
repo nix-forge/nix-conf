@@ -41,14 +41,16 @@ lib.mkMerge [
         ...
       }:
       {
-        imports = homeManagerModules {
+        # import home-manager modules and resolve function
+        # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
+        imports = lib.cust.withTreeModules (homeManagerModules {
           inherit
             tree
             lib
             pkgs
             inputs
             ;
-        };
+        });
 
         # Use the same nix package as nixos
         nix.package = lib.mkForce config.nix.package;

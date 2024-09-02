@@ -30,6 +30,7 @@ let
       system,
       hostname,
       inputs,
+      lib,
       ...
     }@args:
     withSystem system (
@@ -50,11 +51,11 @@ let
         } // (args.specialArgs or { });
 
         nixosSpecialArgs = baseArgs // {
-          lib = (args.lib or lib);
+          inherit lib;
         };
 
         homeSpecialArgs = baseArgs // {
-          lib = (args.lib or lib) // libHome;
+          lib = lib // libHome;
         };
 
         # Define the home-manager modules
@@ -117,7 +118,8 @@ let
           })
 
           # if host needs additional modules, append them
-          (args.modules or [ ])
+          # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
+          (lib.cust.withTreeModules (args.modules or [ ]))
 
           nixosHomeManager
           defaultModules
