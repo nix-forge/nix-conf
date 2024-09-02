@@ -36,7 +36,10 @@ in
 
     # Nvidia VAAPI driver
     hardware.graphics = lib.mkMerge [
-      { enable = true; }
+      {
+        enable = true;
+        enable32Bit = true;
+      }
 
       (lib.mkIf cfg.nvidia-vaapi-driver.enable {
         extraPackages = [ pkgs.nvidia-vaapi-driver ];
