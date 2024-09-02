@@ -20,12 +20,10 @@ let
       nixos = import ./nixos;
       mkHome = import ./mkHome.nix;
       mkHost = import ./mkHost.nix;
-      env = import ./env;
       builders = import ./builders.nix { inherit nixpkgs lib; };
       scanPaths = import ./scanPaths.nix { inherit lib; };
       files = import ./files { inherit lib; };
       applyAutoArgs = import ./applyAutoArgs.nix { inherit lib; };
-      basePkgs = import ./basePkgs.nix;
     };
   };
 
