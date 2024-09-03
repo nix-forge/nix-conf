@@ -5,7 +5,7 @@
   ...
 }:
 {
-  imports = [ self.nixOSModules.hardware.networking ];
+  imports = [ self.nixOSModules.networking ];
 
   networking = {
     generateHostId = true;
