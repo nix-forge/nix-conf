@@ -1,10 +1,13 @@
+{
+  moduleName ? "custom",
+}:
 { config, lib, ... }:
 let
   inherit (lib) types;
-  cfg = config.networking.dnscrypt-proxy;
+  cfg = config.networking.${moduleName}.dnscrypt-proxy;
 in
 {
-  options.networking.dnscrypt-proxy = {
+  options.networking.${moduleName}.dnscrypt-proxy = {
     enable = lib.mkEnableOption "Enable DNS configuration. If no DNS provider is selected, then dnscrypt-proxy will filter the dns servers.";
     unbound = {
       enable = lib.mkOption {

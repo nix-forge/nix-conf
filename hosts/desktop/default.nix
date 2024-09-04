@@ -40,6 +40,7 @@
     power
     audio
     monitor
+    networking
     hardware.zram
     hardware.networking
     hardware.bluetooth

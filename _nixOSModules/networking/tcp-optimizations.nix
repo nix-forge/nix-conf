@@ -1,9 +1,12 @@
+{
+  moduleName ? "custom",
+}:
 { config, lib, ... }:
 let
-  cfg = config.networking;
+  cfg = config.networking.${moduleName};
 in
 {
-  options.networking = {
+  options.networking.${moduleName} = {
     optimizeTCP = lib.mkOption {
       type = lib.types.bool;
       default = true;
