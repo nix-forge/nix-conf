@@ -1,7 +1,10 @@
+{ inputs, ... }:
 {
+  imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
+
   services.pipewire =
     let
-      default_rate = 192000;
+      default_rate = 96000;
     in
     {
       extraConfig.pipewire = {
@@ -12,17 +15,16 @@
             "default.clock.allowed-rates" = [
               44100
               48000
-              88200
               96000
-              176400
-              192000
-              384000
+              192000 # noticed some loss of audio quality ocassionally
             ];
           };
         };
       };
 
-      # must enable the inputs.nix-gaming.nixosModules.pipewireLowLatency module
-      lowLatency.rate = default_rate;
+      lowLatency = {
+        enable = true;
+        rate = default_rate;
+      };
     };
 }
