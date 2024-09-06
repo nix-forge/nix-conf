@@ -53,7 +53,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.languages.c
 
   ## Code Editors
-  neovim
+  # neovim
 
   vscode.settings
   vscode.keybinds
