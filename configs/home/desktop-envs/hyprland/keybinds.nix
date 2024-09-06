@@ -38,7 +38,12 @@
           # Launch the program with a shortcut.
           "SUPER, E, exec, ${lib.getExe pkgs.nautilus}"
           "SUPER, Return, exec, ${config.home.sessionVariables.TERMINAL}"
+
+          # Calulator
+          # There is a Calculator and a Calculater. Don't ask me why.
           "SUPER, C, exec, ${lib.getExe pkgs.qalculate-gtk}"
+          ", XF86Calculator, exec, ${lib.getExe pkgs.qalculate-gtk}"
+          ", XF86Calculater, exec, ${lib.getExe pkgs.qalculate-gtk}"
         ];
 
         # Screen by window drag
