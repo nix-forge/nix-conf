@@ -20,7 +20,7 @@ in
 
   programs.firefox = {
     enable = true;
-    package = pkgs.firefox-beta; # use beta as temp fix for nvidia to get to firefox 130
+    package = pkgs.firefox;
 
     # Custom module for Global UserChrome
     userChrome.profiles.${profile} = {
