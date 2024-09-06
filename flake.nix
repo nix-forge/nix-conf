@@ -324,6 +324,17 @@
       };
     };
 
+    hyprlock = {
+      url = "github:hyprwm/hyprlock";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprutils.follows = "hyprutils";
+        hyprlang.follows = "hyprlang";
+      };
+    };
+
     hyprland = {
       url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
       inputs = {
