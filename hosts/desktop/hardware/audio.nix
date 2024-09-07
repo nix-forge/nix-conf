@@ -4,7 +4,7 @@
 
   services.pipewire =
     let
-      default_rate = 96000;
+      default_rate = 48000;
     in
     {
       extraConfig.pipewire = {
@@ -15,7 +15,7 @@
             "default.clock.allowed-rates" = [
               44100
               48000
-              96000
+              96000 # noticed some loss of audio quality ocassionally
               192000 # noticed some loss of audio quality ocassionally
             ];
           };
@@ -25,6 +25,7 @@
       lowLatency = {
         enable = true;
         rate = default_rate;
+        quantum = 32;
       };
     };
 }
