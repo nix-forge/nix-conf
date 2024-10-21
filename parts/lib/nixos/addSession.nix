@@ -1,9 +1,8 @@
+{ lib, pkgs, ... }:
 {
   name,
   package,
   wayland ? true,
-  lib,
-  pkgs,
 }:
 let
   # Create the desktop file to define the session inside of a directory
