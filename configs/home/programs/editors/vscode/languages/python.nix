@@ -16,6 +16,9 @@
 
       ms-toolsai.jupyter-renderers
       ms-toolsai.jupyter
+
+      njpwerner.autodocstring
+      rodolphebarbanneau.python-docstring-highlighter
     ];
 
   programs.vscode.userSettings = {
