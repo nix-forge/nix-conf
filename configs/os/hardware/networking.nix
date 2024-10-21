@@ -5,11 +5,8 @@
 {
   networking = {
     networkmanager = {
-      enable = true;
       wifi.backend = "iwd";
     };
-
-    enableIPv6 = true;
 
     # global dhcp has been deprecated upstream
     # use the new networkd service instead of the legacy
@@ -19,13 +16,13 @@
     useDHCP = lib.mkForce false;
     useNetworkd = true;
 
-    stevenblack = {
-      enable = true;
-      block = [
-        "fakenews"
-        "gambling"
-        "porn"
-      ];
-    };
+    # stevenblack = {
+    #   enable = true;
+    #   block = [
+    #     "fakenews"
+    #     "gambling"
+    #     "porn"
+    #   ];
+    # };
   };
 }
