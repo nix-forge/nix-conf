@@ -2,10 +2,11 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
-  package = pkgs.waybar;
+  package = inputs.nixpkgs-wayland.packages.${pkgs.system}.waybar;
 
   # the fonts that will be included with the waybar package
   fontPackages = [
@@ -164,7 +165,7 @@ in
   programs.waybar.enable = true;
   programs.waybar.package = package';
 
-  programs.waybar.systemd.enable = true;
+  # programs.waybar.systemd.enable = true;
 
   programs.waybar.style = builtins.readFile (compileSCSS "waybar-style" ./waybar.scss);
 

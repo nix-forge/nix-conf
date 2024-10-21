@@ -1,4 +1,10 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 {
   imports = [
     ./config.nix
@@ -16,6 +22,10 @@
       enable = true;
       variables = [ "--all" ];
     };
+
+    settings.exec-once = [
+      "${lib.getExe config.programs.waybar.package}"
+    ];
   };
 
   services = {
