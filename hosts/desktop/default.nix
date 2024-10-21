@@ -7,7 +7,10 @@
 {
   system = "x86_64-linux";
   nixpkgsArgs = {
-    config.allowUnfree = true;
+    config = {
+      allowUnfree = true;
+      cudaSupport = true;
+    };
   };
 
   modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os); [
@@ -40,6 +43,7 @@
     power
     audio
     monitor
+    keyboard
     networking
     hardware.zram
     hardware.networking
@@ -49,7 +53,6 @@
     hardware.sound
     hardware.ssd
     hardware.storage
-    peripherals.mouse
     gaming
 
     ## Virtualization
@@ -71,8 +74,8 @@
     security
 
     ## Services
-    services.runners
     services.disable-hibernate
+    services.runners
     services.earlyoom
 
     # Programs
