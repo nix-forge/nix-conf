@@ -107,8 +107,11 @@ in
         "privacy.resistFingerprinting" = false;
 
         # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
-        # at the expense of hardware acceleration in certain situations
+        # at the expense of hardware acceleration in certain situations with disabling canvas accelerated
         "gfx.canvas.accelerated" = false;
+
+        # Set FPS
+        "layout.frame_rate" = config.home.sessionVariables.FPS;
       })
     ];
   };
