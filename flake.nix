@@ -249,67 +249,108 @@
       };
     };
 
-    # Provide nix-update for cosmic
-    nix-update = {
-      url = "github:Mic92/nix-update";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        treefmt-nix.follows = "treefmt-nix";
-      };
-    };
-
     # Cosmic Desktop
     cosmic = {
       url = "github:lilyinstarlight/nixos-cosmic";
       inputs = {
         flake-compat.follows = "flake-compat";
-        nix-update.follows = "nix-update";
 
         # Don't overwrite nixpkgs as this could cause cache miss
       };
     };
 
     # Hyrpland Flake
-    aquamarine = {
-      url = "github:hyprwm/aquamarine";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
-      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
-    };
-
-    hyprcursor = {
-      url = "github:hyprwm/hyprcursor";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
-    };
-
-    hyprlang = {
-      url = "github:hyprwm/hyprlang";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
-    };
-
     hyprutils = {
       url = "github:hyprwm/hyprutils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     hyprwayland-scanner = {
       url = "github:hyprwm/hyprwayland-scanner";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
+    };
+
+    hyprlang = {
+      url = "github:hyprwm/hyprlang";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprutils.follows = "hyprutils";
+      };
+    };
+
+    aquamarine = {
+      url = "github:hyprwm/aquamarine";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+      };
+    };
+
+    hyprcursor = {
+      url = "github:hyprwm/hyprcursor";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprlang.follows = "hyprlang";
+      };
+    };
+
+    hyprland-protocols = {
+      url = "github:hyprwm/hyprland-protocols";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+        hyprland-protocols.follows = "hyprland-protocols";
+      };
+    };
+
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+
+    hyprland = {
+      url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+
+        aquamarine.follows = "aquamarine";
+        hyprcursor.follows = "hyprcursor";
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+        xdph.follows = "xdph";
+        hyprland-protocols.follows = "hyprland-protocols";
+        pre-commit-hooks.follows = "pre-commit-hooks";
+      };
     };
 
     hyprpaper = {
@@ -335,18 +376,31 @@
       };
     };
 
-    hyprland = {
-      url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
+    nix-eval-jobs = {
+      url = "github:nix-community/nix-eval-jobs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+      };
+    };
 
-        aquamarine.follows = "aquamarine";
-        hyprcursor.follows = "hyprcursor";
-        hyprlang.follows = "hyprlang";
-        hyprutils.follows = "hyprutils";
-        hyprwayland-scanner.follows = "hyprwayland-scanner";
-        xdph.follows = "xdph";
+    lib-aggregate = {
+      url = "github:nix-community/lib-aggregate";
+      inputs = {
+        flake-utils.follows = "flake-utils";
+        nixpkgs-lib.follows = "nixpkgs";
+      };
+    };
+
+    nixpkgs-wayland = {
+      url = "github:nix-community/nixpkgs-wayland";
+      inputs = {
+        # Don't overwrite nixpkgs as this could cause cache miss
+
+        nix-eval-jobs.follows = "nix-eval-jobs";
+        lib-aggregate.follows = "lib-aggregate";
+        flake-compat.follows = "flake-compat";
       };
     };
   };
@@ -361,6 +415,7 @@
       "https://nix-gaming.cachix.org" # nix-gaming cache
       "https://cosmic.cachix.org" # cosmic desktop
       "https://hyprland.cachix.org" # hyrpland cache
+      "https://nixpkgs-wayland.cachix.org" # nixpkgs wayland cache
     ];
 
     extra-trusted-public-keys = [
@@ -372,6 +427,7 @@
       "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
       "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+      "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
     ];
   };
 }
