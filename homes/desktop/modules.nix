@@ -13,6 +13,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
   ## Base
   base
+  ./hardware
 
   ## Theming
   theming.basic
@@ -65,6 +66,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.verilog
   vscode.languages.javascript
   vscode.languages.typescript
+  vscode.languages.docker
 
   ## Communication
   programs.discord
@@ -76,12 +78,14 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Office Software
   programs.libreoffice
+  (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
   (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
 
   ## Video Games
   gaming
   (install pkgs.prismlauncher)
+  (install pkgs.lutris)
 
   ## Misc
   { home.sessionVariables = sharedDir.env.wayland.default; }
