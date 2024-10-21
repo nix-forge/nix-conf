@@ -1,6 +1,7 @@
 {
   inputs,
   pkgs,
+  lib,
   config,
   ...
 }:
@@ -13,8 +14,11 @@ in
 
   # configure spicetify
   programs.spicetify = {
-    theme = spicePkgs.themes.comfy;
-    colorScheme = "Spotify";
+
+    spotifyPackage = pkgs.spotify;
+
+    theme = lib.mkForce spicePkgs.themes.comfy;
+    colorScheme = lib.mkForce "Spotify";
 
     # actually enable the installation of spotify and spicetify
     enable = true;
@@ -48,21 +52,3 @@ in
   #   in
   #   [ spicetify_wrapped ];
 }
-
-# { pkgs, ... }:
-# {
-#   home.packages = [
-#     # (pkgs.nur.repos.nltch.spotify-adblock.override {
-#     #   inherit (pkgs)
-#     #     spotify
-#     #     stdenv
-#     #     rustPlatform
-#     #     fetchFromGitHub
-#     #     xorg
-#     #     zip
-#     #     unzip
-#     #     ;
-#     # })
-#     pkgs.spotify
-#   ];
-# }
