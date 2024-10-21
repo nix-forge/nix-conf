@@ -23,10 +23,6 @@ in
       Enable the beta nvidia driver.
       This will choose the latest driver version available between the production and beta drivers.
     '';
-    earlyLoading = lib.mkEnableOption ''
-      Enable early loading of the Nvidia driver.
-      This is useful for systems with Nvidia GPUs that are not the primary GPU.
-    '';
     waylandEnvs = lib.mkEnableOption ''
       Enable Nvidia Wayland environment variables.
       This is useful for systems with primary GPU as Nvidia and uses Wayland.
@@ -130,31 +126,9 @@ in
       # Nvidia Wayland Variables
       (lib.mkIf cfg.waylandEnvs {
         environment.sessionVariables = {
-          XDG_SESSION_TYPE = "wayland";
           GBM_BACKEND = "nvidia-drm"; # If you encounter crashes in Firefox then remove this line
           __GLX_VENDOR_LIBRARY_NAME = "nvidia"; # If you face problems with Discord windows not displaying or screen sharing not working in Zoom then remove this line
         };
-      })
-
-      # Early loading support for Nvidia
-      (lib.mkIf cfg.earlyLoading {
-        boot.initrd.kernelModules = [ "nvidia" ];
-
-        boot.extraModulePackages =
-          let
-            nvidiaKernelPkg = config.boot.kernelPackages;
-
-            nvidiaPkgs = config.boot.kernelPackages.nvidiaPackages;
-            nvidiaPackage = config.hardware.nvidia.package;
-
-            isBeta = nvidiaPackage.version == nvidiaPkgs.beta.version;
-            isOpen = config.hardware.nvidia.open;
-
-            pkgName = "nvidia_x11${if isBeta then "_beta" else ""}${if isOpen then "_open" else ""}";
-
-            finalKernelPkg = nvidiaKernelPkg.${pkgName};
-          in
-          [ finalKernelPkg ];
       })
 
       # Fine-grained power management when using PRIME
