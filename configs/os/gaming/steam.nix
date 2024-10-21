@@ -9,19 +9,21 @@
 
     extraCompatPackages = [ pkgs.proton-ge-bin ];
 
-    package = pkgs.steam.override {
-      extraEnv = {
-        SDL_VIDEODRIVER = "wayland,x11,windows"; # add fallbacks so that easyanticheat works
-      };
+    gamescopeSession.enable = true;
 
+    package = pkgs.steam.override {
       extraPkgs =
         pkgs: with pkgs; [
-          keyutils
-          libkrb5
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXinerama
+          xorg.libXScrnSaver
           libpng
           libpulseaudio
           libvorbis
           stdenv.cc.cc.lib
+          libkrb5
+          keyutils
           atk
           libunwind
 
@@ -30,6 +32,19 @@
           source-serif
           source-han-sans
           source-han-serif
+
+          # audio
+          pipewire
+          # other common
+          udev
+          alsa-lib
+          vulkan-loader
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXrandr # To use the x11 feature
+          libxkbcommon
+          wayland # To use the wayland feature
         ];
     };
   };
