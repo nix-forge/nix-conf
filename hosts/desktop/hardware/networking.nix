@@ -5,13 +5,19 @@ in
 {
   imports = [ (self.nixOSModules.networking { inherit moduleName; }) ];
 
-  networking.${moduleName} = {
-    generateHostId = true;
+  networking = {
+    networkmanager.enable = false;
 
-    randomizeMacAddress = false;
+    enableIPv6 = false;
 
-    dnscrypt-proxy.enable = true;
+    ${moduleName} = {
+      generateHostId = true;
 
-    networkd-general.enable = true;
+      randomizeMacAddress = false;
+
+      dnscrypt-proxy.enable = false;
+
+      networkd-general.enable = true;
+    };
   };
 }
