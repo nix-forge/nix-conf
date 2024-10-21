@@ -21,6 +21,9 @@
     # enable GVfs, a userspace virtual filesystem.
     gvfs.enable = true;
 
+    # Thumbnail support for images
+    tumbler.enable = true;
+
     # storage daemon required for udiskie auto-mount
     udisks2 = {
       enable = !config.boot.isContainer;
