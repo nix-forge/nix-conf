@@ -17,22 +17,11 @@
       # Clipboard Manager Setup
       wl-paste-bin = "${pkgs.wl-clipboard}/bin/wl-paste";
       wl-copy-bin = "${pkgs.wl-clipboard}/bin/wl-copy";
-      cliphist-bin = lib.getExe pkgs.cliphist;
       imagemagick-convert-bin = "${pkgs.imagemagick}/bin/convert";
-      clipboardSetup.exec-once = [
-        "${wl-paste-bin} --type text --watch ${cliphist-bin} store"
-        "${wl-paste-bin} --type image --watch ${cliphist-bin} store"
-      ];
 
       # Collections of keybinds common across multiple submaps are collected into
       # groups, which can be merged together granularly.
       groups = {
-        # Exit the submap and restore normal binds.
-        submapReset.bind = [
-          ", escape, submap, reset"
-          "CTRL, C, submap, reset"
-        ];
-
         # Self-explanatory.
         launchPrograms.bind = [
           # Launch the program with a shortcut.
@@ -211,7 +200,6 @@
     in
     lib.mkMerge [
       ### CLIPBOARD MANAGER ###
-      clipboardSetup
 
       ### ACTIVE WINDOW ACTIONS ###
       groups.killWindow
@@ -294,7 +282,7 @@
       ### WINDOW FOCUS & MOVEMENT ###
       groups.moveFocusOrWindow
       ### WINDOW RESIZING ###
-      groups.toggleSplit
+      # groups.toggleSplit
       groups.mouseResizeWindow
       ### WORKSPACE SWITCHING ###
       groups.switchWorkspace

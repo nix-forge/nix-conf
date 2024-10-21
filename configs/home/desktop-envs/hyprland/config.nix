@@ -8,8 +8,8 @@
       # gaps_out = 10;
       gaps_in = 0;
       gaps_out = 0;
-      "col.active_border" = lib.mkForce "0xffd3c6aa"; # overriden by stylix
-      "col.inactive_border" = lib.mkForce "0xff56635f"; # overriden by stylix
+      # "col.active_border" = lib.mkForce "0xffd3c6aa"; # overriden by stylix
+      # "col.inactive_border" = lib.mkForce "0xff56635f"; # overriden by stylix
       # no_cursor_warps = true;
       resize_on_border = true;
       extend_border_grab_area = 10;
@@ -18,19 +18,19 @@
     # <https://wiki.hyprland.org/Configuring/Variables/#decoration>
     decoration = {
       rounding = 0;
-      shadow_range = 8;
-      shadow_render_power = 2;
+      # shadow_range = 8;
+      # shadow_render_power = 2;
       # "col.shadow" = "rgba(00000044)";
       # "col.shadow_inactive" = "rgba(00000044)";
-      blur = {
-        size = 3; # 8
-        passes = 2; # 1
-        ignore_opacity = true; # false
-        xray = true; # false
-        noise = 6.5e-2; # 0.0117
-        contrast = 0.75; # 0.8916
-        brightness = 0.8; # 0.8172
-      };
+      # blur = {
+      #   size = 3; # 8
+      #   passes = 2; # 1
+      #   ignore_opacity = true; # false
+      #   xray = true; # false
+      #   noise = 6.5e-2; # 0.0117
+      #   contrast = 0.75; # 0.8916
+      #   brightness = 0.8; # 0.8172
+      # };
     };
 
     # <https://wiki.hyprland.org/Configuring/Variables/#input>
