@@ -39,4 +39,7 @@ in
       name = profileName;
     };
   };
+
+  # install companion app for Firefox Extension "Video DownloadHelper"
+  home.packages = [ pkgs.vdhcoapp ];
 }

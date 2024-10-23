@@ -48,6 +48,13 @@
       "install_url" = "https://github.com/iamadamdev/bypass-paywalls-chrome/releases/latest/download/bypass-paywalls-firefox.xpi";
     };
 
+    # Download Videos
+    "{b9db16a4-6edc-47ec-a1f4-b86292ed211d}" = {
+      "installation_mode" = "normal_installed";
+      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/video-downloadhelper/latest.xpi";
+    };
+
+    # Simplify Jobs Resume Helper
     "sabre@simplify.jobs" = {
       "installation_mode" = "normal_installed";
       "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
