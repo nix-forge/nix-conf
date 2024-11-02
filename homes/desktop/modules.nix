@@ -14,6 +14,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Base
   base
   ./hardware
+  (base.mime { })
 
   ## Theming
   theming.basic
@@ -50,6 +51,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.direnv
   dev.github-cli
   dev.nix-formatter
+  (install pkgs.rstudio)
 
   ## Developement Languages
   dev.languages.c
