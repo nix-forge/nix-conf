@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 {
   imports = [ ./misc.nix ];
 
@@ -28,4 +28,8 @@
     TERMINAL = "kitty";
     EDITOR = "nvim";
   };
+
+  home.packages = [
+    pkgs.kdePackages.qtwayland
+  ];
 }
