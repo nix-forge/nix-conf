@@ -8,8 +8,8 @@
       # gaps_out = 10;
       gaps_in = 0;
       gaps_out = 0;
-      # "col.active_border" = lib.mkForce "0xffd3c6aa"; # overriden by stylix
-      # "col.inactive_border" = lib.mkForce "0xff56635f"; # overriden by stylix
+      "col.active_border" = lib.mkForce "rgb(0e5a94)"; # overriden by stylix
+      "col.inactive_border" = lib.mkForce "rgb(505050)"; # overriden by stylix
       # no_cursor_warps = true;
       resize_on_border = true;
       extend_border_grab_area = 10;
@@ -20,7 +20,7 @@
       rounding = 0;
       # shadow_range = 8;
       # shadow_render_power = 2;
-      # "col.shadow" = "rgba(00000044)";
+      # "col.shadow" = lib.mkForce null;
       # "col.shadow_inactive" = "rgba(00000044)";
       # blur = {
       #   size = 3; # 8

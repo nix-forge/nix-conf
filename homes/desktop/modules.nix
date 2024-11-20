@@ -23,6 +23,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Environment
   desktop-envs.hyprland
   ./hyprland
+  { stylix.targets.hyprland.enable = false; }
 
   ## Desktop Applications
   programs.rofi
