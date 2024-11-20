@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   programs.vscode.extensions =
     let
@@ -26,6 +26,13 @@
       "editor.tabSize" = 4;
       "editor.defaultFormatter" = "ms-python.black-formatter";
     };
+
+    # set the location of the black formatter
+    "black-formatter.path" = [
+      "${lib.getExe pkgs.black}"
+      "--line-length"
+      "120" # increase the line length from 88
+    ];
 
     "python.analysis.autoImportCompletions" = true;
     "python.analysis.typeCheckingMode" = "standard";
