@@ -8,6 +8,8 @@
       # pkgs.xdg-desktop-portal-hyprland
       inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland
 
+      pkgs.xdg-desktop-portal
+      pkgs.xdg-desktop-portal-kde
       pkgs.xdg-desktop-portal-gtk
     ];
 
@@ -15,6 +17,7 @@
       common.default = [ "gtk" ];
       hyprland.default = [
         "hyprland"
+        "kde"
         "gtk"
       ];
     };
