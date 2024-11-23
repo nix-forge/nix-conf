@@ -1,6 +1,9 @@
 { self, ... }:
 {
-  imports = [ self.nixOSModules.hardware.gpu.nvidia ];
+  imports = [
+    self.nixOSModules.hardware.gpu.nvidia
+    self.nixOSModules.hardware.gpu.intel
+  ];
 
   hardware.nvidia = {
     enable = true;
@@ -9,11 +12,11 @@
     modesetting.enable = true;
     nvidiaSettings = true;
 
-    # prime = {
-    #   offload.enable = true;
-    #   amdgpuBusId = "PCI:01:00:0"; # card 0
-    #   nvidiaBusId = "PCI:10:00:0"; # card 1
-    # };
+    prime = {
+      offload.enable = true;
+      intelBusId = "PCI:01:00:0"; # card 0
+      nvidiaBusId = "PCI:00:02:0"; # card 1
+    };
 
     # waylandEnvs = true;
     # nvidia-vaapi-driver.enable = true;

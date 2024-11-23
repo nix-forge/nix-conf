@@ -43,7 +43,6 @@
     power
     audio
     monitor
-    keyboard
     networking
     hardware.zram
     hardware.networking
@@ -53,7 +52,6 @@
     hardware.sound
     hardware.ssd
     hardware.storage
-    gaming
 
     ## Virtualization
     virtualisation.docker

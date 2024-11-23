@@ -22,7 +22,12 @@ in
     "/var" = mkBTRFS rootLabel "@var";
     "/tmp" = mkBTRFS rootLabel "@tmp";
     "/nix" = mkBTRFS rootLabel "@nix";
-    "/home" = mkBTRFS rootLabel "@home";
+    "/home" = (mkFS rootLabel "btrfs") // {
+      options = [
+        "subvol=@home"
+        "compress-force=zstd:1"
+      ];
+    };
 
     ${bootMP} = mkBoot bootLabel; # /boot
   };
