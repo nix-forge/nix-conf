@@ -68,7 +68,7 @@
       self.packages.${pkgs.system}.ttf-ms-win11-auto
 
       # Apple Fonts
-      self.packages.${pkgs.system}.apple-fonts
+      # self.packages.${pkgs.system}.apple-fonts
 
       # Nerdfonts
       (nerdfonts.override {
