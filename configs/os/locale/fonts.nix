@@ -71,14 +71,10 @@
       # self.packages.${pkgs.system}.apple-fonts
 
       # Nerdfonts
-      (nerdfonts.override {
-        fonts = [
-          "FiraCode"
-          "JetBrainsMono"
-          "CascadiaCode"
-          "Monaspace"
-        ];
-      })
+      nerd-fonts.fira-code
+      nerd-fonts.jetbrains-mono
+      nerd-fonts.caskaydia-cove
+      nerd-fonts.monaspace
 
       # Japanese fonts
       # Fonts from Arch Wiki: https://wiki.archlinux.org/title/Localization/Japanese

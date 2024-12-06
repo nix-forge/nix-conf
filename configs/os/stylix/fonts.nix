@@ -2,7 +2,7 @@
 {
   stylix.fonts = {
     monospace = {
-      package = pkgs.nerdfonts.override { fonts = [ "Monaspace" ]; };
+      package = pkgs.nerd-fonts.monaspace;
       name = "MonaspiceNe Nerd Font";
     };
 

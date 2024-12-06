@@ -11,12 +11,8 @@
     let
       fontPackages = with pkgs; [
         material-design-icons
-        (nerdfonts.override {
-          fonts = [
-            "JetBrainsMono"
-            "Monaspace"
-          ];
-        })
+        nerd-fonts.monaspace
+        nerd-fonts.jetbrains-mono
       ];
       vscode = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
         meta.mainProgram = "code-insiders";
