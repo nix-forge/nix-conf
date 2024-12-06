@@ -1,7 +1,7 @@
 {
   config,
   lib,
-  pkgs,
+  inputs,
   ...
 }:
 let
@@ -17,11 +17,19 @@ in
     };
   };
 
+  imports = [
+    inputs.ucodenix.nixosModules.default
+  ];
+
   config = lib.mkIf cfg.enable (
     let
       kver = config.boot.kernelPackages.kernel.version;
     in
     lib.mkMerge [
+      {
+        services.ucodenix.enable = true;
+      }
+
       {
         hardware.enableRedistributableFirmware = lib.mkDefault true;
         hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

@@ -403,6 +403,9 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    # AMD microcode updates
+    ucodenix.url = "github:e-tho/ucodenix";
   };
 
   nixConfig = {
