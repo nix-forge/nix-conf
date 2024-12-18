@@ -14,8 +14,8 @@
 
     prime = {
       offload.enable = true;
-      intelBusId = "PCI:01:00:0"; # card 0
-      nvidiaBusId = "PCI:00:02:0"; # card 1
+      nvidiaBusId = "PCI:01:00:0"; # card 0
+      intelBusId = "PCI:00:02:0"; # card 1
     };
 
     # waylandEnvs = true;
