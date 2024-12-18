@@ -18,7 +18,7 @@ in
 
       randomizeMacAddress = true;
 
-      dnscrypt-proxy.enable = false;
+      dnscrypt-proxy.enable = true;
 
       networkd-general.enable = true;
     };
