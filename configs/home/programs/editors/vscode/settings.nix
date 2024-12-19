@@ -91,8 +91,8 @@
         "JetBrainsMono Nerd Font"
       ]
     );
-    "editor.fontSize" = 14;
-    "terminal.integrated.fontSize" = 14;
+    # "editor.fontSize" = 14;
+    # "terminal.integrated.fontSize" = 14;
     "editor.cursorSmoothCaretAnimation" = "explicit";
     "editor.cursorStyle" = "block";
     "editor.cursorBlinking" = "smooth";
