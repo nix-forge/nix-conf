@@ -94,7 +94,7 @@
   ];
 
   overlays = [
-    inputs.nur.overlay
+    # inputs.nur.overlay.default
     inputs.vscode-extensions.overlays.default
     inputs.nixd.overlays.default
   ];
