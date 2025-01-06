@@ -1,6 +1,5 @@
 {
   imports = [
-    ./apparmour.nix
     ./keyring.nix
     ./pam.nix
     ./pki.nix
