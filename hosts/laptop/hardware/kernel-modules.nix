@@ -10,4 +10,10 @@
     "rtsx_pci_sdmmc" # Realtek PCI-E SD/MMC Card Host Driver
     "snd_hda_intel" # Intel HD Audio
   ];
+
+  boot.kernelParams = [
+    "nowatchdog" # Disable the watchdog
+
+
+  ];
 }

@@ -31,6 +31,9 @@
         platform_profile = "quiet"; # specific to laptop
 
         turbo = "never";
+
+        scaling_min_freq = 800 * 1000; # 800 MHz
+        scaling_max_freq = 1900 * 1000; # 1.9 GHz
       };
     };
   };

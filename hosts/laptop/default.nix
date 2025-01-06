@@ -72,7 +72,6 @@
     security
 
     ## Services
-    services.disable-hibernate
     services.runners
     services.earlyoom
 
