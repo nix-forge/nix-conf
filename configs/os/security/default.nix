@@ -5,6 +5,6 @@
     ./pki.nix
     ./polkit.nix
     ./sudo.nix
-    ./virtualisation.nix
+    ./virtualization.nix
   ];
 }
