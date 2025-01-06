@@ -32,7 +32,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.apostrophe)
   (install pkgs.motrix)
   (install pkgs.pinta)
-  (install pkgs.vlc)
 
   ## Utility
   programs.gparted

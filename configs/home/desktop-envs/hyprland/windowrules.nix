@@ -1,10 +1,9 @@
 {
   wayland.windowManager.hyprland.settings = {
     windowrulev2 = [
-      # only allow shadows for floating windows
-      "noshadow, floating:0"
+      # Bitwarden extension
+      "float, title:^(.*Bitwarden Password Manager.*)$"
 
-      "float,class:udiskie"
 
       # wlogout
       "fullscreen,class:wlogout"
