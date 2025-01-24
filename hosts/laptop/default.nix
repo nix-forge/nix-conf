@@ -73,7 +73,7 @@
 
     ## Services
     services.runners
-    services.earlyoom
+    services.lid-switch
 
     # Programs
     # TODO: add neovim base config and better config in home-manager
