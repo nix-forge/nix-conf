@@ -32,7 +32,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.apostrophe)
   (install pkgs.motrix)
   (install pkgs.pinta)
-  (install pkgs.vlc)
 
   ## Utility
   programs.gparted
@@ -52,7 +51,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.direnv
   dev.github-cli
   dev.nix-formatter
-  (install pkgs.rstudio)
+  # (install pkgs.rstudio)
 
   ## Developement Languages
   dev.languages.c
