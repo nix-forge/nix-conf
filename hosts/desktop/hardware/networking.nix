@@ -8,7 +8,7 @@ in
   networking = {
     networkmanager.enable = false;
 
-    enableIPv6 = false;
+    enableIPv6 = true;
 
     ${moduleName} = {
       generateHostId = true;
