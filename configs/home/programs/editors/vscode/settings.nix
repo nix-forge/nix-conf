@@ -96,8 +96,9 @@
     "editor.cursorSmoothCaretAnimation" = "explicit";
     "editor.cursorStyle" = "block";
     "editor.cursorBlinking" = "smooth";
-    "editor.fontLigatures" = "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'";
-    "editor.defaultFormatter" = "esbenp.prettier-vscode";
+    "editor.fontLigatures" =
+      "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'";
+    # "editor.defaultFormatter" = "esbenp.prettier-vscode";
     # "window.density.editorTabHeight" = "compact";
 
     # for some reason it is not the same as the editor
@@ -107,7 +108,7 @@
     "editor.hover.delay" = 700;
 
     # colors
-    "workbench.colorTheme" = lib.mkForce "Darkbox (Modern)";
+    "workbench.colorTheme" = lib.mkForce "Darkbox";
     # "workbench.colorCustomizations" = {
     #   "[Monokai Pro (Filter Spectrum)]" = {
     #     "editorInlayHint.foreground" = "#69676c";
