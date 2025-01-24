@@ -22,6 +22,8 @@
   rsync # remote sync
   bind.dnsutils # dns utilities
   nixos-install-tools # commands from the NixOS installer
+  strace # system call tracer
+  unixtools.xxd # hexdump
 
   ### CODE EDITORS ###
   neovim
