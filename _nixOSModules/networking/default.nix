@@ -110,14 +110,12 @@ in
       };
 
       # Network Wait Online
-      # If using NetworkManager disable systemd-networkd-wait-online if NetworkManager wait-online is enabled
-      systemd.network.wait-online.enable = lib.mkIf config.networking.networkmanager.enable (
-        lib.mkForce (!config.systemd.services.NetworkManager-wait-online.enable)
+      systemd.services.NetworkManager-wait-online.enable = lib.mkIf config.networking.networkmanager.enable (
+        lib.mkForce false
       );
-      # systemd = {
-      #   network.wait-online.enable = lib.mkForce false;
-      #   services.NetworkManager-wait-online.enable = lib.mkForce false;
-      # };
+      systemd.network.wait-online.enable = lib.mkIf (!config.networking.networkmanager.enable) (
+        lib.mkForce true
+      );
     }
 
     # Enforce IPv6 Disable at Kernel Level
