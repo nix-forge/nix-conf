@@ -87,7 +87,7 @@
       http-connections = 35;
 
       # Whether to accept nix configuration from a flake without displaying a Y/N prompt.
-      accept-flake-config = false;
+      accept-flake-config = true;
 
       # Whether to execute builds inside cgroups. cgroups are
       # "a Linux kernel feature that limits, accounts for, and
