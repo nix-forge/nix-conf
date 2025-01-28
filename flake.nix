@@ -406,6 +406,16 @@
 
     # AMD microcode updates
     ucodenix.url = "github:e-tho/ucodenix";
+
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        darwin.follows = "";
+        home-manager.follows = "home-manager";
+        systems.follows = "systems";
+      };
+    };
   };
 
   nixConfig = {
