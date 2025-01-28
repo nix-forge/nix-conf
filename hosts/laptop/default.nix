@@ -84,6 +84,7 @@
     stylix.fonts
 
     ## Server
+    server.ssh
     # server.minecraft
 
     ## Environment Variables
@@ -94,5 +95,6 @@
     # inputs.nur.overlay.default
     inputs.vscode-extensions.overlays.default
     inputs.nixd.overlays.default
+    # inputs.agenix.nixosModules.default
   ];
 }
