@@ -426,10 +426,11 @@
       url = "github:ryantm/agenix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
         darwin.follows = "";
         home-manager.follows = "home-manager";
-        systems.follows = "systems";
       };
+    };
 
     # Disko
     disko = {
