@@ -21,6 +21,7 @@ lib.mkMerge [
       "libvirtd"
       "network"
       "networkmanager"
+      "tss" # TPM
     ];
     initialPassword = "password";
     homeManagerModules = homes "desktop";

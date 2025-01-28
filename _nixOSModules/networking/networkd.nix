@@ -129,9 +129,16 @@ in
                     ;
                 }
                 // {
-                  # Route Metric is default 1024 so 1025 will cause ethernet to be preffered
-                  dhcpV4Config.RouteMetric = 1025;
-                  ipv6AcceptRAConfig.RouteMetric = 1025;
+                  # Set route metric to 600 which is higher than than ethernet which will be 100
+                  dhcpV4Config.RouteMetric = 600;
+                  ipv6AcceptRAConfig.RouteMetric = 600;
+
+                  # IgnoreCarrierLoss=3s ensures that systemd-networkd will not re-configure
+                  # the interface (e.g., release and re-acquire a DHCP lease) for a short
+                  # period (3 seconds in this example) while the wireless interface roams
+                  # to another access point within the same wireless network (SSID), which
+                  # translates to shorter downtime when roaming.
+                  networkConfig.IgnoreCarrierLoss = "3s";
                 };
             };
         })
@@ -151,17 +158,23 @@ in
                 inherit matchConfig;
                 inherit (links) linkConfig;
               };
-              networks.${configBaseName} = {
-                inherit matchConfig;
-                inherit (networks)
-                  DHCP
-                  networkConfig
-                  linkConfig
-                  dhcpV4Config
-                  dhcpV6Config
-                  ipv6AcceptRAConfig
-                  ;
-              };
+              networks.${configBaseName} =
+                {
+                  inherit matchConfig;
+                  inherit (networks)
+                    DHCP
+                    networkConfig
+                    linkConfig
+                    dhcpV4Config
+                    dhcpV6Config
+                    ipv6AcceptRAConfig
+                    ;
+                }
+                // {
+                  # Set route metric to 100 which is lower than than wifi which will be 600
+                  dhcpV4Config.RouteMetric = 100;
+                  ipv6AcceptRAConfig.RouteMetric = 100;
+                };
             };
         })
       ]

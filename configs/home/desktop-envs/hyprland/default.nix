@@ -25,6 +25,8 @@
 
     settings.exec-once = [
       "${lib.getExe config.programs.waybar.package}"
+
+      "hyprctl setcursor ${config.gtk.cursorTheme.name} ${builtins.toString (config.gtk.cursorTheme.size)}"
     ];
   };
 
