@@ -55,6 +55,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Developement Languages
   dev.languages.c
+  dev.languages.python
 
   ## Code Editors
   # neovim
@@ -84,6 +85,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
   (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
+  (install pkgs.klayout)
 
   ## Video Games
   gaming
