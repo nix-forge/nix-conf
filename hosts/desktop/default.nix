@@ -86,6 +86,7 @@
     stylix.fonts
 
     ## Server
+    server.ssh
     # server.minecraft
 
     ## Environment Variables

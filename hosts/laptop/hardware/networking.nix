@@ -8,7 +8,7 @@ in
   networking = {
     networkmanager = {
       enable = true;
-      wifi.powersave = true;
+      wifi.powersave = false;
     };
 
     enableIPv6 = true;
@@ -16,9 +16,9 @@ in
     ${moduleName} = {
       generateHostId = true;
 
-      randomizeMacAddress = true;
+      randomizeMacAddress = false;
 
-      dnscrypt-proxy.enable = true;
+      dnscrypt-proxy.enable = false;
 
       networkd-general.enable = true;
     };
