@@ -55,6 +55,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Developement Languages
   dev.languages.c
+  dev.languages.python
 
   ## Code Editors
   # neovim
