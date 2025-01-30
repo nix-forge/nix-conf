@@ -86,6 +86,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.kdePackages.okular)
   (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
   (install pkgs.klayout)
+  (install pkgs.ngspice)
 
   ## Video Games
   gaming
