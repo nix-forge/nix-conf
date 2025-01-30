@@ -46,14 +46,14 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Terminal Emulators
   programs.kitty
 
-  ## Developement Tools
+  ## Development Tools
   dev.docs
   dev.direnv
   dev.github-cli
   dev.nix-formatter
   # (install pkgs.rstudio)
 
-  ## Developement Languages
+  ## Development Languages
   dev.languages.c
   dev.languages.python
 
