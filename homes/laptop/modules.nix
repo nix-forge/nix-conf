@@ -46,12 +46,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Terminal Emulators
   programs.kitty
 
-  ## Developement Tools
+  ## Development Tools
   dev.docs
   dev.direnv
   dev.github-cli
   dev.nix-formatter
-  # (install pkgs.rstudio)
 
   ## Developement Languages
   dev.languages.c
@@ -84,6 +83,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
   (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
+  (install pkgs.klayout)
+  (install pkgs.ngspice)
 
   ## Misc
   { home.sessionVariables = sharedDir.env.wayland.default; }

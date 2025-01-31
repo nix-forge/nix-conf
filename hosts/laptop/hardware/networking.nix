@@ -8,7 +8,7 @@ in
   networking = {
     networkmanager = {
       enable = true;
-      wifi.powersave = false;
+      wifi.powersave = true;
     };
 
     enableIPv6 = true;
@@ -18,7 +18,10 @@ in
 
       randomizeMacAddress = false;
 
-      dnscrypt-proxy.enable = false;
+      dnscrypt-proxy = {
+        enable = true;
+        servers.cloudflare = true;
+      };
 
       networkd-general.enable = true;
     };
