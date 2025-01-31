@@ -71,6 +71,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.javascript
   vscode.languages.typescript
   vscode.languages.docker
+  vscode.languages.spice
 
   ## Communication
   programs.discord
@@ -85,8 +86,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
   (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
-  (install pkgs.klayout)
-  (install pkgs.ngspice)
 
   ## Video Games
   gaming
