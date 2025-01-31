@@ -27,6 +27,29 @@
         "type": "github"
       }
     },
+    "ags": {
+      "inputs": {
+        "astal": [
+          "astal"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1738087375,
+        "narHash": "sha256-GLyNtU9A2VN22jNRHZ2OXuFfTJLh8uEVVt+ftsKUX0c=",
+        "owner": "Aylur",
+        "repo": "ags",
+        "rev": "a6a7a0adb17740f4c34a59902701870d46fbb6a4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Aylur",
+        "repo": "ags",
+        "type": "github"
+      }
+    },
     "aquamarine": {
       "inputs": {
         "hyprutils": [
@@ -53,6 +76,26 @@
       "original": {
         "owner": "hyprwm",
         "repo": "aquamarine",
+        "type": "github"
+      }
+    },
+    "astal": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1738063137,
+        "narHash": "sha256-lPuk+JaqFx7DFWAhf+PYcY4NF2Ebr5YRGLO/3299hHI=",
+        "owner": "Aylur",
+        "repo": "astal",
+        "rev": "cb1578a7917339a9df9fa87773a739a0249501e2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Aylur",
+        "repo": "astal",
         "type": "github"
       }
     },
@@ -1153,7 +1196,9 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "ags": "ags",
         "aquamarine": "aquamarine",
+        "astal": "astal",
         "cosmic": "cosmic",
         "disko": "disko",
         "firefox-arkenfox": "firefox-arkenfox",

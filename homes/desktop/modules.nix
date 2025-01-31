@@ -28,6 +28,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Applications
   programs.rofi
   programs.waybar
+  programs.ags
   (install pkgs.nautilus)
   (install pkgs.apostrophe)
   (install pkgs.motrix)
