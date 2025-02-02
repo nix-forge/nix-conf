@@ -29,7 +29,8 @@
     let
       extensions = pkgs.callPackage ./marketplace.nix { };
     in
-    (with extensions.preferNixpkgs; [
+    with extensions.preferNixpkgs;
+    [
       ## Appearances ##
       # monokai.theme-monokai-pro-vscode
       bottledlactose.darkbox
@@ -38,6 +39,8 @@
       pkief.material-icon-theme
 
       ## Intelligence ##
+      github.copilot
+      github.copilot-chat
       usernamehw.errorlens
       christian-kohler.path-intellisense
       streetsidesoftware.code-spell-checker
@@ -74,11 +77,7 @@
       # Extra
       ms-vscode-remote.remote-ssh
       ms-vsliveshare.vsliveshare
-    ])
-    ++ (with extensions.preferReleases; [
-      github.copilot
-      github.copilot-chat
-    ]);
+    ];
 
   programs.vscode.userSettings = {
     ## Appearances ##

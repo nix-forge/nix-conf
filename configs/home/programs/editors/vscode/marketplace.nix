@@ -26,7 +26,7 @@ in
 rec {
   nixpkgs-extensions = pkgs.vscode-extensions;
   releases = vscode-marketplace-release;
-  latest = vscode-marketplace;
-  preferReleases = mergeExtensionAttrs latest releases;
-  preferNixpkgs = mergeExtensionAttrs nixpkgs-extensions preferReleases;
+  pre_release = vscode-marketplace;
+  preferPreRelease = mergeExtensionAttrs pre_release releases;
+  preferNixpkgs = mergeExtensionAttrs nixpkgs-extensions preferPreRelease;
 }

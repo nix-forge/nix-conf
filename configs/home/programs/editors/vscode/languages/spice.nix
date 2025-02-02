@@ -6,7 +6,7 @@
     in
     with extensions.preferNixpkgs;
     [
-      chillibits.spicelang
+      xuanli.spice
     ];
 
   programs.vscode.userSettings = {
