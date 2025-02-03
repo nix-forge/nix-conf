@@ -3,7 +3,8 @@
     # Query AMO Addon ID
     "queryamoid@kaply.com" = {
       "installation_mode" = "force_installed";
-      "install_url" = "https://github.com/mkaply/queryamoid/releases/download/v0.2/query_amo_addon_id-0.2-fx.xpi";
+      "install_url" =
+        "https://github.com/mkaply/queryamoid/releases/download/v0.2/query_amo_addon_id-0.2-fx.xpi";
     };
 
     # uBlock Origin
@@ -27,7 +28,8 @@
     # Enhancer for YouTube
     "enhancerforyoutube@maximerf.addons.mozilla.org" = {
       "installation_mode" = "force_installed";
-      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/enhancer-for-youtube/latest.xpi";
+      "install_url" =
+        "https://addons.mozilla.org/firefox/downloads/latest/enhancer-for-youtube/latest.xpi";
     };
 
     # Refined GitHub
@@ -39,19 +41,22 @@
     # Bitwarden
     "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
       "installation_mode" = "force_installed";
-      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
+      "install_url" =
+        "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
     };
 
     # Bypass Paywalls
     "bypasspaywalls@bypasspaywalls" = {
       "installation_mode" = "force_installed";
-      "install_url" = "https://github.com/iamadamdev/bypass-paywalls-chrome/releases/latest/download/bypass-paywalls-firefox.xpi";
+      "install_url" =
+        "https://github.com/iamadamdev/bypass-paywalls-chrome/releases/latest/download/bypass-paywalls-firefox.xpi";
     };
 
     # Download Videos
     "{b9db16a4-6edc-47ec-a1f4-b86292ed211d}" = {
       "installation_mode" = "normal_installed";
-      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/video-downloadhelper/latest.xpi";
+      "install_url" =
+        "https://addons.mozilla.org/firefox/downloads/latest/video-downloadhelper/latest.xpi";
     };
 
     # Simplify Jobs Resume Helper

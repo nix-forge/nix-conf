@@ -4,7 +4,6 @@
       # Bitwarden extension
       "float, title:^(.*Bitwarden Password Manager.*)$"
 
-
       # wlogout
       "fullscreen,class:wlogout"
       "fullscreen,title:wlogout"

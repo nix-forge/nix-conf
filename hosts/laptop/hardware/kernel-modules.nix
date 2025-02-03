@@ -14,6 +14,5 @@
   boot.kernelParams = [
     "nowatchdog" # Disable the watchdog
 
-
   ];
 }

@@ -69,9 +69,12 @@ in
 nixpkgs.lib.nixosSystem {
   inherit system;
   specialArgs = nixosSpecialArgs;
-  modules = [
-    { nixpkgs.pkgs = pkgs; } # Set the Pkgs for the system
-    { system.stateVersion = stateVersion; } # Set State Version
-    { networking.hostName = hostName; }
-  ] ++ nixosModules ++ nixosHomeManager;
+  modules =
+    [
+      { nixpkgs.pkgs = pkgs; } # Set the Pkgs for the system
+      { system.stateVersion = stateVersion; } # Set State Version
+      { networking.hostName = hostName; }
+    ]
+    ++ nixosModules
+    ++ nixosHomeManager;
 }
