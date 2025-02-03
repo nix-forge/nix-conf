@@ -1,6 +1,6 @@
 {
-    "name": "astal-shell",
     "dependencies": {
         "astal": "/home/ianmh/.local/share/ags"
-    }
+    },
+    "name": "astal-shell"
 }
