@@ -70,7 +70,7 @@
       vfr = true;
       vrr = 0; # 0 - off, 1 - on, 2 - fullscreen only [0/1/2]
 
-      # works well with swayidle
+      # works well with idle checks
       key_press_enables_dpms = true;
       mouse_move_enables_dpms = true;
     };
@@ -86,43 +86,15 @@
         # no_gaps_when_only = true;
       };
 
-    # animations = {
-    #   bezier = [
-    #     "easeInBack, 0.360000, 0, 0.660000, -0.560000"
-    #     "easeInCirc, 0.550000, 0, 1, 0.450000"
-    #     "easeInCubic, 0.320000, 0, 0.670000, 0"
-    #     "easeInExpo, 0.700000, 0, 0.840000, 0"
-    #     "easeInOutBack, 0.680000, -0.600000, 0.320000, 1.600000"
-    #     "easeInOutCirc, 0.850000, 0, 0.150000, 1"
-    #     "easeInOutCubic, 0.650000, 0, 0.350000, 1"
-    #     "easeInOutExpo, 0.870000, 0, 0.130000, 1"
-    #     "easeInOutQuad, 0.450000, 0, 0.550000, 1"
-    #     "easeInOutQuart, 0.760000, 0, 0.240000, 1"
-    #     "easeInOutQuint, 0.830000, 0, 0.170000, 1"
-    #     "easeInOutSine, 0.370000, 0, 0.630000, 1"
-    #     "easeInQuad, 0.110000, 0, 0.500000, 0"
-    #     "easeInQuart, 0.500000, 0, 0.750000, 0"
-    #     "easeInQuint, 0.640000, 0, 0.780000, 0"
-    #     "easeInSine, 0.120000, 0, 0.390000, 0"
-    #     "easeOutBack, 0.340000, 1.560000, 0.640000, 1"
-    #     "easeOutCirc, 0, 0.550000, 0.450000, 1"
-    #     "easeOutCubic, 0.330000, 1, 0.680000, 1"
-    #     "easeOutExpo, 0.160000, 1, 0.300000, 1"
-    #     "easeOutQuad, 0.500000, 1, 0.890000, 1"
-    #     "easeOutQuart, 0.250000, 1, 0.500000, 1"
-    #     "easeOutQuint, 0.220000, 1, 0.360000, 1"
-    #     "easeOutSine, 0.610000, 1, 0.880000, 1"
-    #     "linear, 0, 0, 1, 1"
-    #   ];
+    # Remove popups
+    ecosystem = {
+      no_update_news = false;
+      no_donation_nag = false;
+    };
 
-    #   animation = [
-    #     "fadeIn, 1, 1, easeOutCirc"
-    #     "fadeOut, 1, 1, easeOutCirc"
-    #     "windowsIn, 1, 2, easeOutCirc, popin 60%"
-    #     "windowsMove, 1, 3, easeInOutCubic, popin"
-    #     "windowsOut, 1, 2, easeOutCirc, popin 60%"
-    #     "workspaces, 1, 2, easeOutCirc, slide"
-    #   ];
-    # };
+    # Experimental Settings (Subject to Change)
+    experimental = {
+      wide_color_gamut = true;
+    };
   };
 }
