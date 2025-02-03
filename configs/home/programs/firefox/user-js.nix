@@ -47,7 +47,7 @@ in
       # Firefox Lepton UI
       (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
 
-      # Overides
+      # Overrides
       (toUserJS {
         # Start Page
         "browser.startup.homepage" = "about:home"; # start page is firefox home
@@ -66,7 +66,7 @@ in
         # https://github.com/elFarto/nvidia-vaapi-driver/#firefox
         "media.ffmpeg.vaapi.enabled" = true; # Enable VA-API (Default false)
         "media.rdd-ffmpeg.enabled" = true; # Forces ffmpeg usage into the RDD process (Default true)
-        "media.av1.enabled" = true; # Enable AV1 Decoding (already assumming new enough hardware) (Default true)
+        "media.av1.enabled" = true; # Enable AV1 Decoding (already assuming new enough hardware) (Default true)
         "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
 
         # Enable WebGL
@@ -91,7 +91,7 @@ in
         # PDF
         "browser.download.open_pdf_attachments_inline" = false; # Download PDFs instead of opening them inline
 
-        # Disable Letterboxing
+        # Disable LetterBoxing
         "privacy.resistFingerprinting.letterboxing" = false; # NOTE: (if changed true) This can be annoying as it has small borders around the window
 
         # Session Restore

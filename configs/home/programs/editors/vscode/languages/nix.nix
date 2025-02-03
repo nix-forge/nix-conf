@@ -1,12 +1,6 @@
 { lib, pkgs, ... }:
 let
-  dictionary = [
-    "builtins"
-    "pkgs"
-    "concat"
-    "nixos"
-    "nixpkgs"
-  ];
+  dictionary = import ./dictionaries/nix.nix;
 in
 {
   programs.vscode.extensions =

@@ -293,7 +293,7 @@
     ];
     # files can be recovered with undo
     "explorer.confirmDelete" = false;
-    # remove reccomendations for extentions
+    # remove recommendations for extensions
     "extensions.ignoreRecommendations" = true;
     # remove popup out moving files
     "explorer.confirmDragAndDrop" = false;

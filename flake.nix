@@ -266,7 +266,7 @@
       };
     };
 
-    # Hyrpland Flake
+    # Hyprland Flake
     aquamarine = {
       url = "github:hyprwm/aquamarine";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -451,7 +451,7 @@
       "https://geonix.cachix.org" # geospatial nix
       "https://nix-gaming.cachix.org" # nix-gaming cache
       "https://cosmic.cachix.org" # cosmic desktop
-      "https://hyprland.cachix.org" # hyrpland cache
+      "https://hyprland.cachix.org" # hyprland cache
       "https://nixpkgs-wayland.cachix.org" # nixpkgs wayland cache
     ];
 
