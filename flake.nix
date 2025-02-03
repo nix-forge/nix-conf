@@ -124,6 +124,7 @@
       url = "github:Gerg-L/spicetify-nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -305,6 +306,7 @@
       url = "github:hyprwm/hyprland-qtutils";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprland-qt-support.follows = "hyprland-qt-support";
     };
@@ -390,15 +392,6 @@
       };
     };
 
-    nix-eval-jobs = {
-      url = "github:nix-community/nix-eval-jobs";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        treefmt-nix.follows = "treefmt-nix";
-      };
-    };
-
     lib-aggregate = {
       url = "github:nix-community/lib-aggregate";
       inputs = {
@@ -412,7 +405,6 @@
       inputs = {
         # Don't overwrite nixpkgs as this could cause cache miss
 
-        nix-eval-jobs.follows = "nix-eval-jobs";
         lib-aggregate.follows = "lib-aggregate";
         flake-compat.follows = "flake-compat";
       };
