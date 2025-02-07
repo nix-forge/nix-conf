@@ -239,6 +239,11 @@
     # enable semantic highlighting
     "editor.semanticHighlighting.enabled" = true;
 
+    "[yaml]" = {
+      "editor.tabSize" = 2;
+      "editor.defaultFormatter" = "esbenp.prettier-vscode";
+    };
+
     ## VCS Behavior ##
 
     # allow 6 more characters from default 50 in commit subject
