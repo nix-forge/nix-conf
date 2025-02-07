@@ -89,9 +89,6 @@ in
     # Network Manager
     {
       networking.networkmanager = lib.mkIf config.networking.networkmanager.enable {
-        dns = lib.mkIf (config.services.dnscrypt-proxy2.enable || config.systemd.network.enable) (
-          if config.services.dnscrypt-proxy2.enable then "none" else "systemd-resolved"
-        );
         unmanaged = [
           "interface-name:tailscale*"
           "interface-name:br-*"

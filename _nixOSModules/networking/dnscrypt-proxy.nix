@@ -154,6 +154,9 @@ in
         # Unbound
         services.unbound = lib.mkIf cfg.unbound.enable {
           enable = true;
+          resolveLocalQueries = true;
+          enableRootTrustAnchor = false;
+
           settings = {
             # Many options taken from https://docs.pi-hole.net/guides/dns/unbound/
             # Some DNScrypt-proxy options taken from https://wiki.archlinux.org/title/Dnscrypt-proxy#Unbound
