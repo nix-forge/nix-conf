@@ -20,7 +20,7 @@ in
 
       dnscrypt-proxy = {
         enable = true;
-        servers.cloudflare = true;
+        # servers.cloudflare = true;
       };
 
       networkd-general.enable = true;
