@@ -59,6 +59,12 @@
         "https://addons.mozilla.org/firefox/downloads/latest/video-downloadhelper/latest.xpi";
     };
 
+    # Grammarly
+    "{87677a2c52b84ad3a151a4a72f5bd3c4@jetpack}" = {
+      "installation_mode" = "normal_installed";
+      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/grammarly-1/latest.xpi";
+    };
+
     # Simplify Jobs Resume Helper
     "sabre@simplify.jobs" = {
       "installation_mode" = "normal_installed";
