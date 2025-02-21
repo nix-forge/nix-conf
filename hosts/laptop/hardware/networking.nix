@@ -11,17 +11,17 @@ in
       wifi.powersave = true;
     };
 
-    enableIPv6 = true;
+    enableIPv6 = false;
 
     ${moduleName} = {
       generateHostId = true;
 
-      randomizeMacAddress = false;
+      randomizeMacAddress = true;
 
-      dnscrypt-proxy = {
-        enable = true;
-        # servers.cloudflare = true;
-      };
+      # dnscrypt-proxy = {
+      #   enable = true;
+      #   servers.cloudflare = true;
+      # };
 
       networkd-general.enable = true;
     };
