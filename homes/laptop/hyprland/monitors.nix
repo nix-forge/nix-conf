@@ -40,6 +40,8 @@
         "${desktop.position.x}x${desktop.position.y}"
         "${desktop.scale}"
         "bitdepth,${desktop.bitdepth}"
+        "cm"
+        "auto"
       ])
     ];
 }
