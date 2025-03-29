@@ -19,6 +19,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Theming
   theming.basic
   theming.gtk
+  {
+    # Firefox
+    # TODO: rethink if this is the best place to add this option as it becomes a manual process
+    stylix.targets.firefox.profileNames = [ "ianmh" ];
+  }
 
   ## Desktop Environment
   desktop-envs.hyprland
