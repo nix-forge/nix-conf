@@ -1,5 +1,7 @@
 {
   programs.firefox.policies.ExtensionSettings = {
+    "*".installation_mode = "blocked"; # blocks all addons except the ones specified below
+
     # Query AMO Addon ID
     "queryamoid@kaply.com" = {
       "installation_mode" = "force_installed";
