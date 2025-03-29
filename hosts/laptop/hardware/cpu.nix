@@ -1,6 +1,14 @@
-{ self, ... }:
 {
-  imports = [ self.nixOSModules.hardware.cpu.intel ];
+  self,
+  inputs,
+  pkgs,
+  ...
+}:
+{
+  imports = [
+    self.nixOSModules.hardware.cpu.intel
+    inputs.auto-cpufreq.nixosModules.default
+  ];
 
   hardware.cpu.intel = {
     enable = true;
@@ -13,8 +21,9 @@
 
   services.thermald.enable = true;
 
-  services.auto-cpufreq = {
+  programs.auto-cpufreq = {
     enable = true;
+
     settings = {
       charger = {
         governor = "performance";
