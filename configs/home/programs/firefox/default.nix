@@ -22,6 +22,11 @@ in
     enable = true;
     package = pkgs.firefox;
 
+    # Set the language packs for firefox (be careful as unique configs lead to fingerprinting)s
+    languagePacks = [
+      "en-US"
+    ];
+
     # Custom module for Global UserChrome
     userChrome.profiles.${profile} = {
       source = inputs.firefox-lepton-ui;
