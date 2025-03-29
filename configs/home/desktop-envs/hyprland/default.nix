@@ -4,24 +4,27 @@
   lib,
   config,
   ...
-}:
+}@args:
+let
+  hyprPkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
+  usingNixosHyprland = args ? nixosConfig && args.nixosConfig.programs.hyprland.enable;
+  usingNixosHyprlandUWSM = usingNixosHyprland && args.nixosConfig.programs.hyprland.withUWSM;
+in
 {
   imports = [
     ./config.nix
     ./windowrules.nix
     ./keybinds.nix
-    # ./xdg.nix
-  ];
+  ] ++ (lib.optionals (!usingNixosHyprland) [ ./xdg.nix ]);
 
   wayland.windowManager.hyprland = {
     enable = true;
-    # set the flake package
-    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-    portalPackage =
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+    # set to the flake package or null if using nixos hyprland
+    package = if usingNixosHyprland then null else hyprPkgs.hyprland;
+    portalPackage = if usingNixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
 
     systemd = {
-      enable = true;
+      enable = lib.mkForce (!usingNixosHyprlandUWSM);
       variables = [ "--all" ];
     };
 
@@ -33,6 +36,6 @@
   };
 
   services = {
-    hyprpaper.package = inputs.hyprpaper.packages.${pkgs.stdenv.hostPlatform.system}.hyprpaper;
+    hyprpaper.package = hyprPkgs.hyprpaper;
   };
 }
