@@ -3,7 +3,7 @@ let
   dictionary = import ./dictionaries/nix.nix;
 in
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -13,7 +13,7 @@ in
       ionutvmi.path-autocomplete
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "nix.enableLanguageServer" = true;
     "nix.serverPath" = lib.getExe pkgs.nixd;
     "nix.serverSettings".nixd = {

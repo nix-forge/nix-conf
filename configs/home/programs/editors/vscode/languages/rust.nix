@@ -2,7 +2,7 @@
 {
   home.packages = [ pkgs.rust-analyzer ];
 
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -22,7 +22,7 @@
       pkgs.vscode-extensions.vadimcn.vscode-lldb # wrapped by nixpkgs
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "[rust]" = {
       "editor.fontLigatures" = true;
 

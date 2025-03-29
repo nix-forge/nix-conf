@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -12,7 +12,7 @@
       esbenp.prettier-vscode
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "[css]" = {
       "editor.defaultFormatter" = "aeschli.vscode-css-formatter";
     };

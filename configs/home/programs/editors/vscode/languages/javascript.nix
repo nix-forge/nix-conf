@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -16,7 +16,7 @@
       redhat.vscode-yaml
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "javascript.suggest.paths" = false;
     "[javascript]" = {
       "editor.defaultFormatter" = "esbenp.prettier-vscode";

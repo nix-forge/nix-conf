@@ -39,7 +39,7 @@ let
     ];
 in
 {
-  programs.vscode.keybindings = lib.flatten [
+  programs.vscode.profiles.default.keybindings = lib.flatten [
     ### FORMAT DOCUMENT ON MANUAL SAVE ONLY ###
     groups.formatOnManualSave
 

@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -9,6 +9,6 @@
       xuanli.spice
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
   };
 }
