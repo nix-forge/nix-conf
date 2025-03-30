@@ -14,6 +14,7 @@
       inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
 
     # Use UWSM as the display manager
+    # TODO: research setting certain variables in the correct way for UWSM
     withUWSM = true;
   };
 
