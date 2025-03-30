@@ -15,7 +15,8 @@ in
     ./config.nix
     ./windowrules.nix
     ./keybinds.nix
-  ] ++ (lib.optionals (!usingNixosHyprland) [ ./xdg.nix ]);
+    (import ./xdg.nix { inherit usingNixosHyprland; })
+  ];
 
   wayland.windowManager.hyprland = {
     enable = true;
@@ -24,6 +25,7 @@ in
     portalPackage = if usingNixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
 
     systemd = {
+      # TODO: change to check if nixos is using UWSM for hyprland not hyprland is setting UWSM (even better check both)
       enable = lib.mkForce (!usingNixosHyprlandUWSM);
       variables = [ "--all" ];
     };
@@ -36,6 +38,6 @@ in
   };
 
   services = {
-    hyprpaper.package = hyprPkgs.hyprpaper;
+    hyprpaper.package = inputs.hyprpaper.packages.${pkgs.stdenv.hostPlatform.system}.hyprpaper;
   };
 }
