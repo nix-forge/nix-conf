@@ -73,6 +73,7 @@
       tamasfe.even-better-toml
       mechatroner.rainbow-csv
       janisdd.vscode-edit-csv
+      tomoki1207.pdf
 
       # Extra
       ms-vscode-remote.remote-ssh
