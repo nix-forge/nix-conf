@@ -125,7 +125,6 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
-        flake-compat.follows = "flake-compat";
       };
     };
 
@@ -159,6 +158,7 @@
         flake-compat.follows = "flake-compat";
         flake-utils.follows = "flake-utils";
         git-hooks.follows = "pre-commit-hooks";
+        nur.follows = "nur";
       };
     };
 
@@ -171,7 +171,6 @@
       url = "github:nix-community/nix-vscode-extensions";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
         flake-utils.follows = "flake-utils";
       };
     };
@@ -181,9 +180,6 @@
       url = "github:fufexan/nix-gaming";
       inputs = {
         flake-parts.follows = "flake-parts";
-
-        umu.follows = "";
-
         # Don't overwrite nixpkgs as this could cause cache miss
       };
     };
@@ -243,16 +239,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
-
-        # Optional
-        home-manager.follows = "home-manager";
-        treefmt-nix.follows = "treefmt-nix";
-        flake-compat.follows = "flake-compat";
-
         nuschtosSearch.follows = "";
-        nix-darwin.follows = "";
-        devshell.follows = "";
-        git-hooks.follows = "pre-commit-hooks";
       };
     };
 
@@ -439,6 +426,13 @@
     astal = {
       url = "github:Aylur/astal";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    auto-cpufreq = {
+      url = "github:AdnanHodzic/auto-cpufreq";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
     };
   };
 

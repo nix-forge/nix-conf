@@ -91,10 +91,5 @@
       no_update_news = false;
       no_donation_nag = false;
     };
-
-    # Experimental Settings (Subject to Change)
-    experimental = {
-      wide_color_gamut = true;
-    };
   };
 }

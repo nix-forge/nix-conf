@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -10,7 +10,7 @@
       kress95.vscode-parinfer-kress95
     ];
 
-  # programs.vscode.userSettings = {
+  # programs.vscode.profiles.default.userSettings = {
   #   "[css]" = {
   #     "editor.defaultFormatter" = "aeschli.vscode-css-formatter";
   #   };

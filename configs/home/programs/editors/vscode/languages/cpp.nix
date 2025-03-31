@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -11,7 +11,7 @@
       vadimcn.vscode-lldb
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "[c]" = {
       "editor.tabSize" = 2;
       "editor.defaultFormatter" = "llvm-vs-code-extensions.vscode-clangd";

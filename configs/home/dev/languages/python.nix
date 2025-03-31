@@ -4,6 +4,7 @@ let
   my-python = python-pkg.withPackages (
     ps: with ps; [
       black
+      toml
     ]
   );
 in

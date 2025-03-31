@@ -97,4 +97,8 @@
   "cryptomining"
   "webgl"
   "webrender"
+  "floorp"
+  "UWSM"
+  "greetd"
+  "hyprctl"
 ]

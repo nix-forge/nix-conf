@@ -1,6 +1,6 @@
 { pkgs, lib, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -21,7 +21,7 @@
       rodolphebarbanneau.python-docstring-highlighter
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "[python]" = {
       "editor.tabSize" = 4;
       "editor.defaultFormatter" = "ms-python.black-formatter";

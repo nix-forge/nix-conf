@@ -43,7 +43,7 @@ let
   commands =
     let
       # slight = "${lib.getExe pkgs.slight}";
-      hyprctl = "${config.wayland.windowManager.hyprland.finalPackage}/bin/hyprctl";
+      hyprctl = "${inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland}/bin/hyprctl";
       # TODO this is duplicated from the hyprland config, make it a module
       # kbFns = lib.getExe config.utilities.osd-functions.package;
       pavucontrol = lib.getExe pkgs.lxqt.pavucontrol-qt;

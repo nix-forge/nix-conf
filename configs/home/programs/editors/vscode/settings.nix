@@ -21,15 +21,15 @@
     in
     vscode;
 
-  programs.vscode.enableExtensionUpdateCheck = false;
-  programs.vscode.enableUpdateCheck = false;
+  programs.vscode.profiles.default.enableExtensionUpdateCheck = false;
+  programs.vscode.profiles.default.enableUpdateCheck = false;
   programs.vscode.mutableExtensionsDir = false;
 
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ./marketplace.nix { };
     in
-    with extensions.preferNixpkgs;
+    with extensions.preferPreRelease;
     [
       ## Appearances ##
       # monokai.theme-monokai-pro-vscode
@@ -80,7 +80,7 @@
       ms-vsliveshare.vsliveshare
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     ## Appearances ##
 
     # the most important setting

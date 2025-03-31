@@ -66,8 +66,8 @@
     # desktop-envs.cosmic
 
     ## Display Managers
-    display-managers.greetd
-    # display-managers.gdm
+    # display-managers.greetd
+    display-managers.gdm
     # display-managers.sddm
 
     ## Security

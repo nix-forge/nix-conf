@@ -4,24 +4,29 @@
   lib,
   config,
   ...
-}:
+}@args:
+let
+  hyprPkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
+  usingNixosHyprland = args ? nixosConfig && args.nixosConfig.programs.hyprland.enable;
+  usingNixosHyprlandUWSM = usingNixosHyprland && args.nixosConfig.programs.hyprland.withUWSM;
+in
 {
   imports = [
     ./config.nix
     ./windowrules.nix
     ./keybinds.nix
-    # ./xdg.nix
+    (import ./xdg.nix { inherit usingNixosHyprland; })
   ];
 
   wayland.windowManager.hyprland = {
     enable = true;
-    # set the flake package
-    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-    portalPackage =
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+    # set to the flake package or null if using nixos hyprland
+    package = if usingNixosHyprland then null else hyprPkgs.hyprland;
+    portalPackage = if usingNixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
 
     systemd = {
-      enable = true;
+      # TODO: change to check if nixos is using UWSM for hyprland not hyprland is setting UWSM (even better check both)
+      enable = lib.mkForce (!usingNixosHyprlandUWSM);
       variables = [ "--all" ];
     };
 

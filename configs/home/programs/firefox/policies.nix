@@ -1,12 +1,14 @@
 {
   programs.firefox.policies = {
-    # DisableFirefoxAccounts = true;
-    # PasswordManagerEnabled = false;
-    # CapitivePortal = false;
+    DisplayBookmarksToolbar = "never";
+
+    DisableFirefoxAccounts = true;
+    PasswordManagerEnabled = false;
     DisablePocket = true;
     DisableTelemetry = true;
     HardwareAcceleration = true;
     DisableFirefoxStudies = true;
+    DisableFirefoxScreenshots = true;
     NoDefaultBookmarks = true;
     SearchSuggestEnabled = false;
     DisableFormHistory = true;

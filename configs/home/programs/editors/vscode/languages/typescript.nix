@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 {
-  programs.vscode.extensions =
+  programs.vscode.profiles.default.extensions =
     let
       extensions = pkgs.callPackage ../marketplace.nix { };
     in
@@ -15,7 +15,7 @@
       pmneo.tsimporter
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "typescript.suggest.paths" = false;
     "[typescript]" = {
       "editor.defaultFormatter" = "esbenp.prettier-vscode";

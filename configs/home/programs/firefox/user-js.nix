@@ -100,9 +100,6 @@ in
         # Disable Shutdown Sanitization
         "privacy.sanitize.sanitizeOnShutdown" = false;
 
-        # Bookmark Toolbar Visibility
-        "browser.toolbars.bookmarks.visibility" = "newtab";
-
         # Turn off resistFingerprinting so timezone and light/dark mode is correct
         "privacy.resistFingerprinting" = false;
 
