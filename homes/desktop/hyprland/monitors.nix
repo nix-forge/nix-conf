@@ -41,7 +41,7 @@
         "${desktop.scale}"
         "bitdepth,${desktop.bitdepth}"
         "cm"
-        "auto"
+        "srgb"
       ])
     ];
 }
