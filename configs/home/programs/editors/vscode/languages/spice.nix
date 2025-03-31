@@ -9,7 +9,7 @@
       xuanli.spice
     ];
 
-  programs.vscode.userSettings = {
+  programs.vscode.profiles.default.userSettings = {
     "files.associations" = {
       "*.spice" = "spice";
       "*.sp" = "spice";
