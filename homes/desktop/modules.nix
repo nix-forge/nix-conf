@@ -22,7 +22,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   {
     # Firefox
     # TODO: rethink if this is the best place to add this option as it becomes a manual process
-    stylix.targets.firefox.profileNames = [ "ianmh" ];
+    stylix.targets.firefox.profileNames = [ "ianmh.default" ];
   }
 
   ## Desktop Environment
