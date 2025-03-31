@@ -10,5 +10,9 @@
     ];
 
   programs.vscode.userSettings = {
+    "files.associations" = {
+      "*.spice" = "spice";
+      "*.sp" = "spice";
+    };
   };
 }
