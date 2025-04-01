@@ -911,10 +911,10 @@
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1743475150,
-        "narHash": "sha256-7tjhssArzowU7Pj6vEcibQtr9PPn5YvYhZGJsEz8Q8E=",
+        "lastModified": 1743492111,
+        "narHash": "sha256-QfxpHAd890Zd1uRo/EW/KWChzt3b198bxgwuGNg6Bqg=",
         "ref": "refs/heads/main",
-        "rev": "4d9dba194f9a5f9182e6915ec80a6983b1c4c157",
+        "rev": "ad1846a59cfe7b4617726f2c41da417e8e53c690",
         "shallow": true,
         "type": "git",
         "url": "ssh://git@github.com/IanHollow/nix-secrets.git"
