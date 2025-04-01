@@ -96,20 +96,17 @@ let
                 sharedModules = [
                   # Import AgeNix for managing secrets and install agenix package
                   inputs.agenix.homeManagerModules.default
-                  (
-                    { pkgs, inputs, ... }:
-                    {
-                      home.packages = [ inputs.agenix.packages.${pkgs.system}.agenix ];
-                    }
-                  )
+                  {
+                    home.packages = [ inputs.agenix.packages.${system}.agenix ];
+                  }
                 ];
               };
             }
           )
         ];
 
-        # Default Custom Modules
-        defaultModules = [
+        # Default Custom Options Modules
+        defaultCustomOptions = [
           {
             # Add a option which can be used to find all normal users if setup properly
             options.users = {
@@ -141,8 +138,19 @@ let
           # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
           (lib.cust.withTreeModules (args.modules or [ ]))
 
+          # Home Manager modules
           nixosHomeManager
-          defaultModules
+
+          # Add AgeNix nixosModules
+          [
+            inputs.agenix.nixosModules.default
+            {
+              environment.systemPackages = [ inputs.agenix.packages.${system}.agenix ];
+            }
+          ]
+
+          # Add custom options that are required for all hosts
+          defaultCustomOptions
         ];
       }
     );

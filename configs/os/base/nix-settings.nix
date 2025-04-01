@@ -1,9 +1,12 @@
 {
-  inputs,
   config,
   pkgs,
+  lib,
   ...
 }:
+let
+  inherit (config.age.secrets) githubAccessToken;
+in
 {
   nix = {
     package = pkgs.lix;
@@ -36,7 +39,7 @@
       min-free = "${toString (5 * 1024 * 1024 * 1024)}";
       max-free = "${toString (10 * 1024 * 1024 * 1024)}";
 
-      # automatically optimise symlinks
+      # automatically optimize symlinks
       auto-optimise-store = true;
 
       # let the system decide the number of max jobs
@@ -133,4 +136,14 @@
   systemd.services.nix-gc = {
     unitConfig.ConditionACPower = true;
   };
+
+  # Set the nix access token for github
+  system.activationScripts.githubTokenAccess = lib.stringAfter [ "agenix" ] ''
+    echo "access-tokens = github.com=$(cat ${githubAccessToken.path})" > /etc/nix/github-token.conf
+    chmod 0400 /etc/nix/github-token.conf
+    chown root:root /etc/nix/github-token.conf
+  '';
+  nix.extraOptions = ''
+    !include /etc/nix/github-token.conf
+  '';
 }
