@@ -9,8 +9,6 @@ let
 in
 {
   nix = {
-    package = pkgs.lix;
-
     # Run the Nix daemon on lowest possible priority so that system
     # stays responsive during demanding tasks such as GC and builds.
     daemonIOSchedClass = "idle";
