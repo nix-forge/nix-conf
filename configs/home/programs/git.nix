@@ -15,18 +15,23 @@ in
 
   # Create a runtime-generated Git config file with user.name and user.email
   home.activation.gitUserIdentity = lib.hm.dag.entryAfter [ "agenix" ] ''
-    mkdir -p ~/.config/git
-    cat > ~/.config/git/identity.gitconfig <<EOF
+    mkdir -p ${config.xdg.configHome}/git
+    cat > ${config.xdg.configHome}/git/identity.gitconfig <<EOF
     [user]
       name = $(cat ${gitUserName.path})
       email = $(cat ${gitUserEmail.path})
     EOF
   '';
 
-  # Generate allowed_signers file at runtime
+  # Generate allowed_signers and singingkey file at runtime
   home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    mkdir -p ~/.config/git
-    echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.programs.git.signing.key})" > ${config.xdg.configHome}/git/allowed_signers
+    mkdir -p ${config.xdg.configHome}/git
+    echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
+
+    cat > ${config.xdg.configHome}/git/signingkey.gitconfig <<EOF
+    [user]
+      signingkey = $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)
+    EOF
   '';
 
   programs.git = {
@@ -42,7 +47,6 @@ in
     # Commit signing using SSH key (much easier than GPG)
     signing = {
       format = "ssh";
-      key = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
       signByDefault = true; # Always sign commits and tags
     };
 
@@ -99,6 +103,9 @@ in
     includes = [
       {
         path = "${config.xdg.configHome}/git/identity.gitconfig";
+      }
+      {
+        path = "${config.xdg.configHome}/git/signingkey.gitconfig";
       }
     ];
   };
