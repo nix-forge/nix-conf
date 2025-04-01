@@ -26,7 +26,7 @@ in
   # Generate allowed_signers file at runtime
   home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ~/.config/git
-    echo "$(cat ${gitUserName.path}) <$(cat ${gitUserEmail.path})> $(cat ${config.programs.git.signing.key})" > ${config.xdg.configHome}/git/allowed_signers
+    echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.programs.git.signing.key})" > ${config.xdg.configHome}/git/allowed_signers
   '';
 
   programs.git = {
@@ -43,7 +43,6 @@ in
     signing = {
       format = "ssh";
       key = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
-      signer = "${config.xdg.configHome}/git/allowed_signers";
       signByDefault = true; # Always sign commits and tags
     };
 
@@ -93,6 +92,7 @@ in
       pull.rebase = true; # `git pull` will rebase by default
       push.default = "simple"; # Only push current branch to matching remote branch
       init.defaultBranch = "main"; # Set default branch name on new repos
+      gpg.ssh.allowedSignersFile = "${config.xdg.configHome}/git/allowed_signers"; # Use the generated allowed_signers file
     };
 
     # Include the runtime-generated identity config (with user.name/email)
