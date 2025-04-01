@@ -14,6 +14,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Base
   base
   ./hardware
+  ./secrets.nix
   (base.mime { })
 
   ## Theming
@@ -52,6 +53,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.kitty
 
   ## Development Tools
+  programs.git
+  programs.ssh
   dev.docs
   dev.direnv
   dev.github-cli
