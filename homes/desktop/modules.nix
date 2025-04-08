@@ -23,7 +23,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   {
     # Firefox
     # TODO: rethink if this is the best place to add this option as it becomes a manual process
-    stylix.targets.firefox.profileNames = [ "ianmh.default" ];
+    stylix.targets.firefox.profileNames = [ "default" ];
   }
 
   ## Desktop Environment
@@ -34,7 +34,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Applications
   programs.rofi
   programs.waybar
-  programs.ags
+  # programs.ags
   (install pkgs.nautilus)
   (install pkgs.apostrophe)
   (install pkgs.motrix)
@@ -60,7 +60,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.direnv
   dev.github-cli
   dev.nix-formatter
-  # (install pkgs.rstudio)
 
   ## Development Languages
   dev.languages.c
@@ -70,8 +69,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # neovim
 
   vscode.settings
-  vscode.keybinds
   vscode.languages.cpp
+  vscode.languages.esp-idf
   vscode.languages.nix
   vscode.languages.web
   vscode.languages.python
@@ -102,6 +101,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.lutris)
 
   ## Misc
-  { home.sessionVariables = sharedDir.env.wayland.default; }
-  wayland.electron-flags
+  # { home.sessionVariables = sharedDir.env.wayland.default; }
+  # wayland.electron-flags
 ]

@@ -54,6 +54,7 @@
     hardware.sound
     hardware.ssd
     hardware.storage
+    other
     gaming
 
     ## Virtualization
@@ -91,7 +92,7 @@
     # server.minecraft
 
     ## Environment Variables
-    { environment.sessionVariables = tree.configs.shared.env.wayland.default; }
+    # { environment.sessionVariables = tree.configs.shared.env.wayland.default; }
   ];
 
   overlays = [
