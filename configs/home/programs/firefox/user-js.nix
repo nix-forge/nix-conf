@@ -5,8 +5,6 @@
   ...
 }:
 let
-  profile = "${config.home.username}.default";
-
   toUserJS =
     kv:
     lib.concatLines (
@@ -14,8 +12,11 @@ let
     );
 in
 {
-  programs.firefox.profiles.${profile} = {
+  programs.firefox.profiles.default = {
     extraConfig = lib.strings.concatLines [
+      # Firefox Lepton UI
+      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
+
       # Arkenfox
       (builtins.readFile "${inputs.firefox-arkenfox}/user.js")
 
@@ -24,6 +25,7 @@ in
       (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (toUserJS {
+        # TODO: This is an assumption that user is using a 120hz+ display change how this is implemented
         #
         #*************************************************************************************
         # OPTION: NATURAL SMOOTH SCROLLING V3 [MODIFIED]                                     *
@@ -43,9 +45,6 @@ in
         "general.smoothScroll.stopDecelerationWeighting" = 1;
         "mousewheel.default.delta_multiplier_y" = 300; # 250-400; adjust this number to your liking
       })
-
-      # Firefox Lepton UI
-      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
 
       # Overrides
       (toUserJS {

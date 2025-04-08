@@ -5,10 +5,6 @@
   pkgs,
   ...
 }:
-let
-  profile = "${config.home.username}.default";
-  profileName = "${config.home.username}-default";
-in
 {
   imports = [
     ./blocking.nix
@@ -28,23 +24,20 @@ in
     ];
 
     # Custom module for Global UserChrome
-    userChrome.profiles.${profile} = {
+    userChrome.profiles.default = {
       source = inputs.firefox-lepton-ui;
       recursive = true;
-      # extraSettings = { # settings specific to my theme
+      # extraSettings = {
       #   "browser.uidensity" = 1;
       #   "ui.prefersReducedMotion" = 1;
       #   "browser.tabs.tabMinWidth" = 130;
       # };
     };
 
-    profiles.${profile} = {
+    profiles.default = {
       id = 0;
       isDefault = true;
-      name = profileName;
+      name = "default";
     };
   };
-
-  # install companion app for Firefox Extension "Video DownloadHelper"
-  home.packages = [ pkgs.vdhcoapp ];
 }

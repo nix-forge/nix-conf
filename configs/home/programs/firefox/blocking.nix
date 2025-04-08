@@ -1,12 +1,7 @@
 {
   lib,
-  pkgs,
-  config,
   ...
 }:
-let
-  inherit (pkgs.nur.repos.rycee) firefox-addons;
-in
 {
   home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
     name = "uBlock0@raymondhill.net";
