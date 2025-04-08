@@ -13,9 +13,20 @@
     portalPackage =
       inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
 
-    # Use UWSM as the display manager
-    # TODO: research setting certain variables in the correct way for UWSM
-    withUWSM = true;
+    # Set to UWSM to false as we are manually setting it
+     withUWSM = false;
+  };
+
+  # Configure UWSM to launch Hyprland from a display manager like SDDM
+  programs.uwsm = {
+    enable = true;
+    waylandCompositors = {
+      hyprland = {
+        prettyName = "Hyprland";
+        comment = "Hyprland compositor managed by UWSM";
+        binPath = "/run/current-system/sw/bin/Hyprland";
+      };
+    };
   };
 
   xdg.portal = {
@@ -24,37 +35,32 @@
 
     extraPortals = [
       pkgs.xdg-desktop-portal-gtk
+      config.programs.hyprland.portalPackage
     ];
 
-    config = {
-      common.default = [ "gtk" ];
-      hyprland.default = [
-        "hyprland"
-        "gtk"
-      ];
-    };
-
+    config.hyprland.default = [
+      "hyprland"
+      "gtk"
+    ];
   };
 
   security.pam.services.hyprlock = { };
 
-  hardware.graphics =
-    let
-      nixpkgs-hyprland = inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-    in
-    {
-      enable = true;
-      extraPackages = [ nixpkgs-hyprland.mesa ];
+  # hardware.graphics =
+  #   let
+  #     nixpkgs-hyprland = inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  #   in
+  #   {
+  #     enable = true;
+  #     extraPackages = [ nixpkgs-hyprland.mesa ];
 
-      enable32Bit = true;
-      extraPackages32 = [ nixpkgs-hyprland.pkgsi686Linux.mesa ];
-    };
+  #     enable32Bit = true;
+  #     extraPackages32 = [ nixpkgs-hyprland.pkgsi686Linux.mesa ];
+  #   };
 
   environment.systemPackages = with pkgs; [
     kdePackages.xwaylandvideobridge
     grim
     slurp
   ];
-
-  programs.xwayland.enable = true;
 }

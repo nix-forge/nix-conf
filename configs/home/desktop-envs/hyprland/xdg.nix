@@ -1,4 +1,4 @@
-{ usingNixosHyprland, ... }:
+{ nixosHyprland, ... }:
 {
   pkgs,
   inputs,
@@ -6,7 +6,7 @@
   ...
 }:
 {
-  xdg.portal = lib.mkIf (!usingNixosHyprland) {
+  xdg.portal = lib.mkIf (!nixosHyprland) {
     enable = true;
     xdgOpenUsePortal = true;
 

@@ -1,19 +1,3 @@
-# The monitor and workspace positions are entirely dependent upon the order of
-# which I plug in the displays. The portable monitor has to be plugged in
-# with Thunderbolt before connecting the laptop to the dock.
-# If the portable monitor isn't connected to the dock before the laptop,
-# it will switch DP-5 and DP-6.
-#
-# TODO: Look into at a feature addition for Hyprland where
-# monitor descriptions can be matched.
-# Also could be fixed in HLWSP.
-#
-{
-  lib,
-  pkgs,
-  config,
-  ...
-}:
 {
   wayland.windowManager.hyprland.settings.monitor =
     let
@@ -22,8 +6,9 @@
         x = 0;
         y = 0;
       };
-      desktop = {
-        name = "DP-1";
+
+      build-desktop-vars = name: {
+        name = name;
         resolution.x = ts 2560;
         resolution.y = ts 1440;
         scale = ts 1.25;
@@ -32,16 +17,23 @@
         refreshRate = ts 165;
         bitdepth = ts 10;
       };
+      desktop-nvidia = build-desktop-vars "DP-1";
+      desktop-amd-integrated = build-desktop-vars "DP-4";
+
+      desktop-monitor-config =
+        screen:
+        (builtins.concatStringsSep "," [
+          "${screen.name}"
+          "${screen.resolution.x}x${screen.resolution.y}@${screen.refreshRate}"
+          "${screen.position.x}x${screen.position.y}"
+          "${screen.scale}"
+          "bitdepth,${screen.bitdepth}"
+          "cm"
+          "srgb"
+        ]);
     in
     [
-      (builtins.concatStringsSep "," [
-        "${desktop.name}"
-        "${desktop.resolution.x}x${desktop.resolution.y}@${desktop.refreshRate}"
-        "${desktop.position.x}x${desktop.position.y}"
-        "${desktop.scale}"
-        "bitdepth,${desktop.bitdepth}"
-        "cm"
-        "srgb"
-      ])
+      (desktop-monitor-config desktop-nvidia)
+      (desktop-monitor-config desktop-amd-integrated)
     ];
 }
