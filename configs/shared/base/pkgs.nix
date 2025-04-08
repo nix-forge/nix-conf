@@ -50,6 +50,7 @@
   bottom # not top
   procs # process viewer
   du-dust # du but rust
+  usbutils # usb device utilities
 
   ### VIRTUALIZATION ###
   libguestfs # filesystem driver for vm images

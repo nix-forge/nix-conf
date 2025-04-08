@@ -22,6 +22,7 @@ lib.mkMerge [
       "network"
       "networkmanager"
       "tss" # TPM
+      "dialout" # serial devices
     ];
     initialPassword = "password";
     homeManagerModules = homes "desktop";
