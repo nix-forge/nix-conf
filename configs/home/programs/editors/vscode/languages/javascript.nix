@@ -11,7 +11,6 @@
       idered.npm
       christian-kohler.npm-intellisense
       christian-kohler.path-intellisense
-      xabikos.javascriptsnippets
       mgmcdermott.vscode-language-babel
       redhat.vscode-yaml
     ];

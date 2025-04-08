@@ -7,7 +7,7 @@
     with extensions.preferNixpkgs;
     [
       llvm-vs-code-extensions.vscode-clangd
-      # ms-vscode.cmake-tools
+      ms-vscode.cmake-tools
       vadimcn.vscode-lldb
     ];
 

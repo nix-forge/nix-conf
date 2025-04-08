@@ -32,9 +32,7 @@
     with extensions.preferPreRelease;
     [
       ## Appearances ##
-      # monokai.theme-monokai-pro-vscode
       bottledlactose.darkbox
-      oderwat.indent-rainbow
 
       pkief.material-icon-theme
 
@@ -45,12 +43,10 @@
       christian-kohler.path-intellisense
       streetsidesoftware.code-spell-checker
 
-      # phind.phind
-
       ## Version Control ##
       # huizhou.githd
       # mhutchie.git-graph
-      phil294.git-log--graph
+      # phil294.git-log--graph
       github.vscode-github-actions
 
       ## Collaboration Features
@@ -58,7 +54,6 @@
 
       ## Editor Extension ##
       ryuta46.multi-command
-      # sirmspencer.vscode-autohide # This extension is buggy hot garbage.
       sleistner.vscode-fileutils
       aaron-bond.better-comments
       kevinkyang.auto-comment-blocks
@@ -91,15 +86,11 @@
         "JetBrainsMono Nerd Font"
       ]
     );
-    # "editor.fontSize" = 14;
-    # "terminal.integrated.fontSize" = 14;
     "editor.cursorSmoothCaretAnimation" = "explicit";
     "editor.cursorStyle" = "block";
     "editor.cursorBlinking" = "smooth";
     "editor.fontLigatures" =
       "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'";
-    # "editor.defaultFormatter" = "esbenp.prettier-vscode";
-    # "window.density.editorTabHeight" = "compact";
 
     # for some reason it is not the same as the editor
     "terminal.integrated.lineHeight" = 1.4;
@@ -115,66 +106,6 @@
     #     "editorInlayHint.background" = "#222222";
     #   };
     # };
-
-    # hide the default indentation guides to make way for the extension
-    "editor.guides.indentation" = false;
-    # only color the lines, not the whitespace characters
-    "indentRainbow.indicatorStyle" = "light";
-    # indent guide colors generated from a count
-    "indentRainbow.colors" =
-      let
-        count = 12;
-        saturation = 0.425;
-        lightness = 0.35;
-        alpha = 0.5;
-
-        rstrip =
-          pattern: str:
-          let
-            strLen = builtins.stringLength str;
-            patLen = builtins.stringLength pattern;
-            ends = pattern == builtins.substring (strLen - patLen) patLen str;
-          in
-          if strLen >= patLen && ends then
-            rstrip pattern (builtins.substring 0 (strLen - patLen) str)
-          else
-            str;
-        toPercent =
-          decimals: n:
-          let
-            elemAtDefault =
-              default: index: list:
-              if index >= 0 && index < builtins.length list then builtins.elemAt list index else default;
-
-            pow = base: exp: lib.foldl' builtins.mul 1 (lib.replicate exp base);
-            mantissa = n: n - (builtins.floor n);
-            round =
-              decimals: n:
-              let
-                shift = pow 10.0 decimals;
-                shifted = n * shift;
-                roundFn = if mantissa shifted >= 0.5 then builtins.ceil else builtins.floor;
-              in
-              (roundFn shifted) / shift;
-
-            str = toString (round decimals (n * 100.0));
-            split = lib.splitString "." str;
-            whole = elemAtDefault "0" 0 split;
-            frac = rstrip "0" (elemAtDefault "" 1 split);
-          in
-          "${whole}${lib.optionalString (frac != "") ".${frac}"}%";
-      in
-      map (
-        hue:
-        "hsla(${
-          lib.concatStringsSep "," [
-            (toString hue)
-            (toPercent 1 saturation)
-            (toPercent 1 lightness)
-            (toString alpha)
-          ]
-        })"
-      ) (lib.genList (i: (360 / count) * i) count);
 
     # icons
     "workbench.iconTheme" = "material-icon-theme";
@@ -228,6 +159,7 @@
     ## Saving and Formatting ##
 
     # auto-save when the active editor loses focus
+    "editor.formatOnSave" = true;
     "files.autoSave" = "onFocusChange";
     # format pasted code if the formatter supports a range
     "editor.formatOnPaste" = true;
