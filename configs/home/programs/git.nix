@@ -18,8 +18,8 @@ in
     mkdir -p ${config.xdg.configHome}/git
     cat > ${config.xdg.configHome}/git/identity.gitconfig <<EOF
     [user]
-      name = $(cat ${gitUserName.path})
-      email = $(cat ${gitUserEmail.path})
+            name = $(cat ${gitUserName.path})
+            email = $(cat ${gitUserEmail.path})
     EOF
   '';
 
