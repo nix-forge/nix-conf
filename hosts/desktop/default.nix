@@ -89,10 +89,6 @@
 
     ## Server
     server.ssh
-    # server.minecraft
-
-    ## Environment Variables
-    # { environment.sessionVariables = tree.configs.shared.env.wayland.default; }
   ];
 
   overlays = [
