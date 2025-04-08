@@ -52,7 +52,7 @@
                 vars = hostname: {
                   inherit withSystem;
                   inherit inputs;
-                  inherit (inputs) self;
+                  inherit (inputs) self determinate;
                   inherit (inputs.self) lib tree;
                   inherit hostname;
                 };
@@ -80,18 +80,18 @@
     # Systems
     systems.url = "github:nix-systems/default-linux";
 
-    # Nixpkgs
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Latest Nixpkgs Unstable
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
 
-    # Powered by
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
+    # Determinate
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/0.1";
 
-    # Home Manager
+    # Flake Parts
+    flake-parts.url = "https://flakehub.com/f/hercules-ci/flake-parts/*";
+
+    # Latest Home Manager
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "https://flakehub.com/f/nix-community/home-manager/0.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -109,15 +109,9 @@
       inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.systems.follows = "systems";
-    };
+    flake-utils.url = "https://flakehub.com/f/numtide/flake-utils/*";
 
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+    flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/*";
 
     # A tree-wide formatter
     treefmt-nix = {
@@ -136,7 +130,7 @@
 
     # Nix Language Server
     nixd = {
-      url = "github:nix-community/nixd";
+      url = "https://flakehub.com/f/nix-community/nixd/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -146,7 +140,7 @@
 
     # Nix Direnv
     nix-direnv = {
-      url = "github:nix-community/nix-direnv";
+      url = "https://flakehub.com/f/nix-community/nix-direnv/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -156,7 +150,7 @@
 
     # Stylix
     stylix = {
-      url = "github:danth/stylix";
+      url = "https://flakehub.com/f/danth/stylix/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
@@ -229,7 +223,7 @@
 
     # Geospatial Nix
     geospatial-nix = {
-      url = "github:imincik/geospatial-nix";
+      url = "https://flakehub.com/f/imincik/geospatial-nix/*";
       inputs = {
         flake-compat.follows = "flake-compat";
         flake-utils.follows = "flake-utils";
@@ -241,11 +235,10 @@
 
     # Nixvim
     nixvim = {
-      url = "github:nix-community/nixvim";
+      url = "https://flakehub.com/f/nix-community/nixvim/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
-        nuschtosSearch.follows = "";
       };
     };
 
@@ -341,22 +334,22 @@
     };
 
     hyprland = {
-      url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
+      url = "https://flakehub.com/f/hyprwm/Hyprland/*";
+      # inputs = {
+      #   nixpkgs.follows = "nixpkgs";
+      #   systems.follows = "systems";
 
-        aquamarine.follows = "aquamarine";
-        hyprcursor.follows = "hyprcursor";
-        hyprgraphics.follows = "hyprgraphics";
-        hyprland-protocols.follows = "hyprland-protocols";
-        hyprland-qtutils.follows = "hyprland-qtutils";
-        hyprlang.follows = "hyprlang";
-        hyprutils.follows = "hyprutils";
-        hyprwayland-scanner.follows = "hyprwayland-scanner";
-        xdph.follows = "xdph";
-        pre-commit-hooks.follows = "pre-commit-hooks";
-      };
+      #   aquamarine.follows = "aquamarine";
+      #   hyprcursor.follows = "hyprcursor";
+      #   hyprgraphics.follows = "hyprgraphics";
+      #   hyprland-protocols.follows = "hyprland-protocols";
+      #   hyprland-qtutils.follows = "hyprland-qtutils";
+      #   hyprlang.follows = "hyprlang";
+      #   hyprutils.follows = "hyprutils";
+      #   hyprwayland-scanner.follows = "hyprwayland-scanner";
+      #   xdph.follows = "xdph";
+      #   pre-commit-hooks.follows = "pre-commit-hooks";
+      # };
     };
 
     hyprpaper = {
@@ -408,31 +401,24 @@
 
     # Agenix
     agenix = {
-      url = "github:ryantm/agenix";
+      url = "https://flakehub.com/f/ryantm/agenix/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
         darwin.follows = "";
         home-manager.follows = "home-manager";
       };
     };
 
-    # Disko
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Ags
-    ags = {
-      url = "github:Aylur/ags";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.astal.follows = "astal";
-    };
-    astal = {
-      url = "github:Aylur/astal";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # ags = {
+    #   url = "github:Aylur/ags";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    #   inputs.astal.follows = "astal";
+    # };
+    # astal = {
+    #   url = "github:Aylur/astal";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
 
     auto-cpufreq = {
       url = "github:AdnanHodzic/auto-cpufreq";
@@ -442,29 +428,29 @@
     };
   };
 
-  nixConfig = {
-    extra-substituters = [
-      "https://cache.nixos.org" # official nix cache
-      "https://nix-community.cachix.org" # nix-community cache
-      "https://nixpkgs-unfree.cachix.org" # unfree-package cache
-      # "https://cache.garnix.io" # garnix binary cache
-      "https://geonix.cachix.org" # geospatial nix
-      "https://nix-gaming.cachix.org" # nix-gaming cache
-      "https://cosmic.cachix.org" # cosmic desktop
-      "https://hyprland.cachix.org" # hyprland cache
-      "https://nixpkgs-wayland.cachix.org" # nixpkgs wayland cache
-    ];
+  # nixConfig = {
+  #   extra-substituters = [
+  #     "https://cache.nixos.org" # official nix cache
+  #     "https://nix-community.cachix.org" # nix-community cache
+  #     "https://nixpkgs-unfree.cachix.org" # unfree-package cache
+  #     # "https://cache.garnix.io" # garnix binary cache
+  #     "https://geonix.cachix.org" # geospatial nix
+  #     "https://nix-gaming.cachix.org" # nix-gaming cache
+  #     "https://cosmic.cachix.org" # cosmic desktop
+  #     "https://hyprland.cachix.org" # hyprland cache
+  #     "https://nixpkgs-wayland.cachix.org" # nixpkgs wayland cache
+  #   ];
 
-    extra-trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
-      # "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-      "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
-      "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
-      "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-    ];
-  };
+  #   extra-trusted-public-keys = [
+  #     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+  #     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+  #     "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
+  #     # "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+  #     "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
+  #     "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
+  #     "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
+  #     "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+  #     "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
+  #   ];
+  # };
 }

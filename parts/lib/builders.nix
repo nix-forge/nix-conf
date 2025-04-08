@@ -31,6 +31,7 @@ let
       hostname,
       inputs,
       lib,
+      determinate,
       ...
     }@args:
     withSystem system (
@@ -137,6 +138,9 @@ let
           # if host needs additional modules, append them
           # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
           (lib.cust.withTreeModules (args.modules or [ ]))
+
+          # Determinate
+          [ determinate.nixosModules.default ]
 
           # Home Manager modules
           nixosHomeManager
