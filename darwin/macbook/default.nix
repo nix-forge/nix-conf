@@ -15,7 +15,7 @@ in
   };
 
   modules = with (tree.configs.home // tree.configs.shared); [
-    # base.base
+    base.base
 
     ({ pkgs, ... }: install pkgs.firefox)
     ({ pkgs, ... }: install pkgs.vscode)
