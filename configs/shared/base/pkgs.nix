@@ -1,4 +1,5 @@
 { pkgs, ... }:
+# TODO: change parent directory from base to something that does not interfere with os, home, and darwin directories
 (with pkgs; [
   ##################
   ### ESSENTIALS ###
