@@ -1,12 +1,9 @@
 {
   tree,
-  pkgs,
   inputs,
   ...
 }:
 let
-  darwinDir = tree.configs.home;
-  sharedDir = tree.configs.shared;
   install = pkg: { environment.systemPackages = [ pkg ]; };
 in
 {
@@ -17,10 +14,10 @@ in
     };
   };
 
-  modules = with darwinDir; [
+  modules = with (tree.configs.home // tree.configs.shared); [
     # base.base
 
-    (install pkgs.firefox)
-    (install pkgs.vscode)
+    ({ pkgs, ... }: install pkgs.firefox)
+    ({ pkgs, ... }: install pkgs.vscode)
   ];
 }
