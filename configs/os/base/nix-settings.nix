@@ -39,8 +39,8 @@ in
     channel.enable = false;
 
     settings = {
-      # automatically optimize symlinks
-      auto-optimise-store = true;
+      # Set auto-optimise-store to false to prevent corruption
+      auto-optimise-store = false;
 
       # let the system decide the number of max jobs
       max-jobs = "auto";

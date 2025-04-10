@@ -23,17 +23,17 @@
 
     # automatically optimize nix store my removing hard links
     # do it after the gc
-    # optimise = {
-    #   automatic = true;
-    #   dates = [ "04:00" ];
-    # };
+    optimise = {
+      automatic = true;
+      # dates = [ "04:00" ];
+    };
 
     # Disable nix channels
     channel.enable = false;
 
     settings = {
-      # automatically optimize symlinks
-      auto-optimise-store = true;
+      # Set auto-optimise-store to false to prevent corruption
+      auto-optimise-store = false;
 
       # let the system decide the number of max jobs
       max-jobs = "auto";
@@ -71,7 +71,7 @@
       extra-experimental-features = [
         "nix-command"
         "flakes"
-        "auto-allocate-uids"
+        # "auto-allocate-uids"
         # "blake3-hashes"
         "ca-derivations"
         "cgroups"
@@ -87,14 +87,6 @@
       # Whether to accept nix configuration from a flake without displaying a Y/N prompt.
       accept-flake-config = false;
 
-      # Whether to execute builds inside cgroups. cgroups are
-      # "a Linux kernel feature that limits, accounts for, and
-      # isolates the resource usage (CPU, memory, disk I/O, etc.)
-      # of a collection of processes."
-      # See:
-      # <https://en.wikipedia.org/wiki/Cgroups>
-      use-cgroups = pkgs.stdenv.isLinux;
-
       # for direnv GC roots
       keep-derivations = true;
       keep-outputs = true;
@@ -102,9 +94,6 @@
       # use binary cache, this is not gentoo
       # external builders can also pick up those substituters
       builders-use-substitutes = true;
-
-      # Extra Experimental Features
-      auto-allocate-uids = true;
     };
   };
 
@@ -119,15 +108,6 @@
     # Default to none, add more as necessary. This is usually where
     # electron packages go when they reach EOL.
     permittedInsecurePackages = [ ];
-
-    # overlays = [
-    #   (final: prev: {
-    #     # nixos-rebuild provides its own nix package, which is not the same as the one
-    #     # we use in the system closure - which causes an extra Nix package to be added
-    #     # even if it's not the one we need want.
-    #     nixos-rebuild = prev.nixos-rebuild.override { nix = config.nix.package; };
-    #   })
-    # ];
   };
 
   # # Enable the Nix garbage collector service on AC power only.
