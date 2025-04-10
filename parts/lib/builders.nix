@@ -238,6 +238,15 @@ let
         specialArgs = darwinSpecialArgs;
 
         modules = concatLists [
+          # Base Config
+          (singleton {
+            # networking.hostName = hostname;
+            nixpkgs = {
+              hostPlatform = system;
+              flake.source = nixpkgs.outPath;
+            } // (args.nixpkgsArgs or { });
+          })
+
           # if host needs additional modules, append them
           # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
           (lib.cust.withTreeModules (args.modules or [ ]))
