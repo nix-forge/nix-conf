@@ -1,6 +1,7 @@
 {
   tree,
   inputs,
+  folderName,
   ...
 }:
 let
@@ -8,13 +9,15 @@ let
 in
 {
   system = "aarch64-darwin";
+  hostname = "Ian-MBP";
+  
   nixpkgsArgs = {
     config = {
       allowUnfree = true;
     };
   };
 
-  modules = with tree.configs.darwin; [
+  modules = with (tree.darwin.${folderName} // tree.configs.darwin); [
     base.base
 
     ({ pkgs, ... }: install pkgs.firefox)

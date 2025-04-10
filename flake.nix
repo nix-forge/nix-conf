@@ -70,19 +70,20 @@
             # Entry point for Darwin configurations.
             darwinConfigurations =
               let
-                darwinDir = ./darwin;
+                darwinDir = ./darwin; # TODO: combine this with the hosts directory and figure out a way to import darwin vs nixos seperatly
                 excludes = [ ];
-                buildVars = {
+                buildVars = folderName: {
                   inherit withSystem;
                   inherit inputs;
                   inherit (inputs) self determinate;
                   inherit (inputs.self) lib tree;
+                  inherit folderName;
                 };
               in
               lib.mapAttrs (
-                folder_name: configDef:
+                folderName: configDef:
                 let
-                  configDefRes = configDef buildVars;
+                  configDefRes = configDef (buildVars folderName);
                   enhancedBuildVars = configDefRes // buildVars;
                 in
                 mkDarwin enhancedBuildVars
