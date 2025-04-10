@@ -29,33 +29,6 @@ in
     echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
   '';
 
-  # create a service to check that the git config files are present
-  systemd.user.services.gitconfig = {
-    Unit = {
-      Description = "Configure-Git";
-      Wants = [ "default.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.writeShellScript "gitConfigSetup" ''
-        #!/run/current-system/sw/bin/bash
-
-        mkdir -p ${config.xdg.configHome}/git
-
-        cat > ${config.xdg.configHome}/git/identity.gitconfig <<EOF
-        [user]
-                name = $(cat ${gitUserName.path})
-                email = $(cat ${gitUserEmail.path})
-        EOF
-
-        echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
-      ''}";
-    };
-    Install = {
-      WantedBy = [ "default.target" ];
-    };
-  };
-
   programs.git = {
     enable = true;
 
