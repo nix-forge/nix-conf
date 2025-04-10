@@ -83,8 +83,9 @@
               lib.mapAttrs (
                 folderName: configDef:
                 let
-                  configDefRes = configDef (buildVars folderName);
-                  enhancedBuildVars = configDefRes // buildVars;
+                  buildVarsWithFolder = buildVars folderName;
+                  configDefRes = configDef buildVarsWithFolder;
+                  enhancedBuildVars = configDefRes // buildVarsWithFolder;
                 in
                 mkDarwin enhancedBuildVars
               ) (importDirRec darwinDir excludes);
