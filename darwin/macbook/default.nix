@@ -14,7 +14,7 @@ in
     };
   };
 
-  modules = with (tree.configs.home // tree.configs.shared); [
+  modules = with (tree.configs.darwin // tree.configs.shared); [
     base.base
 
     ({ pkgs, ... }: install pkgs.firefox)
