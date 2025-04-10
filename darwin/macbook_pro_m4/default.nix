@@ -19,8 +19,9 @@ in
 
   modules = with (tree.darwin.${folderName} // tree.configs.darwin); [
     base.base
+    base.nix-settings
 
-    ({ pkgs, ... }: install pkgs.firefox)
+    ({ pkgs, ... }: install pkgs.firefox) # TODO: firefox is using aarch64-linux which is techincally unsupported on MacOS
     ({ pkgs, ... }: install pkgs.vscode)
   ];
 }
