@@ -159,6 +159,97 @@ let
       }
     );
 
+  mkDarwin =
+    {
+      withSystem,
+      system,
+      hostname,
+      inputs,
+      nix-darwin ? inputs.nix-darwin,
+      lib,
+      determinate,
+      ...
+    }@args:
+    withSystem system (
+      { inputs', self', ... }:
+      let
+        homeManager = inputs.home-manager;
+
+        # Lib for Home Manager
+        libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
+
+        # SpecialArgs
+        baseArgs = {
+          inherit inputs' self';
+          inherit inputs;
+          self = args.self or { };
+          tree = args.tree or { };
+        } // (args.specialArgs or { });
+
+        darwinSpecialArgs = baseArgs // {
+          inherit lib;
+        };
+
+        homeSpecialArgs = baseArgs // {
+          lib = lib // libHome;
+        };
+
+        # Define the home-manager modules
+        darwinHomeManager = [
+          # Import the home-manager NixOS Modules
+          homeManager.nixosModules.home-manager
+          # General NixOS home-manager config
+          (
+            { config, ... }:
+            let
+              darwinConfig = config;
+            in
+            {
+              home-manager = {
+                # tell home-manager to be as verbose as possible
+                verbose = true;
+
+                # use the system configuration’s pkgs argument
+                # this ensures parity between nixos' pkgs and hm's pkgs
+                useGlobalPkgs = true;
+
+                # enable the usage user packages through
+                # the users.users.<name>.packages option
+                useUserPackages = true;
+
+                # move existing files to the .hm.old suffix rather than failing
+                # with a very long error message about it
+                backupFileExtension = "hm.old";
+
+                # extra specialArgs passed to Home Manager
+                # for reference, the config argument in nixos can be accessed
+                # in home-manager through osConfig without us passing it
+                extraSpecialArgs = homeSpecialArgs // {
+                  inherit darwinConfig;
+                };
+
+                # configuration options for all user configs
+                sharedModules = [ ];
+              };
+            }
+          )
+        ];
+
+      in
+      nix-darwin.lib.darwinSystem {
+        specialArgs = darwinSpecialArgs;
+
+        modules = concatLists [
+          # if host needs additional modules, append them
+          # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
+          (lib.cust.withTreeModules (args.modules or [ ]))
+
+          # Home Manager modules
+          # darwinHomeManager # TODO: make darwin add users to the system potentially otherwise set the users somewhere
+        ];
+      }
+    );
+
   # mkIso is should be a set that extends mkSystem with necessary modules
   # to create an Iso image
   # we do not use mkNixosSystem because it overcomplicates things, an ISO does not require what we get in return for those complications
@@ -200,5 +291,10 @@ let
 
 in
 {
-  inherit mkSystem mkHost mkHostIso;
+  inherit
+    mkSystem
+    mkHost
+    mkDarwin
+    mkHostIso
+    ;
 }

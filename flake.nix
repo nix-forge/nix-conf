@@ -40,14 +40,14 @@
         flake =
           let
             inherit (inputs.self) lib;
-            inherit (lib.cust.builders) mkHost;
+            inherit (lib.cust.builders) mkHost mkDarwin;
             inherit (lib.cust.files) importDirRec;
           in
           {
             # Entry-point for NixOS configurations.
             nixosConfigurations =
               let
-                hostDir = ./hosts;
+                hostsDir = ./hosts;
                 excludes = [ ];
                 vars = hostname: {
                   inherit withSystem;
@@ -65,7 +65,28 @@
                   configWithVars = config // vars';
                 in
                 mkHost configWithVars
-              ) (importDirRec hostDir excludes);
+              ) (importDirRec hostsDir excludes);
+
+            # Entry point for Darwin configurations.
+            darwinConfigurations =
+              let
+                darwinDir = ./darwin;
+                excludes = [ ];
+                buildVars = {
+                  inherit withSystem;
+                  inherit inputs;
+                  inherit (inputs) self determinate;
+                  inherit (inputs.self) lib tree;
+                };
+              in
+              lib.mapAttrs (
+                folder_name: configDef:
+                let
+                  configDefRes = configDef buildVars;
+                  enhancedBuildVars = configDefRes // buildVars;
+                in
+                mkDarwin enhancedBuildVars
+              ) (importDirRec darwinDir excludes);
 
             # NixOS Modules
             nixOSModules = importDirRec ./_nixOSModules [ ];
@@ -92,6 +113,12 @@
     # Latest Home Manager
     home-manager = {
       url = "https://flakehub.com/f/nix-community/home-manager/0.1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Nix-Darwin
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
