@@ -18,6 +18,7 @@ let
   extendedLib = lib // {
     cust = {
       nixos = import ./nixos;
+      darwin = import ./darwin;
       mkHome = import ./mkHome.nix;
       mkHost = import ./mkHost.nix;
       builders = import ./builders.nix { inherit nixpkgs lib; };

@@ -164,13 +164,14 @@ let
       withSystem,
       system,
       inputs,
-      nix-darwin ? inputs.nix-darwin,
+      folderName,
       lib,
       ...
     }@args:
     withSystem system (
       { inputs', self', ... }:
       let
+        nixDarwin = inputs.nix-darwin;
         homeManager = inputs.home-manager;
 
         # Lib for Home Manager
@@ -194,9 +195,9 @@ let
 
         # Define the home-manager modules
         darwinHomeManager = [
-          # Import the home-manager NixOS Modules
-          homeManager.nixosModules.home-manager
-          # General NixOS home-manager config
+          # Import the home-manager darwinModules Modules
+          homeManager.darwinModules.home-manager
+          # General darwin home-manager config
           (
             { config, ... }:
             let
@@ -232,15 +233,14 @@ let
             }
           )
         ];
-
       in
-      nix-darwin.lib.darwinSystem {
+      nixDarwin.lib.darwinSystem {
         specialArgs = darwinSpecialArgs;
 
         modules = concatLists [
           # Base Config
           (singleton {
-            # networking.hostName = hostname;
+            networking.hostName = args.hostname or folderName;
             nixpkgs = {
               hostPlatform = system;
               flake.source = nixpkgs.outPath;
@@ -252,7 +252,7 @@ let
           (lib.cust.withTreeModules (args.modules or [ ]))
 
           # Home Manager modules
-          # darwinHomeManager # TODO: make darwin add users to the system potentially otherwise set the users somewhere
+          darwinHomeManager
         ];
       }
     );
