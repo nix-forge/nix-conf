@@ -163,11 +163,9 @@ let
     {
       withSystem,
       system,
-      hostname,
       inputs,
       nix-darwin ? inputs.nix-darwin,
       lib,
-      determinate,
       ...
     }@args:
     withSystem system (

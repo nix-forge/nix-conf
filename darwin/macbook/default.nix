@@ -9,10 +9,18 @@ let
   sharedDir = tree.configs.shared;
   install = pkg: { environment.systemPackages = [ pkg ]; };
 in
-with darwinDir;
-[
-  # base.base
+{
+  system = "aarch64-darwin";
+  nixpkgsArgs = {
+    config = {
+      allowUnfree = true;
+    };
+  };
 
-  (install firefox)
-  (install vscode)
-]
+  modules = with darwinDir; [
+    # base.base
+
+    (install pkgs.firefox)
+    (install pkgs.vscode)
+  ];
+}
