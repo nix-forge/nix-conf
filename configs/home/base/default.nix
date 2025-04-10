@@ -2,6 +2,8 @@
 {
   imports = [ ./misc.nix ];
 
+  home.stateVersion = "25.05";
+
   ################
   ### PREAMBLE ###
   ################

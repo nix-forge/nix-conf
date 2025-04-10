@@ -69,7 +69,6 @@ lib.mkMerge [
         # Set default settings based on the nixos settings
         home = {
           username = lib.mkForce username;
-          stateVersion = lib.mkForce config.system.stateVersion;
           homeDirectory = lib.mkForce homeDirectory;
         };
       };
