@@ -101,7 +101,7 @@
 
   inputs = {
     # Systems
-    systems.url = "github:nix-systems/default-linux";
+    systems.url = "github:nix-systems/default";
 
     # Latest Nixpkgs Unstable
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
@@ -122,6 +122,14 @@
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+      inputs ={
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+      };
     };
 
     # Nix Secrets (from personal private repo)
@@ -192,10 +200,6 @@
     };
 
     # VS Code
-    vscode-insider = {
-      url = "github:iosmanthus/code-insiders-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     vscode-extensions = {
       url = "github:nix-community/nix-vscode-extensions";
       inputs = {
