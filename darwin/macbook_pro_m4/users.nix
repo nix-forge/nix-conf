@@ -13,6 +13,6 @@ lib.mkMerge [
   (addUser {
     username = "ianmh";
     description = "Ian Holloway";
-    # homeManagerModules = homes "desktop";
+    homeManagerModules = homes "macbook_pro_m4";
   })
 ]
