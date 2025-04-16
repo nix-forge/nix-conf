@@ -17,10 +17,6 @@ in
     historySubstringSearch.enable = true;
     syntaxHighlighting.enable = true;
 
-    shellAliases = {
-      "ls" = "ls --color --group-directories-first";
-    };
-
     history = {
       size = 99999;
       save = 99999;
