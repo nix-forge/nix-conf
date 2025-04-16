@@ -14,12 +14,12 @@
 
     # set up garbage collection to run weekly,
     # removing unused packages that are older than 30 days
-    # gc = {
-    #   automatic = true;
-    #   dates = "Sat *-*-* 03:00";
-    #   options = "--delete-older-than 30d";
-    #   persistent = false; # don't try to catch up on missed GC runs
-    # };
+    gc = {
+      automatic = true;
+      #   dates = "Sat *-*-* 03:00";
+      #   options = "--delete-older-than 30d";
+      #   persistent = false; # don't try to catch up on missed GC runs
+    };
 
     # automatically optimize nix store my removing hard links
     # do it after the gc
@@ -47,7 +47,7 @@
       trusted-users = [
         "root"
         "@wheel"
-        "@sudo"
+        "@admin"
         "nix-builder"
       ];
 
@@ -71,10 +71,8 @@
       extra-experimental-features = [
         "nix-command"
         "flakes"
-        # "auto-allocate-uids"
         # "blake3-hashes"
         "ca-derivations"
-        "cgroups"
         "verified-fetches"
       ];
 
@@ -109,11 +107,6 @@
     # electron packages go when they reach EOL.
     permittedInsecurePackages = [ ];
   };
-
-  # # Enable the Nix garbage collector service on AC power only.
-  # systemd.services.nix-gc = {
-  #   unitConfig.ConditionACPower = true;
-  # };
 
   # # Set the nix access token for github
   # system.activationScripts.githubTokenAccess = lib.stringAfter [ "agenix" ] ''
