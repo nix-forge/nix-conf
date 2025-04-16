@@ -1,11 +1,16 @@
 {
   lib,
+  pkgs,
   ...
 }:
+let
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  mozillaConfigPath = if isDarwin then "Library/Application Support/Mozilla/ManagedStorage" else ".mozilla//managed-storage";
+in
 {
-  home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
+  home.file."${mozillaConfigPath}/uBlock0@raymondhill.net.json".text = builtins.toJSON {
     name = "uBlock0@raymondhill.net";
-    description = "ignored";
+    description = "_";
     type = "storage";
     data =
       let

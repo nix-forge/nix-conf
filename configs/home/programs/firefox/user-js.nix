@@ -12,7 +12,7 @@ let
     );
 in
 {
-  programs.firefox.profiles.default = {
+  programs.firefox.profiles."${config.home.username}.default" = {
     extraConfig = lib.strings.concatLines [
       # Firefox Lepton UI
       (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
@@ -58,6 +58,7 @@ in
         "browser.urlbar.showSearchTerms.enabled" = false;
 
         # Hardware Acceleration
+        # TODO: Only add these if the use wants these settings so need to move somewhere else
         # These options are from the firefox Arch Wiki as well as the nvidia-vaapi-driver GitHub page
         # even though some of these options are from an Nvidia GPU guide they should work for most modern GPUs
         # https://wiki.archlinux.org/title/Firefox#Hardware_video_acceleration
@@ -105,9 +106,6 @@ in
         # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
         # at the expense of hardware acceleration in certain situations with disabling canvas accelerated
         "gfx.canvas.accelerated" = false;
-
-        # Set FPS
-        "layout.frame_rate" = config.home.sessionVariables.FPS;
       })
     ];
   };

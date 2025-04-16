@@ -48,13 +48,6 @@
         "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
     };
 
-    # Bypass Paywalls
-    "bypasspaywalls@bypasspaywalls" = {
-      "installation_mode" = "force_installed";
-      "install_url" =
-        "https://github.com/iamadamdev/bypass-paywalls-chrome/releases/latest/download/bypass-paywalls-firefox.xpi";
-    };
-
     # Grammarly
     "87677a2c52b84ad3a151a4a72f5bd3c4@jetpack" = {
       "installation_mode" = "normal_installed";

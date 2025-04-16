@@ -16,7 +16,6 @@
 
   programs.firefox = {
     enable = true;
-    package = pkgs.firefox;
 
     # Set the language packs for firefox (be careful as unique configs lead to fingerprinting)s
     languagePacks = [
@@ -24,7 +23,7 @@
     ];
 
     # Custom module for Global UserChrome
-    userChrome.profiles.default = {
+    userChrome.profiles."${config.home.username}.default" = {
       source = inputs.firefox-lepton-ui;
       recursive = true;
       # extraSettings = {
@@ -34,10 +33,10 @@
       # };
     };
 
-    profiles.default = {
+    profiles."${config.home.username}.default" = {
       id = 0;
       isDefault = true;
-      name = "default";
+      name = "${config.home.username}.default";
     };
   };
 }
