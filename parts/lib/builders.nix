@@ -228,7 +228,7 @@ let
                 };
 
                 # configuration options for all user configs
-                sharedModules = [ ];
+                sharedModules = [ inputs.mac-app-util.homeManagerModules.default ];
               };
             }
           )
@@ -250,6 +250,9 @@ let
           # if host needs additional modules, append them
           # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
           (lib.cust.withTreeModules (args.modules or [ ]))
+
+          # Mac App Util
+          [ inputs.mac-app-util.darwinModules.default ]
 
           # Home Manager modules
           darwinHomeManager

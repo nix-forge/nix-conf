@@ -1,7 +1,7 @@
 { config, lib, ... }:
 {
   username,
-  homeDirectory ? "/home/${username}",
+  homeDirectory ? "/Users/${username}",
   description,
   isHidden ? false,
   createHome ? true,
