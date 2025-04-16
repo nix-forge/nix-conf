@@ -1,10 +1,10 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
 {
   programs.vscode.profiles.default.extensions =
     let
-      extensions = pkgs.callPackage ../marketplace.nix { };
+      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
-    with extensions.preferNixpkgs;
+    with extensions.preferNixpkgsThenPreRelease;
     [
       eww-yuck.yuck
       kress95.vscode-parinfer-kress95

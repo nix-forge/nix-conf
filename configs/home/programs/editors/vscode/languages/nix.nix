@@ -1,13 +1,13 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
 let
   dictionary = import ./dictionaries/nix.nix;
 in
 {
   programs.vscode.profiles.default.extensions =
     let
-      extensions = pkgs.callPackage ../marketplace.nix { };
+      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
-    with extensions.preferNixpkgs;
+    with extensions.preferNixpkgsThenPreRelease;
     [
       jnoortheen.nix-ide
       ionutvmi.path-autocomplete

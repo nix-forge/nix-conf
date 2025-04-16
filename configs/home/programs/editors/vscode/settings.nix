@@ -2,20 +2,19 @@
   lib,
   pkgs,
   inputs,
-  config,
   ...
 }:
 {
   programs.vscode.enable = true;
   programs.vscode.package =
     let
+      # TODO: This doesn't seem to work as expected for the fonts at least on Darwin
       fontPackages = with pkgs; [
         material-design-icons
         nerd-fonts.monaspace
         nerd-fonts.jetbrains-mono
       ];
-      vscode = inputs.vscode-insider.packages.${pkgs.system}.vscode-insider.overrideAttrs (oldAttrs: {
-        meta.mainProgram = "code-insiders";
+      vscode = pkgs.vscode.overrideAttrs (oldAttrs: {
         buildInputs = oldAttrs.buildInputs ++ [ fontPackages ];
       });
     in
@@ -27,10 +26,9 @@
 
   programs.vscode.profiles.default.extensions =
     let
-      extensions = pkgs.callPackage ./marketplace.nix { };
+      extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
     in
-    with extensions.preferPreRelease;
-    [
+    (with extensions.preferPreRelease; [
       ## Appearances ##
       bottledlactose.darkbox
 
@@ -38,7 +36,6 @@
 
       ## Intelligence ##
       github.copilot
-      github.copilot-chat
       usernamehw.errorlens
       christian-kohler.path-intellisense
       streetsidesoftware.code-spell-checker
@@ -73,7 +70,11 @@
       # Extra
       ms-vscode-remote.remote-ssh
       ms-vsliveshare.vsliveshare
-    ];
+    ])
+    ++ (with extensions.extraCompatible; [
+      # This extension when using non VSCode Insiders requires release version
+      github.copilot-chat
+    ]);
 
   programs.vscode.profiles.default.userSettings = {
     ## Appearances ##

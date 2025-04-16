@@ -1,12 +1,12 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
 {
   programs.vscode.profiles.default.extensions =
     let
-      extensions = pkgs.callPackage ../marketplace.nix { };
+      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
-    with extensions.preferNixpkgs;
+    with extensions.preferNixpkgsThenPreRelease;
     [
-      espressif.esp-idf-extension
+      sunshaoce.risc-v
     ];
 
   programs.vscode.profiles.default.userSettings = {};

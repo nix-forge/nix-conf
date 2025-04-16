@@ -1,14 +1,15 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
 {
   programs.vscode.profiles.default.extensions =
     let
-      extensions = pkgs.callPackage ../marketplace.nix { };
+      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
-    with extensions.preferNixpkgs;
+    with extensions.preferNixpkgsThenPreRelease;
     [
       llvm-vs-code-extensions.vscode-clangd
       ms-vscode.cmake-tools
       vadimcn.vscode-lldb
+      pierre-payen.gdb-syntax
     ];
 
   programs.vscode.profiles.default.userSettings = {
