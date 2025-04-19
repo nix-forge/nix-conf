@@ -26,6 +26,7 @@ lib.mkMerge [
         lib,
         pkgs,
         inputs,
+        self,
         ...
       }:
       {
@@ -37,6 +38,7 @@ lib.mkMerge [
             lib
             pkgs
             inputs
+            self
             ;
         });
 
