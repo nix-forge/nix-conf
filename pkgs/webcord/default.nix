@@ -133,7 +133,7 @@ let
         cat > buildInfo.json <<EOF
         {
           "type": "release",
-          "features": { "updateNotifications": false} }
+          "features": { "updateNotifications": false }
         }
         EOF
 
