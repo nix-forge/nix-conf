@@ -18,23 +18,18 @@
 
         # PerSystem attributes that are built for each system.
         perSystem =
-          { pkgs, ... }:
+          { system, ... }:
           let
             inherit (inputs.self) lib;
             inherit (lib.cust.files) importDirRec;
 
-            pkg_funcs = importDirRec ./pkgs [ ];
-
-            mkPkgs = import inputs.nixpkgs {
-              system = pkgs.system;
-              config.allowUnfree = true;
+            pkgs = import inputs.nixpkgs {
+              localSystem = system;
             };
-
-            # import the dependencies for each package
-            packages = builtins.mapAttrs (name: value: mkPkgs.callPackage value { }) pkg_funcs;
           in
           {
-            inherit packages;
+            # Set each package with the correct dependencies
+            packages = builtins.mapAttrs (folderName: pkg: pkgs.callPackage pkg { }) (importDirRec ./pkgs [ ]);
           };
 
         flake =
