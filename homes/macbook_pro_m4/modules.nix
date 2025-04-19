@@ -2,6 +2,7 @@
   tree,
   pkgs,
   inputs,
+  self,
   ...
 }:
 let
@@ -76,8 +77,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.spice
 
   ## Communication
-  (install pkgs.discord)
-  (install pkgs.signal-desktop)
+  # (install pkgs.discord)
+  (install self.packages.${pkgs.system}.webcord)
+  # (install pkgs.signal-desktop)
   # (install pkgs.slack)
 
   ## Media Consumption
