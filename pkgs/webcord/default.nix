@@ -61,7 +61,6 @@ let
       maintainers = with lib.maintainers; [
         huantian
         NotAShelf
-        IanHollow
       ];
       platforms = lib.platforms.linux ++ lib.platforms.darwin;
     };
