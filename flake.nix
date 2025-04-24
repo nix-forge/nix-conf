@@ -24,7 +24,7 @@
             inherit (lib.cust.files) importDirRec;
 
             pkgs = import inputs.nixpkgs {
-              localSystem = system;
+              inherit system;
             };
           in
           {
@@ -65,7 +65,7 @@
             # Entry point for Darwin configurations.
             darwinConfigurations =
               let
-                darwinDir = ./darwin; # TODO: combine this with the hosts directory and figure out a way to import darwin vs nixos seperatly
+                darwinDir = ./darwin; # TODO: combine this with the hosts directory and figure out a way to import darwin vs nixos separately
                 excludes = [ ];
                 buildVars = folderName: {
                   inherit withSystem;
@@ -120,7 +120,7 @@
     };
     mac-app-util = {
       url = "github:hraban/mac-app-util";
-      inputs ={
+      inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-compat.follows = "flake-compat";
         flake-utils.follows = "flake-utils";
@@ -358,7 +358,6 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "flake-compat";
-      # inputs.gitignore.follows = "gitignore";
     };
 
     hyprland = {
