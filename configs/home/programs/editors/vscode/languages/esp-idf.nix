@@ -1,4 +1,9 @@
-{ lib, pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   programs.vscode.profiles.default.extensions =
     let
@@ -9,5 +14,5 @@
       sunshaoce.risc-v
     ];
 
-  programs.vscode.profiles.default.userSettings = {};
+  programs.vscode.profiles.default.userSettings = { };
 }
