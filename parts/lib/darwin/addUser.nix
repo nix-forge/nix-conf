@@ -143,10 +143,9 @@ lib.mkMerge [
             ) homeFilteredShells;
 
             home = {
-              sessionVariables = {
-                # Set the default shell to the one specified in the config
-                SHELL = lib.mkIf (shell != null) nixosConfig.environment.variables.SHELL;
-              };
+              sessionVariables = builtins.mapAttrs (
+                VAR: value: lib.mkDefault value
+              ) nixosConfig.environment.variables;
 
               shell =
                 let
@@ -171,6 +170,12 @@ lib.mkMerge [
             };
           }
         )
+        {
+          home.sessionVariables = {
+            # Set the default shell to the one specified in the config
+            SHELL = lib.mkIf (shell != null) (lib.mkDefault nixosConfig.environment.variables.SHELL);
+          };
+        }
       ];
   })
 ]
