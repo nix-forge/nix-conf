@@ -188,6 +188,7 @@
       "git.openRepositoryInParentFolders" = "always";
       "git.autofetch" = true;
       "git.confirmSync" = false;
+      "git.path" = lib.mkIf (config.programs.git.enable) "/etc/profiles/per-user/${config.home.username}/bin/git";
 
       # prevent pollute history with whitespace changes
       "diffEditor.ignoreTrimWhitespace" = false;
@@ -245,6 +246,7 @@
       # remove telemetry
       "redhat.telemetry.enabled" = false;
       "telemetry.enableTelemetry" = false;
+      "telemetry.telemetryLevel " = "off";
     }
     (
       let
@@ -260,6 +262,13 @@
             ${shellName} = {
               "path" = "${shellPath}";
               "args" = [ "-l" ];
+              "icon" =
+                if shellName == "bash" then
+                  "terminal-bash"
+                else if shellName == "nu" then
+                  "chevron-right"
+                else
+                  "terminal";
             };
           };
 
