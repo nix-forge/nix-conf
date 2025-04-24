@@ -50,6 +50,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Shell Environments
   # shells.zsh
+  shells.nushell
 
   ## Terminal Emulators
   # programs.kitty
