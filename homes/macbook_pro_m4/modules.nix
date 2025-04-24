@@ -49,10 +49,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # { programs.chromium.enable = true; }
 
   ## Shell Environments
-  shells.zsh
+  # shells.zsh
 
   ## Terminal Emulators
   # programs.kitty
+  programs.ghostty
 
   ## Development Tools
   # programs.git
