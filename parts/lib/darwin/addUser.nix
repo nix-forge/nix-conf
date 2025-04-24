@@ -68,7 +68,9 @@ lib.mkMerge [
       enable = lib.mkIf (shellPkg.pname == shell.pname) true;
     }) systemFilteredShells;
 
-    environment.shells = builtins.attrValues shells;
+    environment.shells = (builtins.attrValues shells) ++ [
+      "/etc/profiles/per-user/${username}/bin/${shell.meta.mainProgram}"
+    ];
 
     environment.variables.SHELL = lib.mkIf (
       shell != null
@@ -169,11 +171,6 @@ lib.mkMerge [
             };
           }
         )
-
-        {
-          # Override: nushell package to use system's nushell
-          programs.nushell.package = lib.mkIf (shell.pname == "nushell") (lib.mkForce null);
-        }
       ];
   })
 ]
