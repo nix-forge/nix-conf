@@ -71,38 +71,23 @@ lib.mkMerge [
     environment.shells = (builtins.attrValues shells) ++ [
       "/etc/profiles/per-user/${username}/bin/${shell.meta.mainProgram}"
     ];
-
-    environment.variables.SHELL = lib.mkIf (
-      shell != null
-    ) "/run/current-system/sw/bin/${shell.meta.mainProgram}";
   }
 
-  (lib.mkIf (config ? home-manager) {
+  (lib.mkIf (builtins.hasAttr "home-manager" config) {
     home-manager.users.${username} =
       let
         nixosConfig = config;
       in
       {
-        tree,
         lib,
         pkgs,
-        inputs,
-        self,
         config,
         ...
-      }:
+      }@args:
       {
         # import home-manager modules and resolve function
         # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
-        imports = lib.cust.withTreeModules (homeManagerModules {
-          inherit
-            tree
-            lib
-            pkgs
-            inputs
-            self
-            ;
-        });
+        imports = lib.cust.withTreeModules (homeManagerModules (args // {inherit pkgs;}));
       }
       // lib.mkMerge [
         {
@@ -173,7 +158,7 @@ lib.mkMerge [
         {
           home.sessionVariables = {
             # Set the default shell to the one specified in the config
-            SHELL = lib.mkIf (shell != null) (lib.mkDefault nixosConfig.environment.variables.SHELL);
+            SHELL = lib.mkIf (shell != null) (lib.mkDefault "/run/current-system/sw/bin/${shell.meta.mainProgram}");
           };
         }
       ];
