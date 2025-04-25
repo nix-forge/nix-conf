@@ -121,7 +121,7 @@ let
       arch = if stdenv.isAarch64 then "arm64" else "x64";
 
       electronZipPath = "nix-electron-zip";
-      electronNewFolderName = "electron-v${electron.version}-darwin-arm64";
+      electronNewFolderName = "electron-v${electron.version}-${platform}-${arch}";
       electronZipFile = "${electronNewFolderName}.zip";
       electronVersion = electron.version;
     in
@@ -141,7 +141,7 @@ let
         cp -r ${electron}/Applications ${electronZipPath}/${electronNewFolderName}
         chmod -R 755 ${electronZipPath}/${electronNewFolderName}
         cd ${electronZipPath}/${electronNewFolderName}
-        zip -r ../${electronZipFile} Electron.app
+        zip -0 -r ../${electronZipFile} Electron.app
         cd ../..
         rm -rf ${electronZipPath}/${electronNewFolderName}
       '';
@@ -164,7 +164,10 @@ let
           --asar \
           --electron-version=${electronVersion} \
           --electron-zip-dir=${electronZipPath} \
-          --icon=sources/assets/icons/app.icns
+          --icon=sources/assets/icons/app.icns \
+          --extra-resource="LICENSE" \
+          --quiet \
+          --osx-sign
 
         runHook postBuild
       '';
