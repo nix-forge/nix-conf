@@ -21,22 +21,44 @@ in
   programs.vscode.profiles.default.userSettings = {
     "nix.enableLanguageServer" = true;
     "nix.serverPath" = lib.getExe pkgs.nixd;
+    "nix.formatterPath" = [
+      "${lib.getExe pkgs.nixfmt-rfc-style}"
+      "-q"
+      "-"
+    ];
+
     "nix.serverSettings".nixd = {
       formatting.command = [
         "${lib.getExe pkgs.nixfmt-rfc-style}"
         "-q"
         "-"
       ];
+      "options" =
+        let
+          defineExpr =
+            type: "(builtins.getFlake \"\${workspaceFolder}/flake.nix\").${type}Configurations.<name>.options";
+        in
+        {
+          "nixos" = {
+            "expr" = defineExpr "nixos";
+          };
+          "home-manager" = {
+            "expr" = defineExpr "home";
+          };
+          "nix-darwin" = {
+            "expr" = defineExpr "darwin";
+          };
+        };
     };
     "[nix]" = {
       # appears to be buggy at the moment
-      "editor.stickyScroll.enabled" = false;
+      # "editor.stickyScroll.enabled" = false;
       # allow paths to be auto-completed
       "path-autocomplete.triggerOutsideStrings" = true;
       # don't add a trailing slash for dirs
       "path-autocomplete.enableFolderTrailingSlash" = false;
       # unset default formatter
-      "editor.defaultFormatter" = "";
+      # "editor.defaultFormatter" = "";
     };
 
     "cSpell.languageSettings" = [
