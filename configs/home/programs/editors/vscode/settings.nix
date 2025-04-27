@@ -188,7 +188,8 @@
       "git.openRepositoryInParentFolders" = "always";
       "git.autofetch" = true;
       "git.confirmSync" = false;
-      "git.path" = lib.mkIf (config.programs.git.enable) "/etc/profiles/per-user/${config.home.username}/bin/git";
+      "git.path" =
+        lib.mkIf (config.programs.git.enable) "/etc/profiles/per-user/${config.home.username}/bin/git";
 
       # prevent pollute history with whitespace changes
       "diffEditor.ignoreTrimWhitespace" = false;
@@ -246,7 +247,8 @@
       # remove telemetry
       "redhat.telemetry.enabled" = false;
       "telemetry.enableTelemetry" = false;
-      "telemetry.telemetryLevel " = "off";
+      "telemetry.telemetryLevel"= "off";
+      "terminal.integrated.localEchoEnabled" = "off";
     }
     (
       let
