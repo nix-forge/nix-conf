@@ -9,6 +9,7 @@ let
   homeDir = tree.configs.home;
   sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
+  env = var: val: {home.sessionVariables.${var} = val;};
 in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
@@ -30,21 +31,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Web Browsers
   programs.firefox
-  (
-    # TODO: move this to the firefox module for AArch64 systems
-    {
-      config,
-      pkgs,
-      ...
-    }:
-    {
-      programs.firefox.package = pkgs.firefox.override (old: {
-        # cfg = old.cfg or { } // fcfg;
-        extraPolicies = (old.extraPolicies or { }) // config.programs.firefox.policies;
-        pkcs11Modules = (old.pkcs11Modules or [ ]) ++ config.programs.firefox.pkcs11Modules;
-      });
-    }
-  )
 
   # { programs.chromium.enable = true; }
 
@@ -57,14 +43,18 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.ghostty
 
   ## Development Tools
-  # programs.git
-  # programs.ssh
+  programs.git
+  programs.ssh
   # dev.docs
   dev.direnv
-  # dev.github-cli
+  dev.github-cli
   dev.nix-formatter
+  dev.podman
 
   ## Code Editors
+  ( env "EDITOR" "nvim" )
+  ( install pkgs.neovim )
+  ( install pkgs.vim )
   vscode.settings
   vscode.languages.cpp
   vscode.languages.esp-idf
