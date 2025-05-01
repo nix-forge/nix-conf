@@ -6,6 +6,10 @@
   ...
 }:
 {
+  imports = [
+    ./copilot.nix
+  ];
+
   programs.vscode.enable = true;
   programs.vscode.package =
     let
@@ -36,7 +40,6 @@
       pkief.material-icon-theme
 
       ## Intelligence ##
-      github.copilot
       usernamehw.errorlens
       christian-kohler.path-intellisense
       streetsidesoftware.code-spell-checker
@@ -71,10 +74,6 @@
       # Extra
       ms-vscode-remote.remote-ssh
       ms-vsliveshare.vsliveshare
-    ])
-    ++ (with extensions.extraCompatible; [
-      # This extension when using non VSCode Insiders requires release version
-      github.copilot-chat
     ]);
 
   programs.vscode.profiles.default.userSettings = lib.mkMerge [
@@ -240,9 +239,6 @@
       "extensions.ignoreRecommendations" = true;
       # remove popup out moving files
       "explorer.confirmDragAndDrop" = false;
-
-      # github copilot
-      "github.copilot.editor.enableAutoCompletions" = true;
 
       # remove telemetry
       "redhat.telemetry.enabled" = false;
