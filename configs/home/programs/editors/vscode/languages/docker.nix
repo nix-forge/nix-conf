@@ -14,5 +14,10 @@
       ms-azuretools.vscode-docker
     ];
 
-  programs.vscode.profiles.default.userSettings = { };
+  programs.vscode.profiles.default.userSettings = {
+    "[dockerfile]" = {
+      "editor.defaultFormatter" = "ms-azuretools.vscode-docker";
+      "editor.tabSize" = 4;
+    };
+  };
 }
