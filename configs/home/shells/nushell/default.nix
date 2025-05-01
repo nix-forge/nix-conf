@@ -1,34 +1,37 @@
-{ config, lib, ... }:
+{ config, lib, ... }@args:
 {
   programs.nushell = {
     enable = true;
-
-    # Move home-manager settings to the nushell config
-    # https://github.com/nix-community/home-manager/issues/4313
-    shellAliases = config.home.shellAliases;
-    environmentVariables = config.home.sessionVariables;
 
     settings = {
       # Remove the welcome banner message
       show_banner = false;
     };
 
-    extraEnv = lib.mkAfter ''
-      let nixPaths = [
-        ($env.HOME | path join ".nix-profile/bin")
-        "/etc/profiles/per-user/${config.home.username}/bin"
-        "/run/current-system/sw/bin"
-        "/nix/var/nix/profiles/default/bin"
-        "/usr/local/bin"
-        "/usr/bin"
-        "/bin"
-        "/usr/sbin"
-        "/sbin"
-      ]
+    extraEnv =
+      let
+        exportToNuEnv =
+          vars: lib.concatStringsSep "\n" (lib.mapAttrsToList (n: v: ''$env.${n} = "${builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ] v}"'') vars);
 
-      let currentPath = $env.PATH | split row (char esep)
-      let combinedPath = ($nixPaths ++ $currentPath) | uniq
-      $env.PATH = $combinedPath
-    '';
+        paths = [
+          config.home.profileDirectory
+        ] ++ lib.optionals (args ? darwinConfig) args.darwinConfig.environment.profiles
+        ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
+
+        binPaths = lib.pipe paths [
+          (builtins.map (p: "${p}/bin"))
+          (builtins.map (builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ]))
+        ];
+      in
+      lib.mkBefore (
+        ''
+          ${exportToNuEnv config.home.sessionVariables}
+        ''
+        + ''
+          $env.PATH = $env.PATH | split row (char esep) | prepend [
+            ${lib.concatStringsSep " " (config.home.sessionPath ++ binPaths)}
+          ] | uniq
+        ''
+      );
   };
 }
