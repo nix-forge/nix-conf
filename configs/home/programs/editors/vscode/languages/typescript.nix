@@ -16,7 +16,6 @@
       idered.npm
       christian-kohler.npm-intellisense
       christian-kohler.path-intellisense
-      redhat.vscode-yaml
       pmneo.tsimporter
     ];
 

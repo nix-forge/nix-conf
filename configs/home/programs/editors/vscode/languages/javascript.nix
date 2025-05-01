@@ -17,7 +17,6 @@
       christian-kohler.npm-intellisense
       christian-kohler.path-intellisense
       mgmcdermott.vscode-language-babel
-      redhat.vscode-yaml
     ];
 
   programs.vscode.profiles.default.userSettings = {
