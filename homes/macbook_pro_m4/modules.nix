@@ -9,7 +9,7 @@ let
   homeDir = tree.configs.home;
   sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
-  env = var: val: {home.sessionVariables.${var} = val;};
+  var = envVar: val: { home.sessionVariables.${envVar} = val; };
 in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
@@ -35,8 +35,12 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # { programs.chromium.enable = true; }
 
   ## Shell Environments
-  # shells.zsh
   shells.nushell
+  shells.aliases
+  shells.starship
+  shells.zoxide
+  shells.carapace
+  shells.eza
 
   ## Terminal Emulators
   # programs.kitty
@@ -52,9 +56,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.podman
 
   ## Code Editors
-  ( env "EDITOR" "nvim" )
-  ( install pkgs.neovim )
-  ( install pkgs.vim )
+  (var "EDITOR" "nvim")
+  (install pkgs.neovim)
   vscode.settings
   vscode.languages.cpp
   vscode.languages.esp-idf
