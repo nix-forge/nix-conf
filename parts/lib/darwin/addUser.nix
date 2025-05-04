@@ -87,7 +87,7 @@ lib.mkMerge [
       {
         # import home-manager modules and resolve function
         # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
-        imports = lib.cust.withTreeModules (homeManagerModules (args // {inherit pkgs;}));
+        imports = lib.cust.withTreeModules (homeManagerModules (args // { inherit pkgs; }));
       }
       // lib.mkMerge [
         {
@@ -158,7 +158,9 @@ lib.mkMerge [
         {
           home.sessionVariables = {
             # Set the default shell to the one specified in the config
-            SHELL = lib.mkIf (shell != null) (lib.mkDefault "/run/current-system/sw/bin/${shell.meta.mainProgram}");
+            SHELL = lib.mkIf (shell != null) (
+              lib.mkDefault "/run/current-system/sw/bin/${shell.meta.mainProgram}"
+            );
           };
         }
       ];
