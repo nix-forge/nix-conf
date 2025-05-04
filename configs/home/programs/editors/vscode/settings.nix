@@ -10,6 +10,10 @@
     ./copilot.nix
   ];
 
+  home.packages = [
+    pkgs.nerd-fonts.monaspace
+  ];
+
   programs.vscode = {
     enable = true;
     profiles.default.enableExtensionUpdateCheck = false;
