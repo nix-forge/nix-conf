@@ -10,7 +10,7 @@ in
     ];
     userSettings = {
       "chat.agent.enabled" = true;
-      "github.copilot.nextEditSuggestions.enabled" = true;
+      "github.copilot.nextEditSuggestions.enabled" = false; # this is annoying
 
       # Preview
       "github.copilot.chat.codesearch.enabled" = true;
