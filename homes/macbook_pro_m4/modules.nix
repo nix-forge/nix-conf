@@ -2,6 +2,7 @@
   tree,
   pkgs,
   inputs,
+  config,
   self,
   ...
 }:
@@ -10,6 +11,7 @@ let
   sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
   var = envVar: val: { home.sessionVariables.${envVar} = val; };
+  varBin = envVar: val: var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
 in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
@@ -56,7 +58,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.podman
 
   ## Code Editors
-  (var "EDITOR" "nvim")
+  (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
   vscode.settings
   vscode.languages.cpp
