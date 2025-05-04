@@ -15,9 +15,8 @@ let
 in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
-  { home.stateVersion = "25.05"; }
   ## Base
-  # base
+  base
   # ./hardware
   # ./secrets.nix
   # (base.mime { })
@@ -33,8 +32,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Web Browsers
   programs.firefox
-
-  # { programs.chromium.enable = true; }
 
   ## Shell Environments
   shells.nushell

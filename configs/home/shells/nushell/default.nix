@@ -1,5 +1,23 @@
-{ config, lib, ... }@args:
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}@args:
+let
+  defaultConfigDirDarwin = "${config.home.homeDirectory}/Library/Application Support/nushell";
+  defaultConfigDirLinux = "${config.home.homeDirectory}/.config/nushell";
+  defaultConfigDir = if pkgs.stdenv.isLinux then defaultConfigDirLinux else defaultConfigDirDarwin;
+  xdgConfigDir = "${config.xdg.configHome}/nushell";
+  symlinkConfig = config.xdg.enable && (xdgConfigDir != defaultConfigDir);
+in
+{
+  # Symlink the XDG config directory to the default config directory if not the same
+  # NOTE: this is due to NuShell nix only setting the XDG_CONFIG_DIR env var through bash and zsh shells
+  home.file.${defaultConfigDir}.source = lib.mkIf symlinkConfig (
+    config.lib.file.mkOutOfStoreSymlink xdgConfigDir
+  );
+
   programs.nushell = {
     enable = true;
 
