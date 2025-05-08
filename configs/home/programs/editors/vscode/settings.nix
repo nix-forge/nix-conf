@@ -218,6 +218,19 @@
         # remove popup out moving files
         "explorer.confirmDragAndDrop" = false;
 
+        # spell checker settings
+        "cSpell.diagnosticLevel" = "Hint";
+        "cSpell.ignorePaths" = [
+          "node_modules" # this will ignore anything the node_modules directory
+          "**/node_modules" # the same for this one
+          "**/node_modules/**" # the same for this one
+          "node_modules/**" # Doesn't currently work due to how the current working directory is determined.
+          "vscode-extension"
+          ".git" # Ignore the .git directory
+          "*.dll" # Ignore all .dll files.
+          "**/*.dll" # Ignore all .dll files
+        ];
+
         # remove telemetry
         "redhat.telemetry.enabled" = false;
         "telemetry.enableTelemetry" = false;
