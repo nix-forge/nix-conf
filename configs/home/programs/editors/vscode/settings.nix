@@ -219,7 +219,6 @@
         "explorer.confirmDragAndDrop" = false;
 
         # spell checker settings
-        "cSpell.diagnosticLevel" = "Hint";
         "cSpell.ignorePaths" = [
           "node_modules" # this will ignore anything the node_modules directory
           "**/node_modules" # the same for this one
