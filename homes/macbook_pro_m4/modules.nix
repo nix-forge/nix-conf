@@ -30,6 +30,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   #   stylix.targets.firefox.profileNames = [ "default" ];
   # }
 
+  ## Desktop Environment
+  (install pkgs.raycast) # app launcher
+
   ## Web Browsers
   programs.firefox
 
@@ -40,9 +43,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   shells.zoxide
   shells.carapace
   shells.eza
+  shells.tmux
 
   ## Terminal Emulators
-  # programs.kitty
   programs.ghostty
 
   ## Development Tools
