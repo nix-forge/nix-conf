@@ -15,15 +15,22 @@
     escapeTime = 0;
     historyLimit = 1000000;
 
+    sensibleOnTop = true;
+
+    # extraConfig = ''
+    #   set -g renumber-windows on
+    #   set -g set-clipboard on
+    #   set -g status-position top
+    # '';
+
     plugins = with pkgs; [
-      tmuxPlugins.sensible
       tmuxPlugins.yank
-      # {
-      #   plugin = tmuxPlugins.resurrect;
-      #   extraConfig = ''
-      #     set -g @resurrect-strategy-nvim 'session'
-      #   '';
-      # }
+      {
+        plugin = tmuxPlugins.resurrect;
+        extraConfig = ''
+          set -g @resurrect-strategy-nvim 'session'
+        '';
+      }
       {
         plugin = tmuxPlugins.continuum;
         extraConfig = ''
