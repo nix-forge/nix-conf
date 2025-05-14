@@ -33,6 +33,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Environment
   (install pkgs.raycast) # app launcher
 
+
   ## Web Browsers
   programs.firefox
 
@@ -43,7 +44,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   shells.zoxide
   shells.carapace
   shells.eza
-  shells.tmux
+  # shells.tmux
 
   ## Terminal Emulators
   programs.ghostty
@@ -72,10 +73,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.typescript
   vscode.languages.docker
   vscode.languages.spice
+  vscode.languages.matlab
 
   ## Communication
-  # (install pkgs.discord)
-  (install self.packages.${pkgs.system}.webcord)
+  (install (pkgs.discord.override { withOpenASAR = true; withVencord = true; }))
+  # (install self.packages.${pkgs.system}.webcord)
   # (install pkgs.signal-desktop)
   # (install pkgs.slack)
 
