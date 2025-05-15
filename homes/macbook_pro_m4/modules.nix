@@ -32,7 +32,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Desktop Environment
   (install pkgs.raycast) # app launcher
-
+  window-managers.aerospace
 
   ## Web Browsers
   programs.firefox
@@ -76,10 +76,10 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.matlab
 
   ## Communication
-  (install (pkgs.discord.override { withOpenASAR = true; withVencord = true; }))
+  (install pkgs.discord)
+  (install pkgs.slack)
   # (install self.packages.${pkgs.system}.webcord)
   # (install pkgs.signal-desktop)
-  # (install pkgs.slack)
 
   ## Media Consumption
   programs.spotify
