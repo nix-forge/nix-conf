@@ -21,6 +21,8 @@ in
     base.base
     base.nix-settings
 
+    security.pam
+
     ./users.nix
   ];
 }
