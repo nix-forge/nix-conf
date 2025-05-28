@@ -5,7 +5,9 @@
   ...
 }:
 let
-  inherit (config.age.secrets) gitUserName gitUserEmail;
+ # TODO: move to separate area
+  gitUserName = "Ian Holloway";
+  gitUserEmail = "72767437+IanHollow@users.noreply.github.com";
 in
 {
   # Remove existing .gitconfig to avoid conflicts with runtime include
@@ -13,20 +15,10 @@ in
     rm -f ${config.home.homeDirectory}/.gitconfig
   '';
 
-  # Create a runtime-generated Git config file with user.name and user.email
-  home.activation.gitUserIdentity = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    mkdir -p ${config.xdg.configHome}/git
-    cat > ${config.xdg.configHome}/git/identity.gitconfig <<EOF
-    [user]
-            name = $(cat ${gitUserName.path})
-            email = $(cat ${gitUserEmail.path})
-    EOF
-  '';
-
   # Generate allowed_signers file at runtime
   home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${config.xdg.configHome}/git
-    echo "$(cat ${gitUserEmail.path}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
+    echo "$(cat ${gitUserEmail}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
   '';
 
   programs.git = {
@@ -35,9 +27,8 @@ in
     # Use gitFull for extra features like send-email, credential support, etc.
     package = pkgs.gitFull;
 
-    # Leave these null since we're injecting them via runtime include
-    userName = null;
-    userEmail = null;
+    userName = gitUserName;
+    userEmail = gitUserEmail;
 
     # Commit signing using SSH key (much easier than GPG)
     signing = {
@@ -94,12 +85,5 @@ in
       init.defaultBranch = "main"; # Set default branch name on new repos
       gpg.ssh.allowedSignersFile = "${config.xdg.configHome}/git/allowed_signers"; # Use the generated allowed_signers file
     };
-
-    # Include the runtime-generated identity config (with user.name/email)
-    includes = [
-      {
-        path = "${config.xdg.configHome}/git/identity.gitconfig";
-      }
-    ];
   };
 }
