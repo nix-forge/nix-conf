@@ -3,7 +3,7 @@
   stdenv,
   fetchurl,
   p7zip,
-  acceptEula ? true,
+  acceptEula ? false,
 }:
 stdenv.mkDerivation rec {
   pname = "ttf-ms-win11-auto";
@@ -32,8 +32,8 @@ stdenv.mkDerivation rec {
   src = fetchurl {
     # <https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise>
     # <https://www.microsoft.com/en-us/evalcenter/download-windows-10-enterprise>
-    url = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/22631.2428.231001-0608.23H2_NI_RELEASE_SVC_REFRESH_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso";
-    sha256 = "sha256-yNvJa2HQTIsB+vbOB5T98zllx7NQ6qPrHmaXAZkClFw=";
+    url = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso";
+    sha256 = "1bi26vayiplkamz7g6s3fa1053l9idw38alkw6wp8sl27va90nkm";
   };
 
   nativeBuildInputs = [ p7zip ];
