@@ -8,6 +8,7 @@
 {
   imports = [
     ./copilot.nix
+    (import ./keybinds.nix "default")
   ];
 
   home.packages = [
@@ -27,7 +28,6 @@
       (with extensions.preferPreRelease; [
         ## Appearances ##
         bottledlactose.darkbox
-
         pkief.material-icon-theme
 
         ## Intelligence ##
@@ -42,10 +42,9 @@
         github.vscode-github-actions
 
         ## Collaboration Features
-        # ms-vsliveshare.vsliveshare
+        ms-vsliveshare.vsliveshare
 
         ## Editor Extension ##
-        ryuta46.multi-command
         sleistner.vscode-fileutils
         aaron-bond.better-comments
         kevinkyang.auto-comment-blocks
@@ -64,19 +63,16 @@
 
         # Extra
         ms-vscode-remote.remote-ssh
-        ms-vsliveshare.vsliveshare
       ]);
 
     profiles.default.userSettings = lib.mkMerge [
       {
         ## Appearances ##
 
-        # the most important setting
         "editor.fontFamily" = lib.mkForce (
           lib.concatMapStringsSep ", " (s: "'${s}'") [
             "Material Design Icons"
             "MonaspiceNe Nerd Font"
-            "JetBrainsMono Nerd Font"
           ]
         );
         "editor.cursorSmoothCaretAnimation" = "explicit";
@@ -129,7 +125,7 @@
         # Add editor inline suggestions
         "editor.inlineSuggest.enabled" = true;
 
-        # top is the smallest other than hidden but you need to remember the shortcuts
+        # top is the smallest other than hidden
         "workbench.activityBar.location" = "top";
         # put the sidebar on the right so that text doesn't jump
         "workbench.sideBar.location" = "right";
@@ -141,7 +137,6 @@
         ## Saving and Formatting ##
 
         # auto-save when the active editor loses focus
-        "editor.formatOnSave" = true;
         "files.autoSave" = "onFocusChange";
         # format pasted code if the formatter supports a range
         "editor.formatOnPaste" = true;
@@ -160,8 +155,6 @@
         };
 
         ## VCS Behavior ##
-
-        "git.inputValidationSubjectLength" = 56; # allow 6 more characters from default 50 in commit subject
         "git.openRepositoryInParentFolders" = "always";
         "git.autofetch" = true;
         "git.confirmSync" = false;
@@ -201,7 +194,7 @@
         # disable automatic update checking
         "update.mode" = "none";
         # don't re-open everything on start
-        # "window.restoreWindows" = "none";
+        "window.restoreWindows" = "none";
         # don't show the welcome page
         "workbench.startupEditor" = "none";
         # unsaved files will be "untitled"
