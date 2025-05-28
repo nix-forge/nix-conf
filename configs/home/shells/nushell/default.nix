@@ -14,9 +14,9 @@ in
 {
   # Symlink the XDG config directory to the default config directory if not the same
   # NOTE: this is due to NuShell nix only setting the XDG_CONFIG_DIR env var through bash and zsh shells
-  home.file.${defaultConfigDir}.source = lib.mkIf symlinkConfig (
-    config.lib.file.mkOutOfStoreSymlink xdgConfigDir
-  );
+  home.file.${defaultConfigDir} = lib.mkIf symlinkConfig {
+    source = config.lib.file.mkOutOfStoreSymlink xdgConfigDir;
+  };
 
   programs.nushell = {
     enable = true;
@@ -99,7 +99,10 @@ in
             lib.mapAttrsToList (
               n: v:
               ''$env.${n} = "${
-                builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ] v
+                if lib.typeOf v == "string" then
+                  builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ] v
+                else
+                  builtins.toString v
               }"''
             ) vars
           );
