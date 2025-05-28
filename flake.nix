@@ -25,6 +25,7 @@
 
             pkgs = import inputs.nixpkgs {
               inherit system;
+              config.allowUnfree = true;
             };
           in
           {
@@ -188,7 +189,7 @@
         systems.follows = "systems";
         home-manager.follows = "home-manager";
         flake-compat.follows = "flake-compat";
-        flake-utils.follows = "flake-utils";
+        flake-parts.follows = "flake-parts";
         git-hooks.follows = "pre-commit-hooks";
         nur.follows = "nur";
       };
