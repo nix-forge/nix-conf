@@ -9,7 +9,7 @@ let
     if isDarwin then
       "Library/Application Support/Mozilla/ManagedStorage"
     else
-      ".mozilla//managed-storage";
+      ".mozilla/managed-storage";
 in
 {
   home.file."${mozillaConfigPath}/uBlock0@raymondhill.net.json".text = builtins.toJSON {
