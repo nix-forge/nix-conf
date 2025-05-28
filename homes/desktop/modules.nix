@@ -2,18 +2,21 @@
   tree,
   pkgs,
   inputs,
+  config,
   ...
 }:
 let
   homeDir = tree.configs.home;
   sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
+  var = envVar: val: { home.sessionVariables.${envVar} = val; };
+  varBin = envVar: val: var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
 in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
   ## Base
-  base
-  ./hardware
+  base.version
+  base.fonts
   ./secrets.nix
   (base.mime { })
 
@@ -23,7 +26,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   {
     # Firefox
     # TODO: rethink if this is the best place to add this option as it becomes a manual process
-    stylix.targets.firefox.profileNames = [ "default" ];
+    stylix.targets.firefox.profileNames = [ "${config.home.username}.default" ];
   }
 
   ## Desktop Environment
@@ -48,10 +51,16 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   { programs.chromium.enable = true; }
 
   ## Shell Environments
-  shells.zsh
+  shells.nushell
+  shells.aliases
+  shells.starship
+  shells.zoxide
+  shells.carapace
+  shells.eza
 
   ## Terminal Emulators
-  programs.kitty
+  (varBin "TERMINAL" "ghostty")
+  programs.ghostty
 
   ## Development Tools
   programs.git
@@ -66,8 +75,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.languages.python
 
   ## Code Editors
-  # neovim
-
+  (varBin "EDITOR" "nvim")
+  (install pkgs.neovim)
   vscode.settings
   vscode.languages.cpp
   vscode.languages.esp-idf
