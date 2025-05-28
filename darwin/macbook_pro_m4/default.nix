@@ -21,6 +21,9 @@ in
     base.base
     base.nix-settings
 
+    { system.primaryUser = "ianmh"; }
+    { time.timeZone = "America/Los_Angeles"; }
+
     security.pam
 
     ./users.nix
