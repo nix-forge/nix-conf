@@ -31,9 +31,8 @@
     # plymouth
 
     ## Locale
-    timezone
+    { time.timeZone = "America/Los_Angeles"; }
     locale.timesync
-    locale.fonts
     # keyboard
 
     ## Hardware
@@ -89,9 +88,5 @@
 
     ## Server
     server.ssh
-  ];
-
-  overlays = [
-    inputs.nixd.overlays.default
   ];
 }
