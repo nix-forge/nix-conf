@@ -46,9 +46,7 @@
       # only allow sudo users to manage the nix store
       trusted-users = [
         "root"
-        "@wheel"
         "@admin"
-        "nix-builder"
       ];
 
       # build inside sandboxed environments
