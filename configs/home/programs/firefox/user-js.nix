@@ -103,6 +103,9 @@ in
         # Turn off resistFingerprinting so timezone and light/dark mode is correct
         "privacy.resistFingerprinting" = false;
 
+        # Turn off fingerprinting protection to allow more fonts
+        "privacy.fingerprintingProtection" = false;
+
         # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
         # at the expense of hardware acceleration in certain situations with disabling canvas accelerated
         "gfx.canvas.accelerated" = false;
