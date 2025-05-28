@@ -2,10 +2,11 @@
   config,
   lib,
   tree,
+  pkgs,
   ...
 }:
 let
-  addUser = lib.cust.nixos.addUser { inherit config lib; };
+  addUser = lib.cust.nixos.addUser { inherit config lib pkgs; };
   homes = name: tree.homes.${name}.modules;
 in
 lib.mkMerge [
@@ -26,16 +27,6 @@ lib.mkMerge [
     ];
     initialPassword = "password";
     homeManagerModules = homes "desktop";
+    shell = pkgs.nushell;
   })
-
-  # (addUser {
-  #   username = "guest";
-  #   description = "Guest User";
-  #   extraGroups = [
-  #     "audio"
-  #     "video"
-  #   ];
-  #   initialPassword = "password";
-  #   homeManagerModules = homeConfigs.desktop.modules { inherit tree; };
-  # })
 ]

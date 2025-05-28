@@ -76,7 +76,7 @@ lib.mkMerge [
   (lib.mkIf (builtins.hasAttr "home-manager" config) {
     home-manager.users.${username} =
       let
-        nixosConfig = config;
+        darwinConfig = config;
       in
       {
         lib,
@@ -92,8 +92,17 @@ lib.mkMerge [
       // lib.mkMerge [
         {
           # Use the same nix package as nixos
-          nix.package = lib.mkForce nixosConfig.nix.package;
+          nix.package = lib.mkForce darwinConfig.nix.package;
 
+          # Set default settings based on the system settings
+          home = {
+            username = lib.mkForce username;
+            homeDirectory = lib.mkForce homeDirectory;
+          };
+        }
+
+        # TODO: move to a separate module that can be used or not used
+        {
           # Allow HM to manage itself when in standalone mode.
           # This makes the home-manager command available to users.
           programs.home-manager.enable = true;
@@ -103,12 +112,6 @@ lib.mkMerge [
             manpages.enable = false;
             html.enable = false;
             json.enable = false;
-          };
-
-          # Set default settings based on the system settings
-          home = {
-            username = lib.mkForce username;
-            homeDirectory = lib.mkForce homeDirectory;
           };
         }
 
@@ -130,7 +133,7 @@ lib.mkMerge [
             home = {
               sessionVariables = builtins.mapAttrs (
                 VAR: value: lib.mkDefault value
-              ) nixosConfig.environment.variables;
+              ) darwinConfig.environment.variables;
 
               shell =
                 let
