@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }:
+{ self, pkgs, ... }:
 {
   fonts.fontconfig.enable = true;
 
@@ -26,7 +26,6 @@
 
     # Base fonts
     corefonts
-    vistafonts
     liberation_ttf
     dejavu_fonts
     open-sans
@@ -38,7 +37,6 @@
     material-icons
     material-design-icons
     work-sans
-    comic-neue
     source-sans
     inter
     lato
@@ -50,9 +48,10 @@
     openmoji-black
 
     # Microsoft Fonts
-    (self.packages.${pkgs.system}.ttf-ms-win11-auto { acceptEula = true; })
+    (self.packages.${pkgs.system}.ttf-ms-win11-auto.override { acceptEula = true; })
 
     # Apple Fonts
+    # TODO: fix the package to have stable links in some way and only enable it on non-Apple systems
     # self.packages.${pkgs.system}.apple-fonts
 
     # Nerdfonts
