@@ -16,7 +16,8 @@ in
 with (homeDir // homeDir.programs // homeDir.programs.editors);
 [
   ## Base
-  base
+  base.version
+  base.fonts
   # ./hardware
   # ./secrets.nix
   # (base.mime { })
