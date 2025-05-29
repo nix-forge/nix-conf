@@ -1,6 +1,6 @@
 {
   tree,
-  hostname,
+  folderName,
   inputs,
   ...
 }:
@@ -13,7 +13,7 @@
     };
   };
 
-  modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os); [
+  modules = with (tree.hosts.${folderName} // tree.hosts.${folderName}.hardware // tree.configs.os); [
     ## Base
     base.nix-settings
     base.base

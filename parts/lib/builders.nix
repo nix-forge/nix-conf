@@ -28,7 +28,7 @@ let
     {
       withSystem,
       system,
-      hostname,
+      folderName,
       inputs,
       lib,
       determinate,
@@ -127,7 +127,7 @@ let
         # Modules
         modules = concatLists [
           (singleton {
-            networking.hostName = hostname;
+            networking.hostName = folderName;
             nixpkgs = {
               overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
               hostPlatform = system;

@@ -17,7 +17,7 @@ in
     };
   };
 
-  modules = with (tree.darwin.${folderName} // tree.configs.darwin); [
+  modules = with (tree.hosts.${folderName} // tree.configs.darwin); [
     base.base
     base.nix-settings
 

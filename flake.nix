@@ -38,53 +38,49 @@
             inherit (inputs.self) lib;
             inherit (lib.cust.builders) mkHost mkDarwin;
             inherit (lib.cust.files) importDirRec;
+
+            hostConfigsDir = ./hosts;
+            excludes = [ ];
+            hostConfigs = importDirRec hostConfigsDir excludes;
+
+            baseConfigParams = folderName: {
+              inherit withSystem;
+              inherit inputs;
+              inherit (inputs) self determinate;
+              inherit (inputs.self) lib tree;
+              inherit folderName;
+            };
+
+            configParameterize =
+              folderName: configDef:
+              lib.pipe folderName [
+                baseConfigParams
+                (x: (configDef x) // x)
+              ];
+
+            isSystem =
+              systemTypes: finalConfigParams:
+              lib.pipe finalConfigParams [
+                (builtins.getAttr "system")
+                (lib.splitString "-")
+                (x: lib.flip lib.elemAt ((builtins.length x) - 1) x)
+                (lib.flip builtins.elem systemTypes)
+              ];
+
+            mkConfig =
+              builder: systemTypes:
+              lib.pipe hostConfigs [
+                (lib.mapAttrs configParameterize)
+                (lib.filterAttrs (_: isSystem systemTypes))
+                (lib.mapAttrs (_: builder))
+              ];
           in
           {
             # Entry-point for NixOS configurations.
-            nixosConfigurations =
-              let
-                hostsDir = ./hosts;
-                excludes = [ ];
-                vars = hostname: {
-                  inherit withSystem;
-                  inherit inputs;
-                  inherit (inputs) self determinate;
-                  inherit (inputs.self) lib tree;
-                  inherit hostname;
-                };
-              in
-              lib.mapAttrs (
-                hostname: config_fn:
-                let
-                  vars' = vars hostname;
-                  config = config_fn vars';
-                  configWithVars = config // vars';
-                in
-                mkHost configWithVars
-              ) (importDirRec hostsDir excludes);
+            nixosConfigurations = mkConfig mkHost [ "linux" ];
 
             # Entry point for Darwin configurations.
-            darwinConfigurations =
-              let
-                darwinDir = ./darwin; # TODO: combine this with the hosts directory and figure out a way to import darwin vs nixos separately
-                excludes = [ ];
-                buildVars = folderName: {
-                  inherit withSystem;
-                  inherit inputs;
-                  inherit (inputs) self determinate;
-                  inherit (inputs.self) lib tree;
-                  inherit folderName;
-                };
-              in
-              lib.mapAttrs (
-                folderName: configDef:
-                let
-                  buildVarsWithFolder = buildVars folderName;
-                  configDefRes = configDef buildVarsWithFolder;
-                  enhancedBuildVars = configDefRes // buildVarsWithFolder;
-                in
-                mkDarwin enhancedBuildVars
-              ) (importDirRec darwinDir excludes);
+            darwinConfigurations = mkConfig mkDarwin [ "darwin" ];
 
             # NixOS Modules
             nixOSModules = importDirRec ./_nixOSModules [ ];
