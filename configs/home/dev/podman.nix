@@ -16,6 +16,7 @@ let
     ];
   };
 in
-lib.mkMerge [darwin linux]
-
-
+lib.mkMerge [
+  darwin
+  linux
+]
