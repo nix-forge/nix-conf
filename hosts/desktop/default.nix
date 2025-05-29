@@ -16,7 +16,6 @@
   modules = with (tree.hosts.${hostname} // tree.hosts.${hostname}.hardware // tree.configs.os); [
     ## Base
     base.nix-settings
-    base.nix-registry
     base.base
     base.kernel
     base.packages
