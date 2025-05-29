@@ -98,12 +98,47 @@ in
           lib.concatStringsSep "\n" (
             lib.mapAttrsToList (
               n: v:
-              ''$env.${n} = "${
-                if lib.typeOf v == "string" then
-                  builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ] v
-                else
-                  builtins.toString v
-              }"''
+              let
+                replaceVars =
+                  varsIn: varsOut: v:
+                  "$env.${n} = ${
+                    if lib.typeOf v == "string" then
+                      "\"${builtins.replaceStrings varsIn varsOut v}\""
+                    else
+                      builtins.toString v
+                  }";
+                replaceVarPresets =
+                  v:
+                  let
+                    rightSideVarPreset = lib.concatStrings [
+                      "$"
+                      "{"
+                      n
+                      ":+:$"
+                      n
+                      "}"
+                      "\""
+                    ];
+                  in
+                  builtins.replaceStrings
+                    [
+                      rightSideVarPreset
+                    ]
+                    [
+                      ''" + (do { let x = ($env.${n}? | default ""); if $x == "" { "" } else { ":" + $x } }) | split row (char esep) | uniq''
+                    ]
+                    v;
+              in
+              lib.pipe v [
+                (replaceVars
+                  [
+                    "$HOME"
+                    "$USER"
+                  ]
+                  [ config.home.username config.home.homeDirectory ]
+                )
+                replaceVarPresets
+              ]
             ) vars
           );
 
@@ -117,7 +152,9 @@ in
         binPaths = lib.pipe paths [
           (builtins.map (p: "${p}/bin"))
           (builtins.map (
-            builtins.replaceStrings [ "$USER" "$HOME" ] [ config.home.username config.home.homeDirectory ]
+            builtins.replaceStrings
+              [ "$USER" "$HOME" "\${XDG_STATE_HOME}" ]
+              [ config.home.username config.home.homeDirectory config.xdg.stateHome ]
           ))
         ];
 
@@ -136,11 +173,14 @@ in
             ${esepDirListToList "TERMINFO_DIRS"}
             ${esepDirListToList "XDG_CONFIG_DIRS"}
             ${esepDirListToList "XDG_DATA_DIRS"}
+            ${esepDirListToList "XCURSOR_PATH"}
           }
         ''
         + ''
           $env.PATH = $env.PATH | split row (char esep) | prepend [
-            ${lib.concatStringsSep " " (config.home.sessionPath ++ binPaths)}
+            ${lib.concatStringsSep "\n" (
+              (lib.optionals (args ? nixosConfig) [ "/run/wrappers/bin" ]) ++ config.home.sessionPath ++ binPaths
+            )}
           ] | uniq
         ''
       );
