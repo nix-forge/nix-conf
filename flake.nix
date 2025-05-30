@@ -210,18 +210,21 @@
     };
 
     # Firefox BetterFox
+    # TODO: use a package instead of a flake
     firefox-betterfox = {
       url = "github:yokoffing/Betterfox";
       flake = false;
     };
 
     # Firefox Arkenfox
+    # TODO: use a package instead of a flake
     firefox-arkenfox = {
       url = "github:arkenfox/user.js";
       flake = false;
     };
 
     # Firefox Lepton UI
+    # TODO: use a package instead of a flake
     firefox-lepton-ui = {
       url = "github:black7375/Firefox-UI-Fix";
       flake = false;
@@ -272,7 +275,6 @@
       url = "github:lilyinstarlight/nixos-cosmic";
       inputs = {
         flake-compat.follows = "flake-compat";
-
         # Don't overwrite nixpkgs as this could cause cache miss
       };
     };
@@ -428,7 +430,7 @@
       url = "https://flakehub.com/f/ryantm/agenix/*";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        darwin.follows = "";
+        darwin.follows = "nix-darwin";
         home-manager.follows = "home-manager";
       };
     };
