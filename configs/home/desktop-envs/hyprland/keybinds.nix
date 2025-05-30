@@ -247,7 +247,7 @@
       {
         bind = [
           # Open Rofi to launch a program
-          "SUPER, R, exec, ${lib.getExe config.programs.rofi.finalPackage} -show drun -show-icons"
+          "SUPER, Space, exec, ${lib.getExe config.programs.rofi.finalPackage} -show drun -show-icons"
         ];
       }
       ### FUNCTION KEYS ###
