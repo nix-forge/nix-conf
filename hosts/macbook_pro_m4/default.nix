@@ -9,7 +9,7 @@ let
 in
 {
   system = "aarch64-darwin";
-  hostname = "Ian-MBP";
+  hostName = "Ian-MBP";
 
   nixpkgsArgs = {
     config = {

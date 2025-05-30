@@ -6,6 +6,7 @@
 }:
 {
   system = "x86_64-linux";
+  hostName = "desktop";
   nixpkgsArgs = {
     config = {
       allowUnfree = true;

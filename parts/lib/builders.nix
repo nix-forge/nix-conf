@@ -127,7 +127,7 @@ let
         # Modules
         modules = concatLists [
           (singleton {
-            networking.hostName = folderName;
+            networking.hostName = args.hostname or args.hostName or folderName;
             nixpkgs = {
               overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
               hostPlatform = system;
@@ -240,7 +240,7 @@ let
         modules = concatLists [
           # Base Config
           (singleton {
-            networking.hostName = args.hostname or folderName;
+            networking.hostName = args.hostname or args.hostName or folderName;
             nixpkgs = {
               hostPlatform = system;
               flake.source = nixpkgs.outPath;
@@ -259,52 +259,11 @@ let
         ];
       }
     );
-
-  # mkIso is should be a set that extends mkSystem with necessary modules
-  # to create an Iso image
-  # we do not use mkNixosSystem because it overcomplicates things, an ISO does not require what we get in return for those complications
-  mkHostIso =
-    {
-      modules,
-      system,
-      hostname,
-      ...
-    }@args:
-    mkSystem {
-      specialArgs = {
-        inherit lib;
-      } // args.specialArgs or { };
-      modules = concatLists [
-        [
-          # provides options for modifying the ISO image
-          "${nixpkgs}/nixos/modules/installer/cd-dvd/iso-image.nix"
-
-          # bootstrap channels with the ISO image to avoid fetching them during installation
-          "${nixpkgs}/nixos/modules/installer/cd-dvd/channel.nix"
-
-          # make sure our installer can detect and interact with all hardware that is supported in Nixpkgs
-          # this loads basically every hardware related kernel module
-          "${nixpkgs}/nixos/modules/profiles/all-hardware.nix"
-        ]
-
-        (singleton {
-          networking.hostName = args.hostname;
-          nixpkgs = {
-            hostPlatform = mkDefault args.system;
-            flake.source = nixpkgs.outPath;
-          };
-        })
-
-        (args.modules or [ ])
-      ];
-    };
-
 in
 {
   inherit
     mkSystem
     mkHost
     mkDarwin
-    mkHostIso
     ;
 }
