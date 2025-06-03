@@ -2,7 +2,9 @@
   "nodes": {
     "agenix": {
       "inputs": {
-        "darwin": [],
+        "darwin": [
+          "nix-darwin"
+        ],
         "home-manager": [
           "home-manager"
         ],
