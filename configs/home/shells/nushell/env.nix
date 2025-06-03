@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ lib, config, ... }@args:
 {
   programs.nushell.extraEnv =
     let
