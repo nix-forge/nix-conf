@@ -230,34 +230,43 @@
         "telemetry.telemetryLevel" = "off";
         "terminal.integrated.localEchoEnabled" = "off";
       }
-      (
+
+      (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
         let
           shellPath = config.home.sessionVariables.SHELL;
           shellName = lib.last (lib.splitString "/" shellPath);
+          os = if pkgs.stdenv.isLinux then "linux" else "osx";
         in
         {
           # Define extra shells
-
-          "terminal.integrated.profiles.${if pkgs.stdenv.isLinux then "linux" else "osx"}" =
-            { }
-            // lib.optionalAttrs config.programs.nushell.enable {
-              ${shellName} = {
-                "path" = "${shellPath}";
-                "args" = [ "-l" ];
-                "icon" =
+          "terminal.integrated.profiles.${os}" = {
+            ${shellName} =
+              {
+                path = shellPath;
+                overrideName = true;
+                icon =
                   if shellName == "bash" then
                     "terminal-bash"
                   else if shellName == "nu" then
                     "chevron-right"
                   else
                     "terminal";
+              }
+              // lib.optionalAttrs (shellName == "nu") {
+                args = [ "--login --interactive" ];
               };
-            };
+          };
 
           # set the integrated terminal to use SHELL so make sure SHELL is set correctly
-          "terminal.integrated.defaultProfile.${if pkgs.stdenv.isLinux then "linux" else "osx"}" = shellName;
+          "terminal.integrated.defaultProfile.${os}" = shellName;
+
+          # set the default shell for automation tasks to a fully POSIX compliant shell
+          "terminal.integrated.automationProfile.${os}" = {
+            "path" = "${lib.getExe' pkgs.bashInteractive "sh"}";
+            "args" = [ "--login" ];
+          };
         }
-      )
+      ))
     ];
   };
 }
