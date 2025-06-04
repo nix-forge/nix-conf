@@ -14,7 +14,8 @@
         "use custom-completions/nix/nix-completions.nu *"
         "use custom-completions/ssh/ssh-completions.nu *"
         "use custom-completions/tar/tar-completions.nu *"
-
+      ]
+      ++ lib.optionals (pkgs.stdenv.isLinux) [
         "use modules/nix/nix.nu *"
       ]
       ++ lib.optionals (config.programs.aerospace.enable) [
