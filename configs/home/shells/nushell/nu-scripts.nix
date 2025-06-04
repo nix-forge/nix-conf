@@ -26,7 +26,7 @@
         "use aliases/bat/bat-aliases.nu *"
       ]
       ++ lib.optionals (config.programs.eza.enable) [
-        "use custom-completions/eza/eza-completions.nu *"
+        # "use custom-completions/eza/eza-completions.nu *"
         # "use aliases/eza/eza-aliases.nu *"
       ]
       ++ lib.optionals (config.programs.gh.enable) [
