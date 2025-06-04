@@ -23,13 +23,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # (base.mime { })
 
   ## Theming
-  # theming.basic
-  # theming.gtk
-  # {
-  #   # Firefox
-  #   # TODO: rethink if this is the best place to add this option as it becomes a manual process
-  #   stylix.targets.firefox.profileNames = [ "default" ];
-  # }
+  stylix
+  stylix.targets.firefox
 
   ## Desktop Environment
   (install pkgs.raycast) # app launcher
@@ -79,6 +74,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Communication
   (install pkgs.discord)
   (install pkgs.slack)
+  (install pkgs.zoom-us)
   # (install self.packages.${pkgs.system}.webcord)
   # (install pkgs.signal-desktop)
 
