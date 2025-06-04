@@ -4,8 +4,11 @@
 }:
 {
   imports = [
+    ./extra-config-before.nix
     ./config-dir-fix.nix
     ./env.nix
+    ./nu-scripts.nix
+    ./extra-config-after.nix
   ];
 
   # Enable Bash to all launching of Nushell with bash in other programs
@@ -14,7 +17,7 @@
   programs.nushell = {
     enable = true;
 
-    # DOCS: https://github.com/nushell/nushell/tree/main/crates/nu-utils/src/doc_config.nu
+    # DOCS: https://github.com/nushell/nushell/tree/main/crates/nu-utils/src/default_files
     settings = {
       # Remove the welcome banner message
       show_banner = false;
@@ -24,7 +27,7 @@
       };
 
       rm = {
-        always_trash = false;
+        always_trash = true;
       };
 
       edit_mode = "vi";
