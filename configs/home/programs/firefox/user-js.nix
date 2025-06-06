@@ -104,6 +104,7 @@ in
         "privacy.resistFingerprinting" = false;
 
         # Turn off fingerprinting protection to allow more fonts
+        "browser.contentblocking.category" = "custom";
         "privacy.fingerprintingProtection" = false;
 
         # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
