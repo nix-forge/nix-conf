@@ -452,6 +452,14 @@
         nixpkgs.follows = "nixpkgs";
       };
     };
+
+    nix-index = {
+      url = "github:nix-community/nix-index";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+      };
+    };
   };
 
   # nixConfig = {
