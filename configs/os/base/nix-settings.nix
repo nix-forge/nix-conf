@@ -46,9 +46,7 @@ in
       max-jobs = "auto";
       cores = 0;
 
-      allowed-users = [
-        "*"
-      ];
+      allowed-users = [ "*" ];
 
       # only allow sudo users to manage the nix store
       trusted-users = [

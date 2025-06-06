@@ -11,9 +11,7 @@
     (import ./keybinds.nix "default")
   ];
 
-  home.packages = [
-    pkgs.nerd-fonts.monaspace
-  ];
+  home.packages = [ pkgs.nerd-fonts.monaspace ];
 
   programs.vscode = {
     enable = true;
@@ -240,21 +238,17 @@
         {
           # Define extra shells
           "terminal.integrated.profiles.${os}" = {
-            ${shellName} =
-              {
-                path = shellPath;
-                overrideName = true;
-                icon =
-                  if shellName == "bash" then
-                    "terminal-bash"
-                  else if shellName == "nu" then
-                    "chevron-right"
-                  else
-                    "terminal";
-              }
-              // lib.optionalAttrs (shellName == "nu") {
-                args = [ "--login --interactive" ];
-              };
+            ${shellName} = {
+              path = shellPath;
+              overrideName = true;
+              icon =
+                if shellName == "bash" then
+                  "terminal-bash"
+                else if shellName == "nu" then
+                  "chevron-right"
+                else
+                  "terminal";
+            } // lib.optionalAttrs (shellName == "nu") { args = [ "--login --interactive" ]; };
           };
 
           # set the integrated terminal to use SHELL so make sure SHELL is set correctly

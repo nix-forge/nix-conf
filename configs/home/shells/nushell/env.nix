@@ -28,22 +28,14 @@ let
               ];
             in
             builtins.replaceStrings
-              [
-                rightSideVarPreset
-              ]
+              [ rightSideVarPreset ]
               [
                 ''" + (do { let x = ($env.${n}? | default ""); if $x == "" { "" } else { ":" + $x } }) | split row (char esep) | uniq''
               ]
               v;
         in
         lib.pipe v [
-          (replaceVars
-            [
-              "$HOME"
-              "$USER"
-            ]
-            [ config.home.username config.home.homeDirectory ]
-          )
+          (replaceVars [ "$HOME" "$USER" ] [ config.home.username config.home.homeDirectory ])
           replaceVarPresets
         ]
       ) vars

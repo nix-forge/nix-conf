@@ -18,9 +18,7 @@
     enable = true;
 
     # Set the language packs for firefox (be careful as unique configs lead to fingerprinting)s
-    languagePacks = [
-      "en-US"
-    ];
+    languagePacks = [ "en-US" ];
 
     # Custom module for Global UserChrome
     userChrome.profiles."${config.home.username}.default" = {

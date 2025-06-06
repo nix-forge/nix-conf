@@ -37,9 +37,7 @@ in
       wifi-ethernet-priority-num = builtins.toString 30;
 
       links = {
-        linkConfig = lib.mkIf randomizeMacAddress {
-          MACAddressPolicy = "random";
-        };
+        linkConfig = lib.mkIf randomizeMacAddress { MACAddressPolicy = "random"; };
       };
 
       networks =

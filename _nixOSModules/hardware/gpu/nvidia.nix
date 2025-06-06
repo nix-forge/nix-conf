@@ -157,9 +157,7 @@ in
       })
 
       # Nvidia for Docker Support
-      {
-        hardware.nvidia-container-toolkit.enable = true;
-      }
+      { hardware.nvidia-container-toolkit.enable = true; }
     ]
   );
 }

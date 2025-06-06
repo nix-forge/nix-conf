@@ -17,18 +17,14 @@ in
     };
   };
 
-  imports = [
-    inputs.ucodenix.nixosModules.default
-  ];
+  imports = [ inputs.ucodenix.nixosModules.default ];
 
   config = lib.mkIf cfg.enable (
     let
       kver = config.boot.kernelPackages.kernel.version;
     in
     lib.mkMerge [
-      {
-        services.ucodenix.enable = true;
-      }
+      { services.ucodenix.enable = true; }
 
       {
         hardware.enableRedistributableFirmware = lib.mkDefault true;
@@ -59,9 +55,7 @@ in
           (lib.mkIf ((lib.versionAtLeast kver "6.1") && (lib.versionOlder kver "6.3")) {
             kernelParams = [ "amd_pstate=passive" ];
           })
-          (lib.mkIf (lib.versionAtLeast kver "6.3") {
-            kernelParams = [ "amd_pstate=active" ];
-          })
+          (lib.mkIf (lib.versionAtLeast kver "6.3") { kernelParams = [ "amd_pstate=active" ]; })
         ];
       }
 

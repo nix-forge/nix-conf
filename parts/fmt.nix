@@ -23,6 +23,8 @@
           nixfmt = {
             enable = true;
             package = pkgs.nixfmt-rfc-style;
+
+            strict = true;
           };
 
           shellcheck.enable = true; # cannot be configured, errors on basic bash convention

@@ -15,6 +15,5 @@
       affenwiesel.matlab-formatter
     ];
 
-  programs.vscode.profiles.default.userSettings = {
-  };
+  programs.vscode.profiles.default.userSettings = { };
 }

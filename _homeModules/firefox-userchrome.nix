@@ -90,9 +90,7 @@ in
           "${profilesPath}/${profile.profile}/chrome/userChrome.css"
         else
           "${profilesPath}/${profile.profile}/chrome";
-      value = {
-        inherit (profile) source recursive;
-      };
+      value = { inherit (profile) source recursive; };
     }) cfg.profiles;
   };
 }

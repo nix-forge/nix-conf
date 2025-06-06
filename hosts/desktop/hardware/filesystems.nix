@@ -5,11 +5,7 @@ let
   bootLabel = "boot";
 
   mkFS = label: fsType: { inherit label fsType; };
-  btrfsOptions = subvol: extra: {
-    options = [
-      "subvol=${subvol}"
-    ] ++ extra;
-  };
+  btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
   defaultBTRFSOptions = [
     "compress-force=zstd:1"
     "noatime"

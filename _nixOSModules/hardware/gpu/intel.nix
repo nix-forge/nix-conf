@@ -57,9 +57,7 @@ in
           vpl-gpu-rt
         ];
 
-        extraPackages32 = with pkgs.pkgsi686Linux; [
-          intel-media-driver
-        ];
+        extraPackages32 = with pkgs.pkgsi686Linux; [ intel-media-driver ];
       };
 
       # Guc and HuC

@@ -47,9 +47,7 @@ in
     };
 
     # Git attributes for custom diff/merge handling
-    attributes = [
-      "*.pdf diff=pdf"
-    ];
+    attributes = [ "*.pdf diff=pdf" ];
 
     # Enable delta for beautiful side-by-side diffs
     delta = {

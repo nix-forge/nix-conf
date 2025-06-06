@@ -1,9 +1,7 @@
 { lib, config, ... }@args:
 let
   paths =
-    [
-      config.home.profileDirectory
-    ]
+    [ config.home.profileDirectory ]
     ++ lib.optionals (args ? darwinConfig) args.darwinConfig.environment.profiles
     ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
 

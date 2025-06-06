@@ -10,9 +10,7 @@
       extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
     with extensions.preferNixpkgsThenPreRelease;
-    [
-      xuanli.spice
-    ];
+    [ xuanli.spice ];
 
   programs.vscode.profiles.default.userSettings = {
     "files.associations" = {

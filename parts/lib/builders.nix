@@ -97,9 +97,7 @@ let
                 sharedModules = [
                   # Import AgeNix for managing secrets and install agenix package
                   inputs.agenix.homeManagerModules.default
-                  {
-                    home.packages = [ inputs.agenix.packages.${system}.agenix ];
-                  }
+                  { home.packages = [ inputs.agenix.packages.${system}.agenix ]; }
                 ];
               };
             }
@@ -148,9 +146,7 @@ let
           # Add AgeNix nixosModules
           [
             inputs.agenix.nixosModules.default
-            {
-              environment.systemPackages = [ inputs.agenix.packages.${system}.agenix ];
-            }
+            { environment.systemPackages = [ inputs.agenix.packages.${system}.agenix ]; }
           ]
 
           # Add custom options that are required for all hosts
@@ -261,9 +257,5 @@ let
     );
 in
 {
-  inherit
-    mkSystem
-    mkHost
-    mkDarwin
-    ;
+  inherit mkSystem mkHost mkDarwin;
 }

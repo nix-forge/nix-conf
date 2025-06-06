@@ -11,7 +11,5 @@ let
     importRec configRoot excludes;
 in
 {
-  flake = {
-    inherit tree;
-  };
+  flake = { inherit tree; };
 }

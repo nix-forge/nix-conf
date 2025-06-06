@@ -15,9 +15,7 @@
         "use custom-completions/ssh/ssh-completions.nu *"
         "use custom-completions/tar/tar-completions.nu *"
       ]
-      ++ lib.optionals (pkgs.stdenv.isLinux) [
-        "use modules/nix/nix.nu *"
-      ]
+      ++ lib.optionals (pkgs.stdenv.isLinux) [ "use modules/nix/nix.nu *" ]
       ++ lib.optionals (config.programs.aerospace.enable) [
         "use custom-completions/aerospace/aerospace-completions.nu *"
       ]
@@ -29,16 +27,12 @@
         # "use custom-completions/eza/eza-completions.nu *"
         # "use aliases/eza/eza-aliases.nu *"
       ]
-      ++ lib.optionals (config.programs.gh.enable) [
-        "use custom-completions/gh/gh-completions.nu *"
-      ]
+      ++ lib.optionals (config.programs.gh.enable) [ "use custom-completions/gh/gh-completions.nu *" ]
       ++ lib.optionals (config.programs.git.enable) [
         "use custom-completions/git/git-completions.nu *"
         "use aliases/git/git-aliases.nu *"
       ]
-      ++ lib.optionals (config.programs.man.enable) [
-        "use custom-completions/man/man-completions.nu *"
-      ]
+      ++ lib.optionals (config.programs.man.enable) [ "use custom-completions/man/man-completions.nu *" ]
       ++ lib.optionals (config.programs.zoxide.enable) [
         "use custom-completions/zoxide/zoxide-completions.nu *"
       ]
