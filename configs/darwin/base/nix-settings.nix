@@ -93,18 +93,18 @@
     };
   };
 
-  nixpkgs.config = {
-    # Allow broken packages to be built. Setting this to false means packages
-    # will refuse to evaluate sometimes, but only if they have been marked as
-    # broken for a specific reason. At that point we can either try to solve
-    # the breakage, or get rid of the package entirely.
-    allowBroken = false;
-    # allowUnsupportedSystem = true;
+  # nixpkgs.config = {
+  #   # Allow broken packages to be built. Setting this to false means packages
+  #   # will refuse to evaluate sometimes, but only if they have been marked as
+  #   # broken for a specific reason. At that point we can either try to solve
+  #   # the breakage, or get rid of the package entirely.
+  #   allowBroken = false;
+  #   # allowUnsupportedSystem = true;
 
-    # Default to none, add more as necessary. This is usually where
-    # electron packages go when they reach EOL.
-    permittedInsecurePackages = [ ];
-  };
+  #   # Default to none, add more as necessary. This is usually where
+  #   # electron packages go when they reach EOL.
+  #   permittedInsecurePackages = [ ];
+  # };
 
   # # Set the nix access token for github
   # system.activationScripts.githubTokenAccess = lib.stringAfter [ "agenix" ] ''
