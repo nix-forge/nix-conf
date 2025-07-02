@@ -1,7 +1,11 @@
 {
+  enablePodman ? false,
+}:
+{
   lib,
   pkgs,
   inputs,
+  config,
   ...
 }:
 {
@@ -10,12 +14,18 @@
       extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
     in
     with extensions.preferNixpkgsThenPreRelease;
-    [ ms-azuretools.vscode-docker ];
+    [
+      ms-azuretools.vscode-containers
+    ];
 
-  programs.vscode.profiles.default.userSettings = {
-    "[dockerfile]" = {
-      "editor.defaultFormatter" = "ms-azuretools.vscode-docker";
-      "editor.tabSize" = 4;
+  programs.vscode.profiles.default.userSettings =
+    {
+      "[dockerfile]" = {
+        "editor.defaultFormatter" = "ms-azuretools.vscode-containers";
+        "editor.tabSize" = 4;
+      };
+    }
+    // lib.optionalAttrs enablePodman {
+      "containers.containerClient" = "com.microsoft.visualstudio.containers.podman";
     };
-  };
 }
