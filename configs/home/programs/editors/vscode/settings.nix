@@ -69,7 +69,6 @@
 
         "editor.fontFamily" = lib.mkForce (
           lib.concatMapStringsSep ", " (s: "'${s}'") [
-            "Material Design Icons"
             "MonaspiceNe Nerd Font"
           ]
         );
@@ -78,9 +77,6 @@
         "editor.cursorBlinking" = "smooth";
         "editor.fontLigatures" = true;
         "editor.fontVariations" = true;
-
-        # for some reason it is not the same as the editor
-        "terminal.integrated.lineHeight" = 1.4;
 
         # popups are really annoying
         "editor.hover.delay" = 700;
