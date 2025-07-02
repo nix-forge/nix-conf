@@ -27,10 +27,10 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   stylix.targets.firefox
 
   ## Desktop Environment
-  (install pkgs.raycast) # app launcher
   window-managers.aerospace
 
   ## Web Browsers
+  (programs.defaultbrowser "firefox")
   programs.firefox
 
   ## Shell Environments
@@ -67,7 +67,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.verilog
   vscode.languages.javascript
   vscode.languages.typescript
-  vscode.languages.docker
+  (vscode.languages.docker { enablePodman = true; })
   vscode.languages.spice
   vscode.languages.matlab
 
