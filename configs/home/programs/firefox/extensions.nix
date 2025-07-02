@@ -16,11 +16,11 @@
       "private_browsing" = true;
     };
 
-    # Dark Reader
-    "addon@darkreader.org" = {
-      "installation_mode" = "force_installed";
-      "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi";
-    };
+    # # Dark Reader
+    # "addon@darkreader.org" = {
+    #   "installation_mode" = "force_installed";
+    #   "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi";
+    # };
 
     # SponsorBlock for YouTube
     "sponsorBlocker@ajay.app" = {
