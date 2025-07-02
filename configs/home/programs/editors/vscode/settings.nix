@@ -23,45 +23,49 @@
       let
         extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
       in
-      (with extensions.preferPreRelease; [
-        ## Appearances ##
-        bottledlactose.darkbox
-        pkief.material-icon-theme
+      (
+        with extensions.preferPreRelease;
+        (
+          [
+            ## Appearances ##
+            bottledlactose.darkbox
+            pkief.material-icon-theme
 
-        ## Intelligence ##
-        usernamehw.errorlens
-        christian-kohler.path-intellisense
-        streetsidesoftware.code-spell-checker
+            ## Intelligence ##
+            usernamehw.errorlens
+            christian-kohler.path-intellisense
+            streetsidesoftware.code-spell-checker
 
-        ## Version Control ##
-        # huizhou.githd
-        # mhutchie.git-graph
-        # phil294.git-log--graph
-        github.vscode-github-actions
+            ## Version Control ##
+            # huizhou.githd
+            # mhutchie.git-graph
+            # phil294.git-log--graph
+            github.vscode-github-actions
 
-        ## Collaboration Features
-        ms-vsliveshare.vsliveshare
+            ## Collaboration Features
+            ms-vsliveshare.vsliveshare
 
-        ## Editor Extension ##
-        sleistner.vscode-fileutils
-        aaron-bond.better-comments
-        kevinkyang.auto-comment-blocks
-        esbenp.prettier-vscode
+            ## Editor Extension ##
+            sleistner.vscode-fileutils
+            aaron-bond.better-comments
+            kevinkyang.auto-comment-blocks
+            esbenp.prettier-vscode
 
-        # Environment
-        mkhl.direnv
+            ## Basic Config Languages ##
+            kdl-org.kdl
+            redhat.vscode-yaml
+            tamasfe.even-better-toml
+            mechatroner.rainbow-csv
+            janisdd.vscode-edit-csv
+            tomoki1207.pdf
 
-        ## Basic Config Languages ##
-        kdl-org.kdl
-        redhat.vscode-yaml
-        tamasfe.even-better-toml
-        mechatroner.rainbow-csv
-        janisdd.vscode-edit-csv
-        tomoki1207.pdf
-
-        # Extra
-        ms-vscode-remote.remote-ssh
-      ]);
+            # Extra
+            ms-vscode-remote.remote-ssh
+          ]
+          # Direnv integration
+          ++ lib.optionals config.programs.direnv.enable [ mkhl.direnv ]
+        )
+      );
 
     profiles.default.userSettings = lib.mkMerge [
       {
@@ -145,7 +149,7 @@
 
         "[yaml]" = {
           "editor.tabSize" = 2;
-          "editor.defaultFormatter" = "esbenp.prettier-vscode";
+          "editor.defaultFormatter" = "redhat.vscode-yaml";
         };
 
         ## VCS Behavior ##
@@ -257,6 +261,12 @@
           };
         }
       ))
+
+      # Direnv settings
+      (lib.mkIf config.programs.direnv.enable {
+        "direnv.path.executable" = lib.getExe config.programs.direnv.package;
+      })
+
     ];
   };
 }
