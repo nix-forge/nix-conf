@@ -11,7 +11,7 @@ in
 {
   imports = [
     ./extra-config-before.nix
-    ./config-dir-fix.nix
+    # ./config-dir-fix.nix
     ./env.nix
     ./nu-scripts.nix
     ./extra-config-after.nix
