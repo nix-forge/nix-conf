@@ -18,7 +18,7 @@ in
   # Generate allowed_signers file at runtime
   home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${config.xdg.configHome}/git
-    echo "$(cat ${gitUserEmail}) namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
+    echo "${gitUserEmail} namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
   '';
 
   programs.git = {
