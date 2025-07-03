@@ -53,6 +53,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.github-cli
   dev.nix-formatter
   dev.podman
+  (install pkgs.just)
 
   ## Code Editors
   (varBin "EDITOR" "nvim")

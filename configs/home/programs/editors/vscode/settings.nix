@@ -51,13 +51,14 @@
             kevinkyang.auto-comment-blocks
             esbenp.prettier-vscode
 
-            ## Basic Config Languages ##
+            ## Base Language Support ##
             kdl-org.kdl
             redhat.vscode-yaml
             tamasfe.even-better-toml
             mechatroner.rainbow-csv
             janisdd.vscode-edit-csv
             tomoki1207.pdf
+            nefrob.vscode-just-syntax
 
             # Extra
             ms-vscode-remote.remote-ssh
