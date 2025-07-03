@@ -20,11 +20,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   base.fonts
   # ./hardware
   # ./secrets.nix
-  # (base.mime { })
+  # (base.mime { }) m
 
   ## Theming
   stylix
-  stylix.targets.firefox
+  (stylix.targets.firefox config.home.username)
 
   ## Desktop Environment
   window-managers.aerospace
