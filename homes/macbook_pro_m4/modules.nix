@@ -71,6 +71,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (vscode.languages.docker { enablePodman = true; })
   vscode.languages.spice
   vscode.languages.matlab
+  vscode.languages.typst
 
   ## Communication
   (install pkgs.discord)
