@@ -266,6 +266,10 @@
       # Direnv settings
       (lib.mkIf config.programs.direnv.enable {
         "direnv.path.executable" = lib.getExe config.programs.direnv.package;
+
+        "files.associations" = {
+          ".envrc" = "plaintext";
+        };
       })
 
     ];
