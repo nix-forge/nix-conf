@@ -28,6 +28,6 @@ in
 
     boot.extraModprobeConfig = lib.mkIf (
       cfg.kvm.enable && cfg.kvm.nestedVirtualization
-    ) "options kvm_amd nested=1";
+    ) "options kvm_intel nested=1";
   };
 }
