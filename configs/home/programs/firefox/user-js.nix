@@ -1,3 +1,4 @@
+profileName:
 {
   lib,
   config,
@@ -12,11 +13,8 @@ let
     );
 in
 {
-  programs.firefox.profiles."${config.home.username}.default" = {
+  programs.firefox.profiles.${profileName} = {
     extraConfig = lib.strings.concatLines [
-      # Firefox Lepton UI
-      (builtins.readFile "${inputs.firefox-lepton-ui}/user.js")
-
       # Arkenfox
       (builtins.readFile "${inputs.firefox-arkenfox}/user.js")
 

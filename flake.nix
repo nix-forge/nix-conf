@@ -223,9 +223,9 @@
       flake = false;
     };
 
-    # Firefox Lepton UI
+    # Firefox UI Fix
     # TODO: use a package instead of a flake
-    firefox-lepton-ui = {
+    firefox-ui-fix = {
       url = "github:black7375/Firefox-UI-Fix";
       flake = false;
     };

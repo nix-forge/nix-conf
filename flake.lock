@@ -338,7 +338,7 @@
         "type": "github"
       }
     },
-    "firefox-lepton-ui": {
+    "firefox-ui-fix": {
       "flake": false,
       "locked": {
         "lastModified": 1751211570,
@@ -1823,7 +1823,7 @@
         "determinate": "determinate",
         "firefox-arkenfox": "firefox-arkenfox",
         "firefox-betterfox": "firefox-betterfox",
-        "firefox-lepton-ui": "firefox-lepton-ui",
+        "firefox-ui-fix": "firefox-ui-fix",
         "flake-compat": "flake-compat_2",
         "flake-parts": "flake-parts_2",
         "flake-utils": "flake-utils",

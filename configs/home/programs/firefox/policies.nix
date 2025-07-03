@@ -1,7 +1,6 @@
 {
   programs.firefox.policies = {
     DisplayBookmarksToolbar = "never";
-
     DisableFirefoxAccounts = true;
     PasswordManagerEnabled = false;
     DisablePocket = true;

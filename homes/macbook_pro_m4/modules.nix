@@ -31,7 +31,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Web Browsers
   (programs.defaultbrowser "firefox")
-  programs.firefox
+  (programs.firefox.default config.home.username)
 
   ## Shell Environments
   shells.nushell

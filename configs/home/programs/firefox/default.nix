@@ -1,40 +1,27 @@
+profileName:
 {
-  self,
-  config,
-  inputs,
-  pkgs,
   ...
 }:
 {
   imports = [
     ./blocking.nix
     ./policies.nix
-    ./extensions.nix
-    ./user-js.nix
-    self.homeManagerModules.firefox-userchrome
+    (import ./extensions.nix profileName)
+    (import ./user-js.nix profileName)
+    (import ./search.nix profileName)
+    (import ./theme.nix profileName)
   ];
 
   programs.firefox = {
     enable = true;
 
-    # Set the language packs for firefox (be careful as unique configs lead to fingerprinting)s
+    # Set the language packs for firefox (be careful as unique configs can lead to fingerprinting)
     languagePacks = [ "en-US" ];
 
-    # Custom module for Global UserChrome
-    userChrome.profiles."${config.home.username}.default" = {
-      source = inputs.firefox-lepton-ui;
-      recursive = true;
-      # extraSettings = {
-      #   "browser.uidensity" = 1;
-      #   "ui.prefersReducedMotion" = 1;
-      #   "browser.tabs.tabMinWidth" = 130;
-      # };
-    };
-
-    profiles."${config.home.username}.default" = {
+    profiles.${profileName} = {
       id = 0;
       isDefault = true;
-      name = "${config.home.username}.default";
+      name = profileName;
     };
   };
 }
