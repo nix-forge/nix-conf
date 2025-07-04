@@ -174,6 +174,23 @@
         "type": "github"
       }
     },
+    "brew-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1749511373,
+        "narHash": "sha256-7u1TdHQaUCzzgf/n8T3bQosuYXyNBEPU/3WQQqozE5o=",
+        "owner": "Homebrew",
+        "repo": "brew",
+        "rev": "7b4ef99fed96966269ee35994407fa4c06097a4d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Homebrew",
+        "ref": "4.5.6",
+        "repo": "brew",
+        "type": "github"
+      }
+    },
     "cl-nix-lite": {
       "locked": {
         "lastModified": 1728174978,
@@ -691,6 +708,38 @@
       "original": {
         "owner": "nix-community",
         "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "homebrew-cask": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1751602331,
+        "narHash": "sha256-jQGT6Bo6bbawcY9PyCHHURtIDSP0Mzkfjw5lAtEjHbk=",
+        "owner": "homebrew",
+        "repo": "homebrew-cask",
+        "rev": "9cbfd411c9a7d9e85c36f9711633ff38e67efcac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "homebrew",
+        "repo": "homebrew-cask",
+        "type": "github"
+      }
+    },
+    "homebrew-core": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1751603186,
+        "narHash": "sha256-gqmawgTW8n24zJAArSi8JgXU6uJqfQRZo1z7pBu1SwE=",
+        "owner": "homebrew",
+        "repo": "homebrew-core",
+        "rev": "c81f6c37c111462a231e27c46f09f17ab1b1da37",
+        "type": "github"
+      },
+      "original": {
+        "owner": "homebrew",
+        "repo": "homebrew-core",
         "type": "github"
       }
     },
@@ -1365,6 +1414,24 @@
         "type": "github"
       }
     },
+    "nix-homebrew": {
+      "inputs": {
+        "brew-src": "brew-src"
+      },
+      "locked": {
+        "lastModified": 1749952250,
+        "narHash": "sha256-V2ix0knpdJXirQ+4pjbnggjdSALTsFWGIP/NDpaQkdU=",
+        "owner": "zhaofengli",
+        "repo": "nix-homebrew",
+        "rev": "37126f06f4890f019af3d7606ce5d30a457afcd0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zhaofengli",
+        "repo": "nix-homebrew",
+        "type": "github"
+      }
+    },
     "nix-index": {
       "inputs": {
         "flake-compat": [
@@ -1829,6 +1896,8 @@
         "flake-utils": "flake-utils",
         "geospatial-nix": "geospatial-nix",
         "home-manager": "home-manager",
+        "homebrew-cask": "homebrew-cask",
+        "homebrew-core": "homebrew-core",
         "hyprcursor": "hyprcursor",
         "hyprgraphics": "hyprgraphics",
         "hyprland": "hyprland",
@@ -1845,6 +1914,7 @@
         "nix-darwin": "nix-darwin",
         "nix-direnv": "nix-direnv",
         "nix-gaming": "nix-gaming",
+        "nix-homebrew": "nix-homebrew",
         "nix-index": "nix-index",
         "nix-minecraft": "nix-minecraft",
         "nix-secrets": "nix-secrets",

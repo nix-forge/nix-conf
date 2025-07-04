@@ -26,6 +26,8 @@ in
 
     security.pam
 
+    homebrew
+
     ./users.nix
   ];
 }
