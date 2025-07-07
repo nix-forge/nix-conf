@@ -3,6 +3,10 @@
     DisplayBookmarksToolbar = "never";
     DisableFirefoxAccounts = true;
     PasswordManagerEnabled = false;
+    AutofillAddressEnabled = false;
+    AutofillCreditCardEnabled = false;
+    DisableMasterPasswordCreation = true;
+    DisablePasswordReveal = true;
     DisablePocket = true;
     DisableTelemetry = true;
     HardwareAcceleration = true;
