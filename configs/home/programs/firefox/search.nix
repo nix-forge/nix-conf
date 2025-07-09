@@ -28,17 +28,35 @@ profileName:
             ];
           }
         ];
-
         icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-        definedAliases = [ "@np" ];
+        definedAliases = [
+          "@nixpkgs"
+          "@np"
+        ];
       };
 
       nixos-wiki = {
         name = "NixOS Wiki";
-        urls = [ { template = "https://wiki.nixos.org/w/index.php?search={searchTerms}"; } ];
-        iconMapObj."16" = "https://wiki.nixos.org/favicon.ico";
-        definedAliases = [ "@nw" ];
+        urls = [
+          {
+            template = "https://wiki.nixos.org/w/index.php";
+            params = [
+              {
+                name = "search";
+                value = "{searchTerms}";
+              }
+            ];
+          }
+        ];
+        icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+        definedAliases = [
+          "@nixos-wiki"
+          "@nw"
+        ];
       };
+
+      bing.metaData.hidden = true;
+      ebay.metaData.hidden = true;
     };
   };
 }
