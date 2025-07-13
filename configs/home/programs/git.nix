@@ -63,13 +63,15 @@ in
     lfs.enable = true;
 
     # Global ignores for files you never want to track
-    ignores = [
-      "*~"
-      "*.swp"
-      ".DS_Store"
-      ".direnv/"
-      "node_modules/"
-    ];
+    ignores =
+      [
+        "*~"
+        "*.swp"
+        ".DS_Store"
+      ]
+      ++ lib.optionals (config.programs.direnv.enable) [
+        ".direnv/"
+      ];
 
     # Extra global Git config options
     extraConfig = {
