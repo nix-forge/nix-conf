@@ -69,6 +69,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.nix-formatter
   dev.podman
   (install pkgs.just)
+  { services.ollama.enable = true; }
 
   ## Development Languages
   dev.languages.c
