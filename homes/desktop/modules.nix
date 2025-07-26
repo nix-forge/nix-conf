@@ -17,7 +17,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Base
   base.version
   base.fonts
-  ./secrets.nix
+  # ./secrets.nix
   (base.mime { })
 
   ## Theming

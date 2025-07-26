@@ -422,14 +422,10 @@
     ucodenix.url = "github:e-tho/ucodenix";
 
     # Agenix
-    agenix = {
-      url = "https://flakehub.com/f/ryantm/agenix/*";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        darwin.follows = "nix-darwin";
-        home-manager.follows = "home-manager";
-      };
-    };
+    # agenix = {
+    #   url = "github:ryantm/agenix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
 
     # Ags
     # ags = {

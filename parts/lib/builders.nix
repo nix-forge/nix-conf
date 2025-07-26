@@ -92,13 +92,6 @@ let
                 extraSpecialArgs = homeSpecialArgs // {
                   inherit nixosConfig;
                 };
-
-                # configuration options for all user configs
-                sharedModules = [
-                  # Import AgeNix for managing secrets and install agenix package
-                  inputs.agenix.homeManagerModules.default
-                  { home.packages = [ inputs.agenix.packages.${system}.agenix ]; }
-                ];
               };
             }
           )
