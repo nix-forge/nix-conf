@@ -6,7 +6,7 @@
   ...
 }:
 let
-  package = inputs.nixpkgs-wayland.packages.${pkgs.system}.waybar;
+  # package = inputs.nixpkgs-wayland.packages.${pkgs.system}.waybar;
 
   # the fonts that will be included with the waybar package
   fontPackages = [
@@ -17,7 +17,7 @@ let
   # patch those fonts in
   package' =
     let
-      super = package;
+      super = pkgs.waybar;
     in
     pkgs.symlinkJoin {
       inherit (super)
