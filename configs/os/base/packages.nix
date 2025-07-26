@@ -13,7 +13,7 @@
 
   # Packages which are appropriate for a typical Linux system.
   # There should be **no GUI programs** in this list.
-  environment.systemPackages = (tree.configs.shared.base.pkgs { inherit pkgs; }) ++ [
+  environment.systemPackages = [
     config.boot.kernelPackages.cpupower
     pkgs.nixos-rebuild-ng
   ];
