@@ -36,7 +36,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.waybar
   # programs.ags
   (install pkgs.nautilus)
-  (install pkgs.apostrophe)
+  # (install pkgs.apostrophe)
   (install pkgs.motrix)
   (install pkgs.pinta)
 
@@ -99,7 +99,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
 
   ## Media Consumption
   programs.spotify
-  (install pkgs.rhythmbox)
+  # (install pkgs.rhythmbox)
 
   ## Office Software
   programs.libreoffice
