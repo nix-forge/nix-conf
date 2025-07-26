@@ -162,6 +162,7 @@
 
         # prevent pollute history with whitespace changes
         "diffEditor.ignoreTrimWhitespace" = false;
+        "diffEditor.renderSideBySide" = false;
 
         ## Navigation Behavior ##
 
