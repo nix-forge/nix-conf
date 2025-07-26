@@ -43,6 +43,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # shells.tmux
 
   ## Terminal Emulators
+  (varBin "TERMINAL" "ghostty")
   programs.ghostty
 
   ## Development Tools
