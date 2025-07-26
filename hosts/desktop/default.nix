@@ -76,7 +76,7 @@
 
     ## Services
     services.disable-hibernate
-    services.runners
+    # services.runners
 
     # Programs
     # TODO: add neovim base config and better config in home-manager
