@@ -23,11 +23,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Theming
   theming.basic
   theming.gtk
-  {
-    # Firefox
-    # TODO: rethink if this is the best place to add this option as it becomes a manual process
-    stylix.targets.firefox.profileNames = [ "${config.home.username}.default" ];
-  }
+  stylix
+  (stylix.targets.firefox config.home.username)
 
   ## Desktop Environment
   desktop-envs.hyprland
@@ -47,7 +44,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.gparted
 
   ## Web Browsers
-  programs.firefox
+  (programs.defaultbrowser "firefox")
+  (programs.firefox.default config.home.username)
   { programs.chromium.enable = true; }
 
   ## Shell Environments
@@ -69,6 +67,8 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.direnv
   dev.github-cli
   dev.nix-formatter
+  dev.podman
+  (install pkgs.just)
 
   ## Development Languages
   dev.languages.c
@@ -87,12 +87,15 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.verilog
   vscode.languages.javascript
   vscode.languages.typescript
-  vscode.languages.docker
+  (vscode.languages.docker { enablePodman = true; })
   vscode.languages.spice
+  vscode.languages.matlab
+  vscode.languages.typst
 
   ## Communication
-  programs.discord
+  (install pkgs.discord)
   (install pkgs.slack)
+  (install pkgs.zoom-us)
 
   ## Media Consumption
   programs.spotify
@@ -102,12 +105,12 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.libreoffice
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
-  (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
+  # (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
 
   ## Video Games
-  gaming
-  (install pkgs.prismlauncher)
-  (install pkgs.lutris)
+  # gaming
+  # (install pkgs.prismlauncher)
+  # (install pkgs.lutris)
 
   ## Misc
   # { home.sessionVariables = sharedDir.env.wayland.default; }
