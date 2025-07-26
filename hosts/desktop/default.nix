@@ -20,7 +20,7 @@
     base.base
     base.kernel
     base.packages
-    secrets
+    # secrets
     users
 
     ## Boot

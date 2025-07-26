@@ -4,9 +4,6 @@
   lib,
   ...
 }:
-let
-  inherit (config.age.secrets) githubAccessToken;
-in
 {
   # Push the user's nix.conf into /etc/nix/nix.custom.conf,
   # leaving determinate-nixd to manage /etc/nix/nix.conf
@@ -199,13 +196,6 @@ in
   systemd.services.nix-gc = {
     unitConfig.ConditionACPower = true;
   };
-
-  # Set the nix access token for github
-  system.activationScripts.githubTokenAccess = lib.stringAfter [ "agenix" ] ''
-    echo "access-tokens = github.com=$(cat ${githubAccessToken.path})" > /etc/nix/github-token.conf
-    chmod 0400 /etc/nix/github-token.conf
-    chown root:root /etc/nix/github-token.conf
-  '';
 
   nix.extraOptions = ''
     !include /etc/nix/github-token.conf

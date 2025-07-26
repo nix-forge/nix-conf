@@ -23,7 +23,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Theming
   theming.basic
   theming.gtk
-  stylix
+  # stylix
   (stylix.targets.firefox config.home.username)
 
   ## Desktop Environment

@@ -143,12 +143,6 @@ let
           # Home Manager modules
           nixosHomeManager
 
-          # Add AgeNix nixosModules
-          [
-            inputs.agenix.nixosModules.default
-            { environment.systemPackages = [ inputs.agenix.packages.${system}.agenix ]; }
-          ]
-
           # Add custom options that are required for all hosts
           defaultCustomOptions
         ];
