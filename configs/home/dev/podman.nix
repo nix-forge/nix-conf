@@ -10,7 +10,12 @@ let
     };
   };
 
-  darwin = lib.mkIf (pkgs.stdenv.isDarwin) { home.packages = [ pkgs.podman ]; };
+  darwin = lib.mkIf (pkgs.stdenv.isDarwin) {
+    home.packages = [
+      pkgs.podman
+      pkgs.podman-compose
+    ];
+  };
 in
 lib.mkMerge [
   darwin
