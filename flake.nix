@@ -135,7 +135,6 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
-      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     flake-utils.url = "https://flakehub.com/f/numtide/flake-utils/*";
@@ -183,10 +182,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
-        home-manager.follows = "home-manager";
-        flake-compat.follows = "flake-compat";
         flake-parts.follows = "flake-parts";
-        git-hooks.follows = "pre-commit-hooks";
         nur.follows = "nur";
       };
     };
