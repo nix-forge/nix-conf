@@ -20,7 +20,7 @@ in
 
   programs.vscode.profiles.default.userSettings = {
     "nix.enableLanguageServer" = true;
-    "nix.serverPath" = lib.getExe inputs.nixd.packages.${pkgs.system}.nixd;
+    "nix.serverPath" = lib.getExe pkgs.nixd; # inputs.nixd.packages.${pkgs.system}.nixd
     "nix.serverSettings".nixd = {
       formatting.command = [
         "${lib.getExe pkgs.nixfmt-rfc-style}"
