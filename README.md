@@ -33,6 +33,8 @@ Replace `<host>` with one of the directories under `hosts/`.
 
 The resulting build can be switched to with `sudo nixos-rebuild switch --flake .#<host>` on Linux or `darwin-rebuild switch --flake .#<host>` on macOS.
 
+If you need ssh keys for the system on darwin systems you can use the command `sudo ssh-keygen -A`.
+
 ## Home Manager only
 
 Home Manager configurations are located under `homes/`. Each host imports one of these collections. To use a home setup standalone you can build:

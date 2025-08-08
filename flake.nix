@@ -96,17 +96,17 @@
     systems.url = "github:nix-systems/default";
 
     # Latest Nixpkgs Unstable
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     # Determinate
-    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/0.1";
+    determinate.url = "github:DeterminateSystems/determinate";
 
     # Flake Parts
-    flake-parts.url = "https://flakehub.com/f/hercules-ci/flake-parts/*";
+    flake-parts.url = "github:hercules-ci/flake-parts";
 
     # Latest Home Manager
     home-manager = {
-      url = "https://flakehub.com/f/nix-community/home-manager/0.1";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -125,9 +125,9 @@
     };
 
     # Nix Secrets (from personal private repo)
-    nix-secrets = {
-      url = "git+ssh://git@github.com/IanHollow/nix-secrets.git?shallow=1";
-      flake = false;
+    nix-secrets= {
+      url = "git+ssh://git@github.com/IanHollow/nix-secrets.git?ref=main&shallow=1";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # NUR
@@ -137,9 +137,9 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-    flake-utils.url = "https://flakehub.com/f/numtide/flake-utils/*";
+    flake-utils.url = "github:numtide/flake-utils";
 
-    flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/*";
+    flake-compat.url = "github:edolstra/flake-compat";
 
     # A tree-wide formatter
     treefmt-nix = {
@@ -158,7 +158,7 @@
 
     # Nix Language Server
     nixd = {
-      url = "https://flakehub.com/f/nix-community/nixd/*";
+      url = "github:nix-community/nixd";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -168,7 +168,7 @@
 
     # Nix Direnv
     nix-direnv = {
-      url = "https://flakehub.com/f/nix-community/nix-direnv/*";
+      url = "github:nix-community/nix-direnv";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -178,7 +178,7 @@
 
     # Stylix
     stylix = {
-      url = "https://flakehub.com/f/danth/stylix/*";
+      url = "github:danth/stylix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
@@ -247,7 +247,7 @@
 
     # Geospatial Nix
     geospatial-nix = {
-      url = "https://flakehub.com/f/imincik/geospatial-nix/*";
+      url = "github:imincik/geospatial-nix";
       inputs = {
         flake-compat.follows = "flake-compat";
         flake-utils.follows = "flake-utils";
@@ -259,8 +259,9 @@
 
     # Nixvim
     nixvim = {
-      url = "https://flakehub.com/f/nix-community/nixvim/*";
+      url = "github:nix-community/nixvim";
       inputs = {
+        systems.follows = "systems";
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
       };
@@ -349,14 +350,14 @@
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
 
-    pre-commit-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "flake-compat";
-    };
+    # pre-commit-hooks = {
+    #   url = "github:cachix/git-hooks.nix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    #   inputs.flake-compat.follows = "flake-compat";
+    # };
 
     hyprland = {
-      url = "https://flakehub.com/f/hyprwm/Hyprland/*";
+      url = "github:hyprwm/Hyprland";
       # inputs = {
       #   nixpkgs.follows = "nixpkgs";
       #   systems.follows = "systems";
@@ -400,32 +401,37 @@
       };
     };
 
-    lib-aggregate = {
-      url = "github:nix-community/lib-aggregate";
-      inputs = {
-        flake-utils.follows = "flake-utils";
-        nixpkgs-lib.follows = "nixpkgs";
-      };
-    };
+    # lib-aggregate = {
+    #   url = "github:nix-community/lib-aggregate";
+    #   inputs = {
+    #     flake-utils.follows = "flake-utils";
+    #     nixpkgs-lib.follows = "nixpkgs";
+    #   };
+    # };
 
-    nixpkgs-wayland = {
-      url = "github:nix-community/nixpkgs-wayland";
-      inputs = {
-        # Don't overwrite nixpkgs as this could cause cache miss
+    # nixpkgs-wayland = {
+    #   url = "github:nix-community/nixpkgs-wayland";
+    #   inputs = {
+    #     # Don't overwrite nixpkgs as this could cause cache miss
 
-        lib-aggregate.follows = "lib-aggregate";
-        flake-compat.follows = "flake-compat";
-      };
-    };
+    #     lib-aggregate.follows = "lib-aggregate";
+    #     flake-compat.follows = "flake-compat";
+    #   };
+    # };
 
     # AMD microcode updates
     ucodenix.url = "github:e-tho/ucodenix";
 
     # Agenix
-    # agenix = {
-    #   url = "github:ryantm/agenix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs = {
+        systems.follows = "systems";
+        nixpkgs.follows = "nixpkgs";
+        darwin.follows = "nix-darwin";
+        home-manager.follows = "home-manager";
+      };
+    };
 
     # Ags
     # ags = {
@@ -471,7 +477,7 @@
   #     "https://cache.nixos.org" # official nix cache
   #     "https://nix-community.cachix.org" # nix-community cache
   #     "https://nixpkgs-unfree.cachix.org" # unfree-package cache
-  #     # "https://cache.garnix.io" # garnix binary cache
+  #     "https://cache.garnix.io" # garnix binary cache
   #     "https://geonix.cachix.org" # geospatial nix
   #     "https://nix-gaming.cachix.org" # nix-gaming cache
   #     "https://cosmic.cachix.org" # cosmic desktop
@@ -483,7 +489,7 @@
   #     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
   #     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
   #     "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
-  #     # "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+  #     "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
   #     "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
   #     "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
   #     "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="

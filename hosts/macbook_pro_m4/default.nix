@@ -20,6 +20,8 @@ in
   modules = with (tree.hosts.${folderName} // tree.configs.darwin); [
     base.base
     base.nix-settings
+    ./cache.nix
+    ./secrets.nix
 
     { system.primaryUser = "ianmh"; }
     { time.timeZone = "America/Los_Angeles"; }
