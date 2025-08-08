@@ -29,6 +29,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Environment
   window-managers.aerospace
 
+  ## Desktop Applications
+  # (install pkgs.bitwarden-desktop) # TODO: try install from apple store with homebrew
+
   ## Web Browsers
   (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username)
@@ -55,7 +58,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   dev.nix-formatter
   dev.podman
   (install pkgs.just)
-  { services.ollama.enable = true; }
+  # { services.ollama.enable = true; }
 
   ## Code Editors
   (varBin "EDITOR" "nvim")
@@ -77,7 +80,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   vscode.languages.typst
 
   ## Communication
-  (install pkgs.discord)
+  # (install pkgs.discord)
   (install pkgs.slack)
   (install pkgs.zoom-us)
   # (install self.packages.${pkgs.system}.webcord)
