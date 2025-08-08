@@ -43,7 +43,7 @@
     # TODO: move this to config specific to the user or system
     casks = [
       "signal"
-      "gimp"
+      "discord"
     ];
   };
 }
