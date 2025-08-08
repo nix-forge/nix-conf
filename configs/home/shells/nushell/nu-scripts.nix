@@ -30,7 +30,7 @@
       ++ lib.optionals (config.programs.gh.enable) [ "use custom-completions/gh/gh-completions.nu *" ]
       ++ lib.optionals (config.programs.git.enable) [
         "use custom-completions/git/git-completions.nu *"
-        "use aliases/git/git-aliases.nu *"
+        # "use aliases/git/git-aliases.nu *"
       ]
       ++ lib.optionals (config.programs.man.enable) [ "use custom-completions/man/man-completions.nu *" ]
       ++ lib.optionals (config.programs.zoxide.enable) [
