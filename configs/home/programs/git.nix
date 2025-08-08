@@ -25,7 +25,7 @@ in
     enable = true;
 
     # Use gitFull for extra features like send-email, credential support, etc.
-    package = pkgs.gitFull;
+    # package = pkgs.gitFull;
 
     userName = gitUserName;
     userEmail = gitUserEmail;
