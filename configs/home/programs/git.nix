@@ -1,8 +1,12 @@
 {
   config,
+  pkgs,
   lib,
   ...
 }:
+let
+  inherit (pkgs.stdenv) isLinux isDarwin;
+in
 {
   # Remove existing .gitconfig to avoid conflicts with runtime include
   home.activation.removeExistingGitconfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
@@ -11,6 +15,13 @@
 
   programs.git = {
     enable = true;
+
+    package = pkgs.git.override {
+      osxkeychainSupport = isDarwin;
+      withLibsecret = isLinux;
+    };
+
+    maintenance.enable = true;
 
     # Commit signing using SSH key (much easier than GPG)
     signing = {
@@ -56,23 +67,47 @@
 
     # Extra global Git config options
     extraConfig = {
+      ## Basic Settings
+
+      init.defaultBranch = "main";
+
       fetch.prune = true;
+      commit.verbose = true;
+
+      pull.rebase = true;
       rebase.autoStash = true;
       rebase.autosquash = true;
       rebase.updateRefs = true;
       merge.conflictStyle = "zdiff3";
-      commit.verbose = true;
+
       push.followTags = true;
       push.autoSetupRemote = true;
-      pull.rebase = true;
       push.default = "simple";
+
+      ## Enable Performance Enhancements
+
+      # set protocol version to 2 for better performance if version greater than 2.18.0
+      protocol.version = lib.mkIf (lib.versionAtLeast config.programs.git.package.version "2.18.0") 2;
+
+      core.fsmonitor = true;
+      core.untrackedCache = true;
+      feature.manyFiles = true;
+      gc.writeCommitGraph = true;
+      fetch.writeCommitGraph = true;
+      index.threads = 0;
+
+      ## Miscellaneous Settings
+
+      core.autocrlf = "input";
+
+      submodule.recurse = true;
+      fetch.recurseSubmodules = "on-demand";
+      diff.submodule = "log";
 
       core = {
         editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
       };
-
-      init.defaultBranch = "main"; # Set default branch name on new repos
 
       gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
     };

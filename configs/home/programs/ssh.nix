@@ -1,23 +1,67 @@
-{ lib, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+let
+  inherit (pkgs.stdenv) isDarwin;
+  cmDir = "${config.home.homeDirectory}/.ssh/cm"; # short path for mux sockets
+in
 {
   programs.ssh = {
     enable = true;
 
-    # Automatically add keys to ssh-agent when used
-    addKeysToAgent = "yes";
-
-    # Improve performance slightly for slow connections
-    compression = true;
-
-    # Enable SSH connection multiplexing (nice for git/ssh)
+    # Fast, reliable connections
     controlMaster = "auto";
-    controlPath = "~/.ssh/master-%r@%n:%p";
-    controlPersist = "10m"; # Reuse SSH connections for 10 minutes
+    controlPersist = "10m";
+    controlPath = "${cmDir}/%C"; # hashed path avoids 'too long' errors
+    compression = true; # good on slow/latency links
 
-    # Improve security & convenience
+    # Safety + convenience
     hashKnownHosts = true;
-    forwardAgent = lib.mkForce false; # Avoid using unless you need to forward your SSH key
+    addKeysToAgent = "yes";
+    forwardAgent = lib.mkForce false; # only enable per-host when needed
     serverAliveInterval = 60;
     serverAliveCountMax = 3;
+
+    extraConfig = ''
+      # Prefer key auth and stop trying passwords (faster, fewer lockouts)
+      PreferredAuthentications publickey
+      IdentitiesOnly yes
+
+      # Accept host key updates for hosts you already trust (key rotation)
+      UpdateHostKeys yes
+
+      # Small QoL
+      TCPKeepAlive yes
+      EscapeChar none
+      VisualHostKey yes
+
+      ${lib.optionalString isDarwin ''
+        # macOS: allow Apple's ssh special flag without breaking upstream ssh
+        IgnoreUnknown UseKeychain
+        UseKeychain yes
+      ''}
+    '';
+
+    matchBlocks = {
+      "github.com" = {
+        hostname = "github.com";
+        user = "git";
+        identitiesOnly = true;
+      };
+
+      "gist.github.com" = {
+        hostname = "gist.github.com";
+        user = "git";
+        identitiesOnly = true;
+      };
+
+      # Local network: don’t waste CPU compressing
+      "*.local" = {
+        compression = false;
+      };
+    };
   };
 }
