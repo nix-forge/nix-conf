@@ -64,6 +64,7 @@
       pull.rebase = true; # `git pull` will rebase by default
       push.default = "simple"; # Only push current branch to matching remote branch
       init.defaultBranch = "main"; # Set default branch name on new repos
+
       gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
     };
 
@@ -75,6 +76,37 @@
       {
         path = config.age.secrets.gitconfig-userEmail.path;
       }
+      {
+        path = "${config.xdg.configHome}/git/.gitconfig-github-email";
+      }
     ];
   };
+
+  home.file."${config.xdg.configHome}/git/.gitconfig-github-email".text = ''
+    [includeIf "hasconfig:remote.*.url:https://github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:http://github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:ssh://git@github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:ssh://github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+
+
+    [includeIf "hasconfig:remote.*.url:https://gist.github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:ssh://git@gist.github.com/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+
+    [includeIf "hasconfig:remote.*.url:git@gist.github.com:*/**"]
+      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
+  '';
 }

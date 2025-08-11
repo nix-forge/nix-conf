@@ -644,11 +644,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1754888431,
-        "narHash": "sha256-THFqG3phkQl9RTqOWmdG9tdwi8B2fbc+q80xKnRLuuE=",
+        "lastModified": 1754897154,
+        "narHash": "sha256-3gdTnTAVAaKDIeeC3jSIWQlhdO61i6jLnvzlq9jmM84=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "163cca357e67a3b4a92e893337b3120d9706a9eb",
+        "rev": "2978d57b3f6bab49295137d0fc7db59e8e81437c",
         "type": "github"
       },
       "original": {
@@ -660,11 +660,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1754891096,
-        "narHash": "sha256-VD00r6lf+/Ds+BHDJdmdTttOaeRSrXTkfjReTdP4ja0=",
+        "lastModified": 1754896814,
+        "narHash": "sha256-Evy70E2xnN32qi6uQhSD4K6AFeBM02wIoTLOy7Ckw0I=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "5096810c689ae7be6a2f5086389df288cddebb5f",
+        "rev": "e688735f02c7d350f673fa45193c5fd7a7fc0368",
         "type": "github"
       },
       "original": {
@@ -1425,10 +1425,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1754894214,
-        "narHash": "sha256-qmLTBP/O1F2pb4VPeCy/5ZvsbWz5JVhYHI35AR47zxM=",
+        "lastModified": 1754897762,
+        "narHash": "sha256-dTEoF7FfA7ka2IEFhQcSxMBU/1ujod81nNwpZJ5XXro=",
         "ref": "main",
-        "rev": "b1a88880a998e7b30f29e15410232f662032552a",
+        "rev": "8ee48476f1dc73b6da4d8ae69d3c901aac3a4aae",
         "shallow": true,
         "type": "git",
         "url": "ssh://git@github.com/IanHollow/nix-secrets.git"
