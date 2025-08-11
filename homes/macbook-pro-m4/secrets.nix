@@ -4,7 +4,7 @@
   config,
   lib,
   ...
-}@args:
+}:
 let
   user = config.home.username;
 
