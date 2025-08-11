@@ -56,13 +56,22 @@
 
     # Extra global Git config options
     extraConfig = {
+      fetch.prune = true;
+      rebase.autoStash = true;
+      rebase.autosquash = true;
+      rebase.updateRefs = true;
+      merge.conflictStyle = "zdiff3";
+      commit.verbose = true;
+      push.followTags = true;
+      push.autoSetupRemote = true;
+      pull.rebase = true;
+      push.default = "simple";
+
       core = {
         editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
       };
-      push.autoSetupRemote = true;
-      pull.rebase = true; # `git pull` will rebase by default
-      push.default = "simple"; # Only push current branch to matching remote branch
+
       init.defaultBranch = "main"; # Set default branch name on new repos
 
       gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
