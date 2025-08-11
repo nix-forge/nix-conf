@@ -9,13 +9,6 @@
     rm -f ${config.home.homeDirectory}/.gitconfig
   '';
 
-  # Generate allowed_signers file at runtime
-  home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    mkdir -p ${config.xdg.configHome}/git
-    rm -f ${config.xdg.configHome}/git/allowed_signers
-    echo "$(cat ${config.age.secrets.git-userEmail.path}) namespaces="git" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
-  '';
-
   programs.git = {
     enable = true;
 
@@ -64,14 +57,14 @@
     # Extra global Git config options
     extraConfig = {
       core = {
-        editor = "nvim"; # Use Neovim as Git commit/message editor #TODO: change to $EDITOR
+        editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
       };
       push.autoSetupRemote = true;
       pull.rebase = true; # `git pull` will rebase by default
       push.default = "simple"; # Only push current branch to matching remote branch
       init.defaultBranch = "main"; # Set default branch name on new repos
-      gpg.ssh.allowedSignersFile = "${config.xdg.configHome}/git/allowed_signers"; # Use the generated allowed_signers file
+      gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
     };
 
     # Includes
