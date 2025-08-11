@@ -18,8 +18,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Base
   base.version
   base.fonts
+  (base.xdg { uid = 501; })
   # ./hardware
-  # ./secrets.nix
+  ./secrets.nix
   # (base.mime { }) m
 
   ## Theming
@@ -66,16 +67,16 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.code-cursor)
   vscode.settings
   vscode.languages.cpp
-  vscode.languages.esp-idf
+  # vscode.languages.esp-idf
   vscode.languages.nix
   vscode.languages.web
   vscode.languages.python
   vscode.languages.bash
-  vscode.languages.verilog
+  # vscode.languages.verilog
   vscode.languages.javascript
   vscode.languages.typescript
   (vscode.languages.docker { enablePodman = true; })
-  vscode.languages.spice
+  # vscode.languages.spice
   vscode.languages.matlab
   vscode.languages.typst
 
@@ -87,5 +88,5 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # (install pkgs.signal-desktop)
 
   ## Media Consumption
-  programs.spotify
+  # programs.spotify
 ]

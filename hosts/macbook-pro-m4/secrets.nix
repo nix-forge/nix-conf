@@ -1,20 +1,20 @@
 {
   inputs,
   pkgs,
+  config,
   ...
 }:
 let
-
-  rootAccess = {
+  userAccess = {
     mode = "0500"; # read and execute only
-    owner = "root";
+    owner = config.system.primaryUser;
   };
 
   configSecrets = secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
 in
 {
   # enable the secrets module
-  imports = [ inputs.agenix.nixosModules.default ];
+  imports = [ inputs.agenix.darwinModules.default ];
 
   # install agenix
   environment.defaultPackages = [
@@ -22,5 +22,5 @@ in
   ];
 
   # add secrets to the system
-  age.secrets = configSecrets inputs.nix-secrets.shared rootAccess;
+  age.secrets = configSecrets inputs.nix-secrets.shared userAccess;
 }

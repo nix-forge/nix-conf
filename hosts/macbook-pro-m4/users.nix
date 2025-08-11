@@ -14,7 +14,7 @@ lib.mkMerge [
   (addUser {
     username = "ianmh";
     description = "Ian Holloway";
-    homeManagerModules = homes "macbook_pro_m4";
+    homeManagerModules = homes "macbook-pro-m4";
     shell = pkgs.nushell;
     knownUser = true;
     uid = 501;
