@@ -1,14 +1,8 @@
 {
   config,
-  pkgs,
   lib,
   ...
 }:
-let
-  # TODO: move to separate area
-  gitUserName = "Ian Holloway";
-  gitUserEmail = "72767437+IanHollow@users.noreply.github.com";
-in
 {
   # Remove existing .gitconfig to avoid conflicts with runtime include
   home.activation.removeExistingGitconfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
@@ -18,17 +12,12 @@ in
   # Generate allowed_signers file at runtime
   home.activation.gitAllowedSigners = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${config.xdg.configHome}/git
-    echo "${gitUserEmail} namespaces=\"git\" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
+    rm -f ${config.xdg.configHome}/git/allowed_signers
+    echo "$(cat ${config.age.secrets.git-userEmail.path}) namespaces="git" $(cat ${config.home.homeDirectory}/.ssh/id_ed25519.pub)" > ${config.xdg.configHome}/git/allowed_signers
   '';
 
   programs.git = {
     enable = true;
-
-    # Use gitFull for extra features like send-email, credential support, etc.
-    # package = pkgs.gitFull;
-
-    userName = gitUserName;
-    userEmail = gitUserEmail;
 
     # Commit signing using SSH key (much easier than GPG)
     signing = {
@@ -63,20 +52,19 @@ in
     lfs.enable = true;
 
     # Global ignores for files you never want to track
-    ignores =
-      [
-        "*~"
-        "*.swp"
-        ".DS_Store"
-      ]
-      ++ lib.optionals (config.programs.direnv.enable) [
-        ".direnv/"
-      ];
+    ignores = [
+      "*~"
+      "*.swp"
+      ".DS_Store"
+    ]
+    ++ lib.optionals (config.programs.direnv.enable) [
+      ".direnv/"
+    ];
 
     # Extra global Git config options
     extraConfig = {
       core = {
-        editor = "nvim"; # Use Neovim as Git commit/message editor
+        editor = "nvim"; # Use Neovim as Git commit/message editor #TODO: change to $EDITOR
         whitespace = "trailing-space,space-before-tab";
       };
       push.autoSetupRemote = true;
@@ -85,5 +73,15 @@ in
       init.defaultBranch = "main"; # Set default branch name on new repos
       gpg.ssh.allowedSignersFile = "${config.xdg.configHome}/git/allowed_signers"; # Use the generated allowed_signers file
     };
+
+    # Includes
+    includes = [
+      {
+        path = config.age.secrets.gitconfig-userName.path;
+      }
+      {
+        path = config.age.secrets.gitconfig-userEmail.path;
+      }
+    ];
   };
 }
