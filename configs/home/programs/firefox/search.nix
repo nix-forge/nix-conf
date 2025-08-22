@@ -1,8 +1,5 @@
 profileName:
-{
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 {
   programs.firefox.profiles.${profileName}.search = {
     force = true;

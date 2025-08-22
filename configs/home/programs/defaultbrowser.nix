@@ -1,9 +1,5 @@
 defaultbrowser:
-{
-  lib,
-  pkgs,
-  ...
-}:
+{ lib, pkgs, ... }:
 {
   home.activation = lib.mkIf pkgs.stdenv.isDarwin {
     setDefaultBrowser = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

@@ -43,7 +43,8 @@ in
     ];
 
     ${bootMP} = mkBoot bootLabel; # should be /boot by default
-  } // gamesDrive;
+  }
+  // gamesDrive;
 
   # Swap
   swapDevices = [ { label = swapLabel; } ];

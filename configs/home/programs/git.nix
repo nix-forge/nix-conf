@@ -61,9 +61,7 @@ in
       "*.swp"
       ".DS_Store"
     ]
-    ++ lib.optionals (config.programs.direnv.enable) [
-      ".direnv/"
-    ];
+    ++ lib.optionals (config.programs.direnv.enable) [ ".direnv/" ];
 
     # Extra global Git config options
     extraConfig = {
@@ -114,15 +112,9 @@ in
 
     # Includes
     includes = [
-      {
-        path = config.age.secrets.gitconfig-userName.path;
-      }
-      {
-        path = config.age.secrets.gitconfig-userEmail.path;
-      }
-      {
-        path = "${config.xdg.configHome}/git/.gitconfig-github-email";
-      }
+      { path = config.age.secrets.gitconfig-userName.path; }
+      { path = config.age.secrets.gitconfig-userEmail.path; }
+      { path = "${config.xdg.configHome}/git/.gitconfig-github-email"; }
     ];
   };
 

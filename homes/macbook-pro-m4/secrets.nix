@@ -19,9 +19,7 @@ in
   imports = [ inputs.agenix.homeManagerModules.default ];
 
   # install agenix
-  home.packages = [
-    inputs.agenix.packages.${pkgs.system}.agenix
-  ];
+  home.packages = [ inputs.agenix.packages.${pkgs.system}.agenix ];
 
   age =
     let

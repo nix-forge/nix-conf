@@ -1,9 +1,10 @@
 { lib, config, ... }@args:
 let
-  paths =
-    [ config.home.profileDirectory ]
-    ++ lib.optionals (args ? darwinConfig) args.darwinConfig.environment.profiles
-    ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
+  paths = [
+    config.home.profileDirectory
+  ]
+  ++ lib.optionals (args ? darwinConfig) args.darwinConfig.environment.profiles
+  ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
 
   binPaths = lib.pipe paths [
     (builtins.map (p: "${p}/bin"))

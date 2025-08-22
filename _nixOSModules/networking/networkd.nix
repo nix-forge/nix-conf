@@ -49,16 +49,15 @@ in
           # start a DHCP Client for Addressing/Routing
           DHCP = if enableIPv6 then "yes" else "ipv4";
 
-          networkConfig =
-            {
-              # accept Router Advertisements for Stateless IPv6 Autoconfiguraton (SLAAC)
-              IPv6AcceptRA = enableIPv6;
-            }
-            // (lib.optionalAttrs enableIPv6 {
-              # Enable IPv6 Privacy Extensions
-              # This config option is based on Official NixOS options
-              IPv6PrivacyExtensions = "kernel";
-            });
+          networkConfig = {
+            # accept Router Advertisements for Stateless IPv6 Autoconfiguraton (SLAAC)
+            IPv6AcceptRA = enableIPv6;
+          }
+          // (lib.optionalAttrs enableIPv6 {
+            # Enable IPv6 Privacy Extensions
+            # This config option is based on Official NixOS options
+            IPv6PrivacyExtensions = "kernel";
+          });
 
           linkConfig = {
             # make routing on this interface a dependency for network-online.target
@@ -114,30 +113,29 @@ in
                 inherit matchConfig;
                 inherit (links) linkConfig;
               };
-              networks.${configBaseName} =
-                {
-                  inherit matchConfig;
-                  inherit (networks)
-                    DHCP
-                    networkConfig
-                    linkConfig
-                    dhcpV4Config
-                    dhcpV6Config
-                    ipv6AcceptRAConfig
-                    ;
-                }
-                // {
-                  # Set route metric to 600 which is higher than than ethernet which will be 100
-                  dhcpV4Config.RouteMetric = 600;
-                  ipv6AcceptRAConfig.RouteMetric = 600;
+              networks.${configBaseName} = {
+                inherit matchConfig;
+                inherit (networks)
+                  DHCP
+                  networkConfig
+                  linkConfig
+                  dhcpV4Config
+                  dhcpV6Config
+                  ipv6AcceptRAConfig
+                  ;
+              }
+              // {
+                # Set route metric to 600 which is higher than than ethernet which will be 100
+                dhcpV4Config.RouteMetric = 600;
+                ipv6AcceptRAConfig.RouteMetric = 600;
 
-                  # IgnoreCarrierLoss=3s ensures that systemd-networkd will not re-configure
-                  # the interface (e.g., release and re-acquire a DHCP lease) for a short
-                  # period (3 seconds in this example) while the wireless interface roams
-                  # to another access point within the same wireless network (SSID), which
-                  # translates to shorter downtime when roaming.
-                  networkConfig.IgnoreCarrierLoss = "3s";
-                };
+                # IgnoreCarrierLoss=3s ensures that systemd-networkd will not re-configure
+                # the interface (e.g., release and re-acquire a DHCP lease) for a short
+                # period (3 seconds in this example) while the wireless interface roams
+                # to another access point within the same wireless network (SSID), which
+                # translates to shorter downtime when roaming.
+                networkConfig.IgnoreCarrierLoss = "3s";
+              };
             };
         })
 
@@ -156,23 +154,22 @@ in
                 inherit matchConfig;
                 inherit (links) linkConfig;
               };
-              networks.${configBaseName} =
-                {
-                  inherit matchConfig;
-                  inherit (networks)
-                    DHCP
-                    networkConfig
-                    linkConfig
-                    dhcpV4Config
-                    dhcpV6Config
-                    ipv6AcceptRAConfig
-                    ;
-                }
-                // {
-                  # Set route metric to 100 which is lower than than wifi which will be 600
-                  dhcpV4Config.RouteMetric = 100;
-                  ipv6AcceptRAConfig.RouteMetric = 100;
-                };
+              networks.${configBaseName} = {
+                inherit matchConfig;
+                inherit (networks)
+                  DHCP
+                  networkConfig
+                  linkConfig
+                  dhcpV4Config
+                  dhcpV6Config
+                  ipv6AcceptRAConfig
+                  ;
+              }
+              // {
+                # Set route metric to 100 which is lower than than wifi which will be 600
+                dhcpV4Config.RouteMetric = 100;
+                ipv6AcceptRAConfig.RouteMetric = 100;
+              };
             };
         })
       ]

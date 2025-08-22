@@ -18,9 +18,7 @@ profileName:
 
     # Firefox UI Fix User JS
     profiles.${profileName}.extraConfig = lib.mkBefore (
-      lib.strings.concatLines [
-        (builtins.readFile "${inputs.firefox-ui-fix}/user.js")
-      ]
+      lib.strings.concatLines [ (builtins.readFile "${inputs.firefox-ui-fix}/user.js") ]
     );
   };
 }

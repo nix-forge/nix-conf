@@ -1,9 +1,5 @@
 profileName:
-{
-  inputs,
-  pkgs,
-  ...
-}:
+{ inputs, pkgs, ... }:
 let
   pkgsNur =
     (import inputs.nixpkgs {

@@ -10,5 +10,6 @@ in
 {
   age.secrets.githubAccessToken = {
     file = "${secrets}/shared/nix-github-access-token.age";
-  } // rootAccess;
+  }
+  // rootAccess;
 }

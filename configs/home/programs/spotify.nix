@@ -11,15 +11,13 @@ let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.system};
 
   spotifyPackageDarwin = pkgs.spotify.overrideAttrs (old: {
-    postInstall =
-      (old.postInstall or '''')
-      + ''
-        # Path to the Spotify binary after install
-        binary="$out/Applications/Spotify.app/Contents/MacOS/Spotify"
+    postInstall = (old.postInstall or '''') + ''
+      # Path to the Spotify binary after install
+      binary="$out/Applications/Spotify.app/Contents/MacOS/Spotify"
 
-        # Apply the Perl patch
-        ${pkgs.perl}/bin/perl -pi -w -e 's|\x64(?=\x65\x73\x6B\x74\x6F\x70\x2D\x75\x70)|\x00|g' "$binary"
-      '';
+      # Apply the Perl patch
+      ${pkgs.perl}/bin/perl -pi -w -e 's|\x64(?=\x65\x73\x6B\x74\x6F\x70\x2D\x75\x70)|\x00|g' "$binary"
+    '';
   });
 in
 {

@@ -73,9 +73,7 @@
         ## Appearances ##
 
         "editor.fontFamily" = lib.mkForce (
-          lib.concatMapStringsSep ", " (s: "'${s}'") [
-            "MonaspiceNe Nerd Font"
-          ]
+          lib.concatMapStringsSep ", " (s: "'${s}'") [ "MonaspiceNe Nerd Font" ]
         );
         "editor.cursorSmoothCaretAnimation" = "explicit";
         "editor.cursorStyle" = "block";
@@ -250,7 +248,8 @@
                   "chevron-right"
                 else
                   "terminal";
-            } // lib.optionalAttrs (shellName == "nu") { args = [ "--login --interactive" ]; };
+            }
+            // lib.optionalAttrs (shellName == "nu") { args = [ "--login --interactive" ]; };
           };
 
           # set the integrated terminal to use SHELL so make sure SHELL is set correctly

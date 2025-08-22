@@ -77,56 +77,55 @@ in
           upstreamDefaults = true;
 
           # Override default settings
-          settings =
-            {
-              inherit listen_addresses;
-              ipv6_servers = config.networking.enableIPv6;
-              block_ipv6 = !config.networking.enableIPv6;
-            }
-            # Only filter if specific servers are not specified
-            // (lib.optionalAttrs (!cfg.servers.cloudflare) {
+          settings = {
+            inherit listen_addresses;
+            ipv6_servers = config.networking.enableIPv6;
+            block_ipv6 = !config.networking.enableIPv6;
+          }
+          # Only filter if specific servers are not specified
+          // (lib.optionalAttrs (!cfg.servers.cloudflare) {
 
-              # Security settings
-              require_dnssec = true;
-              require_nolog = true;
+            # Security settings
+            require_dnssec = true;
+            require_nolog = true;
 
-              # DNS Server types
-              dnscrypt_servers = true;
-              doh_servers = false;
-              odoh_servers = false;
-              require_nofilter = false; # filtered servers can be used as non-filtered servers will be used as fallbacks
+            # DNS Server types
+            dnscrypt_servers = true;
+            doh_servers = false;
+            odoh_servers = false;
+            require_nofilter = false; # filtered servers can be used as non-filtered servers will be used as fallbacks
 
-              # Anonymized DNS
-              anonymized_dns.skip_incompatible = true;
+            # Anonymized DNS
+            anonymized_dns.skip_incompatible = true;
 
-              # Sources for DNS resolvers and relays
-              sources = {
-                public-resolvers = {
-                  urls = [
-                    "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
-                    "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
-                  ];
-                  cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
-                  minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                };
-                relays = {
-                  urls = [
-                    "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
-                    "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
-                  ];
-                  cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
-                  minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                };
+            # Sources for DNS resolvers and relays
+            sources = {
+              public-resolvers = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
               };
+              relays = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+              };
+            };
 
-            })
-            # Set DNS providers
-            # Servers from the "public-resolvers" source (see down below) can
-            # be viewed here: https://dnscrypt.info/public-servers
-            # NOTE: if no servers are specified, dnscrypt-proxy will filter and find servers
-            // (lib.optionalAttrs cfg.servers.cloudflare {
-              server_names = det-ipv4-6 "cloudflare" "cloudflare-ipv6";
-            });
+          })
+          # Set DNS providers
+          # Servers from the "public-resolvers" source (see down below) can
+          # be viewed here: https://dnscrypt.info/public-servers
+          # NOTE: if no servers are specified, dnscrypt-proxy will filter and find servers
+          // (lib.optionalAttrs cfg.servers.cloudflare {
+            server_names = det-ipv4-6 "cloudflare" "cloudflare-ipv6";
+          });
         };
 
         # Set general network settings for dnscrypt-proxy and unbound
