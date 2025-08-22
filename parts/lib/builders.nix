@@ -49,7 +49,8 @@ let
           inherit inputs;
           self = args.self or { };
           tree = args.tree or { };
-        } // (args.specialArgs or { });
+        }
+        // (args.specialArgs or { });
 
         nixosSpecialArgs = baseArgs // {
           inherit lib;
@@ -123,7 +124,8 @@ let
               overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
               hostPlatform = system;
               flake.source = nixpkgs.outPath;
-            } // (args.nixpkgsArgs or { });
+            }
+            // (args.nixpkgsArgs or { });
           })
 
           # if host needs additional modules, append them
@@ -166,7 +168,8 @@ let
           inherit inputs;
           self = args.self or { };
           tree = args.tree or { };
-        } // (args.specialArgs or { });
+        }
+        // (args.specialArgs or { });
 
         darwinSpecialArgs = baseArgs // {
           inherit lib;
@@ -227,15 +230,13 @@ let
             nixpkgs = {
               hostPlatform = system;
               flake.source = nixpkgs.outPath;
-            } // (args.nixpkgsArgs or { });
+            }
+            // (args.nixpkgsArgs or { });
           })
 
           # if host needs additional modules, append them
           # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
           (lib.cust.withTreeModules (args.modules or [ ]))
-
-          # Mac App Util
-          [ inputs.mac-app-util.darwinModules.default ]
 
           # Home Manager modules
           darwinHomeManager
