@@ -87,6 +87,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # (install self.packages.${pkgs.system}.webcord)
   # (install pkgs.signal-desktop)
 
+  ## Video Games
+  (install pkgs.prismlauncher)
+
   ## Media Consumption
   # programs.spotify
 ]
