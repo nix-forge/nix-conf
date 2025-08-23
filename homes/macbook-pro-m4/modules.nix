@@ -53,6 +53,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Development Tools
   programs.git
   programs.ssh
+  ./ssh.nix
   # dev.docs
   dev.direnv
   dev.github-cli
