@@ -26,10 +26,6 @@ in
     serverAliveCountMax = 3;
 
     extraConfig = ''
-      # Prefer key auth and stop trying passwords (faster, fewer lockouts)
-      PreferredAuthentications publickey
-      IdentitiesOnly yes
-
       # Accept host key updates for hosts you already trust (key rotation)
       UpdateHostKeys yes
 
@@ -49,13 +45,11 @@ in
       "github.com" = {
         hostname = "github.com";
         user = "git";
-        identitiesOnly = true;
       };
 
       "gist.github.com" = {
         hostname = "gist.github.com";
         user = "git";
-        identitiesOnly = true;
       };
 
       # Local network: don’t waste CPU compressing
