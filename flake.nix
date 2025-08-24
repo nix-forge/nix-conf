@@ -115,14 +115,14 @@
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # mac-app-util = {
-    #   url = "github:hraban/mac-app-util";
-    #   inputs = {
-    #     nixpkgs.follows = "nixpkgs";
-    #     flake-compat.follows = "flake-compat";
-    #     flake-utils.follows = "flake-utils";
-    #   };
-    # };
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+      };
+    };
 
     # Nix Secrets (from personal private repo)
     nix-secrets = {
