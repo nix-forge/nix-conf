@@ -25,6 +25,7 @@ in
       formatting.command = [
         "${lib.getExe pkgs.nixfmt-rfc-style}"
         "--filename={file}"
+        "--strict"
       ];
     };
 
