@@ -1,9 +1,7 @@
 { pkgs, lib, ... }:
 let
   all = {
-    home.packages = [
-      pkgs.podman-compose
-    ];
+    home.packages = [ pkgs.podman-compose ];
   };
 
   linux = lib.mkIf (pkgs.stdenv.isLinux) {
@@ -16,11 +14,7 @@ let
     };
   };
 
-  darwin = lib.mkIf (pkgs.stdenv.isDarwin) {
-    home.packages = [
-      pkgs.podman
-    ];
-  };
+  darwin = lib.mkIf (pkgs.stdenv.isDarwin) { home.packages = [ pkgs.podman ]; };
 in
 lib.mkMerge [
   all

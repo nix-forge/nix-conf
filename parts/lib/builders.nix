@@ -213,9 +213,7 @@ let
                   inherit darwinConfig;
                 };
 
-                sharedModules = [
-                  inputs.mac-app-util.homeManagerModules.default
-                ];
+                sharedModules = [ inputs.mac-app-util.homeManagerModules.default ];
               };
             }
           )
