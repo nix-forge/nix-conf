@@ -2,12 +2,13 @@
   pkgs,
   config,
   inputs,
+  system,
   ...
 }:
 {
   home.packages = [
     # (pkgs.wineWowPackages.unstableFull.override { waylandSupport = true; })
-    (inputs.nix-gaming.packages.${pkgs.system}.wine-tkg.override (old: {
+    (inputs.nix-gaming.packages.${system}.wine-tkg.override (old: {
       supportFlags = old.supportFlags // {
         waylandSupport = true; # Causes a cache miss so a build is needed
       };
