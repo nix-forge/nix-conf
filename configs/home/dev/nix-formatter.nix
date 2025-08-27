@@ -1,4 +1,4 @@
 { pkgs, ... }:
 {
-  home.packages = [ pkgs.nixfmt-rfc-style ];
+  home.packages = [ pkgs.nixfmt ];
 }
