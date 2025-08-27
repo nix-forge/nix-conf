@@ -2,10 +2,12 @@
   lib,
   pkgs,
   inputs,
+  system,
+  ...
 }:
 let
   pkgsVSCode = import inputs.nixpkgs {
-    inherit (pkgs) system;
+    inherit system;
     config.allowUnfree = true;
     overlays = [ inputs.vscode-extensions.overlays.default ];
   };

@@ -1,4 +1,4 @@
-{ pkgs, self, ... }:
+{ pkgs, self, system, ... }:
 {
-  services.udev.packages = [ self.packages.${pkgs.system}.openocd-esp32-udev-rules ];
+  services.udev.packages = [ self.packages.${system}.openocd-esp32-udev-rules ];
 }

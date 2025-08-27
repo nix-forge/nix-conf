@@ -2,6 +2,7 @@
   tree,
   pkgs,
   inputs,
+  system,
   ...
 }:
 let
@@ -91,7 +92,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.libreoffice
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
-  (install inputs.geospatial-nix.packages.${pkgs.system}.qgis)
+  (install inputs.geospatial-nix.packages.${system}.qgis)
 
   ## Misc
   { home.sessionVariables = sharedDir.env.wayland.default; }

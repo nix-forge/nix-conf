@@ -2,6 +2,7 @@
   inputs,
   pkgs,
   config,
+  system,
   ...
 }:
 let
@@ -17,7 +18,7 @@ in
   imports = [ inputs.agenix.darwinModules.default ];
 
   # install agenix
-  environment.defaultPackages = [ inputs.agenix.packages.${pkgs.system}.agenix ];
+  environment.defaultPackages = [ inputs.agenix.packages.${system}.agenix ];
 
   # add secrets to the system
   age.secrets = configSecrets inputs.nix-secrets.shared userAccess;

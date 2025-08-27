@@ -3,10 +3,11 @@
   lib,
   inputs,
   pkgs,
+  system,
   ...
 }:
 let
-  nix-index-pkg = inputs.nix-index.packages.${pkgs.system}.default;
+  nix-index-pkg = inputs.nix-index.packages.${system}.default;
 in
 {
   imports = [

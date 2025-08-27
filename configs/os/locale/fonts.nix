@@ -1,4 +1,4 @@
-{ self, pkgs, ... }:
+{ self, pkgs, system, ... }:
 {
   fonts = {
     enableDefaultPackages = true;
@@ -65,10 +65,10 @@
       openmoji-black
 
       # Microsoft Fonts
-      self.packages.${pkgs.system}.ttf-ms-win11-auto
+      self.packages.${system}.ttf-ms-win11-auto
 
       # Apple Fonts
-      # self.packages.${pkgs.system}.apple-fonts
+      # self.packages.${system}.apple-fonts
 
       # Nerdfonts
       nerd-fonts.fira-code

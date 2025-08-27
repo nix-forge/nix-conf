@@ -6,7 +6,7 @@
   ...
 }:
 let
-  # package = inputs.nixpkgs-wayland.packages.${pkgs.system}.waybar;
+  # package = inputs.nixpkgs-wayland.packages.${system}.waybar;
 
   # the fonts that will be included with the waybar package
   fontPackages = [

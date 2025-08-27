@@ -1,9 +1,9 @@
 profileName:
-{ inputs, pkgs, ... }:
+{ inputs, system, ... }:
 let
   pkgsNur =
     (import inputs.nixpkgs {
-      inherit (pkgs) system;
+      inherit system;
       config = {
         allowUnfree = true;
       };

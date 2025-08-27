@@ -3,12 +3,13 @@
   pkgs,
   lib,
   config,
+  system,
   ...
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
-  spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.system};
+  spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
 
   spotifyPackageDarwin = pkgs.spotify.overrideAttrs (old: {
     postInstall = (old.postInstall or '''') + ''

@@ -85,7 +85,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # (install pkgs.discord)
   (install pkgs.slack)
   (install pkgs.zoom-us)
-  # (install self.packages.${pkgs.system}.webcord)
+  # (install self.packages.${system}.webcord)
   # (install pkgs.signal-desktop)
 
   ## Video Games
