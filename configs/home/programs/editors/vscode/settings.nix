@@ -150,6 +150,14 @@
           "editor.tabSize" = 2;
           "editor.defaultFormatter" = "redhat.vscode-yaml";
         };
+        "[json]" = {
+          "editor.tabSize" = 2;
+          "editor.defaultFormatter" = "vscode.json-language-features";
+        };
+        "[jsonc]" = {
+          "editor.tabSize" = 2;
+          "editor.defaultFormatter" = "vscode.json-language-features";
+        };
 
         ## VCS Behavior ##
         "git.openRepositoryInParentFolders" = "always";
