@@ -1,4 +1,9 @@
-{ self, pkgs, ... }:
+{
+  self,
+  pkgs,
+  system,
+  ...
+}:
 {
   fonts.fontconfig.enable = true;
 
@@ -11,9 +16,8 @@
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-cjk-serif
-    noto-fonts-emoji
     noto-fonts-color-emoji
-    noto-fonts-extra
+    noto-fonts-lgc-plus
 
     # Adobe Fonts
     source-sans
@@ -48,11 +52,11 @@
     openmoji-black
 
     # Microsoft Fonts
-    (self.packages.${pkgs.system}.ttf-ms-win11-auto.override { acceptEula = true; })
+    (self.packages.${system}.ttf-ms-win11-auto.override { acceptEula = true; })
 
     # Apple Fonts
     # TODO: fix the package to have stable links in some way and only enable it on non-Apple systems
-    # self.packages.${pkgs.system}.apple-fonts
+    # self.packages.${system}.apple-fonts
 
     # Nerdfonts
     nerd-fonts.fira-code
