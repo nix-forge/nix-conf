@@ -16,6 +16,9 @@ in
   programs.git = {
     enable = true;
 
+    userName = null;
+    userEmail = null;
+
     package = pkgs.git.override {
       osxkeychainSupport = isDarwin;
       withLibsecret = isLinux;
@@ -59,8 +62,8 @@ in
     ignores = [
       "*~"
       "*.swp"
-      ".DS_Store"
     ]
+    ++ lib.optionals (pkgs.stdenv.isDarwin) [ ".DS_Store" ]
     ++ lib.optionals (config.programs.direnv.enable) [ ".direnv/" ];
 
     # Extra global Git config options
