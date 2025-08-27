@@ -52,6 +52,16 @@ in
         user = "git";
       };
 
+      "gitlab.com" = {
+        hostname = "gitlab.com";
+        user = "git";
+      };
+
+      "codeberg.org" = {
+        user = "git";
+        hostname = "codeberg.org";
+      };
+
       # Local network: don’t waste CPU compressing
       "*.local" = {
         compression = false;
