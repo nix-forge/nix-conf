@@ -14,6 +14,10 @@ in
   nixpkgsArgs = {
     config = {
       allowUnfree = true;
+      allowUnfreePredicate = _: true;
+      allowVariants = true;
+      allowBroken = false;
+      # allowAliases = false;
     };
   };
 
@@ -24,9 +28,15 @@ in
     ./secrets.nix
 
     { system.primaryUser = "ianmh"; }
-    { time.timeZone = "America/Los_Angeles"; }
+    # { time.timeZone = "America/New_York"; }
+
+    preferences.finder
+    preferences.dock
+    preferences.animations
+    preferences.misc
 
     security.pam
+    security.firewall
 
     homebrew
 
