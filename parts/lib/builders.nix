@@ -46,7 +46,7 @@ let
         # SpecialArgs
         baseArgs = {
           inherit inputs' self';
-          inherit inputs;
+          inherit inputs system;
           self = args.self or { };
           tree = args.tree or { };
         }
@@ -165,7 +165,7 @@ let
         # SpecialArgs
         baseArgs = {
           inherit inputs' self';
-          inherit inputs;
+          inherit inputs system;
           self = args.self or { };
           tree = args.tree or { };
         }
