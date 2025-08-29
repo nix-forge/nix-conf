@@ -30,9 +30,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Desktop Environment
   window-managers.aerospace
 
-  ## Desktop Applications
-  # (install pkgs.bitwarden-desktop) # TODO: try install from apple store with homebrew
-
   ## Web Browsers
   (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username)
