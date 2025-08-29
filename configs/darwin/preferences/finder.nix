@@ -1,10 +1,5 @@
 {
   system.defaults = {
-    NSGlobalDomain = {
-      # Show all filename extensions
-      AppleShowAllExtensions = true;
-    };
-
     finder = {
       # Change default view style to list view
       FXPreferredViewStyle = "Nlsv";
@@ -14,6 +9,9 @@
 
       # Remove trash items after 30 days
       FXRemoveOldTrashItems = true;
+
+      # Show all filename extensions
+      AppleShowAllExtensions = true;
 
       # Show status bar
       ShowStatusBar = true;
