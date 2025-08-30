@@ -77,7 +77,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (vscode.languages.javascript "default")
   (vscode.languages.typescript "default")
   ((vscode.languages.docker "default") { enablePodman = true; })
-  (vscode.languages.typst)
+  (vscode.languages.typst "default")
 
   ## Communication
   # (install pkgs.discord)
