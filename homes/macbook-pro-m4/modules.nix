@@ -69,6 +69,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (vscode.settings "default")
   (vscode.keybinds "default")
   (vscode.ai.models "default")
+  (vscode.ai.mcp "default")
   (vscode.languages.cpp "default")
   (vscode.languages.nix "default")
   (vscode.languages.web "default")
