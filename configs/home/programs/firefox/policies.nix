@@ -1,5 +1,10 @@
 {
   programs.firefox.policies = {
+    AppAutoUpdate = false;
+    ManualAppUpdateOnly = true;
+    DisableFeedbackCommands = true;
+    DisableSetDesktopBackground = true;
+    DisableDeveloperTools = false;
     DisplayBookmarksToolbar = "never";
     DisableFirefoxAccounts = true;
     PasswordManagerEnabled = false;
