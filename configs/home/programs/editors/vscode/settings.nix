@@ -7,7 +7,7 @@
 }:
 {
   imports = [
-    ./copilot.nix
+    ./ai.nix
     (import ./keybinds.nix "default")
   ];
 
