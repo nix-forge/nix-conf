@@ -7,7 +7,7 @@ in
   programs.vscode.profiles.${profileName} = {
     extensions = with extensions.preferNixpkgsThenPreRelease; [ myriad-dreamin.tinymist ];
 
-    programs.vscode.profiles.default.userSettings = {
+    userSettings = {
       "formatterMode" = "typstyle";
     };
   };

@@ -14,7 +14,7 @@ in
       pmneo.tsimporter
     ];
 
-    programs.vscode.profiles.default.userSettings = {
+    userSettings = {
       "typescript.suggest.paths" = false;
       "[typescript]" = {
         "editor.defaultFormatter" = "esbenp.prettier-vscode";

@@ -1,18 +1,21 @@
 profileName:
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, ... }@args:
 let
-  extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
+  extensions = pkgs.callPackage ../marketplace.nix args;
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.extraCompatible; [
-      ## Copilot
-      github.copilot
-      github.copilot-chat
+    extensions =
+      (with extensions.extraCompatible; [
+        ## Copilot
+        github.copilot
+        github.copilot-chat
+      ])
+      ++ (with extensions.preferNixpkgsThenPreRelease; [
+        ## Codex
+        openai.chatgpt
+      ]);
 
-      ## Codex
-      openai.chatgpt
-    ];
     userSettings = {
       ## Copilot
       # Base

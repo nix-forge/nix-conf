@@ -2,7 +2,7 @@ profileName:
 { lib, pkgs, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
-  dictionary = import ./dictionary.nix;
+  dictionary = import ./dictionaries/nix.nix;
 in
 {
   programs.vscode.profiles.${profileName} = {
@@ -11,7 +11,7 @@ in
       ionutvmi.path-autocomplete
     ];
 
-    programs.vscode.profiles.default.userSettings = {
+    userSettings = {
       "nix.enableLanguageServer" = true;
       "nix.serverPath" = lib.getExe pkgs.nixd; # inputs.nixd.packages.${system}.nixd
       "nix.serverSettings".nixd = {
