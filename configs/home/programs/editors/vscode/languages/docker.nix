@@ -1,7 +1,7 @@
+profileName:
 {
   enablePodman ? false,
 }:
-profileName:
 { lib, pkgs, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;

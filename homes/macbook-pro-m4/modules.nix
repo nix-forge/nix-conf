@@ -64,20 +64,20 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
   (install pkgs.code-cursor)
-  vscode.settings "default"
-  vscode.languages.cpp
-  # vscode.languages.esp-idf
-  vscode.languages.nix
-  vscode.languages.web
-  vscode.languages.python
-  vscode.languages.bash
-  # vscode.languages.verilog
-  vscode.languages.javascript
-  vscode.languages.typescript
-  (vscode.languages.docker { enablePodman = true; })
-  # vscode.languages.spice
-  vscode.languages.matlab
-  vscode.languages.typst
+
+  (vscode.default "default")
+  (vscode.settings "default")
+  (vscode.keybinds "default")
+  (vscode.ai.models "default")
+  (vscode.languages.cpp "default")
+  (vscode.languages.nix "default")
+  (vscode.languages.web "default")
+  (vscode.languages.python "default")
+  (vscode.languages.bash "default")
+  (vscode.languages.javascript "default")
+  (vscode.languages.typescript "default")
+  ((vscode.languages.docker "default") { enablePodman = true; })
+  (vscode.languages.typst)
 
   ## Communication
   # (install pkgs.discord)
