@@ -7,7 +7,7 @@
 }:
 {
   imports = [
-    ./ai.nix
+    ./ai/models.nix
     (import ./keybinds.nix "default")
   ];
 
