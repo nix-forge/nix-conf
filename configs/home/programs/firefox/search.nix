@@ -52,6 +52,30 @@ profileName:
         ];
       };
 
+      home-manager-options = {
+        name = "Home Manager Options";
+        urls = [
+          {
+            template = "https://home-manager-options.extranix.com/";
+            params = [
+              {
+                name = "query";
+                value = "{searchTerms}";
+              }
+              {
+                name = "release";
+                value = "master";
+              }
+            ];
+          }
+        ];
+        iconMapObj."16" = "https://home-manager-options.extranix.com/images/favicon.png";
+        definedAliases = [
+          "@home-manager-options"
+          "@hmo"
+        ];
+      };
+
       bing.metaData.hidden = true;
       ebay.metaData.hidden = true;
     };
