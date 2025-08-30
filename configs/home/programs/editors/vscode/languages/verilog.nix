@@ -1,19 +1,12 @@
+profileName:
+{ lib, pkgs, ... }@args:
+let
+  extensions = pkgs.callPackage ../marketplace.nix args;
+in
 {
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
-{
-  programs.vscode.profiles.default.extensions =
-    let
-      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
-    in
-    with extensions.preferNixpkgsThenPreRelease;
-    [
-      #
-      mshr-h.veriloghdl
-    ];
+  programs.vscode.profiles.${profileName} = {
+    extensions = with extensions.preferNixpkgsThenPreRelease; [ mshr-h.veriloghdl ];
 
-  programs.vscode.profiles.default.userSettings = { };
+    userSettings = { };
+  };
 }

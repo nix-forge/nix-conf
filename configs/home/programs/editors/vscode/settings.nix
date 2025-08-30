@@ -1,3 +1,4 @@
+profileName:
 {
   lib,
   pkgs,
@@ -7,19 +8,19 @@
 }:
 {
   imports = [
-    ./ai/models.nix
-    (import ./keybinds.nix "default")
+    (import ./ai/models.nix profileName)
+    (import ./keybinds.nix profileName)
   ];
-
-  home.packages = [ pkgs.nerd-fonts.monaspace ];
 
   programs.vscode = {
     enable = true;
-    profiles.default.enableExtensionUpdateCheck = false;
-    profiles.default.enableUpdateCheck = false;
     mutableExtensionsDir = false;
+    profiles.${profileName} = {
+      enableExtensionUpdateCheck = false;
+      enableUpdateCheck = false;
+    };
 
-    profiles.default.extensions =
+    profiles.${profileName}.extensions =
       let
         extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
       in
@@ -68,7 +69,7 @@
         )
       );
 
-    profiles.default.userSettings = lib.mkMerge [
+    profiles.${profileName}.userSettings = lib.mkMerge [
       {
         ## Appearances ##
 

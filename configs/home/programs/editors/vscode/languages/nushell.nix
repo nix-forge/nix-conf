@@ -1,19 +1,12 @@
+profileName:
+{ lib, pkgs, ... }@args:
+let
+  extensions = pkgs.callPackage ../marketplace.nix args;
+in
 {
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
-{
-  home.packages = [ pkgs.nushell ];
-
-  programs.vscode.profiles.default.extensions =
-    let
-      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
-    in
-    with extensions.preferNixpkgsThenPreRelease;
-    [
-      #
+  programs.vscode.profiles.${profileName} = {
+    extensions = with extensions.preferNixpkgsThenPreRelease; [
       thenuprojectcontributors.vscode-nushell-lang
     ];
+  };
 }

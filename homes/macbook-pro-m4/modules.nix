@@ -64,7 +64,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
   (install pkgs.code-cursor)
-  vscode.settings
+  vscode.settings "default"
   vscode.languages.cpp
   # vscode.languages.esp-idf
   vscode.languages.nix

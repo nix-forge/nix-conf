@@ -1,16 +1,12 @@
+profileName:
+{ lib, pkgs, ... }@args:
+let
+  extensions = pkgs.callPackage ../marketplace.nix args;
+in
 {
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
-{
-  programs.vscode.profiles.default.extensions =
-    let
-      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
-    in
-    with extensions.preferNixpkgsThenPreRelease;
-    [ sunshaoce.risc-v ];
+  programs.vscode.profiles.${profileName} = {
+    extensions = with extensions.preferNixpkgsThenPreRelease; [ sunshaoce.risc-v ];
 
-  programs.vscode.profiles.default.userSettings = { };
+    userSettings = { };
+  };
 }

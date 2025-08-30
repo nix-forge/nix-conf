@@ -1,16 +1,11 @@
+profileName:
+{ lib, pkgs, ... }@args:
+let
+  extensions = pkgs.callPackage ../marketplace.nix args;
+in
 {
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
-{
-  programs.vscode.profiles.default.extensions =
-    let
-      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
-    in
-    with extensions.preferNixpkgsThenPreRelease;
-    [
+  programs.vscode.profiles.${profileName} = {
+    extensions = with extensions.preferNixpkgsThenPreRelease; [
       ms-python.python
       ms-python.vscode-pylance
       ms-python.debugpy
@@ -26,20 +21,17 @@
       rodolphebarbanneau.python-docstring-highlighter
     ];
 
-  programs.vscode.profiles.default.userSettings = {
-    "[python]" = {
-      "editor.tabSize" = 4;
-      "editor.defaultFormatter" = "ms-python.black-formatter";
+    userSettings = {
+      "[python]" = {
+        "editor.tabSize" = 4;
+        "editor.defaultFormatter" = "ms-python.black-formatter";
+      };
+
+      # set the location of the black formatter
+      "black-formatter.path" = [ "${lib.getExe pkgs.black}" ];
+
+      "python.analysis.autoImportCompletions" = true;
+      "python.analysis.typeCheckingMode" = "standard";
     };
-
-    # set the location of the black formatter
-    "black-formatter.path" = [
-      "${lib.getExe pkgs.black}"
-      "--line-length"
-      "120" # increase the line length from 88
-    ];
-
-    "python.analysis.autoImportCompletions" = true;
-    "python.analysis.typeCheckingMode" = "standard";
   };
 }

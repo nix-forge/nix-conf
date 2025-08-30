@@ -1,16 +1,11 @@
+profileName:
+{ lib, pkgs, ... }@args:
+let
+  extensions = pkgs.callPackage ../marketplace.nix args;
+in
 {
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
-{
-  programs.vscode.profiles.default.extensions =
-    let
-      extensions = pkgs.callPackage ../marketplace.nix { inherit inputs; };
-    in
-    with extensions.preferNixpkgsThenPreRelease;
-    [
+  programs.vscode.profiles.${profileName} = {
+    extensions = with extensions.preferNixpkgsThenPreRelease; [
       dbaeumer.vscode-eslint
       esbenp.prettier-vscode
       idered.npm
@@ -19,17 +14,18 @@
       mgmcdermott.vscode-language-babel
     ];
 
-  programs.vscode.profiles.default.userSettings = {
-    "javascript.suggest.paths" = false;
-    "[javascript]" = {
-      "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      "editor.tabSize" = 2;
-      "prettier.tabWidth" = 2;
-    };
-    "[javascriptreact]" = {
-      "editor.defaultFormatter" = "esbenp.prettier-vscode";
-      "editor.tabSize" = 2;
-      "prettier.tabWidth" = 2;
+    userSettings = {
+      "javascript.suggest.paths" = false;
+      "[javascript]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        "editor.tabSize" = 2;
+        "prettier.tabWidth" = 2;
+      };
+      "[javascriptreact]" = {
+        "editor.defaultFormatter" = "esbenp.prettier-vscode";
+        "editor.tabSize" = 2;
+        "prettier.tabWidth" = 2;
+      };
     };
   };
 }
