@@ -5,27 +5,46 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
-      llvm-vs-code-extensions.vscode-clangd
-      ms-vscode.cmake-tools
-      vadimcn.vscode-lldb
-      pierre-payen.gdb-syntax
-    ];
+    extensions =
+      (with extensions.preferNixpkgsThenPreRelease; [ ])
+      ++ (with extensions.nixpkgs-extensions; [ ms-vscode.cpptools ]);
 
     userSettings = {
       "[c]" = {
         "editor.tabSize" = 2;
-        "editor.defaultFormatter" = "llvm-vs-code-extensions.vscode-clangd";
+        "editor.defaultFormatter" = "ms-vscode.cpptools";
       };
 
       "[cpp]" = {
         "editor.tabSize" = 2;
-        "editor.defaultFormatter" = "llvm-vs-code-extensions.vscode-clangd";
+        "editor.defaultFormatter" = "ms-vscode.cpptools";
       };
 
-      "cmake.cmakePath" = lib.getExe pkgs.cmake;
-      "C_Cpp.intelliSenseEngine" = "disabled"; # IntelliSense from Microsoft conflicts with clangd
-      "clangd.path" = lib.getExe' pkgs.clang-tools "clangd";
+      "C_Cpp.default.includePath" = [
+        "\${workspaceFolder}/**"
+        "${pkgs.libcxx}/include/c++/v1"
+        "\${env:PKG_CONFIG_PATH}"
+      ]
+      ++ lib.optionals (pkgs.stdenv.isDarwin) [
+        "${pkgs.apple-sdk}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+      ]
+      ++ lib.optionals (pkgs.stdenv.isLinux) [
+        "/usr/include"
+        "/usr/local/include"
+      ];
+
+      "C_Cpp.default.compilerPath" = lib.getExe pkgs.stdenv.cc;
+      "C_Cpp.default.cStandard" = "c23";
+      "C_Cpp.default.cppStandard" = "c++23";
+      "C_Cpp.default.intelliSenseMode" =
+        if pkgs.stdenv.isAarch64 then
+          if pkgs.stdenv.isDarwin then "macos-clang-arm64" else "linux-gcc-arm64"
+        else if pkgs.stdenv.isDarwin then
+          "macos-clang-x64"
+        else
+          "linux-gcc-x64";
+      "C_Cpp.intelliSenseEngineFallback" = "enabled";
+      "C_Cpp.codeAnalysis.clangTidy.enabled" = true;
     };
   };
 }
