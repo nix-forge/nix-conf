@@ -5,11 +5,8 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [ upstash.context7-mcp ];
+    extensions = with extensions.preferNixpkgsThenPreRelease; [ ];
 
-    userSettings = {
-      ## Copilot
-      "github.copilot.chat.newWorkspace.useContext7" = true;
-    };
+    userSettings = { };
   };
 }

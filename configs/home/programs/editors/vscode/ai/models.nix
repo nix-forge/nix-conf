@@ -12,8 +12,6 @@ in
         github.copilot-chat
       ])
       ++ (with extensions.preferNixpkgsThenPreRelease; [
-        upstash.context7-mcp
-
         ## Codex
         openai.chatgpt
       ]);
