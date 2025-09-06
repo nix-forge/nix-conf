@@ -22,13 +22,13 @@ in
 
       "C_Cpp.default.includePath" = [
         "\${workspaceFolder}/**"
-        "${pkgs.libcxx}/include/c++/v1"
         "\${env:PKG_CONFIG_PATH}"
       ]
       ++ lib.optionals (pkgs.stdenv.isDarwin) [
         "${pkgs.apple-sdk}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       ]
       ++ lib.optionals (pkgs.stdenv.isLinux) [
+        # "${pkgs.libcxx}/include/c++/v1"
         "/usr/include"
         "/usr/local/include"
       ];
