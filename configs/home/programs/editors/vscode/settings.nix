@@ -38,7 +38,6 @@ in
         esbenp.prettier-vscode
 
         ## Base Language Support ##
-        kdl-org.kdl
         redhat.vscode-yaml
         tamasfe.even-better-toml
         mechatroner.rainbow-csv
