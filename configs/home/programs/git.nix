@@ -1,4 +1,8 @@
 {
+  emailConfig ? { },
+  ...
+}:
+{
   config,
   pkgs,
   lib,
@@ -6,6 +10,31 @@
 }:
 let
   inherit (pkgs.stdenv) isLinux isDarwin;
+
+  # Email Config
+  emailConfigPath = "${config.xdg.configHome}/git/.gitconfig-email";
+  makeEmailConfigVariations = website: emailPath: ''
+    [includeIf "hasconfig:remote.*.url:https://${website}/**"]
+      path = "${emailPath}"
+
+    [includeIf "hasconfig:remote.*.url:http://${website}/**"]
+      path = "${emailPath}"
+
+    [includeIf "hasconfig:remote.*.url:git@${website}:*/**"]
+      path = "${emailPath}"
+
+    [includeIf "hasconfig:remote.*.url:ssh://git@${website}/**"]
+      path = "${emailPath}"
+
+    [includeIf "hasconfig:remote.*.url:ssh://${website}/**"]
+      path = "${emailPath}"
+  '';
+  createEmailConfig =
+    websiteEmailPairs:
+    lib.pipe websiteEmailPairs [
+      (lib.attrsets.mapAttrsToList makeEmailConfigVariations)
+      (builtins.concatStringsSep "\n")
+    ];
 in
 {
   # Remove existing .gitconfig to avoid conflicts with runtime include
@@ -115,37 +144,15 @@ in
 
     # Includes
     includes = [
+      # Default Username and Email
       { path = config.age.secrets.gitconfig-userName.path; }
       { path = config.age.secrets.gitconfig-userEmail.path; }
-      { path = "${config.xdg.configHome}/git/.gitconfig-github-email"; }
+
+      # Website specific email config
+      { path = emailConfigPath; }
     ];
   };
 
-  home.file."${config.xdg.configHome}/git/.gitconfig-github-email".text = ''
-    [includeIf "hasconfig:remote.*.url:https://github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:http://github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:ssh://git@github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:ssh://github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-
-
-    [includeIf "hasconfig:remote.*.url:https://gist.github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:ssh://git@gist.github.com/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-
-    [includeIf "hasconfig:remote.*.url:git@gist.github.com:*/**"]
-      path = ${config.age.secrets.gitconfig-userEmail-GitHub.path}
-  '';
+  # Email Config for website specific git emails
+  home.file.${emailConfigPath}.text = createEmailConfig emailConfig;
 }

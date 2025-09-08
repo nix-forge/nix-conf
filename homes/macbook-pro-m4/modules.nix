@@ -5,7 +5,7 @@
   config,
   self,
   ...
-}:
+}@args:
 let
   homeDir = tree.configs.home;
   sharedDir = tree.configs.shared;
@@ -21,7 +21,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (base.xdg { uid = 501; })
   # ./hardware
   ./secrets.nix
-  # (base.mime { }) m
+  # (base.mime { })
 
   ## Theming
   stylix
@@ -49,7 +49,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.ghostty
 
   ## Development Tools
-  programs.git
+  (programs.git { emailConfig = import ./gitEmailConfig.nix args; })
   programs.ssh
   ./ssh.nix
   # dev.docs
