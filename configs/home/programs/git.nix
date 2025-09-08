@@ -56,6 +56,7 @@ in
     maintenance.enable = true;
 
     # Commit signing using SSH key (much easier than GPG)
+    # TODO: configure the ssh key to be used for signing in the function input to this file
     signing = {
       format = "ssh";
       key = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
