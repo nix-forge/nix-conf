@@ -6,7 +6,7 @@ in
 {
   programs.vscode.profiles.${profileName} = {
     extensions =
-      (with extensions.preferNixpkgsThenPreRelease; [ ])
+      (with extensions.preferNixpkgsThenPreRelease; [ jeff-hykin.better-cpp-syntax ])
       ++ (with extensions.nixpkgs-extensions; [ ms-vscode.cpptools ]);
 
     userSettings = {
