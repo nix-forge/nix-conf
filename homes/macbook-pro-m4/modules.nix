@@ -76,6 +76,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (vscode.languages.bash "default")
   (vscode.languages.javascript "default")
   (vscode.languages.typescript "default")
+  (vscode.languages.java "default")
   ((vscode.languages.docker "default") { enablePodman = true; })
   (vscode.languages.typst "default")
 
