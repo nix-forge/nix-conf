@@ -98,6 +98,15 @@ in
 
     # Extra global Git config options
     extraConfig = {
+      ## Credential Helpers
+      credential.helper =
+        if isDarwin then
+          "osxkeychain"
+        else if isLinux then
+          lib.getExe' config.programs.git.package "git-credential-libsecret"
+        else
+          null;
+
       ## Basic Settings
 
       init.defaultBranch = "main";
