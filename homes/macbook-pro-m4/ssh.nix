@@ -10,6 +10,14 @@
         SetEnv = "TERM=xterm-256color";
       };
     };
+    "perlmutter" = {
+      hostname = "perlmutter.nersc.gov";
+
+      extraOptions = {
+        Include = config.age.secrets.cornell-net-id-ssh-config.path;
+        SetEnv = "TERM=xterm-256color";
+      };
+    };
 
     # Git
     "github.coecis.cornell.edu" = {
