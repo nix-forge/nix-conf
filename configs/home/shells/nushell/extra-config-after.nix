@@ -7,7 +7,8 @@ let
     lib.pipe args.darwinConfig.environment.systemPath [
       (lib.splitString ":")
       (builtins.map (lib.removeSuffix "/bin"))
-    ])
+    ]
+  )
   ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
 
   binPaths = lib.pipe paths [

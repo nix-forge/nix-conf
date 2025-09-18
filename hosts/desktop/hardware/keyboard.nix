@@ -1,4 +1,9 @@
-{ pkgs, self, system,... }:
+{
+  pkgs,
+  self,
+  system,
+  ...
+}:
 {
   # Wooting Keyboard
   # hardware.wooting.enable = true;

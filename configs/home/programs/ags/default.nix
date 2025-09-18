@@ -1,4 +1,9 @@
-{ inputs, pkgs, system, ... }:
+{
+  inputs,
+  pkgs,
+  system,
+  ...
+}:
 {
   # add the home manager module
   imports = [ inputs.ags.homeManagerModules.default ];
