@@ -52,7 +52,7 @@
     openmoji-black
 
     # Microsoft Fonts
-    (self.packages.${system}.ttf-ms-win11-auto.override { acceptEula = true; })
+    self.packages.${system}.ttf-ms-win11-auto
 
     # Apple Fonts
     # TODO: fix the package to have stable links in some way and only enable it on non-Apple systems
