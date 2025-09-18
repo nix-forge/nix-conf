@@ -40,6 +40,11 @@ in
         "installation_mode" = "normal_installed";
         "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
       };
+
+      "webextension@metamask.io" = {
+        "installation_mode" = "normal_installed";
+        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/ether-metamask/latest.xpi";
+      };
     };
 
     profiles.${profileName}.extensions = {
