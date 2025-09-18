@@ -7,7 +7,7 @@
 {
   programs.ghostty = {
     enable = true;
-    package = lib.mkIf (pkgs.stdenv.isDarwin) pkgs.ghostty-bin;
+    package = lib.mkIf pkgs.stdenv.isDarwin pkgs.ghostty-bin;
 
     settings = {
       background-blur-radius = 20;

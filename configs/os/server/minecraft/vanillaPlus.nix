@@ -2,14 +2,13 @@
   port,
   pkgs,
   lib,
-  config,
   ...
 }:
 let
   mcVersion = "1.21";
   serverVersion = lib.replaceStrings [ "." ] [ "_" ] "fabric-${mcVersion}";
 
-  fetchurl = pkgs.fetchurl;
+  inherit (pkgs) fetchurl;
 in
 {
   enable = true;

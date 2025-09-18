@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ config, pkgs, ... }:
 {
   # Push the user's nix.conf into /etc/nix/nix.custom.conf,
   # leaving determinate-nixd to manage /etc/nix/nix.conf
@@ -183,7 +178,7 @@
     permittedInsecurePackages = [ ];
 
     overlays = [
-      (final: prev: {
+      (_final: prev: {
         # nixos-rebuild provides its own nix package, which is not the same as the one
         # we use in the system closure - which causes an extra Nix package to be added
         # even if it's not the one we need want.

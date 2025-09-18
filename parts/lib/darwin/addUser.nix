@@ -12,19 +12,19 @@
   createHome ? true,
   knownUser ? false,
   uid ? null,
-  homeManagerModules ? ({ ... }: [ ]),
+  homeManagerModules ? (_: [ ]),
   shell ? null, # main shell package
 }:
 let
   shells = {
     bash = pkgs.bashInteractive;
-    zsh = pkgs.zsh;
-    fish = pkgs.fish;
-    nushell = pkgs.nushell;
+    inherit (pkgs) zsh;
+    inherit (pkgs) fish;
+    inherit (pkgs) nushell;
   };
 
   systemFilteredShells = lib.attrsets.filterAttrs (
-    shellName: shellPkg: (builtins.hasAttr shellName config.programs)
+    shellName: _shellPkg: (builtins.hasAttr shellName config.programs)
   ) shells;
 in
 lib.mkMerge [
@@ -64,7 +64,7 @@ lib.mkMerge [
     };
 
     # enable the shell package if it exists
-    programs = builtins.mapAttrs (shellName: shellPkg: {
+    programs = builtins.mapAttrs (_shellName: shellPkg: {
       enable = lib.mkIf (shellPkg.pname == shell.pname) true;
     }) systemFilteredShells;
 
@@ -118,12 +118,12 @@ lib.mkMerge [
         (
           let
             homeFilteredShells = lib.attrsets.filterAttrs (
-              shellName: shellInfo: (builtins.hasAttr shellName config.programs)
+              shellName: _shellInfo: (builtins.hasAttr shellName config.programs)
             ) shells;
           in
           {
             programs = builtins.mapAttrs (
-              shellName: shellPkg:
+              _shellName: shellPkg:
               (lib.mkIf (shellPkg.pname == shell.pname) {
                 enable = true;
                 package = shell;
@@ -132,7 +132,7 @@ lib.mkMerge [
 
             home = {
               sessionVariables = builtins.mapAttrs (
-                VAR: value: lib.mkDefault value
+                _VAR: value: lib.mkDefault value
               ) darwinConfig.environment.variables;
 
               shell =

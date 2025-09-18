@@ -24,10 +24,10 @@ in
         "\${workspaceFolder}/**"
         "\${env:PKG_CONFIG_PATH}"
       ]
-      ++ lib.optionals (pkgs.stdenv.isDarwin) [
+      ++ lib.optionals pkgs.stdenv.isDarwin [
         "${pkgs.apple-sdk}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       ]
-      ++ lib.optionals (pkgs.stdenv.isLinux) [
+      ++ lib.optionals pkgs.stdenv.isLinux [
         # "${pkgs.libcxx}/include/c++/v1"
         "/usr/include"
         "/usr/local/include"

@@ -1,9 +1,4 @@
-{
-  tree,
-  folderName,
-  inputs,
-  ...
-}:
+{ tree, folderName, ... }:
 {
   system = "x86_64-linux";
   hostName = "desktop";

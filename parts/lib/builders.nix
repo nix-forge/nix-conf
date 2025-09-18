@@ -2,8 +2,6 @@
 let
   inherit nixpkgs;
   inherit (lib.lists) singleton concatLists;
-  inherit (lib.modules) mkDefault;
-  inherit (lib.attrsets) recursiveUpdate;
 
   # shorthand alias to `lib.nixosSystem`
   # `lib.nixosSystem` is a shallow wrapper around `lib.evalModules` that passes
@@ -41,7 +39,7 @@ let
         overlays = args.overlays or [ ];
 
         # Lib for Home Manager
-        libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
+        libHome = lib.extend (self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
         # SpecialArgs
         baseArgs = {
@@ -160,7 +158,7 @@ let
         homeManager = inputs.home-manager;
 
         # Lib for Home Manager
-        libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
+        libHome = lib.extend (self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
         # SpecialArgs
         baseArgs = {

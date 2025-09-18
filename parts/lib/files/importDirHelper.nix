@@ -12,14 +12,12 @@ dir:
 let
   inherit (import ./default.nix { inherit lib; }) nixDirEntries;
   importDirHelper = (import ./importDirHelper.nix) { inherit lib; };
-  val_fn = (
-    entry:
+  val_fn = entry:
     if (importDirDefault && entry.hasDefault) || entry.isNixFile then
       import entry.path
     else if entry.hasNixFiles then
       importDirHelper entry.path { inherit filter filter_fn importDirDefault; }
     else
-      abort "No nix files found in directory. Not filtered properly."
-  );
+      abort "No nix files found in directory. Not filtered properly.";
 in
 nixDirEntries dir filter_fn val_fn

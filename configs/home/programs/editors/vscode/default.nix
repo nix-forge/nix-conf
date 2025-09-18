@@ -1,5 +1,5 @@
 profileName:
-{ ... }:
+_:
 {
   programs.vscode = {
     enable = true;

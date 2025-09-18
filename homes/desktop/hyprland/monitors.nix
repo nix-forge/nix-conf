@@ -8,7 +8,7 @@
       };
 
       build-desktop-vars = name: {
-        name = name;
+        inherit name;
         resolution.x = ts 2560;
         resolution.y = ts 1440;
         scale = ts 1.25;

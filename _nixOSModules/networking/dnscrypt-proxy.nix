@@ -162,7 +162,7 @@ in
             server = {
               # Set the interface and port for Unbound
               interface = nameservers;
-              port = cfg.unbound.port;
+              inherit (cfg.unbound) port;
               inherit access-control;
 
               # Set IP Support

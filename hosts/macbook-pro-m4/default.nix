@@ -1,12 +1,4 @@
-{
-  tree,
-  inputs,
-  folderName,
-  ...
-}:
-let
-  install = pkg: { environment.systemPackages = [ pkg ]; };
-in
+{ tree, folderName, ... }:
 {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";

@@ -33,7 +33,7 @@ in
     settings.exec-once = [
       "${lib.getExe config.programs.waybar.package}"
 
-      "hyprctl setcursor ${config.gtk.cursorTheme.name} ${builtins.toString (config.gtk.cursorTheme.size)}"
+      "hyprctl setcursor ${config.gtk.cursorTheme.name} ${builtins.toString config.gtk.cursorTheme.size}"
     ];
   };
 
@@ -63,7 +63,7 @@ in
       # Theming Related Variables
       export GTK_THEME=${config.gtk.theme.name}
       export XCURSOR_THEME=${config.gtk.cursorTheme.name}
-      export XCURSOR_SIZE=${builtins.toString (config.gtk.cursorTheme.size)}
+      export XCURSOR_SIZE=${builtins.toString config.gtk.cursorTheme.size}
     ''
 
     (lib.optionals

@@ -11,9 +11,9 @@
       ];
     in
     {
-      supportedFilesystems = supportedFilesystems;
+      inherit supportedFilesystems;
       initrd = {
-        supportedFilesystems = supportedFilesystems;
+        inherit supportedFilesystems;
       };
     };
 

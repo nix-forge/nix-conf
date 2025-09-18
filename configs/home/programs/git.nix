@@ -93,8 +93,8 @@ in
       "*~"
       "*.swp"
     ]
-    ++ lib.optionals (pkgs.stdenv.isDarwin) [ ".DS_Store" ]
-    ++ lib.optionals (config.programs.direnv.enable) [ ".direnv/" ];
+    ++ lib.optionals pkgs.stdenv.isDarwin [ ".DS_Store" ]
+    ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
     # Extra global Git config options
     extraConfig = {
@@ -155,8 +155,8 @@ in
     # Includes
     includes = [
       # Default Username and Email
-      { path = config.age.secrets.gitconfig-userName.path; }
-      { path = config.age.secrets.gitconfig-userEmail.path; }
+      { inherit (config.age.secrets.gitconfig-userName) path; }
+      { inherit (config.age.secrets.gitconfig-userEmail) path; }
 
       # Website specific email config
       { path = emailConfigPath; }

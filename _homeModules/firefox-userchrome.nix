@@ -25,7 +25,7 @@ in
       profiles = lib.mkOption {
         type = types.attrsOf (
           types.submodule (
-            { config, name, ... }:
+            { name, ... }:
             {
               options = {
                 profile = lib.mkOption {
@@ -38,7 +38,7 @@ in
                   '';
                 };
                 settings = lib.mkOption {
-                  type = jsonFormat.type;
+                  inherit (jsonFormat) type;
                   default = {
                     "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
                     "layout.css.has-selector.enabled" = true;
@@ -49,7 +49,7 @@ in
                   '';
                 };
                 extraSettings = lib.mkOption {
-                  type = jsonFormat.type;
+                  inherit (jsonFormat) type;
                   default = { };
                   description = ''
                     Extra settings so you don't have to override the default

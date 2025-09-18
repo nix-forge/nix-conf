@@ -1,14 +1,11 @@
 {
   tree,
   pkgs,
-  inputs,
   config,
-  self,
   ...
 }@args:
 let
   homeDir = tree.configs.home;
-  sharedDir = tree.configs.shared;
   install = pkg: { home.packages = [ pkg ]; };
   var = envVar: val: { home.sessionVariables.${envVar} = val; };
   varBin = envVar: val: var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";

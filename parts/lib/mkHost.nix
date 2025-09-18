@@ -25,7 +25,6 @@
   # define the home-manager flake
   homeManager ? inputs.home-manager,
   # withSystem
-  withSystem,
   ...
 }:
 let
@@ -39,7 +38,7 @@ let
   );
 
   # Lib for Home Manager
-  libHome = lib.extend (self: super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
+  libHome = lib.extend (self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
   # SpecialArgs
   baseArgs = specialArgs // {

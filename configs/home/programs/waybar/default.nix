@@ -47,7 +47,6 @@ let
       # TODO this is duplicated from the hyprland config, make it a module
       # kbFns = lib.getExe config.utilities.osd-functions.package;
       pavucontrol = lib.getExe pkgs.lxqt.pavucontrol-qt;
-      blueman-manager = "${pkgs.blueman}/bin/blueman-manager";
       bluetoothctl = "${pkgs.bluez}/bin/bluetoothctl";
       systemctl = "${pkgs.systemd}/bin/systemctl";
       iwgtk = lib.getExe pkgs.iwgtk;

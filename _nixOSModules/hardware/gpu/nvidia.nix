@@ -29,7 +29,7 @@ in
     '';
   };
 
-  config = lib.mkIf (cfg.enable) (
+  config = lib.mkIf cfg.enable (
     lib.mkMerge [
       # Base
       {
@@ -95,9 +95,8 @@ in
               version1: version2: if (builtins.compareVersions version1 version2) > 0 then true else false;
             chooseDriver =
               driver1: driver2: if (isNewer driver1.version driver2.version) then driver1 else driver2;
-          in
-          let
-            beta = nvidiaPkgs.beta;
+          
+            inherit (nvidiaPkgs) beta;
             prod = nvidiaPkgs.production;
 
             nvidiaDriver = chooseDriver prod beta;
@@ -140,7 +139,7 @@ in
       }
 
       # Nvidia offload Command
-      (lib.mkIf (cfg.prime.offload.enable) {
+      (lib.mkIf cfg.prime.offload.enable {
         # Rewrote `nvidia-offload` command to include more environment variables
         # Based NixOS Wiki: https://nixos.wiki/wiki/Nvidia
         # Aditional env var of LIBVA_DRIVER_NAME=nvidia due to nvidia-vaapi-driver

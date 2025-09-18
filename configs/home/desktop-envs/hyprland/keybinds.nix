@@ -11,11 +11,8 @@
       MOUSE_LMB = "mouse:272";
       MOUSE_RMB = "mouse:273";
       # MOUSE_MMB = "mouse:274";
-      MOUSE_EX1 = "mouse:275";
-      MOUSE_EX2 = "mouse:276";
 
       # Clipboard Manager Setup
-      wl-paste-bin = "${pkgs.wl-clipboard}/bin/wl-paste";
       wl-copy-bin = "${pkgs.wl-clipboard}/bin/wl-copy";
       imagemagick-convert-bin = "${pkgs.imagemagick}/bin/convert";
 

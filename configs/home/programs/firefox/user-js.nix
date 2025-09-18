@@ -1,10 +1,5 @@
 profileName:
-{
-  lib,
-  config,
-  inputs,
-  ...
-}:
+{ lib, inputs, ... }:
 let
   toUserJS =
     kv:

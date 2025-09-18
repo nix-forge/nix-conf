@@ -17,8 +17,7 @@ in
     hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
     boot.kernelParams =
-      [ ]
-      ++ lib.optionals cfg.iommu.enable [
+      lib.optionals cfg.iommu.enable [
         "intel_iommu=on" # enable IOMMU support
         "iommu=pt" # prevent Linux from touching devices which cannot be passed through
       ]

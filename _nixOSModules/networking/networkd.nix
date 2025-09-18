@@ -86,7 +86,7 @@ in
           };
         };
     in
-    lib.mkIf (cfg.enable) (
+    lib.mkIf cfg.enable (
       lib.mkMerge [
         # General
         {
@@ -102,7 +102,7 @@ in
         }
 
         # WiFi
-        (lib.mkIf (cfg.wi-fi.enable) {
+        (lib.mkIf cfg.wi-fi.enable {
           systemd.network =
             let
               configBaseName = "${wifi-ethernet-priority-num}-wireless-networks";
@@ -140,7 +140,7 @@ in
         })
 
         # Ethernet
-        (lib.mkIf (cfg.ethernet.enable) {
+        (lib.mkIf cfg.ethernet.enable {
           systemd.network =
             let
               configBaseName = "${wifi-ethernet-priority-num}-wired-networks";

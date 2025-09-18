@@ -2,7 +2,7 @@
 {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem =
-    { config, pkgs, ... }:
+    { config, ... }:
     {
       # provide the formatter for `nix fmt`
       formatter = config.treefmt.build.wrapper;
@@ -13,32 +13,31 @@
         enableDefaultExcludes = true;
 
         settings = {
-          global.excludes = [
-            "*.age"
-            "*.envrc"
-          ];
+          global.excludes = [ "*.age" ];
         };
 
         programs = {
+          actionlint.enable = true;
+
+          deadnix.enable = true;
+
+          keep-sorted.enable = true;
+
           nixfmt = {
             enable = true;
-            package = pkgs.nixfmt;
-
             strict = true;
           };
 
-          shellcheck.enable = true; # cannot be configured, errors on basic bash convention
-
-          prettier = {
-            enable = true;
-            package = pkgs.prettierd;
-          };
+          shellcheck.enable = true;
 
           shfmt = {
             enable = true;
-            # https://flake.parts/options/treefmt-nix.html#opt-perSystem.treefmt.programs.shfmt.indent_size
             indent_size = 2; # set to 0 to use tabs
           };
+
+          statix.enable = true;
+
+          just.enable = true;
         };
       };
     };

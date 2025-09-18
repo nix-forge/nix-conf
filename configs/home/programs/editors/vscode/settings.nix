@@ -143,7 +143,7 @@ in
         "git.autofetch" = true;
         "git.confirmSync" = false;
         "git.path" =
-          lib.mkIf (config.programs.git.enable) "/etc/profiles/per-user/${config.home.username}/bin/git";
+          lib.mkIf config.programs.git.enable "/etc/profiles/per-user/${config.home.username}/bin/git";
 
         # prevent pollute history with whitespace changes
         "diffEditor.ignoreTrimWhitespace" = false;

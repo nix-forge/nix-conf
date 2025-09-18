@@ -4,7 +4,7 @@ let
     home.packages = [ pkgs.podman-compose ];
   };
 
-  linux = lib.mkIf (pkgs.stdenv.isLinux) {
+  linux = lib.mkIf pkgs.stdenv.isLinux {
     services.podman = {
       enable = true;
       enableTypeChecks = true;
@@ -14,7 +14,7 @@ let
     };
   };
 
-  darwin = lib.mkIf (pkgs.stdenv.isDarwin) { home.packages = [ pkgs.podman ]; };
+  darwin = lib.mkIf pkgs.stdenv.isDarwin { home.packages = [ pkgs.podman ]; };
 in
 lib.mkMerge [
   all

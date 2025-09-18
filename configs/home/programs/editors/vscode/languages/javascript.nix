@@ -1,5 +1,5 @@
 profileName:
-{ lib, pkgs, ... }@args:
+{ pkgs, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in

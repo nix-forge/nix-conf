@@ -6,7 +6,6 @@
   # The type of system to build for
   system,
   # The input of nixpkgs to use for the host.
-  nixpkgs ? inputs.nixpkgs,
   # Arguments to be given to nixpkgs instantiation.
   # <https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/impure.nix>
   nixpkgsArgs ? { },
@@ -15,7 +14,6 @@
   # Additional `specialArgs` (overwrites `args` attributes).
   specialArgs ? { },
   # define the home-manager flake
-  home-manager ? inputs.home-manager,
   # The modules to include in the home-manager for the system
   modules ? [ ],
   # Define the username to use for the home-manager
