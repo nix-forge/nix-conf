@@ -18,19 +18,35 @@
 
         # PerSystem attributes that are built for each system.
         perSystem =
-          { system, ... }:
+          { pkgs, system, ... }:
           let
             inherit (inputs.self) lib;
             inherit (lib.cust.files) importDirRec;
 
-            pkgs = import inputs.nixpkgs {
-              inherit system;
-              config.allowUnfree = true;
-            };
+            packages = lib.makeScope pkgs.newScope (
+              self: (builtins.mapAttrs (_folderName: pkg: self.callPackage pkg { }) (importDirRec ./pkgs [ ]))
+            );
           in
           {
-            # Set each package with the correct dependencies
-            packages = builtins.mapAttrs (folderName: pkg: pkgs.callPackage pkg { }) (importDirRec ./pkgs [ ]);
+            _module.args.pkgs = import inputs.nixpkgs {
+              inherit system;
+              config = {
+                allowUnfree = true;
+                allowUnsupportedSystem = true;
+              };
+            };
+
+            legacyPackages = packages;
+
+            packages = lib.filterAttrs (
+              _: pkg:
+              let
+                isDerivation = lib.isDerivation pkg;
+                availableOnHost = lib.meta.availableOn pkgs.stdenv.hostPlatform pkg;
+                isBroken = pkg.meta.broken or false;
+              in
+              isDerivation && !isBroken && availableOnHost
+            ) packages;
           };
 
         flake =
