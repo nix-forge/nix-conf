@@ -2,9 +2,15 @@
 {
   system = "x86_64-linux";
   hostName = "desktop";
+
   nixpkgsArgs = {
     config = {
       allowUnfree = true;
+      allowUnfreePredicate = _: true;
+      allowVariants = true;
+      allowBroken = false;
+      # allowAliases = false;
+
       cudaSupport = true;
     };
   };
