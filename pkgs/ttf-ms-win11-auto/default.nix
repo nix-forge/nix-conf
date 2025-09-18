@@ -3,7 +3,6 @@
   stdenv,
   fetchurl,
   p7zip,
-  acceptEula ? false,
 }:
 stdenv.mkDerivation rec {
   pname = "ttf-ms-win11-auto";
@@ -18,16 +17,6 @@ stdenv.mkDerivation rec {
   # On nixbuild.net especially, building this derivation
   # is likely to fail by running out of memory.
   preferLocalBuild = true;
-
-  eula =
-    assert lib.assertMsg acceptEula ''
-      You must override this package and accept the EULA. (ttf-ms-win11)
-      <http://corefonts.sourceforge.net/eula.htm>
-    '';
-    fetchurl {
-      url = "http://corefonts.sourceforge.net/eula.htm";
-      sha256 = "1aqbcnl032g2hd7iy56cs022g47scb0jxxp3mm206x1yqc90vs1c";
-    };
 
   src = fetchurl {
     # <https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise>
@@ -63,7 +52,6 @@ stdenv.mkDerivation rec {
 
     echo "Installing license files..."
     install -Dm444 fonts/license.rtf -t "$out/share/licenses/${pname}"
-    install -Dm444 '${eula}' -t "$out/share/licenses/${pname}"
 
     echo "Cleaning up..."
     rm -rf fonts
