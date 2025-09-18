@@ -1,1 +1,1 @@
-modules: builtins.map (x: if x ? "default" then x.default else x) modules
+modules: builtins.map (x: if builtins.hasAttr "default" x then x.default else x) modules
