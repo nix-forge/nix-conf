@@ -124,6 +124,9 @@
       };
     };
 
+    # Git Hooks
+    git-hooks.url = "github:cachix/git-hooks.nix";
+
     # Nix Secrets (from personal private repo)
     nix-secrets = {
       url = "git+ssh://git@github.com/IanHollow/nix-secrets.git?ref=main&shallow=1";

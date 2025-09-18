@@ -17,6 +17,7 @@
     # ./deployments.nix # deploy-rs configurations for active hosts
     ./fmt.nix # various formatter configurations for this flake
     # ./iso-images.nix # local installation media
-    # ./shell.nix # devShells exposed by the flake
+    ./git-hooks.nix # git hooks for this repo
+    ./shell.nix # devShells exposed by the flake
   ];
 }
