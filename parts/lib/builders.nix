@@ -233,6 +233,12 @@ let
 
           # Home Manager modules
           darwinHomeManager
+
+          # Determinate Nix
+          [
+            { nix.enable = false; }
+            inputs.determinate.darwinModules.default
+          ]
         ];
       }
     );

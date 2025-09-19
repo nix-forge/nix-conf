@@ -92,7 +92,7 @@ lib.mkMerge [
       // lib.mkMerge [
         {
           # Use the same nix package as nixos
-          nix.package = lib.mkForce darwinConfig.nix.package;
+          nix.package = lib.mkIf darwinConfig.nix.enable (lib.mkForce darwinConfig.nix.package);
 
           # Set default settings based on the system settings
           home = {
