@@ -3,7 +3,7 @@
   pkgs,
   config,
   ...
-}:
+}@args:
 let
   homeDir = tree.configs.home;
   install = pkg: { home.packages = [ pkg ]; };
@@ -21,7 +21,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Theming
   theming.basic
   theming.gtk
-  # stylix
+  # stylix # TODO: only enable if not enabled from the system do this in the stylix module
   (stylix.targets.firefox config.home.username)
 
   ## Desktop Environment
@@ -44,6 +44,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Web Browsers
   (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username)
+
   { programs.chromium.enable = true; }
 
   ## Shell Environments
@@ -59,9 +60,11 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.ghostty
 
   ## Development Tools
-  programs.git
+  # (programs.git { }) # TODO: add config to git module to allow not passing secrets info
+  (install pkgs.git)
+
   programs.ssh
-  dev.docs
+  # dev.docs
   dev.direnv
   dev.github-cli
   dev.nix-formatter
@@ -76,20 +79,23 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Code Editors
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
-  vscode.settings
-  vscode.languages.cpp
-  vscode.languages.esp-idf
-  vscode.languages.nix
-  vscode.languages.web
-  vscode.languages.python
-  vscode.languages.bash
-  vscode.languages.verilog
-  vscode.languages.javascript
-  vscode.languages.typescript
-  (vscode.languages.docker { enablePodman = true; })
-  vscode.languages.spice
-  vscode.languages.matlab
-  vscode.languages.typst
+
+  (vscode.default "default")
+  (vscode.settings "default")
+  (vscode.keybinds "default")
+  (vscode.ai.models "default")
+  (vscode.languages.cpp "default")
+  (vscode.languages.nix "default")
+  (vscode.languages.web "default")
+  (vscode.languages.python "default")
+  (vscode.languages.bash "default")
+  (vscode.languages.javascript "default")
+  (vscode.languages.typescript "default")
+  (vscode.languages.java "default")
+  ((vscode.languages.docker "default") { enablePodman = true; })
+  (vscode.languages.typst "default")
+  (vscode.languages.solidity "default")
+  (vscode.languages.sql "default")
 
   ## Communication
   (install pkgs.discord)
