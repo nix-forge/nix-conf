@@ -9,16 +9,9 @@
         # Parts of the flake that are used to construct the final flake.
         imports = [ ./parts ];
 
-        # Systems for which the attributes of `perSystem` will be built
-        # add more if they can be supported...
-        #  - x86_64-linux: Desktops, laptops, servers
-        #  - aarch64-linux: ARM-based devices, PoC server and builders
-        #  - ...
-        systems = import inputs.systems;
-
         # PerSystem attributes that are built for each system.
         perSystem =
-          { pkgs, system, ... }:
+          { pkgs, ... }:
           let
             inherit (inputs.self) lib;
             inherit (lib.cust.files) importDirRec;
@@ -28,14 +21,6 @@
             );
           in
           {
-            _module.args.pkgs = import inputs.nixpkgs {
-              inherit system;
-              config = {
-                allowUnfree = true;
-                allowUnsupportedSystem = true;
-              };
-            };
-
             legacyPackages = packages;
 
             packages = lib.filterAttrs (
