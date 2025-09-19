@@ -47,7 +47,12 @@ lib.mkMerge [
         "verified-fetches"
         "fetch-tree"
         "git-hashing"
+        "external-builders"
       ];
+
+      external-builders = "[{\"systems\":[\"aarch64-linux\",\"x86_64-linux\"],\"program\":\"/usr/local/bin/determinate-nixd\",\"args\":[\"builder\"]}]";
+
+      eval-cores = 2;
 
       # don't warn that my git tree is dirty it is known through git
       warn-dirty = false;
