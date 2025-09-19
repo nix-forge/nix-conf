@@ -7,8 +7,7 @@
 # imageViewer ? [ "gimp.desktop" ],
 # videoPlayer ? [ "vlc.desktop" ],
 }:
-_:
-{
+_: {
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {

@@ -1,5 +1,4 @@
-_:
-{
+_: {
 
   security.pam.services = {
     sudo_local = {

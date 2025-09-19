@@ -57,10 +57,12 @@ let
     homeManager.nixosModules.home-manager
     # General NixOS home-manager config
     {
-      home-manager.useGlobalPkgs = true;
-      home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = homeSpecialArgs;
-      home-manager.backupFileExtension = "backup";
+      home-manager = {
+        useGlobalPkgs = true;
+        useUserPackages = true;
+        extraSpecialArgs = homeSpecialArgs;
+        backupFileExtension = "backup";
+      };
     }
   ];
 

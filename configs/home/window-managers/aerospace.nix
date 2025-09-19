@@ -1,5 +1,4 @@
-_:
-{
+_: {
   programs.aerospace = {
     enable = true;
 
@@ -66,10 +65,12 @@ _:
       gaps = {
         inner.horizontal = 6;
         inner.vertical = 6;
-        outer.left = 8;
-        outer.bottom = 8;
-        outer.top = 8;
-        outer.right = 8;
+        outer = {
+          left = 8;
+          bottom = 8;
+          top = 8;
+          right = 8;
+        };
       };
       # 'main' binding mode declaration
       # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

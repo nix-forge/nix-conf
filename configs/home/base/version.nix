@@ -1,4 +1,1 @@
-_:
-{
-  home.stateVersion = "25.11";
-}
+_: { home.stateVersion = "25.11"; }

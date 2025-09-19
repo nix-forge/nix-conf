@@ -1,6 +1,4 @@
-profileName:
-_:
-{
+profileName: _: {
   stylix.targets.firefox = {
     enable = true;
 

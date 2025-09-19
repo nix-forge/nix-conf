@@ -3,7 +3,7 @@
   pkgs,
   config,
   ...
-}@args:
+}:
 let
   homeDir = tree.configs.home;
   install = pkg: { home.packages = [ pkg ]; };

@@ -12,7 +12,8 @@ dir:
 let
   inherit (import ./default.nix { inherit lib; }) nixDirEntries;
   importDirHelper = (import ./importDirHelper.nix) { inherit lib; };
-  val_fn = entry:
+  val_fn =
+    entry:
     if (importDirDefault && entry.hasDefault) || entry.isNixFile then
       import entry.path
     else if entry.hasNixFiles then

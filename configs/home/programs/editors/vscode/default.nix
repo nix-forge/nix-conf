@@ -1,6 +1,4 @@
-profileName:
-_:
-{
+profileName: _: {
   programs.vscode = {
     enable = true;
     mutableExtensionsDir = false;

@@ -1,6 +1,4 @@
-profileName:
-_:
-{
+profileName: _: {
   programs.firefox.profiles.${profileName}.search.engines = {
     cornell-cs-courses = {
       name = "Cornell CS Courses";

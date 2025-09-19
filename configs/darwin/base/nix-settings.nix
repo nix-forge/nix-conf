@@ -1,9 +1,4 @@
-{
-  lib,
-  config,
-  inputs,
-  ...
-}:
+{ lib, config, ... }:
 lib.mkMerge [
   (lib.mkIf (!config.nix.enable) {
     determinate-nix.customSettings = {

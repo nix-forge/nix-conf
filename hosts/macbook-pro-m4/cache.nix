@@ -17,10 +17,6 @@ let
   };
 in
 lib.mkMerge [
-  (lib.mkIf config.nix.enable {
-    nix.settings = caches;
-  })
-  (lib.mkIf (!config.nix.enable) {
-    determinate-nix.customSettings = caches;
-  })
+  (lib.mkIf config.nix.enable { nix.settings = caches; })
+  (lib.mkIf (!config.nix.enable) { determinate-nix.customSettings = caches; })
 ]

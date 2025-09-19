@@ -12,9 +12,7 @@
     in
     {
       inherit supportedFilesystems;
-      initrd = {
-        inherit supportedFilesystems;
-      };
+      initrd = { inherit supportedFilesystems; };
     };
 
   services = {
