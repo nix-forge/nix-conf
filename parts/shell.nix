@@ -1,4 +1,7 @@
-_:
-{
-  perSystem = _: { };
+_: {
+  perSystem =
+    { pkgs, ... }:
+    {
+      devShells.default = pkgs.mkShellNoCC { packages = [ pkgs.statix ]; };
+    };
 }

@@ -19,5 +19,6 @@
     # ./iso-images.nix # local installation media
     # ./git-hooks.nix # git hooks for this repo
     ./shell.nix # devShells exposed by the flake
+    ./args.nix # arguments that are passed to the flake
   ];
 }
