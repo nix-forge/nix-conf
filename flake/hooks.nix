@@ -13,6 +13,7 @@
     enable = true;
     after = [ "treefmt" ];
     # Ignore known public minisign keys flagged by ripsecrets
+    # TODO: try to see if we can not have to have this exclude in some way
     excludes = [ "^nixosModules/networking/dnscrypt-proxy.nix$" ];
   };
 
