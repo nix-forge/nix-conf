@@ -43,11 +43,6 @@ jobs:
           ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Nix flake policy check
-        if: matrix.os == 'ubuntu-latest'
-        uses: DeterminateSystems/flake-checker-action@v12
-        with:
-          ignore-missing-flake-lock: false
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v20
       - name: Configure Magic Nix Cache

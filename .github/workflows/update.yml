@@ -50,11 +50,6 @@ jobs:
           git-author-name: Determinate Bot
           git-author-email: determinate@users.noreply.github.com
           branch: ${{ env.UPDATE_BRANCH }}
-      - name: Nix flake policy check
-        if: steps.update.outputs.pull-request-url != ''
-        uses: DeterminateSystems/flake-checker-action@v12
-        with:
-          ignore-missing-flake-lock: false
       - name: Capture update metadata
         id: metadata
         env:
@@ -69,9 +64,17 @@ jobs:
           else
             echo "pr-branch=" >> "$GITHUB_OUTPUT"
           fi
+  flake-policy:
+    name: Flake policy validation
+    needs: nix-flake-update
+    if: needs.nix-flake-update.outputs.pr-branch != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
+    uses: ./.github/workflows/flake-policy.yml
+    with:
+      ref: ${{ needs.nix-flake-update.outputs.pr-branch }}
+    secrets: inherit
   check:
     name: Flake checks on update branch
-    needs: nix-flake-update
+    needs: [nix-flake-update, flake-policy]
     if: needs.nix-flake-update.outputs.pr-branch != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
     uses: ./.github/workflows/check.yml
     with:
@@ -79,7 +82,7 @@ jobs:
     secrets: inherit
   merge:
     name: Merge update PR
-    needs: [nix-flake-update, check]
+    needs: [nix-flake-update, flake-policy, check]
     if: needs.nix-flake-update.outputs.pr-url != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
     runs-on: ubuntu-latest
     permissions:
