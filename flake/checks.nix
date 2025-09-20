@@ -1,9 +1,17 @@
 { self, ... }:
 {
   perSystem =
-    { pkgs, system, ... }@args:
+    {
+      pkgs,
+      system,
+      config,
+      ...
+    }@args:
     {
       checks = {
+        # Formatting check (read-only) — keeps CI pure
+        formatting = config.treefmt.build.check;
+
         default =
           let
             name = "check-store-errors";
