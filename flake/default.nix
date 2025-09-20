@@ -1,6 +1,6 @@
 {
   imports = [
-    ./checks
+    ./checks.nix
     ./tree.nix
     ./args.nix
     ./fmt.nix
@@ -8,7 +8,7 @@
 
     # ./apps
     # ./modules
-    # ./pkgs
+    ./pkgs.nix
     # ./pre-commit
     # ./templates
     # ./deployments.nix

@@ -45,9 +45,10 @@ in
         ];
       })
 
-      # AMD PState
+      # AMD PState, IGPU, and zenpower sensor configuration
       {
         boot = lib.mkMerge [
+          # AMD PState
           (lib.mkIf ((lib.versionAtLeast kver "5.17") && (lib.versionOlder kver "6.1")) {
             kernelParams = [ "initcall_blacklist=acpi_cpufreq_init" ];
             kernelModules = [ "amd-pstate" ];
@@ -56,23 +57,19 @@ in
             kernelParams = [ "amd_pstate=passive" ];
           })
           (lib.mkIf (lib.versionAtLeast kver "6.3") { kernelParams = [ "amd_pstate=active" ]; })
+
+          # IGPU tweak for specific kernel versions
+          (lib.mkIf ((lib.versionAtLeast kver "6.2") && (lib.versionOlder kver "6.6")) {
+            kernelParams = [ "amdgpu.sg_display=0" ];
+          })
+
+          # Zen CPUs: prefer zenpower over k10temp
+          {
+            blacklistedKernelModules = [ "k10temp" ];
+            extraModulePackages = [ config.boot.kernelPackages.zenpower ];
+            kernelModules = [ "zenpower" ];
+          }
         ];
-      }
-
-      # IGPU
-      {
-        boot = lib.mkIf (
-          (lib.versionAtLeast config.boot.kernelPackages.kernel.version "6.2")
-          && (lib.versionOlder config.boot.kernelPackages.kernel.version "6.6")
-        ) { kernelParams = [ "amdgpu.sg_display=0" ]; };
-      }
-
-      # Enables the zenpower sensor in lieu of the k10temp sensor on Zen CPUs https://git.exozy.me/a/zenpower3
-      # On Zen CPUs zenpower produces much more data entries
-      {
-        boot.blacklistedKernelModules = [ "k10temp" ];
-        boot.extraModulePackages = [ config.boot.kernelPackages.zenpower ];
-        boot.kernelModules = [ "zenpower" ];
       }
     ]
   );

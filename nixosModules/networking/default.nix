@@ -1,7 +1,4 @@
 {
-  moduleName ? "custom",
-}:
-{
   config,
   lib,
   pkgs,
@@ -9,16 +6,14 @@
 }:
 let
   inherit (lib) types;
+  moduleName = "extras";
   cfg = config.networking.${moduleName};
 in
 {
   imports = [
-    (import ./dnscrypt-proxy.nix { inherit moduleName; })
-    (import ./tcp-optimizations.nix { inherit moduleName; })
-    (import ./networkd.nix {
-      inherit moduleName;
-      inherit (cfg) randomizeMacAddress;
-    })
+    ./dnscrypt-proxy.nix
+    ./tcp-optimizations.nix
+    ./networkd.nix
     ./firewall
   ];
 

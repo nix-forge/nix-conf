@@ -20,9 +20,9 @@
             '';
           };
 
-        pre-commit-check = self.inputs.git-hooks.lib.${system}.run {
-          src = ./../../.;
-          hooks = import ./../hooks.nix args;
+        pre-commit-check = self.inputs.pre-commit-hooks.lib.${system}.run {
+          src = ./../.;
+          hooks = import ./hooks.nix args;
         };
       };
     };

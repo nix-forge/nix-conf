@@ -1,9 +1,7 @@
-{
-  moduleName ? "custom",
-}:
 { config, lib, ... }:
 let
   inherit (lib) types;
+  moduleName = "extras";
   cfg = config.networking.${moduleName}.dnscrypt-proxy;
 in
 {

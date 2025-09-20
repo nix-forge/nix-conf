@@ -8,7 +8,7 @@
           inherit (self.checks.${system}.pre-commit-check) shellHook enabledPackages;
         in
         pkgs.mkShellNoCC {
-          buildInputs = [ ] ++ enabledPackages;
+          buildInputs = enabledPackages;
           packages = [ ];
 
           shellHook = '''' + shellHook;

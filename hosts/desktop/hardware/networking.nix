@@ -1,16 +1,13 @@
 { self, ... }:
-let
-  moduleName = "custom";
-in
 {
-  imports = [ (self.nixosModules.networking { inherit moduleName; }) ];
+  imports = [ self.nixosModules.networking ];
 
   networking = {
     networkmanager.enable = false;
 
     enableIPv6 = true;
 
-    ${moduleName} = {
+    extras = {
       generateHostId = true;
 
       randomizeMacAddress = false;

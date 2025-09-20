@@ -107,7 +107,11 @@
     };
 
     # Git Hooks
-    git-hooks.url = "github:cachix/git-hooks.nix";
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "flake-compat";
+    };
 
     # Nix Secrets (from personal private repo)
     nix-secrets = {
@@ -264,82 +268,96 @@
     # Hyprland Flake
     aquamarine = {
       url = "github:hyprwm/aquamarine";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
-      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+      };
     };
 
     hyprcursor = {
       url = "github:hyprwm/hyprcursor";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprlang.follows = "hyprlang";
+      };
     };
 
     hyprgraphics = {
       url = "github:hyprwm/hyprgraphics";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprutils.follows = "hyprutils";
+      };
     };
 
     hyprland-protocols = {
       url = "github:hyprwm/hyprland-protocols";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     hyprland-qt-support = {
       url = "github:hyprwm/hyprland-qt-support";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprlang.follows = "hyprlang";
+      };
     };
 
     hyprland-qtutils = {
       url = "github:hyprwm/hyprland-qtutils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprlang.follows = "hyprlang";
-      inputs.hyprutils.follows = "hyprutils";
-      inputs.hyprland-qt-support.follows = "hyprland-qt-support";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprland-qt-support.follows = "hyprland-qt-support";
+      };
     };
 
     hyprlang = {
       url = "github:hyprwm/hyprlang";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprutils.follows = "hyprutils";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprutils.follows = "hyprutils";
+      };
     };
 
     hyprutils = {
       url = "github:hyprwm/hyprutils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     hyprwayland-scanner = {
       url = "github:hyprwm/hyprwayland-scanner";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
 
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
-      inputs.hyprland-protocols.follows = "hyprland-protocols";
-      inputs.hyprlang.follows = "hyprlang";
-      inputs.hyprutils.follows = "hyprutils";
-      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprland-protocols.follows = "hyprland-protocols";
+        hyprlang.follows = "hyprlang";
+        hyprutils.follows = "hyprutils";
+        hyprwayland-scanner.follows = "hyprwayland-scanner";
+      };
     };
-
-    # pre-commit-hooks = {
-    #   url = "github:cachix/git-hooks.nix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    #   inputs.flake-compat.follows = "flake-compat";
-    # };
 
     hyprland = {
       url = "github:hyprwm/Hyprland";
@@ -386,24 +404,6 @@
       };
     };
 
-    # lib-aggregate = {
-    #   url = "github:nix-community/lib-aggregate";
-    #   inputs = {
-    #     flake-utils.follows = "flake-utils";
-    #     nixpkgs-lib.follows = "nixpkgs";
-    #   };
-    # };
-
-    # nixpkgs-wayland = {
-    #   url = "github:nix-community/nixpkgs-wayland";
-    #   inputs = {
-    #     # Don't overwrite nixpkgs as this could cause cache miss
-
-    #     lib-aggregate.follows = "lib-aggregate";
-    #     flake-compat.follows = "flake-compat";
-    #   };
-    # };
-
     # AMD microcode updates
     ucodenix.url = "github:e-tho/ucodenix";
 
@@ -445,8 +445,6 @@
     };
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
-
-    # Optional: Declarative tap management
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
       flake = false;
@@ -456,30 +454,4 @@
       flake = false;
     };
   };
-
-  # nixConfig = {
-  #   extra-substituters = [
-  #     "https://cache.nixos.org" # official nix cache
-  #     "https://nix-community.cachix.org" # nix-community cache
-  #     "https://nixpkgs-unfree.cachix.org" # unfree-package cache
-  #     "https://cache.garnix.io" # garnix binary cache
-  #     "https://geonix.cachix.org" # geospatial nix
-  #     "https://nix-gaming.cachix.org" # nix-gaming cache
-  #     "https://cosmic.cachix.org" # cosmic desktop
-  #     "https://hyprland.cachix.org" # hyprland cache
-  #     "https://nixpkgs-wayland.cachix.org" # nixpkgs wayland cache
-  #   ];
-
-  #   extra-trusted-public-keys = [
-  #     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-  #     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-  #     "nixpkgs-unfree.cachix.org-1:hqvoInulhbV4nJ9yJOEr+4wxhDV4xq2d1DK7S6Nj6rs="
-  #     "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-  #     "geonix.cachix.org-1:iyhIXkDLYLXbMhL3X3qOLBtRF8HEyAbhPXjjPeYsCl0="
-  #     "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
-  #     "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
-  #     "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-  #     "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-  #   ];
-  # };
 }

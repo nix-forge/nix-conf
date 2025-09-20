@@ -96,9 +96,7 @@ in
     ++ lib.optionals pkgs.stdenv.isDarwin [ ".DS_Store" ]
     ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
-    # Extra global Git config options
     extraConfig = {
-      ## Credential Helpers
       credential.helper =
         if isDarwin then
           "osxkeychain"
@@ -107,47 +105,42 @@ in
         else
           null;
 
-      ## Basic Settings
-
       init.defaultBranch = "main";
-
-      fetch.prune = true;
+      fetch = {
+        prune = true;
+        writeCommitGraph = true;
+        recurseSubmodules = "on-demand";
+      };
       commit.verbose = true;
 
       pull.rebase = true;
-      rebase.autoStash = true;
-      rebase.autosquash = true;
-      rebase.updateRefs = true;
+      rebase = {
+        autoStash = true;
+        autosquash = true;
+        updateRefs = true;
+      };
       merge.conflictStyle = "zdiff3";
-
-      push.followTags = true;
-      push.autoSetupRemote = true;
-      push.default = "simple";
-
-      ## Enable Performance Enhancements
+      push = {
+        followTags = true;
+        autoSetupRemote = true;
+        default = "simple";
+      };
 
       # set protocol version to 2 for better performance if version greater than 2.18.0
       protocol.version = lib.mkIf (lib.versionAtLeast config.programs.git.package.version "2.18.0") 2;
-
-      core.fsmonitor = true;
-      core.untrackedCache = true;
-      feature.manyFiles = true;
-      gc.writeCommitGraph = true;
-      fetch.writeCommitGraph = true;
-      index.threads = 0;
-
-      ## Miscellaneous Settings
-
-      core.autocrlf = "input";
-
-      submodule.recurse = true;
-      fetch.recurseSubmodules = "on-demand";
-      diff.submodule = "log";
-
       core = {
+        fsmonitor = true;
+        untrackedCache = true;
+        autocrlf = "input";
         editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
       };
+      feature.manyFiles = true;
+      gc.writeCommitGraph = true;
+      index.threads = 0;
+
+      submodule.recurse = true;
+      diff.submodule = "log";
 
       gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
     };

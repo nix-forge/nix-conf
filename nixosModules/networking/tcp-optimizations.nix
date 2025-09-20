@@ -1,8 +1,6 @@
-{
-  moduleName ? "custom",
-}:
 { config, lib, ... }:
 let
+  moduleName = "extras";
   cfg = config.networking.${moduleName};
 in
 {

@@ -1,10 +1,12 @@
 { pkgs, lib, ... }:
 {
   nixfmt-rfc-style.enable = true;
-  statix.enable = true;
-  statix.pass_filenames = true;
-  statix.require_serial = true;
-  statix.entry = "${lib.getExe pkgs.bash} -lc 'err=0; for f in \"$@\"; do [ -f \"$f\" ] || continue; ${lib.getExe pkgs.statix} check --format errfmt -- \"$f\" || err=1; done; exit $err'";
+  statix = {
+    enable = true;
+    pass_filenames = true;
+    require_serial = true;
+    entry = "${lib.getExe pkgs.bash} -lc 'err=0; for f in \"$@\"; do [ -f \"$f\" ] || continue; ${lib.getExe pkgs.statix} check --format errfmt -- \"$f\" || err=1; done; exit $err'";
+  };
   deadnix.enable = true;
   deadnix.settings.edit = true;
   nil.enable = true;
@@ -22,9 +24,11 @@
   shfmt.enable = true;
   shfmt.settings.simplify = true;
 
-  markdownlint.enable = true;
-  markdownlint.args = [ "--fix" ];
-  markdownlint.after = [ "prettier" ];
+  markdownlint = {
+    enable = true;
+    args = [ "--fix" ];
+    after = [ "prettier" ];
+  };
   # Prefer wrapping prose via Prettier instead of enforcing MD013
   # markdownlint.settings.configuration = { MD013 = false; };
   prettier.enable = true;
@@ -32,5 +36,6 @@
   yamllint.enable = true;
 
   # Ignore known public minisign keys flagged by ripsecrets
-  ripsecrets.excludes = [ "^_nixOSModules/networking/dnscrypt-proxy.nix$" ];
+  # TODO: check if this is needed
+  ripsecrets.excludes = [ "^nixosModules/networking/dnscrypt-proxy.nix$" ];
 }

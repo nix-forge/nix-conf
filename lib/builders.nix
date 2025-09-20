@@ -1,27 +1,7 @@
-{ nixpkgs, lib, ... }:
+{ lib, ... }:
 let
-  inherit nixpkgs;
   inherit (lib.lists) singleton concatLists;
 
-  # shorthand alias to `lib.nixosSystem`
-  # `lib.nixosSystem` is a shallow wrapper around `lib.evalModules` that passes
-  # a few specialArgs and modules to bootstrap a working NixOS system. This is
-  # done implicitly in the wrapper and normally we would like to avoid using it
-  # however using `evalModules` to evaluate a system closure breaks e.g. the
-  # `documentation.nixos.enable` option which evaluates the module tree internally
-  # in which case `baseModules` will be missing
-  mkSystem = lib.nixosSystem;
-
-  # global module path for nixos modules
-  # while using nixosSystem, this will be set as a specialArgs internally
-  # modulesPath = "${nixpkgs}/nixos/modules";
-
-  # mkNixosSystem is a convenient wrapper around lib.nixosSystem (which itself is a wrapper around lib.evalModules)
-  # that allows us to abstract host creation and configuration with necessary modules and specialArgs pre-defined
-  # or properly overridden compared to their nixpkgs default. This allows us to swiftly bootstrap a new system
-  # when (not if) a new system is added to `hosts/default.nix` with minimum lines of code rewritten each time.
-  # Ultimately this defines specialArgs we need and lazily merges any args and modules the host may choose
-  # to pass to the builder.
   mkHost =
     {
       withSystem,
@@ -109,7 +89,7 @@ let
           }
         ];
       in
-      mkSystem {
+      lib.nixosSystem {
         # specialArgs
         specialArgs = nixosSpecialArgs;
 
@@ -120,7 +100,7 @@ let
             nixpkgs = {
               overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
               hostPlatform = system;
-              flake.source = nixpkgs.outPath;
+              flake.source = inputs.nixpkgs.outPath;
             }
             // (args.nixpkgsArgs or { });
           })
@@ -222,7 +202,7 @@ let
             networking.hostName = args.hostname or args.hostName or folderName;
             nixpkgs = {
               hostPlatform = system;
-              flake.source = nixpkgs.outPath;
+              flake.source = inputs.nixpkgs.outPath;
             }
             // (args.nixpkgsArgs or { });
           })
@@ -244,5 +224,5 @@ let
     );
 in
 {
-  inherit mkSystem mkHost mkDarwin;
+  inherit mkHost mkDarwin;
 }

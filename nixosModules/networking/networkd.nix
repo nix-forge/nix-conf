@@ -1,10 +1,8 @@
-{
-  moduleName ? "custom",
-  randomizeMacAddress ? false,
-}:
-{ lib, config, ... }:
+{ config, lib, ... }:
 let
+  moduleName = "extras";
   cfg = config.networking.${moduleName}.networkd-general;
+  inherit (config.networking.${moduleName}) randomizeMacAddress;
 in
 {
   options.networking.${moduleName}.networkd-general = {
