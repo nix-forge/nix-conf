@@ -5,7 +5,7 @@
     {
       devShells.default =
         let
-          inherit (self.checks.${system}.pre-commit-check) shellHook enabledPackages;
+          inherit (self.checks.${system}.git-hooks-check) shellHook enabledPackages;
         in
         pkgs.mkShellNoCC {
           buildInputs = enabledPackages;
