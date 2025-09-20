@@ -7,7 +7,7 @@ in
   programs.vscode.profiles.${profileName} = {
     extensions =
       (with extensions.extraCompatible; [
-        ## Copilot
+        ## Copilot (since extensions is integrated with vscode it requires the version to be compatible)
         github.copilot
         github.copilot-chat
       ])
