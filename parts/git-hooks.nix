@@ -3,15 +3,10 @@
   flake = {
     git-hooks.hooks = {
       nixfmt-rfc-style.enable = true;
-
       statix.enable = true; # static analysis for common pitfalls
-      deadnix = {
-        enable = true; # finds unused let bindings, etc.
-        # settings = {
-        #   noUnderscore = false;
-        # }; # default behavior usually fine
-      };
-      # nil.enable = true; # Nix language server checks
+      deadnix.enable = true; # finds unused let bindings, etc.
+
+      nil.enable = true; # Nix language server checks
 
       # Secrets & hygiene
       ripsecrets.enable = true;
@@ -20,10 +15,6 @@
       mixed-line-endings.enable = true;
       check-merge-conflicts.enable = true;
       check-symlinks.enable = true;
-
-      # Shell (for any helper scripts in the repo)
-      shellcheck.enable = true;
-      shfmt.enable = true;
 
       # Markdown/YAML
       markdownlint.enable = true;

@@ -1,8 +1,9 @@
 { self, lib, ... }:
-lib.mkMerge [
+{
+  imports = [ self.nixOSModules.hardware.gpu.nvidia ];
+}
+// lib.mkMerge [
   {
-    imports = [ self.nixOSModules.hardware.gpu.nvidia ];
-
     hardware.nvidia = {
       enable = true;
       betaDriver = true;
