@@ -14,7 +14,6 @@ smaller pieces. Hosts and homes are constructed using helper functions under
 - `homes/` – Home‑Manager setups for each user and host
 - `configs/` – Reusable modules shared by hosts and homes
 - `nixosModules/` – Standalone NixOS modules exported by the flake
-- `_homeModules/` – Standalone Home Manager modules exported by the flake
 - `pkgs/` – Custom package definitions
 - `flake/` – flake-parts modules and helper libraries
 
