@@ -6,17 +6,17 @@ custom packages.
 
 The flake makes heavy use of **flake-parts** to break the configuration into
 smaller pieces. Hosts and homes are constructed using helper functions under
-`parts/lib`.
+`lib/`.
 
 ## Directory layout
 
 - `hosts/` – Host specific NixOS or Darwin configurations
 - `homes/` – Home‑Manager setups for each user and host
 - `configs/` – Reusable modules shared by hosts and homes
-- `_nixosModules/` – Standalone NixOS modules exported by the flake
+- `nixosModules/` – Standalone NixOS modules exported by the flake
 - `_homeModules/` – Standalone Home Manager modules exported by the flake
 - `pkgs/` – Custom package definitions
-- `parts/` – flake-parts modules and helper libraries
+- `flake/` – flake-parts modules and helper libraries
 
 ## Requirements
 
@@ -46,10 +46,6 @@ If you need ssh keys for the system on darwin systems you can use the command
 
 Home Manager configurations are located under `homes/`. Each host imports one of
 these collections. To use a home setup standalone you can build:
-
-```bash
-nix build .#homeManagerModules.<module>
-```
 
 ## Secrets
 
