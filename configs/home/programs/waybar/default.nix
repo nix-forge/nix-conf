@@ -166,7 +166,9 @@ in
 
   # programs.waybar.systemd.enable = true;
 
-  programs.waybar.style = builtins.readFile (compileSCSS "waybar-style" ./waybar.scss);
+  # Install compiled CSS directly as a config file to avoid forcing a
+  # build at evaluation time (e.g., during `nix flake check` on non-Linux hosts).
+  xdg.configFile."waybar/style.css".source = lib.mkForce (compileSCSS "waybar-style" ./waybar.scss);
 
   programs.waybar.settings = {
     mainBar = {
