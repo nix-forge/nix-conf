@@ -1,0 +1,92 @@
+name: "Update Nix Flake"
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  nix-flake-update:
+    name: Update flake.lock
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    env:
+      UPDATE_BRANCH: update-flake-inputs
+    outputs:
+      pr-url: ${{ steps.metadata.outputs.pr-url }}
+      pr-branch: ${{ steps.metadata.outputs.pr-branch }}
+      pr-operation: ${{ steps.metadata.outputs.pr-operation }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+      - name: Configure Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+      - name: Update flake.lock
+        id: update
+        uses: DeterminateSystems/update-flake-lock@v27
+        with:
+          commit-msg: "flake.lock: update Nix inputs"
+          pr-title: "Update Nix flake inputs"
+          pr-body: |
+            Automated update of the Nix flake lock file.
+
+            ```
+            {{ env.GIT_COMMIT_MESSAGE }}
+            ```
+          pr-labels: |
+            dependencies
+            automated
+          git-author-name: Determinate Bot
+          git-author-email: determinate@users.noreply.github.com
+          branch: ${{ env.UPDATE_BRANCH }}
+      - name: Nix flake policy check
+        if: steps.update.outputs.pull-request-url != ''
+        uses: DeterminateSystems/flake-checker-action@v12
+        with:
+          ignore-missing-flake-lock: false
+      - name: Capture update metadata
+        id: metadata
+        env:
+          PR_URL: ${{ steps.update.outputs.pull-request-url }}
+          PR_OPERATION: ${{ steps.update.outputs.pull-request-operation }}
+          UPDATE_BRANCH: ${{ env.UPDATE_BRANCH }}
+        run: |
+          echo "pr-url=${PR_URL}" >> "$GITHUB_OUTPUT"
+          echo "pr-operation=${PR_OPERATION}" >> "$GITHUB_OUTPUT"
+          if [ -n "$PR_URL" ]; then
+            echo "pr-branch=${UPDATE_BRANCH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr-branch=" >> "$GITHUB_OUTPUT"
+          fi
+  check:
+    name: Flake checks on update branch
+    needs: nix-flake-update
+    if: needs.nix-flake-update.outputs.pr-branch != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
+    uses: ./.github/workflows/check.yml
+    with:
+      ref: ${{ needs.nix-flake-update.outputs.pr-branch }}
+    secrets: inherit
+  merge:
+    name: Merge update PR
+    needs: [nix-flake-update, check]
+    if: needs.nix-flake-update.outputs.pr-url != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge Pull Request
+        run: gh pr merge --rebase --auto --delete-branch "${{ needs.nix-flake-update.outputs.pr-url }}"
+        env:
+          GH_TOKEN: ${{ github.token }}

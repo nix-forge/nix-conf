@@ -1,0 +1,56 @@
+name: Flake Checks
+on:
+  pull_request:
+    paths:
+      - "**.nix"
+      - "flake.lock"
+      - "flake.nix"
+      - ".github/workflows/check.yml"
+  push:
+    paths:
+      - "**.nix"
+      - "flake.lock"
+      - "flake.nix"
+      - ".github/workflows/check.yml"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  flake-check:
+    name: Check (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+          - os: macos-latest
+            system: aarch64-darwin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Nix flake policy check
+        if: matrix.os == 'ubuntu-latest'
+        uses: DeterminateSystems/flake-checker-action@v12
+        with:
+          ignore-missing-flake-lock: false
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+      - name: Configure Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+      - name: Run nix flake check
+        run: nix flake check --accept-flake-config --option allow-import-from-derivation false --show-trace
