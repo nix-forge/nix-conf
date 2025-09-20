@@ -199,13 +199,6 @@
       flake = false;
     };
 
-    # Firefox Arkenfox
-    # TODO: use a package instead of a flake
-    firefox-arkenfox = {
-      url = "github:arkenfox/user.js";
-      flake = false;
-    };
-
     # Firefox UI Fix
     # TODO: use a package instead of a flake
     firefox-ui-fix = {

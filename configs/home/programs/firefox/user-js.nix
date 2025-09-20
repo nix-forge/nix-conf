@@ -1,6 +1,12 @@
 profileName:
-{ lib, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
+  # TODO: move to custom lib
   toUserJS =
     kv:
     lib.concatLines (
@@ -11,10 +17,10 @@ in
   programs.firefox.profiles.${profileName} = {
     extraConfig = lib.strings.concatLines [
       # Arkenfox
-      (builtins.readFile "${inputs.firefox-arkenfox}/user.js")
+      (builtins.readFile "${pkgs.arkenfox-userjs}/user.js")
 
       # Betterfox
-      # (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js") # Using Arkenfox instead
+      (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
       (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       (toUserJS {
@@ -51,7 +57,7 @@ in
         "browser.urlbar.showSearchTerms.enabled" = false;
 
         # Hardware Acceleration
-        # TODO: Only add these if the use wants these settings so need to move somewhere else
+        # TODO: Enable these options for NVIDIA systems only by adding it in the hardware folder of a home profile
         # These options are from the firefox Arch Wiki as well as the nvidia-vaapi-driver GitHub page
         # even though some of these options are from an Nvidia GPU guide they should work for most modern GPUs
         # https://wiki.archlinux.org/title/Firefox#Hardware_video_acceleration
@@ -70,9 +76,6 @@ in
         "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127; # Increase the maximum number of generic substitutions (127 is the highest possible value)
         "font.name-list.emoji" = "emoji"; # Use system emoji font
         "gfx.font_rendering.opentype_svg.enabled" = false; # Prevent Mozilla font from interfering with system emoji font
-
-        # Firefox Accounts
-        "identity.fxaccounts.enabled" = true;
 
         # Downloads
         "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
@@ -93,13 +96,12 @@ in
         # Disable Shutdown Sanitization
         "privacy.sanitize.sanitizeOnShutdown" = false;
 
-        # Turn off resistFingerprinting so timezone and light/dark mode is correct
+        # Turn off fingerprinting protection to increase stability
         "privacy.resistFingerprinting" = false;
-
-        # Turn off fingerprinting protection to allow more fonts
         "browser.contentblocking.category" = "custom";
         "privacy.fingerprintingProtection" = false;
 
+        # TODO: add to NVIDIA systems only
         # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
         # at the expense of hardware acceleration in certain situations with disabling canvas accelerated
         "gfx.canvas.accelerated" = false;

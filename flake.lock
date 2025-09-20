@@ -312,22 +312,6 @@
         "url": "https://install.determinate.systems/determinate-nixd/tag/v3.11.2/x86_64-linux"
       }
     },
-    "firefox-arkenfox": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1755109759,
-        "narHash": "sha256-+DN5bKev9IyefMikOqEWZf/u0flJbLAxwEotGhKSSS4=",
-        "owner": "arkenfox",
-        "repo": "user.js",
-        "rev": "9103afafff2b5287b495c1a1268968fdb447d66f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "arkenfox",
-        "repo": "user.js",
-        "type": "github"
-      }
-    },
     "firefox-betterfox": {
       "flake": false,
       "locked": {
@@ -1826,7 +1810,6 @@
         "auto-cpufreq": "auto-cpufreq",
         "cosmic": "cosmic",
         "determinate": "determinate",
-        "firefox-arkenfox": "firefox-arkenfox",
         "firefox-betterfox": "firefox-betterfox",
         "firefox-ui-fix": "firefox-ui-fix",
         "flake-compat": "flake-compat_2",
