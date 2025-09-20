@@ -1,0 +1,60 @@
+name: "Update Packages"
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package-updates:
+    name: Update packaged sources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    env:
+      UPDATE_BRANCH: update-packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+      - name: Configure Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+      - name: Run package update scripts
+        env:
+          SYSTEM: x86_64-linux
+        run: ./scripts/run-package-update-scripts.sh
+      - name: Format Nix code
+        run: nix fmt
+      - name: Check for changes
+        id: git-status
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create Pull Request
+        if: steps.git-status.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "packages: update sources"
+          title: "Update packaged sources"
+          body: |
+            Automated update of packages with `passthru.updateScript`.
+
+            - System: `x86_64-linux`
+          labels: |
+            dependencies
+            automated
+          branch: ${{ env.UPDATE_BRANCH }}
+          delete-branch: true

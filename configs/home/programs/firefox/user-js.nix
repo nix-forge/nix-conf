@@ -11,6 +11,8 @@ profileName:
 }:
 let
   inherit (lib.cust.firefox) toUserJS;
+  arkenfoxPackage = pkgs.callPackage ../../../../pkgs/arkenfox-user-js { };
+  arkenfoxUserJs = arkenfoxPackage.passthru.userJsSrc;
   presets = import ./scrolling { inherit lib; };
   resolvePreset =
     preset:
@@ -35,7 +37,7 @@ in
     extraConfig = lib.strings.concatLines (
       [
         # Arkenfox
-        (builtins.readFile "${pkgs.arkenfox-userjs}/user.js")
+        (builtins.readFile arkenfoxUserJs)
 
         # Betterfox
         (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js")
