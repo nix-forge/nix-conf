@@ -1,11 +1,15 @@
 profileName:
+{
+  scrollPreset ? "instant",
+  ...
+}:
 { ... }:
 {
   imports = [
     ./blocking.nix
     ./policies.nix
     (import ./extensions.nix profileName)
-    (import ./user-js.nix profileName)
+    (import ./user-js.nix profileName { inherit scrollPreset; })
     (import ./search.nix profileName)
     (import ./theme.nix profileName)
   ];
