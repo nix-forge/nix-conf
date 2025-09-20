@@ -2,22 +2,34 @@ profileName:
 {
   inputs,
   lib,
-  self,
+  pkgs,
   ...
 }:
-{
-  imports = [ self.homeManagerModules.firefox-userchrome ];
+let
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
-  programs.firefox = {
-    # Using custom module for profile UserChrome apply Firefox UI Fix
-    # TODO: remove custom module and manually apply using home.files
-    userChrome.profiles.${profileName} = {
-      source = inputs.firefox-ui-fix;
-      recursive = true;
+  mozillaConfigPath = if isDarwin then "Library/Application Support/Mozilla" else ".mozilla";
+
+  firefoxConfigPath =
+    if isDarwin then "Library/Application Support/Firefox" else "${mozillaConfigPath}/firefox";
+
+  profilesPath = if isDarwin then "${firefoxConfigPath}/Profiles" else firefoxConfigPath;
+in
+{
+  # Copy Firefox-UI-Fix theme into the profile's chrome directory
+  home.file."${profilesPath}/${profileName}/chrome" = {
+    source = inputs.firefox-ui-fix;
+    recursive = true;
+  };
+
+  programs.firefox.profiles.${profileName} = {
+    settings = {
+      "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+      "layout.css.has-selector.enabled" = true;
     };
 
     # Firefox UI Fix User JS
-    profiles.${profileName}.extraConfig = lib.mkBefore (
+    extraConfig = lib.mkBefore (
       lib.strings.concatLines [ (builtins.readFile "${inputs.firefox-ui-fix}/user.js") ]
     );
   };

@@ -66,9 +66,6 @@
               importDirDefault = true;
               sep = "-";
             };
-
-            # Home Manager Modules
-            homeManagerModules = importDirRec ./_homeModules [ ];
           };
       }
     );
