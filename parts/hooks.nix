@@ -1,6 +1,8 @@
 {
   nixfmt-rfc-style.enable = true;
   statix.enable = true;
+  # Limit statix to staged files by passing filenames
+  statix.pass_filenames = true;
   deadnix.enable = true;
   deadnix.settings.edit = true;
   nil.enable = true;
