@@ -10,7 +10,12 @@ if [[ ! -f $pkg_file ]]; then
 fi
 
 current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$pkg_file")
-latest_tag=$(curl -fsSL https://api.github.com/repos/arkenfox/user.js/releases/latest | jq -r '.tag_name')
+latest_tag=$(git ls-remote --tags --refs https://github.com/arkenfox/user.js 'v*' |
+  awk '{print $2}' |
+  sed 's#refs/tags/##' |
+  sed 's/\^{}$//' |
+  sort -V |
+  tail -n1)
 latest_version="${latest_tag#v}"
 
 if [[ -z $latest_version || $latest_version == "null" ]]; then

@@ -5,6 +5,7 @@
   curl,
   git,
   gnused,
+  gawk,
   jq,
   nix,
 }:
@@ -20,6 +21,7 @@ let
       curl
       git
       gnused
+      gawk
       jq
       nix
     ];
