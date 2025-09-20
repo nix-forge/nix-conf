@@ -1,7 +1,6 @@
 {
   imports = [
     ./checks
-    ./lib
     ./tree.nix
     ./args.nix
     ./fmt.nix

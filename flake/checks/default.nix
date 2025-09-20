@@ -1,7 +1,7 @@
 { self, ... }:
 {
   perSystem =
-    { pkgs, system, ... }:
+    { pkgs, system, ... }@args:
     {
       checks = {
         default =
@@ -22,7 +22,7 @@
 
         pre-commit-check = self.inputs.git-hooks.lib.${system}.run {
           src = ./../../.;
-          hooks = import ./../hooks.nix;
+          hooks = import ./../hooks.nix args;
         };
       };
     };

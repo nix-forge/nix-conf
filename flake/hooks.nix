@@ -1,10 +1,10 @@
+{ pkgs, lib, ... }:
 {
   nixfmt-rfc-style.enable = true;
   statix.enable = true;
-  # Loop over staged files so statix handles one TARGET at a time
   statix.pass_filenames = true;
   statix.require_serial = true;
-  statix.entry = "bash -lc 'err=0; for f in \"$@\"; do [ -f \"$f\" ] || continue; statix check --format errfmt -- \"$f\" || err=1; done; exit $err'";
+  statix.entry = "${lib.getExe pkgs.bash} -lc 'err=0; for f in \"$@\"; do [ -f \"$f\" ] || continue; ${lib.getExe pkgs.statix} check --format errfmt -- \"$f\" || err=1; done; exit $err'";
   deadnix.enable = true;
   deadnix.settings.edit = true;
   nil.enable = true;
