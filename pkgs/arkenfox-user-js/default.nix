@@ -14,7 +14,7 @@ let
     url = "https://raw.githubusercontent.com/arkenfox/user.js/${version}/user.js";
     sha256 = "sha256-/cz0dnQXKa3c/DqUTAEwBV0I9Tc3x6uzU6rtYijg3Zo=";
   };
-  updateScript = writeShellApplication {
+  updateScriptDrv = writeShellApplication {
     name = "update-arkenfox-user-js";
     runtimeInputs = [
       curl
@@ -46,7 +46,10 @@ stdenvNoCC.mkDerivation {
 
   passthru = {
     inherit userJsSrc;
-    inherit updateScript;
+    updateScript = {
+      command = [ "${updateScriptDrv}/bin/update-arkenfox-user-js" ];
+    };
+    updateScriptPackage = updateScriptDrv;
   };
 
   meta = {

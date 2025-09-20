@@ -11,12 +11,14 @@ if [[ -n ${HOST_SYSTEM} && ${HOST_SYSTEM} != "${SYSTEM}" ]]; then
 fi
 
 if git config --local --get core.fsmonitor >/dev/null 2>&1; then
-  git config --local core.fsmonitor false
+  git config --local --unset core.fsmonitor >/dev/null 2>&1 || git config --local core.fsmonitor false
 fi
 
 rm -f .git/fsmonitor--daemon.ipc 2>/dev/null || true
 
 pushd "${FLAKE_ROOT}" >/dev/null
+
+rm -f .git/fsmonitor--daemon.ipc 2>/dev/null || true
 
 packages=$(nix eval --raw ".#legacyPackages.${SYSTEM}" --apply '
   pkgs:
