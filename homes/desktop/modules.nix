@@ -44,7 +44,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Web Browsers
   (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username)
-  (programs.firefox.nvidia config.home.username)
+  ((programs.firefox.nvidia config.home.username) { enableAV1 = true; })
 
   { programs.chromium.enable = true; }
 
