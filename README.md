@@ -9,7 +9,7 @@ The flake makes heavy use of **flake-parts** to break the configuration into sma
 - `hosts/` – Host specific NixOS or Darwin configurations
 - `homes/` – Home‑Manager setups for each user and host
 - `configs/` – Reusable modules shared by hosts and homes
-- `_nixOSModules/` – Standalone NixOS modules exported by the flake
+- `_nixosModules/` – Standalone NixOS modules exported by the flake
 - `_homeModules/` – Standalone Home Manager modules exported by the flake
 - `pkgs/` – Custom package definitions
 - `parts/` – flake-parts modules and helper libraries

@@ -5,4 +5,5 @@
   nixDirEntries = import ./nixDirEntries.nix { inherit lib; };
   importRec = import ./importRec.nix { inherit lib; };
   importDirRec = import ./importDirRec.nix { inherit lib; };
+  importDirFlat = import ./importDirFlat.nix { inherit lib; };
 }

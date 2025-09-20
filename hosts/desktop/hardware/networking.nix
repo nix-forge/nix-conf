@@ -3,7 +3,7 @@ let
   moduleName = "custom";
 in
 {
-  imports = [ (self.nixOSModules.networking { inherit moduleName; }) ];
+  imports = [ (self.nixosModules.networking { inherit moduleName; }) ];
 
   networking = {
     networkmanager.enable = false;

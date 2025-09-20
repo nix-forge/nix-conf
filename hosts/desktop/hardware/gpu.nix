@@ -1,6 +1,6 @@
 { self, lib, ... }:
 {
-  imports = [ self.nixOSModules.hardware.gpu.nvidia ];
+  imports = [ self.nixosModules.hardware-gpu-nvidia ];
 }
 // lib.mkMerge [
   {

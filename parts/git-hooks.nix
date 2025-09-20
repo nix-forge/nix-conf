@@ -26,7 +26,7 @@ in
     { system, ... }:
     {
       checks.pre-commit-check = self.inputs.git-hooks.lib.${system}.run {
-        src = ./.;
+        src = ./../.;
         inherit hooks;
       };
     };

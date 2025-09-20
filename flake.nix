@@ -83,8 +83,12 @@
             # Entry point for Darwin configurations.
             darwinConfigurations = mkConfig mkDarwin [ "darwin" ];
 
-            # NixOS Modules
-            nixOSModules = importDirRec ./_nixOSModules [ ];
+            # NixOS modules (standard key)
+            nixosModules = lib.cust.files.importDirFlat ./_nixosModules {
+              filter = [ ];
+              importDirDefault = true;
+              sep = "-";
+            };
 
             # Home Manager Modules
             homeManagerModules = importDirRec ./_homeModules [ ];

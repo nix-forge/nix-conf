@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  imports = [ self.nixOSModules.hardware.cpu.amd ];
+  imports = [ self.nixosModules.hardware-cpu-amd ];
 
   hardware.cpu.amd = {
     enable = true;
