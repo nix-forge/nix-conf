@@ -70,7 +70,7 @@ in
       {
         # Configure dnscrypt-proxy and related services
         services = {
-          dnscrypt-proxy2 = lib.mkIf cfg.enable {
+          dnscrypt-proxy = lib.mkIf cfg.enable {
             enable = true;
             # Base settings on upstream example config (https://github.com/DNSCrypt/dnscrypt-proxy/blob/master/dnscrypt-proxy/example-dnscrypt-proxy.toml)
             upstreamDefaults = true;
@@ -104,7 +104,7 @@ in
                     "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
                     "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
                   ];
-                  cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+                  cache_file = "/var/lib/dnscrypt-proxy/public-resolvers.md";
                   minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
                 };
                 relays = {
@@ -112,7 +112,7 @@ in
                     "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
                     "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
                   ];
-                  cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+                  cache_file = "/var/lib/dnscrypt-proxy/relays.md";
                   minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
                 };
               };
@@ -128,7 +128,7 @@ in
           };
 
           # Disable systemd-resolved if dnscrypt-proxy service is enabled
-          resolved.enable = lib.mkForce (!config.services.dnscrypt-proxy2.enable);
+          resolved.enable = lib.mkForce (!config.services.dnscrypt-proxy.enable);
 
           # Unbound
           unbound = lib.mkIf cfg.unbound.enable {
@@ -213,9 +213,9 @@ in
           };
         };
 
-        # Label dnscrypt-proxy2 and unbound service as part of network.target
+        # Label dnscrypt-proxy and unbound service as part of network.target
         systemd.services = {
-          dnscrypt-proxy2 = lib.mkIf cfg.enable { partOf = [ "network.target" ]; };
+          dnscrypt-proxy = lib.mkIf cfg.enable { partOf = [ "network.target" ]; };
           unbound = lib.mkIf cfg.unbound.enable { partOf = [ "network.target" ]; };
         };
 

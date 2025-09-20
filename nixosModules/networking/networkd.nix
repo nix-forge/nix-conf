@@ -41,7 +41,7 @@ in
       networks =
         let
           inherit (config.networking) enableIPv6;
-          dnscrypt-proxy-enabled = config.services.dnscrypt-proxy2.enable;
+          dnscrypt-proxy-enabled = config.services.dnscrypt-proxy.enable;
         in
         {
           # start a DHCP Client for Addressing/Routing
