@@ -30,12 +30,10 @@
             enable = true;
             priority = 100;
           };
-
           statix = {
             enable = true;
             priority = 200;
           };
-
           nixfmt = {
             enable = true;
             strict = true;
