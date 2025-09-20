@@ -2,6 +2,6 @@ _: {
   perSystem =
     { pkgs, ... }:
     {
-      devShells.default = pkgs.mkShellNoCC { packages = [ pkgs.statix ]; };
+      devShells.default = pkgs.mkShellNoCC { packages = [ ]; };
     };
 }
