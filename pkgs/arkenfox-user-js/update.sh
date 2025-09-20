@@ -10,13 +10,54 @@ if [[ ! -f $pkg_file ]]; then
 fi
 
 current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$pkg_file")
-latest_tag=$(git ls-remote --tags --refs https://github.com/arkenfox/user.js 'v*' |
-  awk '{print $2}' |
-  sed 's#refs/tags/##' |
-  sed 's/\^{}$//' |
-  sort -V |
-  tail -n1)
-latest_version="${latest_tag#v}"
+
+latest_version=$(
+  python3 - <<'PY'
+import re
+import subprocess
+import sys
+
+cmd = [
+    "git",
+    "ls-remote",
+    "--tags",
+    "--refs",
+    "https://github.com/arkenfox/user.js",
+]
+
+try:
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+except subprocess.CalledProcessError as exc:
+    if exc.stderr:
+        print(exc.stderr, file=sys.stderr)
+    sys.exit("Failed to list tags from arkenfox/user.js")
+
+best_tuple = None
+best_version = None
+
+for line in result.stdout.splitlines():
+    parts = line.strip().split("\t", 1)
+    if len(parts) != 2:
+        continue
+    ref = parts[1]
+    tag = ref.removeprefix("refs/tags/").removesuffix("^{}")
+    if not re.fullmatch(r"v?\d+(\.\d+)*", tag):
+        continue
+    normalized = tag[1:] if tag.startswith("v") else tag
+    try:
+        version_tuple = tuple(int(p) for p in normalized.split("."))
+    except ValueError:
+        continue
+    if best_tuple is None or version_tuple > best_tuple:
+        best_tuple = version_tuple
+        best_version = normalized
+
+if best_version is None:
+    sys.exit("Could not determine latest arkenfox release tag")
+
+print(best_version)
+PY
+)
 
 if [[ -z $latest_version || $latest_version == "null" ]]; then
   echo "Unable to determine latest version." >&2
