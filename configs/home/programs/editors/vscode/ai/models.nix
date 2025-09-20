@@ -9,7 +9,8 @@ in
       (with extensions.extraCompatible; [
         ## Copilot (since extensions is integrated with vscode it requires the version to be compatible)
         github.copilot
-        github.copilot-chat
+        # TODO: re-add when updated nix package is available
+        # github.copilot-chat
       ])
       ++ (with extensions.preferNixpkgsThenPreRelease; [
         ## Codex
