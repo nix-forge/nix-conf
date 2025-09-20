@@ -10,7 +10,7 @@
     {
       checks = {
         # Formatting check (read-only) — keeps CI pure
-        formatting = config.treefmt.build.check;
+        formatting = config.treefmt.build.check ./../.;
 
         default =
           let
