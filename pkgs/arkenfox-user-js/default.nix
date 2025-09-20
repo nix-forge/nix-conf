@@ -27,7 +27,7 @@ let
   };
 in
 stdenvNoCC.mkDerivation {
-  pname = "arkenfox-userjs";
+  pname = "arkenfox-user-js";
   inherit version;
   src = userJsSrc;
 
@@ -56,7 +56,6 @@ stdenvNoCC.mkDerivation {
     description = "A comprehensive user.js template for configuration and hardening";
     homepage = "https://github.com/arkenfox/user.js";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ ];
     platforms = lib.platforms.all;
   };
 }

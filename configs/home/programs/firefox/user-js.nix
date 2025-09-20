@@ -5,13 +5,14 @@ profileName:
 }:
 {
   lib,
-  pkgs,
+  system,
   inputs,
+  self,
   ...
 }:
 let
   inherit (lib.cust.firefox) toUserJS;
-  arkenfoxPackage = pkgs.callPackage ../../../../pkgs/arkenfox-user-js { };
+  arkenfoxPackage = self.packages.${system}.arkenfox-user-js;
   arkenfoxUserJs = arkenfoxPackage.passthru.userJsSrc;
   presets = import ./scrolling { inherit lib; };
   resolvePreset =
