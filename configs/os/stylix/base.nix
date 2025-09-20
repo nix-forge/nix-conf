@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }:
+{ inputs, ... }:
 {
   imports = [ inputs.stylix.nixosModules.stylix ];
   stylix = {
@@ -6,7 +6,7 @@
     autoEnable = true; # auto enable Stylix for all applications
 
     # Theme
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/pop.yaml";
+    base16Scheme = inputs.stylix.inputs.tinted-schemes + "/base16/pop.yaml";
     polarity = "dark";
 
     # Wallpaper

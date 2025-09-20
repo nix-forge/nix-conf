@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }:
+{ inputs, ... }:
 {
   imports = [
     inputs.stylix.homeModules.stylix
@@ -11,7 +11,7 @@
     overlays.enable = false;
 
     polarity = "dark";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/pop.yaml";
+    base16Scheme = inputs.stylix.inputs.tinted-schemes + "/base16/pop.yaml";
 
     opacity.terminal = 0.9;
   };
