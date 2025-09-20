@@ -3,17 +3,17 @@ $fg-color: #{"@theme_fg_color"};
 $bg-color: #{"@theme_bg_color"};
 
 window.Bar {
-    background: $bg-color;
-    color: $fg-color;
+  background: $bg-color;
+  color: $fg-color;
 
-    // >centerbox {
-    //     background: $bg-color;
-    //     // border-radius: 10px;
-    //     margin: 8px;
-    // }
+  // >centerbox {
+  //     background: $bg-color;
+  //     // border-radius: 10px;
+  //     margin: 8px;
+  // }
 
-    button {
-        border-radius: 8px;
-        // margin: 2px;
-    }
+  button {
+    border-radius: 8px;
+    // margin: 2px;
+  }
 }

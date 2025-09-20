@@ -23,7 +23,7 @@ function SysTray() {
           >
             <image gicon={bind(item, "gicon")} />
           </menubutton>
-        ))
+        )),
       )}
     </box>
   );
@@ -45,7 +45,8 @@ function FocusedClient() {
   return (
     <box cssName="Focused" visible={focused.as(Boolean)}>
       {focused.as(
-        (client) => client && <label label={bind(client, "title").as(String)} />
+        (client) =>
+          client && <label label={bind(client, "title").as(String)} />,
       )}
     </box>
   );
