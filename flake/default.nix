@@ -5,10 +5,10 @@
     ./args.nix
     ./fmt.nix
     ./shell.nix
+    ./pkgs.nix
 
     # ./apps
     # ./modules
-    ./pkgs.nix
     # ./pre-commit
     # ./templates
     # ./deployments.nix
