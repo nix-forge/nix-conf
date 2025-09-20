@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, lib, ... }:
 lib.mkMerge [
   {
     imports = [ self.nixOSModules.hardware.gpu.nvidia ];
