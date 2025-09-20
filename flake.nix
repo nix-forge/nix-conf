@@ -4,7 +4,7 @@
   outputs =
     { flake-parts, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { withSystem, ... }:
+      { withSystem, tree, ... }:
       {
         imports = [
           ./flake
@@ -25,7 +25,8 @@
               inherit withSystem;
               inherit inputs;
               inherit (inputs) self determinate;
-              inherit (inputs.self) lib tree;
+              inherit (inputs.self) lib;
+              inherit tree;
               inherit folderName;
             };
 
