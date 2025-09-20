@@ -6,33 +6,10 @@
     flake-parts.lib.mkFlake { inherit inputs; } (
       { withSystem, ... }:
       {
-        # Parts of the flake that are used to construct the final flake.
-        imports = [ ./parts ];
-
-        # PerSystem attributes that are built for each system.
-        perSystem =
-          { pkgs, ... }:
-          let
-            inherit (inputs.self) lib;
-            inherit (lib.cust.files) importDirRec;
-
-            packages = lib.makeScope pkgs.newScope (
-              self: (builtins.mapAttrs (_folderName: pkg: self.callPackage pkg { }) (importDirRec ./pkgs [ ]))
-            );
-          in
-          {
-            legacyPackages = packages;
-
-            packages = lib.filterAttrs (
-              _: pkg:
-              let
-                isDerivation = lib.isDerivation pkg;
-                availableOnHost = lib.meta.availableOn pkgs.stdenv.hostPlatform pkg;
-                isBroken = pkg.meta.broken or false;
-              in
-              isDerivation && !isBroken && availableOnHost
-            ) packages;
-          };
+        imports = [
+          ./flake
+          ./lib
+        ];
 
         flake =
           let
