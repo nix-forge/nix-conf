@@ -100,7 +100,7 @@ stdenvNoCC.mkDerivation rec {
     description = "Microsoft's TrueType fonts from Windows 11";
     homepage = "https://www.microsoft.com/typography/fonts/product.aspx?PID=164";
     platforms = lib.platforms.all;
-    license = lib.licenses.unfreeRedistributable;
+    license = lib.licenses.unfree;
     longDescription = ''
       Microsoft ships a large collection of TrueType fonts with Windows 11.
       This derivation extracts those fonts from the publicly available Windows

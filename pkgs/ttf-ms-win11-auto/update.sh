@@ -65,6 +65,13 @@ fi
 echo "Resolved ISO URL: $iso_url"
 echo "Resolved version: $pkgver"
 
+current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$PKG_FILE")
+
+if [[ $current_version == "$pkgver" ]]; then
+  echo "Package already at version $pkgver; skipping prefetch."
+  exit 0
+fi
+
 echo "Prefetching ISO to obtain hash (may download several GiB)..."
 prefetch_json=$(nix store prefetch-file --json "$iso_url" 2>"$tmp_dir/prefetch.log" || {
   cat "$tmp_dir/prefetch.log" >&2
