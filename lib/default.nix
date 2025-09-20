@@ -9,6 +9,7 @@ let
       builders = import ./builders.nix { inherit lib; };
       scanPaths = import ./scanPaths.nix { inherit lib; };
       files = import ./files { inherit lib; };
+      firefox = import ./firefox.nix { inherit lib; };
       applyAutoArgs = import ./applyAutoArgs.nix { inherit lib; };
       withTreeModules = import ./withTreeModules.nix;
     };
