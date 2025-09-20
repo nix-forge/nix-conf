@@ -51,18 +51,6 @@ in
         "browser.messaging-system.whatsNewPanel.enabled" = false;
         "browser.urlbar.showSearchTerms.enabled" = false;
 
-        # Hardware Acceleration
-        # TODO: Enable these options for NVIDIA systems only by adding it in the hardware folder of a home profile
-        # These options are from the firefox Arch Wiki as well as the nvidia-vaapi-driver GitHub page
-        # even though some of these options are from an Nvidia GPU guide they should work for most modern GPUs
-        # https://wiki.archlinux.org/title/Firefox#Hardware_video_acceleration
-        "gfx.webrender.all" = true; # Enforce hardware WebRender (Default false)
-        # https://github.com/elFarto/nvidia-vaapi-driver/#firefox
-        "media.ffmpeg.vaapi.enabled" = true; # Enable VA-API (Default false)
-        "media.rdd-ffmpeg.enabled" = true; # Forces ffmpeg usage into the RDD process (Default true)
-        "media.av1.enabled" = true; # Enable AV1 Decoding (already assuming new enough hardware) (Default true)
-        "widget.dmabuf.force-enabled" = true; # Enforce DMABUF (Default false)
-
         # Enable WebGL
         "webgl.disabled" = false;
 
@@ -96,10 +84,6 @@ in
         "browser.contentblocking.category" = "custom";
         "privacy.fingerprintingProtection" = false;
 
-        # TODO: add to NVIDIA systems only
-        # Fix bug with PDFs and Google Suite Apps like Google Docs being buggy
-        # at the expense of hardware acceleration in certain situations with disabling canvas accelerated
-        "gfx.canvas.accelerated" = false;
       })
     ];
   };
