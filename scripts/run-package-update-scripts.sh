@@ -10,7 +10,15 @@ if [[ -n ${HOST_SYSTEM} && ${HOST_SYSTEM} != "${SYSTEM}" ]]; then
   echo "Set SYSTEM to the desired target if you are running on a different host." >&2
 fi
 
-packages=$(nix eval --raw "${FLAKE_ROOT}#legacyPackages.${SYSTEM}" --apply '
+if git config --local --get core.fsmonitor >/dev/null 2>&1; then
+  git config --local core.fsmonitor false
+fi
+
+rm -f .git/fsmonitor--daemon.ipc 2>/dev/null || true
+
+pushd "${FLAKE_ROOT}" >/dev/null
+
+packages=$(nix eval --raw ".#legacyPackages.${SYSTEM}" --apply '
   pkgs:
   let
     names = builtins.attrNames pkgs;
@@ -26,12 +34,15 @@ packages=$(nix eval --raw "${FLAKE_ROOT}#legacyPackages.${SYSTEM}" --apply '
 
 if [[ -z ${packages} ]]; then
   echo "No packages with passthru.updateScript for system ${SYSTEM}."
+  popd >/dev/null
   exit 0
 fi
 
 while IFS= read -r pkg; do
   [[ -z ${pkg} ]] && continue
   echo "==> Running update script for ${pkg}"
-  attr_path="legacyPackages.${SYSTEM}.\"${pkg}\".passthru.updateScript"
-  nix run "${FLAKE_ROOT}#${attr_path}"
+  attr="legacyPackages.${SYSTEM}.${pkg}"
+  nix run nixpkgs#nix-update -- --flake --system "${SYSTEM}" --use-update-script --version fixed --no-src "${attr}"
 done <<<"${packages}"
+
+popd >/dev/null
