@@ -61,7 +61,7 @@
             darwinConfigurations = mkConfig mkDarwin [ "darwin" ];
 
             # NixOS modules (standard key)
-            nixosModules = lib.cust.files.importDirFlat ./_nixosModules {
+            nixosModules = lib.cust.files.importDirFlat ./nixosModules {
               filter = [ ];
               importDirDefault = true;
               sep = "-";
