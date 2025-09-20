@@ -33,8 +33,6 @@ stdenvNoCC.mkDerivation rec {
 
   strictDeps = true;
 
-  dontUnpack = true;
-
   # Because this must download a very large ISO file, and the actual "build"
   # is just unpacking it, it is best to avoid remote builds.
   # On nixbuild.net especially, building this derivation
@@ -56,6 +54,7 @@ stdenvNoCC.mkDerivation rec {
     7z x "$src" sources/install.wim
 
     echo "Extracting font and license files..."
+    mkdir -p fonts
     7z e sources/install.wim \
       Windows/{Fonts/"*".{ttf,ttc},System32/Licenses/neutral/"*"/"*"/license*.rtf} \
       -ofonts
