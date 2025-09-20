@@ -15,7 +15,9 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 page_html="$tmp_dir/page.html"
-curl -fsSL --compressed "$PAGE_URL" -o "$page_html"
+curl -fsSL --compressed \
+  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' \
+  "$PAGE_URL" -o "$page_html"
 
 readarray -t resolved < <(
   python3 - "$page_html" "$LOCALE" <<'PY'
@@ -29,7 +31,7 @@ with open(page_path, encoding="utf-8", errors="ignore") as fh:
     text = html.unescape(fh.read())
 
 pattern = re.compile(
-    rf"Download\s+Windows\s+11\s+Enterprise\s+ISO\s+64-bit\s+\({re.escape(locale)}\).*?href=\"(https://go\.microsoft\.com/[^"]+)\"",
+    rf'Download\s+Windows\s+11\s+Enterprise\s+ISO\s+64-bit\s+\({re.escape(locale)}\).*?href="(https://go\.microsoft\.com/[^"]+)"',
     re.IGNORECASE | re.DOTALL,
 )
 match = pattern.search(text)
