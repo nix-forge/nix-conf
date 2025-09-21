@@ -1,21 +1,24 @@
 profileName:
-{ pkgs, ... }@args:
+{
+  pkgs,
+  self,
+  system,
+  ...
+}@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions =
-      (with extensions.extraCompatible; [
-        ## Copilot (since extensions is integrated with vscode it requires the version to be compatible)
-        github.copilot
-        # TODO: re-add when updated nix package is available
-        # github.copilot-chat
-      ])
-      ++ (with extensions.preferNixpkgsThenPreRelease; [
-        ## Codex
-        openai.chatgpt
-      ]);
+    extensions = [
+      ## Copilot
+      self.packages.${system}.copilot
+      self.packages.${system}.copilot-chat
+    ]
+    ++ (with extensions.preferNixpkgsThenPreRelease; [
+      ## Codex
+      openai.chatgpt
+    ]);
 
     userSettings = {
       ## Copilot
