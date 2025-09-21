@@ -1,8 +1,6 @@
 {
   inputs,
-  config,
   system,
-  lib,
   pkgs,
   ...
 }@args:
@@ -14,8 +12,16 @@ in
     enable = true;
     nix-direnv.enable = true;
     nix-direnv.package = inputs.nix-direnv.packages.${system}.default.override (
-      # TODO: Use nix from determinate-nix if using determinate-nix
-      { } // (lib.optionalAttrs (!pkgs.stdenv.isDarwin || darwinNixEnabled) { nix = config.nix.package; })
+      let
+        nixPackage =
+          if pkgs.stdenv.isDarwin && darwinNixEnabled then
+            args.darwinConfig.nix.package
+          else
+            inputs.determinate.inputs.nix.packages.${system}.default;
+      in
+      {
+        nix = nixPackage;
+      }
     );
   };
 }

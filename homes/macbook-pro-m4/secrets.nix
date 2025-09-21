@@ -3,8 +3,9 @@
   config,
   lib,
   system,
+  pkgs,
   ...
-}:
+}@args:
 let
   user = config.home.username;
 
@@ -13,13 +14,28 @@ let
   };
 
   configSecrets = secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
+
+  darwinNixEnabled = args ? darwinConfig && args.darwinConfig.nix.enable;
 in
 {
   # enable the secrets module
   imports = [ inputs.agenix.homeManagerModules.default ];
 
   # install agenix
-  home.packages = [ inputs.agenix.packages.${system}.agenix ];
+  home.packages = [
+    (inputs.agenix.packages.${system}.agenix.override (
+      let
+        nixPackage =
+          if pkgs.stdenv.isDarwin && darwinNixEnabled then
+            args.darwinConfig.nix.package
+          else
+            inputs.determinate.inputs.nix.packages.${system}.default;
+      in
+      {
+        nix = nixPackage;
+      }
+    ))
+  ];
 
   age =
     let
