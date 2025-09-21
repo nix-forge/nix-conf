@@ -50,6 +50,16 @@ jobs:
           git-author-name: Determinate Bot
           git-author-email: determinate@users.noreply.github.com
           branch: ${{ env.UPDATE_BRANCH }}
+          # Only update the listed inputs to avoid touching private inputs like 'nix-secrets'
+          # NOTE: If a listed input has a stale reference, the action may still update it.
+          inputs: |
+            systems nixpkgs determinate flake-parts home-manager nix-darwin mac-app-util \
+            git-hooks nur flake-utils flake-compat treefmt-nix spicetify-nix nixd nix-direnv \
+            stylix vscode-extensions nix-gaming firefox-betterfox firefox-ui-fix nix-minecraft \
+            nixgl geospatial-nix nixvim cosmic aquamarine hyprcursor hyprgraphics \
+            hyprland-protocols hyprland-qt-support hyprland-qtutils hyprlang hyprutils \
+            hyprwayland-scanner xdph hyprland hyprpaper hyprlock ucodenix agenix \
+            auto-cpufreq nix-index nix-homebrew homebrew-core homebrew-cask
       - name: Capture update metadata
         id: metadata
         env:
