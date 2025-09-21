@@ -47,8 +47,6 @@ jobs:
           pr-labels: |
             dependencies
             automated
-          git-author-name: Determinate Bot
-          git-author-email: determinate@users.noreply.github.com
           branch: ${{ env.UPDATE_BRANCH }}
           # Only update the listed inputs to avoid touching private inputs like 'nix-secrets'
           # NOTE: If a listed input has a stale reference, the action may still update it.
