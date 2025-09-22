@@ -1,14 +1,23 @@
 profileName:
-{ pkgs, ... }@args:
+{
+  pkgs,
+  self,
+  system,
+  ...
+}@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = [
+      self.packages.${system}.vscode-extensions-copilot
+      self.packages.${system}.vscode-extensions-copilot-chat
+    ]
+    ++ (with extensions.preferNixpkgsThenPreRelease; [
       ## Codex
       openai.chatgpt
-    ];
+    ]);
 
     userSettings = {
       ## Copilot
