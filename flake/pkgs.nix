@@ -11,6 +11,34 @@
           )
         )
       ];
+      # Flatten one level of nested attribute sets (directories whose default.nix
+      # returns an attrset of derivations, e.g., vscode-extensions) so their
+      # members become top-level packages. For nested sets, create prefixed names
+      # like "<parent>-<child>" (e.g., vscode-extensions-copilot), and also keep
+      # the unprefixed child names for backward compatibility. Then filter to
+      # derivations available on the current host and not marked broken.
+      flattenedPackages = builtins.foldl' (
+        acc: name:
+        let
+          value = legacyPackages.${name};
+        in
+        if lib.isDerivation value then
+          acc // { ${name} = value; }
+        else if lib.isAttrs value then
+          let
+            childDrvs = lib.filterAttrs (_: v: lib.isDerivation v) value;
+            prefixedChildDrvs = builtins.listToAttrs (
+              map (childName: {
+                name = "${name}-${childName}";
+                value = childDrvs.${childName};
+              }) (builtins.attrNames childDrvs)
+            );
+          in
+          acc // prefixedChildDrvs // childDrvs
+        else
+          acc
+      ) { } (builtins.attrNames legacyPackages);
+
       packages = lib.filterAttrs (
         _: pkg:
         let
@@ -19,7 +47,7 @@
           isBroken = pkg.meta.broken or false;
         in
         isDerivation && !isBroken && availableOnHost
-      ) legacyPackages;
+      ) flattenedPackages;
     in
     {
       inherit legacyPackages packages;
