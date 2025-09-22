@@ -1,10 +1,46 @@
-{ lib, vscode-utils }:
-vscode-utils.buildVscodeMarketplaceExtension {
+{
+  lib,
+  vscode-utils,
+  writeShellApplication,
+  curl,
+  jq,
+  gnused,
+  coreutils,
+  nix,
+  python3,
+}:
+let
+  updateScriptDrv = writeShellApplication {
+    name = "update-vscode-extensions";
+    runtimeInputs = [
+      curl
+      jq
+      gnused
+      coreutils
+      nix
+      python3
+    ];
+    text = builtins.readFile ../update.sh;
+  };
+in
+vscode-utils.buildVscodeMarketplaceExtension rec {
   mktplcRef = {
     publisher = "github";
     name = "copilot";
     version = "1.373.1788";
     hash = "sha256-l12UNAF5Nk8hyzLw/AL08I6mAF/fJDHa0mvvD99StbE=";
+  };
+
+  passthru = {
+    updateScript = {
+      command = [
+        "${updateScriptDrv}/bin/update-vscode-extensions"
+        "--only"
+        "${mktplcRef.publisher}"
+        "${mktplcRef.name}"
+      ];
+    };
+    updateScriptPackage = updateScriptDrv;
   };
 
   meta = {

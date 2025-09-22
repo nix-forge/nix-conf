@@ -25,11 +25,24 @@ if [[ ! -d $BASE_DIR ]]; then
 fi
 
 DRY_RUN="${DRY_RUN:-0}"
+ONLY_PUBLISHER=""
+ONLY_NAME=""
+
+if [[ ${1:-} == "--only" ]]; then
+  if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 [--only <publisher> <name>]" >&2
+    exit 2
+  fi
+  ONLY_PUBLISHER="$2"
+  ONLY_NAME="$3"
+  shift 3
+fi
 
 marketplace_query() {
   local publisher="$1" name="$2" out_json="$3"
   local query_body
-  query_body=$(PUBLISHER="$publisher" EXTNAME="$name" python3 - <<'PY'
+  query_body=$(
+    PUBLISHER="$publisher" EXTNAME="$name" python3 - <<'PY'
 import json, os, sys
 publisher = os.environ['PUBLISHER']
 name = os.environ['EXTNAME']
@@ -118,7 +131,7 @@ update_one() {
     return 1
   fi
 
-  if [[ "$latest_version" == "$current_version" ]]; then
+  if [[ $latest_version == "$current_version" ]]; then
     echo "  Up-to-date ($current_version)"
     rm -f "$tmp_json"
     return 0
@@ -143,7 +156,7 @@ update_one() {
 
   echo "  New hash: $sri"
 
-  if [[ "$DRY_RUN" == "1" ]]; then
+  if [[ $DRY_RUN == "1" ]]; then
     echo "  [DRY-RUN] Would update $def_file"
     rm -f "$tmp_json"
     return 0
@@ -167,14 +180,22 @@ shopt -s nullglob
 updated_any=0
 for def in "$BASE_DIR"/*/default.nix; do
   # Skip the root default
-  if [[ "$def" == "$BASE_DIR/default.nix" ]]; then
+  if [[ $def == "$BASE_DIR/default.nix" ]]; then
     continue
+  fi
+  if [[ -n $ONLY_PUBLISHER || -n $ONLY_NAME ]]; then
+    # Parse file publisher/name to decide whether to run
+    file_pub=$(awk -F'"' '/publisher *=/ {print $2; exit}' "$def" || true)
+    file_name=$(awk -F'"' '/name *=/ {print $2; exit}' "$def" || true)
+    if [[ $file_pub != "$ONLY_PUBLISHER" || $file_name != "$ONLY_NAME" ]]; then
+      continue
+    fi
   fi
   if update_one "$def"; then
     updated_any=1
   fi
 done
 
-if [[ "$updated_any" == "0" ]]; then
+if [[ $updated_any == "0" ]]; then
   echo "No updates performed."
 fi
