@@ -38,7 +38,7 @@
       cleanup = "zap";
     };
 
-    caskArgs.require_sha = true; # Uncomment if you want strict checksum checks (can be noisy)
+    # caskArgs.require_sha = true; # Uncomment if you want strict checksum checks (can be noisy)
 
     taps = builtins.attrNames config.nix-homebrew.taps;
 
@@ -46,6 +46,7 @@
     casks = [
       "signal"
       "discord"
+      "google-chrome"
     ];
 
     # If you truly need a formula that Nix doesn’t provide well, add here sparingly:
