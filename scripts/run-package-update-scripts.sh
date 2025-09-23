@@ -80,6 +80,11 @@ while IFS= read -r pkg; do
 
   # Evaluate the command array for passthru.updateScript.command and execute it directly.
   # We join elements with a tab in Nix and split here to preserve spaces within args.
+  # First, build the update script package so the binary exists in the store (if provided).
+  if nix eval --impure --expr ".#${attr}.passthru ? updateScriptPackage" | grep -q true; then
+    nix build ".#${attr}.passthru.updateScriptPackage" --no-link --print-out-paths >/dev/null
+  fi
+
   cmd_joined=$(
     nix eval --raw ".#${attr}.passthru.updateScript.command" --apply 'cmd: builtins.concatStringsSep "\t" cmd'
   )
