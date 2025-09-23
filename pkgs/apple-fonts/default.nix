@@ -50,5 +50,8 @@ stdenv.mkDerivation {
     cp -a fonts/SF-Compact*.otf $out/share/fonts/opentype/SF\ Compact
     cp -a fonts/NewYork*.otf $out/share/fonts/opentype/New\ York
   '';
-  meta.license = lib.licenses.unfree;
+  meta = {
+    license = lib.licenses.unfree;
+    broken = true; # TODO: use non updating urls
+  };
 }
