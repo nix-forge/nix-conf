@@ -20,7 +20,11 @@ let
       nix
       python3
     ];
-    text = builtins.readFile ../update.sh;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      exec python3 ${../update.py} "$@"
+    '';
   };
 in
 vscode-utils.buildVscodeMarketplaceExtension rec {

@@ -20,7 +20,11 @@ let
       nix
       python3
     ];
-    text = builtins.readFile ../update.sh;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      exec python3 ${../update.py} "$@"
+    '';
   };
 in
 vscode-utils.buildVscodeMarketplaceExtension rec {
@@ -38,6 +42,10 @@ vscode-utils.buildVscodeMarketplaceExtension rec {
         "--only"
         "${mktplcRef.publisher}"
         "${mktplcRef.name}"
+        "--source"
+        "github"
+        "--github-repo"
+        "microsoft/vscode-copilot-chat"
       ];
     };
     updateScriptPackage = updateScriptDrv;
