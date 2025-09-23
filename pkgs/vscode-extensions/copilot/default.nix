@@ -21,8 +21,6 @@ let
       python3
     ];
     text = ''
-      #!/usr/bin/env bash
-      set -euo pipefail
       exec python3 ${../update.py} "$@"
     '';
   };
