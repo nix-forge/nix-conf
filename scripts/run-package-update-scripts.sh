@@ -77,7 +77,19 @@ while IFS= read -r pkg; do
   pkg="${pkg#\'}"
   echo "==> Running update script for ${pkg}"
   attr="legacyPackages.${SYSTEM}.${pkg}"
-  nix run nixpkgs#nix-update -- --flake --system "${SYSTEM}" --use-update-script --version fixed --no-src "${attr}"
+
+  # Evaluate the command array for passthru.updateScript.command and execute it directly.
+  # We join elements with a tab in Nix and split here to preserve spaces within args.
+  cmd_joined=$(
+    nix eval --raw ".#${attr}.passthru.updateScript.command" --apply 'cmd: builtins.concatStringsSep "\t" cmd'
+  )
+  if [[ -z ${cmd_joined} ]]; then
+    echo "No passthru.updateScript.command found for ${pkg}, skipping" >&2
+    continue
+  fi
+  IFS=$'\t' read -r -a cmd_parts <<<"${cmd_joined}"
+  echo "Running: ${cmd_parts[*]}"
+  "${cmd_parts[@]}"
 done <<<"${packages}"
 
 popd >/dev/null
