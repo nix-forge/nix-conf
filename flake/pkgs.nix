@@ -14,9 +14,9 @@
       # Flatten one level of nested attribute sets (directories whose default.nix
       # returns an attrset of derivations, e.g., vscode-extensions) so their
       # members become top-level packages. For nested sets, create prefixed names
-      # like "<parent>-<child>" (e.g., vscode-extensions-copilot), and also keep
-      # the unprefixed child names for backward compatibility. Then filter to
-      # derivations available on the current host and not marked broken.
+      # like "<parent>-<child>" (e.g., vscode-extensions-copilot). Do not export
+      # unprefixed child names to avoid duplicates in `nix flake show`. Then
+      # filter to derivations available on the current host and not marked broken.
       flattenedPackages = builtins.foldl' (
         acc: name:
         let
@@ -34,7 +34,7 @@
               }) (builtins.attrNames childDrvs)
             );
           in
-          acc // prefixedChildDrvs // childDrvs
+          acc // prefixedChildDrvs
         else
           acc
       ) { } (builtins.attrNames legacyPackages);
