@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import base64
 import datetime as dt
 import json
 import os
@@ -42,6 +41,7 @@ def log(level: str, *parts: str) -> None:
 # ---------- helpers ----------
 SCRIPT_DIR = Path(__file__).resolve().parent
 
+
 def resolve_base_dir() -> Path:
     env_dir = os.environ.get("VSCODE_EXT_BASE_DIR", "")
     if env_dir:
@@ -61,15 +61,22 @@ def resolve_base_dir() -> Path:
     # Fallback to script directory (works when running directly from repo)
     return SCRIPT_DIR
 
+
 BASE_DIR = resolve_base_dir()
 
 DRY_RUN = os.environ.get("DRY_RUN", "0") == "1"
 ALLOW_INSIDERS = os.environ.get("ALLOW_INSIDERS", "0") == "1"
 ALLOW_PRERELEASE = os.environ.get("ALLOW_PRERELEASE", "0") == "1"
 TARGET_VSCODE_VERSION = os.environ.get("TARGET_VSCODE_VERSION", "")
-VSCODE_NIXPKGS_INPUT = os.environ.get("VSCODE_NIXPKGS_INPUT", "")  # e.g. "nixpkgs-unstable"
-SELECTION_SOURCE = os.environ.get("VSCODE_EXT_SOURCE", "marketplace").lower()  # marketplace|github
-GITHUB_REPO = os.environ.get("VSCODE_EXT_GITHUB_REPO", "")  # e.g. "microsoft/vscode-copilot-chat"
+VSCODE_NIXPKGS_INPUT = os.environ.get(
+    "VSCODE_NIXPKGS_INPUT", ""
+)  # e.g. "nixpkgs-unstable"
+SELECTION_SOURCE = os.environ.get(
+    "VSCODE_EXT_SOURCE", "marketplace"
+).lower()  # marketplace|github
+GITHUB_REPO = os.environ.get(
+    "VSCODE_EXT_GITHUB_REPO", ""
+)  # e.g. "microsoft/vscode-copilot-chat"
 FORCED_VERSION = os.environ.get("VSCODE_EXT_VERSION", "")
 
 
@@ -86,7 +93,9 @@ def run(cmd: list[str], capture: bool = True, check: bool = True) -> str:
             text=True,
         )
     except subprocess.CalledProcessError as e:
-        raise CmdError(f"Command failed: {' '.join(cmd)}\n{e.stderr or e.stdout}") from e
+        raise CmdError(
+            f"Command failed: {' '.join(cmd)}\n{e.stderr or e.stdout}"
+        ) from e
     return res.stdout if capture else ""
 
 
@@ -101,7 +110,9 @@ def nix_eval_raw(expr: str) -> str:
 def current_system() -> str:
     # builtins.currentSystem requires impure evaluation
     try:
-        out = run(["nix", "eval", "--impure", "--raw", "--expr", "builtins.currentSystem"]).strip()
+        out = run(
+            ["nix", "eval", "--impure", "--raw", "--expr", "builtins.currentSystem"]
+        ).strip()
     except CmdError:
         out = ""
     return out or ""
@@ -137,10 +148,10 @@ def get_vscode_version() -> Optional[str]:
     def mk_expr(inp: str) -> str:
         return (
             "let flake = builtins.getFlake (toString ./.); "
-            f"pkgs = import flake.inputs.{inp} {{ system = \"{sysname}\"; config = {{ allowUnfree = true; }}; }}; in "
+            f'pkgs = import flake.inputs.{inp} {{ system = "{sysname}"; config = {{ allowUnfree = true; }}; }}; in '
             "(if pkgs ? vscode then pkgs.vscode.version "
             "else if pkgs ? code then pkgs.code.version "
-            "else if pkgs ? vscodium then pkgs.vscodium.version else \"\")"
+            'else if pkgs ? vscodium then pkgs.vscodium.version else "")'
         )
 
     for inp in candidates:
@@ -153,7 +164,10 @@ def get_vscode_version() -> Optional[str]:
             log("debug", f"Resolved VS Code version {v} from flake input '{inp}'")
             return v
 
-    log("warn", "could not evaluate nixpkgs vscode version; defaulting to allow insiders")
+    log(
+        "warn",
+        "could not evaluate nixpkgs vscode version; defaulting to allow insiders",
+    )
     return None
 
 
@@ -193,6 +207,7 @@ def marketplace_query(publisher: str, name: str) -> Dict[str, Any]:
     with urllib.request.urlopen(req, timeout=20) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
+
 def _iter_versions(data: Dict[str, Any]):
     try:
         ext = data["results"][0]["extensions"][0]
@@ -201,12 +216,16 @@ def _iter_versions(data: Dict[str, Any]):
             # detect pre-release via properties
             pre = False
             for prop in v.get("properties", []) or []:
-                if str(prop.get("key")) == "Microsoft.VisualStudio.Code.PreRelease" and str(prop.get("value")).lower() == "true":
+                if (
+                    str(prop.get("key")) == "Microsoft.VisualStudio.Code.PreRelease"
+                    and str(prop.get("value")).lower() == "true"
+                ):
                     pre = True
                     break
             yield (ver, pre, v)
     except Exception:
         return
+
 
 def list_versions(data: Dict[str, Any]) -> list[str]:
     return [ver for (ver, _pre, _vobj) in _iter_versions(data)]
@@ -278,10 +297,12 @@ def engines_compatible(rng: str, target: str) -> bool:
     return True
 
 
-def pick_latest_version(data: Dict[str, Any], target_vscode: Optional[str]) -> Tuple[Optional[str], str]:
+def pick_latest_version(
+    data: Dict[str, Any], target_vscode: Optional[str]
+) -> Tuple[Optional[str], str]:
     # Filter versions by semver shape and prerelease status
     versions = []
-    for (ver, pre, _vobj) in _iter_versions(data):
+    for ver, pre, _vobj in _iter_versions(data):
         if not _semver_pat.match(ver):
             continue
         if pre and not ALLOW_PRERELEASE:
@@ -347,6 +368,7 @@ def github_latest_release(repo: str, allow_prerelease: bool = False) -> Optional
 
 # ---------- nix hash ----------
 
+
 def prefetch_sri(url: str) -> str:
     try:
         out = run(["nix", "store", "prefetch-file", "--json", url])
@@ -398,19 +420,30 @@ def update_file(path: Path, old_version: str, new_version: str, sri: str) -> Non
     m = _mktplc_block_re.search(text)
     if not m:
         # fallback: global replace (first occurrences)
-        text = re.sub(rf'version\s*=\s*"{re.escape(old_version)}"\s*;', f'version = "{new_version}";', text, count=1)
+        text = re.sub(
+            rf'version\s*=\s*"{re.escape(old_version)}"\s*;',
+            f'version = "{new_version}";',
+            text,
+            count=1,
+        )
         text = re.sub(r'hash\s*=\s*"[^"]+"\s*;', f'hash = "{sri}";', text, count=1)
         path.write_text(text, encoding="utf-8")
         return
     start, end = m.span(1)
     block = text[start:end]
-    block = re.sub(rf'version\s*=\s*"{re.escape(old_version)}"\s*;', f'version = "{new_version}";', block, count=1)
+    block = re.sub(
+        rf'version\s*=\s*"{re.escape(old_version)}"\s*;',
+        f'version = "{new_version}";',
+        block,
+        count=1,
+    )
     block = re.sub(r'hash\s*=\s*"[^"]+"\s*;', f'hash = "{sri}";', block, count=1)
     new_text = text[:start] + block + text[end:]
     path.write_text(new_text, encoding="utf-8")
 
 
 # ---------- main flow ----------
+
 
 def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
     pub, name, cur_ver = parse_mktplc_ref(def_file)
@@ -422,7 +455,10 @@ def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
     if target_vscode:
         log("debug", f"Target VS Code version: {target_vscode}")
     else:
-        log("debug", f"Target VS Code version: <unknown> (insiders allowed: {ALLOW_INSIDERS})")
+        log(
+            "debug",
+            f"Target VS Code version: <unknown> (insiders allowed: {ALLOW_INSIDERS})",
+        )
 
     # Determine desired latest version based on selected source
     try:
@@ -448,14 +484,20 @@ def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
         if target_vscode:
             rng = get_manifest_range(data, latest)
             if rng and not engines_compatible(rng, target_vscode):
-                log("error", f"GitHub latest {latest} requires engines.vscode: {rng}, incompatible with {target_vscode}")
+                log(
+                    "error",
+                    f"GitHub latest {latest} requires engines.vscode: {rng}, incompatible with {target_vscode}",
+                )
                 return False
     elif FORCED_VERSION:
         latest = FORCED_VERSION
         if target_vscode:
             rng = get_manifest_range(data, latest)
             if rng and not engines_compatible(rng, target_vscode):
-                log("error", f"Requested version {latest} requires engines.vscode: {rng}, incompatible with {target_vscode}")
+                log(
+                    "error",
+                    f"Requested version {latest} requires engines.vscode: {rng}, incompatible with {target_vscode}",
+                )
                 return False
     if not latest:
         # Provide helpful diagnostics
@@ -467,12 +509,18 @@ def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
             top = sorted(all_versions, key=parse_ver, reverse=True)[:3]
             for v in top:
                 vrng = get_manifest_range(data, v)
-                log("info", f"Candidate {v} requires engines.vscode: {vrng or '<unspecified>'}")
+                log(
+                    "info",
+                    f"Candidate {v} requires engines.vscode: {vrng or '<unspecified>'}",
+                )
             log(
                 "error",
                 f"No marketplace version of {pub}.{name} is compatible with VS Code {target_vscode}.",
             )
-            log("info", "Hint: try --vscode-input nixpkgs-unstable (newer VS Code) or --allow-insiders to ignore compatibility.")
+            log(
+                "info",
+                "Hint: try --vscode-input nixpkgs-unstable (newer VS Code) or --allow-insiders to ignore compatibility.",
+            )
         else:
             log("error", f"Could not resolve latest version for {pub}.{name}")
         return False
@@ -488,9 +536,15 @@ def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
     if DRY_RUN:
         # In dry-run mode, avoid network prefetch and file edits; just report.
         if rng:
-            log("info", f"[DRY-RUN] Would update {pub}.{name} from {cur_ver} -> {latest} (engines.vscode: {rng})")
+            log(
+                "info",
+                f"[DRY-RUN] Would update {pub}.{name} from {cur_ver} -> {latest} (engines.vscode: {rng})",
+            )
         else:
-            log("info", f"[DRY-RUN] Would update {pub}.{name} from {cur_ver} -> {latest}")
+            log(
+                "info",
+                f"[DRY-RUN] Would update {pub}.{name} from {cur_ver} -> {latest}",
+            )
         return False
 
     vsix_url = find_file_url(data, latest, "VSIXPackage")
@@ -509,15 +563,44 @@ def update_one(def_file: Path, target_vscode: Optional[str]) -> bool:
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="Update VS Code Marketplace extensions in this repo")
-    ap.add_argument("--only", nargs=2, metavar=("PUBLISHER", "NAME"), help="Update only the specified publisher/name")
-    ap.add_argument("--allow-insiders", action="store_true", help="Allow insiders (ignore VS Code compatibility)")
-    ap.add_argument("--allow-prerelease", action="store_true", help="Allow prerelease Marketplace versions")
-    ap.add_argument("--target-vscode", help="Explicit VS Code version for compatibility")
-    ap.add_argument("--vscode-input", help="Flake input name to resolve VS Code from (default: tries nixpkgs-unstable, nixpkgsUnstable, then nixpkgs)")
-    ap.add_argument("--source", choices=["marketplace", "github"], help="Version source to use (default: marketplace)")
-    ap.add_argument("--github-repo", help="GitHub repo 'owner/name' for release lookup (default: <publisher>/<name>)")
-    ap.add_argument("--version", dest="forced_version", help="Force a specific extension version")
+    ap = argparse.ArgumentParser(
+        description="Update VS Code Marketplace extensions in this repo"
+    )
+    ap.add_argument(
+        "--only",
+        nargs=2,
+        metavar=("PUBLISHER", "NAME"),
+        help="Update only the specified publisher/name",
+    )
+    ap.add_argument(
+        "--allow-insiders",
+        action="store_true",
+        help="Allow insiders (ignore VS Code compatibility)",
+    )
+    ap.add_argument(
+        "--allow-prerelease",
+        action="store_true",
+        help="Allow prerelease Marketplace versions",
+    )
+    ap.add_argument(
+        "--target-vscode", help="Explicit VS Code version for compatibility"
+    )
+    ap.add_argument(
+        "--vscode-input",
+        help="Flake input name to resolve VS Code from (default: tries nixpkgs-unstable, nixpkgsUnstable, then nixpkgs)",
+    )
+    ap.add_argument(
+        "--source",
+        choices=["marketplace", "github"],
+        help="Version source to use (default: marketplace)",
+    )
+    ap.add_argument(
+        "--github-repo",
+        help="GitHub repo 'owner/name' for release lookup (default: <publisher>/<name>)",
+    )
+    ap.add_argument(
+        "--version", dest="forced_version", help="Force a specific extension version"
+    )
     args = ap.parse_args(argv)
     # Preflight: mitigate git fsmonitor issues that can break builtins.getFlake
     try:
@@ -531,13 +614,20 @@ def main(argv: list[str]) -> int:
                 log("debug", f"Could not remove fsmonitor ipc: {e}")
         # Optionally unset core.fsmonitor if set
         try:
-            _ = run(["git", "config", "--local", "--get", "core.fsmonitor"], capture=True, check=False)
-            run(["git", "config", "--local", "--unset", "core.fsmonitor"], capture=True, check=False)
+            _ = run(
+                ["git", "config", "--local", "--get", "core.fsmonitor"],
+                capture=True,
+                check=False,
+            )
+            run(
+                ["git", "config", "--local", "--unset", "core.fsmonitor"],
+                capture=True,
+                check=False,
+            )
         except Exception:
             pass
     except Exception:
         pass
-
 
     if args.allow_insiders:
         global ALLOW_INSIDERS
@@ -586,7 +676,10 @@ def main(argv: list[str]) -> int:
         pub, name, _ = parse_mktplc_ref(def_file)
         log("debug", f"Parsed publisher={pub} name={name}")
         if args.only and (pub != args.only[0] or name != args.only[1]):
-            log("debug", f"Skipping due to --only mismatch (wanted {args.only[0]}.{args.only[1]})")
+            log(
+                "debug",
+                f"Skipping due to --only mismatch (wanted {args.only[0]}.{args.only[1]})",
+            )
             continue
         matched_any = True
         if update_one(def_file, target_vscode):

@@ -7,8 +7,8 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 PKG_FILE="$REPO_ROOT/pkgs/ttf-ms-win11-auto/default.nix"
 
 if [[ ! -f $PKG_FILE ]]; then
-  echo "Package definition not found: $PKG_FILE" >&2
-  exit 1
+	echo "Package definition not found: $PKG_FILE" >&2
+	exit 1
 fi
 
 tmp_dir="$(mktemp -d)"
@@ -16,11 +16,11 @@ trap 'rm -rf "$tmp_dir"' EXIT
 
 page_html="$tmp_dir/page.html"
 curl -fsSL --compressed \
-  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' \
-  "$PAGE_URL" -o "$page_html"
+	-H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' \
+	"$PAGE_URL" -o "$page_html"
 
 readarray -t resolved < <(
-  python3 - "$page_html" "$LOCALE" <<'PY'
+	python3 - "$page_html" "$LOCALE" <<'PY'
 import html
 import re
 import sys
@@ -58,8 +58,8 @@ iso_url="${resolved[0]:-}"
 pkgver="${resolved[1]:-}"
 
 if [[ -z $iso_url || -z $pkgver ]]; then
-  echo "Unable to resolve ISO URL or version" >&2
-  exit 1
+	echo "Unable to resolve ISO URL or version" >&2
+	exit 1
 fi
 
 echo "Resolved ISO URL: $iso_url"
@@ -68,20 +68,20 @@ echo "Resolved version: $pkgver"
 current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$PKG_FILE")
 
 if [[ $current_version == "$pkgver" ]]; then
-  echo "Package already at version $pkgver; skipping prefetch."
-  exit 0
+	echo "Package already at version $pkgver; skipping prefetch."
+	exit 0
 fi
 
 echo "Prefetching ISO to obtain hash (may download several GiB)..."
 prefetch_json=$(nix store prefetch-file --json "$iso_url" 2>"$tmp_dir/prefetch.log" || {
-  cat "$tmp_dir/prefetch.log" >&2
-  exit 1
+	cat "$tmp_dir/prefetch.log" >&2
+	exit 1
 })
 
 sri_hash=$(printf '%s' "$prefetch_json" | jq -r '.hash')
 if [[ -z $sri_hash || $sri_hash == "null" ]]; then
-  echo "Failed to determine ISO hash" >&2
-  exit 1
+	echo "Failed to determine ISO hash" >&2
+	exit 1
 fi
 
 nix_sha=$(nix hash convert --from sri --to nix32 "$sri_hash")

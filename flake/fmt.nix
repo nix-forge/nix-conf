@@ -13,7 +13,21 @@
         enableDefaultExcludes = true;
 
         settings = {
-          global.excludes = [ "*.age" ];
+          # Keep secrets and common caches/outputs out of the formatter
+          global.excludes = [
+            "*.age"
+            # General dev caches
+            ".git/**"
+            ".direnv/**"
+            "result/**"
+            "node_modules/**"
+            # Python-specific caches and virtual envs
+            ".mypy_cache/**"
+            ".ruff_cache/**"
+            "__pycache__/**"
+            "venv/**"
+            ".venv/**"
+          ];
         };
 
         programs = {
@@ -40,10 +54,26 @@
             priority = 300;
           };
 
+          # Python
+          # Order: ruff-check (autofix) -> ruff-format -> mypy (type-check)
+          ruff-check = {
+            enable = true;
+            # Run early to apply autofixes
+            priority = 110;
+          };
+          ruff-format = {
+            enable = true;
+            # Format after fixes for stable output
+            priority = 120;
+          };
+          mypy = {
+            enable = true;
+          };
+
           # Shell: format then lint
           shfmt = {
             enable = true;
-            indent_size = 2; # set to 0 to use tabs
+            indent_size = 0; # set to 0 to use tabs
             priority = 100;
           };
           shellcheck = {

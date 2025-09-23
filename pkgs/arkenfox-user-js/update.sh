@@ -5,14 +5,14 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 pkg_file="$repo_root/pkgs/arkenfox-user-js/default.nix"
 
 if [[ ! -f $pkg_file ]]; then
-  echo "Package definition not found: $pkg_file" >&2
-  exit 1
+	echo "Package definition not found: $pkg_file" >&2
+	exit 1
 fi
 
 current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$pkg_file")
 
 latest_version=$(
-  python3 - <<'PY'
+	python3 - <<'PY'
 import re
 import subprocess
 import sys
@@ -60,13 +60,13 @@ PY
 )
 
 if [[ -z $latest_version || $latest_version == "null" ]]; then
-  echo "Unable to determine latest version." >&2
-  exit 1
+	echo "Unable to determine latest version." >&2
+	exit 1
 fi
 
 if [[ $current_version == "$latest_version" ]]; then
-  echo "arkenfox-user-js is already at version $latest_version"
-  exit 0
+	echo "arkenfox-user-js is already at version $latest_version"
+	exit 0
 fi
 
 url="https://raw.githubusercontent.com/arkenfox/user.js/${latest_version}/user.js"
@@ -78,9 +78,9 @@ trap 'rm -f "$tmp_file" "$tmp_file".bak' EXIT
 
 cp "$pkg_file" "$tmp_file"
 sed -i \
-  -e "s/version = \"${current_version}\";/version = \"${latest_version}\";/" \
-  -e "s|sha256 = \".*\";|sha256 = \"${hash}\";|" \
-  "$tmp_file"
+	-e "s/version = \"${current_version}\";/version = \"${latest_version}\";/" \
+	-e "s|sha256 = \".*\";|sha256 = \"${hash}\";|" \
+	"$tmp_file"
 
 mv "$tmp_file" "$pkg_file"
 
