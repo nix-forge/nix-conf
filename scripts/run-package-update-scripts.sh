@@ -31,24 +31,33 @@ pkgs:
 let
   isDrv = v: (v.type or null) == "derivation";
   hasUS = v: isDrv v && v ? passthru && v.passthru ? updateScript;
-  needsQuote = s: builtins.match "^[a-zA-Z_][a-zA-Z0-9_']*$" s == null;
-  q = "\""; # double quote character
-  escape = s: builtins.replaceStrings ["\\" "\""] ["\\\\" "\\\""] s;
-  fmt = s: if needsQuote s then q + (escape s) + q else s;
-  recCollect = path: v:
-    if isDrv v then
-      if hasUS v then [ path ] else []
-    else if builtins.isAttrs v then
-      builtins.concatLists (
-        builtins.map (
-          n:
-            let seg = fmt n; newPath = if path == "" then seg else path + "." + seg; in
-            recCollect newPath (builtins.getAttr n v)
-        ) (builtins.attrNames v)
-      )
-    else [];
-  paths = recCollect "" pkgs;
-in builtins.concatStringsSep "\n" paths
+  topNames = builtins.attrNames pkgs;
+  topMatches = builtins.filter (n: hasUS (builtins.getAttr n pkgs)) topNames;
+  nestedMatches = builtins.concatLists (
+    builtins.map (
+      n:
+        let parent = builtins.getAttr n pkgs; in
+        if (!isDrv parent) && builtins.isAttrs parent then
+          let children = builtins.attrNames parent;
+              hasUSAttr = v: v ? passthru && v.passthru ? updateScript;
+              matches = builtins.filter (c: hasUSAttr (builtins.getAttr c parent)) children;
+              # also scan one more level for grandchildren
+              grandMatches = builtins.concatLists (
+                builtins.map (
+                  c:
+                    let kid = builtins.getAttr c parent; in
+                    if builtins.isAttrs kid && !isDrv kid then
+                      let gchildren = builtins.attrNames kid;
+                          gmatches = builtins.filter (g: hasUSAttr (builtins.getAttr g kid)) gchildren;
+                      in builtins.map (g: n + "." + c + "." + g) gmatches
+                    else []
+                ) children
+              );
+          in (builtins.map (c: n + "." + c) matches) ++ grandMatches
+        else []
+    ) topNames
+  );
+in builtins.concatStringsSep "\n" (topMatches ++ nestedMatches)
 NIX
   )"
 )
@@ -61,6 +70,11 @@ fi
 
 while IFS= read -r pkg; do
   [[ -z ${pkg} ]] && continue
+  # Some evaluators may quote attribute names. Strip surrounding single/double quotes.
+  pkg="${pkg%\"}"
+  pkg="${pkg#\"}"
+  pkg="${pkg%\'}"
+  pkg="${pkg#\'}"
   echo "==> Running update script for ${pkg}"
   attr="legacyPackages.${SYSTEM}.${pkg}"
   nix run nixpkgs#nix-update -- --flake --system "${SYSTEM}" --use-update-script --version fixed --no-src "${attr}"
