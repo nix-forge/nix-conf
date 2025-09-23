@@ -20,19 +20,38 @@ pushd "${FLAKE_ROOT}" >/dev/null
 
 rm -f .git/fsmonitor--daemon.ipc 2>/dev/null || true
 
-packages=$(nix eval --raw ".#legacyPackages.${SYSTEM}" --apply '
-  pkgs:
-  let
-    names = builtins.attrNames pkgs;
-    hasUpdateScript = name:
-      let
-        pkg = builtins.getAttr name pkgs;
-      in
-      pkg ? passthru && pkg.passthru ? updateScript;
-    filtered = builtins.filter hasUpdateScript names;
-  in
-  builtins.concatStringsSep "\n" filtered
-')
+# Collect all attribute paths (including nested ones) under legacyPackages.${SYSTEM}
+# that refer to derivations exposing passthru.updateScript. This ensures nested
+# packages like vscode-extensions.copilot and vscode-extensions."copilot-chat"
+# are picked up by CI. We use a here-doc to avoid shell quoting pitfalls.
+packages=$(
+  nix eval --raw ".#legacyPackages.${SYSTEM}" --apply "$(
+    cat <<'NIX'
+pkgs:
+let
+  isDrv = v: (v.type or null) == "derivation";
+  hasUS = v: isDrv v && v ? passthru && v.passthru ? updateScript;
+  needsQuote = s: builtins.match "^[a-zA-Z_][a-zA-Z0-9_']*$" s == null;
+  q = "\""; # double quote character
+  escape = s: builtins.replaceStrings ["\\" "\""] ["\\\\" "\\\""] s;
+  fmt = s: if needsQuote s then q + (escape s) + q else s;
+  recCollect = path: v:
+    if isDrv v then
+      if hasUS v then [ path ] else []
+    else if builtins.isAttrs v then
+      builtins.concatLists (
+        builtins.map (
+          n:
+            let seg = fmt n; newPath = if path == "" then seg else path + "." + seg; in
+            recCollect newPath (builtins.getAttr n v)
+        ) (builtins.attrNames v)
+      )
+    else [];
+  paths = recCollect "" pkgs;
+in builtins.concatStringsSep "\n" paths
+NIX
+  )"
+)
 
 if [[ -z ${packages} ]]; then
   echo "No packages with passthru.updateScript for system ${SYSTEM}."
