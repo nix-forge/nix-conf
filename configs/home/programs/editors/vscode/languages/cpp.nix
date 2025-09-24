@@ -1,5 +1,5 @@
 profileName:
-{ lib, pkgs, ... }@args:
+{ pkgs, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in
@@ -20,20 +20,9 @@ in
         "editor.defaultFormatter" = "ms-vscode.cpptools";
       };
 
-      "C_Cpp.default.includePath" = [
-        "\${workspaceFolder}/**"
-        "\${env:PKG_CONFIG_PATH}"
-      ]
-      ++ lib.optionals pkgs.stdenv.isDarwin [
-        "${pkgs.apple-sdk}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-      ]
-      ++ lib.optionals pkgs.stdenv.isLinux [
-        # "${pkgs.libcxx}/include/c++/v1"
-        "/usr/include"
-        "/usr/local/include"
-      ];
+      "C_Cpp.default.includePath" = [ "\${workspaceFolder}/**" ];
 
-      "C_Cpp.default.compilerPath" = lib.getExe pkgs.stdenv.cc;
+      "C_Cpp.default.compilerPath" = if pkgs.stdenv.isDarwin then "clang++" else "g++";
       "C_Cpp.default.cStandard" = "c23";
       "C_Cpp.default.cppStandard" = "c++23";
       "C_Cpp.default.intelliSenseMode" =
