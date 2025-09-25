@@ -17,17 +17,22 @@ let
 in
 {
   # Copy Firefox-UI-Fix theme into the profile's chrome directory
-  home.file."${profilesPath}/${profileName}/chrome" = {
-    source = inputs.firefox-ui-fix;
-    recursive = true;
+  home.file = {
+    "${profilesPath}/${profileName}/chrome/icons" = {
+      source = inputs.firefox-ui-fix + "/icons";
+    };
+    "${profilesPath}/${profileName}/chrome/css" = {
+      source = inputs.firefox-ui-fix + "/css";
+    };
+    "${profilesPath}/${profileName}/chrome/userChrome.css" = {
+      source = inputs.firefox-ui-fix + "/userChrome.css";
+    };
+    "${profilesPath}/${profileName}/chrome/userContent.css" = {
+      source = inputs.firefox-ui-fix + "/userContent.css";
+    };
   };
 
   programs.firefox.profiles.${profileName} = {
-    settings = {
-      "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-      "layout.css.has-selector.enabled" = true;
-    };
-
     # Firefox UI Fix User JS
     extraConfig = lib.mkBefore (
       lib.strings.concatLines [ (builtins.readFile "${inputs.firefox-ui-fix}/user.js") ]
