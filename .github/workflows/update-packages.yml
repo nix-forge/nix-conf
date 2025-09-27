@@ -12,6 +12,10 @@ jobs:
   package-updates:
     name: Update packaged sources
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.git-status.outputs.changed }}
+      update-branch: ${{ env.UPDATE_BRANCH }}
+      pr-number: ${{ steps.create-pr.outputs.pull-request-number }}
     permissions:
       contents: write
       id-token: write
@@ -43,6 +47,7 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Create Pull Request
+        id: create-pr
         if: steps.git-status.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
@@ -58,3 +63,28 @@ jobs:
             automated
           branch: ${{ env.UPDATE_BRANCH }}
           delete-branch: true
+  run-checks:
+    name: Run flake checks
+    needs: package-updates
+    if: needs.package-updates.outputs.changed == 'true'
+    uses: ./.github/workflows/check.yml
+    with:
+      ref: refs/heads/${{ needs.package-updates.outputs.update-branch }}
+    secrets: inherit
+  auto-merge:
+    name: Enable auto-merge
+    needs:
+      - package-updates
+      - run-checks
+    if: needs.package-updates.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable PR auto-merge
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ needs.package-updates.outputs.pr-number }}
+          merge-method: squash
