@@ -23,6 +23,7 @@ jobs:
       pull-requests: write
     env:
       UPDATE_BRANCH: update-packages
+      PR_BODY_PATH: /tmp/update-packages-body.md
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +36,7 @@ jobs:
       - name: Run package update scripts
         env:
           SYSTEM: x86_64-linux
+          SUMMARY_FILE: ${{ env.PR_BODY_PATH }}
         run: ./scripts/run-package-update-scripts.sh
       - name: Format Nix code
         run: nix fmt
@@ -54,10 +56,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "packages: update sources"
           title: "Update packaged sources"
-          body: |
-            Automated update of packages with `passthru.updateScript`.
-
-            - System: `x86_64-linux`
+          body-path: ${{ env.PR_BODY_PATH }}
           labels: |
             dependencies
             automated
