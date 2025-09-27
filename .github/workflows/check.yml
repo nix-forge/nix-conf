@@ -21,7 +21,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
+  group: ${{ github.event_name == 'workflow_call' && format('flake-checks-{0}', github.run_id) || format('flake-checks-{0}', github.ref) }}
   cancel-in-progress: true
 jobs:
   flake-check:
