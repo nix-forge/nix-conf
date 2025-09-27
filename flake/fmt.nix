@@ -2,7 +2,7 @@
 {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       # provide the formatter for `nix fmt`
       formatter = config.treefmt.build.wrapper;
@@ -28,6 +28,27 @@
             "venv/**"
             ".venv/**"
           ];
+
+          formatter."shfmt" = {
+            command = "${pkgs.shfmt}/bin/shfmt";
+            options = [
+              "--indent"
+              "0"
+              "--binary-next-line"
+              "--case-indent"
+              "--space-redirects"
+              "--keep-padding"
+              "--simplify"
+              "--write"
+            ];
+            includes = [
+              "*.sh"
+              "*.bash"
+              "*.envrc"
+              "*.envrc.*"
+            ];
+            priority = 100;
+          };
         };
 
         programs = {
@@ -71,11 +92,6 @@
           };
 
           # Shell: format then lint
-          shfmt = {
-            enable = true;
-            indent_size = 0; # set to 0 to use tabs
-            priority = 100;
-          };
           shellcheck = {
             enable = true;
             priority = 200;
