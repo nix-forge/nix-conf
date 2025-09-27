@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ inputs, lib, ... }:
 {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem =
@@ -30,7 +30,7 @@
           ];
 
           formatter."shfmt" = {
-            command = "${pkgs.shfmt}/bin/shfmt";
+            command = lib.getExe pkgs.shfmt;
             options = [
               "--indent"
               "0"

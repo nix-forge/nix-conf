@@ -23,9 +23,10 @@ in
       "shellformat.flag" = lib.concatStringsSep " " [
         "--indent 0"
         "--binary-next-line"
-        "--switch-case-indent"
+        "--case-indent"
         "--space-redirects"
         "--keep-padding"
+        "--simplify"
       ];
     };
   };
