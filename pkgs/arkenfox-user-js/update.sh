@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+repo_root="$(git rev-parse --show-toplevel 2> /dev/null || pwd)"
 pkg_file="$repo_root/pkgs/arkenfox-user-js/default.nix"
 
 if [[ ! -f $pkg_file ]]; then
@@ -12,7 +12,7 @@ fi
 current_version=$(awk -F'"' '/version =/ { print $2; exit }' "$pkg_file")
 
 latest_version=$(
-	python3 - <<'PY'
+	python3 - << 'PY'
 import re
 import subprocess
 import sys

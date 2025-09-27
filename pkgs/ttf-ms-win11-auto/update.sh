@@ -3,7 +3,7 @@ set -euo pipefail
 
 PAGE_URL="https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise"
 LOCALE="${ISO_LOCALE:-en-US}"
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2> /dev/null || pwd)"
 PKG_FILE="$REPO_ROOT/pkgs/ttf-ms-win11-auto/default.nix"
 
 if [[ ! -f $PKG_FILE ]]; then
@@ -20,7 +20,7 @@ curl -fsSL --compressed \
 	"$PAGE_URL" -o "$page_html"
 
 readarray -t resolved < <(
-	python3 - "$page_html" "$LOCALE" <<'PY'
+	python3 - "$page_html" "$LOCALE" << 'PY'
 import html
 import re
 import sys
@@ -73,7 +73,7 @@ if [[ $current_version == "$pkgver" ]]; then
 fi
 
 echo "Prefetching ISO to obtain hash (may download several GiB)..."
-prefetch_json=$(nix store prefetch-file --json "$iso_url" 2>"$tmp_dir/prefetch.log" || {
+prefetch_json=$(nix store prefetch-file --json "$iso_url" 2> "$tmp_dir/prefetch.log" || {
 	cat "$tmp_dir/prefetch.log" >&2
 	exit 1
 })
@@ -88,7 +88,7 @@ nix_sha=$(nix hash convert --from sri --to nix32 "$sri_hash")
 
 echo "Computed Nix hash: $nix_sha"
 
-python3 - "$PKG_FILE" "$pkgver" "$iso_url" "$nix_sha" <<'PY'
+python3 - "$PKG_FILE" "$pkgver" "$iso_url" "$nix_sha" << 'PY'
 import re
 import sys
 
