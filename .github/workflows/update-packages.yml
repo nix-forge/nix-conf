@@ -84,6 +84,28 @@ jobs:
             automated
           branch: ${{ env.UPDATE_BRANCH }}
           delete-branch: true
+      - name: Ensure co-author trailer on package commit
+        if: steps.git-status.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ env.UPDATE_BRANCH }}
+          CO_AUTHOR: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
+        run: |
+          set -euo pipefail
+          original_branch=$(git rev-parse --abbrev-ref HEAD)
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          if git log -1 --pretty=%B | grep -Fq "Co-authored-by: $CO_AUTHOR"; then
+            git checkout "$original_branch"
+            exit 0
+          fi
+          tmp=$(mktemp)
+          git log -1 --pretty=%B > "$tmp"
+          printf '\nCo-authored-by: %s\n' "$CO_AUTHOR" >> "$tmp"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --amend -F "$tmp"
+          git push origin "HEAD:$BRANCH" --force-with-lease
+          git checkout "$original_branch"
   auto-merge:
     name: Enable auto-merge
     needs:
