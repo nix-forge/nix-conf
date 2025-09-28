@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel 2> /dev/null || pwd)"
-pkg_file="$repo_root/pkgs/arkenfox-user-js/default.nix"
+pkg_file="$repo_root/pkgs/arkenfox_user_js/default.nix"
 
 if [[ ! -f $pkg_file ]]; then
 	echo "Package definition not found: $pkg_file" >&2

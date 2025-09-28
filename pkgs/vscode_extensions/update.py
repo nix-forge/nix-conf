@@ -29,6 +29,9 @@ from urllib3.util.retry import Retry
 # ============================
 
 
+VSCODE_EXTENSIONS_ROOT_ENV = "VSCODE_EXTENSIONS_ROOT"
+
+
 @dataclasses.dataclass(frozen=True)
 class Env:
     """Configurable knobs via env vars with safe defaults.
@@ -482,6 +485,19 @@ def compute_vsix_sri(env: Env, sess: requests.Session, url: str) -> str:
     return _digest_to_sri(digest)
 
 
+def resolve_extensions_root() -> Path:
+    override = os.environ.get(VSCODE_EXTENSIONS_ROOT_ENV)
+    if override:
+        try:
+            candidate = Path(override).expanduser().resolve()
+        except Exception:
+            pass
+        else:
+            if candidate.is_dir():
+                return candidate
+    return Path(__file__).resolve().parent
+
+
 # =====================================
 # Nix file update (default.nix in package)
 # =====================================
@@ -498,9 +514,7 @@ def find_default_nix_for_identifier(env: Env, publisher: str, name: str) -> Path
     """Search pkgs/vscode_extensions/**/default.nix and return the matching file.
     Match if the file contains publisher/name matching the identifier.
     """
-    base = Path(__file__).resolve().parent
-    # Script is under pkgs/vscode_extensions/update.py -> search siblings
-    search_root = base
+    search_root = resolve_extensions_root()
     candidates = list(search_root.glob("*/default.nix"))
     if not candidates:
         raise UserError(f"No default.nix files found under {search_root}")

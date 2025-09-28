@@ -6,15 +6,29 @@
   writeShellApplication,
   python3,
   openssl,
+  git,
 }:
 let
   pythonWithOpenSSL = python3.override { inherit openssl; };
   python = pythonWithOpenSSL.withPackages (ps: with ps; [ requests ]);
   updateScriptDrv = writeShellApplication {
     name = "update-ttf-ms-win11-auto";
-    runtimeInputs = [ python ];
+    runtimeInputs = [
+      python
+      git
+    ];
     text = ''
-      exec ${lib.getExe python} ${./update.py} "$@"
+      set -euo pipefail
+
+      repo_root="$(git rev-parse --show-toplevel 2> /dev/null || pwd)"
+      package_file="$repo_root/pkgs/ttf_ms_win11_auto/default.nix"
+
+      if [[ ! -f "$package_file" ]]; then
+        echo "ERROR ttf-ms-win11-auto.update: Package file not found: $package_file" >&2
+        exit 1
+      fi
+
+      exec ${lib.getExe python} ${./update.py} --package-file "$package_file" "$@"
     '';
   };
 in

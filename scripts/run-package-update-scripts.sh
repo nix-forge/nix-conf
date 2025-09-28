@@ -168,7 +168,7 @@ for pkg in "${package_list[@]}"; do
 done
 
 {
-	echo "Automated update of packages with $(passthru.updateScript)."
+	echo "Automated update of packages with passthru.updateScript."
 	echo
 	echo "- System: \`${SYSTEM}\`"
 	echo
