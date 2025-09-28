@@ -9,7 +9,7 @@
     }:
     let
       python = pkgs.callPackage ./python.nix { };
-      inherit (python) python_with_pkgs;
+      inherit (python) python_with_pkgs python_path;
     in
     {
       devShells.default =
@@ -72,7 +72,7 @@
                 ${updateOldPath "PYTHONPATH" [
                   # Installed pip packages
                   "${local_python_pkgs_dir}/${python_with_pkgs.sitePackages}"
-                  "${python_with_pkgs}/${python_with_pkgs.sitePackages}"
+                  python_path
                 ] true}
                 ${updateOldPath "PATH" [ "${local_python_pkgs_dir}/bin" ] true}
                 ${gitExclude (local_python_pkgs_dir_name + "/")}

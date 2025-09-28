@@ -92,11 +92,11 @@
             directories =
               let
                 python = pkgs.callPackage ./python.nix { };
-                inherit (python) python_with_pkgs;
+                inherit (python) python_path;
               in
               {
                 "" = {
-                  extraPythonPaths = [ "${python_with_pkgs}/${python_with_pkgs.sitePackages}" ];
+                  extraPythonPaths = [ python_path ];
                 };
               };
           };
