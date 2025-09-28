@@ -3,7 +3,7 @@ let
   python_pkg = python3.override { inherit openssl; };
 in
 rec {
-  additionalPythonPackages =
+  python_with_pkgs = python_pkg.withPackages (
     ps: with ps; [
       # Base
       pip
@@ -13,7 +13,7 @@ rec {
       # HTTP
       requests
       types-requests
-    ];
-  python_with_pkgs = python_pkg.withPackages additionalPythonPackages;
+    ]
+  );
   python_path = "${python_with_pkgs}/${python_with_pkgs.sitePackages}";
 }
