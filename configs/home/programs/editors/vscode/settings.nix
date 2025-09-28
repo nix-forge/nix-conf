@@ -118,6 +118,8 @@ in
         "editor.formatOnPaste" = true;
         # if the plugin supports range formatting always use that
         "editor.formatOnSaveMode" = "modificationsIfAvailable";
+        # Highlight bad ASCII characters
+        "editor.unicodeHighlight.nonBasicASCII" = true;
         # insert a newline at the end of a file when saved
         "files.insertFinalNewline" = true;
         # trim whitespace trailing at the ends of lines on save
