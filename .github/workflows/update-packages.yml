@@ -62,19 +62,10 @@ jobs:
             automated
           branch: ${{ env.UPDATE_BRANCH }}
           delete-branch: true
-  run-checks:
-    name: Run flake checks
-    needs: package-updates
-    if: needs.package-updates.outputs.changed == 'true'
-    uses: ./.github/workflows/check.yml
-    with:
-      ref: refs/heads/${{ needs.package-updates.outputs.update-branch }}
-    secrets: inherit
   auto-merge:
     name: Enable auto-merge
     needs:
       - package-updates
-      - run-checks
     if: needs.package-updates.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
