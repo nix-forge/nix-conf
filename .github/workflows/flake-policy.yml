@@ -2,15 +2,11 @@ name: Flake Policy
 on:
   pull_request:
     paths:
-      - "flake.nix"
       - "flake.lock"
-      - "**.nix"
       - ".github/workflows/flake-policy.yml"
   push:
     paths:
-      - "flake.nix"
       - "flake.lock"
-      - "**.nix"
       - ".github/workflows/flake-policy.yml"
   workflow_dispatch:
   workflow_call:
