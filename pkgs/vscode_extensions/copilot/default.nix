@@ -4,7 +4,7 @@
   writeShellApplication,
   python3,
   openssl,
-  git,
+  gitMinimal,
 }:
 let
   pythonWithOpenSSL = python3.override { inherit openssl; };
@@ -13,7 +13,7 @@ let
     name = "update-vscode-extensions";
     runtimeInputs = [
       python
-      git
+      gitMinimal
     ];
     text = ''
       set -euo pipefail

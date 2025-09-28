@@ -6,7 +6,7 @@
   writeShellApplication,
   python3,
   openssl,
-  git,
+  gitMinimal,
 }:
 let
   pythonWithOpenSSL = python3.override { inherit openssl; };
@@ -15,7 +15,7 @@ let
     name = "update-ttf-ms-win11-auto";
     runtimeInputs = [
       python
-      git
+      gitMinimal
     ];
     text = ''
       set -euo pipefail

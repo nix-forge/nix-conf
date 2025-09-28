@@ -3,7 +3,7 @@
   stdenvNoCC,
   writeShellApplication,
   curl,
-  git,
+  gitMinimal,
   gnused,
   gawk,
   jq,
@@ -19,7 +19,7 @@ let
     name = "update-arkenfox-user-js";
     runtimeInputs = [
       curl
-      git
+      gitMinimal
       gnused
       gawk
       jq
