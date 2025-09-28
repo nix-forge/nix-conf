@@ -2,24 +2,12 @@
   lib,
   vscode-utils,
   writeShellApplication,
-  curl,
-  jq,
-  gnused,
-  coreutils,
-  nix,
   python3,
 }:
 let
   updateScriptDrv = writeShellApplication {
     name = "update-vscode-extensions";
-    runtimeInputs = [
-      curl
-      jq
-      gnused
-      coreutils
-      nix
-      python3
-    ];
+    runtimeInputs = [ python3 ];
     text = ''
       exec python3 ${../update.py} "$@"
     '';

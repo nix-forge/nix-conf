@@ -4,19 +4,13 @@
   fetchurl,
   p7zip,
   writeShellApplication,
-  nix,
   python3,
-  openssl,
 }:
 let
   python_with_pkgs = python3.withPackages (ps: with ps; [ requests ]);
   updateScriptDrv = writeShellApplication {
     name = "update-ttf-ms-win11-auto";
-    runtimeInputs = [
-      nix
-      openssl
-      python_with_pkgs
-    ];
+    runtimeInputs = [ python_with_pkgs ];
     text = ''
       exec python3 ${./update.py} "$@"
     '';
