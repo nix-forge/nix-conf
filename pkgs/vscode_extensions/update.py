@@ -1,39 +1,8 @@
 #!/usr/bin/env python3
 """
-High‑quality, typed, production‑ready rewrite of the VS Code extension updater.
-
 Usage
 -----
     python update.py --identifier <publisher>.<name> [--dry-run] [--verbose]
-
-Behavior
---------
-- Prefer updating by GitHub repo if the extension metadata lists one:
-  * Query Open VSX for the extension's package.json to discover the repository.
-  * Query GitHub's "latest release" (non‑draft, non‑pre‑release) and use its
-    tag as the target version. If a .vsix asset is attached to that release,
-    prefer downloading that. Otherwise, try to download the matching version of
-    the .vsix from Open VSX.
-- If no GitHub repo is found, select the latest extension version that is
-  compatible with the locally available nixpkgs#vscode version, preferring the
-  nixpkgs‑unstable VS Code by default.
-- Compute the SRI hash with `nix store prefetch-file --json`.
-- Update the derivation at:
-    pkgs/vscode_extensions/<pkg>/default.nix
-  by replacing `version` and the fixed-output `hash` (or `sha256`).
-- The script automatically finds the target `default.nix` by matching the
-  `publisher` and `name` defined in that file.
-
-Notes
------
-- No hardcoded paths beyond relative traversal from this script's directory.
-- Auth via environment variables: see `Env` below.
-- Designed to be idempotent and safe to run multiple times.
-
-Dependencies
-------------
-- Python 3.9+
-- Third‑party: requests
 
 """
 
@@ -48,6 +17,8 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple
+import base64
+import hashlib
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -62,12 +33,12 @@ from urllib3.util.retry import Retry
 class Env:
     """Configurable knobs via env vars with safe defaults.
 
-    OVSVX_BASE      – Base URL for Open VSX (default: https://open-vsx.org)
-    GITHUB_TOKEN    – (optional) token for higher rate limits / private repos
-    NIX_FLAKE       – flake ref used to evaluate vscode.version (default: nixpkgs)
-    LOG_LEVEL       – debug|info|warn|error (default: info)
-    FETCH_TIMEOUT   – per-request timeout seconds (default: 20)
-    HTTP_RETRIES    – transient HTTP retry attempts (default: 3)
+    OVSVX_BASE      -  Base URL for Open VSX (default: https://open-vsx.org)
+    GITHUB_TOKEN    - (optional) token for higher rate limits / private repos
+    NIX_FLAKE       - flake ref used to evaluate vscode.version (default: nixpkgs)
+    LOG_LEVEL       - debug|info|warn|error (default: info)
+    FETCH_TIMEOUT   - per-request timeout seconds (default: 20)
+    HTTP_RETRIES    - transient HTTP retry attempts (default: 3)
     """
 
     ovsx_base: str = os.environ.get("OVSVX_BASE", "https://open-vsx.org")
@@ -82,6 +53,7 @@ class Env:
 # Simple logs
 # ============
 _LEVELS = {"debug": 10, "info": 20, "warn": 30, "error": 40}
+HASH_CHUNK_SIZE = 2 * 1024 * 1024
 
 
 def _lvl(env: Env) -> int:
@@ -485,22 +457,29 @@ def nix_vscode_version(env: Env) -> Optional[str]:
         return None
 
 
-def nix_prefetch_sri(env: Env, url: str) -> str:
-    """Download URL into store and return SRI hash (sha256-...)."""
-    # Try modern `nix store prefetch-file --json` first, fallback to nix-prefetch-url
+def _stream_sha256(env: Env, sess: requests.Session, url: str) -> bytes:
     try:
-        out = run(["nix", "store", "prefetch-file", "--json", url])
-        data = json.loads(out)
-        sri = data.get("hash") or data.get("sriHash")
-        if not sri:
-            raise UserError("nix store prefetch-file returned no SRI hash")
-        return sri
-    except Exception:
-        # fallback
-        out = run(["nix-prefetch-url", url])
-        # Convert base32/hex to SRI via nix hash convert
-        sri = run(["nix", "hash", "convert", "--to", "sri", out.strip()])
-        return sri.strip()
+        with sess.get(url, stream=True, timeout=env.fetch_timeout) as resp:
+            if resp.status_code != 200:
+                raise UserError(f"Failed to download {url} (HTTP {resp.status_code})")
+            hasher = hashlib.sha256()
+            for chunk in resp.iter_content(chunk_size=HASH_CHUNK_SIZE):
+                if chunk:
+                    hasher.update(chunk)
+    except UserError:
+        raise
+    except Exception as exc:
+        raise UserError(f"Failed to download {url}: {exc}") from exc
+    return hasher.digest()
+
+
+def _digest_to_sri(digest: bytes) -> str:
+    return "sha256-" + base64.b64encode(digest).decode("ascii")
+
+
+def compute_vsix_sri(env: Env, sess: requests.Session, url: str) -> str:
+    digest = _stream_sha256(env, sess, url)
+    return _digest_to_sri(digest)
 
 
 # =====================================
@@ -520,7 +499,7 @@ def find_default_nix_for_identifier(env: Env, publisher: str, name: str) -> Path
     Match if the file contains publisher/name matching the identifier.
     """
     base = Path(__file__).resolve().parent
-    # Script is under pkgs/vscode_extensions/update.py → search siblings
+    # Script is under pkgs/vscode_extensions/update.py -> search siblings
     search_root = base
     candidates = list(search_root.glob("*/default.nix"))
     if not candidates:
@@ -571,7 +550,7 @@ def update_default_nix(
         r"hash\s*=\s*\"([^\"]+)\"\s*;", f'hash = "{new_hash_sri}";'
     )
     text = new_text_h
-    if new_text_h == text:  # unchanged → try sha256
+    if new_text_h == text:  # unchanged -> try sha256
         new_text_s, old_hash = sub1(
             r"sha256\s*=\s*\"([^\"]+)\"\s*;", f'sha256 = "{new_hash_sri}";'
         )
@@ -602,6 +581,18 @@ def update_default_nix(
         old_hash=old_hash,
         new_hash=new_hash_sri,
     )
+
+
+def current_version_and_hash(file: Path) -> Tuple[Optional[str], Optional[str]]:
+    try:
+        text = file.read_text(encoding="utf-8")
+    except Exception:
+        return None, None
+    version_match = re.search(r"version\s*=\s*\"([^\"]+)\"\s*;", text)
+    hash_match = re.search(r"(?:hash|sha256)\s*=\s*\"([^\"]+)\"\s*;", text)
+    version = version_match.group(1) if version_match else None
+    hash_value = hash_match.group(1) if hash_match else None
+    return version, hash_value
 
 
 # ==============================
@@ -666,7 +657,7 @@ def _parse_partial_range(
         return lower, lower, True
 
     if wildcard_idx == 0:
-        # Fully wildcarded (e.g. "x") → any version
+        # Fully wildcarded (e.g. "x") -> any version
         return None, None, False
 
     upper_nums = [lower.major, lower.minor, lower.patch]
@@ -896,7 +887,7 @@ def choose_by_github(
     if r.status_code == 200:
         return Candidate(version=gh.tag, vsix_url=vsix_url)
 
-    # Could not satisfy via GH → give up to caller
+    # Could not satisfy via GH -> give up to caller
     return None
 
 
@@ -917,7 +908,7 @@ def choose_by_open_vsx(
             raise UserError(f"No versions listed for {publisher}.{name}")
         versions = [v]
 
-    # Iterate newest → oldest, find the first compatible one
+    # Iterate newest -> oldest, find the first compatible one
     for ver in versions:
         pkg_url = ovsx_package_json_url(env, publisher, name, ver)
         try:
@@ -973,7 +964,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Locate target derivation file
     deriv_file = find_default_nix_for_identifier(env, pub, name)
-    log(env, "info", f"Matched {pub}.{name} → {deriv_file}")
+    log(env, "info", f"Matched {pub}.{name} -> {deriv_file}")
+    current_version, current_hash = current_version_and_hash(deriv_file)
+    if current_version:
+        log(env, "debug", f"Existing version {current_version}")
 
     # Strategy 1: GitHub preferred (if listed in metadata)
     cand: Optional[Candidate] = None
@@ -999,9 +993,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         log(env, "info", f"Chose Marketplace version {cand.version}")
 
     # Prefetch to get SRI hash
-    log(env, "info", f"Prefetching {cand.vsix_url}")
-    sri = nix_prefetch_sri(env, cand.vsix_url)
-    log(env, "debug", f"SRI hash: {sri}")
+    if current_version == cand.version and current_hash:
+        log(env, "info", f"{pub}.{name} already at {cand.version}; skipping download")
+        sri = current_hash
+    else:
+        log(env, "info", f"Prefetching {cand.vsix_url}")
+        sri = compute_vsix_sri(env, sess, cand.vsix_url)
+        log(env, "debug", f"SRI hash: {sri}")
 
     if args.dry_run:
         print(
@@ -1016,6 +1014,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                 indent=2,
             )
         )
+        return 0
+
+    if current_version == cand.version and current_hash == sri:
+        log(env, "info", f"{pub}.{name} already up-to-date; nothing to change")
         return 0
 
     # Update default.nix in place
