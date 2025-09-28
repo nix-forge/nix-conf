@@ -3,13 +3,16 @@
   vscode-utils,
   writeShellApplication,
   python3,
+  openssl,
 }:
 let
+  pythonWithOpenSSL = python3.override { inherit openssl; };
+  python = pythonWithOpenSSL.withPackages (ps: with ps; [ requests ]);
   updateScriptDrv = writeShellApplication {
     name = "update-vscode-extensions";
-    runtimeInputs = [ python3 ];
+    runtimeInputs = [ python ];
     text = ''
-      exec python3 ${../update.py} "$@"
+      exec ${lib.getExe python} ${../update.py} "$@"
     '';
   };
 in
@@ -25,13 +28,7 @@ vscode-utils.buildVscodeMarketplaceExtension rec {
     updateScript = {
       command = [
         "${updateScriptDrv}/bin/update-vscode-extensions"
-        "--only"
-        "${mktplcRef.publisher}"
-        "${mktplcRef.name}"
-        "--source"
-        "github"
-        "--github-repo"
-        "microsoft/vscode-copilot-chat"
+        "--identifier ${mktplcRef.publisher}.${mktplcRef.name}"
       ];
     };
     updateScriptPackage = updateScriptDrv;

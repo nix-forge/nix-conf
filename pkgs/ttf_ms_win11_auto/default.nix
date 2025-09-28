@@ -5,14 +5,16 @@
   p7zip,
   writeShellApplication,
   python3,
+  openssl,
 }:
 let
-  python_with_pkgs = python3.withPackages (ps: with ps; [ requests ]);
+  pythonWithOpenSSL = python3.override { inherit openssl; };
+  python = pythonWithOpenSSL.withPackages (ps: with ps; [ requests ]);
   updateScriptDrv = writeShellApplication {
     name = "update-ttf-ms-win11-auto";
-    runtimeInputs = [ python_with_pkgs ];
+    runtimeInputs = [ python ];
     text = ''
-      exec python3 ${./update.py} "$@"
+      exec ${lib.getExe python} ${./update.py} "$@"
     '';
   };
 in
