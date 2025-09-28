@@ -33,6 +33,8 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v20
       - name: Configure Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v13
+        with:
+          use-flakehub: false
       - name: Run package update scripts
         env:
           SYSTEM: x86_64-linux
