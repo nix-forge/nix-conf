@@ -8,30 +8,10 @@
       ...
     }:
     let
-      python_pkg = pkgs.python3;
-      python_with_pkgs = python_pkg.withPackages (
-        ps: with ps; [
-          # Base
-          pip
-          setuptools
-          wheel
-
-          # HTTP
-          requests
-          types-requests
-        ]
-      );
-      nix_python_path = "${python_with_pkgs}/${python_with_pkgs.sitePackages}";
+      python = pkgs.callPackage ./python.nix { };
+      inherit (python) python_with_pkgs;
     in
     {
-      # Add Nix PYTHONPATH to mypy
-      treefmt.programs.mypy.directories = {
-        "" = {
-          extraPythonPaths = [ nix_python_path ];
-        };
-      };
-
-      # Create development shell
       devShells.default =
         let
           gitHooksShellHook = self.checks.${system}.git-hooks-check.shellHook;
@@ -92,7 +72,7 @@
                 ${updateOldPath "PYTHONPATH" [
                   # Installed pip packages
                   "${local_python_pkgs_dir}/${python_with_pkgs.sitePackages}"
-                  "${nix_python_path}"
+                  "${python_with_pkgs}/${python_with_pkgs.sitePackages}"
                 ] true}
                 ${updateOldPath "PATH" [ "${local_python_pkgs_dir}/bin" ] true}
                 ${gitExclude (local_python_pkgs_dir_name + "/")}

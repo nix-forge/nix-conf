@@ -89,6 +89,16 @@
           };
           mypy = {
             enable = true;
+            directories =
+              let
+                python = pkgs.callPackage ./python.nix { };
+                inherit (python) python_with_pkgs;
+              in
+              {
+                "" = {
+                  extraPythonPaths = [ "${python_with_pkgs}/${python_with_pkgs.sitePackages}" ];
+                };
+              };
           };
 
           # Shell: format then lint
