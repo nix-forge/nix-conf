@@ -45,8 +45,9 @@ import json
 import os
 import re
 import subprocess
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -281,7 +282,7 @@ def _marketplace_find_asset(ver: Mapping[str, Any], asset_type: str) -> Optional
 
 
 def _marketplace_fetch_manifest(
-    env: Env, sess: requests.Session, url: str
+    env: Env, sess: requests.Session, url: Optional[str]
 ) -> Optional[Mapping[str, Any]]:
     if not url:
         return None
@@ -305,9 +306,8 @@ def _marketplace_properties(ver: Mapping[str, Any]) -> Mapping[str, str]:
 
 
 def _marketplace_is_prerelease(
-    ver: Mapping[str, Any], manifest: Optional[Mapping[str, Any]]
+    props: Mapping[str, str], manifest: Optional[Mapping[str, Any]] = None
 ) -> bool:
-    props = _marketplace_properties(ver)
     if props.get("Microsoft.VisualStudio.Code.PreRelease", "").lower() == "true":
         return True
     if manifest and bool(manifest.get("preview")):
@@ -316,7 +316,11 @@ def _marketplace_is_prerelease(
 
 
 def choose_by_marketplace(
-    env: Env, sess: requests.Session, publisher: str, name: str
+    env: Env,
+    sess: requests.Session,
+    publisher: str,
+    name: str,
+    vscode_version: Optional[str],
 ) -> Candidate:
     headers = {
         "Accept": f"application/json;api-version={MARKETPLACE_API_VERSION}",
@@ -365,8 +369,6 @@ def choose_by_marketplace(
     if not versions:
         raise UserError(f"VS Marketplace listed no versions for {publisher}.{name}")
 
-    vscode_ver = nix_vscode_version(env)
-
     grouped: dict[str, Tuple[int, Mapping[str, Any]]] = {}
     order: List[str] = []
     for idx, ver in enumerate(versions):
@@ -389,24 +391,32 @@ def choose_by_marketplace(
         )
         if not vsix_url:
             continue
+        props = _marketplace_properties(ver)
+        engine_spec = props.get("Microsoft.VisualStudio.Code.Engine")
+        prerelease_known = "Microsoft.VisualStudio.Code.PreRelease" in props
         manifest_url = _marketplace_find_asset(
             ver, "Microsoft.VisualStudio.Code.Manifest"
         )
-        manifest = (
+
+        need_manifest = manifest_url and (
+            (engine_spec is None and vscode_version) or not prerelease_known
+        )
+        manifest: Optional[Mapping[str, Any]] = (
             _marketplace_fetch_manifest(env, sess, manifest_url)
-            if manifest_url
+            if need_manifest
             else None
         )
-        engine_spec: Optional[str] = None
-        if manifest:
+        if manifest and engine_spec is None:
             engine_spec = jget(manifest, "engines", "vscode")
+
         if (
             engine_spec
-            and vscode_ver
-            and not engine_accepts(env, str(engine_spec), vscode_ver)
+            and vscode_version
+            and not engine_accepts(env, str(engine_spec), vscode_version)
         ):
             continue
-        is_prerelease = _marketplace_is_prerelease(ver, manifest)
+
+        is_prerelease = _marketplace_is_prerelease(props, manifest)
         candidates.append((is_prerelease, rank, ver_str, vsix_url))
 
     if not candidates:
@@ -620,8 +630,9 @@ class SimpleVersion:
         return cls(int(m.group(1)), int(m.group(2) or 0), int(m.group(3) or 0))
 
 
-def _version_from_parts(parts: List[int]) -> SimpleVersion:
-    filled = (parts + [0, 0, 0])[:3]
+def _version_from_parts(parts: Iterable[int]) -> SimpleVersion:
+    values = list(parts)
+    filled = (values + [0, 0, 0])[:3]
     return SimpleVersion(filled[0], filled[1], filled[2])
 
 
@@ -783,34 +794,47 @@ def _expand_token(token: str) -> List[Comparator]:
     return comparators
 
 
-def _range_allows(version: SimpleVersion, expr: str) -> bool:
+@lru_cache(maxsize=512)
+def _compile_range(expr: str) -> Tuple[Comparator, ...]:
     expr = expr.strip()
     if not expr:
-        return False
+        return tuple()
     hyphen = re.match(r"^([^\s]+)\s*-\s*([^\s]+)$", expr)
     if hyphen:
         lower = SimpleVersion.parse(hyphen.group(1))
         upper = SimpleVersion.parse(hyphen.group(2))
-        if lower and version < lower:
-            return False
-        if upper and version > upper:
-            return False
-        return True
+        comps: List[Comparator] = []
+        if lower:
+            comps.append(_cmp_ge(lower))
+        if upper:
+            comps.append(_cmp_le(upper))
+        return tuple(comps)
 
     comparators: List[Comparator] = []
     for token in re.split(r"\s+", expr):
-        if not token:
-            continue
-        comparators.extend(_expand_token(token))
-    return all(comp(version) for comp in comparators)
+        if token:
+            comparators.extend(_expand_token(token))
+    return tuple(comparators)
+
+
+@lru_cache(maxsize=256)
+def _compile_spec(spec: str) -> Tuple[Tuple[Comparator, ...], ...]:
+    normalized = (spec or "").strip()
+    if not normalized or normalized in {"*", "latest"}:
+        return (tuple(),)
+    compiled: List[Tuple[Comparator, ...]] = []
+    for part in normalized.split("||"):
+        rng = _compile_range(part)
+        if rng:
+            compiled.append(rng)
+    return tuple(compiled) if compiled else (tuple(),)
 
 
 def npm_spec_accepts(spec: str, version: SimpleVersion) -> bool:
-    spec = (spec or "").strip()
-    if not spec or spec in {"*", "latest"}:
-        return True
-    for part in spec.split("||"):
-        if _range_allows(version, part):
+    for comparators in _compile_spec(spec):
+        if not comparators:
+            return True
+        if all(comp(version) for comp in comparators):
             return True
     return False
 
@@ -877,11 +901,12 @@ def choose_by_github(
 
 
 def choose_by_open_vsx(
-    env: Env, sess: requests.Session, publisher: str, name: str
+    env: Env,
+    sess: requests.Session,
+    publisher: str,
+    name: str,
+    vscode_version: Optional[str],
 ) -> Candidate:
-    # Find VS Code version to check compatibility
-    vscode_ver = nix_vscode_version(env)
-
     versions = ovsx_list_versions(env, sess, publisher, name)
     if not versions:
         # As a last resort, try "latest"
@@ -902,8 +927,8 @@ def choose_by_open_vsx(
         engine = jget(pkg, "engines", "vscode") or jget(
             pkg, "engines", "vscode-insiders"
         )
-        if vscode_ver:
-            if engine and not engine_accepts(env, str(engine), vscode_ver):
+        if vscode_version:
+            if engine and not engine_accepts(env, str(engine), vscode_version):
                 # Not compatible with target VS Code, continue
                 continue
         vsix_url = ovsx_vsix_url(env, publisher, name, ver)
@@ -942,6 +967,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     pub, name = parse_identifier(args.identifier)
     sess = http_session(env)
+    vscode_version = nix_vscode_version(env)
+    if vscode_version:
+        log(env, "debug", f"Detected VS Code version {vscode_version}")
 
     # Locate target derivation file
     deriv_file = find_default_nix_for_identifier(env, pub, name)
@@ -959,7 +987,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Strategy 2: Open VSX latest compatible
     if not cand:
         try:
-            cand = choose_by_open_vsx(env, sess, pub, name)
+            cand = choose_by_open_vsx(env, sess, pub, name, vscode_version)
             if cand:
                 log(env, "info", f"Chose Open VSX version {cand.version}")
         except UserError as e:
@@ -967,7 +995,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Strategy 3: VS Marketplace (for extensions not on Open VSX)
     if not cand:
-        cand = choose_by_marketplace(env, sess, pub, name)
+        cand = choose_by_marketplace(env, sess, pub, name, vscode_version)
         log(env, "info", f"Chose Marketplace version {cand.version}")
 
     # Prefetch to get SRI hash
