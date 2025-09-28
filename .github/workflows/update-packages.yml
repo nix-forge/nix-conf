@@ -29,6 +29,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine pair metadata
+        id: pair
+        env:
+          OWNER: ${{ github.repository_owner }}
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          data=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/users/$OWNER")
+          name=$(echo "$data" | jq -r '.name // .login')
+          id=$(echo "$data" | jq -r '.id')
+          if [ -z "$id" ] || [ "$id" = "null" ]; then
+            echo "Failed to determine user id for $OWNER" >&2
+            exit 1
+          fi
+          email="${id}+${OWNER}@users.noreply.github.com"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "email=$email" >> "$GITHUB_OUTPUT"
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v20
       - name: Configure Magic Nix Cache
@@ -56,7 +73,10 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "packages: update sources"
+          commit-message: |
+            packages: update sources
+
+            Co-authored-by: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
           title: "Update packaged sources"
           body-path: ${{ env.PR_BODY_PATH }}
           labels: |
@@ -79,4 +99,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ needs.package-updates.outputs.pr-number }}
-          merge-method: squash
+          merge-method: rebase
