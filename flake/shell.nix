@@ -38,7 +38,13 @@
           gitHooksEnabledPackages = self.checks.${system}.git-hooks-check.enabledPackages;
 
           # Make the library path
-          lib_path = pkgs.lib.makeLibraryPath (with pkgs; [ stdenv.cc.cc.lib ]);
+          lib_path = pkgs.lib.makeLibraryPath (
+            with pkgs;
+            [
+              stdenv.cc.cc.lib
+              openssl
+            ]
+          );
         in
         pkgs.mkShellNoCC {
           buildInputs = [
