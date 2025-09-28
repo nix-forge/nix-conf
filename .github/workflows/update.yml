@@ -150,6 +150,46 @@ jobs:
           token: ${{ github.token }}
           pull-request-number: ${{ steps.pr-number.outputs.number }}
           merge-method: rebase
+  close-pr-on-failure:
+    name: Close PR on failure
+    needs: [nix-flake-update, flake-policy, check]
+    if: needs.nix-flake-update.outputs.pr-url != '' && always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Close PR if validation failed
+        env:
+          PR_URL: ${{ needs.nix-flake-update.outputs.pr-url }}
+          PR_OPERATION: ${{ needs.nix-flake-update.outputs.pr-operation }}
+          POLICY_RESULT: ${{ needs.flake-policy.result }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PR_URL" ]; then
+            echo "No PR to close"
+            exit 0
+          fi
+          if [ "$PR_OPERATION" = "closed" ]; then
+            echo "PR already closed"
+            exit 0
+          fi
+          failed=false
+          for result in "$POLICY_RESULT" "$CHECK_RESULT"; do
+            case "$result" in
+              failure|cancelled|timed_out)
+                failed=true
+                ;;
+            esac
+          done
+          if [ "$failed" = false ]; then
+            echo "No failures detected; leaving PR open"
+            exit 0
+          fi
+          pr_number=${PR_URL##*/}
+          echo "Closing PR #$pr_number due to failed checks"
+          gh pr close "$PR_URL"
   trigger-package-updates:
     name: Trigger package updates
     needs: [nix-flake-update, check]
