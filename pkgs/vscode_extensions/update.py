@@ -33,7 +33,7 @@ from urllib3.util.retry import Retry
 class Env:
     """Configurable knobs via env vars with safe defaults.
 
-    OVSVX_BASE      -  Base URL for Open VSX (default: https://open-vsx.org)
+    OVSVX_BASE      - Base URL for Open VSX (default: https://open-vsx.org)
     GITHUB_TOKEN    - (optional) token for higher rate limits / private repos
     NIX_FLAKE       - flake ref used to evaluate vscode.version (default: nixpkgs)
     LOG_LEVEL       - debug|info|warn|error (default: info)
