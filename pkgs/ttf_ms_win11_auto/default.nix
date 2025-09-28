@@ -4,27 +4,22 @@
   fetchurl,
   p7zip,
   writeShellApplication,
-  curl,
-  git,
-  gnused,
-  coreutils,
-  jq,
   nix,
   python3,
+  openssl,
 }:
 let
+  python_with_pkgs = python3.withPackages (ps: with ps; [ requests ]);
   updateScriptDrv = writeShellApplication {
     name = "update-ttf-ms-win11-auto";
     runtimeInputs = [
-      curl
-      git
-      gnused
-      coreutils
-      jq
       nix
-      python3
+      openssl
+      python_with_pkgs
     ];
-    text = builtins.readFile ./update.sh;
+    text = ''
+      exec python3 ${./update.py} "$@"
+    '';
   };
 in
 stdenvNoCC.mkDerivation rec {
