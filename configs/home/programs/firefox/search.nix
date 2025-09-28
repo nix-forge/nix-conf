@@ -52,6 +52,7 @@ profileName:
         ];
       };
 
+      # TODO: Rename with nix prefix
       home-manager-options = {
         name = "Home Manager Options";
         urls = [
@@ -75,6 +76,8 @@ profileName:
           "@hmo"
         ];
       };
+
+      # TODO: add search with noogle.dev
 
       bing.metaData.hidden = true;
       ebay.metaData.hidden = true;
