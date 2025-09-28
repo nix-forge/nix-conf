@@ -57,7 +57,9 @@ in
         "editor.cursorSmoothCaretAnimation" = "explicit";
         "editor.cursorStyle" = "block";
         "editor.cursorBlinking" = "smooth";
-        "editor.fontLigatures" = true;
+        "editor.fontLigatures" =
+          "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'ss10'";
+        "terminal.integrated.fontLigatures.enabled" = true;
         "editor.fontVariations" = true;
 
         # popups are really annoying
