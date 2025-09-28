@@ -7,7 +7,12 @@
         (
           packages:
           lib.makeScope pkgs.newScope (
-            self: (builtins.mapAttrs (_folderName: pkg: self.callPackage pkg { })) packages
+            self:
+            (lib.mapAttrs' (
+              folderName: pkg:
+              lib.nameValuePair (lib.strings.replaceStrings [ "_" ] [ "-" ] folderName) (self.callPackage pkg { })
+            ))
+              packages
           )
         )
       ];
