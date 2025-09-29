@@ -77,9 +77,97 @@ profileName:
         ];
       };
 
-      # TODO: add search with noogle.dev
+      noogle = {
+        name = "Noogle";
+        urls = [
+          {
+            template = "https://noogle.dev/q";
+            params = [
+              {
+                name = "term";
+                value = "{searchTerms}";
+              }
+            ];
+          }
+        ];
+        icon = "https://noogle.dev/favicon.ico";
+        definedAliases = [
+          "@noogle"
+          "@ng"
+        ];
+      };
 
-      # TODO: add github search (might have various types of searches)
+      github-repositories = {
+        name = "GitHub Repositories";
+        urls = [
+          {
+            template = "https://github.com/search";
+            params = [
+              {
+                name = "q";
+                value = "{searchTerms}";
+              }
+              {
+                name = "type";
+                value = "repositories";
+              }
+            ];
+          }
+        ];
+        icon = "https://github.githubassets.com/favicons/favicon.svg";
+        definedAliases = [
+          "@github"
+          "@gh"
+        ];
+      };
+
+      github-code = {
+        name = "GitHub Code";
+        urls = [
+          {
+            template = "https://github.com/search";
+            params = [
+              {
+                name = "q";
+                value = "{searchTerms}";
+              }
+              {
+                name = "type";
+                value = "code";
+              }
+            ];
+          }
+        ];
+        icon = "https://github.githubassets.com/favicons/favicon.svg";
+        definedAliases = [
+          "@github-code"
+          "@ghc"
+        ];
+      };
+
+      github-issues = {
+        name = "GitHub Issues";
+        urls = [
+          {
+            template = "https://github.com/search";
+            params = [
+              {
+                name = "q";
+                value = "{searchTerms}";
+              }
+              {
+                name = "type";
+                value = "issues";
+              }
+            ];
+          }
+        ];
+        icon = "https://github.githubassets.com/favicons/favicon.svg";
+        definedAliases = [
+          "@github-issues"
+          "@ghi"
+        ];
+      };
 
       bing.metaData.hidden = true;
       ebay.metaData.hidden = true;
