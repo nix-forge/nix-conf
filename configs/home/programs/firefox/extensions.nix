@@ -34,7 +34,8 @@ in
         "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/sponsorblock/latest.xpi";
       };
 
-      # TODO: Move more opinionated extensions to profile based installation
+      # TODO: Move more opinionated extensions to profile based installation (this will require creating a nix package based firefox extension most likely)
+      # NOTE: It would be nice to have an automated way to create firefox packages instead of manually creating them for profiles
       # Simplify Jobs Resume Helper
       "sabre@simplify.jobs" = {
         "installation_mode" = "normal_installed";

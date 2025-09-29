@@ -79,6 +79,8 @@ profileName:
 
       # TODO: add search with noogle.dev
 
+      # TODO: add github search (might have various types of searches)
+
       bing.metaData.hidden = true;
       ebay.metaData.hidden = true;
     };
