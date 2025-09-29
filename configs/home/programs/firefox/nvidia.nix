@@ -18,10 +18,6 @@ in
       "gfx.x11-egl.force-enabled" = true;
       "widget.dmabuf.force-enabled" = true;
 
-      # Other Settings
-      "gfx.webrender.all" = true;
-      "media.ffmpeg.vaapi.enabled" = true;
-
       # Disable accelerated canvas to work around PDF and Google Docs rendering glitches on NVIDIA.
       # NOTE: Might not be necessary with newer drivers
       "gfx.canvas.accelerated" = false;
