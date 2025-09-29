@@ -27,6 +27,7 @@ in
         # mhutchie.git-graph
         # phil294.git-log--graph
         github.vscode-github-actions
+        github.vscode-pull-request-github
 
         ## Collaboration Features
         ms-vsliveshare.vsliveshare
