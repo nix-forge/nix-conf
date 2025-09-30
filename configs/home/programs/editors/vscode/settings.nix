@@ -23,11 +23,9 @@ in
         streetsidesoftware.code-spell-checker
 
         ## Version Control ##
-        # huizhou.githd
-        # mhutchie.git-graph
-        # phil294.git-log--graph
         github.vscode-github-actions
         github.vscode-pull-request-github
+        mhutchie.git-graph
 
         ## Collaboration Features
         ms-vsliveshare.vsliveshare
@@ -83,8 +81,6 @@ in
           "appName"
         ];
 
-        # scale the ui down
-        # "window.zoomLevel" = -1;
         # Set the window tile bar to use VScode custom title bar
         "window.titleBarStyle" = "custom";
         # hide the menu bar unless alt is pressed
