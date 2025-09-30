@@ -19,7 +19,18 @@ in
     userSettings = {
       "[dockerfile]" = {
         "editor.defaultFormatter" = "ms-azuretools.vscode-containers";
-        "editor.tabSize" = 4;
+        "editor.tabSize" = 2;
+      };
+      "[dockercompose]" = {
+        "editor.insertSpaces" = true;
+        "editor.tabSize" = 2;
+        "editor.autoIndent" = "advanced";
+        "editor.quickSuggestions" = {
+          "other" = true;
+          "comments" = false;
+          "strings" = true;
+        };
+        "editor.defaultFormatter" = "redhat.vscode-yaml";
       };
     }
     // lib.optionalAttrs enablePodman {
