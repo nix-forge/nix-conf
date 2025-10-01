@@ -16,6 +16,7 @@ in
         ## Appearances ##
         bottledlactose.darkbox
         pkief.material-icon-theme
+        vira.vsc-vira-theme
 
         ## Intelligence ##
         usernamehw.errorlens
@@ -65,11 +66,12 @@ in
         "editor.hover.delay" = 700;
 
         # colors
-        "workbench.colorTheme" = lib.mkForce "Darkbox";
+        "workbench.colorTheme" = lib.mkForce "Vira Graphene High Contrast";
+        "viraTheme.accent" = "Blue";
 
         # icons
-        "workbench.iconTheme" = "material-icon-theme";
-        "material-icon-theme.folders.theme" = "classic";
+        "workbench.iconTheme" = "vira-icons-graphene";
+        "workbench.productIconTheme" = "viraUIIcons";
 
         # title
         "window.titleSeparator" = " - ";
