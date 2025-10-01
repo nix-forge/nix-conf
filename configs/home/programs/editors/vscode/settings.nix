@@ -131,6 +131,7 @@ in
           "editor.defaultFormatter" = "redhat.vscode-yaml";
         };
         "yaml.format.printWidth" = 80;
+        "yaml.format.proseWrap" = "always";
         "[json]" = {
           "editor.tabSize" = 2;
           "editor.defaultFormatter" = "vscode.json-language-features";
