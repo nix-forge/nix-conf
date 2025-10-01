@@ -130,6 +130,7 @@ in
           "editor.tabSize" = 2;
           "editor.defaultFormatter" = "redhat.vscode-yaml";
         };
+        "yaml.format.printWidth" = 80;
         "[json]" = {
           "editor.tabSize" = 2;
           "editor.defaultFormatter" = "vscode.json-language-features";
@@ -137,6 +138,9 @@ in
         "[jsonc]" = {
           "editor.tabSize" = 2;
           "editor.defaultFormatter" = "vscode.json-language-features";
+        };
+        "[github-actions-workflow]" = {
+          "editor.defaultFormatter" = "redhat.vscode-yaml";
         };
 
         ## VCS Behavior ##
