@@ -30,6 +30,7 @@ in
 
       # Experimental
       "github.copilot.chat.agent.thinkingTool" = true;
+      "chat.todoListTool.enabled" = true;
     };
   };
 }
