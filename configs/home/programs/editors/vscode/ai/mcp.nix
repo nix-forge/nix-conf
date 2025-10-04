@@ -1,6 +1,4 @@
-profileName:
-{ pkgs, lib, ... }:
-{
+profileName: _: {
   programs.vscode.profiles.${profileName}.userMcp = {
     "servers" = {
       # User OAuth through VSCode to connect to GitHub
@@ -9,18 +7,18 @@ profileName:
         "url" = "https://api.githubcopilot.com/mcp/";
       };
       # Serena MCP server
-      "oraios/serena" = {
-        "type" = "stdio";
-        "command" = lib.getExe' pkgs.uv "uvx";
-        "args" = [
-          "--from"
-          "git+https://github.com/oraios/serena"
-          "serena"
-          "start-mcp-server"
-          "--context"
-          "ide-assistant"
-        ];
-      };
+      # "oraios/serena" = {
+      #   "type" = "stdio";
+      #   "command" = lib.getExe' pkgs.uv "uvx";
+      #   "args" = [
+      #     "--from"
+      #     "git+https://github.com/oraios/serena"
+      #     "serena"
+      #     "start-mcp-server"
+      #     "--context"
+      #     "ide-assistant"
+      #   ];
+      # };
     };
   };
 }
