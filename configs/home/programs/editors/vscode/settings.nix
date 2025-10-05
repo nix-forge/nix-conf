@@ -216,6 +216,10 @@ in
           "**/*.dll" # Ignore all .dll files
         ];
 
+        # SSH settings
+        "remote.SSH.maxReconnectionAttempts" = 2;
+        "remote.SSH.useFlock" = false;
+
         # remove telemetry
         "redhat.telemetry.enabled" = false;
         "telemetry.enableTelemetry" = false;

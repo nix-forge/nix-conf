@@ -10,10 +10,26 @@
         SetEnv = "TERM=xterm-256color";
       };
     };
-    "perlmutter" = {
-      hostname = "perlmutter.nersc.gov";
 
+    # NERSC
+    # https://docs.nersc.gov/connect/vscode/
+    "dtn*.nersc.gov perlmutter*.nersc.gov *.nersc.gov" = {
+      identitiesOnly = true;
+      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
       extraOptions = {
+        LogLevel = "QUIET";
+        Include = config.age.secrets.cornell-net-id-ssh-config.path;
+        SetEnv = "TERM=xterm-256color";
+      };
+    };
+    "nid??????" = {
+      hostname = "%h";
+      identitiesOnly = true;
+      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+      extraOptions = {
+        LogLevel = "QUIET";
+        StrictHostKeyChecking = "no";
+        ProxyJump = "perlmutter.nersc.gov";
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
       };
