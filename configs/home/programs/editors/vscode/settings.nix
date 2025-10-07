@@ -66,12 +66,12 @@ in
         "editor.hover.delay" = 700;
 
         # colors
-        "workbench.colorTheme" = lib.mkForce "Vira Graphene High Contrast";
+        "workbench.colorTheme" = lib.mkForce "Vira Carbon High Contrast";
         "viraTheme.accent" = "Blue";
 
         # icons
-        "workbench.iconTheme" = "vira-icons-graphene";
-        "workbench.productIconTheme" = "viraUIIcons";
+        "workbench.iconTheme" = "vira-icons-carbon";
+        # "workbench.productIconTheme" = "viraUIIcons";
 
         # title
         "window.titleSeparator" = " - ";
