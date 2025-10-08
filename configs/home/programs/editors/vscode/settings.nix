@@ -14,7 +14,6 @@ in
       with extensions.preferPreRelease;
       [
         ## Appearances ##
-        bottledlactose.darkbox
         pkief.material-icon-theme
         vira.vsc-vira-theme
 
