@@ -61,7 +61,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
   (install pkgs.code-cursor)
-  # (install pkgs.windsurf)
 
   (vscode.default "default")
   (vscode.settings "default")

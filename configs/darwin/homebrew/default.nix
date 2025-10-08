@@ -47,7 +47,6 @@
       "signal"
       "discord"
       "google-chrome"
-      "windsurf"
     ];
 
     # If you truly need a formula that Nix doesn’t provide well, add here sparingly:
