@@ -70,6 +70,9 @@ in
       ci = "commit";
       st = "status";
       lg = "log --oneline --graph --all";
+      ours = "checkout --ours";
+      theirs = "checkout --theirs";
+      conflicted = "!git diff --name-only --diff-filter=U";
     };
 
     # Git attributes for custom diff/merge handling
@@ -112,14 +115,22 @@ in
         recurseSubmodules = "on-demand";
       };
       commit.verbose = true;
+      rerere.enabled = true;
+      rerere.autoupdate = true;
 
       pull.rebase = true;
+      branch.autoSetupRebase = "always";
       rebase = {
         autoStash = true;
         autosquash = true;
         updateRefs = true;
       };
-      merge.conflictStyle = "zdiff3";
+      merge = {
+        conflictStyle =
+          if lib.versionAtLeast config.programs.git.package.version "2.35.0" then "zdiff3" else "diff3";
+        autoStash = true;
+        strategy = "ort";
+      };
       push = {
         followTags = true;
         autoSetupRemote = true;
@@ -138,6 +149,7 @@ in
       feature.manyFiles = true;
       gc.writeCommitGraph = true;
       index.threads = 0;
+      diff.algorithm = "histogram";
 
       submodule.recurse = true;
       diff.submodule = "log";
