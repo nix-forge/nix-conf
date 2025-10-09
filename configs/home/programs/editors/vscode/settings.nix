@@ -151,6 +151,7 @@ in
         "git.confirmSync" = false;
         "git.path" =
           lib.mkIf config.programs.git.enable "/etc/profiles/per-user/${config.home.username}/bin/git";
+        "githubIssues.issueCompletions.enabled" = false;
 
         # prevent pollute history with whitespace changes
         "diffEditor.ignoreTrimWhitespace" = false;
