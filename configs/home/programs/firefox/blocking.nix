@@ -18,6 +18,9 @@ in
         urlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
         # https://github.com/StevenBlack/hosts
         stevenBlackHosts = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
+        # YouTube Shorts
+        youTubeShorts = "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt";
+
         # these are for uBlock "medium" mode:
         # <https://github.com/gorhill/uBlock/wiki/Blocking-mode:-medium-mode>
         # NOTE: modified to not break sites
@@ -39,10 +42,12 @@ in
             externalLists = lib.concatStringsSep "\n" [
               urlShortener
               stevenBlackHosts
+              youTubeShorts
             ];
             importedLists = [
               urlShortener
               stevenBlackHosts
+              youTubeShorts
             ];
           };
           selectedFilterLists = [
@@ -81,6 +86,7 @@ in
             # Custom
             urlShortener
             stevenBlackHosts
+            youTubeShorts
           ];
           dynamicFilteringString = ''
             ${defaultFilteringString}
