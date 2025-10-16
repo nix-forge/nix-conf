@@ -89,7 +89,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # (install pkgs.signal-desktop)
 
   ## Video Games
-  (install pkgs.prismlauncher)
+  # (install pkgs.prismlauncher)
 
   ## Media Consumption
   # programs.spotify
