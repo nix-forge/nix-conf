@@ -25,6 +25,7 @@
     # Set package
     package = pkgs.kitty;
 
+    # TODO: use the default shell or do not set this
     shellIntegration.enableZshIntegration = true;
     settings.shell = "${lib.getExe pkgs.zsh} --login --interactive";
 
