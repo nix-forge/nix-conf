@@ -269,14 +269,6 @@ in
         {
           "chat.tools.terminal.terminalProfile.${os}" = {
             path = lib.getExe' pkgs.bashInteractive "bash";
-            args = [
-              "--noprofile"
-              "--norc"
-            ];
-            env = {
-              NO_COLOR = "1";
-              CLICOLOR = "0";
-            };
           };
         }
 
