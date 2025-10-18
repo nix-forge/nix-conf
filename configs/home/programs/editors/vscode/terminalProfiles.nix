@@ -9,7 +9,7 @@ let
   os = if pkgs.stdenv.isLinux then "linux" else "osx";
   # Copilot chat terminal profiles for both platforms
   copilotTerminalProfileConfig = {
-    "chat.tools.terminal.terminalProfile".${os} = {
+    "chat.tools.terminal.terminalProfile.${os}" = {
       path = lib.getExe' pkgs.bashInteractive "bash";
       args = [
         "--noprofile"
