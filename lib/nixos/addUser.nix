@@ -153,7 +153,7 @@ lib.mkMerge [
                   lib.mapAttrsToList (
                     shellName: shellPkg:
                     lib.nameValuePair "enable${capitalize shellName}Integration" (
-                      lib.mkIf (shellPkg.pname == shell.pname) true
+                      lib.mkIf (shellPkg.pname == shell.pname || config.programs."${shellName}".enable) true
                     )
                   ) shells
                 );
