@@ -77,6 +77,7 @@
 
     # Latest Nixpkgs Unstable
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-libcanberra.url = "github:nixos/nixpkgs/ee4cd98afba682ca27242f2d7fdbd8583f6ef51a";
 
     # Determinate
     determinate.url = "github:DeterminateSystems/determinate";
@@ -179,7 +180,6 @@
       url = "github:nix-community/nix-vscode-extensions";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
       };
     };
 
