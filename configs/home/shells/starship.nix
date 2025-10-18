@@ -37,7 +37,7 @@
 
       git_branch = {
         symbol = " ";
-        format = "[$symbol$branch(:$remote_branch)]($style)";
+        format = "[$symbol$branch(:$remote_branch)]($style) ";
       };
 
       git_status = {
