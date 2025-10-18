@@ -75,6 +75,10 @@
 
       };
 
+      package = {
+        symbol = "󰏗 ";
+      };
+
       nix_shell = {
         disabled = true; # Not super useful as it will just display "impure (nix-shell-env)"
         symbol = " ";
