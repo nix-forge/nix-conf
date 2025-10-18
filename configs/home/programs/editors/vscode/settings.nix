@@ -245,6 +245,10 @@ in
               ${shellName} = {
                 path = shellPath;
                 overrideName = true;
+                args = [
+                  "--login"
+                  "--interactive"
+                ];
                 icon =
                   if shellName == "bash" then
                     "terminal-bash"
@@ -252,8 +256,7 @@ in
                     "chevron-right"
                   else
                     "terminal";
-              }
-              // lib.optionalAttrs (shellName == "nu") { args = [ "--login --interactive" ]; };
+              };
             };
 
             # set the integrated terminal to use SHELL so make sure SHELL is set correctly
@@ -261,15 +264,21 @@ in
 
             # set the default shell for automation tasks to a fully POSIX compliant shell
             "terminal.integrated.automationProfile.${os}" = {
-              "path" = lib.getExe' pkgs.bashInteractive "sh";
-              "args" = [ "--login" ];
+              path = lib.getExe' pkgs.bashInteractive "sh";
+              args = [
+                "--login"
+                "--interactive"
+              ];
             };
           }
         ))
         {
           "chat.tools.terminal.terminalProfile.${os}" = {
             path = lib.getExe' pkgs.bashInteractive "bash";
-            "args" = [ "--login" ];
+            args = [
+              "--login"
+              "--interactive"
+            ];
           };
         }
 
