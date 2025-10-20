@@ -35,8 +35,8 @@ vscode-utils.buildVscodeMarketplaceExtension rec {
   mktplcRef = {
     publisher = "github";
     name = "copilot-chat";
-    version = "0.32.1";
-    hash = "sha256-XgFk9kpJEZuaWmNE65j6bzs5jbBWjTGpu1CnvSQZGzU=";
+    version = "0.32.3";
+    hash = "sha256-28MkPo1+trRoZzSHrig0C8UPyDl3ynZg4DNgFkN46NM=";
   };
 
   passthru = {
