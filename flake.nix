@@ -76,8 +76,8 @@
     systems.url = "github:nix-systems/default";
 
     # Latest Nixpkgs Unstable
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-libcanberra.url = "github:nixos/nixpkgs/ee4cd98afba682ca27242f2d7fdbd8583f6ef51a";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs-staging.url = "github:nixos/nixpkgs/staging";
 
     # Determinate
     determinate.url = "github:DeterminateSystems/determinate";

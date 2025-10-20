@@ -31,12 +31,38 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username { scrollPreset = "natural"; })
   (import ./firefox.nix config.home.username)
+  # {
+  #   programs.firefox.package =
+  #     (pkgs.wrapFirefox.override {
+  #       inherit (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }) libcanberra-gtk3;
+  #     })
+  #       (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }).firefox-unwrapped
+  #       { };
+  # }
+  # {
+  #   programs.firefox.package =
+  #     (pkgs.wrapFirefox.override {
+  #       inherit (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }) libcanberra-gtk3;
+  #     })
+  #       pkgs.firefox-unwrapped
+  #       { };
+  # }
   {
     programs.firefox.package =
+      let
+        pkgsStaging = import args.inputs.nixpkgs-staging {
+          inherit (args) system;
+          config = {
+            allowUnfree = true;
+          };
+        };
+      in
       (pkgs.wrapFirefox.override {
-        inherit (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }) libcanberra-gtk3;
+        libcanberra-gtk3 = pkgs.libcanberra-gtk3.override {
+          gtk3-x11 = pkgs.callPackage pkgsStaging.gtk3-x11.override { };
+        };
       })
-        (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }).firefox-unwrapped
+        pkgs.firefox-unwrapped
         { };
   }
 
