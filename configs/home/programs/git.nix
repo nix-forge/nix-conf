@@ -45,9 +45,6 @@ in
   programs.git = {
     enable = true;
 
-    userName = null;
-    userEmail = null;
-
     package = pkgs.git.override {
       osxkeychainSupport = isDarwin;
       withLibsecret = isLinux;
@@ -63,30 +60,8 @@ in
       signByDefault = true; # Always sign commits and tags
     };
 
-    # Handy Git aliases for smoother CLI usage
-    aliases = {
-      co = "checkout";
-      br = "branch";
-      ci = "commit";
-      st = "status";
-      lg = "log --oneline --graph --all";
-      ours = "checkout --ours";
-      theirs = "checkout --theirs";
-      conflicted = "!git diff --name-only --diff-filter=U";
-    };
-
     # Git attributes for custom diff/merge handling
     attributes = [ "*.pdf diff=pdf" ];
-
-    # Enable delta for beautiful side-by-side diffs
-    delta = {
-      enable = true;
-      options = {
-        diff-so-fancy = true;
-        line-numbers = true;
-        true-color = "always";
-      };
-    };
 
     # Enable Git LFS (Large File Support) for handling big binary blobs
     lfs.enable = true;
@@ -99,7 +74,7 @@ in
     ++ lib.optionals pkgs.stdenv.isDarwin [ ".DS_Store" ]
     ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
-    extraConfig = {
+    settings = {
       credential.helper =
         if isDarwin then
           "osxkeychain"
@@ -170,4 +145,15 @@ in
 
   # Email Config for website specific git emails
   home.file.${emailConfigPath}.text = createEmailConfig emailConfig;
+
+  # Enable delta for beautiful side-by-side diffs
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
+    options = {
+      diff-so-fancy = true;
+      line-numbers = true;
+      true-color = "always";
+    };
+  };
 }
