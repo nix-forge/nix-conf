@@ -28,25 +28,10 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   window-managers.aerospace
 
   ## Web Browsers
-  (programs.defaultbrowser "firefox")
+  (install pkgs.google-chrome)
+  # (programs.defaultbrowser "firefox")
   (programs.firefox.default config.home.username { scrollPreset = "natural"; })
   (import ./firefox.nix config.home.username)
-  # {
-  #   programs.firefox.package =
-  #     (pkgs.wrapFirefox.override {
-  #       inherit (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }) libcanberra-gtk3;
-  #     })
-  #       (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }).firefox-unwrapped
-  #       { };
-  # }
-  # {
-  #   programs.firefox.package =
-  #     (pkgs.wrapFirefox.override {
-  #       inherit (import args.inputs.nixpkgs-libcanberra { inherit (args) system; }) libcanberra-gtk3;
-  #     })
-  #       pkgs.firefox-unwrapped
-  #       { };
-  # }
   {
     programs.firefox.package =
       let

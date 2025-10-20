@@ -46,7 +46,6 @@
     casks = [
       "signal"
       "discord"
-      "google-chrome"
       "chatgpt"
     ];
 
