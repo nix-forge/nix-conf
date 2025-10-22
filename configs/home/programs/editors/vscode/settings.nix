@@ -238,26 +238,39 @@ in
           let
             shellPath = config.home.sessionVariables.SHELL;
             shellName = lib.last (lib.splitString "/" shellPath);
-          in
-          {
-            # Define extra shells
-            "terminal.integrated.profiles.${os}" = {
-              ${shellName} = {
-                path = shellPath;
-                overrideName = true;
-                args = [
-                  "--login"
-                  "--interactive"
-                ];
-                icon =
-                  if shellName == "bash" then
-                    "terminal-bash"
-                  else if shellName == "nu" then
-                    "chevron-right"
-                  else
-                    "terminal";
+
+            # Define shell configurations for enabled shells
+            shellConfigs = {
+              bash = {
+                path = lib.getExe' pkgs.bashInteractive "bash";
+                icon = "terminal-bash";
+              };
+              zsh = lib.mkIf config.programs.zsh.enable { path = lib.getExe' pkgs.zsh "zsh"; };
+              fish = lib.mkIf config.programs.fish.enable { path = lib.getExe' pkgs.fish "fish"; };
+              nu = lib.mkIf config.programs.nushell.enable {
+                path = lib.getExe' pkgs.nushell "nu";
+                icon = "chevron-right";
               };
             };
+
+            # Filter to only enabled shells and remove mkIf markers
+            enabledShells = lib.filterAttrs (_: v: v) shellConfigs;
+          in
+          {
+            # Define terminal profiles for all enabled shells
+            "terminal.integrated.profiles.${os}" = lib.mapAttrs (
+              _shellName: shellConfig:
+              (
+                shellConfig
+                // {
+                  overrideName = true;
+                  args = [
+                    "--login"
+                    "-i"
+                  ];
+                }
+              )
+            ) enabledShells;
 
             # set the integrated terminal to use SHELL so make sure SHELL is set correctly
             "terminal.integrated.defaultProfile.${os}" = shellName;
@@ -267,7 +280,7 @@ in
               path = lib.getExe' pkgs.bashInteractive "sh";
               args = [
                 "--login"
-                "--interactive"
+                "-i"
               ];
             };
           }
@@ -277,7 +290,7 @@ in
             path = lib.getExe' pkgs.bashInteractive "bash";
             args = [
               "--login"
-              "--interactive"
+              "-i"
             ];
           };
         }
