@@ -97,6 +97,10 @@
         symbol = " ";
       };
 
+      nodejs = {
+        symbol = " ";
+      };
+
       container = {
         symbol = " ";
       };
