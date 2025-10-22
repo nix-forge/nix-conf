@@ -25,6 +25,8 @@ in
     };
   };
 
+  home.preferXdgDirectories = config.xdg.enable;
+
   launchd.agents = lib.mkIf isDarwin {
     xdg-runtime =
       let
