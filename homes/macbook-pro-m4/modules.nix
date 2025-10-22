@@ -52,7 +52,10 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   }
 
   ## Shell Environments
+  { programs.bash.enable = true; }
   shells.nushell
+
+  shells.macgnu
   shells.aliases
   shells.starship
   shells.zoxide
