@@ -241,7 +241,7 @@ in
 
             # Define shell configurations for enabled shells
             shellConfigs = {
-              bash = {
+              bash = lib.mkIf config.programs.bash.enable {
                 path = lib.getExe' pkgs.bashInteractive "bash";
                 icon = "terminal-bash";
               };
@@ -254,7 +254,7 @@ in
             };
 
             # Filter to only enabled shells and remove mkIf markers
-            enabledShells = lib.filterAttrs (_: v: v) shellConfigs;
+            enabledShells = lib.filterAttrs (_: v: v != { }) shellConfigs;
           in
           {
             # Define terminal profiles for all enabled shells
