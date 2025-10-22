@@ -32,6 +32,8 @@ in
 
       "python.analysis.autoImportCompletions" = true;
       "python.analysis.typeCheckingMode" = "standard";
+
+      "python.terminal.activateEnvironment" = false;
     };
   };
 }
