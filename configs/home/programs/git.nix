@@ -86,25 +86,35 @@ in
       init.defaultBranch = "main";
       fetch = {
         prune = true;
+        pruneTags = true;
         writeCommitGraph = true;
         recurseSubmodules = "on-demand";
+        negotiationAlgorithm = "skipping";
+        showForcedUpdates = true;
       };
       commit.verbose = true;
+      commit.status = true;
       rerere.enabled = true;
       rerere.autoupdate = true;
 
-      pull.rebase = true;
+      pull = {
+        rebase = true;
+        ff = "only";
+      };
       branch.autoSetupRebase = "always";
       rebase = {
         autoStash = true;
         autosquash = true;
         updateRefs = true;
+        rescheduleFailedExec = true;
       };
       merge = {
         conflictStyle =
           if lib.versionAtLeast config.programs.git.package.version "2.35.0" then "zdiff3" else "diff3";
         autoStash = true;
         strategy = "ort";
+        ff = "only";
+        stat = true;
       };
       push = {
         followTags = true;
@@ -120,14 +130,26 @@ in
         autocrlf = "input";
         editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
+        abbrev = 12;
       };
+      color.ui = "auto";
       feature.manyFiles = true;
       gc.writeCommitGraph = true;
       index.threads = 0;
-      diff.algorithm = "histogram";
-
+      diff = {
+        algorithm = "histogram";
+        colorMoved = "default";
+        renames = true;
+        submodule = "log";
+      };
+      status = {
+        aheadBehind = true;
+        submoduleSummary = true;
+      };
       submodule.recurse = true;
-      diff.submodule = "log";
+      help.autocorrect = "prompt";
+      tag.sort = "version:refname";
+      branch.sort = "-committerdate";
 
       gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path; # Use the generated allowed_signers file
     };
