@@ -10,46 +10,21 @@
 
     ed
     gawk
-    indent
     gnused
     gnutar
     which
     gnugrep
     gzip
-    screen
-
-    bashInteractive
-    emacs
     gnupatch
     less
-    gnum4
     gnumake
-    nano
-    bison
 
-    flex
-    file
     procps
-    tree
-    wget
-    curl
-    watch
-    wdiff
-    autoconf
-    inetutils
-    net-tools
-    iproute2mac
-    lsof
-    pkg-config
-    gettext
-    libiconv
-    rsync
+    file
     man-db
-    texinfo
-    tmux
-    fzf
-    ripgrep
-    fd
-    bat
+    libiconv
+    curl
+    wget
+    tree
   ];
 }
