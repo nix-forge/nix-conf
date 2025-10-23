@@ -6,6 +6,7 @@
     diffutils
     findutils
     moreutils
+    util-linux
 
     ed
     gawk
@@ -28,7 +29,6 @@
 
     flex
     file
-    util-linuxMinimal
     procps
     tree
     wget
