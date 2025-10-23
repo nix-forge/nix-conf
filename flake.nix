@@ -77,7 +77,6 @@
 
     # Latest Nixpkgs Unstable
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nixpkgs-staging.url = "github:nixos/nixpkgs/staging";
 
     # Determinate
     determinate.url = "github:DeterminateSystems/determinate";

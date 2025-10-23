@@ -5,12 +5,11 @@
   ...
 }@args:
 let
-  homeDir = tree.configs.home;
   install = pkg: { home.packages = [ pkg ]; };
   var = envVar: val: { home.sessionVariables.${envVar} = val; };
   varBin = envVar: val: var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
 in
-with (homeDir // homeDir.programs // homeDir.programs.editors);
+with (with tree.configs; (home // home.programs // home.programs.editors));
 [
   ## Base
   base.version
@@ -30,26 +29,14 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   ## Web Browsers
   (install pkgs.google-chrome)
   # (programs.defaultbrowser "firefox")
-  (programs.firefox.default config.home.username { scrollPreset = "natural"; })
-  (import ./firefox.nix config.home.username)
-  {
-    programs.firefox.package =
-      let
-        pkgsStaging = import args.inputs.nixpkgs-staging {
-          inherit (args) system;
-          config = {
-            allowUnfree = true;
-          };
-        };
-      in
-      (pkgs.wrapFirefox.override {
-        libcanberra-gtk3 = pkgs.libcanberra-gtk3.override {
-          gtk3-x11 = pkgs.callPackage pkgsStaging.gtk3-x11.override { };
-        };
-      })
-        pkgs.firefox-unwrapped
-        { };
-  }
+  # (programs.firefox.default config.home.username { scrollPreset = "natural"; })
+  # (import ./firefox.nix config.home.username)
+  # {
+  #   programs.firefox.package = pkgs.firefox.overrideAttrs (_: {
+  #     gtk_modules = [ ];
+  #   });
+  # }
+  (install pkgs.firefox-bin-unwrapped)
 
   ## Shell Environments
   { programs.bash.enable = true; }
