@@ -21,7 +21,6 @@
 
     procps
     file
-    man-db
     libiconv
     curl
     wget
