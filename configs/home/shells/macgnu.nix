@@ -18,7 +18,7 @@
     gzip
     screen
 
-    bash
+    bashInteractive
     emacs
     gnupatch
     less
@@ -36,5 +36,20 @@
     watch
     wdiff
     autoconf
+    inetutils
+    net-tools
+    iproute2mac
+    lsof
+    pkg-config
+    gettext
+    libiconv
+    rsync
+    man-db
+    texinfo
+    tmux
+    fzf
+    ripgrep
+    fd
+    bat
   ];
 }
