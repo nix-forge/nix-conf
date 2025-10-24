@@ -186,8 +186,6 @@ let
                 extraSpecialArgs = homeSpecialArgs // {
                   inherit darwinConfig;
                 };
-
-                sharedModules = [ inputs.mac-app-util.homeManagerModules.default ];
               };
             }
           )
