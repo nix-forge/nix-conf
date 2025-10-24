@@ -49,7 +49,6 @@
   "cascadia"
   "monaspice"
   "monaspace"
-  "xwayland"
   "keybinds"
   "iommu"
   "ucodenix"

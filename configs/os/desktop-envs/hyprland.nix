@@ -57,10 +57,4 @@
   #     enable32Bit = true;
   #     extraPackages32 = [ nixpkgs-hyprland.pkgsi686Linux.mesa ];
   #   };
-
-  environment.systemPackages = with pkgs; [
-    kdePackages.xwaylandvideobridge
-    grim
-    slurp
-  ];
 }
