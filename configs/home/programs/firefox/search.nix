@@ -15,8 +15,8 @@ profileName:
             template = "https://search.nixos.org/packages";
             params = [
               {
-                name = "type";
-                value = "packages";
+                name = "channel";
+                value = "unstable";
               }
               {
                 name = "query";
@@ -60,12 +60,12 @@ profileName:
             template = "https://home-manager-options.extranix.com/";
             params = [
               {
-                name = "query";
-                value = "{searchTerms}";
-              }
-              {
                 name = "release";
                 value = "master";
+              }
+              {
+                name = "query";
+                value = "{searchTerms}";
               }
             ];
           }
