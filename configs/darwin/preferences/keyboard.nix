@@ -5,10 +5,10 @@
       ApplePressAndHoldEnabled = false;
 
       # Set a fast keyboard repeat rate (1-120, where lower is faster)
-      KeyRepeat = 1;
+      KeyRepeat = 2;
 
       # Set a shorter delay before key repeat (10-120, where lower is faster)
-      InitialKeyRepeat = 10;
+      InitialKeyRepeat = 20;
 
       # Text input & typing corrections
       # Disable automatic capitalization
