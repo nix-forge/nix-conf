@@ -1,24 +1,19 @@
 {
   system.defaults = {
-    # disable the "Are you sure you want to open this application?" dialog
-    LaunchServices.LSQuarantine = false;
-
-    NSGlobalDomain = {
-      # expand save panel by default
-      NSNavPanelExpandedStateForSaveMode = true;
-      NSNavPanelExpandedStateForSaveMode2 = true;
+    # Screensaver - Require password immediately after sleep
+    screensaver = {
+      askForPassword = true;
+      askForPasswordDelay = 0;
     };
 
     CustomUserPreferences = {
-      # Add a context menu item for showing the Web Inspector in web views
-      NSGlobalDomain.WebKitDeveloperExtras = true;
-
-      "com.apple.desktopservices" = {
-        # Avoid creating .DS_Store files on network or USB volumes
-        DSDontWriteNetworkStores = true;
-        DSDontWriteUSBStores = true;
+      # Show remaining battery time; hide percentage
+      "com.apple.menuextra.battery" = {
+        ShowPercent = "NO";
+        ShowTime = "YES";
       };
 
+      # Disable personalized advertising
       "com.apple.AdLib".allowApplePersonalizedAdvertising = false;
     };
   };

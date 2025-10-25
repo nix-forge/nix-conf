@@ -19,19 +19,19 @@
       # Show path bar
       ShowPathbar = true;
 
-      # show full path in finder title
+      # Show full path in finder title
       _FXShowPosixPathInTitle = true;
 
-      # show hidden files
+      # Show hidden files
       AppleShowAllFiles = true;
 
-      # disable warning when changing file extension
+      # Disable warning when changing file extension
       FXEnableExtensionChangeWarning = false;
 
-      # hide the quit button on finder
+      # Allow quitting Finder via ⌘ + Q (also hides desktop icons)
       QuitMenuItem = true;
 
-      # disable icons on the desktop
+      # Disable icons on the desktop
       CreateDesktop = false;
     };
 
@@ -43,6 +43,16 @@
       ShowMountedServersOnDesktop = true;
       ShowRemovableMediaOnDesktop = true;
       _FXSortFoldersFirst = true;
+
+      # Automatically open a new Finder window when a volume is mounted
+      OpenWindowForNewRemovableDisk = true;
+
+      # Allow text selection in Quick Look
+      QLEnableTextSelection = true;
+
+      # Disable the warning before emptying the Trash
+      WarnOnEmptyTrash = false;
+
     };
   };
 }
