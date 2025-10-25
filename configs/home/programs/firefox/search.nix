@@ -74,6 +74,7 @@ profileName:
         definedAliases = [
           "@home-manager-options"
           "@hmo"
+          "@nhmo"
         ];
       };
 
