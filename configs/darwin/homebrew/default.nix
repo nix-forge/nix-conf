@@ -48,6 +48,7 @@
       "discord"
       "chatgpt"
       "chatgpt-atlas"
+      "steam"
     ];
 
     # If you truly need a formula that Nix doesn’t provide well, add here sparingly:
