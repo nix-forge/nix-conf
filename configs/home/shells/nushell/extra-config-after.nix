@@ -1,13 +1,10 @@
 { lib, config, ... }@args:
 let
   paths = [
-    config.home.profileDirectory
+    "${config.home.profileDirectory}/bin"
   ]
   ++ lib.optionals (args ? darwinConfig) (
-    lib.concatLists [
-      (builtins.map (p: "${p}/bin") args.darwinConfig.environment.profiles)
-      (lib.splitString ":" args.darwinConfig.environment.systemPath)
-    ]
+    lib.splitString ":" args.darwinConfig.environment.systemPath
   )
   ++ lib.optionals (args ? nixosConfig) (
     builtins.map (p: "${p}/bin") args.nixosConfig.environment.profiles
