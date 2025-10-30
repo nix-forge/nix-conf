@@ -2,7 +2,7 @@
 let
   paths =
     lib.concatLists [
-      [ "${config.home.username}/.local/bin" ]
+      [ "${config.home.homeDirectory}/.local/bin" ]
       config.home.sessionPath
       [ "${config.home.profileDirectory}/bin" ]
     ]
