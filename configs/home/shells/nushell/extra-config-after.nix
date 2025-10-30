@@ -1,14 +1,19 @@
 { lib, config, ... }@args:
 let
-  paths = [
-    "${config.home.profileDirectory}/bin"
-  ]
-  ++ lib.optionals (args ? darwinConfig) (
-    lib.splitString ":" args.darwinConfig.environment.systemPath
-  )
-  ++ lib.optionals (args ? nixosConfig) (
-    builtins.map (p: "${p}/bin") args.nixosConfig.environment.profiles
-  );
+  paths =
+    lib.concatLists [
+      config.home.sessionPath
+      [ "${config.home.profileDirectory}/bin" ]
+    ]
+    ++ lib.optionals (args ? darwinConfig) (
+      lib.splitString ":" args.darwinConfig.environment.systemPath
+    )
+    ++ lib.optionals (args ? nixosConfig) (
+      lib.concatLists [
+        [ "/run/wrappers/bin" ]
+        (builtins.map (p: "${p}/bin") args.nixosConfig.environment.profiles)
+      ]
+    );
 
   binPaths = lib.pipe paths [
     (builtins.map (
@@ -16,6 +21,7 @@ let
         [ "$USER" "$HOME" "\${XDG_STATE_HOME}" ]
         [ config.home.username config.home.homeDirectory config.xdg.stateHome ]
     ))
+    (lib.concatStringsSep "\n")
   ];
 in
 {
@@ -23,9 +29,7 @@ in
     # Emulate the nix PATH as best as possible
     ''
       $env.PATH = $env.PATH | split row (char esep) | prepend [
-        ${lib.concatStringsSep "\n" (
-          (lib.optionals (args ? nixosConfig) [ "/run/wrappers/bin" ]) ++ config.home.sessionPath ++ binPaths
-        )}
+        ${binPaths}
       ]
     ''
     # The `path add` function from the Standard Library also provides
