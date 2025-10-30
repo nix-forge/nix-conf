@@ -76,7 +76,7 @@
     systems.url = "github:nix-systems/default";
 
     # Latest Nixpkgs Unstable
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
 
     # Determinate
     determinate.url = "github:DeterminateSystems/determinate";

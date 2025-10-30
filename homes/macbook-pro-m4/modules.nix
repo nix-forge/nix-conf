@@ -28,15 +28,10 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
 
   ## Web Browsers
   (install pkgs.google-chrome)
-  # (programs.defaultbrowser "firefox")
-  # (programs.firefox.default config.home.username { scrollPreset = "natural"; })
-  # (import ./firefox.nix config.home.username)
-  # {
-  #   programs.firefox.package = pkgs.firefox.overrideAttrs (_: {
-  #     gtk_modules = [ ];
-  #   });
-  # }
-  (install pkgs.firefox-bin-unwrapped)
+
+  (programs.defaultbrowser "firefox")
+  (programs.firefox.default config.home.username { scrollPreset = "natural"; })
+  (import ./firefox.nix config.home.username)
 
   ## Shell Environments
   { programs.bash.enable = true; }
