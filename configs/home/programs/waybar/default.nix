@@ -1,3 +1,4 @@
+# TODO: remove this module and replace with something else as this mostly broken
 {
   config,
   lib,
@@ -10,7 +11,7 @@ let
 
   # the fonts that will be included with the waybar package
   fontPackages = [
-    pkgs.ubuntu_font_family
+    pkgs.ubuntu-classic
     pkgs.material-design-icons
   ];
 
