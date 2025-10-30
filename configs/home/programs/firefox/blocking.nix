@@ -42,6 +42,7 @@ let
     accounts.google.com * 3p-script noop
     sofi.com * 3p-script noop
     chatgpt.com * 3p-script noop
+    home-manager-options.extranix.com * 3p-script noop
   '';
 
   # High quality base filter lists URLs
