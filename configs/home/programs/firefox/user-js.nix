@@ -53,13 +53,6 @@ in
           "browser.startup.homepage" = "about:home"; # start page is firefox home
           "browser.newtabpage.enabled" = true; # new tab leads to firefox home
           "browser.startup.homepage_override.mstone" = "ignore";
-          "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons" = false;
-          "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features" = false;
-          "browser.messaging-system.whatsNewPanel.enabled" = false;
-          "browser.urlbar.showSearchTerms.enabled" = false;
-
-          # Enable WebGL
-          "webgl.disabled" = false;
 
           # Fonts
           # From Firefox Arch Wiki: https://wiki.archlinux.org/title/Firefox#Font_troubleshooting
@@ -70,9 +63,6 @@ in
           # Downloads
           "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
           "browser.download.start_downloads_in_tmp_dir" = false; # (if changed true) This can be annoying when true as it will download to the temp directory making it harder to find the file
-
-          # DNS
-          "network.trr.mode" = 5; # use system DNS
 
           # PDF
           "browser.download.open_pdf_attachments_inline" = false; # Download PDFs instead of opening them inline
