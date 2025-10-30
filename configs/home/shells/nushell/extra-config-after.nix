@@ -2,6 +2,7 @@
 let
   paths =
     lib.concatLists [
+      [ "${config.home.username}/.local/bin" ]
       config.home.sessionPath
       [ "${config.home.profileDirectory}/bin" ]
     ]
@@ -21,6 +22,7 @@ let
         [ "$USER" "$HOME" "\${XDG_STATE_HOME}" ]
         [ config.home.username config.home.homeDirectory config.xdg.stateHome ]
     ))
+    lib.unique
     (lib.concatStringsSep "\n")
   ];
 in
@@ -32,13 +34,7 @@ in
         ${binPaths}
       ]
     ''
-    # The `path add` function from the Standard Library also provides
-    # a convenience method for prepending to the path:
-    + ''
-      use std/util "path add"
-      path add "~/.local/bin"
-    ''
-    # You can remove duplicate directories from the path using:
+    # Remove duplicate directories from the path using that other programs may apply
     + ''
       $env.PATH = ($env.PATH | uniq)
     ''
