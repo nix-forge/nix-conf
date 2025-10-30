@@ -1,8 +1,5 @@
-# TODO: move this config to firefox policies instead of managed storage
-{ lib, pkgs, ... }:
+{ lib, ... }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
-
   toPairList =
     attrs:
     lib.pipe attrs [
@@ -13,14 +10,24 @@ let
       ]))
     ];
 
-  # Where Firefox reads Managed Storage manifests (per-user)
-  # macOS:  ~/Library/Application Support/Mozilla/ManagedStorage/
-  # Linux:  ~/.mozilla/managed-storage/
-  managedStoragePath =
-    if isDarwin then
-      "Library/Application Support/Mozilla/ManagedStorage"
-    else
-      ".mozilla/managed-storage";
+  # High quality base filter lists URLs
+  legitUrlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
+  thirdPartyFonts = "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt";
+  click2Load = "https://raw.githubusercontent.com/yokoffing/filterlists/main/click2load.txt";
+
+  # Extra Optional filter lists
+  youTubeShorts = "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt";
+
+  # Create a nix list of all custom lists
+  customFilterLists = [
+    # Custom - High quality additional lists
+    legitUrlShortener
+    thirdPartyFonts
+    click2Load
+
+    # Optional Extra lists
+    youTubeShorts
+  ];
 
   # uBO medium mode (global) dynamic rules
   mediumModeRules = ''
@@ -34,121 +41,94 @@ let
     * hcaptcha.com * noop
     * recaptcha.net * noop
   '';
-  commonFixes = ''
+  commonFixesRules = ''
     github.com * 3p-script noop
     www.reddit.com * 3p-script noop
     edstem.org * 3p-script noop
-    accounts.riseworks.io * 3p-script noop
     accounts.google.com * 3p-script noop
-    sofi.com * 3p-script noop
     chatgpt.com * 3p-script noop
     home-manager-options.extranix.com * 3p-script noop
   '';
 
-  # High quality base filter lists URLs
-  legitUrlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
-  thirdPartyFonts = "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt";
-  click2Load = "https://raw.githubusercontent.com/yokoffing/filterlists/main/click2load.txt";
-
-  # Extra Optional filter lists
-  youTubeShorts = "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt";
+  customRules = lib.concatStrings [
+    mediumModeRules
+    captchaAllowRules
+    commonFixesRules
+  ];
 in
 {
-  # Provision uBlock Origin Enterprise (Managed Storage) config for Firefox
-  home.file."${managedStoragePath}/uBlock0@raymondhill.net.json".text = builtins.toJSON {
-    name = "uBlock0@raymondhill.net";
-    description = "_";
-    type = "storage";
-    data = {
-      toOverwrite = {
-        # The array of strings that represent all the lines making the text to use for "My Filters" which is the user-filters
-        filters = [ ];
+  # Configure uBlock Origin via Firefox policies
+  programs.firefox.policies."3rdparty".Extensions."uBlock0@raymondhill.net" = {
+    adminSettings = {
+      # Legacy (still supported) block to seed dynamic rules for medium mode
+      dynamicFilteringString = customRules;
+    };
 
-        filterLists = [
-          # My Filters
-          "user-filters"
+    userSettings = toPairList {
+      # Privacy settings
+      prefetchingDisabled = true;
+      hyperlinkAuditingDisabled = true;
+      cnameUncloakEnabled = true;
 
-          # Built-in
-          "ublock-filters"
-          "ublock-badware"
-          "ublock-privacy"
-          "ublock-quick-fixes"
-          "ublock-unbreak"
-          "ublock-experimental"
+      # Filter list settings
+      autoUpdate = true;
+      advancedUserEnabled = true;
+      dynamicFilteringEnabled = true;
 
-          # Ads
-          "easylist"
-          "adguard-mobile"
+      # Advanced Settings
+      autoUpdateDelayAfterLaunch = 10;
+      updateAssetBypassBrowserCache = true;
 
-          # Privacy
-          "easyprivacy"
-          "adguard-spyware-url"
-          "block-lan"
+      # Imported custom filter lists
+      importedLists = customFilterLists;
+    };
 
-          # Malware protection, security
-          "urlhaus-1"
+    toOverwrite = {
+      # The array of strings that represent all the lines making the text to use for "My Filters" which is the user-filters
+      filters = [ ];
 
-          # Multipurpose
-          "plowe-0"
-          "dpollock-0"
+      filterLists = [
+        # My Filters
+        "user-filters"
 
-          # Cookie notices
-          "fanboy-cookiemonster"
+        # Built-in
+        "ublock-filters"
+        "ublock-badware"
+        "ublock-privacy"
+        "ublock-quick-fixes"
+        "ublock-unbreak"
+        "ublock-experimental"
 
-          # Social Widgets
-          "fanboy-social"
+        # Ads
+        "easylist"
+        "adguard-mobile"
 
-          # Annoyances
-          "easylist-chat"
-          "easylist-newsletters"
-          "easylist-notifications"
-          "easylist-annoyances"
-          "ublock-annoyances"
-
-          # Custom
-          # High quality additional lists
-          legitUrlShortener
-          thirdPartyFonts
-          click2Load
-
-          # Optional Extra lists
-          youTubeShorts
-        ];
-      };
-
-      # User settings
-      userSettings = toPairList {
         # Privacy
-        prefetchingDisabled = true;
-        hyperlinkAuditingDisabled = true;
-        cnameUncloakEnabled = true;
+        "easyprivacy"
+        "adguard-spyware-url"
+        "block-lan"
 
-        # Filter lists
-        autoUpdate = true;
+        # Malware protection, security
+        "urlhaus-1"
 
-        advancedUserEnabled = true;
-        dynamicFilteringEnabled = true;
+        # Multipurpose
+        "plowe-0"
+        "dpollock-0"
 
-        # Advanced Settings
-        autoUpdateDelayAfterLaunch = 10;
-        updateAssetBypassBrowserCache = true;
+        # Cookie notices
+        "fanboy-cookiemonster"
 
-        importedLists = [
-          legitUrlShortener
-          thirdPartyFonts
-          click2Load
-          youTubeShorts
-        ];
-      };
+        # Social Widgets
+        "fanboy-social"
 
-      # Legacy (still supported) block to seed dynamic rules for medium mode.
-      adminSettings = {
-        dynamicFilteringString = lib.concatStrings [
-          mediumModeRules
-          captchaAllowRules
-          commonFixes
-        ];
-      };
+        # Annoyances
+        "easylist-chat"
+        "easylist-newsletters"
+        "easylist-notifications"
+        "easylist-annoyances"
+        "ublock-annoyances"
+      ]
+      ++ customFilterLists;
     };
   };
 }

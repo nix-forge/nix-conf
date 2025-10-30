@@ -28,6 +28,7 @@ in
         "temporarily_allow_weak_signatures" = false;
         "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
         "private_browsing" = true;
+        "default_area" = "navbar";
       };
 
       # SponsorBlock for YouTube
