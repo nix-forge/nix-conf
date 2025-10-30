@@ -4,15 +4,16 @@ let
     config.home.profileDirectory
   ]
   ++ lib.optionals (args ? darwinConfig) (
-    lib.pipe args.darwinConfig.environment.systemPath [
-      (lib.splitString ":")
-      (builtins.map (lib.removeSuffix "/bin"))
+    lib.concatLists [
+      (builtins.map (p: "${p}/bin") args.darwinConfig.environment.profiles)
+      (lib.splitString ":" args.darwinConfig.environment.systemPath)
     ]
   )
-  ++ lib.optionals (args ? nixosConfig) args.nixosConfig.environment.profiles;
+  ++ lib.optionals (args ? nixosConfig) (
+    builtins.map (p: "${p}/bin") args.nixosConfig.environment.profiles
+  );
 
   binPaths = lib.pipe paths [
-    (builtins.map (p: "${p}/bin"))
     (builtins.map (
       builtins.replaceStrings
         [ "$USER" "$HOME" "\${XDG_STATE_HOME}" ]
