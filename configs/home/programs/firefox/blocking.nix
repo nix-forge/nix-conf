@@ -48,9 +48,14 @@ let
     accounts.google.com * 3p-script noop
     chatgpt.com * 3p-script noop
     home-manager-options.extranix.com * 3p-script noop
+    www.instagram.com * 3p-script noop
+    www.linkedin.com * 3p-script noop
+    www.doordash.com * 3p-script noop
+    www.gradescope.com * 3p-frame noop
+    myworkdayjobs.com * 3p-script noop
   '';
 
-  customRules = lib.concatStrings [
+  customRules = lib.concatLines [
     mediumModeRules
     captchaAllowRules
     commonFixesRules
