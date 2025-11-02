@@ -99,7 +99,6 @@ in
 
       pull = {
         rebase = true;
-        ff = "only";
       };
       branch.autoSetupRebase = "always";
       rebase = {
