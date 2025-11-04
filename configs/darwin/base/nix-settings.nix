@@ -5,6 +5,7 @@ lib.mkMerge [
 
       # let the system decide the number of max jobs
       max-jobs = "auto";
+      eval-cores = 0;
       cores = 0;
 
       allowed-users = [ "*" ];
@@ -45,9 +46,16 @@ lib.mkMerge [
         "external-builders"
       ];
 
-      external-builders = "[{\"systems\":[\"aarch64-linux\",\"x86_64-linux\"],\"program\":\"/usr/local/bin/determinate-nixd\",\"args\":[\"builder\"]}]";
-
-      eval-cores = 2;
+      external-builders = builtins.toJSON [
+        {
+          systems = [
+            "aarch64-linux"
+            "x86_64-linux"
+          ];
+          program = "/usr/local/bin/determinate-nixd";
+          args = [ "builder" ];
+        }
+      ];
 
       # don't warn that my git tree is dirty it is known through git
       warn-dirty = false;
