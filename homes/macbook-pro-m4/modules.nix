@@ -61,7 +61,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (install pkgs.just)
   # { services.ollama.enable = true; }
 
-  ## Code Editors
+  ## Editors
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
   (install pkgs.code-cursor)
@@ -84,6 +84,8 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (vscode.languages.nushell "default")
   (vscode.languages.solidity "default")
   (vscode.languages.sql "default")
+
+  programs.obsidian
 
   ## Communication
   # (install pkgs.discord)
