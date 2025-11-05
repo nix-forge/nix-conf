@@ -68,7 +68,7 @@ _: {
         outer = {
           left = 8;
           bottom = 8;
-          top = 8;
+          top = 0;
           right = 8;
         };
       };
@@ -147,7 +147,7 @@ _: {
         # alt-g = "workspace G";
         # alt-i = "workspace I";
         alt-m = "workspace M";
-        # alt-n = "workspace N";
+        alt-n = "workspace N";
         # alt-o = "workspace O";
         alt-p = "workspace P";
         # alt-q = "workspace Q";
