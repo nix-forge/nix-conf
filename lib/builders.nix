@@ -99,7 +99,7 @@ let
             networking.hostName = args.hostname or args.hostName or folderName;
             nixpkgs = {
               overlays = overlays ++ [ (import "${homeManager}/overlay.nix") ];
-              hostPlatform = system;
+              hostPlatform = { inherit system; };
               flake.source = inputs.nixpkgs.outPath;
             }
             // (args.nixpkgsArgs or { });
@@ -199,7 +199,7 @@ let
           (singleton {
             networking.hostName = args.hostname or args.hostName or folderName;
             nixpkgs = {
-              hostPlatform = system;
+              hostPlatform = { inherit system; };
               flake.source = inputs.nixpkgs.outPath;
             }
             // (args.nixpkgsArgs or { });
