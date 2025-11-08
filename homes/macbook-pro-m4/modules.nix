@@ -56,9 +56,11 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # dev.docs
   dev.direnv
   dev.github-cli
-  dev.nix-formatter
   dev.podman
+  (install pkgs.nixfmt)
   (install pkgs.just)
+  (install pkgs.uv)
+  (install pkgs.prek)
   # { services.ollama.enable = true; }
 
   ## Editors

@@ -68,7 +68,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # dev.docs
   dev.direnv
   dev.github-cli
-  dev.nix-formatter
   dev.podman
   (install pkgs.just)
   { services.ollama.enable = true; }
