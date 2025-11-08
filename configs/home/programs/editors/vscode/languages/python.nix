@@ -1,5 +1,5 @@
 profileName:
-{ lib, pkgs, ... }@args:
+{ pkgs, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in
@@ -10,7 +10,7 @@ in
       ms-python.vscode-pylance
       ms-python.debugpy
 
-      ms-python.black-formatter
+      charliermarsh.ruff
 
       kevinrose.vsc-python-indent
 
@@ -24,11 +24,8 @@ in
     userSettings = {
       "[python]" = {
         "editor.tabSize" = 4;
-        "editor.defaultFormatter" = "ms-python.black-formatter";
+        "editor.defaultFormatter" = "charliermarsh.ruff";
       };
-
-      # set the location of the black formatter
-      "black-formatter.path" = [ "${lib.getExe pkgs.black}" ];
 
       "python.analysis.autoImportCompletions" = true;
       "python.analysis.typeCheckingMode" = "standard";

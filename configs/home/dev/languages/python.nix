@@ -6,7 +6,6 @@ let
       requests
       numpy
       black
-      mypy
     ]
   );
 in
@@ -15,6 +14,5 @@ in
     my-python
 
     pkgs.uv
-    pkgs.ruff
   ];
 }
