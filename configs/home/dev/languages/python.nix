@@ -3,11 +3,18 @@ let
   python-pkg = pkgs.python3;
   my-python = python-pkg.withPackages (
     ps: with ps; [
+      requests
+      numpy
       black
-      toml
+      mypy
     ]
   );
 in
 {
-  home.packages = [ my-python ];
+  home.packages = [
+    my-python
+
+    pkgs.uv
+    pkgs.ruff
+  ];
 }

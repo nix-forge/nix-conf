@@ -57,10 +57,12 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   dev.direnv
   dev.github-cli
   dev.podman
+  dev.languages.python
   (install pkgs.nixfmt)
   (install pkgs.just)
-  (install pkgs.uv)
   (install pkgs.prek)
+  (install pkgs.shfmt)
+  (install pkgs.shellcheck)
   # { services.ollama.enable = true; }
 
   ## Editors
