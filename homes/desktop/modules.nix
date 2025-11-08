@@ -73,7 +73,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   { services.ollama.enable = true; }
 
   ## Development Languages
-  dev.languages.c
   dev.languages.python
 
   ## Code Editors
