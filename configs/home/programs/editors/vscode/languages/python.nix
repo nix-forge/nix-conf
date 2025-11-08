@@ -1,5 +1,5 @@
 profileName:
-{ pkgs, ... }@args:
+{ pkgs, lib, ... }@args:
 let
   extensions = pkgs.callPackage ../marketplace.nix args;
 in
@@ -11,6 +11,7 @@ in
       ms-python.debugpy
 
       charliermarsh.ruff
+      ms-python.mypy-type-checker
 
       kevinrose.vsc-python-indent
 
@@ -26,6 +27,8 @@ in
         "editor.tabSize" = 4;
         "editor.defaultFormatter" = "charliermarsh.ruff";
       };
+
+      "ruff.path" = [ (lib.getExe pkgs.ruff) ];
 
       "python.analysis.autoImportCompletions" = true;
       "python.analysis.typeCheckingMode" = "standard";
