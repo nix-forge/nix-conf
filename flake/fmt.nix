@@ -53,12 +53,11 @@
 
         programs = {
           # GitHub Actions
-          # TODO: re-enable when actionlint after actionlint package is able to build again
-          # actionlint = {
-          #   enable = true;
-          #   # Run after general YAML formatting to reduce churn
-          #   priority = 300;
-          # };
+          actionlint = {
+            enable = true;
+            # Run after general YAML formatting to reduce churn
+            priority = 300;
+          };
 
           # Nix formatters and fixers
           # Run deadnix -> statix -> nixfmt
