@@ -27,16 +27,13 @@ let
   ];
 in
 {
-  programs.nushell.extraConfig = lib.mkAfter (
-    # Emulate the nix PATH as best as possible
-    ''
-      $env.PATH = $env.PATH | split row (char esep) | prepend [
-        ${binPaths}
-      ]
-    ''
-    # Remove duplicate directories from the path using that other programs may apply
-    + ''
-      $env.PATH = ($env.PATH | uniq)
-    ''
-  );
+  programs.nushell.extraConfig =
+    lib.mkAfter
+      # Emulate the nix PATH as best as possible
+      # Also remove duplicate paths that other programs may apply
+      ''
+        $env.PATH = $env.PATH | split row (char esep) | append [
+          ${binPaths}
+        ] | uniq
+      '';
 }
