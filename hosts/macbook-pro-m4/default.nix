@@ -20,8 +20,8 @@
     ./secrets.nix
 
     { system.primaryUser = "ianmh"; }
-    # { time.timeZone = "America/New_York"; }
 
+    # TODO: switch preferences to be apart of Home Manager as I believe it is supported
     preferences.accessibility
     preferences.animations
     preferences.applications
