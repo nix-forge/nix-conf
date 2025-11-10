@@ -71,5 +71,13 @@
     hanazono
     mplus-outline-fonts.githubRelease
     kanji-stroke-order-font
+
+    # OpenType Math stacks
+    libertinus
+    xits-math
+    fira-math
+    newcomputermodern
+    gyre-fonts
+    cm_unicode
   ];
 }
