@@ -64,12 +64,13 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (install pkgs.shfmt)
   (install pkgs.shellcheck)
   # { services.ollama.enable = true; }
+  (install pkgs.github-copilot-cli)
 
   ## Editors
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
-  (install pkgs.code-cursor)
 
+  (varBin "VISUAL" "code")
   (vscode.default "default")
   (vscode.settings "default")
   (vscode.keybinds "default")
@@ -88,6 +89,8 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (vscode.languages.nushell "default")
   (vscode.languages.solidity "default")
   (vscode.languages.sql "default")
+
+  (install pkgs.code-cursor)
 
   programs.obsidian
 
