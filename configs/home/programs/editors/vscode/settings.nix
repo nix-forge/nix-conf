@@ -148,6 +148,14 @@ in
           "[github-actions-workflow]" = {
             "editor.defaultFormatter" = "redhat.vscode-yaml";
           };
+          "[toml]" = {
+            "editor.tabSize" = 2;
+            "editor.defaultFormatter" = "tamasfe.even-better-toml";
+          };
+          "evenBetterToml.formatter.allowedBlankLines" = 2;
+          "evenBetterToml.formatter.columnWidth" = 80;
+          "evenBetterToml.taplo.bundled" = false;
+          "evenBetterToml.taplo.path" = lib.getExe pkgs.taplo;
 
           ## VCS Behavior ##
           "git.openRepositoryInParentFolders" = "always";
