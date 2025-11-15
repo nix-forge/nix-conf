@@ -4,24 +4,21 @@
   config,
   ...
 }:
+let
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+in
 {
   programs.ghostty = {
     enable = true;
-    package = lib.mkIf pkgs.stdenv.isDarwin pkgs.ghostty-bin;
+    package = lib.mkIf isDarwin pkgs.ghostty-bin;
 
     settings = {
       background-blur-radius = 20;
       mouse-hide-while-typing = true;
-      window-decoration = builtins.toString pkgs.stdenv.hostPlatform.isDarwin;
+      window-decoration = isDarwin;
     }
-    // lib.optionalAttrs (lib.hasAttr "SHELL" config.home.sessionVariables) (
-      let
-        shellPath = config.home.sessionVariables.SHELL;
-        shellName = lib.last (lib.splitString "/" shellPath);
-      in
-      lib.optionalAttrs (shellName == "nu") {
-        command = "${lib.getExe' pkgs.bashInteractive "bash"} --login -c '${shellPath} --login --interactive'";
-      }
-    );
+    // lib.optionalAttrs (builtins.hasAttr "stylix" config) {
+      font-size = lib.mkForce (config.stylix.fonts.sizes.terminal * 4.0 / 3.0);
+    };
   };
 }
