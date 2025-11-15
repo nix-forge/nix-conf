@@ -24,7 +24,6 @@ in
 
         ## Version Control ##
         github.vscode-github-actions
-        extensions.extraCompatible.github.vscode-pull-request-github
         mhutchie.git-graph
 
         ## Collaboration Features
