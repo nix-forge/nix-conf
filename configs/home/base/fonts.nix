@@ -75,7 +75,7 @@
     # OpenType Math stacks
     libertinus
     xits-math
-    fira-math
+    # fira-math
     newcomputermodern
     gyre-fonts
     cm_unicode
