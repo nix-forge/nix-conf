@@ -102,7 +102,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # (install pkgs.signal-desktop)
 
   ## Video Games
-  # (install pkgs.prismlauncher)
+  (install pkgs.prismlauncher)
 
   ## Media Consumption
   # programs.spotify
