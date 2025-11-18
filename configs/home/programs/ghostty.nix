@@ -1,9 +1,4 @@
-{
-  lib,
-  pkgs,
-  config,
-  ...
-}:
+{ lib, pkgs, ... }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 in
@@ -21,10 +16,7 @@ in
       shell-integration = "none"; # home-manager handles this
       shell-integration-features = true;
 
-      auto-update = false;
-    }
-    // lib.optionalAttrs (builtins.hasAttr "stylix" config) {
-      font-size = lib.mkForce (config.stylix.fonts.sizes.terminal * 4.0 / 3.0);
+      auto-update = "off";
     };
   };
 }
