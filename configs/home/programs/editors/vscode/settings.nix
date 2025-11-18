@@ -165,7 +165,9 @@ in
               "/etc/profiles/per-user/${config.home.username}/bin/git"
             else
               lib.getExe pkgs.gitMinimal;
-          "git.enableCommitSigning" = lib.mkIf config.programs.git.signing.signByDefault true;
+          "git.enableCommitSigning" = lib.mkIf (
+            config.programs.git.enable && config.programs.git.signing.signByDefault
+          ) true;
           "githubIssues.issueCompletions.enabled" = false;
 
           # prevent pollute history with whitespace changes
