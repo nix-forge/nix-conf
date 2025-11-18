@@ -1,5 +1,8 @@
 profileName:
-{ inputs, system, ... }:
+{ inputs, pkgs, ... }:
+let
+  firefoxAddons = (pkgs.extend inputs.nur-rycee.overlays.default).firefox-addons;
+in
 {
   programs.firefox = {
     # Base extensions for all profiles
@@ -44,12 +47,10 @@ profileName:
       };
     };
 
-    profiles.${profileName}.extensions = {
-      packages = with inputs.nur-rycee.packages.${system}; [
-        bitwarden
-        refined-github
-        grammarly
-      ];
-    };
+    profiles.${profileName}.extensions.packages = with firefoxAddons; [
+      bitwarden
+      refined-github
+      grammarly
+    ];
   };
 }
