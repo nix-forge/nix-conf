@@ -2,15 +2,10 @@
   lib,
   pkgs,
   inputs,
-  system,
   ...
 }:
 let
-  pkgsVSCode = import inputs.nixpkgs {
-    inherit system;
-    config.allowUnfree = true;
-    overlays = [ inputs.vscode-extensions.overlays.default ];
-  };
+  pkgsVSCode = pkgs.extend inputs.vscode-extensions.overlays.default;
 
   # For two attribute sets `preferred` and `fallback`, where the first depth of
   # each is a namespace and the second depth is the name of a derivation,
