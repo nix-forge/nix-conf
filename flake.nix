@@ -119,11 +119,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # NUR
-    nur = {
-      url = "github:nix-community/NUR";
+    nur-rycee = {
+      url = "sourcehut:~rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
     };
 
     flake-utils = {
@@ -175,7 +173,6 @@
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
         flake-parts.follows = "flake-parts";
-        nur.follows = "nur";
       };
     };
 

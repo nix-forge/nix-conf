@@ -1,15 +1,5 @@
 profileName:
 { inputs, system, ... }:
-let
-  pkgsNur =
-    (import inputs.nixpkgs {
-      inherit system;
-      config = {
-        allowUnfree = true;
-      };
-      overlays = [ inputs.nur.overlays.default ];
-    }).nur;
-in
 {
   programs.firefox = {
     # Base extensions for all profiles
@@ -55,7 +45,7 @@ in
     };
 
     profiles.${profileName}.extensions = {
-      packages = with pkgsNur.repos.rycee.firefox-addons; [
+      packages = with inputs.nur-rycee.packages.${system}; [
         bitwarden
         refined-github
         grammarly
