@@ -7,7 +7,8 @@
 let
   defaultConfigDirDarwin = "${config.home.homeDirectory}/Library/Application Support/nushell";
   defaultConfigDirLinux = "${config.home.homeDirectory}/.config/nushell";
-  defaultConfigDir = if pkgs.stdenv.isLinux then defaultConfigDirLinux else defaultConfigDirDarwin;
+  defaultConfigDir =
+    if pkgs.stdenv.hostPlatform.isLinux then defaultConfigDirLinux else defaultConfigDirDarwin;
   xdgConfigDir = "${config.xdg.configHome}/nushell";
   symlinkConfig = config.xdg.enable && (xdgConfigDir != defaultConfigDir);
 in

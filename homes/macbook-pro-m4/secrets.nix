@@ -26,7 +26,7 @@ in
     (inputs.agenix.packages.${system}.agenix.override (
       let
         nixPackage =
-          if pkgs.stdenv.isDarwin && darwinNixEnabled then
+          if pkgs.stdenv.hostPlatform.isDarwin && darwinNixEnabled then
             args.darwinConfig.nix.package
           else
             inputs.determinate.inputs.nix.packages.${system}.default;

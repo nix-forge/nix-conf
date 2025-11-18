@@ -22,13 +22,13 @@ in
 
       "C_Cpp.default.includePath" = [ "\${workspaceFolder}/**" ];
 
-      "C_Cpp.default.compilerPath" = if pkgs.stdenv.isDarwin then "clang++" else "g++";
+      "C_Cpp.default.compilerPath" = if pkgs.stdenv.hostPlatform.isDarwin then "clang++" else "g++";
       "C_Cpp.default.cStandard" = "c23";
       "C_Cpp.default.cppStandard" = "c++23";
       "C_Cpp.default.intelliSenseMode" =
-        if pkgs.stdenv.isAarch64 then
-          if pkgs.stdenv.isDarwin then "macos-clang-arm64" else "linux-gcc-arm64"
-        else if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isAarch64 then
+          if pkgs.stdenv.hostPlatform.isDarwin then "macos-clang-arm64" else "linux-gcc-arm64"
+        else if pkgs.stdenv.hostPlatform.isDarwin then
           "macos-clang-x64"
         else
           "linux-gcc-x64";

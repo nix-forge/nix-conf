@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
   cmDir = "${config.home.homeDirectory}/.ssh/cm"; # short path for mux sockets
 in
 {

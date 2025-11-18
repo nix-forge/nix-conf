@@ -6,7 +6,7 @@ profileName:
   ...
 }:
 let
-  inherit (pkgs.stdenv) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
 in
 {
   programs.vscode.profiles.${profileName} = {

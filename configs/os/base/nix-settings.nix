@@ -90,7 +90,7 @@
       # of a collection of processes."
       # See:
       # <https://en.wikipedia.org/wiki/Cgroups>
-      use-cgroups = pkgs.stdenv.isLinux;
+      use-cgroups = pkgs.stdenv.hostPlatform.isLinux;
 
       # for direnv GC roots
       keep-derivations = true;
@@ -134,7 +134,7 @@
   #   accept-flake-config = true
 
   #   # Allow nix to execute builds inside cgroups
-  #   use-cgroups = ${if pkgs.stdenv.isLinux then "true" else "false"}
+  #   use-cgroups = ${if pkgs.stdenv.hostPlatform.isLinux then "true" else "false"}
 
   #   # Keep derivations and outputs
   #   keep-derivations = true

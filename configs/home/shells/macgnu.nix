@@ -1,6 +1,6 @@
 { pkgs, lib, ... }:
 {
-  home.packages = lib.mkIf pkgs.stdenv.isDarwin (
+  home.packages = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
     with pkgs;
     [
       coreutils # TODO: consider using uutil-coreutils once more stable

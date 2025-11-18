@@ -51,7 +51,7 @@ in
 
     userSettings =
       let
-        os = if pkgs.stdenv.isLinux then "linux" else "osx";
+        os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
       in
       lib.mkMerge [
         {

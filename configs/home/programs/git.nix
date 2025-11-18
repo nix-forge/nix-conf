@@ -9,7 +9,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv) isLinux isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
 
   # Email Config
   emailConfigPath = "${config.xdg.configHome}/git/.gitconfig-email";
@@ -71,7 +71,7 @@ in
       "*~"
       "*.swp"
     ]
-    ++ lib.optionals pkgs.stdenv.isDarwin [ ".DS_Store" ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ ".DS_Store" ]
     ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
     settings = {
