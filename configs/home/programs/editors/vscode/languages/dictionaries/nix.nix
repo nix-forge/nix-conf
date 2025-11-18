@@ -80,7 +80,6 @@
   "disko"
   "aylur"
   "spicetify"
-  "geospatial"
   "qtutils"
   "arkenfox"
   "betterfox"

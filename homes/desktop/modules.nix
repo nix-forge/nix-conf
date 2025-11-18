@@ -109,7 +109,6 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   programs.libreoffice
   (install pkgs.obsidian)
   (install pkgs.kdePackages.okular)
-  # (install inputs.geospatial-nix.packages.${system}.qgis)
 
   ## Video Games
   # gaming
