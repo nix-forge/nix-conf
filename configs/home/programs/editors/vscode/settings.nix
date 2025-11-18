@@ -11,11 +11,11 @@ in
 {
   programs.vscode.profiles.${profileName} = {
     extensions =
-      with extensions.preferPreRelease;
+      with extensions.preferPreRelease; # TODO: preferPreRelease seems to have issues with some packages maybe switch to another package source
       [
         ## Appearances ##
         pkief.material-icon-theme
-        vira.vsc-vira-theme
+        extensions.release.vira.vsc-vira-theme
 
         ## Intelligence ##
         usernamehw.errorlens
