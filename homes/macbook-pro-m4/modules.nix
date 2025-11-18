@@ -58,6 +58,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   dev.github-cli
   dev.podman
   dev.languages.python
+  { programs.ripgrep.enable = true; }
   (install pkgs.nixfmt)
   (install pkgs.just)
   (install pkgs.prek)
