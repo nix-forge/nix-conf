@@ -69,8 +69,6 @@ in
 
           # colors
           "workbench.colorTheme" = lib.mkForce "Vira Carbon High Contrast";
-          "viraTheme.accent" = "Blue";
-
           # icons
           "workbench.iconTheme" = "vira-icons-carbon";
           # "workbench.productIconTheme" = "viraUIIcons";
