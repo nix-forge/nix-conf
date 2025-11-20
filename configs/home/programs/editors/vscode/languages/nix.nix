@@ -18,6 +18,8 @@ in
         formatting.command = [
           "${lib.getExe pkgs.nixfmt}"
           "--filename={file}"
+          "--width=80"
+          "--indent=2"
           "--strict"
         ];
       };
