@@ -169,6 +169,7 @@
     # Stylix
     stylix = {
       # url = "github:IanHollow/stylix/vscode-improve-theme";
+      # url = "git+file:///Users/ianmh/Projects/personal/stylix";
       url = "github:nix-community/stylix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
