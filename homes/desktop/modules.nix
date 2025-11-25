@@ -68,7 +68,7 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   # dev.docs
   dev.direnv
   dev.github-cli
-  dev.podman
+  (dev.podman { dockerAlias = false; })
   (install pkgs.just)
   { services.ollama.enable = true; }
 
