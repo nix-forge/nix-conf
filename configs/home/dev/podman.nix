@@ -1,3 +1,7 @@
+{
+  dockerAlias ? false,
+}:
+# TODO: update config once darwin podman module is added to home manager
 { pkgs, lib, ... }:
 let
   all = {
@@ -14,7 +18,27 @@ let
     };
   };
 
-  darwin = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin { home.packages = [ pkgs.podman ]; };
+  darwin =
+    lib.mkIf pkgs.stdenv.hostPlatform.isDarwin { home.packages = [ pkgs.podman ]; }
+    // lib.optionalAttrs dockerAlias {
+      xdg.configFile."containers/registries.conf".text = ''
+        unqualified-search-registries = ["docker.io"]
+
+        short-name-mode = "permissive"
+      '';
+
+      xdg.configFile."containers/containers.conf".text = ''
+        [engine]
+        image_default_transport = "docker://"
+
+        compat_api_enforce_docker_hub = true
+      '';
+
+      home.shellAliases = {
+        docker = "podman";
+        docker-compose = "podman-compose";
+      };
+    };
 in
 lib.mkMerge [
   all

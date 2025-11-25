@@ -56,7 +56,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # dev.docs
   dev.direnv
   dev.github-cli
-  dev.podman
+  (dev.podman { dockerAlias = true; })
   dev.languages.python
   { programs.ripgrep.enable = true; }
   (install pkgs.nixfmt)
