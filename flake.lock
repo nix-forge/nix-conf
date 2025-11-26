@@ -1222,29 +1222,6 @@
         "type": "github"
       }
     },
-    "nix-index": {
-      "inputs": {
-        "flake-compat": [
-          "flake-compat"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1756113554,
-        "narHash": "sha256-fFDr5BYisjkEFSgf+dGJTuhMUaH0aVE6Qy3Ql2EOJ2I=",
-        "owner": "nix-community",
-        "repo": "nix-index",
-        "rev": "0fc38040a22a08052103d0fbbafd67ac54165f2b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "nix-index",
-        "type": "github"
-      }
-    },
     "nix-minecraft": {
       "inputs": {
         "flake-compat": [
@@ -1536,7 +1513,6 @@
         "nix-direnv": "nix-direnv",
         "nix-gaming": "nix-gaming",
         "nix-homebrew": "nix-homebrew",
-        "nix-index": "nix-index",
         "nix-minecraft": "nix-minecraft",
         "nix-secrets": "nix-secrets",
         "nixd": "nixd",

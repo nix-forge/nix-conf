@@ -1,13 +1,4 @@
-{
-  config,
-  lib,
-  inputs,
-  system,
-  ...
-}:
-let
-  nix-index-pkg = inputs.nix-index.packages.${system}.default;
-in
+{ config, ... }:
 {
   imports = [
     ./extra-config-before.nix
@@ -92,13 +83,5 @@ in
         header_on_separator = false;
       };
     };
-
-    # Nix Index for Command Not Found Hook
-    extraConfig = lib.mkBefore ''
-      $env.config.hooks.command_not_found = source ${nix-index-pkg}/etc/profile.d/command-not-found.nu
-    '';
   };
-
-  # Install Nix Index package
-  home.packages = [ nix-index-pkg ];
 }
