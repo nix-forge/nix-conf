@@ -68,8 +68,6 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (install pkgs.github-copilot-cli)
   (install pkgs.pnpm)
   (install pkgs.nodejs)
-  (install pkgs.mamba-cpp)
-  { home.shellAliases.conda = "mamba"; }
 
   ## Editors
   (varBin "EDITOR" "nvim")
