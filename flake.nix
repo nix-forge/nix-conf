@@ -95,6 +95,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # Latest Home Manager
+    # TODO: look into using https://github.com/nix-community/home-manager/pull/7970
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
