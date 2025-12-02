@@ -58,7 +58,9 @@ lib.mkMerge [
           isHidden
           shell
           ;
-        uid = lib.mkIf (builtins.elem username config.users.knownUsers && uid != null) uid;
+        uid = lib.mkIf (
+          builtins.elem username config.users.knownUsers && uid != null
+        ) uid;
         home = lib.mkForce homeDirectory;
       };
     };
@@ -87,12 +89,16 @@ lib.mkMerge [
       {
         # import home-manager modules and resolve function
         # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
-        imports = lib.cust.withTreeModules (homeManagerModules (args // { inherit pkgs; }));
+        imports = lib.cust.withTreeModules (
+          homeManagerModules (args // { inherit pkgs; })
+        );
       }
       // lib.mkMerge [
         {
           # Use the same nix package as nixos
-          nix.package = lib.mkIf darwinConfig.nix.enable (lib.mkForce darwinConfig.nix.package);
+          nix.package = lib.mkIf darwinConfig.nix.enable (
+            lib.mkForce darwinConfig.nix.package
+          );
 
           # Set default settings based on the system settings
           home = {
@@ -151,7 +157,9 @@ lib.mkMerge [
                   lib.mapAttrsToList (
                     shellName: shellPkg:
                     lib.nameValuePair "enable${capitalize shellName}Integration" (
-                      lib.mkIf ((shellPkg.pname == shell.pname) || config.programs."${shellName}".enable) true
+                      lib.mkIf (
+                        (shellPkg.pname == shell.pname) || config.programs."${shellName}".enable
+                      ) true
                     )
                   ) shells
                 );

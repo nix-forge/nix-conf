@@ -70,7 +70,8 @@ profileName:
             ];
           }
         ];
-        iconMapObj."16" = "https://home-manager-options.extranix.com/images/favicon.png";
+        iconMapObj."16" =
+          "https://home-manager-options.extranix.com/images/favicon.png";
         definedAliases = [
           "@home-manager-options"
           "@hmo"

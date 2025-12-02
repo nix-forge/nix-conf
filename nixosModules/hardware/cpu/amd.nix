@@ -56,7 +56,9 @@ in
           (lib.mkIf ((lib.versionAtLeast kver "6.1") && (lib.versionOlder kver "6.3")) {
             kernelParams = [ "amd_pstate=passive" ];
           })
-          (lib.mkIf (lib.versionAtLeast kver "6.3") { kernelParams = [ "amd_pstate=active" ]; })
+          (lib.mkIf (lib.versionAtLeast kver "6.3") {
+            kernelParams = [ "amd_pstate=active" ];
+          })
 
           # IGPU tweak for specific kernel versions
           (lib.mkIf ((lib.versionAtLeast kver "6.2") && (lib.versionOlder kver "6.6")) {

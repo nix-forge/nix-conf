@@ -26,12 +26,12 @@ let
       assert lib.assertMsg (found != null) "Unknown Smoothfox preset \"${preset}\".";
       found
     else
-      assert lib.assertMsg (
-        builtins.isAttrs preset && preset ? extraConfig
-      ) "scrollPreset must be null, a preset name, or a preset record with `extraConfig`.";
+      assert lib.assertMsg (builtins.isAttrs preset && preset ? extraConfig)
+        "scrollPreset must be null, a preset name, or a preset record with `extraConfig`.";
       preset;
   selectedPreset = resolvePreset scrollPreset;
-  scrollSnippets = if selectedPreset == null then [ ] else [ selectedPreset.extraConfig ];
+  scrollSnippets =
+    if selectedPreset == null then [ ] else [ selectedPreset.extraConfig ];
 in
 {
   programs.firefox.profiles.${profileName} = {

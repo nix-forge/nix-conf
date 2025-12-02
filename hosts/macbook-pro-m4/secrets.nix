@@ -10,7 +10,8 @@ let
     owner = config.system.primaryUser;
   };
 
-  configSecrets = secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
+  configSecrets =
+    secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
 in
 {
   # enable the secrets module

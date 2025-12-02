@@ -89,7 +89,9 @@ lib.mkMerge [
       {
         # import home-manager modules and resolve function
         # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
-        imports = lib.cust.withTreeModules (homeManagerModules (args // { inherit pkgs; }));
+        imports = lib.cust.withTreeModules (
+          homeManagerModules (args // { inherit pkgs; })
+        );
       }
       // lib.mkMerge [
         {
@@ -153,7 +155,9 @@ lib.mkMerge [
                   lib.mapAttrsToList (
                     shellName: shellPkg:
                     lib.nameValuePair "enable${capitalize shellName}Integration" (
-                      lib.mkIf (shellPkg.pname == shell.pname || config.programs."${shellName}".enable) true
+                      lib.mkIf (
+                        shellPkg.pname == shell.pname || config.programs."${shellName}".enable
+                      ) true
                     )
                   ) shells
                 );

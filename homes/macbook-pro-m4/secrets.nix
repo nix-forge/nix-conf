@@ -13,7 +13,8 @@ let
     mode = "0500"; # read and execute only
   };
 
-  configSecrets = secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
+  configSecrets =
+    secrets: setting: builtins.mapAttrs (_: settings: settings // setting) secrets;
 
   darwinNixEnabled = args ? darwinConfig && args.darwinConfig.nix.enable;
 in
@@ -40,7 +41,8 @@ in
   age =
     let
       cond = lib.hasAttr "XDG_RUNTIME_DIR" config.home.sessionVariables;
-      XDG_RUNTIME_DIR = if cond then config.home.sessionVariables.XDG_RUNTIME_DIR else null;
+      XDG_RUNTIME_DIR =
+        if cond then config.home.sessionVariables.XDG_RUNTIME_DIR else null;
     in
     {
       # add secrets to the user

@@ -71,6 +71,7 @@
           };
           nixfmt = {
             enable = true;
+            width = 80;
             strict = true;
             priority = 300;
           };

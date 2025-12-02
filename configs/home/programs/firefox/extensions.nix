@@ -19,7 +19,8 @@ in
       "uBlock0@raymondhill.net" = {
         "installation_mode" = "force_installed";
         "temporarily_allow_weak_signatures" = false;
-        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
+        "install_url" =
+          "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
         "private_browsing" = true;
         "default_area" = "navbar";
       };
@@ -28,7 +29,8 @@ in
       "sponsorBlocker@ajay.app" = {
         "installation_mode" = "force_installed";
         "temporarily_allow_weak_signatures" = false;
-        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/sponsorblock/latest.xpi";
+        "install_url" =
+          "https://addons.mozilla.org/firefox/downloads/latest/sponsorblock/latest.xpi";
       };
 
       # TODO: Move more opinionated extensions to profile based installation (this will require creating a nix package based firefox extension most likely)
@@ -37,7 +39,8 @@ in
       "sabre@simplify.jobs" = {
         "installation_mode" = "normal_installed";
         "temporarily_allow_weak_signatures" = false;
-        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
+        "install_url" =
+          "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
       };
     };
 

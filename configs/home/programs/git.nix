@@ -38,9 +38,11 @@ let
 in
 {
   # Remove existing .gitconfig to avoid conflicts with runtime include
-  home.activation.removeExistingGitconfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-    rm -f ${config.home.homeDirectory}/.gitconfig
-  '';
+  home.activation.removeExistingGitconfig =
+    lib.hm.dag.entryBefore [ "checkLinkTargets" ]
+      ''
+        rm -f ${config.home.homeDirectory}/.gitconfig
+      '';
 
   programs.git = {
     enable = true;
@@ -109,7 +111,10 @@ in
       };
       merge = {
         conflictStyle =
-          if lib.versionAtLeast config.programs.git.package.version "2.35.0" then "zdiff3" else "diff3";
+          if lib.versionAtLeast config.programs.git.package.version "2.35.0" then
+            "zdiff3"
+          else
+            "diff3";
         autoStash = true;
         strategy = "ort";
         ff = "only";
@@ -127,7 +132,9 @@ in
         fsmonitor = true;
         untrackedCache = true;
         autocrlf = "input";
-        editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
+        editor = lib.mkIf (
+          config.home.sessionVariables ? EDITOR
+        ) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
         abbrev = 12;
       };

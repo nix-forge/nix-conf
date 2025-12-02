@@ -35,7 +35,10 @@ let
               v;
         in
         lib.pipe v [
-          (replaceVars [ "$HOME" "$USER" ] [ config.home.username config.home.homeDirectory ])
+          (replaceVars
+            [ "$HOME" "$USER" ]
+            [ config.home.username config.home.homeDirectory ]
+          )
           replaceVarPresets
         ]
       ) vars

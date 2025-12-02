@@ -58,7 +58,8 @@ in
       ipv4-forward-addr = add-port cfg.ipv4-interface "@";
       ipv6-forward-addr = add-port cfg.ipv6-interface "@";
 
-      det-ipv4-6 = ipv4: ipv6: [ ipv4 ] ++ (lib.optionals config.networking.enableIPv6 [ ipv6 ]);
+      det-ipv4-6 =
+        ipv4: ipv6: [ ipv4 ] ++ (lib.optionals config.networking.enableIPv6 [ ipv6 ]);
 
       nameservers = det-ipv4-6 cfg.ipv4-interface cfg.ipv6-interface;
       listen_addresses = det-ipv4-6 ipv4-listen-addr ipv6-listen-addr;
@@ -208,8 +209,14 @@ in
 
           # Open firewall for dnscrypt-proxy and unbound
           firewall = {
-            allowedTCPPorts = [ cfg.port ] ++ (lib.optionals cfg.unbound.enable [ cfg.unbound.port ]);
-            allowedUDPPorts = [ cfg.port ] ++ (lib.optionals cfg.unbound.enable [ cfg.unbound.port ]);
+            allowedTCPPorts = [
+              cfg.port
+            ]
+            ++ (lib.optionals cfg.unbound.enable [ cfg.unbound.port ]);
+            allowedUDPPorts = [
+              cfg.port
+            ]
+            ++ (lib.optionals cfg.unbound.enable [ cfg.unbound.port ]);
           };
         };
 

@@ -4,7 +4,9 @@ let
   inherit (import ./default.nix { inherit lib; }) mkDirEntries;
   filter = entry: (entry.isNixFile || entry.hasNixFiles) && filter_fn entry;
   mapListToAttrs = fn: attrsList: builtins.listToAttrs (map fn attrsList);
-  removePostfix = entry: if entry.isNixFile then lib.removeSuffix ".nix" entry.name else entry.name;
+  removePostfix =
+    entry:
+    if entry.isNixFile then lib.removeSuffix ".nix" entry.name else entry.name;
 in
 lib.pipe dir [
   # creates a list of directory entries for each file in the directory
