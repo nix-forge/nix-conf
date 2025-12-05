@@ -33,7 +33,6 @@ in
         sleistner.vscode-fileutils
         aaron-bond.better-comments
         kevinkyang.auto-comment-blocks
-        esbenp.prettier-vscode
 
         ## Base Language Support ##
         redhat.vscode-yaml
