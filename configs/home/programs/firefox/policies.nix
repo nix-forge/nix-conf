@@ -24,7 +24,7 @@ in
     DisableTelemetry = true;
     HardwareAcceleration = true;
     DisableFirefoxStudies = true;
-    DisableFirefoxScreenshots = true;
+    DisableFirefoxScreenshots = false;
     NoDefaultBookmarks = true;
     SearchSuggestEnabled = false;
     DisableFormHistory = true;
