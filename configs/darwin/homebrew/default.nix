@@ -47,7 +47,6 @@
       "signal"
       "discord"
       "chatgpt"
-      "chatgpt-atlas"
       "steam"
     ];
 
