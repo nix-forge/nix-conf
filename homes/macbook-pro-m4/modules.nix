@@ -102,7 +102,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   ## Communication
   # (install pkgs.discord)
   (install pkgs.slack)
-  (install pkgs.zoom-us)
+  # (install pkgs.zoom-us)
   # (install self.packages.${system}.webcord)
   # (install pkgs.signal-desktop)
 
