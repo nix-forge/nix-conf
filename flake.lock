@@ -247,7 +247,9 @@
         "determinate-nixd-aarch64-darwin": "determinate-nixd-aarch64-darwin",
         "determinate-nixd-aarch64-linux": "determinate-nixd-aarch64-linux",
         "determinate-nixd-x86_64-linux": "determinate-nixd-x86_64-linux",
-        "nix": "nix",
+        "nix": [
+          "nix"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]
@@ -521,11 +523,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1764909727,
-        "narHash": "sha256-I1AlAHt7aZKe5B8y6sPpI9E7Q6rXHrWtKQn5jzJcUdc=",
+        "lastModified": 1764910802,
+        "narHash": "sha256-jBQ5Zt9/hCxqVqmBEA3xFk0eg51P+MPx+8VUZ7TLezY=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "f574703d3ec6e34323b7fe11856e75f697a35706",
+        "rev": "95c426532f1d9c4c6c996273f7e1a00462437a0f",
         "type": "github"
       },
       "original": {
@@ -537,11 +539,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1764909599,
-        "narHash": "sha256-laABbXCefyD6XqSvT+sTK2hCi2yPspOwoaCzXiApltc=",
+        "lastModified": 1764911584,
+        "narHash": "sha256-RydZUcQvDNzop9r5gqOM1yjJaAbuUU4dNpU3oPAjPxs=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "b25c050bba3f887baf6d026a00a277efed10103b",
+        "rev": "67d11ee2d0b974262ea691712b8a30d3f11d8c3b",
         "type": "github"
       },
       "original": {
@@ -1261,20 +1263,21 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "nixpkgs-23-11": "nixpkgs-23-11",
+        "nixpkgs-23-11": [],
         "nixpkgs-regression": "nixpkgs-regression"
       },
       "locked": {
-        "lastModified": 1763534330,
-        "narHash": "sha256-gTuB2qBdSKCKnZwENTqScs/pPBaZQOv6zZ1KJvV/ohk=",
-        "rev": "be871f9baf5366a220b5f25634eebab6f452a017",
-        "revCount": 23278,
-        "type": "tarball",
-        "url": "https://api.flakehub.com/f/pinned/DeterminateSystems/nix-src/3.13.2/019a9af6-3d7b-71bc-bccd-8b18e147ad77/source.tar.gz"
+        "lastModified": 1764881935,
+        "narHash": "sha256-gEspEcg8+KmrREhwZnWHmaJkIKUryuWs8HhBeblANwA=",
+        "owner": "DeterminateSystems",
+        "repo": "nix-src",
+        "rev": "055dfbc6b22d31281f2d0c4bbd550e40dfb4efd3",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "https://flakehub.com/f/DeterminateSystems/nix-src/%2A"
+        "owner": "DeterminateSystems",
+        "repo": "nix-src",
+        "type": "github"
       }
     },
     "nix-darwin": {
@@ -1450,22 +1453,6 @@
         "owner": "NixOS",
         "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-23-11": {
-      "locked": {
-        "lastModified": 1717159533,
-        "narHash": "sha256-oamiKNfr2MS6yH64rUn99mIZjc45nGJlj9eGth/3Xuw=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "a62e6edd6d5e1fa0329b8653c801147986f8d446",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "a62e6edd6d5e1fa0329b8653c801147986f8d446",
         "type": "github"
       }
     },
@@ -1649,6 +1636,7 @@
         "hyprland": "hyprland",
         "hyprlock": "hyprlock",
         "hyprpaper": "hyprpaper",
+        "nix": "nix",
         "nix-darwin": "nix-darwin",
         "nix-direnv": "nix-direnv",
         "nix-gaming": "nix-gaming",

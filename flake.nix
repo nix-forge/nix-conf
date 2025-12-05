@@ -79,15 +79,20 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
 
     # Determinate
+    nix = {
+      url = "github:DeterminateSystems/nix-src";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-23-11.follows = "";
+        flake-parts.follows = "flake-parts";
+        git-hooks-nix.follows = "git-hooks";
+      };
+    };
     determinate = {
       url = "github:DeterminateSystems/determinate";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        nix.inputs = {
-          nixpkgs.follows = "nixpkgs";
-          flake-parts.follows = "flake-parts";
-          git-hooks-nix.follows = "git-hooks";
-        };
+        nix.follows = "nix";
       };
     };
 
