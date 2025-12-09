@@ -20,6 +20,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # ./hardware
   ./secrets.nix
   # (base.mime { })
+  (install pkgs.nh)
 
   ## Theming
   stylix
@@ -64,12 +65,14 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (install pkgs.nixfmt)
   (install pkgs.just)
   (install pkgs.prek)
+  { home.shellAliases.pre-commit = "prek"; }
   (install pkgs.shfmt)
   (install pkgs.shellcheck)
   # { services.ollama.enable = true; }
   (install pkgs.github-copilot-cli)
   (install pkgs.pnpm)
   (install pkgs.nodejs)
+  (install pkgs.mermaid-cli)
 
   ## Editors
   (varBin "EDITOR" "nvim")
@@ -105,6 +108,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # (install pkgs.zoom-us)
   # (install self.packages.${system}.webcord)
   # (install pkgs.signal-desktop)
+  # (install pkgs.element-desktop)
 
   ## Video Games
   (install pkgs.prismlauncher)
