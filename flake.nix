@@ -232,9 +232,6 @@
         systems.follows = "systems";
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
-        nuschtosSearch.inputs = {
-          flake-utils.follows = "flake-utils";
-        };
       };
     };
 
