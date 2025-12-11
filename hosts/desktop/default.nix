@@ -71,12 +71,12 @@
       # desktop-envs.plasma
       desktop-envs.hyprland
       # desktop-envs.cosmic
-      {
-        environment.pathsToLink = [
-          "/share/applications"
-          "/share/xdg-desktop-portal"
-        ];
-      }
+      # {
+      #   environment.pathsToLink = [
+      #     "/share/applications"
+      #     "/share/xdg-desktop-portal"
+      #   ];
+      # }
 
       ## Display Managers
       # display-managers.greetd

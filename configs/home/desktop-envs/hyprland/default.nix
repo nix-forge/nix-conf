@@ -8,9 +8,8 @@
 let
   hyprPkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
   nixosHyprland = args ? nixosConfig && args.nixosConfig.programs.hyprland.enable;
-  UWSMConfig = args.nixosConfig.programs.uwsm;
-  UWSMHyprland =
-    nixosHyprland && UWSMConfig.enable && UWSMConfig.waylandCompositors ? hyprland;
+  withUWSM = args.nixosConfig.programs.hyprland.withUWSM;
+  usingUWSMHyprland = nixosHyprland && withUWSM;
 in
 {
   imports = [
@@ -28,7 +27,7 @@ in
       if nixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
 
     systemd = {
-      enable = lib.mkForce (!UWSMHyprland);
+      enable = lib.mkForce (!usingUWSMHyprland);
       variables = [ "--all" ];
     };
 
@@ -43,6 +42,11 @@ in
   # Set the environment variables for Hyprland
   xdg.configFile."uwsm/env-hyprland".text = lib.concatStringsSep "\n" [
     ''
+      # Hyprland Session Variables
+      export XDG_CURRENT_DESKTOP=Hyprland
+      export XDG_SESSION_TYPE=wayland
+      export XDG_SESSION_DESKTOP=Hyprland
+
       # Nix Environment Variables
       export NIXOS_OZONE_WL=1
 
@@ -62,12 +66,9 @@ in
       # Java Variables
       export _JAVA_AWT_WM_NONREPARENTING=1
 
-      # Theming Related Variables
-      export GTK_THEME=${config.gtk.theme.name}
-      export XCURSOR_THEME=${config.gtk.cursorTheme.name}
-      export XCURSOR_SIZE=${builtins.toString config.gtk.cursorTheme.size}
+      # Other
+      export MOZ_ENABLE_WAYLAND = "1";
     ''
-
     (lib.optionals
       (
         config.home.sessionVariables ? IGPU_CARD
