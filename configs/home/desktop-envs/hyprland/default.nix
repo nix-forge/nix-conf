@@ -42,11 +42,6 @@ in
   # Set the environment variables for Hyprland
   xdg.configFile."uwsm/env-hyprland".text = lib.concatStringsSep "\n" [
     ''
-      # Hyprland Session Variables
-      export XDG_CURRENT_DESKTOP=Hyprland
-      export XDG_SESSION_TYPE=wayland
-      export XDG_SESSION_DESKTOP=Hyprland
-
       # Nix Environment Variables
       export NIXOS_OZONE_WL=1
 
@@ -67,7 +62,7 @@ in
       export _JAVA_AWT_WM_NONREPARENTING=1
 
       # Other
-      export MOZ_ENABLE_WAYLAND = "1";
+      export MOZ_ENABLE_WAYLAND=1
     ''
     (lib.optionals
       (
