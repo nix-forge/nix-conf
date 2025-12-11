@@ -23,12 +23,12 @@
       lowLatency = {
         enable = true;
         rate = default_rate;
-        quantum = 64;
+        quantum = 128;
         alsa = {
           enable = true;
           format = "S24_3LE";
           devicePattern = "~alsa_output.usb-Generic_USB_Audio-00.*";
-          periodSize = 64;
+          periodSize = 128;
         };
       };
     };
