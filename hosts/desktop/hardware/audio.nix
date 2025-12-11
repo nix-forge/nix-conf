@@ -1,6 +1,6 @@
 { inputs, ... }:
 {
-  imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
+  imports = [ inputs.nix-gaming-custom.nixosModules.pipewireLowLatency ];
 
   services.pipewire =
     let
@@ -15,8 +15,6 @@
             "default.clock.allowed-rates" = [
               44100
               48000
-              96000 # noticed some loss of audio quality ocassionally
-              192000 # noticed some loss of audio quality ocassionally
             ];
           };
         };
@@ -25,7 +23,13 @@
       lowLatency = {
         enable = true;
         rate = default_rate;
-        quantum = 32;
+        quantum = 64;
+        alsa = {
+          enable = true;
+          format = "S24_3LE";
+          devicePattern = "~alsa_output.usb-Generic_USB_Audio-00.*";
+          periodSize = 64;
+        };
       };
     };
 }

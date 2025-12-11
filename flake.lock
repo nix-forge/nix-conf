@@ -1319,6 +1319,27 @@
         "type": "github"
       }
     },
+    "nix-gaming-custom": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1765480398,
+        "narHash": "sha256-iiEhZytlE9F5uFFjdvi8L4OTqvu4i6StGckb0Dodvhs=",
+        "owner": "IanHollow",
+        "repo": "nix-gaming",
+        "rev": "e3d19416b1d2ef21cf135fe5cf392f5756fb0192",
+        "type": "github"
+      },
+      "original": {
+        "owner": "IanHollow",
+        "repo": "nix-gaming",
+        "type": "github"
+      }
+    },
     "nix-homebrew": {
       "inputs": {
         "brew-src": "brew-src"
@@ -1490,6 +1511,22 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1764947035,
+        "narHash": "sha256-EYHSjVM4Ox4lvCXUMiKKs2vETUSL5mx+J2FfutM7T9w=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "a672be65651c80d3f592a89b3945466584a22069",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1765034081,
         "narHash": "sha256-GlzJL295FCmOCG2M4fFR8/lp6ElR8Pje1DSXsFjMtaQ=",
         "owner": "nixos",
@@ -1599,12 +1636,13 @@
         "nix-darwin": "nix-darwin",
         "nix-direnv": "nix-direnv",
         "nix-gaming": "nix-gaming",
+        "nix-gaming-custom": "nix-gaming-custom",
         "nix-homebrew": "nix-homebrew",
         "nix-minecraft": "nix-minecraft",
         "nix-secrets": "nix-secrets",
         "nixd": "nixd",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs_3",
         "nixvim": "nixvim",
         "nur-rycee": "nur-rycee",
         "spicetify-nix": "spicetify-nix",
