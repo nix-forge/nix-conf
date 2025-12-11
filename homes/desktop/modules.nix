@@ -3,26 +3,28 @@
   pkgs,
   config,
   ...
-}:
+}@args:
 let
-  homeDir = tree.configs.home;
   install = pkg: { home.packages = [ pkg ]; };
   var = envVar: val: { home.sessionVariables.${envVar} = val; };
   varBin =
     envVar: val:
     var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
 in
-with (homeDir // homeDir.programs // homeDir.programs.editors);
+with (with tree.configs; (home // home.programs // home.programs.editors));
 [
   ## Base
   base.version
   base.fonts
-  # ./secrets.nix
-  (base.mime { })
+  base.xdg
+  # ./hardware
+  ./secrets.nix
+  # (base.mime { })
+  (install pkgs.nh)
 
   ## Theming
-  theming.basic
-  theming.gtk
+  # theming.basic
+  # theming.gtk
   # stylix # TODO: only enable if not enabled from the system do this in the stylix module
   (stylix.targets.firefox config.home.username)
 
@@ -30,6 +32,9 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   desktop-envs.hyprland
   ./hyprland
   { stylix.targets.hyprland.enable = false; }
+
+  ## Utility
+  programs.gparted
 
   ## Desktop Applications
   programs.rofi
@@ -40,51 +45,61 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (install pkgs.motrix)
   (install pkgs.pinta)
 
-  ## Utility
-  programs.gparted
-
   ## Web Browsers
-  (programs.defaultbrowser "firefox")
+  (install pkgs.google-chrome)
+
   (programs.firefox.default config.home.username { scrollPreset = "natural"; })
   ((programs.firefox.nvidia config.home.username) { enableAV1 = true; })
-
-  { programs.chromium.enable = true; }
+  (import ./firefox.nix config.home.username)
 
   ## Shell Environments
+  { programs.bash.enable = true; }
   shells.nushell
+
+  shells.macgnu
   shells.aliases
   shells.starship
   shells.zoxide
   shells.carapace
   shells.eza
+  # shells.tmux
 
   ## Terminal Emulators
   (varBin "TERMINAL" "ghostty")
   programs.ghostty
 
   ## Development Tools
-  # (programs.git { }) # TODO: add config to git module to allow not passing secrets info
-  (install pkgs.git)
-
+  (programs.git { emailConfig = import ./gitEmailConfig.nix args; })
   programs.ssh
+  ./ssh.nix
   # dev.docs
   dev.direnv
   dev.github-cli
-  (dev.podman { dockerAlias = false; })
-  (install pkgs.just)
-  { services.ollama.enable = true; }
-
-  ## Development Languages
+  (dev.podman { dockerAlias = true; })
   dev.languages.python
+  { programs.ripgrep.enable = true; }
+  (install pkgs.nixfmt)
+  (install pkgs.just)
+  (install pkgs.prek)
+  { home.shellAliases.pre-commit = "prek"; }
+  (install pkgs.shfmt)
+  (install pkgs.shellcheck)
+  { services.ollama.enable = true; }
+  (install pkgs.github-copilot-cli)
+  (install pkgs.pnpm)
+  (install pkgs.nodejs)
+  (install pkgs.mermaid-cli)
 
-  ## Code Editors
+  ## Editors
   (varBin "EDITOR" "nvim")
   (install pkgs.neovim)
 
+  (varBin "VISUAL" "code")
   (vscode.default "default")
   (vscode.settings "default")
   (vscode.keybinds "default")
   (vscode.ai.models "default")
+  (vscode.ai.mcp "default")
   (vscode.languages.cpp "default")
   (vscode.languages.nix "default")
   (vscode.languages.web "default")
@@ -95,29 +110,29 @@ with (homeDir // homeDir.programs // homeDir.programs.editors);
   (vscode.languages.java "default")
   ((vscode.languages.docker "default") { enablePodman = true; })
   (vscode.languages.typst "default")
+  (vscode.languages.nushell "default")
   (vscode.languages.solidity "default")
   (vscode.languages.sql "default")
 
-  ## Communication
-  (install pkgs.discord)
-  (install pkgs.slack)
-  (install pkgs.zoom-us)
+  (install pkgs.code-cursor)
+
+  ## Office Software
+  programs.libreoffice
+  programs.obsidian
+  (install pkgs.kdePackages.okular)
 
   ## Media Consumption
   programs.spotify
   # (install pkgs.rhythmbox)
 
-  ## Office Software
-  programs.libreoffice
-  (install pkgs.obsidian)
-  (install pkgs.kdePackages.okular)
+  ## Communication
+  (install pkgs.discord)
+  (install pkgs.slack)
+  (install pkgs.zoom-us)
+  # (install self.packages.${system}.webcord)
+  # (install pkgs.signal-desktop)
+  # (install pkgs.element-desktop)
 
   ## Video Games
-  # gaming
-  # (install pkgs.prismlauncher)
-  # (install pkgs.lutris)
-
-  ## Misc
-  # { home.sessionVariables = sharedDir.env.wayland.default; }
-  # wayland.electron-flags
+  (install pkgs.prismlauncher)
 ]

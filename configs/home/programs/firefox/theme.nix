@@ -7,6 +7,7 @@ profileName:
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  inherit (lib.cust.firefox) toUserJS;
 
   mozillaConfigPath =
     if isDarwin then "Library/Application Support/Mozilla" else ".mozilla";
@@ -42,6 +43,9 @@ in
     extraConfig = lib.mkBefore (
       lib.strings.concatLines [
         (builtins.readFile "${inputs.firefox-ui-fix}/user.js")
+        (toUserJS {
+          "browser.theme.native-theme" = false; # Disable native theme to use custom themes
+        })
       ]
     );
   };

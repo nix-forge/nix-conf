@@ -53,15 +53,6 @@
         focus_preferred_method = LONGEST_SHARED_SIDE;
       };
 
-    gestures = {
-      workspace_swipe = true;
-      workspace_swipe_invert = false;
-      workspace_swipe_min_speed_to_force = 20;
-      workspace_swipe_cancel_ratio = 0.65;
-      workspace_swipe_create_new = false;
-      workspace_swipe_forever = true;
-    };
-
     # <https://wiki.hyprland.org/Configuring/Variables/#misc>
     misc = {
       # disable_hyprland_logo = true; # false

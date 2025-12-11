@@ -13,6 +13,7 @@
   isNormalUser ? true,
   homeManagerModules ? (_: [ ]),
   shell ? null, # main shell package
+  uid ? null,
 }:
 let
   shells = {
@@ -55,6 +56,7 @@ lib.mkMerge [
         initialPassword
         isNormalUser
         shell
+        uid
         ;
       home = lib.mkForce homeDirectory;
     };

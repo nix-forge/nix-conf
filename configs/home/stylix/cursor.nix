@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 {
   stylix.cursor = {
     package = pkgs.bibata-cursors;

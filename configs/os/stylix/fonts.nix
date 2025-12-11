@@ -7,13 +7,13 @@
     };
 
     sansSerif = {
-      package = pkgs.noto-fonts;
-      name = "Noto Sans";
+      package = pkgs.inter;
+      name = "Inter";
     };
 
     serif = {
-      package = pkgs.noto-fonts;
-      name = "Noto Serif";
+      package = pkgs.google-fonts;
+      name = "Literata";
     };
 
     emoji = {

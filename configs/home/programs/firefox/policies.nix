@@ -8,9 +8,8 @@ in
     ManualAppUpdateOnly = true;
     DisableFeedbackCommands = true;
     DisableSetDesktopBackground = true;
-    DisableDefaultBrowserAgent = true;
     DisableDeveloperTools = false;
-    DisableProfileRefresh = true;
+    DisableProfileRefresh = false;
     DisableProfileImport = true;
     DisablePrivateBrowsing = false;
     DisplayBookmarksToolbar = "never";
@@ -34,6 +33,7 @@ in
     EnterprisePoliciesEnabled = isDarwin;
     FirefoxHome = {
       Search = true;
+      TopSites = false;
       SponsoredTopSites = false;
       SponsoredPocket = false;
       SponsoredStories = false;

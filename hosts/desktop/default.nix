@@ -21,6 +21,8 @@
     ); [
       ## Base
       base.nix-settings
+      ./cache.nix
+      (import ./secrets.nix { primaryUser = "ianmh"; })
       base.base
       base.kernel
       base.packages
@@ -69,6 +71,12 @@
       # desktop-envs.plasma
       desktop-envs.hyprland
       # desktop-envs.cosmic
+      {
+        environment.pathsToLink = [
+          "/share/applications"
+          "/share/xdg-desktop-portal"
+        ];
+      }
 
       ## Display Managers
       # display-managers.greetd
@@ -89,6 +97,7 @@
       stylix.base
       stylix.cursor
       stylix.fonts
+      stylix.icons
 
       ## Server
       server.ssh

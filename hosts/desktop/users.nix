@@ -28,5 +28,6 @@ lib.mkMerge [
     initialPassword = "password";
     homeManagerModules = homes "desktop";
     shell = pkgs.nushell;
+    uid = 1000;
   })
 ]

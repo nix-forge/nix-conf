@@ -5,9 +5,9 @@
 
     input.accel_profile = "flat";
 
-    # Nvidia Cursor Settings
+    # Cursor Settings
     cursor = {
-      no_hardware_cursors = true;
+      no_hardware_cursors = false;
     };
   };
 }

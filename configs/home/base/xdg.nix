@@ -1,7 +1,4 @@
 {
-  uid ? null,
-}:
-{
   lib,
   pkgs,
   config,
@@ -55,13 +52,21 @@ in
   };
 
   # TODO: write linux based module to set XDG_RUNTIME_DIR
-  home.sessionVariables =
-    lib.mkIf (isDarwin && ((args ? darwinConfig) || (uid != null)))
-      {
-        XDG_RUNTIME_DIR =
-          let
-            final_uid = args.darwinConfig.users.users.${config.home.username}.uid or uid;
-          in
-          "/tmp/user-${toString final_uid}";
-      };
+  home.sessionVariables = lib.mkMerge [
+    (lib.mkIf (isDarwin && (args ? darwinConfig)) {
+      XDG_RUNTIME_DIR =
+        let
+          uid = args.darwinConfig.users.users.${config.home.username}.uid;
+        in
+        "/tmp/user-${toString uid}";
+    })
+
+    (lib.mkIf (isLinux && (args ? nixosConfig)) {
+      XDG_RUNTIME_DIR =
+        let
+          uid = args.nixosConfig.users.users.${config.home.username}.uid;
+        in
+        "/run/user/${toString uid}";
+    })
+  ];
 }

@@ -1372,17 +1372,15 @@
       "locked": {
         "lastModified": 1757353736,
         "narHash": "sha256-HhpgC/k8tw31rCnT/GK+Ua4VumkII1opCtZv7LsqXbA=",
-        "ref": "main",
+        "owner": "IanHollow",
+        "repo": "nix-secrets",
         "rev": "767032df2f615f3b1a04e9df5865adb3a0283306",
-        "shallow": true,
-        "type": "git",
-        "url": "ssh://git@github.com/IanHollow/nix-secrets.git"
+        "type": "github"
       },
       "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "ssh://git@github.com/IanHollow/nix-secrets.git"
+        "owner": "IanHollow",
+        "repo": "nix-secrets",
+        "type": "github"
       }
     },
     "nixd": {
@@ -1409,6 +1407,21 @@
       "original": {
         "owner": "nix-community",
         "repo": "nixd",
+        "type": "github"
+      }
+    },
+    "nixos-hardware": {
+      "locked": {
+        "lastModified": 1764440730,
+        "narHash": "sha256-ZlJTNLUKQRANlLDomuRWLBCH5792x+6XUJ4YdFRjtO4=",
+        "owner": "NixOS",
+        "repo": "nixos-hardware",
+        "rev": "9154f4569b6cdfd3c595851a6ba51bfaa472d9f3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixos-hardware",
         "type": "github"
       }
     },
@@ -1590,6 +1603,7 @@
         "nix-minecraft": "nix-minecraft",
         "nix-secrets": "nix-secrets",
         "nixd": "nixd",
+        "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
         "nixvim": "nixvim",
         "nur-rycee": "nur-rycee",

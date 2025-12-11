@@ -14,19 +14,7 @@
       inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
 
     # Set to UWSM to false as we are manually setting it
-    withUWSM = false;
-  };
-
-  # Configure UWSM to launch Hyprland from a display manager like SDDM
-  programs.uwsm = {
-    enable = true;
-    waylandCompositors = {
-      hyprland = {
-        prettyName = "Hyprland";
-        comment = "Hyprland compositor managed by UWSM";
-        binPath = "/run/current-system/sw/bin/Hyprland";
-      };
-    };
+    withUWSM = true;
   };
 
   xdg.portal = {

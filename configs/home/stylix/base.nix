@@ -1,6 +1,6 @@
 { inputs, ... }:
 {
-  imports = [ inputs.stylix.nixosModules.stylix ];
+  imports = [ inputs.stylix.homeModules.stylix ];
   stylix = {
     enable = true; # enable Stylix
     autoEnable = true; # auto enable Stylix for all applications
