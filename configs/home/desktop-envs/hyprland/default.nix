@@ -8,7 +8,7 @@
 let
   hyprPkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
   nixosHyprland = args ? nixosConfig && args.nixosConfig.programs.hyprland.enable;
-  withUWSM = args.nixosConfig.programs.hyprland.withUWSM;
+  inherit (args.nixosConfig.programs.hyprland) withUWSM;
   usingUWSMHyprland = nixosHyprland && withUWSM;
 in
 {

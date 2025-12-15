@@ -56,7 +56,7 @@ in
     (lib.mkIf (isDarwin && (args ? darwinConfig)) {
       XDG_RUNTIME_DIR =
         let
-          uid = args.darwinConfig.users.users.${config.home.username}.uid;
+          inherit (args.darwinConfig.users.users.${config.home.username}) uid;
         in
         "/tmp/user-${toString uid}";
     })
@@ -64,7 +64,7 @@ in
     (lib.mkIf (isLinux && (args ? nixosConfig)) {
       XDG_RUNTIME_DIR =
         let
-          uid = args.nixosConfig.users.users.${config.home.username}.uid;
+          inherit (args.nixosConfig.users.users.${config.home.username}) uid;
         in
         "/run/user/${toString uid}";
     })

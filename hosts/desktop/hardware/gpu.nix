@@ -6,9 +6,7 @@
   ...
 }:
 {
-  imports = [
-    inputs.nixos-hardware.nixosModules.common-gpu-nvidia
-  ];
+  imports = [ inputs.nixos-hardware.nixosModules.common-gpu-nvidia ];
   config = lib.mkMerge [
     {
       services.xserver.videoDrivers = [ "nvidia" ];
@@ -30,9 +28,11 @@
           let
             nvidiaPkgs = config.boot.kernelPackages.nvidiaPackages;
             isNewer =
-              version1: version2: if (builtins.compareVersions version1 version2) > 0 then true else false;
+              version1: version2:
+              if (builtins.compareVersions version1 version2) > 0 then true else false;
             chooseDriver =
-              driver1: driver2: if (isNewer driver1.version driver2.version) then driver1 else driver2;
+              driver1: driver2:
+              if (isNewer driver1.version driver2.version) then driver1 else driver2;
 
             inherit (nvidiaPkgs) beta;
             prod = nvidiaPkgs.production;
