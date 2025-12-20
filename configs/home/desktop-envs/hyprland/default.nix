@@ -61,6 +61,10 @@ in
       # Java Variables
       export _JAVA_AWT_WM_NONREPARENTING=1
 
+      # Disable systemd
+      export HYPRLAND_NO_SD_VARS=1
+      export HYPRLAND_NO_SD_NOTIFY=1
+
       # Other
       export MOZ_ENABLE_WAYLAND=1
     ''
