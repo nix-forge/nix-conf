@@ -28,6 +28,18 @@
       base.packages
       # secrets
       users
+      (
+        { pkgs, ... }:
+        {
+          programs.nix-ld = {
+            enable = true;
+            libraries = [
+              pkgs.libxcrypt
+              pkgs.libxcrypt-legacy
+            ];
+          };
+        }
+      )
 
       ## Boot
       boot.generic
