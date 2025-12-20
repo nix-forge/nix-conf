@@ -2,8 +2,9 @@
 {
   imports = [ inputs.stylix.homeModules.stylix ];
   stylix = {
-    enable = true; # enable Stylix
-    autoEnable = true; # auto enable Stylix for all applications
+    enable = true;
+    autoEnable = true;
+    overlays.enable = false;
 
     polarity = "dark";
 
