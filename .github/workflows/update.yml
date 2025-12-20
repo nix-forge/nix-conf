@@ -72,6 +72,7 @@ jobs:
             automated
           branch: ${{ env.UPDATE_BRANCH }}
           inputs: ${{ steps['flake-inputs'].outputs.inputs }}
+          token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
       - name: Ensure co-author trailer on flake commit
         if: steps.update.outputs.pull-request-url != '' && steps.update.outputs.pull-request-operation != 'closed'
         env:
