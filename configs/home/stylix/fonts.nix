@@ -50,10 +50,7 @@
         "Noto Sans Mono CJK JP"
         "Noto Sans Mono CJK KR"
       ];
-      emoji = [
-        config.stylix.fonts.emoji.name
-        "Noto Color Emoji"
-      ];
+      emoji = [ config.stylix.fonts.emoji.name ];
     };
   };
 }

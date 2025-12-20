@@ -24,6 +24,7 @@
 
   fonts.fontconfig = {
     enable = true;
+    useEmbeddedBitmaps = true;
     defaultFonts = {
       serif = [
         config.stylix.fonts.serif.name
@@ -50,10 +51,7 @@
         "Noto Sans Mono CJK JP"
         "Noto Sans Mono CJK KR"
       ];
-      emoji = [
-        config.stylix.fonts.emoji.name
-        "Noto Color Emoji"
-      ];
+      emoji = [ config.stylix.fonts.emoji.name ];
     };
   };
 }
