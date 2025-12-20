@@ -64,7 +64,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   { programs.ripgrep.enable = true; }
   (install pkgs.nixfmt)
   (install pkgs.just)
-  (install pkgs.prek)
+  # (install pkgs.prek)
   { home.shellAliases.pre-commit = "prek"; }
   (install pkgs.shfmt)
   (install pkgs.shellcheck)
