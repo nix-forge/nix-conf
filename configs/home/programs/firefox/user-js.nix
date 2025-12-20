@@ -55,10 +55,11 @@ in
           "browser.startup.homepage_override.mstone" = "ignore";
 
           # Fonts
-          # From Firefox Arch Wiki: https://wiki.archlinux.org/title/Firefox#Font_troubleshooting
           "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127; # Increase the maximum number of generic substitutions (127 is the highest possible value)
           "font.name-list.emoji" = "emoji"; # Use system emoji font
-          "gfx.font_rendering.opentype_svg.enabled" = false; # Prevent Mozilla font from interfering with system emoji font
+          "gfx.font_rendering.opentype_svg.enabled" = true;
+          "privacy.fingerprintingProtection.overrides" =
+            "-FontVisibilityBaseSystem,-FontVisibilityLangPack";
 
           # Downloads
           "browser.download.always_ask_before_handling_new_types" = false; # NOTE: This can be annoying when true as each new file type will asked where to be downloaded
