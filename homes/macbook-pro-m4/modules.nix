@@ -16,7 +16,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   ## Base
   base.version
   base.fonts
-  (base.xdg { uid = 501; })
+  base.xdg
   # ./hardware
   ./secrets.nix
   # (base.mime { })

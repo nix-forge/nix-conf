@@ -3,7 +3,7 @@
   pkgs,
   config,
   ...
-}@args:
+}:
 let
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
 in
@@ -24,49 +24,39 @@ in
 
   home.preferXdgDirectories = config.xdg.enable;
 
-  launchd.agents = lib.mkIf isDarwin {
-    xdg-runtime =
-      let
-        setXdgRuntime = pkgs.writeShellScript "hm-set-xdg-runtime" ''
-          set -euo pipefail
-          uid="$(/usr/bin/id -u)"
-          dir="/tmp/user-$uid"
-          /bin/mkdir -p "$dir"
-          /bin/chmod 700 "$dir"
-          # Runs as your user, so owner is already correct.
-          /bin/launchctl setenv XDG_RUNTIME_DIR "$dir"
-        '';
-      in
+  launchd.agents =
+    lib.mkIf
+      (
+        isDarwin
+        && config.xdg.enable
+        && (config.home.uid != null)
+        && (builtins.hasAttr "XDG_RUNTIME_DIR" config.home.sessionVariables)
+      )
       {
-        enable = true;
-        config = {
-          Label = "dev.user.set-xdg-runtime-dir";
-          ProgramArguments = [ (lib.getExe' setXdgRuntime "hm-set-xdg-runtime") ];
-          RunAtLoad = true; # set on login
-          KeepAlive = false;
-          ProcessType = "Background";
-          # StandardOutPath = "${config.xdg.stateHome}/xdg-runtime.out";
-          # StandardErrorPath = "${config.xdg.stateHome}/xdg-runtime.err";
-        };
+        make-xdg-runtime-dir =
+          let
+            makeXdgRuntimeDir = pkgs.writeShellScript "hm-make-xdg-runtime-dir" ''
+              set -euo pipefail
+              /bin/mkdir -p "${config.home.sessionVariables.XDG_RUNTIME_DIR}"
+              /bin/chmod 700 "${config.home.sessionVariables.XDG_RUNTIME_DIR}"
+              /bin/launchctl setenv XDG_RUNTIME_DIR "${config.home.sessionVariables.XDG_RUNTIME_DIR}"
+            '';
+          in
+          {
+            enable = true;
+            config = {
+              Label = "dev.user.hm-make-xdg-runtime-dir";
+              ProgramArguments = [
+                (lib.getExe' makeXdgRuntimeDir "hm-make-xdg-runtime-dir")
+              ];
+              RunAtLoad = true;
+              KeepAlive = false;
+              ProcessType = "Background";
+            };
+          };
       };
-  };
 
-  # TODO: write linux based module to set XDG_RUNTIME_DIR
-  home.sessionVariables = lib.mkMerge [
-    (lib.mkIf (isDarwin && (args ? darwinConfig)) {
-      XDG_RUNTIME_DIR =
-        let
-          inherit (args.darwinConfig.users.users.${config.home.username}) uid;
-        in
-        "/tmp/user-${toString uid}";
-    })
-
-    (lib.mkIf (isLinux && (args ? nixosConfig)) {
-      XDG_RUNTIME_DIR =
-        let
-          inherit (args.nixosConfig.users.users.${config.home.username}) uid;
-        in
-        "/run/user/${toString uid}";
-    })
-  ];
+  home.sessionVariables.XDG_RUNTIME_DIR =
+    lib.mkIf (config.home.uid != null)
+      "/${if isLinux then "run" else "tmp"}/user/${toString config.home.uid}";
 }

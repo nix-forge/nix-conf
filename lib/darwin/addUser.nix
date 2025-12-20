@@ -174,6 +174,8 @@ lib.mkMerge [
             );
           };
         }
+
+        { home = { inherit uid; }; }
       ];
   })
 ]
