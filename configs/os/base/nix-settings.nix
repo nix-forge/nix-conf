@@ -1,82 +1,79 @@
+{ config, pkgs, ... }:
 {
-  lib,
-  config,
-  pkgs,
-  ...
-}:
-{
-  nix.settings = {
+  nix = {
+    settings = {
 
-    # let the system decide the number of max jobs
-    max-jobs = "auto";
-    eval-cores = 0;
-    cores = 0;
+      # let the system decide the number of max jobs
+      max-jobs = "auto";
+      eval-cores = 0;
+      cores = 0;
 
-    allowed-users = [ "*" ];
+      allowed-users = [ "*" ];
 
-    # only allow sudo users to manage the nix store
-    trusted-users = [
-      "root"
-      "@wheel"
-      "@sudo"
-      "nix-builder"
-    ];
+      # only allow sudo users to manage the nix store
+      trusted-users = [
+        "root"
+        "@wheel"
+        "@sudo"
+        "nix-builder"
+      ];
 
-    # build inside sandboxed environments
-    sandbox = true;
-    sandbox-fallback = false;
+      # build inside sandboxed environments
+      sandbox = true;
+      sandbox-fallback = false;
 
-    # continue building derivations if one fails
-    keep-going = true;
+      # continue building derivations if one fails
+      keep-going = true;
 
-    # If we haven't received data for >= 20s, retry the download
-    stalled-download-timeout = 20;
+      # If we haven't received data for >= 20s, retry the download
+      stalled-download-timeout = 20;
 
-    # bail early on missing cache hits
-    connect-timeout = 5;
+      # bail early on missing cache hits
+      connect-timeout = 5;
 
-    # show more log lines for failed builds
-    log-lines = 30;
+      # show more log lines for failed builds
+      log-lines = 30;
 
-    # enable extra experimental features
-    extra-experimental-features = [
-      "nix-command"
-      "flakes"
-      "parallel-eval"
-      "parse-toml-timestamps"
-      "pipe-operators"
-      "blake3-hashes"
-      "verified-fetches"
-      "fetch-tree"
-      "git-hashing"
-      "external-builders"
+      # enable extra experimental features
+      extra-experimental-features = [
+        "nix-command"
+        "flakes"
+        "parallel-eval"
+        "parse-toml-timestamps"
+        "pipe-operators"
+        "blake3-hashes"
+        "verified-fetches"
+        "fetch-tree"
+        "git-hashing"
+        "external-builders"
 
-      "cgroups"
-      "auto-allocate-uids"
-    ];
+        "cgroups"
+        "auto-allocate-uids"
+      ];
 
-    # don't warn that my git tree is dirty it is known through git
-    warn-dirty = false;
+      # don't warn that my git tree is dirty it is known through git
+      warn-dirty = false;
 
-    # maximum number of parallel TCP connections used to fetch imports and binary caches, 0 means no limit
-    http-connections = 35;
+      # maximum number of parallel TCP connections used to fetch imports and binary caches, 0 means no limit
+      http-connections = 35;
 
-    # Whether to accept nix configuration from a flake without displaying a Y/N prompt.
-    accept-flake-config = false;
+      # Whether to accept nix configuration from a flake without displaying a Y/N prompt.
+      accept-flake-config = false;
 
-    # for direnv GC roots
-    keep-derivations = true;
-    keep-outputs = true;
+      # for direnv GC roots
+      keep-derivations = true;
+      keep-outputs = true;
 
-    # use binary cache, this is not gentoo
-    # external builders can also pick up those substituters
-    builders-use-substitutes = true;
+      # use binary cache, this is not gentoo
+      # external builders can also pick up those substituters
+      builders-use-substitutes = true;
 
-    # Extra Experimental Features
-    auto-allocate-uids = true;
-    use-cgroups = pkgs.stdenv.hostPlatform.isLinux;
+      # Extra Experimental Features
+      auto-allocate-uids = true;
+      use-cgroups = pkgs.stdenv.hostPlatform.isLinux;
+    };
+    extraOptions = ''
+      !include ${config.age.secrets.nix-access-tokens.path}
+    '';
   };
-  environment.etc."nix/nix.custom.conf".text = lib.mkAfter ''
-    !include ${config.age.secrets.nix-access-tokens.path}
-  '';
 }
