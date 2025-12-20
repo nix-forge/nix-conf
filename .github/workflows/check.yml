@@ -21,7 +21,9 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.event_name == 'workflow_call' && format('flake-checks-{0}', github.run_id) || format('flake-checks-{0}', github.ref) }}
+  group:
+    ${{ github.event_name == 'workflow_call' && format('flake-checks-{0}',
+    github.run_id) || format('flake-checks-{0}', github.ref) }}
   cancel-in-progress: true
 jobs:
   flake-check:
@@ -50,4 +52,7 @@ jobs:
         with:
           use-flakehub: false
       - name: Run nix flake check
-        run: nix flake check --accept-flake-config --option allow-import-from-derivation false --show-trace
+        run:
+          nix flake check --accept-flake-config --option
+          allow-import-from-derivation false --show-trace --access-tokens
+          github.com=${{secrets.GH_TOKEN_FOR_UPDATES}}
