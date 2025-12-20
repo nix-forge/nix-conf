@@ -1,6 +1,6 @@
 { inputs, ... }:
 {
-  imports = [ inputs.nix-gaming-custom.nixosModules.pipewireLowLatency ];
+  imports = [ inputs.nix-gaming.nixosModules.pipewireLowLatency ];
 
   services.pipewire =
     let
@@ -28,7 +28,6 @@
           enable = true;
           format = "S24_3LE";
           devicePattern = "~alsa_output.usb-Generic_USB_Audio-00.*";
-          periodSize = 128;
         };
       };
     };

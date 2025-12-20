@@ -200,13 +200,6 @@
         # Don't overwrite nixpkgs as this could cause cache miss
       };
     };
-    nix-gaming-custom = {
-      url = "github:IanHollow/nix-gaming";
-      inputs = {
-        flake-parts.follows = "flake-parts";
-        # Don't overwrite nixpkgs as this could cause cache miss
-      };
-    };
 
     # Firefox BetterFox
     # TODO: use a package instead of a flake
