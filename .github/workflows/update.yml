@@ -24,6 +24,8 @@ jobs:
       pr-branch: ${{ steps.update.outputs.pull-request-url && env.UPDATE_BRANCH || '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
       - uses: DeterminateSystems/determinate-nix-action@v3
         with:
           github-token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
