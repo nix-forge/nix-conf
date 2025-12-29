@@ -58,6 +58,9 @@ jobs:
     with:
       ref: ${{ needs.nix-flake-update.outputs.pr-branch }}
     secrets: inherit
+    permissions:
+      contents: read
+      id-token: write
   auto-merge:
     name: Enable auto-merge
     needs: [nix-flake-update, flake-policy, check]
