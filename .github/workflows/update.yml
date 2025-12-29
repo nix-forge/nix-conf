@@ -67,7 +67,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Enable auto-merge
-        run: gh pr merge "${PR_URL##*/}" --auto --rebase
+        run: gh pr merge "${PR_URL##*/}" --auto --rebase --repo "$GITHUB_REPOSITORY"
         env:
           PR_URL: ${{ needs.nix-flake-update.outputs.pr-url }}
           GH_TOKEN: ${{ github.token }}
@@ -80,7 +80,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Close PR
-        run: gh pr close "$PR_URL" --comment "Closing due to failed checks"
+        run: gh pr close "$PR_URL" --comment "Closing due to failed checks" --repo "$GITHUB_REPOSITORY"
         env:
           PR_URL: ${{ needs.nix-flake-update.outputs.pr-url }}
           GH_TOKEN: ${{ github.token }}
