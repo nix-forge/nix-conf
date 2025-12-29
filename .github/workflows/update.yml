@@ -27,14 +27,10 @@ jobs:
       - uses: DeterminateSystems/determinate-nix-action@v3
         with:
           github-token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
-      - name: Gather flake inputs
-        id: flake-inputs
-        run: scripts/list-public-flake-inputs.sh
       - name: Update flake.lock
         id: update
         uses: DeterminateSystems/update-flake-lock@v28
         with:
-          inputs: ${{ steps.flake-inputs.outputs.inputs }}
           branch: ${{ env.UPDATE_BRANCH }}
           pr-title: Update Nix flake inputs
           pr-body: Automated update of the Nix flake lock file.
