@@ -1,17 +1,9 @@
 name: Flake Checks
 on:
   pull_request:
-    paths:
-      - "**.nix"
-      - "flake.lock"
-      - "flake.nix"
-      - ".github/workflows/check.yml"
+    paths: ["**.nix", flake.lock, flake.nix, .github/workflows/check.yml]
   push:
-    paths:
-      - "**.nix"
-      - "flake.lock"
-      - "flake.nix"
-      - ".github/workflows/check.yml"
+    paths: ["**.nix", flake.lock, flake.nix, .github/workflows/check.yml]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -20,8 +12,9 @@ on:
         type: string
 permissions:
   contents: read
+  id-token: write
 concurrency:
-  group: ${{ github.event_name == 'workflow_call' && format('flake-checks-{0}', github.run_id) || format('flake-checks-{0}', github.ref) }}
+  group: check-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
   cancel-in-progress: true
 jobs:
   flake-check:
@@ -37,17 +30,10 @@ jobs:
           - os: macos-latest
             system: aarch64-darwin
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v21
-      - name: Configure Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: DeterminateSystems/determinate-nix-action@v3
         with:
-          use-flakehub: false
-      - name: Run nix flake check
-        run: nix flake check --accept-flake-config --option allow-import-from-derivation false --show-trace --access-tokens github.com=${{secrets.GH_TOKEN_FOR_UPDATES}}
+          github-token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
+      - run: nix flake check --accept-flake-config --no-allow-import-from-derivation --show-trace

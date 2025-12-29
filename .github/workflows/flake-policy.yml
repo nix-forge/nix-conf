@@ -1,13 +1,9 @@
 name: Flake Policy
 on:
   pull_request:
-    paths:
-      - "flake.lock"
-      - ".github/workflows/flake-policy.yml"
+    paths: [flake.lock, .github/workflows/flake-policy.yml]
   push:
-    paths:
-      - "flake.lock"
-      - ".github/workflows/flake-policy.yml"
+    paths: [flake.lock, .github/workflows/flake-policy.yml]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -17,21 +13,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-policy
+  group: policy-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   policy:
     name: Validate flake inputs
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
-          fetch-depth: 0
-      - name: Check Nix flake policy
-        uses: DeterminateSystems/flake-checker-action@v12
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: DeterminateSystems/flake-checker-action@v12
         with:
           ignore-missing-flake-lock: false
           fail-mode: true

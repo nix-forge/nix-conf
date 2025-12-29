@@ -1,13 +1,15 @@
-name: "Update Nix Flake"
+name: Update Nix Flake
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * 0"
+    - cron: 0 0 * * 0 # Weekly on Sunday
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: update-flake
   cancel-in-progress: true
+env:
+  UPDATE_BRANCH: update-flake-inputs
 jobs:
   nix-flake-update:
     name: Update flake.lock
@@ -15,44 +17,16 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      issues: write
       pull-requests: write
-    env:
-      UPDATE_BRANCH: update-flake-inputs
     outputs:
-      pr-url: ${{ steps.metadata.outputs.pr-url }}
-      pr-branch: ${{ steps.metadata.outputs.pr-branch }}
-      pr-operation: ${{ steps.metadata.outputs.pr-operation }}
+      pr-url: ${{ steps.update.outputs.pull-request-url }}
+      pr-operation: ${{ steps.update.outputs.pull-request-operation }}
+      pr-branch: ${{ steps.update.outputs.pull-request-url && env.UPDATE_BRANCH || '' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/determinate-nix-action@v3
         with:
-          token: ${{ github.token }}
-          persist-credentials: true
-          fetch-depth: 0
-      - name: Determine pair metadata
-        id: pair
-        env:
-          OWNER: ${{ github.repository_owner }}
-          TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          data=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/users/$OWNER")
-          name=$(echo "$data" | jq -r '.name // .login')
-          id=$(echo "$data" | jq -r '.id')
-          if [ -z "$id" ] || [ "$id" = "null" ]; then
-            echo "Failed to determine user id for $OWNER" >&2
-            exit 1
-          fi
-          email="${id}+${OWNER}@users.noreply.github.com"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "email=$email" >> "$GITHUB_OUTPUT"
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v21
-      - name: Configure Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v13
-        with:
-          use-flakehub: false
+          github-token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
       - name: Gather flake inputs
         id: flake-inputs
         run: scripts/list-public-flake-inputs.sh
@@ -60,56 +34,14 @@ jobs:
         id: update
         uses: DeterminateSystems/update-flake-lock@v28
         with:
-          commit-msg: |
-            flake.lock: update Nix inputs
-
-            Co-authored-by: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
-          pr-title: "Update Nix flake inputs"
-          pr-body: |
-            Automated update of the Nix flake lock file.
+          inputs: ${{ steps.flake-inputs.outputs.inputs }}
+          branch: ${{ env.UPDATE_BRANCH }}
+          pr-title: Update Nix flake inputs
+          pr-body: Automated update of the Nix flake lock file.
           pr-labels: |
             dependencies
             automated
-          branch: ${{ env.UPDATE_BRANCH }}
-          inputs: ${{ steps['flake-inputs'].outputs.inputs }}
           token: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
-      - name: Ensure co-author trailer on flake commit
-        if: steps.update.outputs.pull-request-url != '' && steps.update.outputs.pull-request-operation != 'closed'
-        env:
-          BRANCH: ${{ env.UPDATE_BRANCH }}
-          CO_AUTHOR: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          original_branch=$(git rev-parse --abbrev-ref HEAD)
-          git fetch origin "$BRANCH"
-          git checkout -B "$BRANCH" "origin/$BRANCH"
-          if git log -1 --pretty=%B | grep -Fq "Co-authored-by: $CO_AUTHOR"; then
-            git checkout "$original_branch"
-            exit 0
-          fi
-          tmp=$(mktemp)
-          git log -1 --pretty=%B > "$tmp"
-          printf '\nCo-authored-by: %s\n' "$CO_AUTHOR" >> "$tmp"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --amend -F "$tmp"
-          git push origin "HEAD:$BRANCH" --force-with-lease
-          git checkout "$original_branch"
-      - name: Capture update metadata
-        id: metadata
-        env:
-          PR_URL: ${{ steps.update.outputs.pull-request-url }}
-          PR_OPERATION: ${{ steps.update.outputs.pull-request-operation }}
-          UPDATE_BRANCH: ${{ env.UPDATE_BRANCH }}
-        run: |
-          echo "pr-url=${PR_URL}" >> "$GITHUB_OUTPUT"
-          echo "pr-operation=${PR_OPERATION}" >> "$GITHUB_OUTPUT"
-          if [ -n "$PR_URL" ]; then
-            echo "pr-branch=${UPDATE_BRANCH}" >> "$GITHUB_OUTPUT"
-          else
-            echo "pr-branch=" >> "$GITHUB_OUTPUT"
-          fi
   flake-policy:
     name: Flake policy validation
     needs: nix-flake-update
@@ -119,7 +51,7 @@ jobs:
       ref: ${{ needs.nix-flake-update.outputs.pr-branch }}
     secrets: inherit
   check:
-    name: Flake checks on update branch
+    name: Flake checks
     needs: [nix-flake-update, flake-policy]
     if: needs.nix-flake-update.outputs.pr-branch != '' && needs.nix-flake-update.outputs.pr-operation != 'closed'
     uses: ./.github/workflows/check.yml
@@ -135,74 +67,35 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Extract PR number
-        id: pr-number
-        run: |
-          pr_url="${{ needs.nix-flake-update.outputs.pr-url }}"
-          if [ -z "$pr_url" ]; then
-            echo "No pull request URL provided" >&2
-            exit 1
-          fi
-          echo "number=${pr_url##*/}" >> "$GITHUB_OUTPUT"
-      - name: Enable PR auto-merge
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ github.token }}
-          pull-request-number: ${{ steps.pr-number.outputs.number }}
-          merge-method: rebase
+      - name: Enable auto-merge
+        run: gh pr merge "${PR_URL##*/}" --auto --rebase
+        env:
+          PR_URL: ${{ needs.nix-flake-update.outputs.pr-url }}
+          GH_TOKEN: ${{ github.token }}
   close-pr-on-failure:
     name: Close PR on failure
     needs: [nix-flake-update, flake-policy, check]
-    if: needs.nix-flake-update.outputs.pr-url != '' && always()
+    if: failure() && needs.nix-flake-update.outputs.pr-url != ''
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Close PR if validation failed
+      - name: Close PR
+        run: gh pr close "$PR_URL" --comment "Closing due to failed checks"
         env:
           PR_URL: ${{ needs.nix-flake-update.outputs.pr-url }}
-          PR_OPERATION: ${{ needs.nix-flake-update.outputs.pr-operation }}
-          POLICY_RESULT: ${{ needs.flake-policy.result }}
-          CHECK_RESULT: ${{ needs.check.result }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if [ -z "$PR_URL" ]; then
-            echo "No PR to close"
-            exit 0
-          fi
-          if [ "$PR_OPERATION" = "closed" ]; then
-            echo "PR already closed"
-            exit 0
-          fi
-          failed=false
-          for result in "$POLICY_RESULT" "$CHECK_RESULT"; do
-            case "$result" in
-              failure|cancelled|timed_out)
-                failed=true
-                ;;
-            esac
-          done
-          if [ "$failed" = false ]; then
-            echo "No failures detected; leaving PR open"
-            exit 0
-          fi
-          pr_number=${PR_URL##*/}
-          echo "Closing PR #$pr_number due to failed checks"
-          gh pr close "$PR_URL"
   trigger-package-updates:
     name: Trigger package updates
     needs: [nix-flake-update, check]
-    if: ( needs.nix-flake-update.outputs.pr-branch == '' && needs.nix-flake-update.outputs.pr-operation != 'closed' ) || needs.check.result == 'success'
+    if: needs.nix-flake-update.outputs.pr-branch == '' || needs.check.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Dispatch Update Packages workflow
-        uses: actions/github-script@v8
+      - uses: actions/github-script@v8
         with:
-          github-token: ${{ github.token }}
-          script: |
+          script: |-
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,

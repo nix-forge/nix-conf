@@ -1,124 +1,65 @@
-name: "Update Packages"
+name: Update Packages
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: 0 6 * * 1 # Weekly on Monday
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: update-packages
   cancel-in-progress: true
+env:
+  UPDATE_BRANCH: update-packages
 jobs:
   package-updates:
     name: Update packaged sources
     runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.git-status.outputs.changed }}
-      update-branch: ${{ env.UPDATE_BRANCH }}
-      pr-number: ${{ steps.create-pr.outputs.pull-request-number }}
     permissions:
       contents: write
       id-token: write
-      issues: write
       pull-requests: write
-    env:
-      UPDATE_BRANCH: update-packages
-      PR_BODY_PATH: /tmp/update-packages-body.md
+    outputs:
+      changed: ${{ steps.git-status.outputs.changed }}
+      pr-number: ${{ steps.create-pr.outputs.pull-request-number }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/determinate-nix-action@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Determine pair metadata
-        id: pair
-        env:
-          OWNER: ${{ github.repository_owner }}
-          TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          data=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/users/$OWNER")
-          name=$(echo "$data" | jq -r '.name // .login')
-          id=$(echo "$data" | jq -r '.id')
-          if [ -z "$id" ] || [ "$id" = "null" ]; then
-            echo "Failed to determine user id for $OWNER" >&2
-            exit 1
-          fi
-          email="${id}+${OWNER}@users.noreply.github.com"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "email=$email" >> "$GITHUB_OUTPUT"
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v21
-      - name: Configure Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v13
-        with:
-          use-flakehub: false
+          github-token: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
       - name: Run package update scripts
+        run: ./scripts/run-package-update-scripts.sh
         env:
           SYSTEM: x86_64-linux
-          SUMMARY_FILE: ${{ env.PR_BODY_PATH }}
-        run: ./scripts/run-package-update-scripts.sh
+          SUMMARY_FILE: /tmp/update-packages-body.md
       - name: Format Nix code
         run: nix fmt
       - name: Check for changes
         id: git-status
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "changed=$(git diff --quiet && echo false || echo true)" >> "$GITHUB_OUTPUT"
       - name: Create Pull Request
         id: create-pr
         if: steps.git-status.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: |
-            packages: update sources
-
-            Co-authored-by: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
-          title: "Update packaged sources"
-          body-path: ${{ env.PR_BODY_PATH }}
+          commit-message: "packages: update sources"
+          title: Update packaged sources
+          body-path: /tmp/update-packages-body.md
           labels: |
             dependencies
             automated
           branch: ${{ env.UPDATE_BRANCH }}
           delete-branch: true
-      - name: Ensure co-author trailer on package commit
-        if: steps.git-status.outputs.changed == 'true'
-        env:
-          BRANCH: ${{ env.UPDATE_BRANCH }}
-          CO_AUTHOR: ${{ steps.pair.outputs.name }} <${{ steps.pair.outputs.email }}>
-        run: |
-          set -euo pipefail
-          original_branch=$(git rev-parse --abbrev-ref HEAD)
-          git fetch origin "$BRANCH"
-          git checkout -B "$BRANCH" "origin/$BRANCH"
-          if git log -1 --pretty=%B | grep -Fq "Co-authored-by: $CO_AUTHOR"; then
-            git checkout "$original_branch"
-            exit 0
-          fi
-          tmp=$(mktemp)
-          git log -1 --pretty=%B > "$tmp"
-          printf '\nCo-authored-by: %s\n' "$CO_AUTHOR" >> "$tmp"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --amend -F "$tmp"
-          git push origin "HEAD:$BRANCH" --force-with-lease
-          git checkout "$original_branch"
   auto-merge:
     name: Enable auto-merge
-    needs:
-      - package-updates
+    needs: package-updates
     if: needs.package-updates.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - name: Enable PR auto-merge
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ needs.package-updates.outputs.pr-number }}
-          merge-method: rebase
+      - name: Enable auto-merge
+        run: gh pr merge "$PR_NUMBER" --auto --rebase
+        env:
+          PR_NUMBER: ${{ needs.package-updates.outputs.pr-number }}
+          GH_TOKEN: ${{ github.token }}
