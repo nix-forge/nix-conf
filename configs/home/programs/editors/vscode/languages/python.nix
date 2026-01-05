@@ -29,8 +29,14 @@ in
       };
 
       "ruff.path" = [ (lib.getExe pkgs.ruff) ];
+      "ruff.lint.ignore" = [
+        "ERA001"
+        "W293"
+        "F841"
+      ];
+      "errorLens.excludeBySource" = [ "Ruff" ];
 
-      "python.analysis.autoImportCompletions" = true;
+      "python.analysis.autoImportCompletions" = false;
       "python.analysis.typeCheckingMode" = "standard";
 
       "python.terminal.activateEnvironment" = false;
