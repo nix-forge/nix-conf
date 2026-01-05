@@ -16,7 +16,6 @@
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-cjk-serif
-    noto-fonts-color-emoji
     noto-fonts-lgc-plus
 
     # Adobe Fonts
@@ -47,9 +46,11 @@
     lexend
 
     # Emoji fonts
+    noto-fonts-color-emoji
     twemoji-color-font
+    twitter-color-emoji
     openmoji-color
-    openmoji-black
+    (joypixels.override { acceptLicense = true; })
 
     # Microsoft Fonts
     self.packages.${system}.ttf-ms-win11-auto
