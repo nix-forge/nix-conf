@@ -49,6 +49,7 @@
       "chatgpt"
       "steam"
       "zoom"
+      "raspberry-pi-imager"
     ];
     brews = [ "prek" ];
 
