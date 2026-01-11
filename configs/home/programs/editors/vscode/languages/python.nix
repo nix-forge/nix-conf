@@ -11,6 +11,7 @@ in
       ms-python.debugpy
 
       charliermarsh.ruff
+      astral-sh.ty
       ms-python.mypy-type-checker
 
       kevinrose.vsc-python-indent
@@ -40,6 +41,8 @@ in
       "python.analysis.typeCheckingMode" = "standard";
 
       "python.terminal.activateEnvironment" = false;
+
+      # "python.languageServer" = "None";
     };
   };
 }
