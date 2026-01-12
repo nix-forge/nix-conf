@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+_:
 let
   caches = {
     extra-substituters = [
@@ -16,7 +16,8 @@ let
     ];
   };
 in
-lib.mkMerge [
-  (lib.mkIf config.nix.enable { nix.settings = caches; })
-  (lib.mkIf (!config.nix.enable) { determinate-nix.customSettings = caches; })
-]
+# Use determinateNix.enable instead of nix.enable to avoid infinite recursion
+# (determinateNix controls nix.enable internally)
+{
+  determinateNix.customSettings = caches;
+}

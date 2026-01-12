@@ -12,7 +12,7 @@ let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
 
   spotifyPackageDarwin = pkgs.spotify.overrideAttrs (old: {
-    postInstall = (old.postInstall or '''') + ''
+    postInstall = (old.postInstall or "") + ''
       # Path to the Spotify binary after install
       binary="$out/Applications/Spotify.app/Contents/MacOS/Spotify"
 

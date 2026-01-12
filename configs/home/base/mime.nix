@@ -4,8 +4,8 @@
     "code.desktop"
     "code-insiders.desktop"
   ],
-# imageViewer ? [ "gimp.desktop" ],
-# videoPlayer ? [ "vlc.desktop" ],
+  # imageViewer ? [ "gimp.desktop" ],
+  # videoPlayer ? [ "vlc.desktop" ],
 }:
 _: {
   xdg.mimeApps = {
