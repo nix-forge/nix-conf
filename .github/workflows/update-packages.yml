@@ -58,6 +58,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - uses: actions/checkout@v6
       - name: Enable auto-merge
         run: gh pr merge "$PR_NUMBER" --auto --rebase
         env:
