@@ -85,7 +85,6 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (install pkgs.shfmt)
   (install pkgs.shellcheck)
   { services.ollama.enable = true; }
-  (install pkgs.github-copilot-cli)
   (install pkgs.pnpm)
   (install pkgs.nodejs)
   (install pkgs.mermaid-cli)
