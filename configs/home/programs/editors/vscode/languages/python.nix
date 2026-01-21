@@ -18,6 +18,7 @@ in
 
       ms-toolsai.jupyter-renderers
       ms-toolsai.jupyter
+      google.colab
 
       njpwerner.autodocstring
       rodolphebarbanneau.python-docstring-highlighter
