@@ -4,10 +4,21 @@ profileName:
   programs.firefox.profiles.${profileName}.search = {
     force = true;
 
-    default = "ddg";
+    default = "perplexity";
     privateDefault = "ddg";
 
     engines = {
+      perplexity = {
+        name = "Perplexity";
+        searchUrl = "https://www.perplexity.ai/search?q={searchTerms}";
+        icon = "https://www.perplexity.ai/favicon.ico";
+        definedAliases = [
+          "@perplexity"
+          "@perp"
+          "@p"
+        ];
+      };
+
       nix-packages = {
         name = "Nix Packages";
         urls = [
@@ -52,7 +63,6 @@ profileName:
         ];
       };
 
-      # TODO: Rename with nix prefix
       home-manager-options = {
         name = "Home Manager Options";
         urls = [
