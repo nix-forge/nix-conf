@@ -20,9 +20,6 @@ in
 
       ## Gemini
       google.geminicodeassist
-
-      ## Anthropic
-      anthropic.claude-code
     ]);
 
     userSettings = {
@@ -43,6 +40,9 @@ in
       "inlineChat.notebookAgent" = true;
       "github.copilot.chat.notebook.enhancedNextEditSuggestions.enabled" = true;
       "github.copilot.chat.notebook.followCellExecution.enabled" = true;
+
+      ## Gemini
+      "http.systemCertificatesNode" = true;
     };
   };
 }
