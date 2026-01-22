@@ -154,14 +154,13 @@ in
           "evenBetterToml.taplo.path" = lib.getExe pkgs.taplo;
 
           ## VCS Behavior ##
+          "git.rebaseWhenSync" = config.programs.git.settings.pull.rebase;
+          "git.pruneOnFetch" = config.programs.git.settings.fetch.prune;
+          "git.enableSmartCommit" = false;
+          "git.terminalAuthentication" = false;
           "git.openRepositoryInParentFolders" = "always";
           "git.autofetch" = true;
           "git.confirmSync" = false;
-          "git.path" =
-            if config.programs.git.enable then
-              "/etc/profiles/per-user/${config.home.username}/bin/git"
-            else
-              lib.getExe pkgs.gitMinimal;
           "git.enableCommitSigning" = lib.mkIf (
             config.programs.git.enable && config.programs.git.signing.signByDefault
           ) true;

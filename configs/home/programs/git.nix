@@ -117,7 +117,6 @@ in
             "diff3";
         autoStash = true;
         strategy = "ort";
-        ff = "only";
         stat = true;
       };
       push = {
@@ -137,6 +136,7 @@ in
         ) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
         abbrev = 12;
+        precomposeUnicode = isDarwin;
       };
       color.ui = "auto";
       feature.manyFiles = true;
@@ -179,9 +179,11 @@ in
     enable = true;
     enableGitIntegration = true;
     options = {
-      diff-so-fancy = true;
       line-numbers = true;
       true-color = "always";
+      navigate = true;
+      side-by-side = true;
+      features = "decorations";
     };
   };
 }
