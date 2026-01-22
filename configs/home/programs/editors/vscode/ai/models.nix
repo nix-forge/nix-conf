@@ -43,6 +43,8 @@ in
 
       ## Gemini
       "http.systemCertificatesNode" = true;
+      "geminicodeassist.project" = "splendid-skill-485101-j7";
+      "geminicodeassist.enableTelemetry" = false;
     };
   };
 }
