@@ -35,6 +35,7 @@ in
         "ERA001"
         "W293"
         "F841"
+        "E303"
       ];
       "errorLens.excludeBySource" = [ "Ruff" ];
 
