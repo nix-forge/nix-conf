@@ -12,12 +12,12 @@ let
     ++ lib.optionals (args ? nixosConfig) (
       lib.concatLists [
         [ "/run/wrappers/bin" ]
-        (builtins.map (p: "${p}/bin") args.nixosConfig.environment.profiles)
+        (map (p: "${p}/bin") args.nixosConfig.environment.profiles)
       ]
     );
 
   binPaths = lib.pipe paths [
-    (builtins.map (
+    (map (
       builtins.replaceStrings
         [ "$USER" "$HOME" "\${XDG_STATE_HOME}" ]
         [ config.home.username config.home.homeDirectory config.xdg.stateHome ]

@@ -14,6 +14,20 @@
         "use custom-completions/nix/nix-completions.nu *"
         "use custom-completions/ssh/ssh-completions.nu *"
         "use custom-completions/tar/tar-completions.nu *"
+        "use custom-completions/uv/uv-completions.nu *"
+        "use custom-completions/typst/typst-completions.nu *"
+        "use custom-completions/rg/rg-completions.nu *"
+        "use custom-completions/pytest/pytest-completions.nu *"
+        "use custom-completions/podman/podman-completions.nu *"
+        "use custom-completions/docker/docker-completions.nu *"
+        "use custom-completions/pre-commit/pre-commit-completions.nu *"
+        "use custom-completions/npm/npm-completions.nu *"
+        "use custom-completions/pnpm/pnpm-completions.nu *"
+        "use custom-completions/mvn/mvn-completions.nu *"
+        "use custom-completions/make/make-completions.nu *"
+        "use custom-completions/just/just-completions.nu *"
+
+        "use aliases/docker/docker-aliases.nu *"
       ]
       ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ "use modules/nix/nix.nu *" ]
       ++ lib.optionals config.programs.aerospace.enable [
@@ -21,18 +35,16 @@
       ]
       ++ lib.optionals config.programs.bat.enable [
         "use custom-completions/bat/bat-completions.nu *"
-        "use aliases/bat/bat-aliases.nu *"
       ]
       ++ lib.optionals config.programs.eza.enable [
-        # "use custom-completions/eza/eza-completions.nu *"
-        # "use aliases/eza/eza-aliases.nu *"
+        "use custom-completions/eza/eza-completions.nu *"
       ]
       ++ lib.optionals config.programs.gh.enable [
         "use custom-completions/gh/gh-completions.nu *"
       ]
       ++ lib.optionals config.programs.git.enable [
         "use custom-completions/git/git-completions.nu *"
-        # "use aliases/git/git-aliases.nu *"
+        "use aliases/git/git-aliases.nu *"
       ]
       ++ lib.optionals config.programs.man.enable [
         "use custom-completions/man/man-completions.nu *"
