@@ -9,6 +9,7 @@ let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   inherit (lib.cust.firefox) toUserJS;
 
+  # TODO: fix this by not hardcoding or switching to the new location since firefox 147
   mozillaConfigPath =
     if isDarwin then "Library/Application Support/Mozilla" else ".mozilla";
 
