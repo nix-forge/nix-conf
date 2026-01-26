@@ -69,7 +69,9 @@
   };
 
   outputs =
-    { flake-parts, ... }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; } { imports = [ ./flake ]; };
-
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import inputs.systems;
+      imports = [ ./flake ];
+    };
 }
