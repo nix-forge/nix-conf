@@ -20,7 +20,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   # ./hardware
   ./secrets.nix
   # (base.mime { })
-  (install pkgs.nh)
+  { programs.nh.enable = true; }
 
   ## Theming
   stylix
