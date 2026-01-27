@@ -380,10 +380,11 @@
         "vscode-extensions": "vscode-extensions"
       },
       "locked": {
-        "dirtyRev": "680848554eec72159289df90846c57ff8758b4e1-dirty",
-        "dirtyShortRev": "6808485-dirty",
-        "lastModified": 1769469582,
-        "narHash": "sha256-A8PFTj7PjDZ4Kb2+T7wkvqIcek2zDFwUYPTuKpHquQU=",
+        "lastModified": 1769478867,
+        "narHash": "sha256-sXzfCm8WyviyIgLRZ5ZSovTAB/UIaKayprz3KgmJ0nY=",
+        "ref": "refs/heads/refactor",
+        "rev": "dd40a9ffdfbcedeaa0873e6fb19cc8f1a187e963",
+        "revCount": 1116,
         "type": "git",
         "url": "file:///Users/ianmh/Projects/personal/nix-conf"
       },
@@ -1069,10 +1070,11 @@
         "vscode-extensions": "vscode-extensions_2"
       },
       "locked": {
-        "dirtyRev": "680848554eec72159289df90846c57ff8758b4e1-dirty",
-        "dirtyShortRev": "6808485-dirty",
-        "lastModified": 1769469582,
-        "narHash": "sha256-A8PFTj7PjDZ4Kb2+T7wkvqIcek2zDFwUYPTuKpHquQU=",
+        "lastModified": 1769478867,
+        "narHash": "sha256-sXzfCm8WyviyIgLRZ5ZSovTAB/UIaKayprz3KgmJ0nY=",
+        "ref": "refs/heads/refactor",
+        "rev": "dd40a9ffdfbcedeaa0873e6fb19cc8f1a187e963",
+        "revCount": 1116,
         "type": "git",
         "url": "file:///Users/ianmh/Projects/personal/nix-conf"
       },
