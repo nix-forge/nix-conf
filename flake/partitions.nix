@@ -3,46 +3,68 @@
   imports = [ inputs.flake-parts.flakeModules.partitions ];
 
   partitionedAttrs = {
-    # Development tools
+    nixosConfigurations = "nixos";
+    nixosModules = "nixos";
+
+    darwinConfigurations = "darwin";
+    darwinModules = "darwin";
+
+    homeConfigurations = "home";
+    homeModules = "home";
+
     checks = "dev";
     devShells = "dev";
     formatter = "dev";
-    
-    # Platform-specific configurations
-    nixosConfigurations = "nixos";
-    darwinConfigurations = "darwin";
-    homeConfigurations = "home";
   };
-  
-  # Partition definitions
-  # Each partition isolates a set of outputs and their dependencies
+
   partitions = {
-    # Development partition - for build tools, formatters, hooks
-    dev = {
-      module = {
-        imports = [ ../dev/flake ];
-      };
-    };
-    
-    # NixOS partition - for Linux system configurations
     nixos = {
-      module = {
-        imports = [ ../nixos/flake ];
+      extraInputsFlake = ../nixos;
+      module.imports = [ ../nixos ];
+      extraInputs = {
+        inherit (inputs)
+          nixpkgs
+          agenix
+          stylix
+          disko
+          ;
       };
     };
-    
-    # Darwin partition - for macOS system configurations
+
     darwin = {
-      module = {
-        imports = [ ../darwin/flake ];
+      extraInputsFlake = ../darwin;
+      module.imports = [ ../darwin ];
+      extraInputs = {
+        inherit (inputs)
+          nixpkgs
+          nix-darwin
+          agenix
+          stylix
+          ;
       };
     };
-    
-    # Home-Manager partition - for user-level configurations
+
     home = {
-      module = {
-        imports = [ ../home/flake ];
+      # extraInputsFlake = ../home;
+      module.imports = [ ../home ];
+      extraInputs = {
+        inherit (inputs)
+          nixpkgs
+          systems
+          home-manager
+          vscode-extensions
+          nur-rycee
+          agenix
+          stylix
+          spicetify-nix
+          ;
       };
+    };
+
+    dev = {
+      # extraInputsFlake = ../dev;
+      module.imports = [ ../dev ];
+      extraInputs = { inherit (inputs) git-hooks-nix treefmt-nix; };
     };
   };
 }
