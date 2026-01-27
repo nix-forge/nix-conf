@@ -380,11 +380,11 @@
         "vscode-extensions": "vscode-extensions"
       },
       "locked": {
-        "lastModified": 1769478928,
-        "narHash": "sha256-mRHhV860dBgQ/duv05eWUiI3mkvC4aqMqa8NL4JVheU=",
+        "lastModified": 1769478940,
+        "narHash": "sha256-GQXZOD5PppuV249m5VIXFbU6sKxu3MAx7fHwXmtqbek=",
         "ref": "refs/heads/refactor",
-        "rev": "fe81d9cde51620208a2beecd7933edd1dcba635d",
-        "revCount": 1118,
+        "rev": "20dd12767f28680ed0b20d3f22845a3cb30c0ab7",
+        "revCount": 1119,
         "type": "git",
         "url": "file:///Users/ianmh/Projects/personal/nix-conf"
       },
@@ -1070,11 +1070,11 @@
         "vscode-extensions": "vscode-extensions_2"
       },
       "locked": {
-        "lastModified": 1769478928,
-        "narHash": "sha256-mRHhV860dBgQ/duv05eWUiI3mkvC4aqMqa8NL4JVheU=",
+        "lastModified": 1769478940,
+        "narHash": "sha256-GQXZOD5PppuV249m5VIXFbU6sKxu3MAx7fHwXmtqbek=",
         "ref": "refs/heads/refactor",
-        "rev": "fe81d9cde51620208a2beecd7933edd1dcba635d",
-        "revCount": 1118,
+        "rev": "20dd12767f28680ed0b20d3f22845a3cb30c0ab7",
+        "revCount": 1119,
         "type": "git",
         "url": "file:///Users/ianmh/Projects/personal/nix-conf"
       },
