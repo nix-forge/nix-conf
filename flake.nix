@@ -16,6 +16,16 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
+    # Development Tools
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Package Libraries
     vscode-extensions = {
       url = "github:nix-community/nix-vscode-extensions";

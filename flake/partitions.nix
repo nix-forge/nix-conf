@@ -14,41 +14,35 @@
     homeConfigurations = "home";
   };
   
+  # Partition definitions
+  # Each partition isolates a set of outputs and their dependencies
   partitions = {
     # Development partition - for build tools, formatters, hooks
     dev = {
-      extraInputs = {
-        inherit (inputs) nixpkgs systems flake-parts;
+      module = {
+        imports = [ ../dev/flake ];
       };
-      extraInputsFlake = ../dev;
-      module.imports = [ ../dev/flake ];
     };
     
     # NixOS partition - for Linux system configurations
     nixos = {
-      extraInputs = {
-        inherit (inputs) nixpkgs;
+      module = {
+        imports = [ ../nixos/flake ];
       };
-      extraInputsFlake = ../nixos;
-      module.imports = [ ../nixos/flake ];
     };
     
     # Darwin partition - for macOS system configurations
     darwin = {
-      extraInputs = {
-        inherit (inputs) nixpkgs;
+      module = {
+        imports = [ ../darwin/flake ];
       };
-      extraInputsFlake = ../darwin;
-      module.imports = [ ../darwin/flake ];
     };
     
     # Home-Manager partition - for user-level configurations
     home = {
-      extraInputs = {
-        inherit (inputs) nixpkgs;
+      module = {
+        imports = [ ../home/flake ];
       };
-      extraInputsFlake = ../home;
-      module.imports = [ ../home/flake ];
     };
   };
 }
