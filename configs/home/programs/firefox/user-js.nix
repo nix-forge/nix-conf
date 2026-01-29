@@ -81,6 +81,9 @@ in
           "privacy.resistFingerprinting" = false;
           "browser.contentblocking.category" = "custom";
           "privacy.fingerprintingProtection" = false;
+
+          # Disable profiles from being created
+          "browser.profiles.enabled" = false;
         })
       ]
     );
