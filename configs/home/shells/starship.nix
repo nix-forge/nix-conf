@@ -109,6 +109,18 @@
         symbol = " ";
       };
 
+      c = {
+        symbol = " ";
+      };
+
+      cpp = {
+        symbol = " ";
+      };
+
+      cmake = {
+        symbol = " ";
+      };
+
       os.symbols = {
         NixOS = " ";
         Macos = " ";
