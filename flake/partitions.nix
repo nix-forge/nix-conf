@@ -19,8 +19,8 @@
 
   partitions = {
     nixos = {
-      extraInputsFlake = ../nixos;
-      module.imports = [ ../nixos ];
+      extraInputsFlake = ./nixos;
+      module.imports = [ ./nixos ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -32,8 +32,8 @@
     };
 
     darwin = {
-      extraInputsFlake = ../darwin;
-      module.imports = [ ../darwin ];
+      extraInputsFlake = ./darwin;
+      module.imports = [ ./darwin ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -45,8 +45,8 @@
     };
 
     home = {
-      # extraInputsFlake = ../home;
-      module.imports = [ ../home ];
+      # extraInputsFlake = ./home;
+      module.imports = [ ./home ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -62,9 +62,8 @@
     };
 
     dev = {
-      # extraInputsFlake = ../dev;
-      module.imports = [ ../dev ];
-      extraInputs = { inherit (inputs) git-hooks-nix treefmt-nix; };
+      extraInputsFlake = ./dev;
+      module.imports = [ ./dev ];
     };
   };
 }
