@@ -44,7 +44,8 @@ in
 
       "python.terminal.activateEnvironment" = false;
 
-      # "python.languageServer" = "None";
+      # TODO: find a way to highlight docstrings with ty when pylance is disabled
+      "python.languageServer" = "None"; # using ty instead
     };
   };
 }
