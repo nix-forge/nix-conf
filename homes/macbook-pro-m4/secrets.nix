@@ -42,7 +42,7 @@ in
     in
     {
       # add secrets to the user
-      secrets = configSecrets inputs.nix-secrets.users.${user} userAccess;
+      secrets = configSecrets inputs.nix-secrets.users.${user}.secrets userAccess;
 
       secretsDir = lib.mkIf cond "${XDG_RUNTIME_DIR}/agenix";
       secretsMountPoint = lib.mkIf cond "${XDG_RUNTIME_DIR}/agenix.d";

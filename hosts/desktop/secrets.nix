@@ -21,7 +21,7 @@ in
   # add secrets to the system
   age.secrets =
     if primaryUser != "root" then
-      configSecrets inputs.nix-secrets.shared userAccess
+      configSecrets inputs.nix-secrets.shared.secrets userAccess
     else
-      inputs.nix-secrets.shared;
+      inputs.nix-secrets.shared.secrets;
 }

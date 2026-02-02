@@ -1370,11 +1370,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1757353736,
-        "narHash": "sha256-HhpgC/k8tw31rCnT/GK+Ua4VumkII1opCtZv7LsqXbA=",
+        "lastModified": 1770074303,
+        "narHash": "sha256-KacV1xcIak5mN0h456hMtqgOUzl1gl3LFnzEjaLnO2k=",
         "owner": "IanHollow",
         "repo": "nix-secrets",
-        "rev": "767032df2f615f3b1a04e9df5865adb3a0283306",
+        "rev": "14904b25c827c5a65c82e0e140e4b42ea5b88e03",
         "type": "github"
       },
       "original": {

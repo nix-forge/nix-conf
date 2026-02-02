@@ -21,5 +21,5 @@ in
   environment.defaultPackages = [ inputs.agenix.packages.${system}.agenix ];
 
   # add secrets to the system
-  age.secrets = configSecrets inputs.nix-secrets.shared userAccess;
+  age.secrets = configSecrets inputs.nix-secrets.shared.secrets userAccess;
 }
