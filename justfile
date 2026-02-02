@@ -15,6 +15,10 @@ update-input input:
 check:
     nix flake check --accept-flake-config --no-allow-import-from-derivation
 
+[group('Flake')]
+show:
+    nix flake show
+
 [group('Maintenance')]
 fmt:
     nix fmt
