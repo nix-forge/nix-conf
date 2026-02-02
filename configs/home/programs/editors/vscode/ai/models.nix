@@ -14,7 +14,7 @@ in
       self.packages.${system}.vscode-extensions-copilot
       self.packages.${system}.vscode-extensions-copilot-chat
     ]
-    ++ (with extensions.preferNixpkgsThenPreRelease; [
+    ++ (with extensions.release; [
       ## Codex
       openai.chatgpt
 
