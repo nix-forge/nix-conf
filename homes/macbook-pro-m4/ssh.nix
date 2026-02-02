@@ -18,6 +18,7 @@
       identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
       extraOptions = {
         LogLevel = "QUIET";
+        ForwardAgent = "yes";
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
       };
@@ -29,6 +30,7 @@
       extraOptions = {
         LogLevel = "QUIET";
         StrictHostKeyChecking = "no";
+        ForwardAgent = "yes";
         ProxyJump = "perlmutter.nersc.gov";
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
