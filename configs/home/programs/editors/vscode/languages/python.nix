@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = with extensions.release; [
       ms-python.python
       ms-python.vscode-pylance
       ms-python.debugpy

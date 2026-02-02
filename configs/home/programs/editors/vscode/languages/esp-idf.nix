@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [ sunshaoce.risc-v ];
+    extensions = with extensions.release; [ sunshaoce.risc-v ];
 
     userSettings = { };
   };

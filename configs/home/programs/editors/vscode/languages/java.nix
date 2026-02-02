@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = with extensions.release; [
       redhat.java
       vscjava.vscode-java-debug
       vscjava.vscode-java-test

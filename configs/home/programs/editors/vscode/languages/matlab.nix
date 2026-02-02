@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = with extensions.release; [
       mathworks.language-matlab
       affenwiesel.matlab-formatter
     ];

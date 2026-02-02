@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = with extensions.release; [
       mads-hartmann.bash-ide-vscode
       timonwong.shellcheck
       foxundermoon.shell-format

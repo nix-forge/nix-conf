@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [ xuanli.spice ];
+    extensions = with extensions.release; [ xuanli.spice ];
 
     userSettings = {
       "files.associations" = {

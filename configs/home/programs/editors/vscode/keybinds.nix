@@ -14,7 +14,7 @@ in
       let
         extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
       in
-      with extensions.preferNixpkgsThenPreRelease;
+      with extensions.release;
       [ ryuta46.multi-command ];
 
     keybindings =

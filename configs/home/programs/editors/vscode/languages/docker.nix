@@ -9,7 +9,7 @@ in
 {
   programs.vscode.profiles.${profileName} = {
     extensions =
-      with extensions.preferNixpkgsThenPreRelease;
+      with extensions.release;
       [
         ms-azuretools.vscode-containers
         ms-vscode-remote.remote-containers

@@ -5,7 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [ mshr-h.veriloghdl ];
+    extensions = with extensions.release; [ mshr-h.veriloghdl ];
 
     userSettings = { };
   };

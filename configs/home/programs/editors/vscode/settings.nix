@@ -11,7 +11,7 @@ in
 {
   programs.vscode.profiles.${profileName} = {
     extensions =
-      with extensions.preferPreRelease; # TODO: preferPreRelease seems to have issues with some packages maybe switch to another package source
+      with extensions.release;
       [
         ## Appearances ##
         pkief.material-icon-theme

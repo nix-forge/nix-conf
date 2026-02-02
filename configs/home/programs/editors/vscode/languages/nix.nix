@@ -6,7 +6,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.preferNixpkgsThenPreRelease; [
+    extensions = with extensions.release; [
       jnoortheen.nix-ide
       ionutvmi.path-autocomplete
     ];
