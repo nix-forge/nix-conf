@@ -38,17 +38,8 @@ in
     ))
   ];
 
-  age =
-    let
-      cond = lib.hasAttr "XDG_RUNTIME_DIR" config.home.sessionVariables;
-      XDG_RUNTIME_DIR =
-        if cond then config.home.sessionVariables.XDG_RUNTIME_DIR else null;
-    in
-    {
-      # add secrets to the user
-      secrets = configSecrets inputs.nix-secrets.users.${user}.secrets userAccess;
-
-      secretsDir = lib.mkIf cond "${XDG_RUNTIME_DIR}/agenix";
-      secretsMountPoint = lib.mkIf cond "${XDG_RUNTIME_DIR}/agenix.d";
-    };
+  age = {
+    # add secrets to the user
+    secrets = configSecrets inputs.nix-secrets.users.${user}.secrets userAccess;
+  };
 }
