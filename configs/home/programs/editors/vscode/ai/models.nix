@@ -17,9 +17,6 @@ in
     ++ (with extensions.release; [
       ## Codex
       openai.chatgpt
-
-      ## Gemini
-      google.geminicodeassist
     ]);
 
     userSettings = {
