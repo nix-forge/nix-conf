@@ -1,73 +1,103 @@
-# Auto-import all lib modules from subdirectories
+# Auto-import all lib modules from subdirectories recursively
 #
 # Automatically discovers and loads all .nix files from subdirectories.
-# Uses iterative loading until all dependencies are resolved.
+# Uses lazy evaluation with fixed-point to resolve dependencies.
+# No default.nix files are needed in subdirectories.
 #
 # Structure:
 #   lib/
-#   ├── default.nix     <- This file
+#   ├── default.nix     <- This file (only default.nix in lib)
 #   └── dir/
 #       ├── entry.nix   <- { lib, ... }: { mkEntry = ...; }
 #       └── read.nix    <- { lib, mkEntry, ... }: { readEntries = ...; }
+#       └── subdir/
+#           └── foo.nix <- { lib, mkEntry, ... }: { foo = ...; }
 #
 # Each .nix file should:
 #   1. Accept { lib, ... }: as arguments (use ... to accept other deps)
 #   2. Return an attrset of functions to export
 #
-# Result: { dir = { mkEntry, readEntries, ... }; }
+# Result: { dir = { mkEntry, readEntries, subdir = { foo, ... }, ... }; }
 { lib }:
 let
   inherit (builtins) readDir attrNames pathExists foldl';
-  inherit (lib) hasSuffix filterAttrs;
+  inherit (lib) hasSuffix filterAttrs hasPrefix fix;
 
-  # Get all subdirectories
-  entries = readDir ./.;
-  subdirs = attrNames (filterAttrs (_: type: type == "directory") entries);
+  # Get entries from a directory
+  getEntries = dir:
+    if pathExists dir then readDir dir else {};
 
-  # Get .nix files from a directory (excluding default.nix)
+  # Get .nix files from a directory (excluding default.nix and hidden files)
   getNixFiles = dir:
-    let
-      dirEntries = if pathExists dir then readDir dir else {};
-    in
     attrNames (filterAttrs (name: type:
       type == "regular" &&
       hasSuffix ".nix" name &&
-      name != "default.nix"
-    ) dirEntries);
+      name != "default.nix" &&
+      !(hasPrefix "." name)
+    ) (getEntries dir));
 
-  # Load all modules once with given deps, collecting successful exports
-  loadPass = subdirPath: nixFiles: deps:
-    foldl' (acc: fileName:
-      let
-        tryImport = builtins.tryEval (import (subdirPath + "/${fileName}") (deps // { inherit lib; }));
-      in
-      if tryImport.success then acc // tryImport.value else acc
-    ) {} nixFiles;
+  # Get subdirectories from a directory (excluding hidden dirs)
+  getSubdirs = dir:
+    attrNames (filterAttrs (name: type:
+      type == "directory" &&
+      !(hasPrefix "." name)
+    ) (getEntries dir));
 
-  # Load a subdirectory with multiple passes for dependency resolution
-  loadSubdir = name:
+  # Load a directory using fixed-point for lazy dependency resolution
+  # All files in the directory get access to all exports via 'self'
+  loadDirFiles = dirPath: nixFiles:
     let
-      subdirPath = ./. + "/${name}";
-      nixFiles = getNixFiles subdirPath;
+      # Import each file lazily, passing self (which will contain all exports)
+      importFile = self: fileName:
+        import (dirPath + "/${fileName}") { inherit lib self; };
 
-      # Run enough passes to resolve all dependencies (max = number of files)
-      # Each pass adds more resolved modules to deps
-      finalDeps = foldl' (deps: _:
-        loadPass subdirPath nixFiles deps
-      ) {} nixFiles;
+      # Use fix with a lazy merge using lib.foldr (not foldl')
+      # foldr is lazy in the accumulator, allowing the fixed-point to work
+      result = fix (self:
+        lib.foldr (fileName: acc:
+          (importFile self fileName) // acc
+        ) {} nixFiles
+      );
     in
-    if nixFiles == [] then {} else finalDeps;
+    result;
 
-  # Check if a subdirectory has any .nix files
-  hasNixFiles = name: (getNixFiles (./. + "/${name}")) != [];
+  # Recursively load a directory tree
+  # Returns an attrset with:
+  #   - All functions exported by .nix files in this directory
+  #   - Nested attrsets for each subdirectory
+  loadDirRecursive = dirPath:
+    let
+      nixFiles = getNixFiles dirPath;
+      subdirs = getSubdirs dirPath;
+
+      # Load all .nix files in this directory with lazy deps
+      fileExports = if nixFiles == [] then {} else loadDirFiles dirPath nixFiles;
+
+      # Recursively load subdirectories
+      subdirExports = foldl' (acc: subdirName:
+        let
+          subdirPath = dirPath + "/${subdirName}";
+          subdirResult = loadDirRecursive subdirPath;
+        in
+        # Only add subdirectory if it has any exports
+        if subdirResult == {} then acc
+        else acc // { ${subdirName} = subdirResult; }
+      ) {} subdirs;
+    in
+    fileExports // subdirExports;
+
+  # Get all top-level subdirectories of lib/
+  topLevelSubdirs = getSubdirs ./.;
 
   # Build the final attrset of all subdirectories
   result = foldl' (acc: name:
-    if hasNixFiles name then
-      acc // { ${name} = loadSubdir name; }
-    else
-      acc
-  ) {} subdirs;
+    let
+      subdirPath = ./. + "/${name}";
+      subdirResult = loadDirRecursive subdirPath;
+    in
+    if subdirResult == {} then acc
+    else acc // { ${name} = subdirResult; }
+  ) {} topLevelSubdirs;
 
 in
 result

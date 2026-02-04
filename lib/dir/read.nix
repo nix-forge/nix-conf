@@ -1,14 +1,13 @@
 # Directory reading functions
 #
 # Functions for reading directory contents and returning entry records
-{ lib, mkEntry ? null, ... }:
+{ lib, self, ... }:
 let
   inherit (builtins) readDir filter;
   inherit (lib) mapAttrsToList;
+  inherit (self) mkEntry;
 in
-# Only export if dependencies are available
-if mkEntry == null then {}
-else rec {
+rec {
   # Read a directory and return a list of entry records
   #
   # Type: Path -> [Entry]
