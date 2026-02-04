@@ -1,25 +1,13 @@
 # High-level import functions
 #
 # Functions for importing directory trees in various ways
-{
-  lib,
-  readEntriesWhere ? null,
-  allOf ? null,
-  excludeNames ? null,
-  entryAttrName ? null,
-  importEntry ? null,
-  entriesToAttrs ? null,
-  ...
-}:
+{ lib, self, ... }:
 let
   inherit (builtins) concatLists listToAttrs;
   inherit (lib) concatStringsSep;
+  inherit (self) readEntriesWhere allOf excludeNames entryAttrName importEntry entriesToAttrs;
 in
-# Only export if all dependencies are available
-if readEntriesWhere == null || allOf == null || excludeNames == null ||
-   entryAttrName == null || importEntry == null || entriesToAttrs == null
-then {}
-else rec {
+rec {
   # Import all nix modules from a directory as an attrset (non-recursive)
   # Directories are imported if they have a default.nix, otherwise ignored
   #
