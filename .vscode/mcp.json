@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "nixos": {
+      "command": "uvx",
+      "args": [
+        "mcp-nixos"
+      ]
+    }
+  }
+}

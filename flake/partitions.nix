@@ -20,7 +20,10 @@
   partitions = {
     nixos = {
       extraInputsFlake = ./nixos;
-      module.imports = [ ./nixos ];
+      module.imports = [
+        ./nixos
+        ./base
+      ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -33,7 +36,10 @@
 
     darwin = {
       extraInputsFlake = ./darwin;
-      module.imports = [ ./darwin ];
+      module.imports = [
+        ./darwin
+        ./base
+      ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -46,7 +52,10 @@
 
     home = {
       # extraInputsFlake = ./home;
-      module.imports = [ ./home ];
+      module.imports = [
+        ./home
+        ./base
+      ];
       extraInputs = {
         inherit (inputs)
           nixpkgs
@@ -63,7 +72,10 @@
 
     dev = {
       extraInputsFlake = ./dev;
-      module.imports = [ ./dev ];
+      module.imports = [
+        ./dev
+        ./base
+      ];
     };
   };
 }

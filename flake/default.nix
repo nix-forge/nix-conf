@@ -1,7 +1,6 @@
 {
   imports = [
-    ./lib.nix
+    ./base
     ./partitions.nix
-    ./pkgs.nix
   ];
 }
