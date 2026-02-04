@@ -4,12 +4,8 @@ default:
     @just --list --justfile {{ justfile() }}
 
 [group('Flake')]
-update:
-    nix flake update
-
-[group('Flake')]
-update-input input:
-    nix flake lock --update-input {{ input }}
+update input="":
+    nix flake update {{ input }}
 
 [group('Flake')]
 check:
