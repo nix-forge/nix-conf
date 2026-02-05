@@ -1,1 +1,0 @@
-{ isModule3 = true; }
