@@ -1,4 +1,4 @@
-{ tree, folderName, ... }:
+{ modules, ... }:
 {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";
@@ -13,34 +13,36 @@
     };
   };
 
-  modules = with (tree.hosts.${folderName} // tree.configs.darwin); [
-    base.base
-    base.nix-settings
-    ./cache.nix
-    ./secrets.nix
+  modules = with modules; [ base-base ];
 
-    { system.primaryUser = "ianmh"; }
+  # modules = with (tree.hosts.${folderName} // tree.configs.darwin); [
+  #   base.base
+  #   base.nix-settings
+  #   ./cache.nix
+  #   ./secrets.nix
 
-    # TODO: switch preferences to be apart of Home Manager as I believe it is supported
-    preferences.accessibility
-    preferences.animations
-    preferences.applications
-    preferences.dock
-    preferences.file-management
-    preferences.finder
-    preferences.input
-    preferences.keyboard
-    preferences.misc
-    preferences.safari
-    preferences.software-update
-    preferences.system
-    preferences.ui
+  #   { system.primaryUser = "ianmh"; }
 
-    security.pam
-    security.firewall
+  #   # TODO: switch preferences to be apart of Home Manager as I believe it is supported
+  #   preferences.accessibility
+  #   preferences.animations
+  #   preferences.applications
+  #   preferences.dock
+  #   preferences.file-management
+  #   preferences.finder
+  #   preferences.input
+  #   preferences.keyboard
+  #   preferences.misc
+  #   preferences.safari
+  #   preferences.software-update
+  #   preferences.system
+  #   preferences.ui
 
-    homebrew
+  #   security.pam
+  #   security.firewall
 
-    ./users.nix
-  ];
+  #   homebrew
+
+  #   ./users.nix
+  # ];
 }

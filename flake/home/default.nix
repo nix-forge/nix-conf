@@ -1,12 +1,22 @@
 {
   inputs,
+  lib,
   myLib,
   config,
   ...
-}:
-{
-  import = [ inputs.home-manager.flakeModules.home-manager ];
+}@args:
+let
+  homeModules = myLib.dir.importFlatWithDirs ../../modules/home { sep = "-"; };
+  sharedModules = myLib.dir.importSharedFlat ../../modules/shared {
+    class = "homeManager";
+    sep = "-";
+    inherit args;
+  };
 
-  flake.modules.homeManager = myLib.dir.importFlatWithDirs ../../modules/home { sep = "-"; };
+in
+{
+  imports = [ inputs.home-manager.flakeModules.home-manager ];
+
+  flake.modules.homeManager = lib.attrsets.unionOfDisjoint homeModules sharedModules;
   flake.homeModules = config.flake.modules.homeManager;
 }

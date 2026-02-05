@@ -3,7 +3,7 @@
 # Functions for importing directory trees in various ways
 { lib, self, ... }:
 let
-  inherit (builtins) concatLists listToAttrs;
+  inherit (builtins) concatLists listToAttrs hasAttr;
   inherit (lib) concatStringsSep;
   inherit (self) readEntriesWhere allOf excludeNames entryAttrName importEntry entriesToAttrs;
   builtinFilter = builtins.filter;
@@ -196,4 +196,207 @@ rec {
           importModuleListRecursive entry.path { inherit exclude filter; };
     in
     concatLists (map collectPaths (readEntriesWhere pred path));
+
+  # Import shared modules filtered by class type (nixos, darwin, homeManager, etc.)
+  # Each file in the shared directory should export an attrset with class-specific modules:
+  #   { nixos = <module>; darwin = <module>; homeManager = <module>; }
+  # Or a function returning such an attrset:
+  #   { ... }: { nixos = <module>; darwin = <module>; }
+  #
+  # Only modules matching the specified class are included in the output.
+  # Directories without default.nix create aggregated modules that import all
+  # class-matching children recursively.
+  #
+  # Type: Path -> { class: String, args?: AttrSet, exclude?: [String], filter?: Entry -> Bool, sep?: String } -> AttrSet
+  # Example:
+  #   Given: shared/
+  #          ├── home-manager.nix    # { nixos = ...; darwin = ...; }
+  #          └── testdir/
+  #              ├── test1.nix       # { nixos = ...; }
+  #              └── testdir2/
+  #                  └── test2.nix   # { nixos = ...; darwin = ...; }
+  #
+  #   importSharedFlat ./shared { class = "nixos"; sep = "-"; }
+  #   # => {
+  #   #   "home-manager" = <nixos module from home-manager.nix>;
+  #   #   "testdir" = { imports = [ <nixos from test1> <nixos from testdir2/test2> ]; };
+  #   #   "testdir-test1" = <nixos module from test1.nix>;
+  #   #   "testdir-testdir2" = { imports = [ <nixos from test2> ]; };
+  #   #   "testdir-testdir2-test2" = <nixos module from test2.nix>;
+  #   # }
+  #
+  #   importSharedFlat ./shared { class = "darwin"; sep = "-"; }
+  #   # => {
+  #   #   "home-manager" = <darwin module from home-manager.nix>;
+  #   #   "testdir" = { imports = [ <darwin from testdir2/test2> ]; };  # test1.nix has no darwin
+  #   #   "testdir-testdir2" = { imports = [ <darwin from test2> ]; };
+  #   #   "testdir-testdir2-test2" = <darwin module from test2.nix>;
+  #   # }
+  importSharedFlat = path: { class, args ? {}, exclude ? [], filter ? (_: true), sep ? "-" }:
+    let
+      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+
+      # Normalize imported value: if it's a function, call it with provided args to get the attrset
+      normalizeImport = imported:
+        if builtins.isFunction imported then imported args else imported;
+
+      # Import a file/dir and extract the class-specific module
+      importWithClass = entry:
+        let
+          raw = importEntry entry;
+          imported = normalizeImport raw;
+        in
+        if builtins.isAttrs imported && hasAttr class imported then imported.${class} else null;
+
+      # Check if an entry (file or dir) has any modules for the given class
+      entryHasClass = entry:
+        if entry.isNixFile then
+          let
+            raw = importEntry entry;
+            imported = normalizeImport raw;
+          in
+          builtins.isAttrs imported && hasAttr class imported
+        else if entry.hasDefault then
+          let
+            raw = importEntry entry;
+            imported = normalizeImport raw;
+          in
+          builtins.isAttrs imported && hasAttr class imported
+        else
+          # For directories without default.nix, check children recursively
+          let
+            children = readEntriesWhere pred entry.path;
+          in
+          builtins.any entryHasClass children;
+
+      # Recursively collect all class-matching module values from a directory
+      # Returns a list of extracted class modules (not paths)
+      collectClassModulesRecursive = currentPath:
+        let
+          entries = readEntriesWhere pred currentPath;
+          processEntry = e:
+            if e.isNixFile then
+              let module = importWithClass e;
+              in if module != null then [ module ] else []
+            else if e.hasDefault then
+              let module = importWithClass e;
+              in if module != null then [ module ] else []
+            else
+              collectClassModulesRecursive e.path;
+        in
+        concatLists (map processEntry entries);
+
+      # excludeDefault: when true, skip default.nix files
+      go = currentPath: prefix: excludeDefault:
+        let
+          baseEntries = readEntriesWhere pred currentPath;
+          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
+
+          processEntry = entry:
+            let
+              newPrefix = prefix ++ [ (entryAttrName entry) ];
+              key = concatStringsSep sep newPrefix;
+            in
+            if entry.isNixFile then
+              let module = importWithClass entry;
+              in if module != null then
+                [{ name = key; value = module; }]
+              else
+                []
+            else if entry.hasDefault then
+              let module = importWithClass entry;
+              in if module != null then
+                [{ name = key; value = module; }] ++ (go entry.path newPrefix true)
+              else
+                # Even if default.nix doesn't have the class, still recurse for children
+                go entry.path newPrefix true
+            else
+              # Directory without default.nix: create aggregated module if any children match
+              let
+                childModules = collectClassModulesRecursive entry.path;
+                hasMatchingChildren = childModules != [];
+                aggregatedModule = { imports = childModules; };
+              in
+              (if hasMatchingChildren then [{ name = key; value = aggregatedModule; }] else [])
+              ++ (go entry.path newPrefix false);
+        in
+        concatLists (map processEntry entries);
+    in
+    listToAttrs (go path [] false);
+
+  # Import host configurations from a directory where each subdirectory is a host
+  # Each host folder should have a default.nix that returns host configuration options.
+  #
+  # The default.nix in each host folder receives { tree, folderName, ... } and should return:
+  #   { system, hostName?, modules, nixpkgsArgs?, specialArgs?, ... }
+  #
+  # This function uses mkHost to build the final system configuration for each host.
+  #
+  # Type: Path -> {
+  #   mkHost: Function,           # The mkHost builder function (from lib.configs.mkHost)
+  #   withSystem: Function,       # flake-parts withSystem
+  #   inputs: AttrSet,            # Flake inputs
+  #   self: AttrSet,              # Flake self
+  #   builder: Function,          # System builder (e.g., lib.nixosSystem)
+  #   modules: AttrSet,           # Available modules to pass to host configs
+  #   exclude?: [String],         # Host folder names to exclude
+  #   filter?: Entry -> Bool,     # Additional filter predicate for entries
+  # } -> AttrSet
+  #
+  # Example:
+  #   Given: configs/nixos/
+  #          ├── desktop/
+  #          │   └── default.nix    # { modules, ... }: { system = "x86_64-linux"; ... }
+  #          └── laptop/
+  #              └── default.nix    # { modules, ... }: { system = "x86_64-linux"; ... }
+  #
+  #   importHosts ./configs/nixos {
+  #     mkHost = myLib.configs.mkHost;
+  #     inherit withSystem inputs self;
+  #     builder = lib.nixosSystem;
+  #     modules = config.flake.modules.nixos;
+  #   }
+  #   # => {
+  #   #   "desktop" = <nixosConfiguration for desktop>;
+  #   #   "laptop" = <nixosConfiguration for laptop>;
+  #   # }
+  importHosts = path: {
+    mkHost,
+    withSystem,
+    inputs,
+    self,
+    builder,
+    modules,
+    exclude ? [],
+    filter ? (_: true),
+  }:
+    let
+      # Only include directories with default.nix (valid host configurations)
+      pred = allOf [
+        (e: e.isDir)
+        (e: e.hasDefault)
+        (excludeNames exclude)
+        filter
+      ];
+
+      hostEntries = readEntriesWhere pred path;
+
+      # Build a single host configuration
+      buildHost = entry:
+        let
+          folderName = entryAttrName entry;
+
+          # Import the host's default.nix and call it with configuration arguments
+          hostConfigFn = importEntry entry;
+          hostConfig = hostConfigFn {inherit inputs self modules;};
+
+          # Create the mkHost builder with the provided arguments
+          hostBuilder = mkHost {inherit withSystem inputs self builder;};
+        in
+        {
+          name = folderName;
+          value = hostBuilder (hostConfig // { inherit folderName; });
+        };
+    in
+    listToAttrs (map buildHost hostEntries);
 }

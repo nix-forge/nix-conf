@@ -19,6 +19,10 @@ check:
 show:
     nix flake show
 
+[group('Flake')]
+build type hostname:
+    nh {{ type }} build -H {{ hostname }} {{ justfile_directory() }}
+
 [group('Maintenance')]
 fmt:
     nix fmt
