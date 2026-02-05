@@ -16,8 +16,7 @@
     { ... }:
     {
       imports = [ inputs.determinate.darwinModules.default ];
-
-      # nix.enable must be false when using Determinate Nix on Darwin
+      determinateNix.enable = true;
       nix.enable = false;
     };
 }
