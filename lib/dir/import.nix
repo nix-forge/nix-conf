@@ -6,6 +6,7 @@ let
   inherit (builtins) concatLists listToAttrs;
   inherit (lib) concatStringsSep;
   inherit (self) readEntriesWhere allOf excludeNames entryAttrName importEntry entriesToAttrs;
+  builtinFilter = builtins.filter;
 in
 rec {
   # Import all nix modules from a directory as an attrset (non-recursive)
@@ -88,19 +89,33 @@ rec {
   # Each directory gets an entry that imports all its children recursively
   # Plus individual entries for each file
   #
+  # For directories WITH default.nix: uses the default.nix as the import
+  # For directories WITHOUT default.nix: creates an aggregated module importing all files recursively
+  #
   # Type: Path -> { exclude?: [String], filter?: Entry -> Bool, sep?: String } -> AttrSet
   # Example:
   #   Given: nixosModules/
   #          ├── module1.nix
   #          └── module2dir/
+  #              ├── default.nix      # If present, used as "module2dir" entry
   #              ├── module2.nix
   #              └── module3dir/
   #                  └── module3.nix
   #
   #   importFlatWithDirs ./nixosModules { sep = "-"; }
+  #   # With default.nix in module2dir:
   #   # => {
   #   #   "module1" = <module1.nix>;
-  #   #   "module2dir" = { imports = [ ./module2.nix ./module3dir ]; };
+  #   #   "module2dir" = <default.nix>;                    # Uses default.nix directly
+  #   #   "module2dir-module2" = <module2.nix>;
+  #   #   "module2dir-module3dir" = { imports = [...]; };  # No default.nix, aggregates
+  #   #   "module2dir-module3dir-module3" = <module3.nix>;
+  #   # }
+  #
+  #   # Without default.nix in module2dir:
+  #   # => {
+  #   #   "module1" = <module1.nix>;
+  #   #   "module2dir" = { imports = [ ./module2.nix ./module3dir/module3.nix ]; };
   #   #   "module2dir-module2" = <module2.nix>;
   #   #   "module2dir-module3dir" = { imports = [ ./module3.nix ]; };
   #   #   "module2dir-module3dir-module3" = <module3.nix>;
@@ -109,19 +124,22 @@ rec {
     let
       pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
 
-      # Collect all importable paths from a directory (for aggregated module)
-      collectImports = currentPath:
+      # Recursively collect all importable paths from a directory
+      # Stops recursion at directories with default.nix (they are imported as a unit)
+      collectImportsRecursive = currentPath:
         let
           entries = readEntriesWhere pred currentPath;
+          importableEntries = builtinFilter (e: e.isNixFile || e.hasDefault) entries;
+          dirsWithoutDefault = builtinFilter (e: e.isDir && !e.hasDefault) entries;
         in
-        map (e: e.path) (filter (e: e.isNixFile || e.hasDefault) entries)
-        ++ concatLists (map (e:
-          if e.isDir && !e.hasDefault then collectImports e.path else []
-        ) entries);
+        map (e: e.path) importableEntries
+        ++ concatLists (map (e: collectImportsRecursive e.path) dirsWithoutDefault);
 
-      go = currentPath: prefix:
+      # excludeDefault: when true, skip default.nix files (used after entering a dir with default.nix)
+      go = currentPath: prefix: excludeDefault:
         let
-          entries = readEntriesWhere pred currentPath;
+          baseEntries = readEntriesWhere pred currentPath;
+          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
 
           processEntry = entry:
             let
@@ -131,17 +149,20 @@ rec {
             if entry.isNixFile then
               [{ name = key; value = importEntry entry; }]
             else if entry.hasDefault then
-              [{ name = key; value = importEntry entry; }] ++ (go entry.path newPrefix)
+              # Directory has default.nix: use it as the import, then recurse for children
+              # Pass excludeDefault=true to skip default.nix in children
+              [{ name = key; value = importEntry entry; }] ++ (go entry.path newPrefix true)
             else
+              # Directory without default.nix: create aggregated module with recursive imports
               let
-                childImports = collectImports entry.path;
+                childImports = collectImportsRecursive entry.path;
                 aggregatedModule = { imports = childImports; };
               in
-              [{ name = key; value = aggregatedModule; }] ++ (go entry.path newPrefix);
+              [{ name = key; value = aggregatedModule; }] ++ (go entry.path newPrefix false);
         in
         concatLists (map processEntry entries);
     in
-    listToAttrs (go path []);
+    listToAttrs (go path [] false);
 
   # Import modules as a list (useful for NixOS/home-manager modules)
   #

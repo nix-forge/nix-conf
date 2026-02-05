@@ -8,8 +8,12 @@ update input="":
     nix flake update {{ input }}
 
 [group('Flake')]
+dev-update input="":
+    nix flake update {{ input }}
+
+[group('Flake')]
 check:
-    nix flake check --accept-flake-config --no-allow-import-from-derivation
+    nix flake check --no-allow-import-from-derivation
 
 [group('Flake')]
 show:
