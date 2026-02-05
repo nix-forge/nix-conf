@@ -5,7 +5,14 @@
 let
   inherit (builtins) concatLists listToAttrs hasAttr;
   inherit (lib) concatStringsSep;
-  inherit (self) readEntriesWhere allOf excludeNames entryAttrName importEntry entriesToAttrs;
+  inherit (self)
+    readEntriesWhere
+    allOf
+    excludeNames
+    entryAttrName
+    importEntry
+    entriesToAttrs
+    ;
   builtinFilter = builtins.filter;
 in
 rec {
@@ -16,7 +23,12 @@ rec {
   # Example:
   #   importNix ./modules { exclude = [ "deprecated.nix" ]; }
   #   # => { foo = <contents of foo.nix>; bar = <contents of bar/default.nix>; }
-  importNix = path: { exclude ? [], filter ? (_: true) }:
+  importNix =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
     let
       pred = allOf [
         (e: e.isNix)
@@ -35,11 +47,21 @@ rec {
   # Example:
   #   importNixRecursive ./modules { }
   #   # => { hardware = { gpu = { nvidia = <...>; }; }; networking = <...>; }
-  importNixRecursive = path: { exclude ? [], filter ? (_: true) }:
+  importNixRecursive =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
     let
-      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+      pred = allOf [
+        (e: e.isNix)
+        (excludeNames exclude)
+        filter
+      ];
 
-      processEntry = entry:
+      processEntry =
+        entry:
         if entry.isNixFile then
           importEntry entry
         else if entry.hasDefault then
@@ -49,10 +71,12 @@ rec {
 
       entries = readEntriesWhere pred path;
     in
-    listToAttrs (map (e: {
-      name = entryAttrName e;
-      value = processEntry e;
-    }) entries);
+    listToAttrs (
+      map (e: {
+        name = entryAttrName e;
+        value = processEntry e;
+      }) entries
+    );
 
   # Flatten a directory tree into a single-level attrset with path-based keys
   # Useful for module systems that need flat namespaces
@@ -61,29 +85,52 @@ rec {
   # Example:
   #   importFlat ./modules { sep = "-"; }
   #   # => { "hardware-gpu-nvidia" = <...>; "networking" = <...>; }
-  importFlat = path: { exclude ? [], filter ? (_: true), sep ? "-" }:
+  importFlat =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+      sep ? "-",
+    }:
     let
-      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+      pred = allOf [
+        (e: e.isNix)
+        (excludeNames exclude)
+        filter
+      ];
 
-      go = currentPath: prefix:
+      go =
+        currentPath: prefix:
         let
           entries = readEntriesWhere pred currentPath;
 
-          processEntry = entry:
+          processEntry =
+            entry:
             let
               newPrefix = prefix ++ [ (entryAttrName entry) ];
               key = concatStringsSep sep newPrefix;
             in
             if entry.isNixFile then
-              [{ name = key; value = importEntry entry; }]
+              [
+                {
+                  name = key;
+                  value = importEntry entry;
+                }
+              ]
             else if entry.hasDefault then
-              [{ name = key; value = importEntry entry; }] ++ (go entry.path newPrefix)
+              [
+                {
+                  name = key;
+                  value = importEntry entry;
+                }
+              ]
+              ++ (go entry.path newPrefix)
             else
               go entry.path newPrefix;
         in
         concatLists (map processEntry entries);
     in
-    listToAttrs (go path []);
+    listToAttrs (go path [ ]);
 
   # Flatten a directory tree with auto-generated aggregated modules for each directory
   # Each directory gets an entry that imports all its children recursively
@@ -120,13 +167,24 @@ rec {
   #   #   "module2dir-module3dir" = { imports = [ ./module3.nix ]; };
   #   #   "module2dir-module3dir-module3" = <module3.nix>;
   #   # }
-  importFlatWithDirs = path: { exclude ? [], filter ? (_: true), sep ? "-" }:
+  importFlatWithDirs =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+      sep ? "-",
+    }:
     let
-      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+      pred = allOf [
+        (e: e.isNix)
+        (excludeNames exclude)
+        filter
+      ];
 
       # Recursively collect all importable paths from a directory
       # Stops recursion at directories with default.nix (they are imported as a unit)
-      collectImportsRecursive = currentPath:
+      collectImportsRecursive =
+        currentPath:
         let
           entries = readEntriesWhere pred currentPath;
           importableEntries = builtinFilter (e: e.isNixFile || e.hasDefault) entries;
@@ -136,40 +194,66 @@ rec {
         ++ concatLists (map (e: collectImportsRecursive e.path) dirsWithoutDefault);
 
       # excludeDefault: when true, skip default.nix files (used after entering a dir with default.nix)
-      go = currentPath: prefix: excludeDefault:
+      go =
+        currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
           entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
 
-          processEntry = entry:
+          processEntry =
+            entry:
             let
               newPrefix = prefix ++ [ (entryAttrName entry) ];
               key = concatStringsSep sep newPrefix;
             in
             if entry.isNixFile then
-              [{ name = key; value = importEntry entry; }]
+              [
+                {
+                  name = key;
+                  value = importEntry entry;
+                }
+              ]
             else if entry.hasDefault then
               # Directory has default.nix: use it as the import, then recurse for children
               # Pass excludeDefault=true to skip default.nix in children
-              [{ name = key; value = importEntry entry; }] ++ (go entry.path newPrefix true)
+              [
+                {
+                  name = key;
+                  value = importEntry entry;
+                }
+              ]
+              ++ (go entry.path newPrefix true)
             else
               # Directory without default.nix: create aggregated module with recursive imports
               let
                 childImports = collectImportsRecursive entry.path;
-                aggregatedModule = { imports = childImports; };
+                aggregatedModule = {
+                  imports = childImports;
+                };
               in
-              [{ name = key; value = aggregatedModule; }] ++ (go entry.path newPrefix false);
+              [
+                {
+                  name = key;
+                  value = aggregatedModule;
+                }
+              ]
+              ++ (go entry.path newPrefix false);
         in
         concatLists (map processEntry entries);
     in
-    listToAttrs (go path [] false);
+    listToAttrs (go path [ ] false);
 
   # Import modules as a list (useful for NixOS/home-manager modules)
   #
   # Type: Path -> { exclude?: [String], filter?: Entry -> Bool } -> [Path]
   # Example:
   #   modules = importModuleList ./modules { exclude = [ "experimental" ]; };
-  importModuleList = path: { exclude ? [], filter ? (_: true) }:
+  importModuleList =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
     let
       pred = allOf [
         (e: e.isNix)
@@ -183,11 +267,21 @@ rec {
   # Recursively collect all module paths
   #
   # Type: Path -> { exclude?: [String], filter?: Entry -> Bool } -> [Path]
-  importModuleListRecursive = path: { exclude ? [], filter ? (_: true) }:
+  importModuleListRecursive =
+    path:
+    {
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
     let
-      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+      pred = allOf [
+        (e: e.isNix)
+        (excludeNames exclude)
+        filter
+      ];
 
-      collectPaths = entry:
+      collectPaths =
+        entry:
         if entry.isNixFile then
           [ entry.path ]
         else if entry.hasDefault then
@@ -232,16 +326,28 @@ rec {
   #   #   "testdir-testdir2" = { imports = [ <darwin from test2> ]; };
   #   #   "testdir-testdir2-test2" = <darwin module from test2.nix>;
   #   # }
-  importSharedFlat = path: { class, args ? {}, exclude ? [], filter ? (_: true), sep ? "-" }:
+  importSharedFlat =
+    path:
+    {
+      class,
+      args ? { },
+      exclude ? [ ],
+      filter ? (_: true),
+      sep ? "-",
+    }:
     let
-      pred = allOf [ (e: e.isNix) (excludeNames exclude) filter ];
+      pred = allOf [
+        (e: e.isNix)
+        (excludeNames exclude)
+        filter
+      ];
 
       # Normalize imported value: if it's a function, call it with provided args to get the attrset
-      normalizeImport = imported:
-        if builtins.isFunction imported then imported args else imported;
+      normalizeImport = imported: if builtins.isFunction imported then imported args else imported;
 
       # Import a file/dir and extract the class-specific module
-      importWithClass = entry:
+      importWithClass =
+        entry:
         let
           raw = importEntry entry;
           imported = normalizeImport raw;
@@ -249,64 +355,68 @@ rec {
         if builtins.isAttrs imported && hasAttr class imported then imported.${class} else null;
 
       # Check if an entry (file or dir) has any modules for the given class
-      entryHasClass = entry:
-        if entry.isNixFile then
-          let
-            raw = importEntry entry;
-            imported = normalizeImport raw;
-          in
-          builtins.isAttrs imported && hasAttr class imported
-        else if entry.hasDefault then
-          let
-            raw = importEntry entry;
-            imported = normalizeImport raw;
-          in
-          builtins.isAttrs imported && hasAttr class imported
-        else
-          # For directories without default.nix, check children recursively
-          let
-            children = readEntriesWhere pred entry.path;
-          in
-          builtins.any entryHasClass children;
 
       # Recursively collect all class-matching module values from a directory
       # Returns a list of extracted class modules (not paths)
-      collectClassModulesRecursive = currentPath:
+      collectClassModulesRecursive =
+        currentPath:
         let
           entries = readEntriesWhere pred currentPath;
-          processEntry = e:
+          processEntry =
+            e:
             if e.isNixFile then
-              let module = importWithClass e;
-              in if module != null then [ module ] else []
+              let
+                module = importWithClass e;
+              in
+              if module != null then [ module ] else [ ]
             else if e.hasDefault then
-              let module = importWithClass e;
-              in if module != null then [ module ] else []
+              let
+                module = importWithClass e;
+              in
+              if module != null then [ module ] else [ ]
             else
               collectClassModulesRecursive e.path;
         in
         concatLists (map processEntry entries);
 
       # excludeDefault: when true, skip default.nix files
-      go = currentPath: prefix: excludeDefault:
+      go =
+        currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
           entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
 
-          processEntry = entry:
+          processEntry =
+            entry:
             let
               newPrefix = prefix ++ [ (entryAttrName entry) ];
               key = concatStringsSep sep newPrefix;
             in
             if entry.isNixFile then
-              let module = importWithClass entry;
-              in if module != null then
-                [{ name = key; value = module; }]
+              let
+                module = importWithClass entry;
+              in
+              if module != null then
+                [
+                  {
+                    name = key;
+                    value = module;
+                  }
+                ]
               else
-                []
+                [ ]
             else if entry.hasDefault then
-              let module = importWithClass entry;
-              in if module != null then
-                [{ name = key; value = module; }] ++ (go entry.path newPrefix true)
+              let
+                module = importWithClass entry;
+              in
+              if module != null then
+                [
+                  {
+                    name = key;
+                    value = module;
+                  }
+                ]
+                ++ (go entry.path newPrefix true)
               else
                 # Even if default.nix doesn't have the class, still recurse for children
                 go entry.path newPrefix true
@@ -314,15 +424,27 @@ rec {
               # Directory without default.nix: create aggregated module if any children match
               let
                 childModules = collectClassModulesRecursive entry.path;
-                hasMatchingChildren = childModules != [];
-                aggregatedModule = { imports = childModules; };
+                hasMatchingChildren = childModules != [ ];
+                aggregatedModule = {
+                  imports = childModules;
+                };
               in
-              (if hasMatchingChildren then [{ name = key; value = aggregatedModule; }] else [])
+              (
+                if hasMatchingChildren then
+                  [
+                    {
+                      name = key;
+                      value = aggregatedModule;
+                    }
+                  ]
+                else
+                  [ ]
+              )
               ++ (go entry.path newPrefix false);
         in
         concatLists (map processEntry entries);
     in
-    listToAttrs (go path [] false);
+    listToAttrs (go path [ ] false);
 
   # Import host configurations from a directory where each subdirectory is a host
   # Each host folder should have a default.nix that returns host configuration options.
@@ -360,16 +482,18 @@ rec {
   #   #   "desktop" = <nixosConfiguration for desktop>;
   #   #   "laptop" = <nixosConfiguration for laptop>;
   #   # }
-  importHosts = path: {
-    mkHost,
-    withSystem,
-    inputs,
-    self,
-    builder,
-    modules,
-    exclude ? [],
-    filter ? (_: true),
-  }:
+  importHosts =
+    path:
+    {
+      mkHost,
+      withSystem,
+      inputs,
+      self,
+      builder,
+      modules,
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
     let
       # Only include directories with default.nix (valid host configurations)
       pred = allOf [
@@ -382,16 +506,24 @@ rec {
       hostEntries = readEntriesWhere pred path;
 
       # Build a single host configuration
-      buildHost = entry:
+      buildHost =
+        entry:
         let
           folderName = entryAttrName entry;
 
           # Import the host's default.nix and call it with configuration arguments
           hostConfigFn = importEntry entry;
-          hostConfig = hostConfigFn {inherit inputs self modules;};
+          hostConfig = hostConfigFn { inherit inputs self modules; };
 
           # Create the mkHost builder with the provided arguments
-          hostBuilder = mkHost {inherit withSystem inputs self builder;};
+          hostBuilder = mkHost {
+            inherit
+              withSystem
+              inputs
+              self
+              builder
+              ;
+          };
         in
         {
           name = folderName;

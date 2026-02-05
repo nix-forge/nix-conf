@@ -5,7 +5,12 @@
 { lib, ... }:
 let
   inherit (builtins) readDir pathExists;
-  inherit (lib) mapAttrsToList hasSuffix hasPrefix pathIsRegularFile;
+  inherit (lib)
+    mapAttrsToList
+    hasSuffix
+    hasPrefix
+    pathIsRegularFile
+    ;
 
   # Type: Path -> String -> String -> Entry
   # Entry = {
@@ -24,9 +29,11 @@ let
   #   isNix: Bool,         # True if importable (.nix file or dir with nix files)
   #   extension: String?,  # File extension including dot, or null
   # }
-  mkEntry = parentPath: name: type:
+  mkEntry =
+    parentPath: name: type:
     let
-      self = parentPath: name: type:
+      self =
+        parentPath: name: type:
         let
           path = parentPath + "/${name}";
 
@@ -59,8 +66,23 @@ let
           extension = if extMatch != null then builtins.elemAt extMatch 0 else null;
         in
         {
-          inherit name type path isFile isDir isLink isHidden;
-          inherit isNixFile isDefault hasDefault hasNixFiles isNix extension;
+          inherit
+            name
+            type
+            path
+            isFile
+            isDir
+            isLink
+            isHidden
+            ;
+          inherit
+            isNixFile
+            isDefault
+            hasDefault
+            hasNixFiles
+            isNix
+            extension
+            ;
           baseName = name;
         };
     in

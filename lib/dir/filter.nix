@@ -1,7 +1,7 @@
 # Predicate combinators for filtering entries
 #
 # Utilities for building complex filter predicates
-{ ... }:
+_:
 let
   inherit (builtins) elem all any;
 in
