@@ -2,9 +2,7 @@
   "servers": {
     "nixos": {
       "command": "uvx",
-      "args": [
-        "mcp-nixos"
-      ]
+      "args": ["mcp-nixos"]
     }
   }
 }

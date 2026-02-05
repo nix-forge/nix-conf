@@ -1,5 +1,4 @@
-{ lib, self, ... }:
-{
+_: {
   # Build nixpkgs configuration module
   #
   # Type: String -> [Overlay] -> AttrSet -> Path -> AttrSet

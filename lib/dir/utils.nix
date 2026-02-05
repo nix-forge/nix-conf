@@ -9,8 +9,7 @@ rec {
   # Remove .nix suffix from a filename for use as attribute name
   #
   # Type: Entry -> String
-  entryAttrName = entry:
-    if entry.isNixFile then removeSuffix ".nix" entry.name else entry.name;
+  entryAttrName = entry: if entry.isNixFile then removeSuffix ".nix" entry.name else entry.name;
 
   # Convert an entry to an imported module
   #
@@ -20,9 +19,12 @@ rec {
   # Convert a list of entries to an attrset with imported values
   #
   # Type: [Entry] -> AttrSet
-  entriesToAttrs = entries:
-    builtins.listToAttrs (map (e: {
-      name = entryAttrName e;
-      value = importEntry e;
-    }) entries);
+  entriesToAttrs =
+    entries:
+    builtins.listToAttrs (
+      map (e: {
+        name = entryAttrName e;
+        value = importEntry e;
+      }) entries
+    );
 }
