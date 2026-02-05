@@ -1,4 +1,5 @@
-{ myLib, ... }:
+{ myLib, config, ... }:
 {
-  flake.nixosModules = myLib.dir.importFlatWithDirs ../../nixosModules { sep = "-"; };
+  flake.modules.nixos = myLib.dir.importFlatWithDirs ../../modules/nixos { sep = "-"; };
+  flake.nixosModules = config.flake.modules.nixos;
 }
