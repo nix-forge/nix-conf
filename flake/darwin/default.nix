@@ -1,16 +1,32 @@
 {
-  # inputs,
+  inputs,
+  lib,
   myLib,
   config,
+  withSystem,
   ...
-}:
+}@args:
+let
+  darwinModules = myLib.dir.importFlatWithDirs ../../modules/darwin { sep = "-"; };
+  sharedModules = myLib.dir.importSharedFlat ../../modules/shared {
+    class = "darwin";
+    sep = "-";
+    inherit args;
+  };
+  modules = config.flake.modules.darwin;
+in
 {
   # import = [ inputs.nix-darwin.flakeModules.nix-darwin ];
 
   flake = {
-    modules.darwin = myLib.dir.importFlatWithDirs ../../modules/darwin { sep = "-"; };
-    darwinModules = config.flake.modules.darwin;
+    modules.darwin = lib.attrsets.unionOfDisjoint darwinModules sharedModules;
+    darwinModules = modules;
 
-    # darwinConfigurations = ;
+    darwinConfigurations = myLib.dir.importHosts ../../configs/darwin {
+      inherit modules withSystem inputs;
+      inherit (args) self;
+      inherit (myLib.configs) mkHost;
+      builder = inputs.nix-darwin.lib.darwinSystem;
+    };
   };
 }

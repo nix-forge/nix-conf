@@ -1,4 +1,4 @@
-{ tree, folderName, ... }:
+{ modules, ... }:
 {
   system = "x86_64-linux";
   hostName = "desktop";
@@ -15,103 +15,110 @@
     };
   };
 
-  modules =
-    with (
-      tree.hosts.${folderName} // tree.hosts.${folderName}.hardware // tree.configs.os
-    ); [
-      ## Base
-      base.nix-settings
-      ./cache.nix
-      (import ./secrets.nix { primaryUser = "ianmh"; })
-      base.base
-      base.kernel
-      base.packages
-      # secrets
-      users
-      (
-        { pkgs, ... }:
-        {
-          programs.nix-ld = {
-            enable = true;
-            libraries = [
-              pkgs.libxcrypt
-              pkgs.libxcrypt-legacy
-            ];
-          };
-        }
-      )
+  modules = with modules; [
+    base-base
+    boot
 
-      ## Boot
-      boot.generic
-      boot.grub
-      boot.grub.dual-boot
-      kernel-modules
-      # plymouth
+    ./hardware/filesystems.nix
+  ];
 
-      ## Locale
-      { time.timeZone = "America/Los_Angeles"; }
-      locale.timesync
-      # keyboard
+  # modules =
+  #   with (
+  #     tree.hosts.${folderName} // tree.hosts.${folderName}.hardware // tree.configs.os
+  #   ); [
+  #     ## Base
+  #     base.nix-settings
+  #     ./cache.nix
+  #     (import ./secrets.nix { primaryUser = "ianmh"; })
+  #     base.base
+  #     base.kernel
+  #     base.packages
+  #     # secrets
+  #     users
+  #     (
+  #       { pkgs, ... }:
+  #       {
+  #         programs.nix-ld = {
+  #           enable = true;
+  #           libraries = [
+  #             pkgs.libxcrypt
+  #             pkgs.libxcrypt-legacy
+  #           ];
+  #         };
+  #       }
+  #     )
 
-      ## Hardware
-      filesystems
-      gpu
-      cpu
-      # kernel-patches
-      power
-      audio
-      monitor
-      keyboard
-      networking
-      hardware.zram
-      hardware.networking
-      hardware.bluetooth
-      hardware.tpm
-      hardware.firmware
-      hardware.sound
-      hardware.ssd
-      hardware.storage
-      other
-      gaming
+  #     ## Boot
+  #     boot.generic
+  #     boot.grub
+  #     boot.grub.dual-boot
+  #     kernel-modules
+  #     # plymouth
 
-      ## Virtualization
-      virtualisation.docker
-      virtualisation.libvirt
+  #     ## Locale
+  #     { time.timeZone = "America/Los_Angeles"; }
+  #     locale.timesync
+  #     # keyboard
 
-      ## Desktop Environments
-      # desktop-envs.gnome
-      # desktop-envs.plasma
-      desktop-envs.hyprland
-      # desktop-envs.cosmic
-      # {
-      #   environment.pathsToLink = [
-      #     "/share/applications"
-      #     "/share/xdg-desktop-portal"
-      #   ];
-      # }
+  #     ## Hardware
+  #     filesystems
+  #     gpu
+  #     cpu
+  #     # kernel-patches
+  #     power
+  #     audio
+  #     monitor
+  #     keyboard
+  #     networking
+  #     hardware.zram
+  #     hardware.networking
+  #     hardware.bluetooth
+  #     hardware.tpm
+  #     hardware.firmware
+  #     hardware.sound
+  #     hardware.ssd
+  #     hardware.storage
+  #     other
+  #     gaming
 
-      ## Display Managers
-      # display-managers.greetd
-      display-managers.gdm
-      # display-managers.sddm
+  #     ## Virtualization
+  #     virtualisation.docker
+  #     virtualisation.libvirt
 
-      ## Security
-      security
+  #     ## Desktop Environments
+  #     # desktop-envs.gnome
+  #     # desktop-envs.plasma
+  #     desktop-envs.hyprland
+  #     # desktop-envs.cosmic
+  #     # {
+  #     #   environment.pathsToLink = [
+  #     #     "/share/applications"
+  #     #     "/share/xdg-desktop-portal"
+  #     #   ];
+  #     # }
 
-      ## Services
-      services.disable-hibernate
-      # services.runners
+  #     ## Display Managers
+  #     # display-managers.greetd
+  #     display-managers.gdm
+  #     # display-managers.sddm
 
-      # Programs
-      # TODO: add neovim base config and better config in home-manager
+  #     ## Security
+  #     security
 
-      ## Theming
-      stylix.base
-      stylix.cursor
-      stylix.fonts
-      stylix.icons
+  #     ## Services
+  #     services.disable-hibernate
+  #     # services.runners
 
-      ## Server
-      server.ssh
-    ];
+  #     # Programs
+  #     # TODO: add neovim base config and better config in home-manager
+
+  #     ## Theming
+  #     stylix.base
+  #     stylix.cursor
+  #     stylix.fonts
+  #     stylix.icons
+
+  #     ## Server
+  #     server.ssh
+  #   ];
 }
