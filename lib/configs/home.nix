@@ -58,20 +58,23 @@ in
 
   connectHome =
     {
-      config,
-      username ? config.username,
-      homeDirectory ? config.homeDirectory,
-      uid ? config.uid,
+      homeEntry,
+      username ? homeEntry.username,
+      homeDirectory ? homeEntry.homeDirectory,
+      uid ? homeEntry.uid,
     }:
     {
-      ${username} = {
-        imports = config.modules;
-        home = {
-          username = lib.mkForce username;
-          homeDirectory = lib.mkForce homeDirectory;
-          uid = lib.mkForce uid;
+      ${username} =
+        { lib, ... }:
+        {
+          imports = homeEntry.modules;
+          home = {
+            username = lib.mkForce username;
+            homeDirectory = lib.mkForce homeDirectory;
+            uid = lib.mkForce uid;
+          };
+          nix.package = lib.mkForce null;
+          programs.home-manager.enable = true;
         };
-        programs.home-manager.enable = true;
-      };
     };
 }

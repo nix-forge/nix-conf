@@ -22,7 +22,7 @@ let
     sep = "-";
     inherit args;
   };
-  homes = myLib.dir.importHomeConfigs ../../configs/home {
+  homeEntries = myLib.dir.importHomeConfigs ../../configs/home {
     inherit inputs;
     inherit (args) self;
     modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
@@ -36,7 +36,7 @@ in
     darwinModules = modules;
 
     darwinConfigurations = myLib.dir.importHosts ../../configs/darwin {
-      inherit modules homes;
+      inherit modules homeEntries;
       inherit withSystem inputs;
       inherit (args) self;
       inherit (myLib.configs) mkHost;

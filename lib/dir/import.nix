@@ -503,7 +503,7 @@ rec {
       self,
       builder,
       modules,
-      homes ? { },
+      homeEntries ? { },
       extraSpecialArgs ? { },
       exclude ? [ ],
       filter ? (_: true),
@@ -548,7 +548,7 @@ rec {
               inputs
               self
               builder
-              homes
+              homeEntries
               extraSpecialArgs
               ;
           };
@@ -685,11 +685,15 @@ rec {
       homeEntries = readEntriesWhere pred path;
 
       getHomeConfig =
-        entry:
+        prependUsername: entry:
         let
           folderName = entryAttrName entry;
           homeConfig = createHomeConfig entry { inherit inputs self modules; };
-          configName = homeConfig.configName or folderName;
+
+          configName =
+            homeConfig.configName or (
+              if prependUsername then "${homeConfig.username}@${folderName}" else folderName
+            );
         in
         {
           name = configName;
@@ -698,7 +702,12 @@ rec {
           };
         };
 
-      homeConfigs = listToAttrs (map getHomeConfig homeEntries);
+      homeConfigs = listToAttrs (
+        lib.concatLists [
+          (map (getHomeConfig true) homeEntries)
+          (map (getHomeConfig false) homeEntries)
+        ]
+      );
     in
     homeConfigs;
 }

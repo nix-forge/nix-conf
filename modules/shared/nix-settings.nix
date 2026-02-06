@@ -63,9 +63,14 @@ in
     ];
 
   homeManager =
-    { lib, pkgs, ... }:
+    {
+      lib,
+      pkgs,
+      config,
+      ...
+    }:
     {
       nix.package = lib.mkDefault pkgs.nix;
-      settings = sharedSettings;
+      settings = lib.mkIf (config.nix.package != null) sharedSettings;
     };
 }
