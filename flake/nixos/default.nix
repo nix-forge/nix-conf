@@ -14,6 +14,7 @@ let
     inherit args;
   };
   modules = config.flake.modules.nixos;
+  homeModules = config.flake.modules.homeManager;
 in
 {
   flake = {
@@ -25,6 +26,12 @@ in
       inherit (args) self;
       inherit (myLib.configs) mkHost;
       builder = lib.nixosSystem;
+
+      # Pass home-related utilities for the connector pattern
+      extraConfigArgs = {
+        inherit homeModules;
+        inherit (myLib.configs) connectHome;
+      };
     };
   };
 }

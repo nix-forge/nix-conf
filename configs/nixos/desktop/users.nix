@@ -26,7 +26,7 @@ lib.mkMerge [
       "dialout" # serial devices
     ];
     initialPassword = "password";
-    homeManagerModules = homes "desktop";
+    homeModules = homes "desktop";
     shell = pkgs.nushell;
     uid = 1000;
   })

@@ -92,6 +92,6 @@ let
 in
 # Start at root, with initial prefix equal to the root directory name
 # so that a default.nix at the root becomes that top-level key.
-# For nixosModules/homeManagerModules use-cases, the root typically
+# For nixosModules/homeModules use-cases, the root typically
 # doesn’t have a default.nix, so this mainly affects subtrees.
 go dir [ ]

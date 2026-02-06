@@ -11,7 +11,7 @@
   extraGroups ? [ ],
   initialPassword ? "password",
   isNormalUser ? true,
-  homeManagerModules ? (_: [ ]),
+  homeModules ? (_: [ ]),
   shell ? null, # main shell package
   uid ? null,
 }:
@@ -92,7 +92,7 @@ lib.mkMerge [
         # import home-manager modules and resolve function
         # NOTE: withTreeModules shouldn't cause issues if tree modules aren't used
         imports = lib.cust.withTreeModules (
-          homeManagerModules (args // { inherit pkgs; })
+          homeModules (args // { inherit pkgs; })
         );
       }
       // lib.mkMerge [

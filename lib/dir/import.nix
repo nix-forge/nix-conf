@@ -491,8 +491,11 @@ rec {
       self,
       builder,
       modules,
+      # Optional extra arguments passed to each host's default.nix
+      # Useful for passing homeModules, connectHome, etc. for the connector pattern
+      extraConfigArgs ? { },
       exclude ? [ ],
-      filter ? (_: true),
+      filter ? (_: true ),
     }:
     let
       # Only include directories with default.nix (valid host configurations)
@@ -513,7 +516,7 @@ rec {
 
           # Import the host's default.nix and call it with configuration arguments
           hostConfigFn = importEntry entry;
-          hostConfig = hostConfigFn { inherit inputs self modules; };
+          hostConfig = hostConfigFn ({ inherit inputs self modules; } // extraConfigArgs);
 
           # Create the mkHost builder with the provided arguments
           hostBuilder = mkHost {
@@ -531,4 +534,90 @@ rec {
         };
     in
     listToAttrs (map buildHost hostEntries);
+
+  # Import home configurations from a directory where each subdirectory is a home config
+  # Each home folder should have a default.nix that returns home configuration options.
+  #
+  # The default.nix in each home folder receives { modules, folderName, ... } and should return:
+  #   { system, username, homeDirectory, modules, stateVersion?, nixpkgsArgs?, extraSpecialArgs? }
+  #
+  # This function uses mkHome to build the final Home Manager configuration for each entry.
+  # The output key defaults to "username@folderName" but can be overridden via configName.
+  #
+  # Type: Path -> {
+  #   mkHome: Function,           # The mkHome builder function (from lib.configs.mkHome)
+  #   withSystem: Function,       # flake-parts withSystem
+  #   inputs: AttrSet,            # Flake inputs
+  #   self: AttrSet,              # Flake self
+  #   modules: AttrSet,           # Available homeManager modules
+  #   exclude?: [String],         # Home folder names to exclude
+  #   filter?: Entry -> Bool,     # Additional filter predicate for entries
+  # } -> AttrSet
+  #
+  # Example:
+  #   Given: configs/home/
+  #          ├── desktop/
+  #          │   └── default.nix    # { modules, ... }: { system = "x86_64-linux"; username = "ianmh"; ... }
+  #          └── macbook-pro-m4/
+  #              └── default.nix    # { modules, ... }: { system = "aarch64-darwin"; username = "ianmh"; ... }
+  #
+  #   importHomes ./configs/home {
+  #     mkHome = myLib.configs.mkHome;
+  #     inherit withSystem inputs self;
+  #     modules = config.flake.modules.homeManager;
+  #   }
+  #   # => {
+  #   #   "ianmh@desktop" = <homeManagerConfiguration for desktop>;
+  #   #   "ianmh@macbook-pro-m4" = <homeManagerConfiguration for macbook-pro-m4>;
+  #   # }
+  importHomes =
+    path:
+    {
+      mkHome,
+      withSystem,
+      inputs,
+      self,
+      modules,
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
+    let
+      # Only include directories with default.nix (valid home configurations)
+      pred = allOf [
+        (e: e.isDir)
+        (e: e.hasDefault)
+        (excludeNames exclude)
+        filter
+      ];
+
+      homeEntries = readEntriesWhere pred path;
+
+      # Build a single home configuration
+      buildHome =
+        entry:
+        let
+          folderName = entryAttrName entry;
+
+          # Import the home config's default.nix and call it with available modules
+          homeConfigFn = importEntry entry;
+          homeConfig = homeConfigFn { inherit inputs self modules; };
+
+          # Create the mkHome builder with the provided arguments
+          homeBuilder = mkHome {
+            inherit
+              withSystem
+              inputs
+              self
+              ;
+          };
+
+          # Default config name is "username@folderName"
+          configName = homeConfig.configName or "${homeConfig.username}@${folderName}";
+        in
+        {
+          name = configName;
+          value = homeBuilder (homeConfig // { inherit folderName; });
+        };
+    in
+    listToAttrs (map buildHome homeEntries);
 }

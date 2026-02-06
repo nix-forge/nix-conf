@@ -9,7 +9,9 @@
     "statix",
     "zhaofengli"
   ],
-  "editor.rulers": [100],
+  "editor.rulers": [
+    100
+  ],
   // Nix IDE Settings
   "nix.serverSettings": {
     "nixd": {
@@ -31,14 +33,23 @@
         // "nixos": {
         //   "expr": "(builtins.getFlake \"${workspaceFolder}\").nixosConfigurations.<name>.options"
         // },
+        "nixos": {
+          "expr": "(builtins.getFlake \"${workspaceFolder}\").nixosConfigurations.desktop.options"
+        },
         // Darwin options (uncomment and set <name> when you have darwinConfigurations)
         // "nix-darwin": {
         //   "expr": "(builtins.getFlake \"${workspaceFolder}\").darwinConfigurations.<name>.options"
         // },
+        "nix-darwin": {
+          "expr": "(builtins.getFlake \"${workspaceFolder}\").darwinConfigurations.macbook-pro-m4.options"
+        },
         // Home Manager options (uncomment and set <name> when you have homeConfigurations)
         // "home-manager": {
         //   "expr": "(builtins.getFlake \"${workspaceFolder}\").homeConfigurations.<name>.options"
         // },
+        "home-manager": {
+          "expr": "(builtins.getFlake \"${workspaceFolder}\").homeConfigurations.ianmh@macbook-pro-m4.options"
+        },
         // flake-parts options (enable debug = true in your flake first)
         // See: https://flake.parts/debug
         // "flake-parts": {
