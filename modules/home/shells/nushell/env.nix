@@ -9,10 +9,7 @@ let
           replaceVars =
             varsIn: varsOut: v:
             "$env.${n} = ${
-              if lib.typeOf v == "string" then
-                "\"${builtins.replaceStrings varsIn varsOut v}\""
-              else
-                toString v
+              if lib.typeOf v == "string" then "\"${builtins.replaceStrings varsIn varsOut v}\"" else toString v
             }";
           replaceVarPresets =
             v:
@@ -24,10 +21,7 @@ let
               v;
         in
         lib.pipe v [
-          (replaceVars
-            [ "$HOME" "$USER" ]
-            [ config.home.homeDirectory config.home.username ]
-          )
+          (replaceVars [ "$HOME" "$USER" ] [ config.home.homeDirectory config.home.username ])
           replaceVarPresets
         ]
       ) vars

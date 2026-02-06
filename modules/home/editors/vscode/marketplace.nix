@@ -32,6 +32,5 @@ rec {
   preferPreRelease = mergeExtensionAttrs preRelease release;
   preferNixpkgsThenPreRelease = mergeExtensionAttrs nixpkgs-extensions preferPreRelease;
   preferNixpkgsThenRelease = mergeExtensionAttrs nixpkgs-extensions release;
-  extraCompatible =
-    (pkgsVSCode.forVSCodeVersion pkgs.vscode.version).vscode-marketplace-release;
+  extraCompatible = (pkgsVSCode.forVSCodeVersion pkgs.vscode.version).vscode-marketplace-release;
 }

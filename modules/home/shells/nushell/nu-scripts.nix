@@ -30,18 +30,10 @@
       ++ lib.optionals config.programs.aerospace.enable [
         "use custom-completions/aerospace/aerospace-completions.nu *"
       ]
-      ++ lib.optionals config.programs.bat.enable [
-        "use custom-completions/bat/bat-completions.nu *"
-      ]
-      ++ lib.optionals config.programs.gh.enable [
-        "use custom-completions/gh/gh-completions.nu *"
-      ]
-      ++ lib.optionals config.programs.git.enable [
-        "use custom-completions/git/git-completions.nu *"
-      ]
-      ++ lib.optionals config.programs.man.enable [
-        "use custom-completions/man/man-completions.nu *"
-      ]
+      ++ lib.optionals config.programs.bat.enable [ "use custom-completions/bat/bat-completions.nu *" ]
+      ++ lib.optionals config.programs.gh.enable [ "use custom-completions/gh/gh-completions.nu *" ]
+      ++ lib.optionals config.programs.git.enable [ "use custom-completions/git/git-completions.nu *" ]
+      ++ lib.optionals config.programs.man.enable [ "use custom-completions/man/man-completions.nu *" ]
       ++ lib.optionals config.programs.zoxide.enable [
         "use custom-completions/zoxide/zoxide-completions.nu *"
       ]

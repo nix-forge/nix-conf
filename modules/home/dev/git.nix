@@ -8,11 +8,9 @@ let
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
 in
 {
-  home.activation.removeExistingGitconfig =
-    lib.hm.dag.entryBefore [ "checkLinkTargets" ]
-      ''
-        rm -f ${config.home.homeDirectory}/.gitconfig
-      '';
+  home.activation.removeExistingGitconfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    rm -f ${config.home.homeDirectory}/.gitconfig
+  '';
 
   programs.git = {
     enable = true;
@@ -82,9 +80,7 @@ in
         fsmonitor = true;
         untrackedCache = true;
         autocrlf = "input";
-        editor = lib.mkIf (
-          config.home.sessionVariables ? EDITOR
-        ) config.home.sessionVariables.EDITOR;
+        editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
         abbrev = 12;
         precomposeUnicode = isDarwin;

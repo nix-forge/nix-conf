@@ -21,8 +21,8 @@ readonly OWNER="@username@"
 # A symlink at the target path could redirect writes to an attacker-controlled
 # location. Bail out immediately if the path is a symlink.
 if [ -L "${XDG_RUNTIME}" ]; then
-    printf 'FATAL: @xdgRuntimeDir@ path is a symlink: %s\n' "${XDG_RUNTIME}" >&2
-    exit 1
+  printf 'FATAL: @xdgRuntimeDir@ path is a symlink: %s\n' "${XDG_RUNTIME}" >&2
+  exit 1
 fi
 
 # ── Create the directory with restrictive permissions ────────────────────────
@@ -38,15 +38,15 @@ chown "${OWNER}" "${XDG_RUNTIME}"
 
 # ── Post-creation validation ─────────────────────────────────────────────────
 if [ ! -d "${XDG_RUNTIME}" ]; then
-    printf 'FATAL: @xdgRuntimeDir@ is not a directory: %s\n' "${XDG_RUNTIME}" >&2
-    exit 1
+  printf 'FATAL: @xdgRuntimeDir@ is not a directory: %s\n' "${XDG_RUNTIME}" >&2
+  exit 1
 fi
 
 # Verify the expected user owns the directory — another user's directory with
 # identical path (e.g. leftover from a different UID) must not be reused.
 actual_owner="$(stat -f '%Su' "${XDG_RUNTIME}")"
 if [ "${actual_owner}" != "${OWNER}" ]; then
-    printf 'FATAL: @xdgRuntimeDir@ is owned by "%s", expected "%s": %s\n' \
-        "${actual_owner}" "${OWNER}" "${XDG_RUNTIME}" >&2
-    exit 1
+  printf 'FATAL: @xdgRuntimeDir@ is owned by "%s", expected "%s": %s\n' \
+    "${actual_owner}" "${OWNER}" "${XDG_RUNTIME}" >&2
+  exit 1
 fi

@@ -54,8 +54,7 @@ in
       settings = sharedSettings // {
         trusted-users = [ "@admin" ];
       };
-      usingDeterminateNix =
-        lib.hasAttr "determinateNix" config && config.determinateNix.enable;
+      usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) { nix = { inherit settings; }; })

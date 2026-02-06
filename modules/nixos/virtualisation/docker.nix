@@ -1,8 +1,6 @@
 { lib, config, ... }:
 let
-  btrfsMounts = lib.filterAttrs (
-    _: mount: mount.fsType == "btrfs"
-  ) config.fileSystems;
+  btrfsMounts = lib.filterAttrs (_: mount: mount.fsType == "btrfs") config.fileSystems;
 in
 {
   # enable docker

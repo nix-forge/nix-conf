@@ -5,9 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      myriad-dreamin.tinymist
-    ];
+    extensions = with extensions.release; [ myriad-dreamin.tinymist ];
 
     userSettings = {
       "[typst]" = {

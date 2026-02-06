@@ -7,9 +7,7 @@
   ...
 }@args:
 let
-  darwinModules = myLib.dir.importFlatWithDirs ../../modules/darwin {
-    sep = "-";
-  };
+  darwinModules = myLib.dir.importFlatWithDirs ../../modules/darwin { sep = "-"; };
   sharedModules = myLib.dir.importSharedFlat ../../modules/shared {
     class = "darwin";
     sep = "-";

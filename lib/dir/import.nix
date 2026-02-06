@@ -198,11 +198,7 @@ rec {
         currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
-          entries =
-            if excludeDefault then
-              builtinFilter (e: !e.isDefault) baseEntries
-            else
-              baseEntries;
+          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
 
           processEntry =
             entry:
@@ -347,8 +343,7 @@ rec {
       ];
 
       # Normalize imported value: if it's a function, call it with provided args to get the attrset
-      normalizeImport =
-        imported: if builtins.isFunction imported then imported args else imported;
+      normalizeImport = imported: if builtins.isFunction imported then imported args else imported;
 
       # Import a file/dir and extract the class-specific module
       importWithClass =
@@ -357,10 +352,7 @@ rec {
           raw = importEntry entry;
           imported = normalizeImport raw;
         in
-        if builtins.isAttrs imported && hasAttr class imported then
-          imported.${class}
-        else
-          null;
+        if builtins.isAttrs imported && hasAttr class imported then imported.${class} else null;
 
       # Check if an entry (file or dir) has any modules for the given class
 
@@ -392,11 +384,7 @@ rec {
         currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
-          entries =
-            if excludeDefault then
-              builtinFilter (e: !e.isDefault) baseEntries
-            else
-              baseEntries;
+          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
 
           processEntry =
             entry:
@@ -530,10 +518,7 @@ rec {
           modulesPath = entry.path + /modules;
           # add config's modules to the modules set (only if modules dir exists)
           configModules =
-            if builtins.pathExists modulesPath then
-              importFlatWithDirs modulesPath { sep = "-"; }
-            else
-              { };
+            if builtins.pathExists modulesPath then importFlatWithDirs modulesPath { sep = "-"; } else { };
           combinedModules = lib.attrsets.unionOfDisjoint modules configModules;
 
           # Import the host's default.nix and call it with configuration arguments
@@ -653,10 +638,7 @@ rec {
       modulesPath = entry.path + /modules;
       # add config's modules to the modules set (only if modules dir exists)
       configModules =
-        if builtins.pathExists modulesPath then
-          importFlatWithDirs modulesPath { sep = "-"; }
-        else
-          { };
+        if builtins.pathExists modulesPath then importFlatWithDirs modulesPath { sep = "-"; } else { };
       combinedModules = lib.attrsets.unionOfDisjoint modules configModules;
 
       # Import the home config's default.nix and call it with available modules
@@ -694,9 +676,8 @@ rec {
           homeConfig = createHomeConfig entry { inherit inputs self modules; };
 
           configName =
-            homeConfig.configName or (
-              if prependUsername then "${homeConfig.username}@${folderName}" else folderName
-            );
+            homeConfig.configName
+              or (if prependUsername then "${homeConfig.username}@${folderName}" else folderName);
         in
         {
           name = configName;

@@ -23,8 +23,7 @@ in
     enable = true;
     # set to the flake package or null if using nixos hyprland
     package = if nixosHyprland then null else hyprPkgs.hyprland;
-    portalPackage =
-      if nixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
+    portalPackage = if nixosHyprland then null else hyprPkgs.xdg-desktop-portal-hyprland;
 
     systemd = {
       enable = lib.mkForce (!usingUWSMHyprland);
@@ -69,10 +68,7 @@ in
       export MOZ_ENABLE_WAYLAND=1
     ''
     (lib.optionals
-      (
-        config.home.sessionVariables ? IGPU_CARD
-        && config.home.sessionVariables ? DGPU_CARD
-      )
+      (config.home.sessionVariables ? IGPU_CARD && config.home.sessionVariables ? DGPU_CARD)
       ''
         # Hyprland GPU Variables
         export AQ_DRM_DEVICES=${config.home.sessionVariables.IGPU_CARD}:${config.home.sessionVariables.DGPU_CARD}
@@ -81,7 +77,6 @@ in
   ];
 
   services = {
-    hyprpaper.package =
-      inputs.hyprpaper.packages.${pkgs.stdenv.hostPlatform.system}.hyprpaper;
+    hyprpaper.package = inputs.hyprpaper.packages.${pkgs.stdenv.hostPlatform.system}.hyprpaper;
   };
 }

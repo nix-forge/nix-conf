@@ -1,6 +1,5 @@
 set shell := ["/usr/bin/env", "bash", "-c"]
 
-# The root of this flake repository
 flake := justfile_directory()
 
 default:

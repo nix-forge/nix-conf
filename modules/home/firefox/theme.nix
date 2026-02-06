@@ -10,17 +10,12 @@ let
   inherit (lib.cust.firefox) toUserJS;
 
   # TODO: fix this by not hardcoding or switching to the new location since firefox 147
-  mozillaConfigPath =
-    if isDarwin then "Library/Application Support/Mozilla" else ".mozilla";
+  mozillaConfigPath = if isDarwin then "Library/Application Support/Mozilla" else ".mozilla";
 
   firefoxConfigPath =
-    if isDarwin then
-      "Library/Application Support/Firefox"
-    else
-      "${mozillaConfigPath}/firefox";
+    if isDarwin then "Library/Application Support/Firefox" else "${mozillaConfigPath}/firefox";
 
-  profilesPath =
-    if isDarwin then "${firefoxConfigPath}/Profiles" else firefoxConfigPath;
+  profilesPath = if isDarwin then "${firefoxConfigPath}/Profiles" else firefoxConfigPath;
 in
 {
   # Copy Firefox-UI-Fix theme into the profile's chrome directory

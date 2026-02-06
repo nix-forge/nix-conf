@@ -5,8 +5,6 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      thenuprojectcontributors.vscode-nushell-lang
-    ];
+    extensions = with extensions.release; [ thenuprojectcontributors.vscode-nushell-lang ];
   };
 }

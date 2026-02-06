@@ -46,9 +46,7 @@ in
 
       "cSpell.customDictionaries" = {
         nix = {
-          path =
-            (pkgs.writeText "dictionary-nix" (lib.concatStringsSep "\n" dictionary))
-            .outPath;
+          path = (pkgs.writeText "dictionary-nix" (lib.concatStringsSep "\n" dictionary)).outPath;
           description = "Extra words for the Nix language";
           scope = "user";
         };

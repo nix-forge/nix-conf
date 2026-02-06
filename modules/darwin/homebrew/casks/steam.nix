@@ -1,3 +1,1 @@
-_: {
-  homebrew.casks = [ "steam" ];
-}
+_: { homebrew.casks = [ "steam" ]; }

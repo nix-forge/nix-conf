@@ -51,9 +51,7 @@ rec {
           (args.modules or [ ])
         ];
       in
-      inputs.home-manager.lib.homeManagerConfiguration {
-        inherit pkgs modules extraSpecialArgs;
-      }
+      inputs.home-manager.lib.homeManagerConfiguration { inherit pkgs modules extraSpecialArgs; }
     );
 
   connectHome =
@@ -88,7 +86,7 @@ rec {
     }:
     let
       extraModules =
-        systemConfig:
+        _systemConfig:
         singleton (
           { lib, ... }:
           {
@@ -101,8 +99,7 @@ rec {
       homeConfig = homeConfigs.${configName};
       args = {
         username = if username != null then username else homeConfig.username;
-        homeDirectory =
-          if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
+        homeDirectory = if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
         uid = if uid != null then uid else homeConfig.uid;
       };
     in
@@ -136,8 +133,7 @@ rec {
       homeConfig = homeConfigs.${configName};
       args = {
         username = if username != null then username else homeConfig.username;
-        homeDirectory =
-          if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
+        homeDirectory = if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
         uid = if uid != null then uid else homeConfig.uid;
       };
     in

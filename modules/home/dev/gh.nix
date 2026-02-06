@@ -1,13 +1,16 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   programs.gh = {
     enable = true;
 
     extensions = [ pkgs.gh-poi ];
     settings = {
-      editor = lib.mkIf (
-        config.home.sessionVariables ? EDITOR
-      ) config.home.sessionVariables.EDITOR;
+      editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
       git_protocol = "ssh";
     };
   };

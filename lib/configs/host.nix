@@ -32,9 +32,7 @@ in
         };
 
         modules = concatLists [
-          (singleton {
-            networking.hostName = args.hostname or args.hostName or args.folderName;
-          })
+          (singleton { networking.hostName = args.hostname or args.hostName or args.folderName; })
           (singleton nixpkgsConfig)
           (args.modules or [ ])
         ];

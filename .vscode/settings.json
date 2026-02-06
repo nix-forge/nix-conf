@@ -20,9 +20,7 @@
     "uids",
     "zhaofengli"
   ],
-  "editor.rulers": [
-    100
-  ],
+  "editor.rulers": [100]
   // Nix IDE Settings
   // "nix.serverSettings": {
   //   "nixd": {

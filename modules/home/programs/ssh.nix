@@ -73,10 +73,8 @@ in
   };
 
   # create the control master directory if it doesn't exist
-  home.activation.createSshControlMasterDir =
-    lib.hm.dag.entryBefore [ "writeBoundary" ]
-      ''
-        mkdir -p ${cmDir}
-        chmod 700 ${cmDir}
-      '';
+  home.activation.createSshControlMasterDir = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+    mkdir -p ${cmDir}
+    chmod 700 ${cmDir}
+  '';
 }

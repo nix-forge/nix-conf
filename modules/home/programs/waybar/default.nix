@@ -44,9 +44,7 @@ let
   commands =
     let
       # slight = "${lib.getExe pkgs.slight}";
-      hyprctl = "${
-        inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland
-      }/bin/hyprctl";
+      hyprctl = "${inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland}/bin/hyprctl";
       # TODO this is duplicated from the hyprland config, make it a module
       # kbFns = lib.getExe config.utilities.osd-functions.package;
       pavucontrol = lib.getExe pkgs.lxqt.pavucontrol-qt;
@@ -136,10 +134,7 @@ let
       patLen = builtins.stringLength pattern;
       starts = pattern == builtins.substring 0 patLen str;
     in
-    if strLen >= patLen && starts then
-      lstrip pattern (builtins.substring patLen strLen str)
-    else
-      str;
+    if strLen >= patLen && starts then lstrip pattern (builtins.substring patLen strLen str) else str;
   rstrip =
     pattern: str:
     let
@@ -504,9 +499,7 @@ in
 
   # Install compiled CSS directly as a config file to avoid forcing a
   # build at evaluation time (e.g., during `nix flake check` on non-Linux hosts).
-  xdg.configFile."waybar/style.css".source = lib.mkForce (
-    compileSCSS "waybar-style" ./waybar.scss
-  );
+  xdg.configFile."waybar/style.css".source = lib.mkForce (compileSCSS "waybar-style" ./waybar.scss);
 
   imports = [
     (lib.mkIf config.programs.waybar.systemd.enable {

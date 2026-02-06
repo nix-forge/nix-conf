@@ -7,7 +7,8 @@ in
     if isDarwin then
       [ pkgs.container ]
     else
-      with pkgs; [
+      with pkgs;
+      [
         docker
         docker-compose
         docker-buildx

@@ -12,8 +12,7 @@
         WebKitDeveloperExtrasEnabledPreferenceKey = true;
 
         # Enable WebKit Developer Extras (alternative key)
-        "com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled" =
-          true;
+        "com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled" = true;
 
         # Disable universal search for privacy
         UniversalSearchEnabled = false;

@@ -254,12 +254,8 @@ in
                 path = lib.getExe' pkgs.bashInteractive "bash";
                 icon = "terminal-bash";
               };
-              zsh = lib.mkIf config.programs.zsh.enable {
-                path = lib.getExe' pkgs.zsh "zsh";
-              };
-              fish = lib.mkIf config.programs.fish.enable {
-                path = lib.getExe' pkgs.fish "fish";
-              };
+              zsh = lib.mkIf config.programs.zsh.enable { path = lib.getExe' pkgs.zsh "zsh"; };
+              fish = lib.mkIf config.programs.fish.enable { path = lib.getExe' pkgs.fish "fish"; };
               nu = lib.mkIf config.programs.nushell.enable {
                 path = lib.getExe' pkgs.nushell "nu";
                 icon = "chevron-right";

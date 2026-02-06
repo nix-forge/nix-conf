@@ -1,3 +1,1 @@
-_: {
-  homebrew.casks = [ "raspberry-pi-imager" ];
-}
+_: { homebrew.casks = [ "raspberry-pi-imager" ]; }
