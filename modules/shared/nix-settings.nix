@@ -49,17 +49,13 @@ in
     };
 
   darwin =
-    {
-      lib,
-      config,
-      optionals,
-      ...
-    }:
+    { lib, config, ... }:
     let
       settings = sharedSettings // {
         trusted-users = [ "@admin" ];
       };
-      usingDeterminateNix = lib.hasAttr "determinateNix" config;
+      usingDeterminateNix =
+        lib.hasAttr "determinateNix" config && config.determinateNix.enable;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) { nix = { inherit settings; }; })
