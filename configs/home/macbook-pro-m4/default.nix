@@ -13,26 +13,9 @@
 
   modules = with modules; [
     ## Base
-    base-version
-    # base-fonts  # Requires custom flake packages
-    base-xdg
+    meta
     determinate
-
-    ## Shells
-    shells-aliases
-    shells-starship
-    shells-zoxide
-    shells-carapace
-    shells-eza
-
-    ## Development
-    dev-direnv
-
-    ## Programs
-    programs-ssh
-
-    ## Per-host configuration
-    # ./ssh.nix     # Requires agenix
-    # ./secrets.nix  # Requires nix-secrets input
+    nix-settings
+    cache
   ];
 }

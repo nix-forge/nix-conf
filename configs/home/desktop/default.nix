@@ -3,7 +3,6 @@
   system = "x86_64-linux";
   username = "ianmh";
   homeDirectory = "/home/ianmh";
-  stateVersion = "24.11";
   uid = 1000;
 
   nixpkgsArgs = {

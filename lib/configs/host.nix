@@ -10,7 +10,7 @@ in
       inputs,
       self,
       builder,
-      homeEntries ? { },
+      homeConfigs ? { },
       extraSpecialArgs ? { },
     }:
     { system, ... }@args:
@@ -20,7 +20,7 @@ in
         specialArgs = {
           inherit inputs' self';
           inherit inputs self;
-          inherit system homeEntries;
+          inherit system homeConfigs;
         }
         // extraSpecialArgs
         // (args.specialArgs or { });

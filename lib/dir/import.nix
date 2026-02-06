@@ -498,12 +498,14 @@ rec {
     path:
     {
       mkHost,
+      connectHomeDarwin,
+      connectHomeNixos,
       withSystem,
       inputs,
       self,
       builder,
       modules,
-      homeEntries ? { },
+      homeConfigs ? { },
       extraSpecialArgs ? { },
       exclude ? [ ],
       filter ? (_: true),
@@ -538,6 +540,7 @@ rec {
           hostConfigFn = importEntry entry;
           hostConfig = hostConfigFn {
             inherit inputs self;
+            inherit connectHomeDarwin connectHomeNixos;
             modules = combinedModules;
           };
 
@@ -548,7 +551,7 @@ rec {
               inputs
               self
               builder
-              homeEntries
+              homeConfigs
               extraSpecialArgs
               ;
           };

@@ -1,13 +1,16 @@
+let
+  settings = {
+    eval-cores = 0;
+    lazy-trees = true;
+  };
+in
 {
   nixos =
     { inputs, ... }:
     {
       imports = [ inputs.determinate.nixosModules.default ];
 
-      nix.settings = {
-        eval-cores = 0;
-        lazy-trees = true;
-      };
+      nix = { inherit settings; };
     };
 
   darwin =
@@ -23,10 +26,7 @@
           garbageCollector.strategy = "automatic";
         };
 
-        customSettings = {
-          eval-cores = 0;
-          lazy-trees = true;
-        };
+        customSettings = settings;
       };
     };
 
@@ -39,11 +39,9 @@
       ...
     }:
     {
-      nix.package = inputs.determinate.inputs.nix.packages.${system}.default;
-
-      nix.settings = lib.mkIf (config.nix.package != null) {
-        eval-cores = 0;
-        lazy-trees = true;
+      nix = {
+        package = inputs.determinate.inputs.nix.packages.${system}.default;
+        settings = lib.mkIf (config.nix.package != null) settings;
       };
 
       # Workaround: Disable HM manual to suppress Determinate Nix warning

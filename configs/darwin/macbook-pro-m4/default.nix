@@ -1,4 +1,4 @@
-{ modules, ... }:
+{ modules, connectHomeDarwin, ... }:
 {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";
@@ -12,28 +12,28 @@
   modules = with modules; [
     { system.primaryUser = "ianmh"; }
 
-    # Base
+    ## Base
     meta
     determinate
     nix-settings
     cache
 
-    # Users
+    ## Users
     home-manager
-    users
+    (connectHomeDarwin "ianmh@macbook-pro-m4" { })
 
-    # Homebrew
+    ## Homebrew
     homebrew
     homebrew-casks
     homebrew-brews
 
-    # Preferences
+    ## Preferences
     preferences # TODO: try to move to home-manager
 
-    # Security
+    ## Security
     security
 
-    # Secrets
+    ## Secrets
     secrets
   ];
 }

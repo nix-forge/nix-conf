@@ -22,7 +22,7 @@ let
     sep = "-";
     inherit args;
   };
-  homeEntries = myLib.dir.importHomeConfigs ../../configs/home {
+  homeConfigs = myLib.dir.importHomeConfigs ../../configs/home {
     inherit inputs;
     inherit (args) self;
     modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
@@ -36,10 +36,11 @@ in
     darwinModules = modules;
 
     darwinConfigurations = myLib.dir.importHosts ../../configs/darwin {
-      inherit modules homeEntries;
+      inherit modules homeConfigs;
       inherit withSystem inputs;
       inherit (args) self;
       inherit (myLib.configs) mkHost;
+      inherit (myLib.configs) connectHomeDarwin connectHomeNixos;
       builder = inputs.nix-darwin.lib.darwinSystem;
       extraSpecialArgs = { inherit myLib; };
     };

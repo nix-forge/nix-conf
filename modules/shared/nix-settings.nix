@@ -45,21 +45,25 @@ in
       };
     in
     {
-      inherit settings;
+      nix = { inherit settings; };
     };
 
   darwin =
-    { lib, config, ... }:
+    {
+      lib,
+      config,
+      optionals,
+      ...
+    }:
     let
       settings = sharedSettings // {
         trusted-users = [ "@admin" ];
       };
+      usingDeterminateNix = lib.hasAttr "determinateNix" config;
     in
     lib.mkMerge [
-      (lib.mkIf (config.nix.enable) { nix = { inherit settings; }; })
-      (lib.mkIf (lib.hasAttr "determinateNix" config) {
-        determinateNix.customSettings = settings;
-      })
+      (lib.mkIf (!usingDeterminateNix) { nix = { inherit settings; }; })
+      (lib.mkIf usingDeterminateNix { determinateNix.customSettings = settings; })
     ];
 
   homeManager =
@@ -70,7 +74,9 @@ in
       ...
     }:
     {
-      nix.package = lib.mkDefault pkgs.nix;
-      settings = lib.mkIf (config.nix.package != null) sharedSettings;
+      nix = {
+        package = lib.mkDefault pkgs.nix;
+        settings = lib.mkIf (config.nix.package != null) sharedSettings;
+      };
     };
 }

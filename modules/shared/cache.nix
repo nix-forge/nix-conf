@@ -16,16 +16,31 @@ let
   };
 in
 {
-  nixos = { inherit settings; };
+  nixos = {
+    nix = { inherit settings; };
+  };
 
   darwin =
     { lib, config, ... }:
+    let
+      usingDeterminateNix = lib.hasAttr "determinateNix" config;
+    in
     lib.mkMerge [
-      (lib.mkIf (config.nix.enable) { nix = { inherit settings; }; })
-      (lib.mkIf (lib.hasAttr "determinateNix" config) {
-        determinateNix.customSettings = settings;
-      })
+      (lib.mkIf (!usingDeterminateNix) { nix = { inherit settings; }; })
+      (lib.mkIf usingDeterminateNix { determinateNix.customSettings = settings; })
     ];
 
-  homeManager = { inherit settings; };
+  homeManager =
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
+    {
+      nix = {
+        package = lib.mkDefault pkgs.nix;
+        settings = lib.mkIf (config.nix.package != null) settings;
+      };
+    };
 }
