@@ -1,3 +1,0 @@
-_: {
-  homebrew.brews = [ "prek" ];
-}

@@ -17,5 +17,11 @@
     determinate
     nix-settings
     cache
+    xdg
+
+    fonts
+    dev
+    shells
+    window-managers-aerospace
   ];
 }

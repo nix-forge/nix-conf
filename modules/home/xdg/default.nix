@@ -4,7 +4,6 @@
   config,
   ...
 }:
-assert config.home.uid != null "home.uid must be set to use the xdg module";
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
@@ -48,14 +47,14 @@ in
 
   home.activation.ensureXdgRuntimeDir = lib.mkIf isDarwin (
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      ${lib.getExe ensureDarwinRuntimeApp}
+      ${lib.getExe' ensureDarwinRuntimeApp "hm-ensure-xdg-runtime-dir"}
     ''
   );
   launchd.agents.ensure-xdg-runtime-dir = {
     enable = true;
     config = {
       Label = "dev.user.hm-ensure-xdg-runtime-dir";
-      ProgramArguments = [ (lib.getExe ensureDarwinRuntimeApp) ];
+      ProgramArguments = [ (lib.getExe' ensureDarwinRuntimeApp "hm-ensure-xdg-runtime-dir") ];
       RunAtLoad = true;
       KeepAlive = false;
       ProcessType = "Background";

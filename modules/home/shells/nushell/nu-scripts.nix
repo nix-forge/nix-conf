@@ -27,7 +27,6 @@
         "use custom-completions/make/make-completions.nu *"
         "use custom-completions/just/just-completions.nu *"
       ]
-      ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ "use modules/nix/nix.nu *" ]
       ++ lib.optionals config.programs.aerospace.enable [
         "use custom-completions/aerospace/aerospace-completions.nu *"
       ]

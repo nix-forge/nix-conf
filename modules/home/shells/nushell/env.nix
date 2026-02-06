@@ -12,23 +12,12 @@ let
               if lib.typeOf v == "string" then
                 "\"${builtins.replaceStrings varsIn varsOut v}\""
               else
-                builtins.toString v
+                toString v
             }";
           replaceVarPresets =
             v:
-            let
-              rightSideVarPreset = lib.concatStrings [
-                "$"
-                "{"
-                n
-                ":+:$"
-                n
-                "}"
-                "\""
-              ];
-            in
             builtins.replaceStrings
-              [ rightSideVarPreset ]
+              [ "$\\{${n}:+:$${n}}\"" ]
               [
                 ''" + (do { let x = ($env.${n}? | default ""); if $x == "" { "" } else { ":" + $x } }) | split row (char esep) | uniq''
               ]
@@ -37,7 +26,7 @@ let
         lib.pipe v [
           (replaceVars
             [ "$HOME" "$USER" ]
-            [ config.home.username config.home.homeDirectory ]
+            [ config.home.homeDirectory config.home.username ]
           )
           replaceVarPresets
         ]

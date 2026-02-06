@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ lib, ... }:
 {
   programs.starship = {
     enable = true;
@@ -126,20 +126,6 @@
         Macos = " ";
         Linux = " ";
       };
-
-      shell = {
-        disabled = false;
-      }
-      // lib.optionalAttrs (lib.hasAttr "SHELL" config.home.sessionVariables) (
-        let
-          shellPath = config.home.sessionVariables.SHELL;
-          shellName = lib.last (lib.splitString "/" shellPath);
-        in
-        {
-          # Disable the default shell indicator (see shell name when in not default shell)
-          "${shellName}_indicator" = "";
-        }
-      );
     };
   };
 }

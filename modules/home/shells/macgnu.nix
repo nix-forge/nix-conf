@@ -1,6 +1,9 @@
 { pkgs, lib, ... }:
+let
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+in
 {
-  home.packages = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
+  home.packages = lib.mkIf isDarwin (
     with pkgs;
     [
       coreutils # TODO: consider using uutil-coreutils once more stable

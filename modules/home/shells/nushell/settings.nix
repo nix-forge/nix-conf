@@ -1,16 +1,6 @@
 { config, ... }:
 {
-  imports = [
-    ./extra-config-before.nix
-    ./config-dir-fix.nix
-    ./env.nix
-    ./nu-scripts.nix
-    ./extra-config-after.nix
-  ];
-
-  # Enable Bash to all launching of Nushell with bash in other programs
-  programs.bash.enable = true;
-
+  home.shell.enableNushellIntegration = true;
   programs.nushell = {
     enable = true;
 
