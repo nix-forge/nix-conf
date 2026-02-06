@@ -3,6 +3,7 @@
   lib,
   myLib,
   config,
+  withSystem,
   ...
 }@args:
 let
@@ -13,10 +14,19 @@ let
     inherit args;
   };
 
+  modules = config.flake.modules.homeManager;
 in
 {
   imports = [ inputs.home-manager.flakeModules.home-manager ];
 
-  flake.modules.homeManager = lib.attrsets.unionOfDisjoint homeModules sharedModules;
-  flake.homeModules = config.flake.modules.homeManager;
+  flake = {
+    modules.homeManager = lib.attrsets.unionOfDisjoint homeModules sharedModules;
+    homeModules = config.flake.modules.homeManager;
+
+    homeConfigurations = myLib.dir.importHomes ../../configs/home {
+      inherit modules withSystem inputs;
+      inherit (args) self;
+      inherit (myLib.configs) mkHome;
+    };
+  };
 }

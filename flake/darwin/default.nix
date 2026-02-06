@@ -14,6 +14,8 @@ let
     inherit args;
   };
   modules = config.flake.modules.darwin;
+  homeModules = config.flake.modules.homeManager;
+
 in
 {
   # import = [ inputs.nix-darwin.flakeModules.nix-darwin ];
@@ -27,6 +29,12 @@ in
       inherit (args) self;
       inherit (myLib.configs) mkHost;
       builder = inputs.nix-darwin.lib.darwinSystem;
+
+      # Pass home-related utilities for the connector pattern
+      extraConfigArgs = {
+        inherit homeModules;
+        inherit (myLib.configs) connectHome;
+      };
     };
   };
 }

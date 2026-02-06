@@ -7,9 +7,7 @@
 let
   install = pkg: { home.packages = [ pkg ]; };
   var = envVar: val: { home.sessionVariables.${envVar} = val; };
-  varBin =
-    envVar: val:
-    var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
+  varBin = envVar: val: var envVar "/etc/profiles/per-user/${config.home.username}/bin/${val}";
 in
 with (with tree.configs; (home // home.programs // home.programs.editors));
 [

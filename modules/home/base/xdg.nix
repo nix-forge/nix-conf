@@ -46,9 +46,7 @@ in
             enable = true;
             config = {
               Label = "dev.user.hm-make-xdg-runtime-dir";
-              ProgramArguments = [
-                (lib.getExe' makeXdgRuntimeDir "hm-make-xdg-runtime-dir")
-              ];
+              ProgramArguments = [ (lib.getExe' makeXdgRuntimeDir "hm-make-xdg-runtime-dir") ];
               RunAtLoad = true;
               KeepAlive = false;
               ProcessType = "Background";
