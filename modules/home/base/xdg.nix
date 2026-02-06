@@ -2,6 +2,7 @@
   lib,
   pkgs,
   config,
+  options,
   ...
 }:
 let
@@ -91,7 +92,7 @@ lib.mkMerge [
       };
     };
   }
-  (lib.mkIf (lib.hasAttr "age" config) {
+  (lib.optionalAttrs (options ? age) {
     age = {
       secretsDir = "${config.xdg.configHome}/agenix";
       secretsMountPoint = "${xdgRuntimeDir}/agenix.d";

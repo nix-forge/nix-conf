@@ -6,43 +6,34 @@
   nixpkgsArgs = {
     config = {
       allowUnfree = true;
-      allowUnfreePredicate = _: true;
-      allowVariants = true;
-      allowBroken = false;
-      # allowAliases = false;
     };
   };
 
-  modules = with modules; [ base-base ];
+  modules = with modules; [
+    { system.primaryUser = "ianmh"; }
 
-  # modules = with (tree.hosts.${folderName} // tree.configs.darwin); [
-  #   base.base
-  #   base.nix-settings
-  #   ./cache.nix
-  #   ./secrets.nix
+    # Base
+    meta
+    determinate
+    nix-settings
+    cache
 
-  #   { system.primaryUser = "ianmh"; }
+    # Users
+    home-manager
+    users
 
-  #   # TODO: switch preferences to be apart of Home Manager as I believe it is supported
-  #   preferences.accessibility
-  #   preferences.animations
-  #   preferences.applications
-  #   preferences.dock
-  #   preferences.file-management
-  #   preferences.finder
-  #   preferences.input
-  #   preferences.keyboard
-  #   preferences.misc
-  #   preferences.safari
-  #   preferences.software-update
-  #   preferences.system
-  #   preferences.ui
+    # Homebrew
+    homebrew
+    homebrew-casks
+    homebrew-brews
 
-  #   security.pam
-  #   security.firewall
+    # Preferences
+    preferences # TODO: try to move to home-manager
 
-  #   homebrew
+    # Security
+    security
 
-  #   ./users.nix
-  # ];
+    # Secrets
+    secrets
+  ];
 }

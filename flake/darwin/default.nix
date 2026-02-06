@@ -7,15 +7,26 @@
   ...
 }@args:
 let
-  darwinModules = myLib.dir.importFlatWithDirs ../../modules/darwin { sep = "-"; };
+  darwinModules = myLib.dir.importFlatWithDirs ../../modules/darwin {
+    sep = "-";
+  };
   sharedModules = myLib.dir.importSharedFlat ../../modules/shared {
     class = "darwin";
     sep = "-";
     inherit args;
   };
   modules = config.flake.modules.darwin;
-  homeModules = config.flake.modules.homeManager;
-
+  homeModules = myLib.dir.importFlatWithDirs ../../modules/home { sep = "-"; };
+  sharedHomeModules = myLib.dir.importSharedFlat ../../modules/shared {
+    class = "homeManager";
+    sep = "-";
+    inherit args;
+  };
+  homes = myLib.dir.importHomeConfigs ../../configs/home {
+    inherit inputs;
+    inherit (args) self;
+    modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
+  };
 in
 {
   # import = [ inputs.nix-darwin.flakeModules.nix-darwin ];
@@ -25,16 +36,12 @@ in
     darwinModules = modules;
 
     darwinConfigurations = myLib.dir.importHosts ../../configs/darwin {
-      inherit modules withSystem inputs;
+      inherit modules homes;
+      inherit withSystem inputs;
       inherit (args) self;
       inherit (myLib.configs) mkHost;
       builder = inputs.nix-darwin.lib.darwinSystem;
-
-      # Pass home-related utilities for the connector pattern
-      extraConfigArgs = {
-        inherit homeModules;
-        inherit (myLib.configs) connectHome;
-      };
+      extraSpecialArgs = { inherit myLib; };
     };
   };
 }

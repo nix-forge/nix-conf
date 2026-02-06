@@ -1,38 +1,60 @@
-{ inputs, ... }:
 let
-  home-manager = extraSpecialArgs: {
-    # Enable verbose output for debugging
+  home-manager-config = extraSpecialArgs: {
     verbose = true;
-
-    # Use system-level nixpkgs for consistency
     useGlobalPkgs = true;
-
-    # Enable user packages through users.users.<name>.packages
     useUserPackages = true;
-
-    # Backup existing files instead of failing
     backupFileExtension = "hm.old";
-
-    # Pass custom args to Home Manager modules
     inherit extraSpecialArgs;
   };
 in
 {
   nixos =
-    extraSpecialArgs:
-    { ... }:
+    {
+      inputs,
+      self,
+      inputs',
+      self',
+      system,
+      myLib,
+      ...
+    }:
     {
       imports = [ inputs.home-manager.nixosModules.home-manager ];
 
-      home-manager = home-manager extraSpecialArgs;
+      home-manager = home-manager-config {
+        inherit
+          inputs
+          self
+          inputs'
+          self'
+          system
+          myLib
+          ;
+      };
     };
 
   darwin =
-    extraSpecialArgs:
-    { ... }:
+    {
+      inputs,
+      self,
+      inputs',
+      self',
+      system,
+      myLib,
+      ...
+    }:
     {
       imports = [ inputs.home-manager.darwinModules.home-manager ];
 
-      home-manager = home-manager extraSpecialArgs;
+      home-manager = home-manager-config {
+        inherit
+          inputs
+          self
+          inputs'
+          self'
+          system
+          myLib
+          ;
+      };
     };
 }

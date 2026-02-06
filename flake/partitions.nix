@@ -27,6 +27,8 @@
       extraInputs = {
         inherit (inputs)
           nixpkgs
+          home-manager
+          nix-secrets
           agenix
           stylix
           disko
@@ -44,6 +46,8 @@
         inherit (inputs)
           nixpkgs
           nix-darwin
+          home-manager
+          nix-secrets
           agenix
           stylix
           ;
@@ -59,8 +63,8 @@
       extraInputs = {
         inherit (inputs)
           nixpkgs
-          systems
           home-manager
+          nix-secrets
           vscode-extensions
           nur-rycee
           agenix

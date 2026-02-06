@@ -198,7 +198,11 @@ rec {
         currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
-          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
+          entries =
+            if excludeDefault then
+              builtinFilter (e: !e.isDefault) baseEntries
+            else
+              baseEntries;
 
           processEntry =
             entry:
@@ -343,7 +347,8 @@ rec {
       ];
 
       # Normalize imported value: if it's a function, call it with provided args to get the attrset
-      normalizeImport = imported: if builtins.isFunction imported then imported args else imported;
+      normalizeImport =
+        imported: if builtins.isFunction imported then imported args else imported;
 
       # Import a file/dir and extract the class-specific module
       importWithClass =
@@ -352,7 +357,10 @@ rec {
           raw = importEntry entry;
           imported = normalizeImport raw;
         in
-        if builtins.isAttrs imported && hasAttr class imported then imported.${class} else null;
+        if builtins.isAttrs imported && hasAttr class imported then
+          imported.${class}
+        else
+          null;
 
       # Check if an entry (file or dir) has any modules for the given class
 
@@ -384,7 +392,11 @@ rec {
         currentPath: prefix: excludeDefault:
         let
           baseEntries = readEntriesWhere pred currentPath;
-          entries = if excludeDefault then builtinFilter (e: !e.isDefault) baseEntries else baseEntries;
+          entries =
+            if excludeDefault then
+              builtinFilter (e: !e.isDefault) baseEntries
+            else
+              baseEntries;
 
           processEntry =
             entry:
@@ -491,11 +503,10 @@ rec {
       self,
       builder,
       modules,
-      # Optional extra arguments passed to each host's default.nix
-      # Useful for passing homeModules, connectHome, etc. for the connector pattern
-      extraConfigArgs ? { },
+      homes ? { },
+      extraSpecialArgs ? { },
       exclude ? [ ],
-      filter ? (_: true ),
+      filter ? (_: true),
     }:
     let
       # Only include directories with default.nix (valid host configurations)
@@ -514,9 +525,21 @@ rec {
         let
           folderName = entryAttrName entry;
 
+          modulesPath = entry.path + /modules;
+          # add config's modules to the modules set (only if modules dir exists)
+          configModules =
+            if builtins.pathExists modulesPath then
+              importFlatWithDirs modulesPath { sep = "-"; }
+            else
+              { };
+          combinedModules = lib.attrsets.unionOfDisjoint modules configModules;
+
           # Import the host's default.nix and call it with configuration arguments
           hostConfigFn = importEntry entry;
-          hostConfig = hostConfigFn ({ inherit inputs self modules; } // extraConfigArgs);
+          hostConfig = hostConfigFn {
+            inherit inputs self;
+            modules = combinedModules;
+          };
 
           # Create the mkHost builder with the provided arguments
           hostBuilder = mkHost {
@@ -525,6 +548,8 @@ rec {
               inputs
               self
               builder
+              homes
+              extraSpecialArgs
               ;
           };
         in
@@ -598,18 +623,11 @@ rec {
         let
           folderName = entryAttrName entry;
 
-          # Import the home config's default.nix and call it with available modules
-          homeConfigFn = importEntry entry;
-          homeConfig = homeConfigFn { inherit inputs self modules; };
-
           # Create the mkHome builder with the provided arguments
-          homeBuilder = mkHome {
-            inherit
-              withSystem
-              inputs
-              self
-              ;
-          };
+          homeBuilder = mkHome { inherit withSystem inputs self; };
+
+          # create home config
+          homeConfig = createHomeConfig entry { inherit inputs self modules; };
 
           # Default config name is "username@folderName"
           configName = homeConfig.configName or "${homeConfig.username}@${folderName}";
@@ -620,4 +638,67 @@ rec {
         };
     in
     listToAttrs (map buildHome homeEntries);
+
+  createHomeConfig =
+    entry:
+    {
+      inputs,
+      self,
+      modules,
+    }:
+    let
+      modulesPath = entry.path + /modules;
+      # add config's modules to the modules set (only if modules dir exists)
+      configModules =
+        if builtins.pathExists modulesPath then
+          importFlatWithDirs modulesPath { sep = "-"; }
+        else
+          { };
+      combinedModules = lib.attrsets.unionOfDisjoint modules configModules;
+
+      # Import the home config's default.nix and call it with available modules
+      homeConfigFn = importEntry entry;
+      homeConfig = homeConfigFn {
+        inherit inputs self;
+        modules = combinedModules;
+      };
+    in
+    homeConfig;
+
+  importHomeConfigs =
+    path:
+    {
+      inputs,
+      self,
+      modules,
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
+    let
+      pred = allOf [
+        (e: e.isDir)
+        (e: e.hasDefault)
+        (excludeNames exclude)
+        filter
+      ];
+
+      homeEntries = readEntriesWhere pred path;
+
+      getHomeConfig =
+        entry:
+        let
+          folderName = entryAttrName entry;
+          homeConfig = createHomeConfig entry { inherit inputs self modules; };
+          configName = homeConfig.configName or folderName;
+        in
+        {
+          name = configName;
+          value = homeConfig // {
+            inherit folderName;
+          };
+        };
+
+      homeConfigs = listToAttrs (map getHomeConfig homeEntries);
+    in
+    homeConfigs;
 }

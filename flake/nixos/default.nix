@@ -14,7 +14,17 @@ let
     inherit args;
   };
   modules = config.flake.modules.nixos;
-  homeModules = config.flake.modules.homeManager;
+  homeModules = myLib.dir.importFlatWithDirs ../../modules/home { sep = "-"; };
+  sharedHomeModules = myLib.dir.importSharedFlat ../../modules/shared {
+    class = "homeManager";
+    sep = "-";
+    inherit args;
+  };
+  homes = myLib.dir.importHomeConfigs ../../configs/home {
+    inherit inputs;
+    inherit (args) self;
+    modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
+  };
 in
 {
   flake = {
@@ -22,16 +32,12 @@ in
     nixosModules = modules;
 
     nixosConfigurations = myLib.dir.importHosts ../../configs/nixos {
-      inherit modules withSystem inputs;
+      inherit modules homes;
+      inherit withSystem inputs;
       inherit (args) self;
       inherit (myLib.configs) mkHost;
       builder = lib.nixosSystem;
-
-      # Pass home-related utilities for the connector pattern
-      extraConfigArgs = {
-        inherit homeModules;
-        inherit (myLib.configs) connectHome;
-      };
+      extraSpecialArgs = { inherit myLib; };
     };
   };
 }

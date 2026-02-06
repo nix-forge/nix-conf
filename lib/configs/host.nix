@@ -10,6 +10,8 @@ in
       inputs,
       self,
       builder,
+      homes ? { },
+      extraSpecialArgs ? { },
     }:
     { system, ... }@args:
     withSystem system (
@@ -18,8 +20,9 @@ in
         specialArgs = {
           inherit inputs' self';
           inherit inputs self;
-          inherit system;
+          inherit system homes;
         }
+        // extraSpecialArgs
         // (args.specialArgs or { });
 
         nixpkgsConfig = mkNixpkgsConfig {
@@ -29,7 +32,9 @@ in
         };
 
         modules = concatLists [
-          (singleton { networking.hostName = args.hostname or args.hostName or args.folderName; })
+          (singleton {
+            networking.hostName = args.hostname or args.hostName or args.folderName;
+          })
           (singleton nixpkgsConfig)
           (args.modules or [ ])
         ];

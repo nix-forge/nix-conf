@@ -16,7 +16,13 @@ in
       inputs,
       self,
     }:
-    { system, ... }@args:
+    {
+      system,
+      username,
+      homeDirectory,
+      uid,
+      ...
+    }@args:
     withSystem system (
       { inputs', self', ... }:
       let
@@ -36,51 +42,36 @@ in
         modules = concatLists [
           (singleton {
             home = {
-              username = lib.mkForce args.username;
-              homeDirectory = lib.mkForce args.homeDirectory;
-            }
-            // lib.optionalAttrs (args ? uid) { uid = args.uid; };
+              username = lib.mkForce username;
+              homeDirectory = lib.mkForce homeDirectory;
+              uid = lib.mkForce uid;
+            };
             programs.home-manager.enable = true;
           })
           (args.modules or [ ])
         ];
       in
-      inputs.home-manager.lib.homeManagerConfiguration { inherit pkgs modules extraSpecialArgs; }
+      inputs.home-manager.lib.homeManagerConfiguration {
+        inherit pkgs modules extraSpecialArgs;
+      }
     );
 
-  # Connect a standalone home configuration to a NixOS or Darwin system
-  #
-  # Takes a home configuration spec (as returned by a home config's default.nix)
-  # and returns a NixOS/Darwin module that wires it into home-manager.users.<username>.
-  #
-  # This allows the same module list to be shared between standalone
-  # homeConfigurations and system-integrated (NixOS/Darwin) configurations.
-  #
-  # Type: HomeSpec -> NixOS/DarwinModule
-  #
-  # Example:
-  #   # In configs/nixos/desktop/default.nix:
-  #   { modules, homeModules, connectHome, ... }:
-  #   let
-  #     homeSpec = import ../../home/desktop/default.nix { modules = homeModules; };
-  #   in
-  #   {
-  #     system = "x86_64-linux";
-  #     modules = with modules; [
-  #       base-base
-  #       (connectHome homeSpec)
-  #     ];
-  #   }
   connectHome =
-    homeSpec:
-    { ... }:
     {
-      home-manager.users.${homeSpec.username} = {
-        imports = homeSpec.modules or [ ];
+      config,
+      username ? config.username,
+      homeDirectory ? config.homeDirectory,
+      uid ? config.uid,
+    }:
+    {
+      ${username} = {
+        imports = config.modules;
         home = {
-          username = lib.mkForce homeSpec.username;
-          homeDirectory = lib.mkForce homeSpec.homeDirectory;
+          username = lib.mkForce username;
+          homeDirectory = lib.mkForce homeDirectory;
+          uid = lib.mkForce uid;
         };
+        programs.home-manager.enable = true;
       };
     };
 }

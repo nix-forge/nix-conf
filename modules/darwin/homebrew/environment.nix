@@ -8,7 +8,7 @@
       HOMEBREW_NO_ENV_HINTS = "0";
     };
 
-    # add homebrew to the bin PATH to allow easy terminal execution
+    # add homebrew to PATH
     systemPath = [ config.homebrew.brewPrefix ];
   };
 }
