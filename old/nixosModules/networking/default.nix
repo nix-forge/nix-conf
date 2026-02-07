@@ -49,38 +49,36 @@ in
 
     # IWD Configuration
     {
-      networking.wireless.iwd =
-        lib.mkIf (config.networking.networkmanager.wifi.backend == "iwd")
-          {
-            enable = true;
+      networking.wireless.iwd = lib.mkIf (config.networking.networkmanager.wifi.backend == "iwd") {
+        enable = true;
 
-            settings = {
-              Scan.DisablePeriodicScan = false;
+        settings = {
+          Scan.DisablePeriodicScan = false;
 
-              General = {
-                # Enable Network Configuration
-                EnableNetworkConfiguration = true;
+          General = {
+            # Enable Network Configuration
+            EnableNetworkConfiguration = true;
 
-                # Must be set to "network" to enable Random MAC Address
-                AddressRandomization = lib.mkIf cfg.randomizeMacAddress "network";
+            # Must be set to "network" to enable Random MAC Address
+            AddressRandomization = lib.mkIf cfg.randomizeMacAddress "network";
 
-                # Set the address randomization range
-                AddressRandomizationRange = lib.mkIf cfg.randomizeMacAddress "full";
-              };
-
-              # IPv6 Configuration
-              Network.EnableIPv6 = config.networking.enableIPv6;
-              IPv6.Enabled = config.networking.enableIPv6;
-
-              Settings = {
-                # Enable Auto Connect to WiFi
-                AutoConnect = true;
-
-                # Randomize MAC Address
-                AlwaysRandomizeAddress = lib.mkIf cfg.randomizeMacAddress true;
-              };
-            };
+            # Set the address randomization range
+            AddressRandomizationRange = lib.mkIf cfg.randomizeMacAddress "full";
           };
+
+          # IPv6 Configuration
+          Network.EnableIPv6 = config.networking.enableIPv6;
+          IPv6.Enabled = config.networking.enableIPv6;
+
+          Settings = {
+            # Enable Auto Connect to WiFi
+            AutoConnect = true;
+
+            # Randomize MAC Address
+            AlwaysRandomizeAddress = lib.mkIf cfg.randomizeMacAddress true;
+          };
+        };
+      };
     }
 
     # Network Manager
@@ -107,17 +105,13 @@ in
       systemd.services.NetworkManager-wait-online.enable = lib.mkIf config.networking.networkmanager.enable (
         lib.mkForce false
       );
-      systemd.network.wait-online.enable = lib.mkIf (
-        !config.networking.networkmanager.enable
-      ) (lib.mkForce true);
+      systemd.network.wait-online.enable = lib.mkIf (!config.networking.networkmanager.enable) (
+        lib.mkForce true
+      );
     }
 
     # Enforce IPv6 Disable at Kernel Level
-    {
-      boot.kernelParams = lib.mkIf (!config.networking.enableIPv6) [
-        "ipv6.disable=1"
-      ];
-    }
+    { boot.kernelParams = lib.mkIf (!config.networking.enableIPv6) [ "ipv6.disable=1" ]; }
 
     # Additional Network Tools
     {

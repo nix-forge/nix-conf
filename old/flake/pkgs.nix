@@ -10,9 +10,7 @@
             self:
             (lib.mapAttrs' (
               folderName: pkg:
-              lib.nameValuePair (lib.strings.replaceStrings [ "_" ] [ "-" ] folderName) (
-                self.callPackage pkg { }
-              )
+              lib.nameValuePair (lib.strings.replaceStrings [ "_" ] [ "-" ] folderName) (self.callPackage pkg { })
             ))
               packages
           )

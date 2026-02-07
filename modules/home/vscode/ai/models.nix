@@ -1,12 +1,6 @@
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
+{ pkgs, inputs, ... }:
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
-  os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
 in
 {
   programs.vscode.profiles.default = {

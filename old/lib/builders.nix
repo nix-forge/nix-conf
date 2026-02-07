@@ -18,9 +18,7 @@ let
         overlays = args.overlays or [ ];
 
         # Lib for Home Manager
-        libHome = lib.extend (
-          self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; }
-        );
+        libHome = lib.extend (self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
         # SpecialArgs
         baseArgs = {
@@ -139,9 +137,7 @@ let
         homeManager = inputs.home-manager;
 
         # Lib for Home Manager
-        libHome = lib.extend (
-          self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; }
-        );
+        libHome = lib.extend (self: _super: { hm = import "${homeManager}/modules/lib" { lib = self; }; });
 
         # SpecialArgs
         baseArgs = {

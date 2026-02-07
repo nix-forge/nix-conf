@@ -4,7 +4,7 @@ let
 in
 {
   programs.vscode.profiles.default = {
-    extensions = (extensions.forVscode [ "jeff-hykin.better-cpp-syntax" ])
+    extensions = extensions.forVscode [ "jeff-hykin.better-cpp-syntax" ]
     # ++ (with pkgs.vscode-extensions; [ ms-vscode.cpptools ])
     ;
 

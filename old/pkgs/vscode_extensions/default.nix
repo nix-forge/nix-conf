@@ -4,8 +4,7 @@ let
   dirPath = ./.;
   entries = builtins.readDir dirPath;
   packageDirs = lib.filterAttrs (
-    dirName: type:
-    type == "directory" && builtins.pathExists (dirPath + "/${dirName}/default.nix")
+    dirName: type: type == "directory" && builtins.pathExists (dirPath + "/${dirName}/default.nix")
   ) entries;
   attrNameFor = dirName: lib.replaceStrings [ "_" ] [ "-" ] dirName;
 in

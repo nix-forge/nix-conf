@@ -27,8 +27,6 @@ rec {
     let
       ls = lib.mapAttrsToList (mkDirEntry path) (builtins.readDir path);
     in
-    exists
-    && isDir
-    && (builtins.any (it: it.isNixFile || (it.isDir && it.hasNixFiles)) ls);
+    exists && isDir && (builtins.any (it: it.isNixFile || (it.isDir && it.hasNixFiles)) ls);
   isNix = isProject && (isNixFile || (isDir && hasNixFiles));
 }

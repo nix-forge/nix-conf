@@ -2,7 +2,6 @@
   tree,
   pkgs,
   config,
-  inputs,
   ...
 }@args:
 let
@@ -95,7 +94,6 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (vscode.languages.nushell "default")
   (vscode.languages.solidity "default")
   (vscode.languages.sql "default")
-
 
   (install pkgs.code-cursor)
 

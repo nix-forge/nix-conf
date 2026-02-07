@@ -6,7 +6,8 @@
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;in
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+in
 {
   programs.vscode.profiles.default = {
     extensions = extensions.forVscode [ "ryuta46.multi-command" ];

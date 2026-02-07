@@ -38,10 +38,7 @@ in
   config =
     let
       driver =
-        if (lib.versionAtLeast config.boot.kernelPackages.kernel.version "6.8") then
-          "xe"
-        else
-          "i915";
+        if (lib.versionAtLeast config.boot.kernelPackages.kernel.version "6.8") then "xe" else "i915";
     in
     lib.mkIf cfg.enable {
 
@@ -88,8 +85,6 @@ in
             else
               "0";
         in
-        lib.mkIf ((cfg.guc || cfg.huc) && driver == "i915") [
-          "i915.enable_guc=${value}"
-        ];
+        lib.mkIf ((cfg.guc || cfg.huc) && driver == "i915") [ "i915.enable_guc=${value}" ];
     };
 }
