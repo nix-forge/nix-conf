@@ -11,8 +11,11 @@
     "ianmh",
     "libsecret",
     "macbook",
+    "nixos",
+    "nixpkgs",
     "numtide",
     "osxkeychain",
+    "pkgs",
     "precompose",
     "prek",
     "rerere",
@@ -20,23 +23,12 @@
     "rycee",
     "sourcehut",
     "statix",
+    "stdenv",
+    "stylix",
     "uids",
     "zhaofengli"
   ],
   "editor.rulers": [
     100
   ],
-  "nix.serverSettings": {
-    "nixd": {
-      "formatting": {
-        "command": [
-          "nixfmt",
-          "--filename={file}",
-          "--indent=2",
-          "--width=100",
-          "--strict"
-        ]
-      },
-    }
-  }
 }

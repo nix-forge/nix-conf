@@ -132,12 +132,18 @@ rec {
     in
     listToAttrs (go path [ ]);
 
-  # Flatten a directory tree with auto-generated aggregated modules for each directory
+  # Flatten a directory tree into a single-level attrset for use as NixOS/home-manager modules
   # Each directory gets an entry that imports all its children recursively
   # Plus individual entries for each file
   #
-  # For directories WITH default.nix: uses the default.nix as the import
-  # For directories WITHOUT default.nix: creates an aggregated module importing all files recursively
+  # Values are PATHS (not eagerly imported) so the NixOS module system can:
+  #   - Track _file for better error messages
+  #   - Deduplicate identical module imports
+  #   - Evaluate modules lazily with proper module arguments
+  #
+  # For directories WITH default.nix: returns the directory path (Nix resolves to default.nix)
+  # For directories WITHOUT default.nix: creates an aggregated module { imports = [...]; }
+  # For .nix files: returns the file path directly
   #
   # Type: Path -> { exclude?: [String], filter?: Entry -> Bool, sep?: String } -> AttrSet
   # Example:
@@ -152,20 +158,20 @@ rec {
   #   importFlatWithDirs ./nixosModules { sep = "-"; }
   #   # With default.nix in module2dir:
   #   # => {
-  #   #   "module1" = <module1.nix>;
-  #   #   "module2dir" = <default.nix>;                    # Uses default.nix directly
-  #   #   "module2dir-module2" = <module2.nix>;
+  #   #   "module1" = ./module1.nix;                       # Path to .nix file
+  #   #   "module2dir" = ./module2dir;                     # Path to dir (uses default.nix)
+  #   #   "module2dir-module2" = ./module2dir/module2.nix;
   #   #   "module2dir-module3dir" = { imports = [...]; };  # No default.nix, aggregates
-  #   #   "module2dir-module3dir-module3" = <module3.nix>;
+  #   #   "module2dir-module3dir-module3" = ./module2dir/module3dir/module3.nix;
   #   # }
   #
   #   # Without default.nix in module2dir:
   #   # => {
-  #   #   "module1" = <module1.nix>;
+  #   #   "module1" = ./module1.nix;
   #   #   "module2dir" = { imports = [ ./module2.nix ./module3dir/module3.nix ]; };
-  #   #   "module2dir-module2" = <module2.nix>;
+  #   #   "module2dir-module2" = ./module2dir/module2.nix;
   #   #   "module2dir-module3dir" = { imports = [ ./module3.nix ]; };
-  #   #   "module2dir-module3dir-module3" = <module3.nix>;
+  #   #   "module2dir-module3dir-module3" = ./module2dir/module3dir/module3.nix;
   #   # }
   importFlatWithDirs =
     path:
@@ -207,19 +213,22 @@ rec {
               key = concatStringsSep sep newPrefix;
             in
             if entry.isNixFile then
+              # Return the path directly so the NixOS module system handles the import
+              # This enables proper _file tracking, module deduplication, and lazy evaluation
               [
                 {
                   name = key;
-                  value = importEntry entry;
+                  value = entry.path;
                 }
               ]
             else if entry.hasDefault then
-              # Directory has default.nix: use it as the import, then recurse for children
+              # Directory has default.nix: return the directory path (Nix resolves to default.nix)
+              # The module system will import default.nix and use it as the module
               # Pass excludeDefault=true to skip default.nix in children
               [
                 {
                   name = key;
-                  value = importEntry entry;
+                  value = entry.path;
                 }
               ]
               ++ (go entry.path newPrefix true)

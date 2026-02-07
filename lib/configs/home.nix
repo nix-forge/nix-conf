@@ -80,9 +80,14 @@ rec {
   connectHomeDarwin =
     configName:
     {
+      description,
       username ? null,
       homeDirectory ? null,
       uid ? null,
+      isHidden ? false,
+      createHome ? true,
+      knownUser ? false,
+      shell ? null,
     }:
     let
       extraModules =
@@ -94,7 +99,12 @@ rec {
           }
         );
     in
-    { config, homeConfigs, ... }:
+    {
+      pkgs,
+      config,
+      homeConfigs,
+      ...
+    }:
     let
       homeConfig = homeConfigs.${configName};
       args = {
@@ -102,13 +112,60 @@ rec {
         homeDirectory = if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
         uid = if uid != null then uid else homeConfig.uid;
       };
+      shells = {
+        bash = pkgs.bashInteractive;
+        inherit (pkgs) zsh;
+        inherit (pkgs) fish;
+        inherit (pkgs) nushell;
+      };
     in
     {
-      home-manager.users = connectHome {
-        inherit homeConfig;
-        inherit (args) username homeDirectory uid;
-        extraModules = extraModules config;
+      users = {
+        knownUsers = lib.mkIf knownUser [ args.username ];
+        users.${args.username} = {
+          inherit
+            description
+            createHome
+            isHidden
+            shell
+            ;
+          uid = lib.mkIf (knownUser && args.uid != null) args.uid;
+          home = lib.mkForce args.homeDirectory;
+        };
       };
+      environment.shells =
+        (builtins.attrValues shells)
+        ++ lib.optionals (shell != null) [
+          "/etc/profiles/per-user/${args.username}/bin/${shell.meta.mainProgram}"
+        ];
+      home-manager.users = lib.mkMerge [
+        (connectHome {
+          inherit homeConfig;
+          inherit (args) username homeDirectory uid;
+          extraModules = extraModules config;
+        })
+        {
+          ${username} =
+            let
+              homeFilteredShells = lib.attrsets.filterAttrs (
+                shellName: _shellInfo: (builtins.hasAttr shellName config.programs)
+              ) shells;
+            in
+            {
+              programs = builtins.mapAttrs (
+                _shellName: shellPkg:
+                (lib.mkIf (shellPkg.pname == shell.pname) {
+                  enable = true;
+                  package = shell;
+                })
+              ) homeFilteredShells;
+
+              home.sessionVariables = builtins.mapAttrs (
+                _VAR: value: lib.mkDefault value
+              ) config.environment.variables;
+            };
+        }
+      ];
     };
 
   connectHomeNixos =

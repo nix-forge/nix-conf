@@ -233,10 +233,10 @@ in
           "telemetry.enableTelemetry" = false;
           "telemetry.feedback.enabled" = false;
           "telemetry.telemetryLevel" = "off";
-          "terminal.integrated.localEchoEnabled" = "off";
+          # "terminal.integrated.localEchoEnabled" = "off"; # TODO: figure out what this setting is
         }
 
-        # Terminal profiles (Copilot and integrated terminal)
+        # Terminal profiles
         { "terminal.integrated.shellIntegration.enabled" = true; }
         (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
           let
@@ -245,13 +245,15 @@ in
           {
             # Define terminal profiles for all enabled shells
             "terminal.integrated.profiles.${os}" = {
-              path = shell;
-              icon = if shell == "nu" then "chevron-right" else "terminal-bash";
-              overrideName = true;
-              args = [
-                "--login"
-                "-i"
-              ];
+              ${shell} = {
+                path = shell;
+                icon = if shell == "nu" then "chevron-right" else "terminal-bash";
+                overrideName = true;
+                args = [
+                  "--login"
+                  "-i"
+                ];
+              };
             };
 
             "terminal.integrated.defaultProfile.${os}" = shell;
@@ -261,6 +263,16 @@ in
           # set the default shell for automation tasks to a fully POSIX compliant shell
           "terminal.integrated.automationProfile.${os}" = {
             path = lib.getExe' pkgs.bashInteractive "sh";
+            args = [
+              "--login"
+              "-i"
+            ];
+          };
+        }
+        {
+          # set the default shell for Copilot
+          "chat.tools.terminal.terminalProfile.${os}" = {
+            path = lib.getExe' pkgs.bashInteractive "bash";
             args = [
               "--login"
               "-i"

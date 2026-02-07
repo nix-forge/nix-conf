@@ -21,6 +21,9 @@ in
         formatting.command = [
           "${lib.getExe pkgs.nixfmt}"
           "--filename={file}"
+          "--width=100"
+          "--indent=2"
+          "--strict"
         ];
       };
 

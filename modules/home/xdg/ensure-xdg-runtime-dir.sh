@@ -44,7 +44,7 @@ fi
 
 # Verify the expected user owns the directory — another user's directory with
 # identical path (e.g. leftover from a different UID) must not be reused.
-actual_owner="$(stat -f '%Su' "${XDG_RUNTIME}")"
+actual_owner="$(stat -c '%U' "${XDG_RUNTIME}")"
 if [ "${actual_owner}" != "${OWNER}" ]; then
   printf 'FATAL: @xdgRuntimeDir@ is owned by "%s", expected "%s": %s\n' \
     "${actual_owner}" "${OWNER}" "${XDG_RUNTIME}" >&2

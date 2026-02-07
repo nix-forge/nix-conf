@@ -1,4 +1,4 @@
-{ modules, connectHomeDarwin, ... }:
+{ modules, ... }:
 {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";
@@ -20,23 +20,17 @@
 
     ## Users
     home-manager
-    (connectHomeDarwin "ianmh@macbook-pro-m4" { })
+    users
 
     ## Homebrew
     homebrew
     homebrew-casks
     homebrew-brews
 
-    ## Preferences
     preferences # TODO: try to move to home-manager
-
-    ## Security
     security
-
-    ## Secrets
     secrets
-
-    ## Theming
     stylix
+    fonts
   ];
 }

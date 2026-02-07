@@ -1,4 +1,9 @@
-{ inputs, config, ... }:
+{
+  inputs,
+  config,
+  lib,
+  ...
+}:
 let
   user = config.home.username;
 
@@ -29,7 +34,12 @@ in
   # ];
 
   age = {
-    # add secrets to the user
-    secrets = configSecrets inputs.nix-secrets.users.${user}.secrets userAccess;
+    secrets = lib.mkMerge [
+      (configSecrets inputs.nix-secrets.users.${user}.secrets userAccess)
+      (configSecrets inputs.nix-secrets.shared.secrets userAccess)
+    ];
+    secretsDir = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix";
+    secretsMountPoint = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix.d";
   };
+
 }

@@ -15,19 +15,7 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    determinate = {
-      url = "github:DeterminateSystems/determinate";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nix.inputs = {
-          nixpkgs.follows = "nixpkgs";
-          nixpkgs-regression.follows = "";
-          nixpkgs-23-11.follows = "";
-          flake-parts.follows = "flake-parts";
-          git-hooks-nix.follows = "";
-        };
-      };
-    };
+    determinate.url = "github:DeterminateSystems/determinate";
 
     # My Personal Secrets
     # TODO: move secrets to this repo as currently this repo could be public as it uses agenix

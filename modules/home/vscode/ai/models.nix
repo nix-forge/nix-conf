@@ -5,7 +5,8 @@
   ...
 }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;  os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
 in
 {
   programs.vscode.profiles.default = {
@@ -36,15 +37,6 @@ in
       "inlineChat.notebookAgent" = true;
       "github.copilot.chat.notebook.enhancedNextEditSuggestions.enabled" = true;
       "github.copilot.chat.notebook.followCellExecution.enabled" = true;
-
-      # Shell
-      "chat.tools.terminal.terminalProfile.${os}" = {
-        path = lib.getExe' pkgs.zsh "zsh";
-        args = [
-          "--login"
-          "-i"
-        ];
-      };
     };
   };
 }

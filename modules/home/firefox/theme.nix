@@ -8,7 +8,7 @@
 let
   inherit (myLib.firefox) toUserJS;
 
-  profilePath = config.programs.firefox.profiles.default.path;
+  profilePath = config.programs.firefox.configPath + "/Profiles/default";
 in
 {
   # Copy Firefox-UI-Fix theme into the profile's chrome directory
