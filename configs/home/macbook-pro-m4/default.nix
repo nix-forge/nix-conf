@@ -37,6 +37,8 @@ in
     vscode-languages
     vscode-ai
     neovim
+    stylix
+    stylix-targets-firefox
 
     { programs.ripgrep.enable = true; }
     { home.sessionVariables.EDITOR = "nvim"; }

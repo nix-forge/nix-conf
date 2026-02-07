@@ -35,5 +35,8 @@
 
     ## Secrets
     secrets
+
+    ## Theming
+    stylix
   ];
 }
