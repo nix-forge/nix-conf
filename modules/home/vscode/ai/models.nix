@@ -1,23 +1,22 @@
-profileName:
 {
+  lib,
   pkgs,
-  self,
-  system,
+  inputs,
   ...
-}@args:
+}:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;  os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = [
-      self.packages.${system}.vscode-extensions-copilot
-      self.packages.${system}.vscode-extensions-copilot-chat
-    ]
-    ++ (with extensions.release; [
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [
+      ## Copilot
+      "github.copilot"
+      "github.copilot-chat"
+
       ## Codex
-      openai.chatgpt
-    ]);
+      "openai.chatgpt"
+    ];
 
     userSettings = {
       ## Copilot
@@ -38,11 +37,14 @@ in
       "github.copilot.chat.notebook.enhancedNextEditSuggestions.enabled" = true;
       "github.copilot.chat.notebook.followCellExecution.enabled" = true;
 
-      ## Gemini
-      "http.systemCertificatesNode" = true;
-      "geminicodeassist.project" = "splendid-skill-485101-j7";
-      "geminicodeassist.enableTelemetry" = false;
-      "geminicodeassist.displayInlineContextHint" = false;
+      # Shell
+      "chat.tools.terminal.terminalProfile.${os}" = {
+        path = lib.getExe' pkgs.zsh "zsh";
+        args = [
+          "--login"
+          "-i"
+        ];
+      };
     };
   };
 }

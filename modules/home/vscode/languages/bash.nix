@@ -1,14 +1,18 @@
-profileName:
-{ lib, pkgs, ... }@args:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      mads-hartmann.bash-ide-vscode
-      timonwong.shellcheck
-      foxundermoon.shell-format
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [
+      "mads-hartmann.bash-ide-vscode"
+      "timonwong.shellcheck"
+      "foxundermoon.shell-format"
     ];
 
     userSettings = {

@@ -1,17 +1,16 @@
-profileName:
-{ pkgs, ... }@args:
+{ pkgs, inputs, ... }:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      dbaeumer.vscode-eslint
-      esbenp.prettier-vscode
-      idered.npm
-      christian-kohler.npm-intellisense
-      christian-kohler.path-intellisense
-      mgmcdermott.vscode-language-babel
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [
+      "dbaeumer.vscode-eslint"
+      "esbenp.prettier-vscode"
+      "idered.npm"
+      "christian-kohler.npm-intellisense"
+      "christian-kohler.path-intellisense"
+      "mgmcdermott.vscode-language-babel"
     ];
 
     userSettings = {

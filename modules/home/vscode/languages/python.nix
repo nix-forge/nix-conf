@@ -1,27 +1,31 @@
-profileName:
-{ pkgs, lib, ... }@args:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      ms-python.python
-      ms-python.vscode-pylance
-      ms-python.debugpy
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [
+      "ms-python.python"
+      "ms-python.vscode-pylance"
+      "ms-python.debugpy"
 
-      charliermarsh.ruff
-      astral-sh.ty
-      ms-python.mypy-type-checker
+      "charliermarsh.ruff"
+      "astral-sh.ty"
+      "ms-python.mypy-type-checker"
 
-      kevinrose.vsc-python-indent
+      "kevinrose.vsc-python-indent"
 
-      ms-toolsai.jupyter-renderers
-      ms-toolsai.jupyter
-      google.colab
+      "ms-toolsai.jupyter-renderers"
+      "ms-toolsai.jupyter"
+      "google.colab"
 
-      njpwerner.autodocstring
-      rodolphebarbanneau.python-docstring-highlighter
+      "njpwerner.autodocstring"
+      "rodolphebarbanneau.python-docstring-highlighter"
     ];
 
     userSettings = {

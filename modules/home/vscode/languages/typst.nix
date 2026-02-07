@@ -1,11 +1,15 @@
-profileName:
-{ pkgs, lib, ... }@args:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [ myriad-dreamin.tinymist ];
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [ "myriad-dreamin.tinymist" ];
 
     userSettings = {
       "[typst]" = {

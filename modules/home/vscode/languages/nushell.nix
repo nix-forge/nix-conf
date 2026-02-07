@@ -1,10 +1,9 @@
-profileName:
-{ pkgs, ... }@args:
+{ pkgs, inputs, ... }:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [ thenuprojectcontributors.vscode-nushell-lang ];
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [ "thenuprojectcontributors.vscode-nushell-lang" ];
   };
 }

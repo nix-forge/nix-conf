@@ -1,8 +1,12 @@
-profileName: _: {
+{
+  imports = [
+    ./settings.nix
+    ./keybinds.nix
+  ];
   programs.vscode = {
     enable = true;
     mutableExtensionsDir = false;
-    profiles.${profileName} = {
+    profiles.default = {
       enableExtensionUpdateCheck = false;
       enableUpdateCheck = false;
     };

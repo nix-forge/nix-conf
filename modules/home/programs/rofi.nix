@@ -9,7 +9,7 @@
     let
       font = {
         name = "MonaspiceNe Nerd Font";
-        size = builtins.toString 12;
+        size = toString 12;
       };
     in
     {

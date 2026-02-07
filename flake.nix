@@ -37,9 +37,12 @@
     };
 
     # Package Libraries
-    vscode-extensions = {
-      url = "github:nix-community/nix-vscode-extensions";
-      inputs.nixpkgs.follows = "nixpkgs";
+    nix4vscode = {
+      url = "github:nix-community/nix4vscode";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
     };
     nur-rycee = {
       url = "sourcehut:~rycee/nur-expressions?dir=pkgs/firefox-addons";
@@ -76,6 +79,16 @@
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Firefox UserJS
+    firefox-betterfox = {
+      url = "github:yokoffing/Betterfox";
+      flake = false;
+    };
+    firefox-ui-fix = {
+      url = "github:black7375/Firefox-UI-Fix";
+      flake = false;
     };
   };
 

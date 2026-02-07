@@ -1,4 +1,3 @@
-profileName:
 {
   lib,
   pkgs,
@@ -7,44 +6,31 @@ profileName:
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
-in
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions =
-      let
-        extensions = pkgs.callPackage ./marketplace.nix { inherit inputs; };
-      in
-      with extensions.release;
-      [ ryuta46.multi-command ];
+  programs.vscode.profiles.default = {
+    extensions = extensions.forVscode [ "ryuta46.multi-command" ];
 
     keybindings =
       let
         modKey = if isDarwin then "cmd" else "ctrl";
-        groups.formatOnManualSave =
+        formatOnManualSave =
           let
-            when = lib.concatStringsSep " " [
-              # manually saving should only format when auto-saving is enabled
-              # in some form, and when the file doesn't already
-              # get formatted on every save
+            when = lib.concatStringsSep " && " [
               "config.editor.autoSave != off"
-              "&& !config.editor.formatOnSave"
-              # any other clauses match the default
-              # ${modKey}+k ${modKey}+f manual format command
-              "&& editorHasDocumentFormattingProvider"
-              "&& editorTextFocus"
-              "&& !editorReadonly"
-              "&& !inCompositeEditor"
+              "!config.editor.formatOnSave"
+              "editorHasDocumentFormattingProvider"
+              "editorTextFocus"
+              "!editorReadonly"
+              "!inCompositeEditor"
             ];
           in
           [
-            # remove the default action for saving document
             {
               key = "${modKey}+s";
               command = "-workbench.action.files.save";
               inherit when;
             }
-            # formatting behavior identical to the default ${modKey}+k ${modKey}+f
-            # and the save as normal
             {
               key = "${modKey}+s";
               command = "extension.multiCommand.execute";
@@ -59,10 +45,10 @@ in
           ];
       in
       lib.flatten [
-        ### FORMAT DOCUMENT ON MANUAL SAVE ONLY ###
-        groups.formatOnManualSave
+        # format on manual save
+        formatOnManualSave
 
-        ### INSERT TAB CHARACTER ###
+        # Insert tab character
         {
           key = "${modKey}+k tab";
           command = "type";
@@ -72,7 +58,7 @@ in
           when = "editorTextFocus && !editorReadonly";
         }
 
-        ### FOCUS ON FILE EXPLORER SIDEBAR ###
+        # Focus file explorer
         {
           key = "${modKey}+e";
           command = "-workbench.action.quickOpen";
@@ -80,20 +66,6 @@ in
         {
           key = "${modKey}+e";
           command = "workbench.files.action.focusFilesExplorer";
-        }
-
-        ### STAGE/UNSTAGE SELECTED RANGES ###
-        {
-          # key = "${modKey}+k ${modKey}+alt+s",
-          key = "${modKey}+alt+s";
-          command = "git.stageSelectedRanges";
-          when = "editorTextFocus && !operationInProgress && resourceScheme == 'file'";
-        }
-        {
-          # key = "${modKey}+k ${modKey}+n",
-          key = "${modKey}+alt+shift+s";
-          command = "git.unstageSelectedRanges";
-          when = "editorTextFocus && !operationInProgress && resourceScheme == 'file'";
         }
       ];
   };

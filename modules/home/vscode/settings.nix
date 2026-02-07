@@ -1,52 +1,53 @@
-profileName:
 {
   lib,
   pkgs,
   config,
+  inputs,
   ...
-}@args:
+}:
 let
-  extensions = pkgs.callPackage ./marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
+  programs.vscode.profiles.default = {
     extensions =
-      with extensions.release;
-      [
-        ## Appearances ##
-        pkief.material-icon-theme
-        extensions.release.vira.vsc-vira-theme
+      extensions.forVscode (
+        [
+          ## Appearances ##
+          "pkief.material-icon-theme"
+          "vira.vsc-vira-theme"
 
-        ## Intelligence ##
-        usernamehw.errorlens
-        christian-kohler.path-intellisense
-        streetsidesoftware.code-spell-checker
+          ## Intelligence ##
+          "usernamehw.errorlens"
+          "christian-kohler.path-intellisense"
+          "streetsidesoftware.code-spell-checker"
 
-        ## Version Control ##
-        github.vscode-github-actions
-        mhutchie.git-graph
+          ## Version Control ##
+          "github.vscode-github-actions"
+          "mhutchie.git-graph"
 
-        ## Collaboration Features
-        ms-vsliveshare.vsliveshare
+          ## Collaboration Features
+          "ms-vsliveshare.vsliveshare"
 
-        ## Editor Extension ##
-        sleistner.vscode-fileutils
-        aaron-bond.better-comments
-        kevinkyang.auto-comment-blocks
+          ## Editor Extension ##
+          "sleistner.vscode-fileutils"
+          "aaron-bond.better-comments"
+          "kevinkyang.auto-comment-blocks"
 
-        ## Base Language Support ##
-        redhat.vscode-yaml
-        tamasfe.even-better-toml
-        mechatroner.rainbow-csv
-        janisdd.vscode-edit-csv
-        tomoki1207.pdf
-        nefrob.vscode-just-syntax
+          ## Base Language Support ##
+          "redhat.vscode-yaml"
+          "tamasfe.even-better-toml"
+          "mechatroner.rainbow-csv"
+          "janisdd.vscode-edit-csv"
+          "tomoki1207.pdf"
+          "nefrob.vscode-just-syntax"
 
-        # Extra
-        ms-vscode-remote.remote-ssh
-      ]
-      # Direnv integration
-      ++ lib.optionals config.programs.direnv.enable [ mkhl.direnv ];
+          # Extra
+          "ms-vscode-remote.remote-ssh"
+        ]
+        # Direnv integration
+        ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
+      );
 
     userSettings =
       let
@@ -219,14 +220,13 @@ in
 
           # spell checker settings
           "cSpell.ignorePaths" = [
-            "node_modules" # this will ignore anything the node_modules directory
-            "**/node_modules" # the same for this one
-            "**/node_modules/**" # the same for this one
-            "node_modules/**" # Doesn't currently work due to how the current working directory is determined.
-            "vscode-extension"
-            ".git" # Ignore the .git directory
-            "*.dll" # Ignore all .dll files.
-            "**/*.dll" # Ignore all .dll files
+            "node_modules"
+            "**/node_modules"
+            "**/node_modules/**"
+            "node_modules/**"
+            ".git"
+            "*.dll"
+            "**/*.dll"
           ];
 
           # SSH settings
@@ -283,20 +283,12 @@ in
 
             # set the integrated terminal to use SHELL so make sure SHELL is set correctly
             "terminal.integrated.defaultProfile.${os}" = shellName;
-
-            # set the default shell for automation tasks to a fully POSIX compliant shell
-            "terminal.integrated.automationProfile.${os}" = {
-              path = lib.getExe' pkgs.bashInteractive "sh";
-              args = [
-                "--login"
-                "-i"
-              ];
-            };
           }
         ))
         {
-          "chat.tools.terminal.terminalProfile.${os}" = {
-            path = lib.getExe' pkgs.bashInteractive "bash";
+          # set the default shell for automation tasks to a fully POSIX compliant shell
+          "terminal.integrated.automationProfile.${os}" = {
+            path = lib.getExe' pkgs.bashInteractive "sh";
             args = [
               "--login"
               "-i"

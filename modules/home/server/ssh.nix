@@ -6,7 +6,7 @@
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
-  cmDir = "${config.home.homeDirectory}/.ssh/cm"; # short path for mux sockets
+  cmDir = "${config.home.homeDirectory}/.ssh/cm";
 in
 {
   programs.ssh = {
@@ -16,20 +16,17 @@ in
     matchBlocks = {
       "*" = lib.mkMerge [
         {
-          # Fast, reliable connections
           controlMaster = "auto";
           controlPersist = "10m";
-          controlPath = "${cmDir}/%C"; # hashed path avoids 'too long' errors
-          compression = true; # good on slow/latency links
+          controlPath = "${cmDir}/%C";
+          compression = true;
 
-          # Safety + convenience
           hashKnownHosts = true;
           addKeysToAgent = "yes";
-          forwardAgent = lib.mkForce false; # only enable per-host when needed
+          forwardAgent = lib.mkForce false;
           serverAliveInterval = 60;
           serverAliveCountMax = 3;
 
-          # safer first-connection behavior + key rotation
           extraOptions = {
             UpdateHostKeys = "yes";
             StrictHostKeyChecking = "accept-new";
@@ -37,7 +34,6 @@ in
         }
 
         (lib.optionalAttrs isDarwin {
-          # macOS: Use the system keychain for private keys
           extraOptions = {
             "IgnoreUnknown" = "UseKeychain";
             "UseKeychain" = "yes";
@@ -65,14 +61,12 @@ in
         hostname = "codeberg.org";
       };
 
-      # Local network: don’t waste CPU compressing
       "*.local" = {
         compression = false;
       };
     };
   };
 
-  # create the control master directory if it doesn't exist
   home.activation.createSshControlMasterDir = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
     mkdir -p ${cmDir}
     chmod 700 ${cmDir}

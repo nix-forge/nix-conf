@@ -173,6 +173,22 @@
         "type": "github"
       }
     },
+    "firefox-betterfox": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769104536,
+        "narHash": "sha256-D2MIFdYMS3xrfO2vDYjCmC3Ah96jg5XUzvwMX3xJQBo=",
+        "owner": "yokoffing",
+        "repo": "Betterfox",
+        "rev": "310cbdee6ca20eb881749a559cb572ce9272a981",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yokoffing",
+        "repo": "Betterfox",
+        "type": "github"
+      }
+    },
     "firefox-gnome-theme": {
       "flake": false,
       "locked": {
@@ -186,6 +202,22 @@
       "original": {
         "owner": "rafaelmardojai",
         "repo": "firefox-gnome-theme",
+        "type": "github"
+      }
+    },
+    "firefox-ui-fix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1770336372,
+        "narHash": "sha256-024NEDiKxlmXeeHiw6d5DYA1SMd0nTzYo+XFklqUvAQ=",
+        "owner": "black7375",
+        "repo": "Firefox-UI-Fix",
+        "rev": "2303f28070a60eb4a4a848001d37a84f3ac37acb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "black7375",
+        "repo": "Firefox-UI-Fix",
         "type": "github"
       }
     },
@@ -329,6 +361,29 @@
         "type": "github"
       }
     },
+    "nix4vscode": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "systems": [
+          "systems"
+        ]
+      },
+      "locked": {
+        "lastModified": 1770431980,
+        "narHash": "sha256-eEUlQvXjmAiGGZ335EzDXfu3UKvjBti4G6iTxSzeCDI=",
+        "owner": "nix-community",
+        "repo": "nix4vscode",
+        "rev": "a0c43a20777ba1deb286bd059fc4d4ad6ab587c7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nix4vscode",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1770197578,
@@ -397,16 +452,18 @@
         "agenix": "agenix",
         "determinate": "determinate",
         "disko": "disko",
+        "firefox-betterfox": "firefox-betterfox",
+        "firefox-ui-fix": "firefox-ui-fix",
         "flake-parts": "flake-parts",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nix-secrets": "nix-secrets",
+        "nix4vscode": "nix4vscode",
         "nixpkgs": "nixpkgs",
         "nur-rycee": "nur-rycee",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
-        "systems": "systems",
-        "vscode-extensions": "vscode-extensions"
+        "systems": "systems"
       }
     },
     "spicetify-nix": {
@@ -563,26 +620,6 @@
       "original": {
         "owner": "tinted-theming",
         "repo": "base16-zed",
-        "type": "github"
-      }
-    },
-    "vscode-extensions": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1770345783,
-        "narHash": "sha256-nuwtB/A0JK9fSoIZutW/3VFG8PthRthTlOwNUv+WrOA=",
-        "owner": "nix-community",
-        "repo": "nix-vscode-extensions",
-        "rev": "18c64244030fed7812f2e79cdf4918a1880f091d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "nix-vscode-extensions",
         "type": "github"
       }
     }

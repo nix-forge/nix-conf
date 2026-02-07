@@ -1,0 +1,1 @@
+{ home.sessionVariables.SHELL = "nu"; }

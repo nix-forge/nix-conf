@@ -13,7 +13,6 @@ in
       mouse-hide-while-typing = true;
       window-decoration = lib.mkIf isLinux false;
 
-      shell-integration = "none"; # home-manager handles this
       shell-integration-features = true;
 
       auto-update = "off";

@@ -1,13 +1,12 @@
-profileName:
-{ pkgs, ... }@args:
+{ pkgs, inputs, ... }:
 let
-  extensions = pkgs.callPackage ../marketplace.nix args;
+  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
 {
-  programs.vscode.profiles.${profileName} = {
-    extensions =
-      (with extensions.release; [ jeff-hykin.better-cpp-syntax ])
-      ++ (with extensions.nixpkgs-extensions; [ ms-vscode.cpptools ]);
+  programs.vscode.profiles.default = {
+    extensions = (extensions.forVscode [ "jeff-hykin.better-cpp-syntax" ])
+    # ++ (with pkgs.vscode-extensions; [ ms-vscode.cpptools ])
+    ;
 
     userSettings = {
       "[c]" = {
