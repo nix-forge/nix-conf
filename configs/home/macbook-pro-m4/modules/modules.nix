@@ -95,16 +95,7 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   (vscode.languages.nushell "default")
   (vscode.languages.solidity "default")
   (vscode.languages.sql "default")
-  {
-    programs.vscode.profiles."default".userSettings = {
-      "remote.SSH.serverInstallPath" = {
-        inherit
-          (inputs.nix-secrets.users.${config.home.username}.values.vscode."remote.SSH.serverInstallPath")
-          "perlmutter.nersc.gov"
-          ;
-      };
-    };
-  }
+
 
   (install pkgs.code-cursor)
 

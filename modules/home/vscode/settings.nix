@@ -10,44 +10,43 @@ let
 in
 {
   programs.vscode.profiles.default = {
-    extensions =
-      extensions.forVscode (
-        [
-          ## Appearances ##
-          "pkief.material-icon-theme"
-          "vira.vsc-vira-theme"
+    extensions = extensions.forVscode (
+      [
+        ## Appearances ##
+        "pkief.material-icon-theme"
+        "vira.vsc-vira-theme"
 
-          ## Intelligence ##
-          "usernamehw.errorlens"
-          "christian-kohler.path-intellisense"
-          "streetsidesoftware.code-spell-checker"
+        ## Intelligence ##
+        "usernamehw.errorlens"
+        "christian-kohler.path-intellisense"
+        "streetsidesoftware.code-spell-checker"
 
-          ## Version Control ##
-          "github.vscode-github-actions"
-          "mhutchie.git-graph"
+        ## Version Control ##
+        "github.vscode-github-actions"
+        "mhutchie.git-graph"
 
-          ## Collaboration Features
-          "ms-vsliveshare.vsliveshare"
+        ## Collaboration Features
+        "ms-vsliveshare.vsliveshare"
 
-          ## Editor Extension ##
-          "sleistner.vscode-fileutils"
-          "aaron-bond.better-comments"
-          "kevinkyang.auto-comment-blocks"
+        ## Editor Extension ##
+        "sleistner.vscode-fileutils"
+        "aaron-bond.better-comments"
+        "kevinkyang.auto-comment-blocks"
 
-          ## Base Language Support ##
-          "redhat.vscode-yaml"
-          "tamasfe.even-better-toml"
-          "mechatroner.rainbow-csv"
-          "janisdd.vscode-edit-csv"
-          "tomoki1207.pdf"
-          "nefrob.vscode-just-syntax"
+        ## Base Language Support ##
+        "redhat.vscode-yaml"
+        "tamasfe.even-better-toml"
+        "mechatroner.rainbow-csv"
+        "janisdd.vscode-edit-csv"
+        "tomoki1207.pdf"
+        "nefrob.vscode-just-syntax"
 
-          # Extra
-          "ms-vscode-remote.remote-ssh"
-        ]
-        # Direnv integration
-        ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
-      );
+        # Extra
+        "ms-vscode-remote.remote-ssh"
+      ]
+      # Direnv integration
+      ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
+    );
 
     userSettings =
       let
@@ -229,10 +228,6 @@ in
             "**/*.dll"
           ];
 
-          # SSH settings
-          "remote.SSH.maxReconnectionAttempts" = 2;
-          "remote.SSH.useFlock" = false;
-
           # remove telemetry
           "redhat.telemetry.enabled" = false;
           "telemetry.enableTelemetry" = false;
@@ -245,44 +240,21 @@ in
         { "terminal.integrated.shellIntegration.enabled" = true; }
         (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
           let
-            shellPath = config.home.sessionVariables.SHELL;
-            shellName = lib.last (lib.splitString "/" shellPath);
-
-            # Define shell configurations for enabled shells
-            shellConfigs = {
-              bash = lib.mkIf config.programs.bash.enable {
-                path = lib.getExe' pkgs.bashInteractive "bash";
-                icon = "terminal-bash";
-              };
-              zsh = lib.mkIf config.programs.zsh.enable { path = lib.getExe' pkgs.zsh "zsh"; };
-              fish = lib.mkIf config.programs.fish.enable { path = lib.getExe' pkgs.fish "fish"; };
-              nu = lib.mkIf config.programs.nushell.enable {
-                path = lib.getExe' pkgs.nushell "nu";
-                icon = "chevron-right";
-              };
-            };
-
-            # Filter to only enabled shells and remove mkIf markers
-            enabledShells = lib.filterAttrs (_: v: v != { }) shellConfigs;
+            shell = config.home.sessionVariables.SHELL;
           in
           {
             # Define terminal profiles for all enabled shells
-            "terminal.integrated.profiles.${os}" = lib.mapAttrs (
-              _shellName: shellConfig:
-              (
-                shellConfig
-                // {
-                  overrideName = true;
-                  args = [
-                    "--login"
-                    "-i"
-                  ];
-                }
-              )
-            ) enabledShells;
+            "terminal.integrated.profiles.${os}" = {
+              path = shell;
+              icon = if shell == "nu" then "chevron-right" else "terminal-bash";
+              overrideName = true;
+              args = [
+                "--login"
+                "-i"
+              ];
+            };
 
-            # set the integrated terminal to use SHELL so make sure SHELL is set correctly
-            "terminal.integrated.defaultProfile.${os}" = shellName;
+            "terminal.integrated.defaultProfile.${os}" = shell;
           }
         ))
         {

@@ -21,6 +21,7 @@ in
     nix-settings
     cache
     xdg
+    { programs.nh.enable = true; }
 
     fonts
     dev
@@ -35,10 +36,18 @@ in
     vscode
     vscode-languages
     vscode-ai
+    neovim
 
-    ({ pkgs, ... }: install pkgs.neovim)
+    { programs.ripgrep.enable = true; }
     { home.sessionVariables.EDITOR = "nvim"; }
     { home.sessionVariables.VISUAL = "code"; }
+    { home.sessionVariables.TERMINAL = "ghostty"; }
+
+    ({ pkgs, ... }: install pkgs.bun)
+    ({ pkgs, ... }: install pkgs.nixfmt)
+    ({ pkgs, ... }: install pkgs.just)
+    ({ pkgs, ... }: install pkgs.shfmt)
+    ({ pkgs, ... }: install pkgs.shellcheck)
 
     extra-config
     secrets
