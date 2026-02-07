@@ -1,51 +1,25 @@
-profileName:
-{
-  scrollPreset ? "natural",
-  ...
-}:
 {
   lib,
-  system,
+  myLib,
+  pkgs,
   inputs,
-  self,
   ...
 }:
 let
-  inherit (lib.cust.firefox) toUserJS;
-  arkenfoxPackage = self.packages.${system}.arkenfox-user-js;
-  arkenfoxUserJs = arkenfoxPackage.passthru.userJsSrc;
-  presets = import ./scrolling { inherit lib; };
-  resolvePreset =
-    preset:
-    if preset == null then
-      null
-    else if builtins.isString preset then
-      let
-        found = lib.attrByPath [ preset ] null presets;
-      in
-      assert lib.assertMsg (found != null) "Unknown Smoothfox preset \"${preset}\".";
-      found
-    else
-      assert lib.assertMsg (
-        builtins.isAttrs preset && preset ? extraConfig
-      ) "scrollPreset must be null, a preset name, or a preset record with `extraConfig`.";
-      preset;
-  selectedPreset = resolvePreset scrollPreset;
-  scrollSnippets = if selectedPreset == null then [ ] else [ selectedPreset.extraConfig ];
+  inherit (myLib.firefox) toUserJS;
 in
 {
-  programs.firefox.profiles.${profileName} = {
+  programs.firefox.profiles.default = {
     extraConfig = lib.strings.concatLines (
       [
         # Arkenfox
-        (builtins.readFile arkenfoxUserJs)
+        (builtins.readFile "${pkgs.arkenfox-userjs}/user.js")
 
         # Betterfox
         (builtins.readFile "${inputs.firefox-betterfox}/Securefox.js")
         (builtins.readFile "${inputs.firefox-betterfox}/Peskyfox.js")
         (builtins.readFile "${inputs.firefox-betterfox}/Fastfox.js")
       ]
-      ++ scrollSnippets
       ++ [
         # Overrides
         (toUserJS {
@@ -81,7 +55,7 @@ in
           "browser.contentblocking.category" = "custom";
           "privacy.fingerprintingProtection" = false;
 
-          # Disable profiles from being created
+          # Disable new profiles from being created and switching between profiles
           "browser.profiles.enabled" = false;
         })
       ]

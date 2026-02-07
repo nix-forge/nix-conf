@@ -1,4 +1,3 @@
-profileName:
 {
   enableAV1 ? true,
   ...
@@ -8,7 +7,7 @@ let
   inherit (lib.cust.firefox) toUserJS;
 in
 {
-  programs.firefox.profiles.${profileName}.extraConfig =
+  programs.firefox.profiles.default.extraConfig =
     # Enable NVIDIA-specific acceleration tweaks only when this module is imported.
     lib.mkAfter (toUserJS {
       # NVIDIA VA-API Driver settings

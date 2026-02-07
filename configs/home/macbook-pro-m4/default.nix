@@ -23,5 +23,10 @@
     dev
     shells
     window-managers-aerospace
+    firefox
+    firefox-scrolling-natural
+
+    extra-config
+    secrets
   ];
 }

@@ -1,7 +1,6 @@
-profileName:
 { pkgs, ... }:
 {
-  programs.firefox.profiles.${profileName}.search = {
+  programs.firefox.profiles.default.search = {
     force = true;
 
     default = "perplexity";

@@ -1,4 +1,14 @@
 { inputs, ... }:
+let
+  flake-compat = import "${inputs.flake-parts}/vendor/flake-compat";
+  get-flake =
+    src:
+    (flake-compat {
+      inherit src;
+      system = throw "operating flake-compat in pure mode; system not allowed to be used";
+    }).outputs;
+  homeFlakeInputs = (get-flake ./home).inputs;
+in
 {
   imports = [ inputs.flake-parts.flakeModules.partitions ];
 
@@ -33,7 +43,8 @@
           stylix
           disko
           ;
-      };
+      }
+      // homeFlakeInputs;
     };
 
     darwin = {
@@ -51,11 +62,12 @@
           agenix
           stylix
           ;
-      };
+      }
+      // homeFlakeInputs;
     };
 
     home = {
-      # extraInputsFlake = ./home;
+      extraInputsFlake = ./home;
       module.imports = [
         ./home
         ./base

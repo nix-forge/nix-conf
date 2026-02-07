@@ -4,7 +4,7 @@ let
     attrs:
     lib.pipe attrs [
       lib.attrsToList
-      (builtins.map (nameValue: [
+      (map (nameValue: [
         nameValue.name
         nameValue.value
       ]))
@@ -12,7 +12,6 @@ let
 
   # Privacy filters
   privacyEssentials = "https://raw.githubusercontent.com/yokoffing/filterlists/main/privacy_essentials.txt";
-  click2Load = "https://raw.githubusercontent.com/yokoffing/filterlists/main/click2load.txt";
   haegeziProMini = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.mini.txt";
   legitUrlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
   clearUrlsUbo = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/ClearURLs%20for%20uBo/clear_urls_uboified.txt";
@@ -41,7 +40,6 @@ let
   customFilterLists = [
     # Privacy filters
     privacyEssentials
-    click2Load
     haegeziProMini
     legitUrlShortener
     clearUrlsUbo

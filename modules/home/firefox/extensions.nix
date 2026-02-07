@@ -1,4 +1,3 @@
-profileName:
 { inputs, pkgs, ... }:
 let
   firefoxAddons = (pkgs.extend inputs.nur-rycee.overlays.default).firefox-addons;
@@ -41,10 +40,9 @@ in
       };
     };
 
-    profiles.${profileName}.extensions.packages = with firefoxAddons; [
+    profiles.default.extensions.packages = with firefoxAddons; [
       bitwarden
       refined-github
-      grammarly
     ];
   };
 }

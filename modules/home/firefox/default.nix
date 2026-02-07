@@ -1,17 +1,12 @@
-profileName:
-{
-  scrollPreset ? "instant",
-  ...
-}:
-{ ... }:
 {
   imports = [
     ./blocking.nix
+    ./extensions.nix
+    ./language.nix
     ./policies.nix
-    (import ./extensions.nix profileName)
-    (import ./user-js.nix profileName { inherit scrollPreset; })
-    (import ./search.nix profileName)
-    (import ./theme.nix profileName)
+    ./search.nix
+    ./theme.nix
+    ./user-js.nix
   ];
 
   programs.firefox = {
@@ -20,10 +15,10 @@ profileName:
     # Set the language packs for firefox (be careful as unique configs can lead to fingerprinting)
     languagePacks = [ "en-US" ];
 
-    profiles.${profileName} = {
+    profiles.default = {
       id = 0;
       isDefault = true;
-      name = profileName;
+      name = "default";
     };
   };
 }
