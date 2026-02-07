@@ -1,55 +1,82 @@
 { config, ... }:
 {
   programs.ssh.matchBlocks = {
-    # Servers
-    "ugclinux" = {
+    cornellGit = {
+      host = "github.coecis.cornell.edu gitlab.cs.cornell.edu";
+      user = "git";
+      identitiesOnly = true;
+      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+    };
+
+    ugclinux = {
+      host = "ugclinux";
       hostname = "ugclinux.cs.cornell.edu";
+      setEnv = {
+        TERM = "xterm-256color";
+      };
 
       extraOptions = {
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
-        SetEnv = "TERM=xterm-256color";
       };
     };
 
-    # NERSC
-    # https://docs.nersc.gov/connect/vscode/
-    "dtn*.nersc.gov perlmutter*.nersc.gov *.nersc.gov" = {
+    nerscLogin = {
+      host = "dtn*.nersc.gov perlmutter*.nersc.gov *.nersc.gov";
       identitiesOnly = true;
-      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      setEnv = {
+        TERM = "xterm-256color";
+      };
+
       extraOptions = {
         LogLevel = "QUIET";
-        ForwardAgent = "yes";
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
-        SetEnv = "TERM=xterm-256color";
       };
     };
-    "nid??????" = {
+
+    perlmutterAgent = {
+      host = "perlmutter-agent";
+      hostname = "perlmutter.nersc.gov";
+      user = null;
+      identitiesOnly = true;
+      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      forwardAgent = true;
+
+      setEnv = {
+        TERM = "xterm-256color";
+      };
+      extraOptions = {
+        LogLevel = "QUIET";
+        Include = config.age.secrets.cornell-net-id-ssh-config.path;
+      };
+    };
+
+    nerscCompute = {
+      host = "nid??????";
       hostname = "%h";
+      proxyJump = "perlmutter.nersc.gov";
+
       identitiesOnly = true;
-      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      setEnv = {
+        TERM = "xterm-256color";
+      };
+
+      userKnownHostsFile = "${config.home.homeDirectory}/.ssh/known_hosts_nersc_compute";
+
       extraOptions = {
         LogLevel = "QUIET";
-        StrictHostKeyChecking = "no";
-        ForwardAgent = "yes";
-        ProxyJump = "perlmutter.nersc.gov";
         Include = config.age.secrets.cornell-net-id-ssh-config.path;
-        SetEnv = "TERM=xterm-256color";
+
+        StrictHostKeyChecking = "accept-new";
+
+        UpdateHostKeys = "no";
       };
     };
 
-    # Git
-    "github.coecis.cornell.edu" = {
-      hostname = "github.coecis.cornell.edu";
-      user = "git";
+    gitForges = {
       identitiesOnly = true;
-      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
-    };
-
-    "gitlab.cs.cornell.edu" = {
-      hostname = "gitlab.cs.cornell.edu";
-      user = "git";
-      identitiesOnly = true;
-      identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
     };
   };
 }

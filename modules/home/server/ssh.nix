@@ -1,74 +1,65 @@
 {
+  config,
   lib,
   pkgs,
-  config,
   ...
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
-  cmDir = "${config.home.homeDirectory}/.ssh/cm";
+  controlPathDir = "${config.home.homeDirectory}/.ssh/cm";
 in
 {
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
 
+    extraOptionOverrides = {
+      IgnoreUnknown = "UseKeychain";
+    };
+
     matchBlocks = {
-      "*" = lib.mkMerge [
-        {
-          controlMaster = "auto";
-          controlPersist = "10m";
-          controlPath = "${cmDir}/%C";
-          compression = true;
-
-          hashKnownHosts = true;
-          addKeysToAgent = "yes";
-          forwardAgent = lib.mkForce false;
-          serverAliveInterval = 60;
-          serverAliveCountMax = 3;
-
-          extraOptions = {
-            UpdateHostKeys = "yes";
-            StrictHostKeyChecking = "accept-new";
-          };
-        }
-
-        (lib.optionalAttrs isDarwin {
-          extraOptions = {
-            "IgnoreUnknown" = "UseKeychain";
-            "UseKeychain" = "yes";
-          };
-        })
-      ];
-
-      "github.com" = {
-        hostname = "github.com";
-        user = "git";
-      };
-
-      "gist.github.com" = {
-        hostname = "gist.github.com";
-        user = "git";
-      };
-
-      "gitlab.com" = {
-        hostname = "gitlab.com";
-        user = "git";
-      };
-
-      "codeberg.org" = {
-        user = "git";
-        hostname = "codeberg.org";
-      };
-
-      "*.local" = {
+      local = {
+        host = "*.local";
         compression = false;
+        extraOptions = {
+          ConnectTimeout = "3";
+        };
+      };
+
+      gitForges = {
+        host = "github.com gist.github.com gitlab.com codeberg.org";
+        user = "git";
+      };
+
+      "*" = {
+        forwardAgent = false;
+        addKeysToAgent = "yes";
+        compression = false;
+
+        serverAliveInterval = 60;
+        serverAliveCountMax = 3;
+
+        hashKnownHosts = true;
+
+        controlMaster = "auto";
+        controlPath = "${controlPathDir}/%C";
+        controlPersist = "10m";
+
+        extraOptions = {
+          ConnectTimeout = "10";
+          ConnectionAttempts = "2";
+          TCPKeepAlive = "no";
+
+          StrictHostKeyChecking = "accept-new";
+          UpdateHostKeys = "yes";
+        }
+        // lib.optionalAttrs isDarwin { UseKeychain = "yes"; };
       };
     };
   };
 
-  home.activation.createSshControlMasterDir = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
-    mkdir -p ${cmDir}
-    chmod 700 ${cmDir}
+  home.activation.sshControlPathDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mkdir -p "${controlPathDir}"
+    chmod 700 "${controlPathDir}"
   '';
 }

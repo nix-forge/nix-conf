@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "autosquash",
+    "coecis",
     "committerdate",
     "deadnix",
     "defaultbrowser",
@@ -11,10 +12,12 @@
     "ianmh",
     "libsecret",
     "macbook",
+    "nersc",
     "nixos",
     "nixpkgs",
     "numtide",
     "osxkeychain",
+    "perlmutter",
     "pkgs",
     "precompose",
     "prek",
@@ -25,6 +28,7 @@
     "statix",
     "stdenv",
     "stylix",
+    "ugclinux",
     "uids",
     "zhaofengli"
   ],
