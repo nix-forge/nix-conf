@@ -73,12 +73,12 @@ home-switch configuration *args:
 # Rekey all secrets for all configured targets
 [group('Secrets')]
 rekey:
-    nix run {{ flake }}#agenix-rekey.$(nix config show system).rekey -- -a
+    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).rekey -- -a
 
 # Update source secret recipients to the configured master identities
 [group('Secrets')]
 rekey-update-masterkeys:
-    nix run {{ flake }}#agenix-rekey.$(nix config show system).update-masterkeys
+    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).update-masterkeys
 
 # ─── Maintenance ──────────────────────────────────────────────────────
 
