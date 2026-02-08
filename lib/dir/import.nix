@@ -540,14 +540,10 @@ rec {
 
           # Create the mkHost builder with the provided arguments
           hostBuilder = mkHost {
-            inherit
-              withSystem
-              inputs
-              self
-              builder
-              homeConfigs
-              extraSpecialArgs
-              ;
+            inherit withSystem inputs self;
+            inherit builder;
+            inherit extraSpecialArgs;
+            inherit homeConfigs;
           };
         in
         {
@@ -628,7 +624,7 @@ rec {
           homeConfig = createHomeConfig entry { inherit inputs self modules; };
 
           # Default config name is "username@folderName"
-          configName = homeConfig.configName or "${homeConfig.username}@${folderName}";
+          configName = "${homeConfig.username}@${folderName}";
         in
         {
           name = configName;
@@ -691,9 +687,7 @@ rec {
           folderName = entryAttrName entry;
           homeConfig = createHomeConfig entry { inherit inputs self modules; };
 
-          configName =
-            homeConfig.configName
-              or (if prependUsername then "${homeConfig.username}@${folderName}" else folderName);
+          configName = if prependUsername then "${homeConfig.username}@${folderName}" else folderName;
         in
         {
           name = configName;

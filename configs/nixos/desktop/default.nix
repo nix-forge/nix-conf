@@ -2,6 +2,7 @@
 {
   system = "x86_64-linux";
   hostName = "desktop";
+  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
 
   nixpkgsArgs = {
     config = {
@@ -18,6 +19,7 @@
   modules = with modules; [
     base-base
     boot
+    agenix
 
     ./hardware/filesystems.nix
   ];

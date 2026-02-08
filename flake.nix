@@ -17,13 +17,6 @@
     };
     determinate.url = "github:DeterminateSystems/determinate";
 
-    # My Personal Secrets
-    # TODO: move secrets to this repo as currently this repo could be public as it uses agenix
-    nix-secrets = {
-      url = "github:IanHollow/nix-secrets";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Package Libraries
     nix4vscode = {
       url = "github:nix-community/nix4vscode";
@@ -54,6 +47,11 @@
         darwin.follows = "";
         home-manager.follows = "";
       };
+    };
+    agenix-rekey = {
+      # url = "github:oddlama/agenix-rekey";
+      url = "github:IanHollow/agenix-rekey/fix-string-context-derivation-warning";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     spicetify-nix = {
       url = "github:Gerg-L/spicetify-nix";

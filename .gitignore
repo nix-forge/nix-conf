@@ -1,3 +1,4 @@
 result/
 .direnv/
 .pre-commit-config.yaml
+secrets/master-identities/bootstrap-local.nix

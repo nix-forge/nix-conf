@@ -7,6 +7,7 @@ in
   username = "ianmh";
   homeDirectory = "/Users/ianmh";
   uid = 501;
+  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
 
   nixpkgsArgs = {
     config = {
@@ -21,6 +22,7 @@ in
     nix-settings
     cache
     xdg
+    agenix
     { programs.nh.enable = true; }
 
     fonts
@@ -52,6 +54,5 @@ in
     ({ pkgs, ... }: install pkgs.shellcheck)
 
     extra-config
-    secrets
   ];
 }

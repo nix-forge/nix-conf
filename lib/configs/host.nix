@@ -21,6 +21,8 @@ in
           inherit inputs' self';
           inherit inputs self;
           inherit system homeConfigs;
+          configName = args.folderName;
+          sshPubKey = args.sshPubKey or null;
         }
         // extraSpecialArgs
         // (args.specialArgs or { });

@@ -16,7 +16,7 @@
 
   partitions =
     let
-      baseInputs = { inherit (inputs) nixpkgs home-manager nix-secrets; };
+      baseInputs = { inherit (inputs) nixpkgs home-manager; };
       homeManagerInputs = {
         inherit (inputs) nix4vscode nur-rycee;
         inherit (inputs) firefox-betterfox firefox-ui-fix;
@@ -29,7 +29,7 @@
           ./nixos
           ./base
         ];
-        extraInputs = baseInputs // { inherit (inputs) disko agenix stylix; } // homeManagerInputs;
+        extraInputs = baseInputs // { inherit (inputs) disko agenix agenix-rekey stylix; } // homeManagerInputs;
       };
 
       darwin = {
@@ -38,7 +38,12 @@
           ./darwin
           ./base
         ];
-        extraInputs = baseInputs // { inherit (inputs) nix-darwin agenix stylix; } // homeManagerInputs;
+        extraInputs =
+          baseInputs
+          // {
+            inherit (inputs) nix-darwin agenix agenix-rekey stylix;
+          }
+          // homeManagerInputs;
       };
 
       dev = {

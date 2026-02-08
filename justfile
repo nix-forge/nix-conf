@@ -68,6 +68,18 @@ home-build configuration *args:
 home-switch configuration *args:
     nh home switch {{ flake }} -c {{ configuration }} {{ args }}
 
+# ─── Secrets ──────────────────────────────────────────────────────────
+
+# Rekey all secrets for all configured targets
+[group('Secrets')]
+rekey:
+    nix run {{ flake }}#agenix-rekey.$(nix config show system).rekey -- -a
+
+# Update source secret recipients to the configured master identities
+[group('Secrets')]
+rekey-update-masterkeys:
+    nix run {{ flake }}#agenix-rekey.$(nix config show system).update-masterkeys
+
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files
