@@ -1,5 +1,9 @@
 let
+  # Optional local-only decrypt identities (ignored by git on purpose).
+  # Typical software-key setup:
+  #   [ "/Users/<user>/.config/agenix/master.agekey" ]
   bootstrapIdentitiesPath = ../../../secrets/master-identities/bootstrap-local.nix;
+  # Committed public key for the primary master identity.
   mainIdentityPath = ../../../secrets/master-identities/main.pub;
   mainPubkey = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile mainIdentityPath);
 
@@ -16,6 +20,9 @@ let
         pubkey = mainPubkey;
       };
 
+  # If a local bootstrap identity exists, use it for decryption and bind it to
+  # the committed master pubkey for encryption.
+  # Otherwise, fall back to the split-identity path in mainIdentityPath.
   masterIdentities =
     if bootstrapIdentities != [ ] then
       [ (primaryMasterIdentity (builtins.head bootstrapIdentities)) ]
@@ -123,7 +130,8 @@ in
 
       age = {
         rekey = (agenixRekeyBaseConfig sshPubKey) // {
-          localStorageDir = ../../../secrets/rekeyed + "/${configName}";
+          localStorageDir =
+            ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
         };
         secrets = lib.mkMerge (
           [ self.secrets.shared.secrets ]

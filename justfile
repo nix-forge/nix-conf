@@ -80,6 +80,21 @@ rekey:
 rekey-update-masterkeys:
     nix run path:{{ flake }}#agenix-rekey.$(nix config show system).update-masterkeys
 
+# Edit (or create) a secret. If no file is given, opens fzf selector.
+[group('Secrets')]
+secret-edit *args:
+    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- edit {{ args }}
+
+# View a secret. If no file is given, opens fzf selector.
+[group('Secrets')]
+secret-view *args:
+    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- view {{ args }}
+
+# Create/replace a secret from an existing plaintext file.
+[group('Secrets')]
+secret-create input output:
+    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- edit -i {{ input }} {{ output }}
+
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files

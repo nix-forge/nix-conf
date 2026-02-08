@@ -38,7 +38,7 @@ rec {
             system
             sshPubKey
             ;
-          configName = args.folderName;
+          configName = "${username}@${args.folderName}";
         }
         // (args.extraSpecialArgs or { });
 
