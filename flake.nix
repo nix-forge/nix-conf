@@ -44,14 +44,17 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
-        darwin.follows = "";
-        home-manager.follows = "";
+        darwin.follows = "nix-darwin";
+        home-manager.follows = "home-manager";
       };
     };
     agenix-rekey = {
       # url = "github:oddlama/agenix-rekey";
       url = "github:IanHollow/agenix-rekey/fix-string-context-derivation-warning";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        # flake-parts.follows = "flake-parts";
+      };
     };
     spicetify-nix = {
       url = "github:Gerg-L/spicetify-nix";

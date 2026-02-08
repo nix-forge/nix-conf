@@ -10,7 +10,21 @@ default:
 # Update all flake inputs, or a single input if specified
 [group('Flake')]
 update input="":
-    nix flake update {{ input }}
+    nix flake update {{ input }} --flake {{ flake }}
+
+[group('Flake')]
+os-update input="":
+    nix flake update {{ input }} --flake {{ flake }}/flake/nixos/
+
+[group('Flake')]
+darwin-update input="":
+    nix flake update {{ input }} --flake {{ flake }}/flake/darwin/
+
+[group('Flake')]
+update-all:
+    @just update
+    @just os-update
+    @just darwin-update
 
 # Run flake checks
 [group('Flake')]
