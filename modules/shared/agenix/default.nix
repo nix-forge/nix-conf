@@ -6,6 +6,10 @@ let
   # Committed public key for the primary master identity.
   mainIdentityPath = ../../../secrets/master-identities/main.pub;
   mainPubkey = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile mainIdentityPath);
+  # Committed list of additional operator/team pubkeys that should also be able
+  # to decrypt source secrets on their own machines.
+  teamPubkeysPath = ../../../secrets/master-identities/team-pubkeys.nix;
+  teamPubkeys = import teamPubkeysPath;
 
   bootstrapIdentities =
     if builtins.pathExists bootstrapIdentitiesPath then import bootstrapIdentitiesPath else [ ];
@@ -20,9 +24,9 @@ let
         pubkey = mainPubkey;
       };
 
-  # If a local bootstrap identity exists, use it for decryption and bind it to
-  # the committed master pubkey for encryption.
-  # Otherwise, fall back to the split-identity path in mainIdentityPath.
+  # Use local bootstrap identities for decrypting source secrets when running
+  # rekey/update-masterkeys. If no local identity exists, keep only the public
+  # key reference so evaluation stays stable across all machines.
   masterIdentities =
     if bootstrapIdentities != [ ] then
       [ (primaryMasterIdentity (builtins.head bootstrapIdentities)) ]
@@ -33,6 +37,7 @@ let
   agenixRekeyBaseConfig = sshPubKey: {
     storageMode = "local";
     hostPubkey = sshPubKey;
+    extraEncryptionPubkeys = teamPubkeys;
     inherit masterIdentities;
   };
 in
