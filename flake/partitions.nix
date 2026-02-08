@@ -29,7 +29,17 @@
           ./nixos
           ./base
         ];
-        extraInputs = baseInputs // { inherit (inputs) disko agenix agenix-rekey stylix; } // homeManagerInputs;
+        extraInputs =
+          baseInputs
+          // {
+            inherit (inputs)
+              disko
+              agenix
+              agenix-rekey
+              stylix
+              ;
+          }
+          // homeManagerInputs;
       };
 
       darwin = {
@@ -41,7 +51,12 @@
         extraInputs =
           baseInputs
           // {
-            inherit (inputs) nix-darwin agenix agenix-rekey stylix;
+            inherit (inputs)
+              nix-darwin
+              agenix
+              agenix-rekey
+              stylix
+              ;
           }
           // homeManagerInputs;
       };

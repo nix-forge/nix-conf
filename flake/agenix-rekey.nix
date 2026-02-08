@@ -12,11 +12,10 @@
     {
       agenix-rekey = {
         inherit pkgs;
-        nixosConfigurations = lib.filterAttrs (_: x: x.config ? age) (
-          self.nixosConfigurations // self.darwinConfigurations
-        );
+        nixosConfigurations = lib.filterAttrs (_: x: x.config ? age) self.nixosConfigurations;
+        darwinConfigurations = lib.filterAttrs (_: x: x.config ? age) self.darwinConfigurations;
         homeConfigurations = lib.filterAttrs (_: x: x.config ? age) self.homeConfigurations;
-        collectHomeManagerConfigurations = false;
+        collectHomeManagerConfigurations = true; # useful if a new user is defined using overriding one of the home-manager configurations
       };
     };
 }

@@ -50,10 +50,10 @@
     };
     agenix-rekey = {
       # url = "github:oddlama/agenix-rekey";
-      url = "github:IanHollow/agenix-rekey/fix-string-context-derivation-warning";
+      url = "github:IanHollow/agenix-rekey/dev-combined-agenix-rekey";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        # flake-parts.follows = "flake-parts";
+        flake-parts.follows = "flake-parts";
       };
     };
     spicetify-nix = {
