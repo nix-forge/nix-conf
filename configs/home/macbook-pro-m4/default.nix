@@ -23,6 +23,7 @@ in
     cache
     xdg
     agenix
+    macos
     { programs.nh.enable = true; }
 
     fonts

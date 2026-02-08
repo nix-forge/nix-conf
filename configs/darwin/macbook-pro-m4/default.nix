@@ -29,7 +29,6 @@
     homebrew-casks
     homebrew-brews
 
-    preferences # TODO: try to move to home-manager
     security
     stylix
     fonts
