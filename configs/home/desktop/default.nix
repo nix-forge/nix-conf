@@ -14,14 +14,13 @@
 
   modules = with modules; [
     ## Base
-    base-version
-    # base-fonts  # Requires custom flake packages
-    base-xdg
+    meta
+    nix-settings
+    xdg
 
     ## Shells
     shells-aliases
     shells-starship
-    shells-zoxide
     shells-carapace
     shells-eza
 
@@ -29,10 +28,10 @@
     dev-direnv
 
     ## Programs
-    programs-ssh
+    server-ssh
 
     ## Per-host configuration
-    # ./ssh.nix     # Requires agenix
-    # ./secrets.nix  # Requires nix-secrets input
+    ./ssh.nix
+    ./secrets.nix
   ];
 }

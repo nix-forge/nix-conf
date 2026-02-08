@@ -600,6 +600,7 @@ rec {
       inputs,
       self,
       modules,
+      extraSpecialArgs ? { },
       exclude ? [ ],
       filter ? (_: true),
     }:
@@ -631,7 +632,13 @@ rec {
         in
         {
           name = configName;
-          value = homeBuilder (homeConfig // { inherit folderName; });
+          value = homeBuilder (
+            homeConfig
+            // {
+              inherit folderName;
+              extraSpecialArgs = (homeConfig.extraSpecialArgs or { }) // extraSpecialArgs;
+            }
+          );
         };
     in
     listToAttrs (map buildHome homeEntries);

@@ -27,6 +27,7 @@ in
       inherit modules withSystem inputs;
       inherit (args) self;
       inherit (myLib.configs) mkHome;
+      extraSpecialArgs = { inherit myLib; };
     };
   };
 }
