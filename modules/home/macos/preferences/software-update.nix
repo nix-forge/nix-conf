@@ -4,5 +4,6 @@
     ScheduleFrequency = 1;
     AutomaticDownload = 1;
     CriticalUpdateInstall = 1;
+    AutomaticallyInstallMacOSUpdates = true;
   };
 }

@@ -8,18 +8,14 @@
     ShowPathbar = true;
     _FXShowPosixPathInTitle = true;
     AppleShowAllFiles = true;
-    FXEnableExtensionChangeWarning = false;
+    FXEnableExtensionChangeWarning = true;
     QuitMenuItem = true;
     CreateDesktop = false;
     SidebarDevicesSectionDisclosedState = true;
     SidebarPlacesSectionDisclosedState = true;
-    ShowExternalHardDrivesOnDesktop = true;
-    ShowHardDrivesOnDesktop = true;
-    ShowMountedServersOnDesktop = true;
-    ShowRemovableMediaOnDesktop = true;
     _FXSortFoldersFirst = true;
     OpenWindowForNewRemovableDisk = true;
     QLEnableTextSelection = true;
-    WarnOnEmptyTrash = false;
+    WarnOnEmptyTrash = true;
   };
 }

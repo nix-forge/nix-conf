@@ -3,8 +3,6 @@
     "com.apple.Mail".AddressesIncludeNameOnPasteboard = false;
 
     "com.apple.iTunes" = {
-      disablePingSidebar = true;
-      disablePing = true;
       NSUserKeyEquivalents = {
         "Target Search Field" = "@F";
       };
