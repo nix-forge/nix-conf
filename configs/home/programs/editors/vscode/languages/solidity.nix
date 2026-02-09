@@ -5,9 +5,7 @@ let
 in
 {
   programs.vscode.profiles.${profileName} = {
-    extensions = with extensions.release; [
-      nomicfoundation.hardhat-solidity
-    ];
+    extensions = with extensions.release; [ nomicfoundation.hardhat-solidity ];
 
     userSettings = { };
   };

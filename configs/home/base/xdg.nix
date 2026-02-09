@@ -7,7 +7,7 @@
 let
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
 
-  uid = config.home.uid;
+  inherit (config.home) uid;
   uidStr = toString uid;
 
   darwinBase = "/private/tmp";

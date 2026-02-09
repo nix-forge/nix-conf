@@ -1,9 +1,4 @@
-{
-  inputs,
-  config,
-  lib,
-  ...
-}:
+{ inputs, config, ... }:
 let
   user = config.home.username;
 
