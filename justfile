@@ -41,46 +41,46 @@ show:
 # Build a NixOS configuration (dry build, no activation)
 [group('NixOS')]
 os-build hostname *args:
-    nh os build {{ flake }} -H {{ hostname }} {{ args }}
+    nh os build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration, and make it the boot default
 [group('NixOS')]
 os-switch hostname *args:
-    nh os switch {{ flake }} -H {{ hostname }} {{ args }}
+    nh os switch {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build a NixOS configuration and make it the boot default (no activation)
 [group('NixOS')]
 os-boot hostname *args:
-    nh os boot {{ flake }} -H {{ hostname }} {{ args }}
+    nh os boot {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration (without adding to boot menu)
 [group('NixOS')]
 os-test hostname *args:
-    nh os test {{ flake }} -H {{ hostname }} {{ args }}
+    nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # ─── Darwin ───────────────────────────────────────────────────────────
 
 # Build a nix-darwin configuration (dry build, no activation)
 [group('Darwin')]
 darwin-build hostname *args:
-    nh darwin build {{ flake }} -H {{ hostname }} {{ args }}
+    nh darwin build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a nix-darwin configuration
 [group('Darwin')]
 darwin-switch hostname *args:
-    nh darwin switch {{ flake }} -H {{ hostname }} {{ args }}
+    nh darwin switch {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # ─── Home Manager ─────────────────────────────────────────────────────
 
 # Build a home-manager configuration (dry build, no activation)
 [group('Home')]
 home-build configuration *args:
-    nh home build {{ flake }} -c {{ configuration }} {{ args }}
+    nh home build {{ flake }} -c {{ configuration }} --show-trace {{ args }}
 
 # Build and activate a home-manager configuration
 [group('Home')]
 home-switch configuration *args:
-    nh home switch {{ flake }} -c {{ configuration }} {{ args }}
+    nh home switch {{ flake }} -c {{ configuration }} --show-trace {{ args }}
 
 # ─── Secrets ──────────────────────────────────────────────────────────
 
