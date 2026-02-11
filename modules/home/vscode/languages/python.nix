@@ -34,6 +34,9 @@ in
         "editor.defaultFormatter" = "charliermarsh.ruff";
       };
 
+      "notebook.formatOnSave.enabled" = true;
+      "notebook.defaultFormatter" = "charliermarsh.ruff";
+
       "ruff.path" = [ (lib.getExe pkgs.ruff) ];
       "ruff.lint.ignore" = [
         "ERA001"
@@ -48,8 +51,7 @@ in
 
       "python.terminal.activateEnvironment" = false;
 
-      # TODO: find a way to highlight docstrings with ty when pylance is disabled
-      "python.languageServer" = "None"; # using ty instead
+      # "python.languageServer" = "None"; # using ty instead
     };
   };
 }
