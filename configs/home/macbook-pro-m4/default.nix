@@ -48,12 +48,6 @@ in
     { home.sessionVariables.VISUAL = "code"; }
     { home.sessionVariables.TERMINAL = "ghostty"; }
 
-    ({ pkgs, ... }: install pkgs.bun)
-    ({ pkgs, ... }: install pkgs.nixfmt)
-    ({ pkgs, ... }: install pkgs.just)
-    ({ pkgs, ... }: install pkgs.shfmt)
-    ({ pkgs, ... }: install pkgs.shellcheck)
-
     extra-config
   ];
 }
