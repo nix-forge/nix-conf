@@ -143,7 +143,7 @@ in
         "ublock-privacy"
         "ublock-quick-fixes"
         "ublock-unbreak"
-        "ublock-experimental"
+        # "ublock-experimental"
 
         # Ads
         "easylist"
