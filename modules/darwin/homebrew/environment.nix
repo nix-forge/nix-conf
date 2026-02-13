@@ -9,6 +9,6 @@
     };
 
     # add homebrew to PATH
-    systemPath = [ config.homebrew.brewPrefix ];
+    systemPath = [ "${config.homebrew.prefix}/bin" ];
   };
 }
