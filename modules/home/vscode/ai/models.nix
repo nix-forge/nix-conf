@@ -6,7 +6,6 @@ in
   programs.vscode.profiles.default = {
     extensions = extensions.forVscode [
       ## Copilot
-      "github.copilot"
       "github.copilot-chat"
 
       ## Codex
