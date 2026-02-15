@@ -19,6 +19,8 @@
     nix-settings
     cache
     agenix
+    tools
+    disable-docs
 
     ## Users
     home-manager
