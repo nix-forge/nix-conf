@@ -57,6 +57,8 @@ in
         inputs.agenix-rekey.nixosModules.default
       ];
 
+      services.openssh.enable = true;
+
       age = {
         rekey = (agenixRekeyBaseConfig sshPubKey) // {
           localStorageDir = ../../../secrets/rekeyed + "/nixos-${configName}";
@@ -69,6 +71,7 @@ in
         );
       };
     };
+
   darwin =
     {
       inputs,

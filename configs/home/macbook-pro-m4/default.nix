@@ -42,6 +42,7 @@ in
     neovim
     stylix
     stylix-targets-firefox
+    ({ pkgs, ... }: install pkgs.n8n)
 
     { programs.ripgrep.enable = true; }
     { home.sessionVariables.EDITOR = "nvim"; }

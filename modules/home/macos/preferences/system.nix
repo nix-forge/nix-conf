@@ -1,5 +1,4 @@
-{ config, lib, ... }:
-{
+_: {
   targets.darwin.defaults = {
     "com.apple.screencapture" =
       {

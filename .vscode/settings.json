@@ -48,13 +48,12 @@
     "statix",
     "stdenv",
     "stylix",
+    "treefmt",
     "ugclinux",
     "uids",
     "vsync",
     "yokoffing",
     "zhaofengli"
   ],
-  "editor.rulers": [
-    100
-  ]
+  "editor.rulers": [100]
 }
