@@ -26,10 +26,7 @@ let
       "nix-command"
       "flakes"
 
-      "fetch-closure"
-      "recursive-nix"
-      "ca-derivations"
-      "blake3-hashes"
+      "verified-fetches"
     ];
   };
 in
