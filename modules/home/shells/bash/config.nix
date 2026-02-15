@@ -27,15 +27,5 @@ in
       "globstar"
       "cmdhist"
     ];
-
-    initExtra = lib.mkMerge [
-      (lib.mkOrder 500 ''
-        source -- "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
-      '')
-
-      (lib.mkOrder 2000 ''
-        [[ ! ''${BLE_VERSION-} ]] || ble-attach
-      '')
-    ];
   };
 }
