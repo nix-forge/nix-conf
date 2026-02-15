@@ -64,13 +64,21 @@ _: {
       #                 See:
       #                 https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
       gaps = {
-        inner.horizontal = 6;
-        inner.vertical = 6;
+        # inner.horizontal = 6;
+        # inner.vertical = 6;
+        # outer = {
+        #   left = 8;
+        #   bottom = 8;
+        #   top = 0;
+        #   right = 8;
+        # };
+        inner.horizontal = 0;
+        inner.vertical = 0;
         outer = {
-          left = 8;
-          bottom = 8;
+          left = 0;
+          bottom = 0;
           top = 0;
-          right = 8;
+          right = 0;
         };
       };
       # 'main' binding mode declaration
