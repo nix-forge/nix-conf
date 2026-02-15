@@ -10,36 +10,47 @@ let
     sandbox = true;
     sandbox-fallback = false;
 
+    keep-derivations = true;
+    keep-outputs = true;
     keep-going = true;
+
+    connect-timeout = 5;
+    fallback = true;
+
+    log-lines = 25;
+
+    warn-dirty = false;
+    accept-flake-config = false;
 
     extra-experimental-features = [
       "nix-command"
       "flakes"
+
+      "repl-flake"
+      "fetch-closure"
+      "recursive-nix"
+      "ca-derivations"
+      "blake3-hashes"
     ];
-
-    warn-dirty = false;
-
-    accept-flake-config = false;
-
-    keep-derivations = true;
-    keep-outputs = true;
   };
 in
 {
   nixos =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       settings = sharedSettings // {
-        trusted-users = [
-          "root"
+        trusted-users = sharedSettings.trusted-users ++ [
           "@wheel"
           "@sudo"
           "nix-builder"
         ];
 
-        extra-experimental-features = [
-          "nix-command"
-          "flakes"
+        extra-experimental-features = sharedSettings.extra-experimental-features ++ [
           "cgroups"
           "auto-allocate-uids"
         ];
@@ -50,6 +61,8 @@ in
     in
     {
       nix = {
+        package = lib.mkDefault pkgs.nixVersions.latest;
+        channel.enable = lib.mkDefault false;
         inherit settings;
         extraOptions = lib.mkIf (lib.hasAttr "age" config) ''
           !include ${config.age.secrets.nix-access-tokens.path}
@@ -58,19 +71,24 @@ in
     };
 
   darwin =
-    { lib, config, ... }:
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
     let
       settings = sharedSettings // {
-        trusted-users = [
-          "root"
-          "@admin"
-        ];
+        trusted-users = sharedSettings.trusted-users ++ [ "@admin" ];
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) {
         nix = {
+          package = lib.mkDefault pkgs.nixVersions.latest;
+          optimise.automatic = lib.mkDefault true;
+          channel.enable = lib.mkDefault false;
           inherit settings;
           extraOptions = lib.mkIf (lib.hasAttr "age" config) ''
             !include ${config.age.secrets.nix-access-tokens.path}
@@ -96,7 +114,7 @@ in
     }:
     {
       nix = {
-        package = lib.mkDefault pkgs.nix;
+        package = lib.mkDefault pkgs.nixVersions.latest;
         settings = lib.mkIf (config.nix.package != null) sharedSettings;
         extraOptions = lib.mkIf (config.nix.package != null && lib.hasAttr "age" config) ''
           !include ${config.age.secrets.nix-access-tokens.path}
