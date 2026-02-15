@@ -8,11 +8,10 @@
   home.packages = [ pkgs.blesh ];
 
   programs.bash = {
-    bashrcExtra = lib.mkBefore ''
-      [[ $- == *i* ]] && source "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
-    '';
-
     initExtra = lib.mkMerge [
+      (lib.mkOrder 500 ''
+        source "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
+      '')
       (lib.mkIf config.programs.carapace.enable ''
         source <(${lib.getExe config.programs.carapace.package} _carapace bash-ble)
       '')
