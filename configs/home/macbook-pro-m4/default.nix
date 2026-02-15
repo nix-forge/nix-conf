@@ -22,12 +22,12 @@ in
     nix-settings
     cache
     agenix
-    { programs.nh.enable = true; }
 
     fonts
     dev
     macos
     xdg
+    cli
 
     window-managers-aerospace
     server-ssh
@@ -50,8 +50,6 @@ in
 
     stylix
     stylix-targets-firefox
-
-    { programs.ripgrep.enable = true; }
 
     extra-config
   ];
