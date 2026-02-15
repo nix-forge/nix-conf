@@ -25,8 +25,6 @@ let
     extra-experimental-features = [
       "nix-command"
       "flakes"
-
-      "verified-fetches"
     ];
   };
 in
