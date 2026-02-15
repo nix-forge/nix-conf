@@ -26,7 +26,6 @@ let
       "nix-command"
       "flakes"
 
-      "repl-flake"
       "fetch-closure"
       "recursive-nix"
       "ca-derivations"
