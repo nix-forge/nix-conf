@@ -14,16 +14,14 @@ in
       "ms-python.vscode-pylance"
       "ms-python.debugpy"
 
-      "charliermarsh.ruff"
-      "astral-sh.ty"
-      "ms-python.mypy-type-checker"
-
-      "kevinrose.vsc-python-indent"
-
       "ms-toolsai.jupyter-renderers"
       "ms-toolsai.jupyter"
       "google.colab"
 
+      "charliermarsh.ruff"
+      "astral-sh.ty"
+
+      "kevinrose.vsc-python-indent"
       "njpwerner.autodocstring"
       "rodolphebarbanneau.python-docstring-highlighter"
     ];
@@ -51,6 +49,7 @@ in
 
       "python.terminal.activateEnvironment" = false;
 
+      "python.languageServer" = "Pylance";
       # "python.languageServer" = "None"; # using ty instead
     };
   };
