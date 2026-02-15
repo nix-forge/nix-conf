@@ -1,0 +1,1 @@
+{ home.sessionVariables.VISUAL = "code"; }

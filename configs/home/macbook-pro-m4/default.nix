@@ -21,32 +21,37 @@ in
     determinate
     nix-settings
     cache
-    xdg
     agenix
-    macos
     { programs.nh.enable = true; }
 
     fonts
     dev
-    shells
-    shells-nushell-defaultshell
+    macos
+    xdg
+
     window-managers-aerospace
+    server-ssh
+
     firefox
     firefox-scrolling-natural
     firefox-defaultbrowser
-    server-ssh
-    terminals-ghostty
+
     vscode
     vscode-languages
     vscode-ai
+    vscode-defaultvisual
     neovim
+    neovim-defaulteditor
+
+    shells
+    shells-nushell-defaultshell
+    terminals-ghostty
+    terminals-ghostty-defaultterminal
+
     stylix
     stylix-targets-firefox
 
     { programs.ripgrep.enable = true; }
-    { home.sessionVariables.EDITOR = "nvim"; }
-    { home.sessionVariables.VISUAL = "code"; }
-    { home.sessionVariables.TERMINAL = "ghostty"; }
 
     extra-config
   ];

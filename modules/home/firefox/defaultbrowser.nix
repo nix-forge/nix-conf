@@ -8,4 +8,6 @@ in
       ${lib.getExe pkgs.defaultbrowser} "firefox";
     '';
   };
+
+  home.sessionVariables.BROWSER = "firefox";
 }
