@@ -30,10 +30,18 @@ in
       "[python]" = {
         "editor.tabSize" = 4;
         "editor.defaultFormatter" = "charliermarsh.ruff";
+        "editor.formatOnSaveMode" = "file";
+        "editor.codeActionsOnSave" = {
+          "source.fixAll.ruff" = "explicit";
+          "source.organizeImports.ruff" = "explicit";
+        };
       };
 
-      "notebook.formatOnSave.enabled" = true;
-      "notebook.defaultFormatter" = "charliermarsh.ruff";
+      "notebook.formatOnSave.enabled" = false;
+      "notebook.codeActionsOnSave" = {
+        "notebook.source.fixAll.ruff" = "explicit";
+        "notebook.source.organizeImports.ruff" = "explicit";
+      };
 
       "ruff.path" = [ (lib.getExe pkgs.ruff) ];
       "ruff.lint.ignore" = [

@@ -114,10 +114,10 @@ in
 
           # auto-save when the active editor loses focus
           "files.autoSave" = "onFocusChange";
+          # formatting runs via explicit save keybindings, not implicit save hooks
+          "editor.formatOnSave" = false;
           # format pasted code if the formatter supports a range
           "editor.formatOnPaste" = true;
-          # if the plugin supports range formatting always use that
-          "editor.formatOnSaveMode" = "modificationsIfAvailable";
           # Highlight bad ASCII characters
           "editor.unicodeHighlight.nonBasicASCII" = true;
           # insert a newline at the end of a file when saved
