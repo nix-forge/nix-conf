@@ -17,6 +17,7 @@
     ## Base
     meta
     nix-settings
+    registry
     xdg
     agenix
 

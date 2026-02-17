@@ -18,6 +18,7 @@
 
   modules = with modules; [
     base-base
+    registry
     boot
     agenix
 
