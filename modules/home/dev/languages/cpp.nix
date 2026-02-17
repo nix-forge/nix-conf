@@ -7,7 +7,6 @@
     lldb
 
     codeql
-    clang-tools
     cppcheck
     # gdb
     cmake
