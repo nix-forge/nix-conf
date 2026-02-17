@@ -1,6 +1,6 @@
 let
   fontPackages =
-    { pkgs, ... }:
+    { pkgs, self', ... }:
     with pkgs;
     [
       # icon fonts
@@ -48,7 +48,7 @@ let
       (joypixels.override { acceptLicense = true; })
 
       # Microsoft Fonts
-      # self.packages.${system}.ttf-ms-win11-auto
+      self'.packages.ttf-ms-win11-auto
 
       # Nerdfonts
       nerd-fonts.fira-code
@@ -91,9 +91,9 @@ in
     };
 
   darwin =
-    { pkgs, self, ... }:
+    { pkgs, self', ... }:
     let
-      packages = fontPackages { inherit pkgs self; };
+      packages = fontPackages { inherit pkgs self'; };
     in
     {
       fonts = { inherit packages; };
