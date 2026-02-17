@@ -13,6 +13,11 @@ let
     sep = "-";
     inherit args;
   };
+  allSecrets = import ../../secrets { inherit myLib; };
+  homeSecretsFor =
+    username:
+    allSecrets.shared.secrets
+    // (if allSecrets.users ? ${username} then allSecrets.users.${username}.secrets else { });
 
   modules = config.flake.modules.homeManager;
 in
@@ -28,6 +33,7 @@ in
       inherit (args) self;
       inherit (myLib.configs) mkHome;
       extraSpecialArgs = { inherit myLib; };
+      mkExtraSpecialArgs = _: homeConfig: { secrets = homeSecretsFor homeConfig.username; };
     };
   };
 }

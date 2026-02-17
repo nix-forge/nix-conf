@@ -22,6 +22,7 @@ rec {
       homeDirectory,
       uid,
       sshPubKey ? null,
+      masterIdentityPath ? null,
       ...
     }@args:
     withSystem system (
@@ -37,6 +38,7 @@ rec {
             self
             system
             sshPubKey
+            masterIdentityPath
             ;
           configName = "${username}@${args.folderName}";
         }
@@ -64,6 +66,8 @@ rec {
       homeDirectory ? homeConfig.homeDirectory,
       uid ? homeConfig.uid,
       sshPubKey ? homeConfig.sshPubKey or null,
+      masterIdentityPath ? null,
+      secrets ? homeConfig.secrets or { },
       extraModules ? [ ],
     }:
     {
@@ -71,7 +75,7 @@ rec {
         { lib, ... }:
         {
           _module.args = {
-            inherit sshPubKey;
+            inherit sshPubKey masterIdentityPath secrets;
             configFolderName = homeConfig.folderName;
             configName = "${username}@${homeConfig.folderName}";
           };
@@ -113,6 +117,7 @@ rec {
       pkgs,
       config,
       homeConfigs,
+      masterIdentityPath ? null,
       ...
     }:
     let
@@ -154,6 +159,7 @@ rec {
           inherit homeConfig;
           inherit (args) username homeDirectory uid;
           inherit (args) sshPubKey;
+          inherit masterIdentityPath;
           extraModules = extraModules config;
         })
         {
@@ -198,7 +204,12 @@ rec {
           }
         );
     in
-    { config, homeConfigs, ... }:
+    {
+      config,
+      homeConfigs,
+      masterIdentityPath ? null,
+      ...
+    }:
     let
       homeConfig = homeConfigs.${configName};
       args = {
@@ -213,6 +224,7 @@ rec {
         inherit homeConfig;
         inherit (args) username homeDirectory uid;
         inherit (args) sshPubKey;
+        inherit masterIdentityPath;
         extraModules = extraModules config;
       };
     };

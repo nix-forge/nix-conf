@@ -1,8 +1,4 @@
 let
-  # Optional local-only decrypt identities (ignored by git on purpose).
-  # Typical software-key setup:
-  #   [ "/Users/<user>/.config/agenix/master.agekey" ]
-  bootstrapIdentitiesPath = ../../../secrets/master-identities/bootstrap-local.nix;
   # Committed public key for the primary master identity.
   mainIdentityPath = ../../../secrets/master-identities/main.pub;
   mainPubkey = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile mainIdentityPath);
@@ -11,46 +7,77 @@ let
   teamPubkeysPath = ../../../secrets/master-identities/team-pubkeys.nix;
   teamPubkeys = import teamPubkeysPath;
 
-  bootstrapIdentities =
-    if builtins.pathExists bootstrapIdentitiesPath then import bootstrapIdentitiesPath else [ ];
-
-  primaryMasterIdentity =
-    identity:
-    if builtins.isAttrs identity then
-      identity // { pubkey = identity.pubkey or mainPubkey; }
-    else
-      {
-        inherit identity;
-        pubkey = mainPubkey;
-      };
-
-  # Use local bootstrap identities for decrypting source secrets when running
-  # rekey/update-masterkeys. If no local identity exists, keep only the public
-  # key reference so evaluation stays stable across all machines.
-  masterIdentities =
-    if bootstrapIdentities != [ ] then
-      [ (primaryMasterIdentity (builtins.head bootstrapIdentities)) ]
-      ++ (builtins.tail bootstrapIdentities)
-    else
-      [ mainIdentityPath ];
-
-  agenixRekeyBaseConfig = sshPubKey: {
-    storageMode = "local";
-    hostPubkey = sshPubKey;
-    extraEncryptionPubkeys = teamPubkeys;
-    inherit masterIdentities;
-  };
+  # Optional per-host passphrase-protected identity that lives outside the
+  # repository. Keep this as a string path (not a Nix path literal) so private
+  # keys are never copied into the Nix store.
+  agenixRekeyBaseConfig =
+    {
+      sshPubKey,
+      masterIdentityPath ? null,
+    }:
+    {
+      storageMode = "local";
+      hostPubkey = sshPubKey;
+      extraEncryptionPubkeys = teamPubkeys;
+      masterIdentities = [
+        (
+          if masterIdentityPath != null then
+            {
+              identity = masterIdentityPath;
+              pubkey = mainPubkey;
+            }
+          else
+            # Public-only fallback keeps evaluation stable on non-admin hosts.
+            mainIdentityPath
+        )
+      ];
+    };
 in
 {
   nixos =
     {
       inputs,
-      sshPubKey,
-      configName,
       lib,
-      self,
+      pkgs,
+      config,
+      sshPubKey,
+      masterIdentityPath ? null,
+      secrets,
+      configName,
       ...
     }:
+    let
+      parsedSshPubKey = builtins.match "([^ ]+) ([^ ]+).*" sshPubKey;
+      expectedHostKeyType =
+        if parsedSshPubKey == null then
+          throw "Invalid sshPubKey for nixos host '${configName}': expected '<type> <base64> [comment]'"
+        else
+          builtins.elemAt parsedSshPubKey 0;
+      expectedHostKeyBody = builtins.elemAt parsedSshPubKey 1;
+
+      ed25519HostKey = lib.findFirst (
+        hostKey: hostKey.type == "ed25519"
+      ) null config.services.openssh.hostKeys;
+      hostKeyPath =
+        if ed25519HostKey != null then ed25519HostKey.path else "/etc/ssh/ssh_host_ed25519_key";
+      hostKeyPubPath = "${hostKeyPath}.pub";
+
+      preflightScript = pkgs.replaceVarsWith {
+        name = "agenix-check-host-key";
+        src = ./check-host-key.sh;
+        dir = "bin";
+        isExecutable = true;
+        replacements = {
+          inherit expectedHostKeyType expectedHostKeyBody hostKeyPubPath;
+          hostName = configName;
+          installGuidePath = "docs/nixos-install-preseeded-host-key.md";
+        };
+      };
+      preflightCommand = "${lib.getExe' preflightScript "agenix-check-host-key"}";
+
+      sysusersEnabled =
+        (config.systemd.sysusers.enable or false) || (config.services.userborn.enable or false);
+    in
     {
       imports = [
         inputs.agenix.nixosModules.default
@@ -60,15 +87,30 @@ in
       services.openssh.enable = true;
 
       age = {
-        rekey = (agenixRekeyBaseConfig sshPubKey) // {
+        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath; }) // {
           localStorageDir = ../../../secrets/rekeyed + "/nixos-${configName}";
         };
-        secrets = lib.mkMerge (
-          [ self.secrets.shared.secrets ]
-          ++ lib.optionals (self.secrets.systems ? nixos && self.secrets.systems.nixos ? configName) [
-            self.secrets.systems.nixos.${configName}.secrets
-          ]
-        );
+        inherit secrets;
+      };
+
+      system.activationScripts = lib.mkIf (secrets != { } && !sysusersEnabled) {
+        agenixHostKeyPreflight = {
+          text = preflightCommand;
+          deps = [ "specialfs" ];
+        };
+        agenixNewGeneration.deps = [ "agenixHostKeyPreflight" ];
+      };
+
+      systemd.services.agenix-host-key-preflight = lib.mkIf (secrets != { } && sysusersEnabled) {
+        wantedBy = [ "sysinit.target" ];
+        before = [ "agenix-install-secrets.service" ];
+        after = [ "systemd-sysusers.service" ];
+        unitConfig.DefaultDependencies = "no";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = preflightCommand;
+          RemainAfterExit = true;
+        };
       };
     };
 
@@ -76,9 +118,9 @@ in
     {
       inputs,
       sshPubKey,
+      masterIdentityPath ? null,
+      secrets,
       configName,
-      lib,
-      self,
       ...
     }:
     {
@@ -88,15 +130,10 @@ in
       ];
 
       age = {
-        rekey = (agenixRekeyBaseConfig sshPubKey) // {
+        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath; }) // {
           localStorageDir = ../../../secrets/rekeyed + "/darwin-${configName}";
         };
-        secrets = lib.mkMerge (
-          [ self.secrets.shared.secrets ]
-          ++ lib.optionals (self.secrets.systems ? darwin && self.secrets.systems.darwin ? configName) [
-            self.secrets.systems.darwin.${configName}.secrets
-          ]
-        );
+        inherit secrets;
       };
     };
 
@@ -107,12 +144,12 @@ in
       pkgs,
       config,
       sshPubKey,
+      masterIdentityPath ? null,
+      secrets,
       configName,
-      self,
       ...
     }:
     let
-
       inherit (pkgs.stdenv.hostPlatform) isDarwin;
       xdgRuntimeDir =
         let
@@ -137,16 +174,16 @@ in
       ];
 
       age = {
-        rekey = (agenixRekeyBaseConfig sshPubKey) // {
-          localStorageDir =
-            ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
-        };
-        secrets = lib.mkMerge (
-          [ self.secrets.shared.secrets ]
-          ++ lib.optionals (self.secrets.users ? ${config.home.username}) [
-            self.secrets.users.${config.home.username}.secrets
-          ]
-        );
+        rekey =
+          (agenixRekeyBaseConfig {
+            inherit sshPubKey;
+            inherit masterIdentityPath;
+          })
+          // {
+            localStorageDir =
+              ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
+          };
+        inherit secrets;
         secretsDir = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix";
         secretsMountPoint = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix.d";
       };

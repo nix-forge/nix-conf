@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ needed for custom nix lib
 lib64/
 parts/
 sdist/
@@ -219,5 +219,3 @@ __marimo__/
 # Project Specific
 result/
 .direnv/
-
-secrets/master-identities/bootstrap-local.nix

@@ -20,10 +20,25 @@ let
     sep = "-";
     inherit args;
   };
+  allSecrets = import ../../secrets { inherit myLib; };
+  homeSecretsFor =
+    username:
+    allSecrets.shared.secrets
+    // (if allSecrets.users ? ${username} then allSecrets.users.${username}.secrets else { });
+  systemSecretsFor =
+    configName:
+    allSecrets.shared.secrets
+    // (
+      if allSecrets.systems ? darwin && allSecrets.systems.darwin ? configName then
+        allSecrets.systems.darwin.${configName}.secrets
+      else
+        { }
+    );
   homeConfigs = myLib.dir.importHomeConfigs ../../configs/home {
     inherit inputs;
     inherit (args) self;
     modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
+    mkHomeAttrs = _: homeConfig: { secrets = homeSecretsFor homeConfig.username; };
   };
 in
 {
@@ -41,6 +56,7 @@ in
       inherit (myLib.configs) connectHomeDarwin connectHomeNixos;
       builder = inputs.nix-darwin.lib.darwinSystem;
       extraSpecialArgs = { inherit myLib; };
+      mkSpecialArgs = entry: _: { secrets = systemSecretsFor (myLib.dir.entryAttrName entry); };
     };
   };
 }

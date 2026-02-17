@@ -4,6 +4,7 @@
   username = "ianmh";
   homeDirectory = "/Users/ianmh";
   uid = 501;
+  masterIdentityPath = "/Users/ianmh/.config/agenix/master.age";
   sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
 
   nixpkgsArgs = {

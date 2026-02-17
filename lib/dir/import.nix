@@ -504,6 +504,7 @@ rec {
       modules,
       homeConfigs ? { },
       extraSpecialArgs ? { },
+      mkSpecialArgs ? (_: _: { }),
       exclude ? [ ],
       filter ? (_: true),
     }:
@@ -548,7 +549,13 @@ rec {
         in
         {
           name = folderName;
-          value = hostBuilder (hostConfig // { inherit folderName; });
+          value = hostBuilder (
+            hostConfig
+            // {
+              inherit folderName;
+              specialArgs = (hostConfig.specialArgs or { }) // (mkSpecialArgs entry hostConfig);
+            }
+          );
         };
     in
     listToAttrs (map buildHost hostEntries);
@@ -597,6 +604,7 @@ rec {
       self,
       modules,
       extraSpecialArgs ? { },
+      mkExtraSpecialArgs ? (_: _: { }),
       exclude ? [ ],
       filter ? (_: true),
     }:
@@ -632,7 +640,8 @@ rec {
             homeConfig
             // {
               inherit folderName;
-              extraSpecialArgs = (homeConfig.extraSpecialArgs or { }) // extraSpecialArgs;
+              extraSpecialArgs =
+                (homeConfig.extraSpecialArgs or { }) // extraSpecialArgs // (mkExtraSpecialArgs entry homeConfig);
             }
           );
         };
@@ -668,6 +677,7 @@ rec {
       inputs,
       self,
       modules,
+      mkHomeAttrs ? (_: _: { }),
       exclude ? [ ],
       filter ? (_: true),
     }:
@@ -691,9 +701,7 @@ rec {
         in
         {
           name = configName;
-          value = homeConfig // {
-            inherit folderName;
-          };
+          value = homeConfig // { inherit folderName; } // (mkHomeAttrs entry homeConfig);
         };
 
       homeConfigs = listToAttrs (
