@@ -33,7 +33,7 @@ in
     settings.exec-once = [
       "${lib.getExe config.programs.waybar.package}"
 
-      "hyprctl setcursor ${config.gtk.cursorTheme.name} ${builtins.toString config.gtk.cursorTheme.size}"
+      "hyprctl setcursor ${config.gtk.cursorTheme.name} ${toString config.gtk.cursorTheme.size}"
     ];
   };
 
