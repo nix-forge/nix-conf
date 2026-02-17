@@ -60,6 +60,26 @@ def _fail(message: str) -> NoReturn:
     raise SystemExit(1)
 
 
+def _require_match(match: re.Match[str] | None, label: str) -> re.Match[str]:
+    if match is not None:
+        return match
+    _fail(f"could not parse {label} from PKGBUILD")
+
+
+def _require_array(arrays: dict[str, list[str]], name: str) -> list[str]:
+    values = arrays.get(name)
+    if values is not None:
+        return values
+    _fail(f"could not parse font array {name} from PKGBUILD")
+
+
+def _require_non_empty_array(arrays: dict[str, list[str]], name: str) -> list[str]:
+    values = arrays.get(name)
+    if values:
+        return values
+    _fail(f"could not parse {name} array from PKGBUILD")
+
+
 def _fetch_text(url: str, timeout: int = 30) -> str:
     parsed_url = urlparse(url)
     if parsed_url.scheme != "https":
@@ -73,27 +93,20 @@ def _fetch_text(url: str, timeout: int = 30) -> str:
 
 
 def _parse_scalar(pattern: str, text: str, label: str) -> str:
-    match = re.search(pattern, text, flags=re.MULTILINE)
-    if not match:
-        _fail(f"could not parse {label} from PKGBUILD")
-
+    match = _require_match(re.search(pattern, text, flags=re.MULTILINE), label)
     return match.group(1)
 
 
 def _parse_quoted_scalar(name: str, text: str) -> str:
-    match = re.search(
-        rf"^\s*{re.escape(name)}=(?:\"([^\"]+)\"|'([^']+)')\s*$",
-        text,
-        flags=re.MULTILINE,
+    match = _require_match(
+        re.search(
+            rf"^\s*{re.escape(name)}=([\"'])(.+?)\1\s*$",
+            text,
+            flags=re.MULTILINE,
+        ),
+        name,
     )
-    if not match:
-        _fail(f"could not parse {name} from PKGBUILD")
-
-    value = match.group(1) or match.group(2)
-    if value is None:
-        _fail(f"could not parse {name} from PKGBUILD")
-
-    return value
+    return match.group(2)
 
 
 def _strip_comment(line: str) -> str:
@@ -161,21 +174,17 @@ def _parse_upstream_state(pkgbuild_text: str) -> _UpstreamState:
     iso_url = _parse_quoted_scalar("_iso", pkgbuild_text)
     arrays = _parse_arrays(pkgbuild_text)
 
-    checksums = arrays.get("_sha256sums")
-    if not checksums:
-        _fail("could not parse _sha256sums array from PKGBUILD")
+    checksums = _require_non_empty_array(arrays, "_sha256sums")
+    first_checksum = checksums[0]
 
     font_files: list[str] = []
     for name in FONT_ARRAY_NAMES:
-        values = arrays.get(name)
-        if values is None:
-            _fail(f"could not parse font array {name} from PKGBUILD")
-        font_files.extend(values)
+        font_files.extend(_require_array(arrays, name))
 
     return _UpstreamState(
         version=version,
         iso_url=iso_url,
-        iso_hash_sri=_hex_sha256_to_sri(checksums[0]),
+        iso_hash_sri=_hex_sha256_to_sri(first_checksum),
         font_files=font_files,
     )
 
