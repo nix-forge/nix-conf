@@ -1,7 +1,4 @@
 { modules, ... }:
-let
-  install = pkg: { home.packages = [ pkg ]; };
-in
 {
   system = "aarch64-darwin";
   username = "ianmh";
