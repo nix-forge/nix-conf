@@ -14,6 +14,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "pkgs/ttf-ms-win11-auto/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
+  "S603", # Command args are constrained to a fixed nix invocation and URL.
   "S310", # URL opening is limited to HTTPS and user-overridable by design.
 ]
 "scripts/update-packages.py" = [
