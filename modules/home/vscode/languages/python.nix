@@ -53,12 +53,9 @@ in
       "errorLens.excludeBySource" = [ "Ruff" ];
 
       "python.analysis.autoImportCompletions" = false;
-      "python.analysis.typeCheckingMode" = "standard";
+      "python.languageServer" = "None"; # using ty instead
 
-      "python.terminal.activateEnvironment" = false;
-
-      "python.languageServer" = "Pylance";
-      # "python.languageServer" = "None"; # using ty instead
+      "python.terminal.activateEnvironment" = false; # using direnv instead
     };
   };
 }
