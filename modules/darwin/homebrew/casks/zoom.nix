@@ -1,0 +1,1 @@
+_: { homebrew.casks = [ "zoom" ]; }

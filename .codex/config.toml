@@ -1,0 +1,2 @@
+[mcp_servers.nixos]
+enabled = true

@@ -1,0 +1,62 @@
+{
+  "nodes": {
+    "cpu-microcodes": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1766418802,
+        "narHash": "sha256-s3VRbTEAKDStcrwrbzgI9Aar0VV1vTc7JSzxqBvQ05s=",
+        "owner": "platomav",
+        "repo": "CPUMicrocodes",
+        "rev": "8bdf34aec2052ab12ae017eb21fe395f6329f6c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "platomav",
+        "repo": "CPUMicrocodes",
+        "rev": "8bdf34aec2052ab12ae017eb21fe395f6329f6c4",
+        "type": "github"
+      }
+    },
+    "nixos-hardware": {
+      "locked": {
+        "lastModified": 1770882871,
+        "narHash": "sha256-nw5g+xl3veea+maxJ2/81tMEA/rPq9aF1H5XF35X+OE=",
+        "owner": "NixOS",
+        "repo": "nixos-hardware",
+        "rev": "af04cb78aa85b2a4d1c15fc7270347e0d0eda97b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixos-hardware",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixos-hardware": "nixos-hardware",
+        "ucodenix": "ucodenix"
+      }
+    },
+    "ucodenix": {
+      "inputs": {
+        "cpu-microcodes": "cpu-microcodes"
+      },
+      "locked": {
+        "lastModified": 1770648432,
+        "narHash": "sha256-V51Qiz8lJ1MCRfhzmSuudh98h22RhRNnZahQWjiR42U=",
+        "owner": "e-tho",
+        "repo": "ucodenix",
+        "rev": "e6bba9fbe258049db05e62809ce78adc875e4977",
+        "type": "github"
+      },
+      "original": {
+        "owner": "e-tho",
+        "repo": "ucodenix",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

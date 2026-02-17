@@ -1,181 +1,37 @@
 {
-  description = "Ian's Nix Configuration";
-
-  outputs =
-    { flake-parts, ... }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; } (
-      { withSystem, tree, ... }:
-      {
-        imports = [
-          ./flake
-          ./lib
-        ];
-
-        flake =
-          let
-            inherit (inputs.self) lib;
-            inherit (lib.cust.builders) mkHost mkDarwin;
-            inherit (lib.cust.files) importDirRec;
-
-            hostConfigsDir = ./hosts;
-            excludes = [ ];
-            hostConfigs = importDirRec hostConfigsDir excludes;
-
-            baseConfigParams = folderName: {
-              inherit withSystem;
-              inherit inputs;
-              inherit (inputs) self determinate;
-              inherit (inputs.self) lib;
-              inherit tree;
-              inherit folderName;
-            };
-
-            configParameterize =
-              folderName: configDef:
-              lib.pipe folderName [
-                baseConfigParams
-                (x: (configDef x) // x)
-              ];
-
-            isSystem =
-              systemTypes: finalConfigParams:
-              lib.pipe finalConfigParams [
-                (builtins.getAttr "system")
-                (lib.splitString "-")
-                (x: lib.flip lib.elemAt ((builtins.length x) - 1) x)
-                (lib.flip builtins.elem systemTypes)
-              ];
-
-            mkConfig =
-              builder: systemTypes:
-              lib.pipe hostConfigs [
-                (lib.mapAttrs configParameterize)
-                (lib.filterAttrs (_: isSystem systemTypes))
-                (lib.mapAttrs (_: builder))
-              ];
-          in
-          {
-            # Entry-point for NixOS configurations.
-            nixosConfigurations = mkConfig mkHost [ "linux" ];
-
-            # Entry point for Darwin configurations.
-            darwinConfigurations = mkConfig mkDarwin [ "darwin" ];
-
-            # NixOS modules (standard key)
-            nixosModules = lib.cust.files.importDirFlat ./nixosModules {
-              filter = [ ];
-              importDirDefault = true;
-              sep = "-";
-            };
-          };
-      }
-    );
-
   inputs = {
-    # Systems
+    # Core
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
-
-    # Latest Nixpkgs Unstable
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
-
-    # Determinate
-    nix = {
-      url = "github:DeterminateSystems/nix-src";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nixpkgs-23-11.follows = "";
-        flake-parts.follows = "flake-parts";
-        git-hooks-nix.follows = "git-hooks";
-      };
-    };
-    determinate = {
-      url = "github:DeterminateSystems/determinate";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nix.follows = "nix";
-      };
-    };
-
-    # Flake Parts
-    flake-parts.url = "github:hercules-ci/flake-parts";
-
-    # Latest Home Manager
-    # TODO: look into using https://github.com/nix-community/home-manager/pull/7970
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Nix-Darwin
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # Git Hooks
-    git-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "flake-compat";
-    };
-
-    # Nix Secrets (from personal private repo)
-    nix-secrets = {
-      url = "github:IanHollow/nix-secrets";
+    home-manager = {
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nur-rycee = {
-      url = "sourcehut:~rycee/nur-expressions?dir=pkgs/firefox-addons";
-      inputs.nixpkgs.follows = "nixpkgs";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    determinate.url = "github:DeterminateSystems/determinate";
 
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.systems.follows = "systems";
-    };
-
-    flake-compat.url = "github:edolstra/flake-compat";
-
-    # A tree-wide formatter
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Spicetify for theming spotify
-    spicetify-nix = {
-      url = "github:Gerg-L/spicetify-nix";
+    # Package Libraries
+    nix4vscode = {
+      url = "github:nix-community/nix4vscode";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
       };
     };
-
-    # Nix Language Server
-    nixd = {
-      url = "github:nix-community/nixd";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        treefmt-nix.follows = "treefmt-nix";
-      };
+    nur-rycee = {
+      url = "sourcehut:~rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Nix Direnv
-    nix-direnv = {
-      url = "github:nix-community/nix-direnv";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        treefmt-nix.follows = "treefmt-nix";
-      };
-    };
-
-    # Stylix
+    # Tools
     stylix = {
-      # url = "github:IanHollow/stylix/vscode-improve-theme";
-      # url = "git+file:///Users/ianmh/Projects/personal/stylix";
       url = "github:nix-community/stylix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
@@ -183,135 +39,60 @@
         flake-parts.follows = "flake-parts";
       };
     };
-
-    # VS Code
-    vscode-extensions = {
-      url = "github:nix-community/nix-vscode-extensions";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
-
-    # Nix gaming
-    nix-gaming = {
-      url = "github:fufexan/nix-gaming";
-      inputs = {
-        flake-parts.follows = "flake-parts";
-        # Don't overwrite nixpkgs as this could cause cache miss
-      };
-    };
-
-    # Firefox BetterFox
-    # TODO: use a package instead of a flake
-    firefox-betterfox = {
-      url = "github:yokoffing/Betterfox";
-      flake = false;
-    };
-
-    # Firefox UI Fix
-    # TODO: use a package instead of a flake
-    firefox-ui-fix = {
-      url = "github:black7375/Firefox-UI-Fix";
-      flake = false;
-    };
-
-    # Nix Minecraft
-    nix-minecraft = {
-      url = "github:Infinidoge/nix-minecraft";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-
-    # Nixvim
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs = {
-        systems.follows = "systems";
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-      };
-    };
-
-    # Cosmic Desktop
-    cosmic = {
-      url = "github:lilyinstarlight/nixos-cosmic";
-      inputs = {
-        flake-compat.follows = "flake-compat";
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
-
-    # Hyprland Flake
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
-        pre-commit-hooks.follows = "git-hooks";
-      };
-    };
-
-    hyprpaper = {
-      url = "github:hyprwm/hyprpaper";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
-      };
-    };
-
-    hyprlock = {
-      url = "github:hyprwm/hyprlock";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
-      };
-    };
-
-    # AMD microcode updates
-    ucodenix.url = "github:e-tho/ucodenix";
-
-    # Agenix
     agenix = {
       url = "github:ryantm/agenix";
       inputs = {
-        systems.follows = "systems";
         nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
         darwin.follows = "nix-darwin";
         home-manager.follows = "home-manager";
       };
     };
-
-    # Ags
-    # ags = {
-    #   url = "github:Aylur/ags";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    #   inputs.astal.follows = "astal";
-    # };
-    # astal = {
-    #   url = "github:Aylur/astal";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
-    auto-cpufreq = {
-      url = "github:AdnanHodzic/auto-cpufreq";
+    agenix-rekey = {
+      # url = "github:oddlama/agenix-rekey";
+      url = "github:IanHollow/agenix-rekey/dev-combined-agenix-rekey";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+      };
+    };
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
+    };
+    nvf = {
+      url = "github:NotAShelf/nvf";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        flake-parts.follows = "flake-parts";
       };
     };
 
-    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
-    homebrew-core = {
-      url = "github:homebrew/homebrew-core";
-      flake = false;
-    };
-    homebrew-cask = {
-      url = "github:homebrew/homebrew-cask";
-      flake = false;
+    # NixOS Hardware
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
+    # Firefox UserJS
+    firefox-betterfox = {
+      url = "github:yokoffing/Betterfox";
+      flake = false;
+    };
+    firefox-ui-fix = {
+      url = "github:black7375/Firefox-UI-Fix";
+      flake = false;
+    };
   };
+
+  outputs =
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import inputs.systems;
+      imports = [ ./flake ];
+    };
 }
