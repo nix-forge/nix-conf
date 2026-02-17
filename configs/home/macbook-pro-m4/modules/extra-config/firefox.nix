@@ -1,3 +1,4 @@
+{ ... }:
 {
   programs.firefox.profiles.default.search.engines = {
     cornell-cs-courses = {
