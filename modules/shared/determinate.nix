@@ -14,19 +14,16 @@ in
     };
 
   darwin =
-    { inputs, pkgs, ... }:
+    { inputs, ... }:
     {
       imports = [ inputs.determinate.darwinModules.default ];
 
       determinateNix = {
         enable = true;
 
-        determinateNixd.garbageCollector.strategy = "automatic";
-
-        # Use the local NixOS VM-based Linux builder (free, no FlakeHub auth needed).
-        nixosVmBasedLinuxBuilder = {
-          enable = true;
-          package = pkgs.darwin.linux-builder-x86_64;
+        determinateNixd = {
+          builder.state = "enabled";
+          garbageCollector.strategy = "automatic";
         };
 
         customSettings = settings;
