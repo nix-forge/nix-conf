@@ -14,6 +14,23 @@
               pass_filenames = true;
               entry = "${lib.getExe config.treefmt.build.wrapper} --no-cache";
             };
+            ruff = {
+              enable = true;
+              entry = "${lib.getExe pkgs.ruff} check .";
+              always_run = true;
+              pass_filenames = false;
+              after = [ "treefmt" ];
+            };
+            ty = {
+              enable = true;
+              name = "ty";
+              package = pkgs.ty;
+              entry = "${lib.getExe pkgs.ty} check";
+              language = "system";
+              always_run = true;
+              pass_filenames = false;
+              after = [ "ruff" ];
+            };
 
             end-of-file-fixer = {
               enable = true;

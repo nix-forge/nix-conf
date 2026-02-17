@@ -1,0 +1,42 @@
+[tool.ruff]
+required-version = ">=0.15.0"
+preview = true
+
+[tool.ruff.lint]
+preview = true
+future-annotations = true
+select = ["ALL"]
+ignore = [
+  "CPY001", # Copyright notices are not maintained per-file in this repo.
+  "D203",   # Incompatible with D211.
+  "D213",   # Incompatible with D212.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"pkgs/ttf-ms-win11-auto/update.py" = [
+  "S310", # URL opening is limited to HTTPS and user-overridable by design.
+]
+"scripts/update-packages.py" = [
+  "S404", # Uses subprocess intentionally in a local CLI orchestrator.
+  "S603", # Command args are constrained to local script paths and CLI flags.
+]
+
+[tool.ty.environment]
+python-platform = "all"
+
+[tool.ty.src]
+include = ["**/*.py", "**/*.pyi"]
+exclude = [
+  ".git",
+  ".direnv",
+  ".ruff_cache",
+  ".mypy_cache",
+  ".pytest_cache",
+  "**/__pycache__",
+  "dist",
+  "build",
+  "result",
+]
+
+[tool.ty.terminal]
+error-on-warning = true

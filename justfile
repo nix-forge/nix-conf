@@ -125,3 +125,13 @@ verify:
 [group('Maintenance')]
 clean *args:
     nh clean all {{ args }}
+
+# Run updater scripts for all local packages under pkgs/*/update.py
+[group('Maintenance')]
+update-packages *args:
+    nix run nixpkgs#python3 -- {{ flake }}/scripts/update-packages.py --all {{ args }}
+
+# Run updater script for one local package (e.g. ttf-ms-win11-auto)
+[group('Maintenance')]
+update-package package *args:
+    nix run nixpkgs#python3 -- {{ flake }}/scripts/update-packages.py --package {{ package }} {{ args }}

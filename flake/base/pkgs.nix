@@ -2,12 +2,16 @@
 {
   perSystem =
     { system, ... }:
-    {
-      _module.args.pkgs = import inputs.nixpkgs {
+    let
+      pkgs = import inputs.nixpkgs {
         inherit system;
         config = {
           allowUnfree = true;
         };
       };
+    in
+    {
+      _module.args.pkgs = pkgs;
+      packages = import ../../pkgs { inherit pkgs; };
     };
 }
