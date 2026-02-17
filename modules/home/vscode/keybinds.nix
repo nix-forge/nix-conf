@@ -1,8 +1,4 @@
-{
-  lib,
-  pkgs,
-  ...
-}:
+{ lib, pkgs, ... }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 in
@@ -14,20 +10,21 @@ in
 
         mkWhen = clauses: lib.concatStringsSep " && " clauses;
 
-        mkManualSaveBinding =
-          when: sequence: [
-            {
-              key = "${modKey}+s";
-              command = "-workbench.action.files.save";
-              inherit when;
-            }
-            {
-              key = "${modKey}+s";
-              command = "runCommands";
-              args = { commands = sequence; };
-              inherit when;
-            }
-          ];
+        mkManualSaveBinding = when: sequence: [
+          {
+            key = "${modKey}+s";
+            command = "-workbench.action.files.save";
+            inherit when;
+          }
+          {
+            key = "${modKey}+s";
+            command = "runCommands";
+            args = {
+              commands = sequence;
+            };
+            inherit when;
+          }
+        ];
 
         whenText = mkWhen [
           "config.editor.autoSave != off"

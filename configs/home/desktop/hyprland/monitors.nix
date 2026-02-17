@@ -1,7 +1,7 @@
 {
   wayland.windowManager.hyprland.settings.monitor =
     let
-      ts = number: toString number;
+      ts = toString;
       origin = {
         x = 0;
         y = 0;
