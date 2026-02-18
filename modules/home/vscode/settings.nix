@@ -154,16 +154,11 @@ in
           "evenBetterToml.taplo.path" = lib.getExe pkgs.taplo;
 
           ## VCS Behavior ##
-          "git.rebaseWhenSync" = config.programs.git.settings.pull.rebase;
-          "git.pruneOnFetch" = config.programs.git.settings.fetch.prune;
           "git.enableSmartCommit" = false;
           "git.terminalAuthentication" = false;
           "git.openRepositoryInParentFolders" = "always";
           "git.autofetch" = true;
           "git.confirmSync" = false;
-          "git.enableCommitSigning" = lib.mkIf (
-            config.programs.git.enable && config.programs.git.signing.signByDefault
-          ) true;
           "githubIssues.issueCompletions.enabled" = false;
 
           # prevent pollute history with whitespace changes
@@ -233,8 +228,21 @@ in
           "telemetry.enableTelemetry" = false;
           "telemetry.feedback.enabled" = false;
           "telemetry.telemetryLevel" = "off";
-          # "terminal.integrated.localEchoEnabled" = "off"; # TODO: figure out what this setting is
         }
+        # Git
+        (lib.mkIf (config.programs.git.enable && config.programs.git.signing.signByDefault != null) {
+          "git.enableCommitSigning" = true;
+        })
+        (lib.mkIf (
+          config.programs.git.enable
+          && lib.hasAttr "pull" config.programs.git.settings
+          && lib.hasAttr "rebase" config.programs.git.settings.pull
+        ) { "git.rebaseWhenSync" = config.programs.git.settings.pull.rebase; })
+        (lib.mkIf (
+          config.programs.git.enable
+          && lib.hasAttr "fetch" config.programs.git.settings
+          && lib.hasAttr "prune" config.programs.git.settings.fetch
+        ) { "git.pruneOnFetch" = config.programs.git.settings.fetch.prune; })
 
         # Terminal profiles
         { "terminal.integrated.shellIntegration.enabled" = true; }
