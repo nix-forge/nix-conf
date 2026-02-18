@@ -1,4 +1,0 @@
-[
-  # Primary master public key (same value as main.pub).
-  "age12l2z2525e328ek4r24tyyl2a3p6vjnmrhx8d5wzvgvh892mkuq5spcwggx"
-]

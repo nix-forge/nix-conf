@@ -1,35 +1,40 @@
 let
-  # Committed public key for the primary master identity.
   mainIdentityPath = ../../../secrets/master-identities/main.pub;
   mainPubkey = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile mainIdentityPath);
-  # Committed list of additional operator/team pubkeys that should also be able
-  # to decrypt source secrets on their own machines.
-  teamPubkeysPath = ../../../secrets/master-identities/team-pubkeys.nix;
-  teamPubkeys = import teamPubkeysPath;
 
-  # Optional per-host passphrase-protected identity that lives outside the
+  # Optional per-host master identity that lives outside the
   # repository. Keep this as a string path (not a Nix path literal) so private
   # keys are never copied into the Nix store.
   agenixRekeyBaseConfig =
     {
       sshPubKey,
       masterIdentityPath ? null,
+      lib,
     }:
+    let
+      # Security guardrails:
+      # - Must be a plain string, not a Nix path literal (which would copy into the store)
+      # - Must be absolute and not inside /nix/store
+      validatedMasterIdentityPath =
+        if masterIdentityPath == null then
+          null
+        else if !builtins.isString masterIdentityPath then
+          throw "masterIdentityPath must be a string path not a Nix path literal."
+        else if builtins.substring 0 1 masterIdentityPath != "/" then
+          throw "masterIdentityPath must be an absolute path."
+        else if builtins.match "^/nix/store/.*" masterIdentityPath != null then
+          throw "masterIdentityPath must not point into /nix/store."
+        else
+          masterIdentityPath;
+    in
     {
       storageMode = "local";
       hostPubkey = sshPubKey;
-      extraEncryptionPubkeys = teamPubkeys;
-      masterIdentities = [
-        (
-          if masterIdentityPath != null then
-            {
-              identity = masterIdentityPath;
-              pubkey = mainPubkey;
-            }
-          else
-            # Public-only fallback keeps evaluation stable on non-admin hosts.
-            mainIdentityPath
-        )
+      masterIdentities = lib.mkIf (validatedMasterIdentityPath != null) [
+        {
+          identity = validatedMasterIdentityPath;
+          pubkey = mainPubkey;
+        }
       ];
     };
 in
@@ -38,46 +43,12 @@ in
     {
       inputs,
       lib,
-      pkgs,
-      config,
       sshPubKey,
       masterIdentityPath ? null,
       secrets,
       configName,
       ...
     }:
-    let
-      parsedSshPubKey = builtins.match "([^ ]+) ([^ ]+).*" sshPubKey;
-      expectedHostKeyType =
-        if parsedSshPubKey == null then
-          throw "Invalid sshPubKey for nixos host '${configName}': expected '<type> <base64> [comment]'"
-        else
-          builtins.elemAt parsedSshPubKey 0;
-      expectedHostKeyBody = builtins.elemAt parsedSshPubKey 1;
-
-      ed25519HostKey = lib.findFirst (
-        hostKey: hostKey.type == "ed25519"
-      ) null config.services.openssh.hostKeys;
-      hostKeyPath =
-        if ed25519HostKey != null then ed25519HostKey.path else "/etc/ssh/ssh_host_ed25519_key";
-      hostKeyPubPath = "${hostKeyPath}.pub";
-
-      preflightScript = pkgs.replaceVarsWith {
-        name = "agenix-check-host-key";
-        src = ./check-host-key.sh;
-        dir = "bin";
-        isExecutable = true;
-        replacements = {
-          inherit expectedHostKeyType expectedHostKeyBody hostKeyPubPath;
-          hostName = configName;
-          installGuidePath = "docs/nixos-install-preseeded-host-key.md";
-        };
-      };
-      preflightCommand = "${lib.getExe' preflightScript "agenix-check-host-key"}";
-
-      sysusersEnabled =
-        (config.systemd.sysusers.enable or false) || (config.services.userborn.enable or false);
-    in
     {
       imports = [
         inputs.agenix.nixosModules.default
@@ -87,30 +58,10 @@ in
       services.openssh.enable = true;
 
       age = {
-        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath; }) // {
+        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
           localStorageDir = ../../../secrets/rekeyed + "/nixos-${configName}";
         };
         inherit secrets;
-      };
-
-      system.activationScripts = lib.mkIf (secrets != { } && !sysusersEnabled) {
-        agenixHostKeyPreflight = {
-          text = preflightCommand;
-          deps = [ "specialfs" ];
-        };
-        agenixNewGeneration.deps = [ "agenixHostKeyPreflight" ];
-      };
-
-      systemd.services.agenix-host-key-preflight = lib.mkIf (secrets != { } && sysusersEnabled) {
-        wantedBy = [ "sysinit.target" ];
-        before = [ "agenix-install-secrets.service" ];
-        after = [ "systemd-sysusers.service" ];
-        unitConfig.DefaultDependencies = "no";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = preflightCommand;
-          RemainAfterExit = true;
-        };
       };
     };
 
@@ -121,6 +72,7 @@ in
       masterIdentityPath ? null,
       secrets,
       configName,
+      lib,
       ...
     }:
     {
@@ -130,7 +82,7 @@ in
       ];
 
       age = {
-        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath; }) // {
+        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
           localStorageDir = ../../../secrets/rekeyed + "/darwin-${configName}";
         };
         inherit secrets;
@@ -174,15 +126,10 @@ in
       ];
 
       age = {
-        rekey =
-          (agenixRekeyBaseConfig {
-            inherit sshPubKey;
-            inherit masterIdentityPath;
-          })
-          // {
-            localStorageDir =
-              ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
-          };
+        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
+          localStorageDir =
+            ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
+        };
         inherit secrets;
         secretsDir = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix";
         secretsMountPoint = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix.d";

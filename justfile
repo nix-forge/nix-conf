@@ -109,6 +109,16 @@ secret-view *args:
 secret-create input output:
     nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- edit -i {{ input }} {{ output }}
 
+# Create or rotate the local master identity and refresh main.pub.
+# Defaults:
+# - identity_path: ~/.config/agenix/master.agekey
+# - main_pub_path: secrets/master-identities/main.pub
+
+# Set FORCE=true to overwrite an existing identity file.
+[group('Secrets')]
+master-key-create:
+    REPO_ROOT={{ flake }} {{ flake }}/scripts/master-key-create.sh
+
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files
