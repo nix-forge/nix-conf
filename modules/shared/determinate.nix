@@ -14,7 +14,15 @@ in
     };
 
   darwin =
-    { inputs, ... }:
+    {
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      inherit (pkgs.stdenv.hostPlatform) isAarch64;
+    in
     {
       imports = [ inputs.determinate.darwinModules.default ];
 
@@ -22,7 +30,7 @@ in
         enable = true;
 
         determinateNixd = {
-          builder.state = "enabled";
+          builder.state = lib.mkIf isAarch64 "enabled";
           garbageCollector.strategy = "automatic";
         };
 
