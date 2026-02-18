@@ -6,7 +6,7 @@ in
   programs.vscode.profiles.default = {
     extensions = extensions.forVscode [
       ## Copilot
-      "github.copilot-chat.0.37.5"
+      "github.copilot-chat"
 
       ## Codex
       "openai.chatgpt"
