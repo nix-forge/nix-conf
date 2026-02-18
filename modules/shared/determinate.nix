@@ -14,15 +14,11 @@ in
     };
 
   darwin =
-    {
-      inputs,
-      lib,
-      pkgs,
-      ...
-    }:
+    { inputs, pkgs, ... }:
     let
       inherit (pkgs.stdenv.hostPlatform) isAarch64;
     in
+    assert isAarch64 "Determinate Nix on Darwin only supports aarch64 (Apple Silicon)";
     {
       imports = [ inputs.determinate.darwinModules.default ];
 
@@ -30,7 +26,7 @@ in
         enable = true;
 
         determinateNixd = {
-          builder.state = lib.mkIf isAarch64 "enabled";
+          builder.state = "enabled";
           garbageCollector.strategy = "automatic";
         };
 
@@ -44,8 +40,13 @@ in
       system,
       lib,
       config,
+      pkgs,
       ...
     }:
+    let
+      inherit (pkgs.stdenv.hostPlatform) isDarwin isAarch64;
+    in
+    assert ((!isDarwin) || isAarch64) "Determinate Nix on Darwin only supports aarch64 (Apple Silicon)";
     {
       nix = {
         package = inputs.determinate.inputs.nix.packages.${system}.default;
