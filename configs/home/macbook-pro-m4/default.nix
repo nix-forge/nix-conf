@@ -50,6 +50,8 @@
     stylix
     stylix-targets-firefox
 
+    discord
+
     extra-config
   ];
 }
