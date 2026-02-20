@@ -1,9 +1,7 @@
-{ inputs, pkgs, ... }:
-let
-  firefoxAddons = (pkgs.extend inputs.nur-rycee.overlays.default).firefox-addons;
-in
 {
   programs.firefox = {
+    # profiles.default.extensions.force = true;
+
     # Base extensions for all profiles
     policies.ExtensionSettings = {
       # Query AMO Addon ID
@@ -12,6 +10,7 @@ in
         "temporarily_allow_weak_signatures" = false;
         "install_url" =
           "https://github.com/mkaply/queryamoid/releases/download/v0.2/query_amo_addon_id-0.2-fx.xpi";
+        "default_area" = "menupanel";
       };
 
       # uBlock Origin
@@ -28,21 +27,42 @@ in
         "installation_mode" = "force_installed";
         "temporarily_allow_weak_signatures" = false;
         "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/sponsorblock/latest.xpi";
+        "default_area" = "menupanel";
       };
 
-      # TODO: Move more opinionated extensions to profile based installation (this will require creating a nix package based firefox extension most likely)
-      # NOTE: It would be nice to have an automated way to create firefox packages instead of manually creating them for profiles
+      # Bitwarden Password Manager
+      "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
+        "installation_mode" = "force_installed";
+        "temporarily_allow_weak_signatures" = false;
+        "install_url" =
+          "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
+        "default_area" = "navbar";
+      };
+
+      # Refined GitHub
+      "{a4c4eda4-fb84-4a84-b4a1-f7c1cbf2a1ad}" = {
+        "installation_mode" = "normal_installed";
+        "temporarily_allow_weak_signatures" = false;
+        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/refined-github-/latest.xpi";
+        "default_area" = "menupanel";
+      };
+
+      # Adaptive Tab Bar Color
+      "ATBC@EasonWong" = {
+        "installation_mode" = "normal_installed";
+        "temporarily_allow_weak_signatures" = false;
+        "install_url" =
+          "https://addons.mozilla.org/firefox/downloads/latest/adaptive-tab-bar-colour/latest.xpi";
+        "default_area" = "menupanel";
+      };
+
       # Simplify Jobs Resume Helper
       "sabre@simplify.jobs" = {
         "installation_mode" = "normal_installed";
         "temporarily_allow_weak_signatures" = false;
         "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/simplify-jobs/latest.xpi";
+        "default_area" = "menupanel";
       };
     };
-
-    profiles.default.extensions.packages = with firefoxAddons; [
-      bitwarden
-      refined-github
-    ];
   };
 }

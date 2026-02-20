@@ -25,10 +25,6 @@
         systems.follows = "systems";
       };
     };
-    nur-rycee = {
-      url = "sourcehut:~rycee/nur-expressions?dir=pkgs/firefox-addons";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     # Tools
     stylix = {
@@ -49,8 +45,7 @@
       };
     };
     agenix-rekey = {
-      # url = "github:oddlama/agenix-rekey";
-      url = "github:IanHollow/agenix-rekey/dev-combined-agenix-rekey";
+      url = "github:oddlama/agenix-rekey";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
