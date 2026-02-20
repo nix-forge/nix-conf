@@ -21,14 +21,14 @@
     registry
     cache
     agenix
+    macos
 
     fonts
     dev
-    macos
     xdg
     cli
 
-    window-managers-aerospace
+    wm-aerospace
     server-ssh
 
     firefox
