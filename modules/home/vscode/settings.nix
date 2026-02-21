@@ -281,10 +281,10 @@ in
           # set the default shell for Copilot
           "chat.tools.terminal.terminalProfile.${os}" = {
             path = lib.getExe' pkgs.bashInteractive "bash";
-            args = [
-              "--login"
-              "-i"
-            ];
+            args = [ "--login" ];
+            env = {
+              COPILOT = "1";
+            };
           };
         }
 
