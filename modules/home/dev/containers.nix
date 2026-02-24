@@ -15,4 +15,9 @@ in
       memory = 4 * 1024;
     };
   };
+
+  home.shellAliases = {
+    docker = "podman";
+    docker-compose = "podman-compose";
+  };
 }
