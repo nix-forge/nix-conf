@@ -1,16 +1,18 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 in
 {
-  home.packages =
-    if isDarwin then
-      [ pkgs.container ]
-    else
-      with pkgs;
-      [
-        docker
-        docker-compose
-        docker-buildx
-      ];
+  home.packages = [ pkgs.podman-compose ] ++ lib.optionals isDarwin [ pkgs.container ];
+
+  services.podman = {
+    enable = true;
+    enableTypeChecks = isLinux;
+  }
+  // lib.optionalAttrs isDarwin {
+    machines.podman-machine-default = {
+      autoStart = false;
+      memory = 4 * 1024;
+    };
+  };
 }
