@@ -15,7 +15,15 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    determinate.url = "github:DeterminateSystems/determinate";
+    determinate = {
+      url = "github:DeterminateSystems/determinate";
+      inputs = {
+        nix.inputs = {
+          flake-parts.follows = "flake-parts";
+          git-hooks-nix.follows = "git-hooks-nix";
+        };
+      };
+    };
 
     # Package Libraries
     nix4vscode = {
@@ -49,6 +57,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
+        pre-commit-hooks.follows = "git-hooks-nix";
       };
     };
     spicetify-nix = {
@@ -64,6 +73,7 @@
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
         flake-parts.follows = "flake-parts";
+        flake-compat.follows = "flake-compat";
       };
     };
 
@@ -81,6 +91,19 @@
     firefox-ui-fix = {
       url = "github:black7375/Firefox-UI-Fix";
       flake = false;
+    };
+
+    # Dependency Override
+    flake-compat = {
+      url = "github:NixOS/flake-compat";
+      flake = false;
+    };
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+      };
     };
   };
 
