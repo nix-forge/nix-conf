@@ -18,6 +18,10 @@ in
         "editor.defaultFormatter" = "redhat.vscode-yaml";
         "editor.tabSize" = 2;
       };
+
+      "containers.containerClient" = "com.microsoft.visualstudio.containers.podman";
+      "dev.containers.dockerPath" = "podman";
+      "dev.containers.dockerComposePath" = "podman-compose";
     };
   };
 }
