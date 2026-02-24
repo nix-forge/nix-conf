@@ -1,5 +1,7 @@
 { lib, pkgs, ... }:
 let
+  inherit (pkgs.stdenv.hostPlatform) isLinux;
+
   vesktopPackage =
     if pkgs.stdenv.hostPlatform.isDarwin then
       pkgs.vesktop.overrideAttrs (old: {
@@ -23,10 +25,21 @@ in
     };
 
     settings = {
-      arRPC = false;
-      checkUpdates = false;
-      hardwareAcceleration = true;
       discordBranch = "stable";
+      tray = isLinux;
+      minimizeToTray = isLinux;
+      autoStartMinimized = false;
+      openLinksWithElectron = false;
+
+      hardwareAcceleration = true;
+      hardwareVideoAcceleration = true;
+
+      arRPC = false;
+
+      enableSplashScreen = true;
+      splashTheming = true;
+
+      checkUpdates = false;
     };
   };
 }
