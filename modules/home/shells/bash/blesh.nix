@@ -9,7 +9,7 @@
 
   programs.bash = {
     initExtra = lib.mkMerge [
-      (lib.mkOrder 500 ''
+      (lib.mkOrder 100 ''
         source "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
       '')
       (lib.mkIf config.programs.carapace.enable ''

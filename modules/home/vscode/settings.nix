@@ -281,7 +281,10 @@ in
           # set the default shell for Copilot
           "chat.tools.terminal.terminalProfile.${os}" = {
             path = lib.getExe' pkgs.bashInteractive "bash";
-            args = [ "--login" ];
+            args = [
+              "--login"
+              "-i"
+            ];
             env = {
               COPILOT = "1";
             };
@@ -292,7 +295,31 @@ in
         (lib.mkIf config.programs.direnv.enable {
           "direnv.path.executable" = lib.getExe config.programs.direnv.package;
         })
-
       ];
   };
+
+  programs.bash.initExtra = lib.mkOrder 99 (
+    lib.concatLines [
+      ''
+        # VSCode Copilot Minimal Integration
+        if [[ "''${COPILOT:-}" == "1" ]]; then
+          # Set minimal PS1
+          PS1='copilot:\w\$ '
+
+          # VSCode Shell Integration
+          [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"
+      ''
+      (lib.optionalString (config.programs.direnv.enable && config.programs.direnv.enableBashIntegration)
+        lib.concatLines
+        [
+          "  # Direnv Shell Integration"
+          "  eval \"$(${lib.getExe config.programs.direnv.package} hook bash)\""
+        ]
+      )
+      ''
+          return
+        fi
+      ''
+    ]
+  );
 }
