@@ -22,7 +22,7 @@ in
     enable = isDarwin;
 
     profiles.default = {
-      isService = false;
+      isService = true;
       isActive = true;
 
       settings = {
@@ -33,7 +33,7 @@ in
         mountType = "virtiofs";
 
         cpu = 4;
-        memory = 4;
+        memory = 8;
         disk = 100;
 
         kubernetes.enabled = false;
