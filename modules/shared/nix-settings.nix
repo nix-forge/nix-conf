@@ -22,6 +22,8 @@ let
     warn-dirty = false;
     accept-flake-config = false;
 
+    auto-optimise-store = true;
+
     extra-experimental-features = [
       "nix-command"
       "flakes"
