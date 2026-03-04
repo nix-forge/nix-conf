@@ -24,7 +24,7 @@ let
 
     auto-optimise-store = true;
 
-    extra-experimental-features = [
+    experimental-features = [
       "nix-command"
       "flakes"
     ];
@@ -46,7 +46,7 @@ in
           "nix-builder"
         ];
 
-        extra-experimental-features = sharedSettings.extra-experimental-features ++ [
+        experimental-features = sharedSettings.experimental-features ++ [
           "cgroups"
           "auto-allocate-uids"
         ];
