@@ -2,7 +2,7 @@ let
   settings = {
     builders-use-substitutes = true;
 
-    substituters = [
+    trusted-substituters = [
       "https://cache.nixos.org/"
       "https://nix-community.cachix.org"
       "https://cache.garnix.io"
