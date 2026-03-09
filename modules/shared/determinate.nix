@@ -41,14 +41,7 @@ in
     };
 
   homeManager =
-    {
-      inputs,
-      system,
-      lib,
-      config,
-      pkgs,
-      ...
-    }:
+    { inputs, pkgs, ... }:
     let
       inherit (pkgs.stdenv.hostPlatform) isDarwin isAarch64;
     in
@@ -60,10 +53,7 @@ in
         }
       ];
 
-      nix = {
-        package = inputs.determinate.inputs.nix.packages.${system}.default;
-        settings = lib.mkIf (config.nix.package != null) settings;
-      };
+      imports = [ inputs.determinate.homeManagerModules.default ];
 
       # Workaround: Disable HM manual to suppress Determinate Nix warning
       # about options.json referencing store paths without proper context.
