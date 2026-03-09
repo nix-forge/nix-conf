@@ -46,6 +46,7 @@
     shells-nushell-defaultshell
     terminals-ghostty
     terminals-ghostty-defaultterminal
+    mpv
 
     stylix
     stylix-targets-firefox

@@ -33,6 +33,7 @@
 
     ## Programs
     server-ssh
+    mpv
 
     ## Per-host configuration
     ./ssh.nix
