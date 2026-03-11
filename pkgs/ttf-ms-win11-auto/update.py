@@ -74,8 +74,7 @@ def _parse_release(eval_page_text: str) -> str:
     }
     if not matches:
         _fail(
-            "could not detect a Windows 11 release marker "
-            "like '25H2' on the eval page",
+            "could not detect a Windows 11 release marker like '25H2' on the eval page",
         )
 
     def _sort_key(release: str) -> tuple[int, int]:
