@@ -25,7 +25,6 @@ in
         SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
       };
       videos = lib.mkIf isDarwin (lib.mkDefault "${homeDirectory}/Movies");
-      publicShare = lib.mkIf isDarwin (lib.mkDefault null);
       templates = lib.mkIf isDarwin (lib.mkDefault null);
     };
   };
