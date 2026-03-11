@@ -79,9 +79,10 @@ def _parse_release(eval_page_text: str) -> str:
 
     def _sort_key(release: str) -> tuple[int, int]:
         parsed = re.fullmatch(r"([0-9]{2})H([0-9])", release)
-        if parsed is None:
-            _fail(f"invalid release marker parsed from eval page: {release!r}")
-        return (int(parsed.group(1)), int(parsed.group(2)))
+        if parsed is not None:
+            return (int(parsed.group(1)), int(parsed.group(2)))
+
+        _fail(f"invalid release marker parsed from eval page: {release!r}")
 
     return max(matches, key=_sort_key)
 
@@ -118,28 +119,33 @@ def _resolve_iso_url(alias_url: str, *, timeout: int = 30) -> str:
 def _derive_version(iso_url: str) -> str:
     iso_name = Path(urlparse(iso_url).path).name
     match = re.match(r"^([0-9]+)\.([0-9]+)\.", iso_name)
-    if match is None:
-        _fail(f"could not derive package version from ISO filename: {iso_name}")
+    if match is not None:
+        return f"10.0.{match.group(1)}.{match.group(2)}"
 
-    return f"10.0.{match.group(1)}.{match.group(2)}"
+    _fail(f"could not derive package version from ISO filename: {iso_name}")
+
+
+def _get_nix_binary() -> str:
+    nix_binary = shutil.which("nix")
+    if isinstance(nix_binary, str):
+        return nix_binary
+
+    _fail("`nix` executable not found in PATH")
 
 
 def _prefetch_iso_hash(iso_url: str) -> str:
-    nix_binary = shutil.which("nix")
-    if nix_binary is None:
-        _fail("`nix` executable not found in PATH")
+    nix_binary = _get_nix_binary()
 
-    command = [
-        nix_binary,
-        "store",
-        "prefetch-file",
-        "--json",
-        "--hash-type",
-        "sha256",
-        iso_url,
-    ]
     completed = subprocess.run(
-        command,
+        [
+            nix_binary,
+            "store",
+            "prefetch-file",
+            "--json",
+            "--hash-type",
+            "sha256",
+            iso_url,
+        ],
         capture_output=True,
         check=False,
         text=True,
