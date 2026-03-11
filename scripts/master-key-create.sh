@@ -39,7 +39,6 @@ if [[ -e ${identity_path} && ${force} != "true" ]]; then
   exit 1
 fi
 
-
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/agenix-master.XXXXXX")"
 tmp_identity="${tmp_dir}/master.agekey"
 tmp_pub="${tmp_dir}/main.pub"
