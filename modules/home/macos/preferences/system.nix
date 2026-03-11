@@ -3,7 +3,8 @@
   targets.darwin.defaults = {
     "com.apple.screencapture" = {
       disable-shadow = true;
-      clipboard = true;
+      clipboard = false;
+      target = "file";
     }
     // lib.optionalAttrs (
       config.xdg.enable
