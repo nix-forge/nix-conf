@@ -21,7 +21,7 @@ in
       enable = true;
       createDirectories = true;
       extraConfig = {
-        PROJECTS = "${homeDirectory}/Projects";
+        DEVELOPER = "${homeDirectory}/Developer";
         SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
       };
       videos = lib.mkIf isDarwin (lib.mkDefault "${homeDirectory}/Movies");

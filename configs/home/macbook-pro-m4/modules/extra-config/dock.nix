@@ -41,7 +41,7 @@
     persistentOthers = [
       {
         folder = {
-          path = config.xdg.userDirs.extraConfig.PROJECTS;
+          path = config.xdg.userDirs.extraConfig.DEVELOPER;
           displayAs = "folder";
           showAs = "list";
           arrangement = "name";
