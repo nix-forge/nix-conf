@@ -4,13 +4,13 @@
     enable = true;
 
     persistentApps = [
-      { hmApp = "Firefox"; }
-
-      { spacer.small = true; }
-
       { hmApp = "Ghostty"; }
       { hmApp = "Visual Studio Code"; }
       { app = "/Applications/Codex.app"; }
+
+      { spacer.small = true; }
+
+      { hmApp = "Firefox"; }
 
       { spacer.small = true; }
 
@@ -22,10 +22,15 @@
 
       { spacer.small = true; }
 
+      # { hmApp = "Spotify"; }
+      { app = "/System/Applications/Music.app"; }
+
+      { spacer.small = true; }
+
       { app = "/System/Applications/Calendar.app"; }
       { app = "/System/Applications/Reminders.app"; }
       { app = "/System/Applications/Notes.app"; }
-      { app = "/System/Applications/Music.app"; }
+      { app = "/System/Applications/Preview.app"; }
 
       { spacer.small = true; }
 
