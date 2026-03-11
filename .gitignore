@@ -219,3 +219,4 @@ __marimo__/
 # Project Specific
 result/
 .direnv/
+result
