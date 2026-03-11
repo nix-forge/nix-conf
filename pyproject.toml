@@ -1,5 +1,5 @@
 [tool.ruff]
-required-version = ">=0.15.0"
+fix = true
 preview = true
 
 [tool.ruff.lint]
@@ -7,10 +7,52 @@ preview = true
 future-annotations = true
 select = ["ALL"]
 ignore = [
-  "CPY001", # Copyright notices are not maintained per-file in this repo.
-  "D203",   # Incompatible with D211.
-  "D213",   # Incompatible with D212.
+  # Ruff Formatter Ignores
+  "W191",   # tab-indentation
+  "E111",   # indentation-with-invalid-multiple
+  "E114",   # indentation-with-invalid-multiple-comment
+  "E117",   # over-indented
+  "D206",   # docstring-tab-indentation
+  "D300",   # triple-single-quotes
+  "Q000",   # bad-quotes-inline-string
+  "Q001",   # bad-quotes-multiline-string
+  "Q002",   # bad-quotes-docstring
+  "Q003",   # avoidable-escaped-quote
+  "COM812", # missing-trailing-comma
+  "COM819", # prohibited-trailing-comma
+  "ISC002", # multi-line-implicit-string-concatenation, ignore if used without ISC001 and flake8-implicit-str-concat.allow-multiline = false
+  "E501",   # line-too-long
+
+  # Copyright
+  "CPY",
+
+  # Boolean in function
+  "FBT",
+
+  # No need for init files
+  "INP001",
+
+  # Documentation
+  "D203", # 1 blank line before class docstring
+  "D213", # multi-line-summary-first-line
 ]
+
+[tool.ruff.lint.flake8-bandit]
+check-typed-exception = true
+
+[tool.ruff.lint.flake8-builtins]
+strict-checking = true
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+preview = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
 
 [tool.ruff.lint.per-file-ignores]
 "pkgs/ttf-ms-win11-auto/update.py" = [
@@ -42,3 +84,4 @@ exclude = [
 
 [tool.ty.terminal]
 error-on-warning = true
+output-format = "concise"
