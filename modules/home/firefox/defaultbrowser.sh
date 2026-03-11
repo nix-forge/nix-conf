@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
+# shellcheck disable=SC2148
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
 readonly FIREFOX_APP='@firefoxAppPath@'
