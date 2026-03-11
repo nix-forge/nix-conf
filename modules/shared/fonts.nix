@@ -1,6 +1,11 @@
 let
   fontPackages =
-    { pkgs, self, ... }:
+    {
+      pkgs,
+      self,
+      system,
+      ...
+    }:
     with pkgs;
     [
       # icon fonts
@@ -48,7 +53,7 @@ let
       (joypixels.override { acceptLicense = true; })
 
       # Microsoft Fonts
-      self.packages.${pkgs.system}.ttf-ms-win11-auto
+      self.packages.${system}.ttf-ms-win11-auto
 
       # Nerdfonts
       nerd-fonts.fira-code
@@ -78,10 +83,11 @@ in
       config,
       pkgs,
       self,
+      system,
       ...
     }:
     let
-      packages = fontPackages { inherit pkgs self; };
+      packages = fontPackages { inherit pkgs self system; };
     in
     {
       fonts = lib.mkMerge [
@@ -91,9 +97,14 @@ in
     };
 
   darwin =
-    { pkgs, self, ... }:
+    {
+      pkgs,
+      self,
+      system,
+      ...
+    }:
     let
-      packages = fontPackages { inherit pkgs self; };
+      packages = fontPackages { inherit pkgs self system; };
     in
     {
       fonts = { inherit packages; };
@@ -105,10 +116,11 @@ in
       config,
       pkgs,
       self,
+      system,
       ...
     }:
     let
-      packages = fontPackages { inherit pkgs self; };
+      packages = fontPackages { inherit pkgs self system; };
     in
     {
       fonts.fontconfig.enable = true;
