@@ -75,7 +75,7 @@ let
     else
       {
         type = "spacer";
-        small = item.spacer.small;
+        inherit (item.spacer) small;
       }
   ) cfg.persistentApps;
 
@@ -245,19 +245,18 @@ let
 
   # Include rendered paths and tool inputs so activation reruns when the
   # effective Dock output changes, not only when the raw option list changes.
-  dockStateHash = builtins.hashString "sha256" (builtins.toJSON {
-    formatVersion = moduleFormatVersion;
-    packagePath = cfg.package.outPath;
-    appsDirectory = managedAppsDirectory;
-    apps = resolvedPersistentApps;
-    others = resolvedPersistentOthers;
-  });
+  dockStateHash = builtins.hashString "sha256" (
+    builtins.toJSON {
+      formatVersion = moduleFormatVersion;
+      packagePath = cfg.package.outPath;
+      appsDirectory = managedAppsDirectory;
+      apps = resolvedPersistentApps;
+      others = resolvedPersistentOthers;
+    }
+  );
 
   dockCacheDirectory =
-    if config.xdg.enable then
-      config.xdg.cacheHome
-    else
-      "${config.home.homeDirectory}/.cache";
+    if config.xdg.enable then config.xdg.cacheHome else "${config.home.homeDirectory}/.cache";
 
 in
 {
