@@ -11,7 +11,6 @@
       { spacer.small = true; }
 
       { hmApp = "Firefox"; }
-      { hmApp = "Google Chrome"; }
 
       { spacer.small = true; }
 
