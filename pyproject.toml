@@ -55,6 +55,18 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"pkgs/claude-desktop/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
+  "S603", # Command args are constrained to a fixed nix invocation and feed URL.
+  "S310", # URL opening is limited to validated HTTPS release feed URLs.
+]
+"pkgs/codex-app/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
+  "S603", # Command args are constrained to a fixed nix invocation and appcast URL.
+  "S310", # URL opening is limited to validated HTTPS appcast URLs.
+  "S405", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
+  "S314", # The appcast is a fixed upstream document parsed without entity expansion.
+]
 "pkgs/ttf-ms-win11-auto/update.py" = [
   "S404", # Uses subprocess intentionally to call nix store prefetch-file.
   "S603", # Command args are constrained to a fixed nix invocation and URL.
