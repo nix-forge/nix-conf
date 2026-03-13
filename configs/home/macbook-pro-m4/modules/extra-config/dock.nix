@@ -22,7 +22,7 @@
 
       { spacer.small = true; }
 
-      # { hmApp = "Spotify"; }
+      { hmApp = "Spotify"; }
       { app = "/System/Applications/Music.app"; }
 
       { spacer.small = true; }
@@ -30,6 +30,7 @@
       { app = "/System/Applications/Calendar.app"; }
       { app = "/System/Applications/Reminders.app"; }
       { app = "/System/Applications/Notes.app"; }
+      { hmApp = "Notion"; }
       { app = "/System/Applications/Preview.app"; }
 
       { spacer.small = true; }

@@ -34,6 +34,7 @@
     firefox
     firefox-scrolling-natural
     firefox-defaultbrowser
+    chrome
 
     vscode
     vscode-languages
@@ -52,6 +53,8 @@
     stylix-targets-firefox
 
     discord
+    spotify
+    notion
 
     extra-config
   ];
