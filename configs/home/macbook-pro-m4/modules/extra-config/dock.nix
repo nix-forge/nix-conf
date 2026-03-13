@@ -6,7 +6,7 @@
     persistentApps = [
       { hmApp = "Ghostty"; }
       { hmApp = "Visual Studio Code"; }
-      { app = "/Applications/Codex.app"; }
+      { hmApp = "Codex"; }
 
       { spacer.small = true; }
 
