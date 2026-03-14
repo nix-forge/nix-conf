@@ -53,9 +53,11 @@
     stylix-targets-firefox
 
     discord
-    whatsapp
+    # whatsapp
+    signal
     spotify
     notion
+    bitwarden
 
     extra-config
   ];
