@@ -1,1 +1,0 @@
-_: { homebrew.casks = [ "signal" ]; }
