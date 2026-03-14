@@ -26,9 +26,6 @@
     home-manager
     users
 
-    ## Homebrew
-    homebrew
-
     security
     stylix
     fonts
