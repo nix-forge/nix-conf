@@ -55,6 +55,7 @@
     discord
     # whatsapp
     signal
+    zoom
     spotify
     notion
     bitwarden
