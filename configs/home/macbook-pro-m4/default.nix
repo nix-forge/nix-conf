@@ -60,6 +60,8 @@
     notion
     bitwarden
 
+    steam-darwin
+
     extra-config
   ];
 }

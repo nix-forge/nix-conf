@@ -28,7 +28,6 @@
 
     ## Homebrew
     homebrew
-    homebrew-casks
 
     security
     stylix

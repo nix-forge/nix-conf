@@ -67,6 +67,11 @@ strict = true
   "S405", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
   "S314", # The appcast is a fixed upstream document parsed without entity expansion.
 ]
+"pkgs/steam/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix/curl/unzip.
+  "S603", # Command args are constrained to fixed local binaries and a validated URL.
+  "S310", # URL fetching is limited to validated HTTPS Steam endpoints.
+]
 "pkgs/ttf-ms-win11-auto/update.py" = [
   "S404", # Uses subprocess intentionally to call nix store prefetch-file.
   "S603", # Command args are constrained to a fixed nix invocation and URL.
