@@ -53,6 +53,7 @@
     stylix-targets-firefox
 
     discord
+    whatsapp
     spotify
     notion
 
