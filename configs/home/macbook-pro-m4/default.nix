@@ -53,7 +53,7 @@
     stylix-targets-firefox
 
     discord
-    # whatsapp
+    whatsapp
     signal
     zoom
     spotify
