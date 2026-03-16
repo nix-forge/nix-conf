@@ -1,7 +1,7 @@
 {
-  version = "26.311.21342";
+  version = "26.313.41036";
   src = {
-    url = "https://persistent.oaistatic.com/codex-app-prod/Codex-darwin-arm64-26.311.21342.zip";
-    hash = "sha256-wtVk2Hiqj7/ejDk7IUrsDhChCrMvK4gSOSs8Njw3KVQ=";
+    url = "https://persistent.oaistatic.com/codex-app-prod/Codex-darwin-arm64-26.313.41036.zip";
+    hash = "sha256-utYpHoEg7NMVsGcmBjQ41i5K78Zy+ZNTKFrUMsS5gq0=";
   };
 }
