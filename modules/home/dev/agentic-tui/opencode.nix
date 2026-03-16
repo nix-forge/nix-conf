@@ -1,4 +1,10 @@
-_: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   programs.opencode = {
     enable = true;
     settings = {
@@ -7,8 +13,26 @@ _: {
         "opencode-gemini-auth@latest"
         "@simonwjackson/opencode-direnv"
       ];
+      formatter.typstyle = {
+        command = [
+          (lib.getExe pkgs.typstyle)
+          "--inplace"
+          "$FILE"
+        ];
+        extensions = [ ".typ" ];
+      };
       lsp = {
         pyright.disabled = true;
+        tinymist = {
+          command = [
+            (lib.getExe pkgs.tinymist)
+            "lsp"
+          ];
+          extensions = [
+            ".typ"
+            ".typc"
+          ];
+        };
         ty = {
           command = [
             "uv"
@@ -20,6 +44,14 @@ _: {
             ".py"
             ".pyi"
           ];
+        };
+      };
+      permission = {
+        edit = {
+          "${config.xdg.cacheHome}/**" = "allow";
+        };
+        external_directory = {
+          "${config.xdg.cacheHome}/**" = "allow";
         };
       };
     };
