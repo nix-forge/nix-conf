@@ -3,7 +3,10 @@ _: {
     enable = true;
     settings = {
       autoupdate = false;
-      plugin = [ "opencode-gemini-auth@latest" "@simonwjackson/opencode-direnv" ];
+      plugin = [
+        "opencode-gemini-auth@latest"
+        "@simonwjackson/opencode-direnv"
+      ];
       lsp = {
         pyright.disabled = true;
         ty = {

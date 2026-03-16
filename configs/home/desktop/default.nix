@@ -27,6 +27,7 @@
     shells-starship
     shells-carapace
     shells-eza
+    shells-tmux
 
     ## Development
     dev-direnv

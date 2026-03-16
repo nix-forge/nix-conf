@@ -44,6 +44,7 @@
     neovim-defaulteditor
 
     shells
+    shells-tmux
     shells-nushell-defaultshell
     terminals-ghostty
     terminals-ghostty-defaultterminal

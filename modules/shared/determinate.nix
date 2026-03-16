@@ -6,15 +6,24 @@ let
 in
 {
   nixos =
-    { inputs, ... }:
+    { inputs, system, ... }:
     {
       imports = [ inputs.determinate.nixosModules.default ];
 
       nix = { inherit settings; };
+
+      nixpkgs.overlays = [
+        (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
+      ];
     };
 
   darwin =
-    { inputs, pkgs, ... }:
+    {
+      inputs,
+      pkgs,
+      system,
+      ...
+    }:
     let
       inherit (pkgs.stdenv.hostPlatform) isAarch64;
     in
@@ -38,6 +47,10 @@ in
 
         customSettings = settings;
       };
+
+      nixpkgs.overlays = [
+        (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
+      ];
     };
 
   homeManager =
