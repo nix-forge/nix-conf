@@ -43,7 +43,7 @@ in
         };
         ty = {
           command = [
-            "uv"
+            (lib.getExe pkgs.uv)
             "run"
             "ty"
             "server"
