@@ -4,5 +4,7 @@
     nixfmt
     statix
     deadnix
+
+    nixpkgs-reviewFull
   ];
 }
