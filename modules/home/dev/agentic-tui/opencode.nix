@@ -4,9 +4,17 @@
   pkgs,
   ...
 }:
+let
+  typstSkillSrc = fetchGit {
+    url = "https://github.com/lucifer1004/claude-skill-typst.git";
+    ref = "main";
+    rev = "23905d4bc38042038b9b7032c3d41e19bf88191a";
+  };
+in
 {
   programs.opencode = {
     enable = true;
+    skills.typst = "${typstSkillSrc}/skills/typst";
     settings = {
       autoupdate = false;
       plugin = [
