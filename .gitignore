@@ -220,3 +220,4 @@ __marimo__/
 result/
 .direnv/
 result
+.opencode/plans/
