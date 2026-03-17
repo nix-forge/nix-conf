@@ -29,6 +29,7 @@ in
       curl
       wget
       tree
+      rsync
     ]
   );
 }
