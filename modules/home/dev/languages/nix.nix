@@ -5,6 +5,8 @@
     statix
     deadnix
 
+    nixd
+
     nixpkgs-reviewFull
   ];
 
