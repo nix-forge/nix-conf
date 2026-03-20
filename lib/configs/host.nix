@@ -22,8 +22,6 @@ in
           inherit inputs self;
           inherit system homeConfigs;
           configName = args.folderName;
-          sshPubKey = args.sshPubKey or null;
-          masterIdentityPath = args.masterIdentityPath or null;
         }
         // extraSpecialArgs
         // (args.specialArgs or { });

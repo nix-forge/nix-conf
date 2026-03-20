@@ -560,6 +560,52 @@ rec {
     in
     listToAttrs (map buildHost hostEntries);
 
+  importHostConfigs =
+    path:
+    {
+      inputs,
+      self,
+      modules,
+      connectHomeDarwin ? null,
+      connectHomeNixos ? null,
+      mkHostAttrs ? (_: _: { }),
+      exclude ? [ ],
+      filter ? (_: true),
+    }:
+    let
+      pred = allOf [
+        (e: e.isDir)
+        (e: e.hasDefault)
+        (excludeNames exclude)
+        filter
+      ];
+
+      hostEntries = readEntriesWhere pred path;
+
+      getHostConfig =
+        entry:
+        let
+          folderName = entryAttrName entry;
+
+          modulesPath = entry.path + /modules;
+          configModules =
+            if builtins.pathExists modulesPath then importFlatWithDirs modulesPath { sep = "-"; } else { };
+          combinedModules = lib.attrsets.unionOfDisjoint modules configModules;
+
+          hostConfigFn = importEntry entry;
+          hostConfig = hostConfigFn {
+            inherit inputs self;
+            inherit connectHomeDarwin connectHomeNixos;
+            modules = combinedModules;
+          };
+        in
+        {
+          name = folderName;
+          value = hostConfig // { inherit folderName; } // (mkHostAttrs entry hostConfig);
+        };
+    in
+    listToAttrs (map getHostConfig hostEntries);
+
   # Import home configurations from a directory where each subdirectory is a home config
   # Each home folder should have a default.nix that returns home configuration options.
   #

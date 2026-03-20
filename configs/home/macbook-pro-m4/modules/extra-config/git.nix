@@ -1,5 +1,7 @@
 { config, lib, ... }:
 let
+  hasSecret = name: lib.hasAttrByPath [ "age" "secrets" name ] config;
+  secretPath = name: if hasSecret name then config.age.secrets.${name}.path else null;
   gitEmailConfigPath = "${config.xdg.configHome}/git/.gitconfig-email";
   makeGitEmailConfigVariations = website: emailPath: ''
     [includeIf "hasconfig:remote.*.url:https://${website}/**"]
@@ -32,23 +34,32 @@ in
       signByDefault = true;
     };
 
-    settings = {
-      gpg.ssh.allowedSignersFile = config.age.secrets.git-allowedSigners.path;
+    settings = lib.optionalAttrs (hasSecret "git-allowedSigners") {
+      gpg.ssh.allowedSignersFile = secretPath "git-allowedSigners";
     };
 
-    includes = [
-      { inherit (config.age.secrets.gitconfig-userName) path; }
-      { inherit (config.age.secrets.gitconfig-userEmail) path; }
-
-      { path = gitEmailConfigPath; }
-    ];
+    includes =
+      (lib.optionals (hasSecret "gitconfig-userName") [ { path = secretPath "gitconfig-userName"; } ])
+      ++ (lib.optionals (hasSecret "gitconfig-userEmail") [
+        { path = secretPath "gitconfig-userEmail"; }
+      ])
+      ++ lib.optionals (
+        hasSecret "gitconfig-userEmail-GitHub" || hasSecret "gitconfig-userEmail-Cornell"
+      ) [ { path = gitEmailConfigPath; } ];
   };
 
-  home.file.${gitEmailConfigPath}.text = createGitEmailConfig {
-    "github.com" = config.age.secrets.gitconfig-userEmail-GitHub.path;
-    "gist.github.com" = config.age.secrets.gitconfig-userEmail-GitHub.path;
-
-    "github.coecis.cornell.edu" = config.age.secrets.gitconfig-userEmail-Cornell.path;
-    "gitlab.cs.cornell.edu" = config.age.secrets.gitconfig-userEmail-Cornell.path;
-  };
+  home.file.${gitEmailConfigPath}.text =
+    lib.mkIf (hasSecret "gitconfig-userEmail-GitHub" || hasSecret "gitconfig-userEmail-Cornell")
+      (
+        createGitEmailConfig (
+          (lib.optionalAttrs (hasSecret "gitconfig-userEmail-GitHub") {
+            "github.com" = secretPath "gitconfig-userEmail-GitHub";
+            "gist.github.com" = secretPath "gitconfig-userEmail-GitHub";
+          })
+          // (lib.optionalAttrs (hasSecret "gitconfig-userEmail-Cornell") {
+            "github.coecis.cornell.edu" = secretPath "gitconfig-userEmail-Cornell";
+            "gitlab.cs.cornell.edu" = secretPath "gitconfig-userEmail-Cornell";
+          })
+        )
+      );
 }

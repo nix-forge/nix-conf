@@ -2,8 +2,11 @@
 {
   system = "x86_64-linux";
   hostName = "desktop";
-  masterIdentityPath = "/home/ianmh/.config/agenix/master.agekey";
-  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
+
+  secrets = {
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
+    groups = [ "IanHollow" ];
+  };
 
   nixpkgsArgs = {
     config = {
@@ -33,7 +36,7 @@
   #     ## Base
   #     base.nix-settings
   #     ./cache.nix
-  #     (import ./secrets.nix { masterIdentityPath = null; })
+  #     (import ./secrets.nix { })
   #     base.base
   #     base.kernel
   #     base.packages

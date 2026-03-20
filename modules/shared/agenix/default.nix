@@ -1,92 +1,20 @@
-let
-  mainIdentityPath = ../../../secrets/master-identities/main.pub;
-  mainPubkey = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile mainIdentityPath);
-
-  # Optional per-host master identity that lives outside the
-  # repository. Keep this as a string path (not a Nix path literal) so private
-  # keys are never copied into the Nix store.
-  agenixRekeyBaseConfig =
-    {
-      sshPubKey,
-      masterIdentityPath ? null,
-      lib,
-    }:
-    let
-      # Security guardrails:
-      # - Must be a plain string, not a Nix path literal (which would copy into the store)
-      # - Must be absolute and not inside /nix/store
-      validatedMasterIdentityPath =
-        if masterIdentityPath == null then
-          null
-        else if !builtins.isString masterIdentityPath then
-          throw "masterIdentityPath must be a string path not a Nix path literal."
-        else if builtins.substring 0 1 masterIdentityPath != "/" then
-          throw "masterIdentityPath must be an absolute path."
-        else if builtins.match "^/nix/store/.*" masterIdentityPath != null then
-          throw "masterIdentityPath must not point into /nix/store."
-        else
-          masterIdentityPath;
-    in
-    {
-      storageMode = "local";
-      hostPubkey = sshPubKey;
-      masterIdentities = lib.mkIf (validatedMasterIdentityPath != null) [
-        {
-          identity = validatedMasterIdentityPath;
-          pubkey = mainPubkey;
-        }
-      ];
-    };
-in
 {
   nixos =
+    { inputs, secrets, ... }:
     {
-      inputs,
-      lib,
-      sshPubKey,
-      masterIdentityPath ? null,
-      secrets,
-      configName,
-      ...
-    }:
-    {
-      imports = [
-        inputs.agenix.nixosModules.default
-        inputs.agenix-rekey.nixosModules.default
-      ];
+      imports = [ inputs.agenix.nixosModules.default ];
 
       services.openssh.enable = true;
 
-      age = {
-        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
-          localStorageDir = ../../../secrets/rekeyed + "/nixos-${configName}";
-        };
-        inherit secrets;
-      };
+      age = { inherit secrets; };
     };
 
   darwin =
+    { inputs, secrets, ... }:
     {
-      inputs,
-      sshPubKey,
-      masterIdentityPath ? null,
-      secrets,
-      configName,
-      lib,
-      ...
-    }:
-    {
-      imports = [
-        inputs.agenix.darwinModules.default
-        inputs.agenix-rekey.darwinModules.default
-      ];
+      imports = [ inputs.agenix.darwinModules.default ];
 
-      age = {
-        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
-          localStorageDir = ../../../secrets/rekeyed + "/darwin-${configName}";
-        };
-        inherit secrets;
-      };
+      age = { inherit secrets; };
     };
 
   homeManager =
@@ -95,10 +23,7 @@ in
       lib,
       pkgs,
       config,
-      sshPubKey,
-      masterIdentityPath ? null,
       secrets,
-      configName,
       ...
     }:
     let
@@ -120,16 +45,9 @@ in
       };
     in
     {
-      imports = [
-        inputs.agenix.homeManagerModules.default
-        inputs.agenix-rekey.homeManagerModules.default
-      ];
+      imports = [ inputs.agenix.homeManagerModules.default ];
 
       age = {
-        rekey = (agenixRekeyBaseConfig { inherit sshPubKey masterIdentityPath lib; }) // {
-          localStorageDir =
-            ../../../secrets/rekeyed + "/${builtins.replaceStrings [ "@" ] [ "-" ] configName}";
-        };
         inherit secrets;
         secretsDir = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix";
         secretsMountPoint = "${config.xdg.userDirs.extraConfig.RUNTIME}/agenix.d";

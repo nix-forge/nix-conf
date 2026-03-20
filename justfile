@@ -84,40 +84,40 @@ home-switch configuration *args:
 
 # ─── Secrets ──────────────────────────────────────────────────────────
 
-# Rekey all secrets for all configured targets
+# Validate config-driven secret metadata and recipients
 [group('Secrets')]
-rekey:
-    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).rekey -- -a
+secret-lint:
+    nix run path:{{ flake }}#secretctl -- lint
 
-# Update source secret recipients to the configured master identities
+# Validate secret metadata and ensure ciphertext files exist
 [group('Secrets')]
-rekey-update-masterkeys:
-    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).update-masterkeys
+secret-check:
+    nix run path:{{ flake }}#secretctl -- check
 
-# Edit (or create) a secret. If no file is given, opens fzf selector.
+# Show resolved recipients for a secret ID
 [group('Secrets')]
-secret-edit *args:
-    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- edit {{ args }}
+secret-recipients secret_id:
+    nix run path:{{ flake }}#secretctl -- recipients {{ secret_id }}
 
-# View a secret. If no file is given, opens fzf selector.
+# View a secret by ID
 [group('Secrets')]
-secret-view *args:
-    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- view {{ args }}
+secret-view secret_id:
+    nix run path:{{ flake }}#secretctl -- view {{ secret_id }}
 
-# Create/replace a secret from an existing plaintext file.
+# Edit a secret by ID via $EDITOR
 [group('Secrets')]
-secret-create input output:
-    nix run path:{{ flake }}#agenix-rekey.$(nix config show system).edit-view -- edit -i {{ input }} {{ output }}
+secret-edit secret_id:
+    nix run path:{{ flake }}#secretctl -- edit {{ secret_id }}
 
-# Create or rotate the local master identity and refresh main.pub.
-# Defaults:
-# - identity_path: ~/.config/agenix/master.agekey
-# - main_pub_path: secrets/master-identities/main.pub
-
-# Set FORCE=true to overwrite an existing identity file.
+# Create/replace a secret from plaintext file
 [group('Secrets')]
-master-key-create:
-    REPO_ROOT={{ flake }} {{ flake }}/scripts/master-key-create.sh
+secret-encrypt secret_id source:
+    nix run path:{{ flake }}#secretctl -- encrypt {{ secret_id }} --from {{ source }}
+
+# Re-encrypt one secret or all secrets from config metadata
+[group('Secrets')]
+secret-reencrypt *args:
+    nix run path:{{ flake }}#secretctl -- reencrypt {{ args }}
 
 # ─── Maintenance ──────────────────────────────────────────────────────
 

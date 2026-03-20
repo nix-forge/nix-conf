@@ -13,11 +13,32 @@ let
     sep = "-";
     inherit args;
   };
-  allSecrets = import ../../secrets { inherit myLib; };
+  allSecrets =
+    if builtins.pathExists ../../secrets/default.nix then
+      import ../../secrets { inherit myLib; }
+    else
+      {
+        shared = {
+          secrets = { };
+        };
+        users = { };
+      };
   homeSecretsFor =
-    username:
-    allSecrets.shared.secrets
-    // (if allSecrets.users ? ${username} then allSecrets.users.${username}.secrets else { });
+    homeConfig:
+    if homeConfig ? secrets then
+      myLib.secrets.selectSecretsForTarget {
+        secretsTree = allSecrets;
+        target = {
+          targetId = "home:${homeConfig.username}@${homeConfig.folderName}";
+          targetType = "home";
+          username = homeConfig.username;
+          configName = homeConfig.folderName;
+          platform = null;
+          groups = homeConfig.secrets.groups or [ ];
+        };
+      }
+    else
+      { };
 
   modules = config.flake.modules.homeManager;
 in
@@ -33,7 +54,7 @@ in
       inherit (args) self;
       inherit (myLib.configs) mkHome;
       extraSpecialArgs = { inherit myLib; };
-      mkExtraSpecialArgs = _: homeConfig: { secrets = homeSecretsFor homeConfig.username; };
+      mkExtraSpecialArgs = _: homeConfig: { secrets = homeSecretsFor homeConfig; };
     };
   };
 }

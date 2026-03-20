@@ -2,8 +2,11 @@
 {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";
-  masterIdentityPath = "/Users/ianmh/.config/agenix/master.agekey";
-  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
+
+  secrets = {
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
+    groups = [ "IanHollow" ];
+  };
 
   nixpkgsArgs = {
     config = {

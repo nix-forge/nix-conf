@@ -39,6 +39,7 @@ in
       ...
     }:
     let
+      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
       settings = sharedSettings // {
         trusted-users = sharedSettings.trusted-users ++ [
           "@wheel"
@@ -60,7 +61,7 @@ in
         package = lib.mkDefault pkgs.nixVersions.latest;
         channel.enable = lib.mkDefault false;
         inherit settings;
-        extraOptions = lib.mkIf (lib.hasAttr "age" config) ''
+        extraOptions = lib.mkIf hasNixAccessTokens ''
           !include ${config.age.secrets.nix-access-tokens.path}
         '';
       };
@@ -78,6 +79,7 @@ in
         trusted-users = sharedSettings.trusted-users ++ [ "@admin" ];
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
+      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) {
@@ -86,14 +88,14 @@ in
           optimise.automatic = lib.mkDefault true;
           channel.enable = lib.mkDefault false;
           inherit settings;
-          extraOptions = lib.mkIf (lib.hasAttr "age" config) ''
+          extraOptions = lib.mkIf hasNixAccessTokens ''
             !include ${config.age.secrets.nix-access-tokens.path}
           '';
         };
       })
       (lib.mkIf usingDeterminateNix {
         determinateNix.customSettings = settings;
-        environment.etc."nix/nix.custom.conf".text = lib.mkIf (lib.hasAttr "age" config) (
+        environment.etc."nix/nix.custom.conf".text = lib.mkIf hasNixAccessTokens (
           lib.mkAfter ''
             !include ${config.age.secrets.nix-access-tokens.path}
           ''
@@ -108,11 +110,14 @@ in
       config,
       ...
     }:
+    let
+      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+    in
     {
       nix = {
         package = lib.mkDefault pkgs.nixVersions.latest;
         settings = lib.mkIf (config.nix.package != null) sharedSettings;
-        extraOptions = lib.mkIf (config.nix.package != null && lib.hasAttr "age" config) ''
+        extraOptions = lib.mkIf (config.nix.package != null && hasNixAccessTokens) ''
           !include ${config.age.secrets.nix-access-tokens.path}
         '';
       };

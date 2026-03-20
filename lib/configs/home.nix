@@ -21,8 +21,6 @@ rec {
       username,
       homeDirectory,
       uid,
-      sshPubKey ? null,
-      masterIdentityPath ? null,
       ...
     }@args:
     withSystem system (
@@ -37,8 +35,6 @@ rec {
             inputs
             self
             system
-            sshPubKey
-            masterIdentityPath
             ;
           configName = "${username}@${args.folderName}";
         }
@@ -65,8 +61,6 @@ rec {
       username ? homeConfig.username,
       homeDirectory ? homeConfig.homeDirectory,
       uid ? homeConfig.uid,
-      sshPubKey ? homeConfig.sshPubKey or null,
-      masterIdentityPath ? null,
       secrets ? homeConfig.secrets or { },
       extraModules ? [ ],
     }:
@@ -75,7 +69,7 @@ rec {
         { lib, ... }:
         {
           _module.args = {
-            inherit sshPubKey masterIdentityPath secrets;
+            inherit secrets;
             configFolderName = homeConfig.folderName;
             configName = "${username}@${homeConfig.folderName}";
           };
@@ -97,7 +91,6 @@ rec {
       username ? null,
       homeDirectory ? null,
       uid ? null,
-      sshPubKey ? null,
       isHidden ? false,
       createHome ? true,
       knownUser ? false,
@@ -117,7 +110,6 @@ rec {
       pkgs,
       config,
       homeConfigs,
-      masterIdentityPath ? null,
       ...
     }:
     let
@@ -126,7 +118,6 @@ rec {
         username = if username != null then username else homeConfig.username;
         homeDirectory = if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
         uid = if uid != null then uid else homeConfig.uid;
-        sshPubKey = if sshPubKey != null then sshPubKey else homeConfig.sshPubKey or null;
       };
       shells = {
         bash = pkgs.bashInteractive;
@@ -158,8 +149,6 @@ rec {
         (connectHome {
           inherit homeConfig;
           inherit (args) username homeDirectory uid;
-          inherit (args) sshPubKey;
-          inherit masterIdentityPath;
           extraModules = extraModules config;
         })
         {
@@ -192,7 +181,6 @@ rec {
       username ? null,
       homeDirectory ? null,
       uid ? null,
-      sshPubKey ? null,
     }:
     let
       extraModules =
@@ -204,27 +192,19 @@ rec {
           }
         );
     in
-    {
-      config,
-      homeConfigs,
-      masterIdentityPath ? null,
-      ...
-    }:
+    { config, homeConfigs, ... }:
     let
       homeConfig = homeConfigs.${configName};
       args = {
         username = if username != null then username else homeConfig.username;
         homeDirectory = if homeDirectory != null then homeDirectory else homeConfig.homeDirectory;
         uid = if uid != null then uid else homeConfig.uid;
-        sshPubKey = if sshPubKey != null then sshPubKey else homeConfig.sshPubKey;
       };
     in
     {
       home-manager.users = connectHome {
         inherit homeConfig;
         inherit (args) username homeDirectory uid;
-        inherit (args) sshPubKey;
-        inherit masterIdentityPath;
         extraModules = extraModules config;
       };
     };

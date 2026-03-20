@@ -1,4 +1,11 @@
-{ config, ... }:
+{ config, lib, ... }:
+let
+  includeCornell =
+    if lib.hasAttrByPath [ "age" "secrets" "cornell-net-id-ssh-config" ] config then
+      { Include = config.age.secrets.cornell-net-id-ssh-config.path; }
+    else
+      { };
+in
 {
   programs.ssh.matchBlocks = {
     # Servers
@@ -6,9 +13,9 @@
       hostname = "ugclinux.cs.cornell.edu";
 
       extraOptions = {
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
-      };
+      }
+      // includeCornell;
     };
 
     # NERSC
@@ -18,9 +25,9 @@
       identityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
       extraOptions = {
         LogLevel = "QUIET";
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
-      };
+      }
+      // includeCornell;
     };
     "nid??????" = {
       hostname = "%h";
@@ -30,9 +37,9 @@
         LogLevel = "QUIET";
         StrictHostKeyChecking = "no";
         ProxyJump = "perlmutter.nersc.gov";
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
         SetEnv = "TERM=xterm-256color";
-      };
+      }
+      // includeCornell;
     };
 
     # Git

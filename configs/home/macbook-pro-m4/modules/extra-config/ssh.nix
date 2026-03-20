@@ -1,4 +1,11 @@
-{ config, ... }:
+{ config, lib, ... }:
+let
+  includeCornell =
+    if lib.hasAttrByPath [ "age" "secrets" "cornell-net-id-ssh-config" ] config then
+      { Include = config.age.secrets.cornell-net-id-ssh-config.path; }
+    else
+      { };
+in
 {
   programs.ssh.matchBlocks = {
     cornellGit = {
@@ -15,9 +22,7 @@
         TERM = "xterm-256color";
       };
 
-      extraOptions = {
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
-      };
+      extraOptions = { } // includeCornell;
     };
 
     nerscLogin = {
@@ -30,8 +35,8 @@
 
       extraOptions = {
         LogLevel = "QUIET";
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
-      };
+      }
+      // includeCornell;
     };
 
     perlmutterAgent = {
@@ -47,8 +52,8 @@
       };
       extraOptions = {
         LogLevel = "QUIET";
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
-      };
+      }
+      // includeCornell;
     };
 
     nerscCompute = {
@@ -66,12 +71,11 @@
 
       extraOptions = {
         LogLevel = "QUIET";
-        Include = config.age.secrets.cornell-net-id-ssh-config.path;
-
         StrictHostKeyChecking = "accept-new";
 
         UpdateHostKeys = "no";
-      };
+      }
+      // includeCornell;
     };
 
     gitForges = {

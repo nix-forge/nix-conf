@@ -16,7 +16,6 @@ with (with tree.configs; (home // home.programs // home.programs.editors));
   base.fonts
   base.xdg
   # ./hardware
-  ./secrets.nix
   # (base.mime { })
   { programs.nh.enable = true; }
 

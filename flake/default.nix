@@ -3,6 +3,6 @@
     ./base
     ./partitions.nix
     ./home
-    ./agenix-rekey.nix
+    ./secrets.nix
   ];
 }

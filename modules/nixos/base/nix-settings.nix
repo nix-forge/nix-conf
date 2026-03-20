@@ -1,4 +1,12 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+let
+  hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+in
 {
   nix = {
     settings = {
@@ -72,7 +80,7 @@
       auto-allocate-uids = true;
       use-cgroups = pkgs.stdenv.hostPlatform.isLinux;
     };
-    extraOptions = ''
+    extraOptions = lib.mkIf hasNixAccessTokens ''
       !include ${config.age.secrets.nix-access-tokens.path}
     '';
   };

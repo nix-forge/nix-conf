@@ -9,6 +9,7 @@
     darwinConfigurations = "darwin";
     darwinModules = "darwin";
 
+    apps = "dev";
     checks = "dev";
     devShells = "dev";
     formatter = "dev";
@@ -29,17 +30,7 @@
           ./nixos
           ./base
         ];
-        extraInputs =
-          baseInputs
-          // {
-            inherit (inputs)
-              disko
-              agenix
-              agenix-rekey
-              stylix
-              ;
-          }
-          // homeManagerInputs;
+        extraInputs = baseInputs // { inherit (inputs) disko agenix stylix; } // homeManagerInputs;
       };
 
       darwin = {
@@ -48,17 +39,7 @@
           ./darwin
           ./base
         ];
-        extraInputs =
-          baseInputs
-          // {
-            inherit (inputs)
-              nix-darwin
-              agenix
-              agenix-rekey
-              stylix
-              ;
-          }
-          // homeManagerInputs;
+        extraInputs = baseInputs // { inherit (inputs) nix-darwin agenix stylix; } // homeManagerInputs;
       };
 
       dev = {

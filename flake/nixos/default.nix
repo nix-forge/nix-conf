@@ -20,25 +20,38 @@ let
     sep = "-";
     inherit args;
   };
-  allSecrets = import ../../secrets { inherit myLib; };
-  homeSecretsFor =
-    username:
-    allSecrets.shared.secrets
-    // (if allSecrets.users ? ${username} then allSecrets.users.${username}.secrets else { });
-  systemSecretsFor =
-    configName:
-    allSecrets.shared.secrets
-    // (
-      if allSecrets.systems ? nixos && allSecrets.systems.nixos ? configName then
-        allSecrets.systems.nixos.${configName}.secrets
-      else
-        { }
-    );
+  allSecrets =
+    if builtins.pathExists ../../secrets/default.nix then
+      import ../../secrets { inherit myLib; }
+    else
+      {
+        shared = {
+          secrets = { };
+        };
+        systems = { };
+        users = { };
+      };
+  secretsFor =
+    configData:
+    if configData ? secrets then
+      myLib.secrets.selectSecretsForTarget {
+        secretsTree = allSecrets;
+        target = {
+          targetId = "host:nixos:${configData.folderName}";
+          targetType = "host";
+          username = null;
+          configName = configData.folderName;
+          platform = "nixos";
+          groups = configData.secrets.groups or [ ];
+        };
+      }
+    else
+      { };
   homeConfigs = myLib.dir.importHomeConfigs ../../configs/home {
     inherit inputs;
     inherit (args) self;
     modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
-    mkHomeAttrs = _: homeConfig: { secrets = homeSecretsFor homeConfig.username; };
+    mkHomeAttrs = _: homeConfig: { secrets = secretsFor homeConfig; };
   };
 in
 {
@@ -54,7 +67,7 @@ in
       inherit (myLib.configs) connectHomeDarwin connectHomeNixos;
       builder = lib.nixosSystem;
       extraSpecialArgs = { inherit myLib; };
-      mkSpecialArgs = entry: _: { secrets = systemSecretsFor (myLib.dir.entryAttrName entry); };
+      mkSpecialArgs = _: hostConfig: { secrets = secretsFor hostConfig; };
     };
   };
 }

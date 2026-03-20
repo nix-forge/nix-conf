@@ -1,9 +1,22 @@
 { myLib }:
 let
-  collectAgeSecrets = myLib.dir.collectBySuffix "rekeyFile" ".age" "secrets";
+  inherit (builtins)
+    attrNames
+    filter
+    listToAttrs
+    readDir
+    substring
+    ;
+  collectAgeSecrets = myLib.dir.collectBySuffix "file" ".age" "secrets";
+  entries = readDir ./.;
+
+  groupDirs = filter (name: entries.${name} == "directory" && substring 0 1 name != ".") (
+    attrNames entries
+  );
 in
-{
-  shared = collectAgeSecrets ./shared;
-  systems = collectAgeSecrets ./systems;
-  users = collectAgeSecrets ./users;
-}
+listToAttrs (
+  map (group: {
+    name = group;
+    value = collectAgeSecrets (./. + "/${group}");
+  }) groupDirs
+)
