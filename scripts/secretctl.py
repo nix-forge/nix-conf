@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """SSH-recipient secret management for canonical age files."""
 
 from __future__ import annotations
@@ -7,19 +6,26 @@ import argparse
 import json
 import os
 import shlex
-import subprocess
+import subprocess  # noqa: S404
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import NoReturn
+
+
+SSH_RECIPIENT_PREFIXES = ("ssh-ed25519 ", "ssh-rsa ")
+PUBLIC_KEY_PART_COUNT = 2
 
 
 @dataclass(frozen=True)
 class SecretSpec:
+    """Resolved secret metadata from the evaluated Nix index."""
+
     secret_id: str
     agenix_name: str
     file: Path
@@ -28,13 +34,18 @@ class SecretSpec:
 
 
 class SecretCtlError(RuntimeError):
-    pass
+    """Raised when secretctl cannot complete a requested operation."""
 
 
 @dataclass(frozen=True)
 class IdentitySet:
+    """Resolved decryption identities passed through to ``age``."""
+
     args: tuple[str, ...]
-    sources: tuple[str, ...]
+
+
+def _fail(message: str) -> NoReturn:
+    raise SecretCtlError(message)
 
 
 def _stdout(message: str) -> None:
@@ -58,69 +69,76 @@ def _repo_root() -> Path:
     if (script_root / "flake.nix").is_file() and (script_root / "secrets").is_dir():
         return script_root
 
-    raise SecretCtlError(
-        "could not determine repository root; set SECRETCTL_REPO_ROOT or run from repo root"
-    )
+    message = "could not determine repository root; set SECRETCTL_REPO_ROOT or run from repo root"
+    _fail(message)
 
 
 def _run(
     command: Sequence[str], *, cwd: Path | None = None, input_bytes: bytes | None = None
 ) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603
         list(command),
         cwd=str(cwd) if cwd is not None else None,
         input=input_bytes,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
 
-def _validate_recipient(owner: str, value: Any) -> str:
+def _validate_recipient(owner: str, value: object) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise SecretCtlError(f"{owner} contains an empty recipient")
+        message = f"{owner} contains an empty recipient"
+        _fail(message)
+
     recipient = value.strip()
-    if not (recipient.startswith("ssh-ed25519 ") or recipient.startswith("ssh-rsa ")):
-        raise SecretCtlError(
-            f"{owner} has unsupported SSH recipient type (expected ssh-ed25519 or ssh-rsa)"
-        )
+    if not recipient.startswith(SSH_RECIPIENT_PREFIXES):
+        message = f"{owner} has unsupported SSH recipient type (expected ssh-ed25519 or ssh-rsa)"
+        _fail(message)
+
     return recipient
 
 
-def _validate_string_list(owner: str, field: str, value: Any) -> tuple[str, ...]:
+def _validate_string_list(owner: str, field: str, value: object) -> tuple[str, ...]:
     if not isinstance(value, list):
-        raise SecretCtlError(f"{owner} must define a list '{field}'")
+        message = f"{owner} must define a list '{field}'"
+        _fail(message)
+
     result: list[str] = []
     for item in value:
         if not isinstance(item, str) or not item:
-            raise SecretCtlError(f"{owner} has an invalid '{field}' entry")
+            message = f"{owner} has an invalid '{field}' entry"
+            _fail(message)
         result.append(item)
     return tuple(result)
 
 
 def _normalize_public_key(value: str) -> str | None:
     parts = value.strip().split()
-    if len(parts) < 2:
+    if len(parts) < PUBLIC_KEY_PART_COUNT:
         return None
+
     key_type, key_body = parts[0], parts[1]
     if key_type not in {"ssh-ed25519", "ssh-rsa"}:
         return None
+
     return f"{key_type} {key_body}"
 
 
-def _candidate_identity_paths(cli_identities: Sequence[str]) -> list[Path]:
-    candidates: list[Path] = []
+def _cli_identity_candidates(cli_identities: Sequence[str]) -> list[Path]:
+    return [Path(raw).expanduser() for raw in cli_identities if raw]
 
-    for raw in cli_identities:
-        if raw:
-            candidates.append(Path(raw).expanduser())
 
+def _env_identity_candidates() -> list[Path]:
     env_identities = os.environ.get("SECRETCTL_IDENTITIES")
-    if env_identities:
-        for raw in env_identities.split(os.pathsep):
-            raw = raw.strip()
-            if raw:
-                candidates.append(Path(raw).expanduser())
+    if not env_identities:
+        return []
+
+    raw_paths = [raw.strip() for raw in env_identities.split(os.pathsep)]
+    return [Path(raw).expanduser() for raw in raw_paths if raw]
+
+
+def _default_identity_candidates() -> list[Path]:
+    candidates: list[Path] = []
 
     age_keys = Path.home() / ".config" / "age" / "keys.txt"
     if age_keys.is_file():
@@ -133,20 +151,34 @@ def _candidate_identity_paths(cli_identities: Sequence[str]) -> list[Path]:
             if private_key.is_file():
                 candidates.append(private_key)
 
+    return candidates
+
+
+def _dedupe_existing_paths(candidates: Sequence[Path]) -> list[Path]:
     deduped: list[Path] = []
     seen: set[Path] = set()
+
     for candidate in candidates:
         resolved = candidate.resolve()
         if resolved in seen or not resolved.exists():
             continue
         seen.add(resolved)
         deduped.append(resolved)
+
     return deduped
+
+
+def _candidate_identity_paths(cli_identities: Sequence[str]) -> list[Path]:
+    candidates = (
+        _cli_identity_candidates(cli_identities)
+        + _env_identity_candidates()
+        + _default_identity_candidates()
+    )
+    return _dedupe_existing_paths(candidates)
 
 
 def _resolve_identities(spec: SecretSpec, cli_identities: Sequence[str]) -> IdentitySet:
     identity_args: list[str] = []
-    sources: list[str] = []
     recipient_keys = {
         normalized
         for normalized in (
@@ -159,7 +191,6 @@ def _resolve_identities(spec: SecretSpec, cli_identities: Sequence[str]) -> Iden
         candidate_str = str(candidate)
         if candidate.name == "keys.txt":
             identity_args.extend(["--identity", candidate_str])
-            sources.append(candidate_str)
             continue
 
         public_key_path = candidate.with_name(f"{candidate.name}.pub")
@@ -171,31 +202,95 @@ def _resolve_identities(spec: SecretSpec, cli_identities: Sequence[str]) -> Iden
             continue
 
         identity_args.extend(["--identity", candidate_str])
-        sources.append(candidate_str)
 
     if not identity_args:
-        raise SecretCtlError(
+        message = (
             "no matching identities found for decryption; pass --identity /path/to/key, "
             "set SECRETCTL_IDENTITIES, or ensure a matching ~/.ssh/*.pub key exists"
         )
+        _fail(message)
 
-    return IdentitySet(args=tuple(identity_args), sources=tuple(sources))
+    return IdentitySet(args=tuple(identity_args))
 
 
-def _load_index(repo_root: Path) -> dict[str, Any]:
+def _load_index(repo_root: Path) -> dict[str, object]:
     result = _run(["nix", "eval", "--json", ".#secretIndex"], cwd=repo_root)
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
-        raise SecretCtlError(f"failed to evaluate secret index: {stderr}")
+        message = f"failed to evaluate secret index: {stderr}"
+        _fail(message)
 
     try:
         data = json.loads(result.stdout.decode("utf-8"))
     except json.JSONDecodeError as exc:
-        raise SecretCtlError(f"invalid JSON from nix secret index: {exc}") from exc
+        message = f"invalid JSON from nix secret index: {exc}"
+        raise SecretCtlError(message) from exc
 
     if not isinstance(data, dict):
-        raise SecretCtlError("secret index must be a JSON object")
-    return data
+        message = "secret index must be a JSON object"
+        _fail(message)
+
+    return cast("dict[str, object]", data)
+
+
+def _parse_secret_spec(
+    repo_root: Path,
+    secrets_root: Path,
+    secret_id: str,
+    entry: object,
+    seen_files: dict[Path, str],
+) -> SecretSpec:
+    if not isinstance(entry, dict):
+        message = f"secret '{secret_id}' must be an object"
+        _fail(message)
+
+    secret_entry = cast("dict[str, object]", entry)
+
+    agenix_name = secret_entry.get("agenixName")
+    if not isinstance(agenix_name, str) or not agenix_name:
+        message = f"secret '{secret_id}' must define 'agenixName'"
+        _fail(message)
+
+    file_rel = secret_entry.get("file")
+    if not isinstance(file_rel, str) or not file_rel:
+        message = f"secret '{secret_id}' must define 'file'"
+        _fail(message)
+
+    file_path = (repo_root / file_rel).resolve()
+    try:
+        file_path.relative_to(secrets_root)
+    except ValueError as exc:
+        message = f"secret '{secret_id}' file must remain under secrets/: {file_rel}"
+        raise SecretCtlError(message) from exc
+
+    if file_path.suffix != ".age":
+        message = f"secret '{secret_id}' file must end with .age: {file_rel}"
+        _fail(message)
+
+    consumers = _validate_string_list(
+        f"secret '{secret_id}'", "consumers", secret_entry.get("consumers")
+    )
+    recipients = tuple(
+        _validate_recipient(f"secret '{secret_id}'", recipient)
+        for recipient in _validate_string_list(
+            f"secret '{secret_id}'", "recipients", secret_entry.get("recipients")
+        )
+    )
+
+    if file_path in seen_files:
+        message = (
+            f"duplicate secret file mapping: {file_path} "
+            f"(used by {seen_files[file_path]} and {secret_id})"
+        )
+        _fail(message)
+
+    return SecretSpec(
+        secret_id=secret_id,
+        agenix_name=agenix_name,
+        file=file_path,
+        consumers=consumers,
+        recipients=recipients,
+    )
 
 
 def _load_config(repo_root: Path) -> tuple[int, dict[str, SecretSpec]]:
@@ -203,11 +298,13 @@ def _load_config(repo_root: Path) -> tuple[int, dict[str, SecretSpec]]:
 
     targets = index.get("targets")
     if not isinstance(targets, dict):
-        raise SecretCtlError("secret index must define a 'targets' object")
+        message = "secret index must define a 'targets' object"
+        _fail(message)
 
     secrets = index.get("secrets")
     if not isinstance(secrets, dict):
-        raise SecretCtlError("secret index must define a 'secrets' object")
+        message = "secret index must define a 'secrets' object"
+        _fail(message)
 
     secrets_root = (repo_root / "secrets").resolve()
     specs: dict[str, SecretSpec] = {}
@@ -215,57 +312,16 @@ def _load_config(repo_root: Path) -> tuple[int, dict[str, SecretSpec]]:
 
     for secret_id, entry in sorted(secrets.items()):
         if not isinstance(secret_id, str) or not secret_id:
-            raise SecretCtlError("secret ids must be non-empty strings")
-        if not isinstance(entry, dict):
-            raise SecretCtlError(f"secret '{secret_id}' must be an object")
-        secret_entry = cast(dict[str, Any], entry)
+            message = "secret ids must be non-empty strings"
+            _fail(message)
 
-        agenix_name = secret_entry.get("agenixName")
-        if not isinstance(agenix_name, str) or not agenix_name:
-            raise SecretCtlError(f"secret '{secret_id}' must define 'agenixName'")
-
-        file_rel = secret_entry.get("file")
-        if not isinstance(file_rel, str) or not file_rel:
-            raise SecretCtlError(f"secret '{secret_id}' must define 'file'")
-
-        file_path = (repo_root / file_rel).resolve()
-        try:
-            file_path.relative_to(secrets_root)
-        except ValueError as exc:
-            raise SecretCtlError(
-                f"secret '{secret_id}' file must remain under secrets/: {file_rel}"
-            ) from exc
-
-        if file_path.suffix != ".age":
-            raise SecretCtlError(
-                f"secret '{secret_id}' file must end with .age: {file_rel}"
-            )
-
-        consumers = _validate_string_list(
-            f"secret '{secret_id}'", "consumers", secret_entry.get("consumers")
-        )
-        recipients = tuple(
-            _validate_recipient(f"secret '{secret_id}'", recipient)
-            for recipient in _validate_string_list(
-                f"secret '{secret_id}'", "recipients", secret_entry.get("recipients")
-            )
-        )
-        if file_path in seen_files:
-            raise SecretCtlError(
-                f"duplicate secret file mapping: {file_path} (used by {seen_files[file_path]} and {secret_id})"
-            )
-
-        specs[secret_id] = SecretSpec(
-            secret_id=secret_id,
-            agenix_name=agenix_name,
-            file=file_path,
-            consumers=consumers,
-            recipients=recipients,
-        )
-        seen_files[file_path] = secret_id
+        spec = _parse_secret_spec(repo_root, secrets_root, secret_id, entry, seen_files)
+        specs[secret_id] = spec
+        seen_files[spec.file] = secret_id
 
     if not specs:
-        raise SecretCtlError("secret index has no secrets")
+        message = "secret index has no secrets"
+        _fail(message)
 
     return len(targets), specs
 
@@ -286,12 +342,16 @@ def _decrypt_file(path: Path, identity_args: Sequence[str]) -> bytes:
             "identities are required" in stderr
             or "no identity matched any of the recipients" in stderr
         ):
-            raise SecretCtlError(
+            message = (
                 f"failed to decrypt {path}: {stderr}\n"
                 "hint: the local identities do not match this ciphertext's current recipients; "
                 "the file is likely still encrypted to an older key set"
             )
-        raise SecretCtlError(f"failed to decrypt {path}: {stderr}")
+            _fail(message)
+
+        message = f"failed to decrypt {path}: {stderr}"
+        _fail(message)
+
     return result.stdout
 
 
@@ -302,17 +362,20 @@ def _encrypt_bytes(
     age_args: list[str] = []
     for recipient in recipients:
         age_args.extend(["--recipient", recipient])
+
     result = _run_age(
         "--encrypt", *age_args, "--output", str(out_path), input_bytes=plaintext
     )
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
-        raise SecretCtlError(f"failed to encrypt {out_path}: {stderr}")
+        message = f"failed to encrypt {out_path}: {stderr}"
+        _fail(message)
 
 
 def _require_recipients(spec: SecretSpec) -> tuple[str, ...]:
     if not spec.recipients:
-        raise SecretCtlError(f"secret '{spec.secret_id}' resolved to zero recipients")
+        message = f"secret '{spec.secret_id}' resolved to zero recipients"
+        _fail(message)
     return spec.recipients
 
 
@@ -328,7 +391,8 @@ def _lookup_secret(repo_root: Path, secret_id: str) -> SecretSpec:
     _, specs = _load_config(repo_root)
     spec = specs.get(secret_id)
     if spec is None:
-        raise SecretCtlError(f"unknown secret id: {secret_id}")
+        message = f"unknown secret id: {secret_id}"
+        _fail(message)
     return spec
 
 
@@ -358,7 +422,8 @@ def _cmd_view(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
 def _resolve_editor() -> list[str]:
     editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
     if not editor:
-        raise SecretCtlError("no editor set; define VISUAL or EDITOR")
+        message = "no editor set; define VISUAL or EDITOR"
+        _fail(message)
     return shlex.split(editor)
 
 
@@ -373,9 +438,10 @@ def _cmd_edit(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
         tf.write(plaintext)
 
     try:
-        completed = subprocess.run([*editor, str(tmp_path)], check=False)
+        completed = subprocess.run([*editor, str(tmp_path)], check=False)  # noqa: S603
         if completed.returncode != 0:
-            raise SecretCtlError(f"editor exited with code {completed.returncode}")
+            message = f"editor exited with code {completed.returncode}"
+            _fail(message)
         new_plaintext = tmp_path.read_bytes()
     finally:
         tmp_path.unlink(missing_ok=True)
@@ -390,7 +456,9 @@ def _cmd_encrypt(repo_root: Path, secret_id: str, source_file: Path) -> int:
     try:
         plaintext = source_file.read_bytes()
     except FileNotFoundError as exc:
-        raise SecretCtlError(f"plaintext file not found: {source_file}") from exc
+        message = f"plaintext file not found: {source_file}"
+        raise SecretCtlError(message) from exc
+
     _encrypt_bytes(plaintext, _require_recipients(spec), spec.file)
     _stdout(f"encrypted {source_file} -> {spec.file.relative_to(repo_root)}")
     return 0
@@ -400,9 +468,9 @@ def _reencrypt_one(
     spec: SecretSpec, repo_root: Path, cli_identities: Sequence[str]
 ) -> None:
     if not spec.file.exists():
-        raise SecretCtlError(
-            f"missing ciphertext for '{spec.secret_id}': {spec.file.relative_to(repo_root)}"
-        )
+        message = f"missing ciphertext for '{spec.secret_id}': {spec.file.relative_to(repo_root)}"
+        _fail(message)
+
     identities = _resolve_identities(spec, cli_identities)
     plaintext = _decrypt_file(spec.file, identities.args)
     _encrypt_bytes(plaintext, _require_recipients(spec), spec.file)
@@ -419,12 +487,14 @@ def _cmd_reencrypt(
         selected = list(specs.values())
     else:
         if not secret_ids:
-            raise SecretCtlError("provide secret ids or use --all")
+            message = "provide secret ids or use --all"
+            _fail(message)
         selected = []
         for secret_id in secret_ids:
             spec = specs.get(secret_id)
             if spec is None:
-                raise SecretCtlError(f"unknown secret id: {secret_id}")
+                message = f"unknown secret id: {secret_id}"
+                _fail(message)
             selected.append(spec)
 
     for spec in selected:
@@ -443,7 +513,8 @@ def _cmd_check(repo_root: Path) -> int:
 
     if missing:
         joined = ", ".join(str(path) for path in missing)
-        raise SecretCtlError(f"missing ciphertext file(s): {joined}")
+        message = f"missing ciphertext file(s): {joined}"
+        _fail(message)
 
     _stdout(f"check ok: {len(specs)} secret(s)")
     return 0
@@ -489,31 +560,35 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _dispatch_command(args: argparse.Namespace, repo_root: Path) -> int:
+    command = cast("str", args.command)
+    handlers = {
+        "lint": lambda: _cmd_lint(repo_root),
+        "recipients": lambda: _cmd_recipients(repo_root, args.secret_id),
+        "view": lambda: _cmd_view(repo_root, args.secret_id, args.identity),
+        "edit": lambda: _cmd_edit(repo_root, args.secret_id, args.identity),
+        "encrypt": lambda: _cmd_encrypt(repo_root, args.secret_id, args.source_file),
+        "reencrypt": lambda: _cmd_reencrypt(
+            repo_root, args.secret_ids, args.all, args.identity
+        ),
+        "check": lambda: _cmd_check(repo_root),
+    }
+
+    handler = handlers.get(command)
+    if handler is None:
+        message = f"unsupported command: {command}"
+        _fail(message)
+
+    return handler()
+
+
 def _main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
     repo_root = _repo_root()
 
     try:
-        match args.command:
-            case "lint":
-                return _cmd_lint(repo_root)
-            case "recipients":
-                return _cmd_recipients(repo_root, args.secret_id)
-            case "view":
-                return _cmd_view(repo_root, args.secret_id, args.identity)
-            case "edit":
-                return _cmd_edit(repo_root, args.secret_id, args.identity)
-            case "encrypt":
-                return _cmd_encrypt(repo_root, args.secret_id, args.source_file)
-            case "reencrypt":
-                return _cmd_reencrypt(
-                    repo_root, args.secret_ids, args.all, args.identity
-                )
-            case "check":
-                return _cmd_check(repo_root)
-            case _:
-                raise SecretCtlError(f"unsupported command: {args.command}")
+        return _dispatch_command(args, repo_root)
     except SecretCtlError as exc:
         _stderr(f"error: {exc}")
         return 1
