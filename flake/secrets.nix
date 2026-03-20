@@ -68,7 +68,5 @@ let
   };
 in
 {
-  flake = {
-    inherit secretIndex;
-  };
+  flake = { inherit secretIndex; };
 }

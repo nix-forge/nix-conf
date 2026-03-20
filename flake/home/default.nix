@@ -31,7 +31,7 @@ let
         target = {
           targetId = "home:${homeConfig.username}@${homeConfig.folderName}";
           targetType = "home";
-          username = homeConfig.username;
+          inherit (homeConfig) username;
           configName = homeConfig.folderName;
           platform = null;
           groups = homeConfig.secrets.groups or [ ];

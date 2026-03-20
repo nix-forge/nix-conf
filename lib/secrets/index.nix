@@ -8,7 +8,6 @@ let
     foldl'
     hasAttr
     listToAttrs
-    map
     match
     sort
     ;
@@ -17,7 +16,6 @@ let
     concatStringsSep
     filterAttrs
     hasAttrByPath
-    mapAttrs
     mapAttrsToList
     nameValuePair
     unique
@@ -95,7 +93,7 @@ let
       group = topGroup;
       inherit scope selector platform;
       agenixName = name;
-      file = spec.file;
+      inherit (spec) file;
       fileRel = "${relDir}/${name}.age";
     };
 
@@ -206,10 +204,7 @@ let
     filter (name: (builtins.length (filter (candidate: candidate == name) names)) > 1) uniques;
 
   selectSecretsForTarget =
-    {
-      secretsTree,
-      target,
-    }:
+    { secretsTree, target }:
     let
       canonicalSecrets = flattenSecretsTree secretsTree;
       selectedSecrets = filter (secret: secretAppliesToTarget secret target) (
@@ -223,12 +218,7 @@ let
       )
     else
       listToAttrs (
-        map (
-          secret:
-          nameValuePair secret.agenixName {
-            file = secret.file;
-          }
-        ) selectedSecrets
+        map (secret: nameValuePair secret.agenixName { inherit (secret) file; }) selectedSecrets
       );
 
   recipientsForTarget =
@@ -238,10 +228,7 @@ let
     );
 
   mkTargets =
-    {
-      homeConfigs,
-      hostConfigs,
-    }:
+    { homeConfigs, hostConfigs }:
     let
       secretEnabledHomes = filterAttrs (
         _: configData: hasAttrByPath [ "secrets" ] configData
@@ -300,9 +287,7 @@ let
     }:
     let
       canonicalSecrets = flattenSecretsTree secretsTree;
-      targets = mkTargets {
-        inherit homeConfigs hostConfigs;
-      };
+      targets = mkTargets { inherit homeConfigs hostConfigs; };
       derivedGroups = deriveGroups targets;
 
       consumersFor =
@@ -324,13 +309,13 @@ let
           in
           nameValuePair secretId {
             id = secretId;
-            group = secret.group;
-            scope = secret.scope;
-            selector = secret.selector;
-            agenixName = secret.agenixName;
+            inherit (secret) group;
+            inherit (secret) scope;
+            inherit (secret) selector;
+            inherit (secret) agenixName;
             file = secret.fileRel;
             recipients = recipientsFor consumers;
-            consumers = consumers;
+            inherit consumers;
           }
         ) (sortedAttrNames canonicalSecrets)
       );
@@ -346,8 +331,8 @@ let
           in
           nameValuePair targetId {
             type = target.targetType;
-            groups = target.groups;
-            publicKey = target.publicKey;
+            inherit (target) groups;
+            inherit (target) publicKey;
             recipients = recipientsForTarget derivedGroups target;
           }
         ) (sortedAttrNames targets)
