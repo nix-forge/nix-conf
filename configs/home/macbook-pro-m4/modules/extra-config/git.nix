@@ -48,10 +48,11 @@ in
       ) [ { path = gitEmailConfigPath; } ];
   };
 
-  home.file.${gitEmailConfigPath}.text =
-    lib.mkIf (hasSecret "gitconfig-userEmail-GitHub" || hasSecret "gitconfig-userEmail-Cornell")
-      (
-        createGitEmailConfig (
+  home.file =
+    lib.optionalAttrs
+      (hasSecret "gitconfig-userEmail-GitHub" || hasSecret "gitconfig-userEmail-Cornell")
+      {
+        ${gitEmailConfigPath}.text = createGitEmailConfig (
           (lib.optionalAttrs (hasSecret "gitconfig-userEmail-GitHub") {
             "github.com" = secretPath "gitconfig-userEmail-GitHub";
             "gist.github.com" = secretPath "gitconfig-userEmail-GitHub";
@@ -60,6 +61,6 @@ in
             "github.coecis.cornell.edu" = secretPath "gitconfig-userEmail-Cornell";
             "gitlab.cs.cornell.edu" = secretPath "gitconfig-userEmail-Cornell";
           })
-        )
-      );
+        );
+      };
 }

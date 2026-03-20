@@ -31,18 +31,34 @@ let
         systems = { };
         users = { };
       };
-  secretsFor =
-    configData:
-    if configData ? secrets then
+  homeSecretsFor =
+    homeConfig:
+    if homeConfig ? secrets then
       myLib.secrets.selectSecretsForTarget {
         secretsTree = allSecrets;
         target = {
-          targetId = "host:darwin:${configData.folderName}";
+          targetId = "home:${homeConfig.username}@${homeConfig.folderName}";
+          targetType = "home";
+          inherit (homeConfig) username;
+          configName = homeConfig.folderName;
+          platform = null;
+          groups = homeConfig.secrets.groups or [ ];
+        };
+      }
+    else
+      { };
+  hostSecretsFor =
+    hostConfig:
+    if hostConfig ? secrets then
+      myLib.secrets.selectSecretsForTarget {
+        secretsTree = allSecrets;
+        target = {
+          targetId = "host:darwin:${hostConfig.folderName}";
           targetType = "host";
           username = null;
-          configName = configData.folderName;
+          configName = hostConfig.folderName;
           platform = "darwin";
-          groups = configData.secrets.groups or [ ];
+          groups = hostConfig.secrets.groups or [ ];
         };
       }
     else
@@ -51,7 +67,7 @@ let
     inherit inputs;
     inherit (args) self;
     modules = lib.attrsets.unionOfDisjoint homeModules sharedHomeModules;
-    mkHomeAttrs = _: homeConfig: { secrets = secretsFor homeConfig; };
+    mkHomeAttrs = _: homeConfig: { secrets = homeSecretsFor homeConfig; };
   };
 in
 {
@@ -69,7 +85,7 @@ in
       inherit (myLib.configs) connectHomeDarwin connectHomeNixos;
       builder = inputs.nix-darwin.lib.darwinSystem;
       extraSpecialArgs = { inherit myLib; };
-      mkSpecialArgs = _: hostConfig: { secrets = secretsFor hostConfig; };
+      mkSpecialArgs = _: hostConfig: { secrets = hostSecretsFor hostConfig; };
     };
   };
 }
