@@ -71,7 +71,7 @@ let
   };
 in
 {
-  # import = [ inputs.nix-darwin.flakeModules.nix-darwin ];
+  imports = [ inputs.nix-darwin.flakeModules.default ];
 
   flake = {
     modules.darwin = lib.attrsets.unionOfDisjoint darwinModules sharedModules;
