@@ -57,9 +57,11 @@ in
       permission = {
         edit = {
           "${config.xdg.cacheHome}/**" = "allow";
+          "/tmp/**" = "allow";
         };
         external_directory = {
           "${config.xdg.cacheHome}/**" = "allow";
+          "/tmp/**" = "allow";
         };
       };
     };
