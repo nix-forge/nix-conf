@@ -4,10 +4,11 @@ let
 in
 {
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
+    extensions = [
       ## Copilot
-      "github.copilot-chat"
-
+      pkgs.vscode-extensions.github.copilot-chat
+    ]
+    ++ extensions.forVscode [
       ## Codex
       "openai.chatgpt"
     ];
