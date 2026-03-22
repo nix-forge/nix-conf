@@ -60,7 +60,7 @@ in
           "/tmp/**" = "allow";
         };
         read = {
-          "nix/store/**" = "allow";
+          "/nix/store/**" = "allow";
         };
       };
     };
