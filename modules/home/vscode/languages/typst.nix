@@ -18,6 +18,7 @@ in
 
       "tinymist.formatterIndentSize" = 2;
       "tinymist.formatterMode" = "typstyle";
+      "tinymist.formatterPrintWidth" = 80;
 
       "tinymist.lint.enabled" = true;
       "tinymist.lint.when" = "onType";
@@ -29,6 +30,4 @@ in
       "tinymist.serverPath" = lib.getExe pkgs.tinymist;
     };
   };
-
-  home.packages = [ pkgs.typst ];
 }
