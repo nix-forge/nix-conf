@@ -30,6 +30,7 @@ let
       # Base fonts
       corefonts
       liberation_ttf
+      libertinus
       dejavu_fonts
       open-sans
       freefont_ttf
