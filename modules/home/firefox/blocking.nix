@@ -79,18 +79,46 @@ let
   '';
   commonFixesRules = ''
     * youtube.com * 3p-script noop
+
     github.com * 3p-script noop
+    github.com * 3p-frame noop
+
     www.reddit.com * 3p-script noop
+    www.reddit.com * 3p-frame noop
+
     edstem.org * 3p-script noop
+    edstem.org * 3p-frame noop
+
     accounts.google.com * 3p-script noop
+
     chatgpt.com * 3p-script noop
+    chatgpt.com * 3p-frame noop
+
     home-manager-options.extranix.com * 3p-script noop
+
     www.instagram.com * 3p-script noop
+    www.instagram.com * 3p-frame noop
+
     www.linkedin.com * 3p-script noop
+    www.linkedin.com * 3p-frame noop
+
     www.doordash.com * 3p-script noop
+    www.doordash.com * 3p-frame noop
+
     www.gradescope.com * 3p-frame noop
+    www.gradescope.com * 3p-script noop
+
     myworkdayjobs.com * 3p-script noop
+    myworkdayjobs.com * 3p-frame noop
+
     www.instacart.com * 3p-script noop
+    www.instacart.com * 3p-frame noop
+
+    grammarly.com * 3p-script noop
+    grammarly.com * 3p-frame noop
+
+    canvas.cornell.edu * 3p-script noop
+    canvas.cornell.edu * 3p-frame noop
   '';
 
   customRules = lib.concatStrings [
