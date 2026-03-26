@@ -3,10 +3,7 @@
   "mcp": {
     "Nix": {
       "type": "local",
-      "command": [
-        "uvx",
-        "mcp-nixos"
-      ]
+      "command": ["uvx", "mcp-nixos"]
     }
   }
 }
