@@ -27,6 +27,8 @@ in
         "cursor-acp"
         "opencode-gemini-auth@latest"
         "@simonwjackson/opencode-direnv"
+        "@mohak34/opencode-notifier@latest"
+        "plan-mode-notify"
       ];
       provider.cursor-acp = {
         name = "Cursor";
@@ -83,6 +85,53 @@ in
 
   xdg.configFile."opencode/plugin/cursor-acp.js".source =
     "${opencodeCursorPkg}/lib/opencode-cursor/dist/plugin-entry.js";
+
+  xdg.configFile."opencode/plugin/plan-mode-notify.ts".source = ./opencode-plan-mode-notify.ts;
+
+  xdg.configFile."opencode/opencode-notifier.json".text = builtins.toJSON {
+    sound = false;
+    notification = true;
+    timeout = 5;
+    showProjectName = true;
+    showSessionTitle = false;
+    showIcon = true;
+    suppressWhenFocused = true;
+    enableOnDesktop = false;
+    notificationSystem = "osascript";
+    command.enabled = false;
+    events = {
+      permission = {
+        sound = false;
+        notification = true;
+        command = false;
+      };
+      complete = {
+        sound = false;
+        notification = true;
+        command = false;
+      };
+      error = {
+        sound = false;
+        notification = true;
+        command = false;
+      };
+      question = {
+        sound = false;
+        notification = false;
+        command = false;
+      };
+      subagent_complete = {
+        sound = false;
+        notification = false;
+        command = false;
+      };
+      user_cancelled = {
+        sound = false;
+        notification = false;
+        command = false;
+      };
+    };
+  };
 
   home.activation.syncOpencodeRuntimeConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         state_dir="${config.xdg.stateHome}/opencode"
