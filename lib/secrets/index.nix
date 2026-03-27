@@ -34,6 +34,21 @@ let
     else
       value;
 
+  assertExtraPublicKeys =
+    targetId: value:
+    if !builtins.isList value then
+      mkKeyError "${targetId} must define secrets.extraPublicKeys as a list"
+    else
+      map (
+        key:
+        if !(builtins.isString key) || key == "" then
+          mkKeyError "${targetId} has an invalid secrets.extraPublicKeys entry"
+        else if match "ssh-(ed25519|rsa) .+" key == null then
+          mkKeyError "${targetId} has unsupported secrets.extraPublicKeys type"
+        else
+          key
+      ) value;
+
   assertGroups =
     targetId: groupNames:
     if !builtins.isList groupNames then
@@ -167,13 +182,17 @@ let
     }:
     let
       secretConfig = configData.secrets or { };
+      primaryPublicKey = assertPublicKey targetId (secretConfig.publicKey or null);
+      extraPublicKeys = assertExtraPublicKeys targetId (secretConfig.extraPublicKeys or [ ]);
+      publicKeys = sort builtins.lessThan (unique ([ primaryPublicKey ] ++ extraPublicKeys));
     in
     {
       inherit targetId targetType;
       username = configData.username or null;
       configName = configData.folderName or null;
       platform = configData.secretPlatform or null;
-      publicKey = assertPublicKey targetId (secretConfig.publicKey or null);
+      publicKey = primaryPublicKey;
+      inherit publicKeys;
       groups = assertGroups targetId (secretConfig.groups or [ ]);
     };
 
@@ -189,7 +208,7 @@ let
         groupAcc
         // {
           ${group} = sort builtins.lessThan (
-            unique ((if hasAttr group groupAcc then groupAcc.${group} else [ ]) ++ [ target.publicKey ])
+            unique ((if hasAttr group groupAcc then groupAcc.${group} else [ ]) ++ target.publicKeys)
           );
         }
       ) acc target.groups
@@ -224,7 +243,7 @@ let
   recipientsForTarget =
     groups: target:
     sort builtins.lessThan (
-      unique ([ target.publicKey ] ++ concatLists (map (group: groups.${group} or [ ]) target.groups))
+      unique (target.publicKeys ++ concatLists (map (group: groups.${group} or [ ]) target.groups))
     );
 
   mkTargets =
@@ -298,7 +317,9 @@ let
 
       recipientsFor =
         consumerIds:
-        sort builtins.lessThan (unique (map (targetId: targets.${targetId}.publicKey) consumerIds));
+        sort builtins.lessThan (
+          unique (concatLists (map (targetId: targets.${targetId}.publicKeys) consumerIds))
+        );
 
       indexSecrets = listToAttrs (
         map (
@@ -333,6 +354,10 @@ let
             type = target.targetType;
             inherit (target) groups;
             inherit (target) publicKey;
+            inherit (target) publicKeys;
+            inherit (target) username;
+            inherit (target) configName;
+            inherit (target) platform;
             recipients = recipientsForTarget derivedGroups target;
           }
         ) (sortedAttrNames targets)

@@ -50,13 +50,16 @@ let
   hostSecretsFor =
     hostConfig:
     if hostConfig ? secrets then
+      let
+        configName = hostConfig.folderName or hostConfig.hostName or "unknown";
+      in
       myLib.secrets.selectSecretsForTarget {
         secretsTree = allSecrets;
         target = {
-          targetId = "host:nixos:${hostConfig.folderName}";
+          targetId = "host:nixos:${configName}";
           targetType = "host";
           username = null;
-          configName = hostConfig.folderName;
+          inherit configName;
           platform = "nixos";
           groups = hostConfig.secrets.groups or [ ];
         };
@@ -85,5 +88,21 @@ in
       extraSpecialArgs = { inherit myLib; };
       mkSpecialArgs = _: hostConfig: { secrets = hostSecretsFor hostConfig; };
     };
+
+    deploy.nodes =
+      if lib.hasAttr "server" config.flake.nixosConfigurations then
+        {
+          server = {
+            hostname = "server";
+            sshUser = "root";
+            profilesOrder = [ "system" ];
+            profiles.system = {
+              user = "root";
+              path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos config.flake.nixosConfigurations.server;
+            };
+          };
+        }
+      else
+        { };
   };
 }

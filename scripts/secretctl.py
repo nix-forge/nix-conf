@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 SSH_RECIPIENT_PREFIXES = ("ssh-ed25519 ", "ssh-rsa ")
 PUBLIC_KEY_PART_COUNT = 2
+SECRET_ID_MIN_PART_COUNT = 2
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,14 @@ class IdentitySet:
     """Resolved decryption identities passed through to ``age``."""
 
     args: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ResolvedSecret:
+    """A looked up or index-derived secret spec."""
+
+    spec: SecretSpec
+    derived: bool
 
 
 def _fail(message: str) -> NoReturn:
@@ -396,6 +405,165 @@ def _lookup_secret(repo_root: Path, secret_id: str) -> SecretSpec:
     return spec
 
 
+def _secret_file_for_id(repo_root: Path, secret_id: str) -> Path:
+    parts = secret_id.split(".")
+    if len(parts) < SECRET_ID_MIN_PART_COUNT or any(not part for part in parts):
+        message = (
+            f"invalid secret id '{secret_id}' (expected '<group>.<scope...>.<name>')"
+        )
+        _fail(message)
+
+    if any("/" in part or "\\" in part for part in parts):
+        message = f"invalid secret id '{secret_id}' (path separators are not allowed)"
+        _fail(message)
+
+    secrets_root = (repo_root / "secrets").resolve()
+    file_path = (secrets_root / Path(*parts)).with_suffix(".age").resolve()
+
+    try:
+        file_path.relative_to(secrets_root)
+    except ValueError as exc:
+        message = f"secret id '{secret_id}' resolves outside secrets/"
+        raise SecretCtlError(message) from exc
+
+    return file_path
+
+
+def _derive_secret_from_index(  # noqa: C901, PLR0912, PLR0914, PLR0915
+    repo_root: Path, secret_id: str
+) -> SecretSpec:
+    index = _load_index(repo_root)
+    targets = index.get("targets")
+    if not isinstance(targets, dict):
+        message = "secret index must define a 'targets' object"
+        _fail(message)
+
+    parts = secret_id.split(".")
+    if len(parts) < SECRET_ID_MIN_PART_COUNT or any(not part for part in parts):
+        message = (
+            f"invalid secret id '{secret_id}' (expected '<group>.<scope...>.<name>')"
+        )
+        _fail(message)
+
+    group = parts[0]
+    path_parts = parts[1:-1]
+    agenix_name = parts[-1]
+
+    scope = "shared"
+    selector: str | None = None
+    platform: str | None = None
+
+    if path_parts:
+        scope_head = path_parts[0]
+        rest = path_parts[1:]
+
+        if scope_head == "home":
+            scope = "home"
+            if rest:
+                selector = rest[0]
+        elif scope_head == "system":
+            scope = "system"
+            if rest:
+                platform = rest[0]
+                if platform not in {"nixos", "darwin"}:
+                    message = (
+                        f"invalid system platform in '{secret_id}': {platform} "
+                        "(expected nixos or darwin)"
+                    )
+                    _fail(message)
+            if len(rest) > 1:
+                selector = rest[1]
+        else:
+            message = (
+                f"invalid scope in '{secret_id}': {scope_head} "
+                "(expected home or system for scoped secrets)"
+            )
+            _fail(message)
+
+    consumers: list[str] = []
+    recipient_set: set[str] = set()
+
+    for target_id, entry in sorted(targets.items()):
+        if not isinstance(target_id, str):
+            message = "secret index target ids must be strings"
+            _fail(message)
+        if not isinstance(entry, dict):
+            message = f"secret index target '{target_id}' must be an object"
+            _fail(message)
+
+        target = cast("dict[str, object]", entry)
+        target_groups = _validate_string_list(
+            f"target '{target_id}'", "groups", target.get("groups")
+        )
+        if group not in target_groups:
+            continue
+
+        target_type = target.get("type")
+        if not isinstance(target_type, str):
+            message = f"target '{target_id}' has an invalid 'type'"
+            _fail(message)
+
+        match = False
+        if scope == "shared":
+            match = True
+        elif scope == "home":
+            username = target.get("username")
+            if username is not None and not isinstance(username, str):
+                message = f"target '{target_id}' has an invalid 'username'"
+                _fail(message)
+            match = target_type == "home" and (selector is None or selector == username)
+        elif scope == "system":
+            config_name = target.get("configName")
+            if config_name is not None and not isinstance(config_name, str):
+                message = f"target '{target_id}' has an invalid 'configName'"
+                _fail(message)
+            target_platform = target.get("platform")
+            if target_platform is not None and not isinstance(target_platform, str):
+                message = f"target '{target_id}' has an invalid 'platform'"
+                _fail(message)
+
+            match = (
+                target_type == "host"
+                and (platform is None or platform == target_platform)
+                and (selector is None or selector == config_name)
+            )
+
+        if not match:
+            continue
+
+        target_public_keys = _validate_string_list(
+            f"target '{target_id}'", "publicKeys", target.get("publicKeys")
+        )
+        consumers.append(target_id)
+        recipient_set.update(target_public_keys)
+
+    if not recipient_set:
+        message = (
+            f"unable to derive recipients for '{secret_id}'; no matching consumer targets found"
+        )
+        _fail(message)
+
+    return SecretSpec(
+        secret_id=secret_id,
+        agenix_name=agenix_name,
+        file=_secret_file_for_id(repo_root, secret_id),
+        consumers=tuple(sorted(consumers)),
+        recipients=tuple(sorted(recipient_set)),
+    )
+
+
+def _lookup_or_derive_secret(
+    repo_root: Path, secret_id: str, *, allow_derived: bool
+) -> ResolvedSecret:
+    try:
+        return ResolvedSecret(spec=_lookup_secret(repo_root, secret_id), derived=False)
+    except SecretCtlError as exc:
+        if not allow_derived or str(exc) != f"unknown secret id: {secret_id}":
+            raise
+
+    return ResolvedSecret(spec=_derive_secret_from_index(repo_root, secret_id), derived=True)
+
+
 def _cmd_recipients(repo_root: Path, secret_id: str) -> int:
     spec = _lookup_secret(repo_root, secret_id)
     data = {
@@ -420,17 +588,42 @@ def _cmd_view(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
 
 
 def _resolve_editor() -> list[str]:
-    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
     if not editor:
         message = "no editor set; define VISUAL or EDITOR"
         _fail(message)
     return shlex.split(editor)
 
 
-def _cmd_edit(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) -> int:
-    spec = _lookup_secret(repo_root, secret_id)
-    identities = _resolve_identities(spec, cli_identities)
-    plaintext = _decrypt_file(spec.file, identities.args)
+def _cmd_edit(
+    repo_root: Path,
+    secret_id: str,
+    cli_identities: Sequence[str],
+    *,
+    create: bool,
+) -> int:
+    if create:
+        spec = _lookup_or_derive_secret(
+            repo_root, secret_id, allow_derived=True
+        ).spec
+    else:
+        spec = _lookup_secret(repo_root, secret_id)
+
+    if spec.file.exists():
+        identities = _resolve_identities(spec, cli_identities)
+        plaintext = _decrypt_file(spec.file, identities.args)
+        action = "updated"
+    else:
+        if not create:
+            message = (
+                f"ciphertext does not exist for '{secret_id}': {spec.file.relative_to(repo_root)}\n"
+                "hint: run 'edit --create <secret-id>' to create it in your editor"
+            )
+            _fail(message)
+
+        plaintext = b""
+        action = "created"
+
     editor = _resolve_editor()
 
     with tempfile.NamedTemporaryFile(prefix="secretctl-", delete=False) as tf:
@@ -447,12 +640,43 @@ def _cmd_edit(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
         tmp_path.unlink(missing_ok=True)
 
     _encrypt_bytes(new_plaintext, _require_recipients(spec), spec.file)
-    _stdout(f"updated {spec.secret_id} -> {spec.file.relative_to(repo_root)}")
+    _stdout(f"{action} {spec.secret_id} -> {spec.file.relative_to(repo_root)}")
+    return 0
+
+
+def _cmd_create(repo_root: Path, secret_id: str) -> int:
+    resolved = _lookup_or_derive_secret(repo_root, secret_id, allow_derived=True)
+    spec = resolved.spec
+    if spec.file.exists():
+        message = (
+            f"ciphertext already exists for '{secret_id}': {spec.file.relative_to(repo_root)}\n"
+            "hint: use 'edit <secret-id>' to modify existing secrets"
+        )
+        _fail(message)
+
+    editor = _resolve_editor()
+
+    with tempfile.NamedTemporaryFile(prefix="secretctl-", delete=False) as tf:
+        tmp_path = Path(tf.name)
+
+    try:
+        completed = subprocess.run([*editor, str(tmp_path)], check=False)  # noqa: S603
+        if completed.returncode != 0:
+            message = f"editor exited with code {completed.returncode}"
+            _fail(message)
+
+        plaintext = tmp_path.read_bytes()
+        _encrypt_bytes(plaintext, _require_recipients(spec), spec.file)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    _stdout(f"created {spec.secret_id} -> {spec.file.relative_to(repo_root)}")
     return 0
 
 
 def _cmd_encrypt(repo_root: Path, secret_id: str, source_file: Path) -> int:
-    spec = _lookup_secret(repo_root, secret_id)
+    resolved = _lookup_or_derive_secret(repo_root, secret_id, allow_derived=True)
+    spec = resolved.spec
     try:
         plaintext = source_file.read_bytes()
     except FileNotFoundError as exc:
@@ -460,7 +684,13 @@ def _cmd_encrypt(repo_root: Path, secret_id: str, source_file: Path) -> int:
         raise SecretCtlError(message) from exc
 
     _encrypt_bytes(plaintext, _require_recipients(spec), spec.file)
-    _stdout(f"encrypted {source_file} -> {spec.file.relative_to(repo_root)}")
+
+    if resolved.derived:
+        _stdout(
+            f"created+encrypted {source_file} -> {spec.file.relative_to(repo_root)}"
+        )
+    else:
+        _stdout(f"encrypted {source_file} -> {spec.file.relative_to(repo_root)}")
     return 0
 
 
@@ -543,12 +773,22 @@ def _build_parser() -> argparse.ArgumentParser:
 
     edit_parser = subparsers.add_parser("edit", help="edit a secret with $EDITOR")
     edit_parser.add_argument("secret_id")
+    edit_parser.add_argument(
+        "--create",
+        action="store_true",
+        help="create the ciphertext from an empty buffer if it does not exist",
+    )
 
     encrypt_parser = subparsers.add_parser(
         "encrypt", help="encrypt plaintext file into a secret"
     )
     encrypt_parser.add_argument("secret_id")
     encrypt_parser.add_argument("--from", dest="source_file", required=True, type=Path)
+
+    create_parser = subparsers.add_parser(
+        "create", help="create a new secret in $EDITOR"
+    )
+    create_parser.add_argument("secret_id")
 
     reencrypt_parser = subparsers.add_parser(
         "reencrypt", help="re-encrypt one or more secrets"
@@ -566,7 +806,10 @@ def _dispatch_command(args: argparse.Namespace, repo_root: Path) -> int:
         "lint": lambda: _cmd_lint(repo_root),
         "recipients": lambda: _cmd_recipients(repo_root, args.secret_id),
         "view": lambda: _cmd_view(repo_root, args.secret_id, args.identity),
-        "edit": lambda: _cmd_edit(repo_root, args.secret_id, args.identity),
+        "edit": lambda: _cmd_edit(
+            repo_root, args.secret_id, args.identity, create=args.create
+        ),
+        "create": lambda: _cmd_create(repo_root, args.secret_id),
         "encrypt": lambda: _cmd_encrypt(repo_root, args.secret_id, args.source_file),
         "reencrypt": lambda: _cmd_reencrypt(
             repo_root, args.secret_ids, args.all, args.identity

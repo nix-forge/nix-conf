@@ -43,7 +43,6 @@ in
       settings = sharedSettings // {
         trusted-users = sharedSettings.trusted-users ++ [
           "@wheel"
-          "@sudo"
           "nix-builder"
         ];
 

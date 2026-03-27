@@ -58,6 +58,16 @@ os-boot hostname *args:
 os-test hostname *args:
     nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
+# Build NixOS VM launcher for a host
+[group('NixOS')]
+os-vm hostname:
+    nix build {{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vm
+
+# Build NixOS VM with qemu helper scripts
+[group('NixOS')]
+os-vm-with-bootloader hostname:
+    nix build {{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vmWithBootLoader
+
 # ─── Darwin ───────────────────────────────────────────────────────────
 
 # Build a nix-darwin configuration (dry build, no activation)
@@ -81,6 +91,23 @@ home-build configuration *args:
 [group('Home')]
 home-switch configuration *args:
     nh home switch {{ flake }} -c {{ configuration }} --show-trace {{ args }}
+
+# ─── Deploy ───────────────────────────────────────────────────────────
+
+# Validate deploy-rs definitions via flake checks
+[group('Deploy')]
+deploy-check:
+    nix flake check --no-allow-import-from-derivation
+
+# Deploy all configured profiles with deploy-rs
+[group('Deploy')]
+deploy *args:
+    nix run github:serokell/deploy-rs -- {{ flake }} {{ args }}
+
+# Provision a new machine using nixos-anywhere
+[group('Deploy')]
+nixos-anywhere host target *args:
+    nix run github:nix-community/nixos-anywhere -- --flake {{ flake }}#{{ host }} {{ target }} {{ args }}
 
 # ─── Secrets ──────────────────────────────────────────────────────────
 
@@ -106,10 +133,15 @@ secret-view secret_id:
 
 # Edit a secret by ID via $EDITOR
 [group('Secrets')]
-secret-edit secret_id:
-    nix run path:{{ flake }}#secretctl -- edit {{ secret_id }}
+secret-edit secret_id *args:
+    nix run path:{{ flake }}#secretctl -- edit {{ secret_id }} {{ args }}
 
-# Create/replace a secret from plaintext file
+# Create a new secret by ID via $EDITOR (fails if it already exists)
+[group('Secrets')]
+secret-create secret_id *args:
+    nix run path:{{ flake }}#secretctl -- create {{ secret_id }} {{ args }}
+
+# Create/replace a secret from plaintext file (bootstraps missing IDs)
 [group('Secrets')]
 secret-encrypt secret_id source:
     nix run path:{{ flake }}#secretctl -- encrypt {{ secret_id }} --from {{ source }}

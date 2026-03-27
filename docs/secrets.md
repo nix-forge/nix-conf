@@ -21,12 +21,20 @@ Each host or home config defines:
 ```nix
 secrets = {
   publicKey = "ssh-ed25519 ...";
+  extraPublicKeys = [
+    "ssh-ed25519 ..."
+  ];
   groups = [ "IanHollow" ];
 };
 ```
 
 - `publicKey` is the SSH public key for that concrete target.
+- `extraPublicKeys` is an optional list of additional SSH public keys for that
+  same target (for example a temporary VM host key during migration).
 - `groups` is the list of top-level owner groups that target should receive.
+
+`publicKey` remains required. If `extraPublicKeys` is omitted, it defaults to an
+empty list.
 
 ## Secret layout and IDs
 
@@ -102,6 +110,8 @@ the group root directly. Extra nested folders under `home/<username>/`, or
 To avoid lockout when rotating keys:
 
 1. Add the new public key to the relevant config.
+   - If keeping the old key for the same target, place the additional key in
+     `secrets.extraPublicKeys`.
 2. Keep the old key temporarily on another config that should still decrypt the
    same secrets.
 3. Run `just secret-reencrypt --all`.
