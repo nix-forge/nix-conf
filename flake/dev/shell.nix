@@ -6,6 +6,8 @@
         packages = with pkgs; [
           nh
           just
+
+          bashInteractive
         ];
       };
     };
