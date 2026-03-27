@@ -27,6 +27,10 @@
     inputs.srvos.nixosModules.server
     inputs.srvos.nixosModules.mixins-nix-experimental
 
+    boot
+    boot-grub
+    boot-grub-server
+
     # homelab
 
     {

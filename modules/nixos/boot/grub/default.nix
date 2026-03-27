@@ -1,14 +1,9 @@
 {
-  boot = {
-    loader = {
-      efi = {
-        canTouchEfiVariables = true;
-      };
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    device = "nodev";
 
-      grub = {
-        enable = true;
-        efiSupport = true;
-      };
-    };
+    memtest86.enable = true;
   };
 }

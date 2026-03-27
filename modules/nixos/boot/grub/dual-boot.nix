@@ -1,6 +1,1 @@
-{
-  boot.loader = {
-    timeout = 5;
-    grub.useOSProber = true;
-  };
-}
+{ boot.loader.grub.useOSProber = true; }
