@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn, cast
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -98,14 +98,19 @@ def _parse_manifest(manifest: str) -> str:
     if appdmg_block_match is None:
         _fail("could not find the macOS appdmg package in the Steam manifest")
 
-    appdmg_files = re.findall(r'"file"\s+"([^"]+)"', appdmg_block_match.group(1))
-    appdmg_candidates = [filename for filename in appdmg_files if "steamchina" not in filename]
+    block_match = cast("re.Match[str]", appdmg_block_match)
+    appdmg_files = re.findall(r'"file"\s+"([^"]+)"', block_match.group(1))
+    appdmg_candidates = [
+        filename for filename in appdmg_files if "steamchina" not in filename
+    ]
     if len(appdmg_candidates) != 1:
         _fail("could not uniquely determine the standard macOS appdmg package")
     return f"https://media.steampowered.com/client/{appdmg_candidates[0]}"
 
 
-def _run_checked(args: list[str], *, error_message: str) -> subprocess.CompletedProcess[str]:
+def _run_checked(
+    args: list[str], *, error_message: str
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
         args,
         capture_output=True,
@@ -119,10 +124,10 @@ def _run_checked(args: list[str], *, error_message: str) -> subprocess.Completed
 
 
 def _find_required_file(root: Path, suffix: str) -> Path:
-    path = next(root.rglob(suffix), None)
-    if path is None:
-        _fail(f"Steam appdmg payload did not contain {suffix}")
-    return path
+    for path in root.rglob(suffix):
+        return path
+
+    _fail(f"Steam appdmg payload did not contain {suffix}")
 
 
 def _validate_appdmg(url: str) -> str:
@@ -180,7 +185,9 @@ def _validate_appdmg(url: str) -> str:
 
         _find_required_file(extract_root, "Steam.app/Contents/Resources/Steam.icns")
         _find_required_file(extract_root, "Steam.app/Contents/Resources/Assets.car")
-        steam_binary = _find_required_file(extract_root, "Steam.app/Contents/MacOS/steam_osx")
+        steam_binary = _find_required_file(
+            extract_root, "Steam.app/Contents/MacOS/steam_osx"
+        )
         _find_required_file(extract_root, "Steam.app/Contents/Info.plist")
 
         inspect = _run_checked(
@@ -228,8 +235,12 @@ def _build_diff(old: str, new: str, path: Path) -> str:
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dry-run", action="store_true", help="print diff but do not write")
-    parser.add_argument("--check", action="store_true", help="exit non-zero when updates are available")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="print diff but do not write"
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="exit non-zero when updates are available"
+    )
     parser.add_argument(
         "--channel",
         choices=sorted(MANIFEST_URLS),
@@ -243,7 +254,9 @@ def _main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     source_path = Path(__file__).with_name("source.nix")
 
-    manifest = _fetch_text(MANIFEST_URLS[args.channel], label=f"Steam {args.channel} manifest")
+    manifest = _fetch_text(
+        MANIFEST_URLS[args.channel], label=f"Steam {args.channel} manifest"
+    )
     appdmg_url = _parse_manifest(manifest)
     version = _validate_appdmg(appdmg_url)
 

@@ -34,6 +34,13 @@ let
     else
       value;
 
+  assertPublicKeyList =
+    targetId: values:
+    if !builtins.isList values then
+      mkKeyError "${targetId} must define secrets.extraPublicKeys as a list"
+    else
+      sort builtins.lessThan (unique (map (value: assertPublicKey targetId value) values));
+
   assertGroups =
     targetId: groupNames:
     if !builtins.isList groupNames then
@@ -174,6 +181,7 @@ let
       configName = configData.folderName or null;
       platform = configData.secretPlatform or null;
       publicKey = assertPublicKey targetId (secretConfig.publicKey or null);
+      extraPublicKeys = assertPublicKeyList targetId (secretConfig.extraPublicKeys or [ ]);
       groups = assertGroups targetId (secretConfig.groups or [ ]);
     };
 
@@ -224,7 +232,11 @@ let
   recipientsForTarget =
     groups: target:
     sort builtins.lessThan (
-      unique ([ target.publicKey ] ++ concatLists (map (group: groups.${group} or [ ]) target.groups))
+      unique (
+        [ target.publicKey ]
+        ++ target.extraPublicKeys
+        ++ concatLists (map (group: groups.${group} or [ ]) target.groups)
+      )
     );
 
   mkTargets =
@@ -298,7 +310,19 @@ let
 
       recipientsFor =
         consumerIds:
-        sort builtins.lessThan (unique (map (targetId: targets.${targetId}.publicKey) consumerIds));
+        sort builtins.lessThan (
+          unique (
+            concatLists (
+              map (
+                targetId:
+                let
+                  target = targets.${targetId};
+                in
+                [ target.publicKey ] ++ target.extraPublicKeys
+              ) consumerIds
+            )
+          )
+        );
 
       indexSecrets = listToAttrs (
         map (
@@ -333,6 +357,7 @@ let
             type = target.targetType;
             inherit (target) groups;
             inherit (target) publicKey;
+            inherit (target) extraPublicKeys;
             recipients = recipientsForTarget derivedGroups target;
           }
         ) (sortedAttrNames targets)

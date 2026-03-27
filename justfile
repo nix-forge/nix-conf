@@ -58,6 +58,43 @@ os-boot hostname *args:
 os-test hostname *args:
     nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
+# Build media-server VM smoke/parity artifact
+[group('NixOS')]
+media-vm-build profile="parity":
+    nix build path:{{ flake }}#nixosConfigurations.media-server-vm-{{ profile }}.config.system.build.vm -L
+
+# Run media-server VM smoke/parity artifact
+[group('NixOS')]
+media-vm-run profile="parity" *args:
+    just media-vm-build {{ profile }}
+    ./result/bin/run-media-server-vm-{{ profile }}-vm {{ args }}
+
+# Remove VM disk image and symlink result for a clean rerun
+[group('NixOS')]
+media-vm-reset profile="parity":
+    rm -f ./media-server-vm-{{ profile }}.qcow2
+    rm -f ./result
+
+# Host-side smoke checks against forwarded VM ports
+[group('NixOS')]
+media-vm-check profile="smoke":
+    {{ flake }}/scripts/media-vm-test.sh {{ profile }} all
+
+# Run full staged VM test framework
+[group('NixOS')]
+media-vm-test profile="smoke":
+    {{ flake }}/scripts/media-vm-test.sh {{ profile }} all
+
+# Run a single stage from the VM test framework
+[group('NixOS')]
+media-vm-test-stage profile="smoke" stage="routes":
+    {{ flake }}/scripts/media-vm-test.sh {{ profile }} {{ stage }}
+
+# Collect diagnostics from latest VM test artifact directory
+[group('NixOS')]
+media-vm-test-diag profile="smoke":
+    bash -eu -c 'dir=$(ls -1dt ./.artifacts/media-vm-tests/*-{{ profile }} 2>/dev/null | head -n1 || true); if [ -z "$dir" ]; then echo "No artifacts found for profile {{ profile }}"; exit 1; fi; echo "Artifact: $dir"; [ -f "$dir/summary.txt" ] && cat "$dir/summary.txt"; [ -d "$dir/diag" ] && find "$dir/diag" -maxdepth 1 -type f -print'
+
 # ─── Darwin ───────────────────────────────────────────────────────────
 
 # Build a nix-darwin configuration (dry build, no activation)

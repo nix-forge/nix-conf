@@ -221,3 +221,4 @@ result/
 .direnv/
 result
 .opencode/plans/
+.artifacts/

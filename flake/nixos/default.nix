@@ -83,7 +83,14 @@ in
       inherit (myLib.configs) connectHomeDarwin connectHomeNixos;
       builder = lib.nixosSystem;
       extraSpecialArgs = { inherit myLib; };
-      mkSpecialArgs = _: hostConfig: { secrets = hostSecretsFor hostConfig; };
+      mkSpecialArgs =
+        entry: hostConfig:
+        let
+          folderName = hostConfig.folderName or entry.name;
+        in
+        {
+          secrets = hostSecretsFor (hostConfig // { inherit folderName; });
+        };
     };
   };
 }

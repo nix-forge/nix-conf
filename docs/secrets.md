@@ -21,11 +21,14 @@ Each host or home config defines:
 ```nix
 secrets = {
   publicKey = "ssh-ed25519 ...";
+  extraPublicKeys = [ "ssh-ed25519 ..." ];
   groups = [ "IanHollow" ];
 };
 ```
 
 - `publicKey` is the SSH public key for that concrete target.
+- `extraPublicKeys` is optional and adds extra recipients, such as a developer
+  workstation key used to keep editing host-specific secrets locally.
 - `groups` is the list of top-level owner groups that target should receive.
 
 ## Secret layout and IDs
@@ -107,3 +110,7 @@ To avoid lockout when rotating keys:
 3. Run `just secret-reencrypt --all`.
 4. Verify access with the new key.
 5. Remove the old key and re-encrypt again.
+
+## Media server bootstrap
+
+For the VM-first media server workflow, use `docs/media-server-secret-bootstrap.md`.

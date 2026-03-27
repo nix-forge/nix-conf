@@ -90,7 +90,7 @@ def _validate_recipient(owner: str, value: object) -> str:
         message = f"{owner} contains an empty recipient"
         _fail(message)
 
-    recipient = value.strip()
+    recipient = cast("str", value).strip()
     if not recipient.startswith(SSH_RECIPIENT_PREFIXES):
         message = f"{owner} has unsupported SSH recipient type (expected ssh-ed25519 or ssh-rsa)"
         _fail(message)
@@ -103,12 +103,13 @@ def _validate_string_list(owner: str, field: str, value: object) -> tuple[str, .
         message = f"{owner} must define a list '{field}'"
         _fail(message)
 
+    values = cast("list[object]", value)
     result: list[str] = []
-    for item in value:
+    for item in values:
         if not isinstance(item, str) or not item:
             message = f"{owner} has an invalid '{field}' entry"
             _fail(message)
-        result.append(item)
+        result.append(cast("str", item))
     return tuple(result)
 
 
@@ -250,13 +251,15 @@ def _parse_secret_spec(
     if not isinstance(agenix_name, str) or not agenix_name:
         message = f"secret '{secret_id}' must define 'agenixName'"
         _fail(message)
+    agenix_name_str = cast("str", agenix_name)
 
     file_rel = secret_entry.get("file")
     if not isinstance(file_rel, str) or not file_rel:
         message = f"secret '{secret_id}' must define 'file'"
         _fail(message)
+    file_rel_str = cast("str", file_rel)
 
-    file_path = (repo_root / file_rel).resolve()
+    file_path = (repo_root / file_rel_str).resolve()
     try:
         file_path.relative_to(secrets_root)
     except ValueError as exc:
@@ -286,7 +289,7 @@ def _parse_secret_spec(
 
     return SecretSpec(
         secret_id=secret_id,
-        agenix_name=agenix_name,
+        agenix_name=agenix_name_str,
         file=file_path,
         consumers=consumers,
         recipients=recipients,
@@ -300,17 +303,19 @@ def _load_config(repo_root: Path) -> tuple[int, dict[str, SecretSpec]]:
     if not isinstance(targets, dict):
         message = "secret index must define a 'targets' object"
         _fail(message)
+    targets_dict = cast("dict[str, object]", targets)
 
     secrets = index.get("secrets")
     if not isinstance(secrets, dict):
         message = "secret index must define a 'secrets' object"
         _fail(message)
+    secrets_dict = cast("dict[str, object]", secrets)
 
     secrets_root = (repo_root / "secrets").resolve()
     specs: dict[str, SecretSpec] = {}
     seen_files: dict[Path, str] = {}
 
-    for secret_id, entry in sorted(secrets.items()):
+    for secret_id, entry in sorted(secrets_dict.items()):
         if not isinstance(secret_id, str) or not secret_id:
             message = "secret ids must be non-empty strings"
             _fail(message)
@@ -323,7 +328,7 @@ def _load_config(repo_root: Path) -> tuple[int, dict[str, SecretSpec]]:
         message = "secret index has no secrets"
         _fail(message)
 
-    return len(targets), specs
+    return len(targets_dict), specs
 
 
 def _run_age(
@@ -393,7 +398,7 @@ def _lookup_secret(repo_root: Path, secret_id: str) -> SecretSpec:
     if spec is None:
         message = f"unknown secret id: {secret_id}"
         _fail(message)
-    return spec
+    return cast("SecretSpec", spec)
 
 
 def _cmd_recipients(repo_root: Path, secret_id: str) -> int:
@@ -420,11 +425,11 @@ def _cmd_view(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
 
 
 def _resolve_editor() -> list[str]:
-    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
     if not editor:
         message = "no editor set; define VISUAL or EDITOR"
         _fail(message)
-    return shlex.split(editor)
+    return shlex.split(cast("str", editor))
 
 
 def _cmd_edit(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) -> int:
@@ -562,24 +567,42 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _dispatch_command(args: argparse.Namespace, repo_root: Path) -> int:
     command = cast("str", args.command)
-    handlers = {
-        "lint": lambda: _cmd_lint(repo_root),
-        "recipients": lambda: _cmd_recipients(repo_root, args.secret_id),
-        "view": lambda: _cmd_view(repo_root, args.secret_id, args.identity),
-        "edit": lambda: _cmd_edit(repo_root, args.secret_id, args.identity),
-        "encrypt": lambda: _cmd_encrypt(repo_root, args.secret_id, args.source_file),
-        "reencrypt": lambda: _cmd_reencrypt(
-            repo_root, args.secret_ids, args.all, args.identity
-        ),
-        "check": lambda: _cmd_check(repo_root),
-    }
-
-    handler = handlers.get(command)
-    if handler is None:
+    if command == "lint":
+        result = _cmd_lint(repo_root)
+    elif command == "recipients":
+        result = _cmd_recipients(repo_root, cast("str", args.secret_id))
+    elif command == "view":
+        result = _cmd_view(
+            repo_root,
+            cast("str", args.secret_id),
+            cast("Sequence[str]", args.identity),
+        )
+    elif command == "edit":
+        result = _cmd_edit(
+            repo_root,
+            cast("str", args.secret_id),
+            cast("Sequence[str]", args.identity),
+        )
+    elif command == "encrypt":
+        result = _cmd_encrypt(
+            repo_root,
+            cast("str", args.secret_id),
+            cast("Path", args.source_file),
+        )
+    elif command == "reencrypt":
+        result = _cmd_reencrypt(
+            repo_root,
+            cast("list[str]", args.secret_ids),
+            cast("bool", args.all),
+            cast("Sequence[str]", args.identity),
+        )
+    elif command == "check":
+        result = _cmd_check(repo_root)
+    else:
         message = f"unsupported command: {command}"
         _fail(message)
 
-    return handler()
+    return result
 
 
 def _main(argv: Sequence[str] | None = None) -> int:

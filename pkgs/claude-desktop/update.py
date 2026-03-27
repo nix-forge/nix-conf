@@ -14,7 +14,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn, cast
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -28,7 +28,7 @@ RELEASES_URL: Final = (
 )
 EXPECTED_HOST: Final = "downloads.claude.ai"
 EXPECTED_PATH_PREFIX: Final = "/releases/darwin/universal/"
-EXPECTED_ZIP_PATTERN: Final = re.compile(
+EXPECTED_ZIP_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"^/releases/darwin/universal/([^/]+)/Claude-([0-9a-f]+)\.zip$"
 )
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
@@ -114,26 +114,34 @@ def _extract_latest_release(data: object) -> tuple[str, str]:
     if not isinstance(data, dict):
         _fail("Claude releases feed did not return an object")
 
-    releases = data.get("releases")
+    data_dict = cast("dict[str, object]", data)
+
+    releases = data_dict.get("releases")
     if not isinstance(releases, list) or not releases:
         _fail("Claude releases feed did not include any releases")
 
-    latest = releases[0]
+    releases_list = cast("list[object]", releases)
+
+    latest = releases_list[0]
     if not isinstance(latest, dict):
         _fail("latest Claude release entry is not an object")
 
-    update_to = latest.get("updateTo")
+    latest_dict = cast("dict[str, object]", latest)
+
+    update_to = latest_dict.get("updateTo")
     if not isinstance(update_to, dict):
         _fail("latest Claude release is missing `updateTo` metadata")
 
-    version = update_to.get("version")
-    url = update_to.get("url")
+    update_to_dict = cast("dict[str, object]", update_to)
+
+    version = update_to_dict.get("version")
+    url = update_to_dict.get("url")
     if not isinstance(version, str) or not version:
         _fail("latest Claude release is missing a string version")
     if not isinstance(url, str) or not url:
         _fail("latest Claude release is missing a string download URL")
 
-    return version, url
+    return cast("str", version), cast("str", url)
 
 
 def _validate_download_url(version: str, url: str) -> None:
@@ -149,7 +157,8 @@ def _validate_download_url(version: str, url: str) -> None:
     if match is None:
         _fail(f"unexpected Claude archive path format: {parsed_url.path!r}")
 
-    version_from_path = match.group(1)
+    match_obj = cast("re.Match[str]", match)
+    version_from_path = cast("str", match_obj.group(1))
     if version_from_path != version:
         _fail(
             "Claude feed version does not match archive path version: "

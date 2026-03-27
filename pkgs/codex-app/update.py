@@ -15,7 +15,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn, cast
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 APPCAST_URL: Final = "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
 EXPECTED_HOST: Final = "persistent.oaistatic.com"
-EXPECTED_PATH_PATTERN: Final = re.compile(
+EXPECTED_PATH_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"^/codex-app-prod/Codex-darwin-arm64-(.+)\.zip$"
 )
 SPARKLE_NAMESPACE: Final = {
@@ -119,27 +119,34 @@ def _discover_upstream() -> _UpstreamState:
     item = root.find("./channel/item")
     if item is None:
         _fail("Codex appcast does not include any items")
+    item_element = cast("ET.Element[str]", item)
 
-    version_element = item.find("./sparkle:shortVersionString", SPARKLE_NAMESPACE)
-    enclosure = item.find("./enclosure")
+    version_element = item_element.find(
+        "./sparkle:shortVersionString", SPARKLE_NAMESPACE
+    )
+    enclosure = item_element.find("./enclosure")
 
-    if (
-        version_element is None
-        or version_element.text is None
-        or not version_element.text.strip()
-    ):
+    if version_element is None or version_element.text is None:
         _fail("latest Codex appcast item is missing `sparkle:shortVersionString`")
     if enclosure is None:
         _fail("latest Codex appcast item is missing `enclosure`")
 
-    version = version_element.text.strip()
-    url = enclosure.attrib.get("url")
+    version_element_typed = cast("ET.Element[str]", version_element)
+    version_text = cast("str", version_element_typed.text)
+    version = version_text.strip()
+    if not version:
+        _fail("latest Codex appcast item is missing `sparkle:shortVersionString`")
+
+    enclosure_element = cast("ET.Element[str]", enclosure)
+    url = enclosure_element.attrib.get("url")
     if not isinstance(url, str) or not url:
         _fail("latest Codex appcast item is missing an enclosure URL")
 
-    parsed_url = urlparse(url)
+    download_url = cast("str", url)
+
+    parsed_url = urlparse(download_url)
     if parsed_url.scheme != "https":
-        _fail(f"Codex download URL must use HTTPS: {url}")
+        _fail(f"Codex download URL must use HTTPS: {download_url}")
     if parsed_url.netloc != EXPECTED_HOST:
         _fail(f"unexpected Codex download host: {parsed_url.netloc!r}")
 
@@ -147,14 +154,19 @@ def _discover_upstream() -> _UpstreamState:
     if match is None:
         _fail(f"unexpected Codex archive path format: {parsed_url.path!r}")
 
-    version_from_path = match.group(1)
+    match_obj = cast("re.Match[str]", match)
+    version_from_path = cast("str", match_obj.group(1))
     if version_from_path != version:
         _fail(
             "Codex appcast version does not match archive path version: "
             f"{version!r} != {version_from_path!r}",
         )
 
-    return _UpstreamState(version=version, url=url, hash_sri=_prefetch_hash(url))
+    return _UpstreamState(
+        version=version,
+        url=download_url,
+        hash_sri=_prefetch_hash(download_url),
+    )
 
 
 def _render_source(upstream: _UpstreamState) -> str:
