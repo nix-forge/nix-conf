@@ -27,6 +27,15 @@ let
     experimental-features = [
       "nix-command"
       "flakes"
+
+      "fetch-closure"
+      "recursive-nix"
+      "configurable-impure-env"
+
+      "ca-derivations"
+      "impure-derivations"
+
+      "blake3-hashes"
     ];
   };
 in
@@ -53,6 +62,8 @@ in
 
         auto-allocate-uids = true;
         use-cgroups = true;
+
+        system-features = [ "uid-range" ];
       };
     in
     {

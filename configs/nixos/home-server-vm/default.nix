@@ -1,7 +1,7 @@
 { modules, inputs, ... }:
 {
   system = "x86_64-linux";
-  hostName = "home-server";
+  hostName = "home-server-vm";
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
@@ -26,6 +26,8 @@
 
     disko
     users
+    vm
+    vm-boot
 
     boot
     boot-grub
