@@ -1,5 +1,7 @@
 { config, ... }:
 {
+  services.openssh.settings.AllowUsers = [ "ianmh" ];
+
   users.users.ianmh = {
     isNormalUser = true;
     description = "Ian Holloway";

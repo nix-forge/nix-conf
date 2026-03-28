@@ -31,19 +31,15 @@
     boot-grub
     boot-grub-server
 
-    # homelab
-
-    {
-      virtualisation.vmVariant = {
-        virtualisation = {
-          memorySize = 4096;
-          cores = 4;
-          diskSize = 32768;
-        };
-      };
-    }
+    homelab-common
+    homelab-network
+    homelab-proxy
+    homelab-security
+    homelab-media
+    homelab-home-frigate
+    homelab-other
 
     inputs.disko.nixosModules.disko
-    ./modules/storage.nix
+    # storage # TODO: uncomment this once the storage module in ./modules is ready
   ];
 }
