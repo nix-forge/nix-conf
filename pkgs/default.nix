@@ -5,6 +5,5 @@
   opencode-cursor = pkgs.callPackage ./opencode-cursor { };
   steam = pkgs.callPackage ./steam { };
   ttf-ms-win11-auto = pkgs.callPackage ./ttf-ms-win11-auto { };
-  vmnet-broker = pkgs.callPackage ./vmnet-broker { };
   vmnet-helper = pkgs.callPackage ./vmnet-helper { };
 }

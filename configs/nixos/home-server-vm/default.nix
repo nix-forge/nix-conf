@@ -39,9 +39,11 @@
     hardware-tpm
 
     homelab-common
+    homelab-proxy-homepage
     homelab-proxy-nginx
-    homelab-security-firewall
-    homelab-security-openssh
+    homelab-security
+    homelab-media
+    homelab-home-frigate
 
     ./modules/vmAccess.nix
   ];

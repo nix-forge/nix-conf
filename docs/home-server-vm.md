@@ -2,6 +2,8 @@
 
 This document covers the current, supported local VM workflow on macOS.
 
+There is now a single VM config: `home-server-vm`.
+
 Historical notes, old experiment matrices, and superseded failures are archived
 in `docs/archive/home-server-vm-history.md`.
 
@@ -13,14 +15,15 @@ in `docs/archive/home-server-vm-history.md`.
   passes in recent local runs.
 - Newly re-enabled and re-tested in parity: `homepage-dashboard`,
   `vaultwarden`, `bazarr`, `lidarr`, and `readarr`.
-- For now, the supported vmnet path is `vmnet-helper`; `vmnet-broker` remains
-  packaged but is not yet the documented/validated host setup.
+- For now, the supported vmnet path is `vmnet-helper`.
+- The old `home-server-vm-parity` config has been removed; parity is now only a
+  check profile against `home-server-vm`.
 
-## Profiles
+## Check profiles
 
-- `home-server-vm`: smoke profile for fast local loops.
-- `home-server-vm-parity`: wider media-stack parity profile, still non-gating
-  for day-to-day smoke loops.
+- `smoke`: fast local loop for SSH + ingress + core checks.
+- `parity`: wider app/service regression against the same `home-server-vm`
+  config.
 
 ## Quick start
 
@@ -38,18 +41,18 @@ just home-server-vm-run-macos-vfkit
 just home-server-vm-check-vfkit-fast
 ```
 
-Parity (QEMU):
+Parity (QEMU, same VM config):
 
 ```bash
-just home-server-vm-parity-run-macos
-just home-server-vm-parity-check-fast
+just home-server-vm-run-macos
+just home-server-vm-check-parity-fast
 ```
 
-Parity (vfkit NAT):
+Parity (vfkit NAT, same VM config):
 
 ```bash
-just home-server-vm-parity-run-macos-vfkit
-just home-server-vm-parity-check-vfkit-fast
+just home-server-vm-run-macos-vfkit
+just home-server-vm-check-vfkit-parity-fast
 ```
 
 vfkit vmnet shared:
@@ -66,6 +69,13 @@ just home-server-vm-run-macos-vfkit-vmnet-host
 just home-server-vm-check-vfkit-fast
 ```
 
+vfkit vmnet shared parity:
+
+```bash
+HOME_SERVER_VM_NET_MODE=vmnet-shared HOME_SERVER_VM_VMNET_PROVIDER=helper ./scripts/run-home-server-vm-macos-vfkit.sh
+HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_PROFILE=parity ./scripts/check-home-server-vm.sh
+```
+
 ## Host access
 
 - QEMU default access:
@@ -76,7 +86,7 @@ just home-server-vm-check-vfkit-fast
 
 ## vmnet on macOS 26
 
-### Recommended setup (vmnet-helper for now)
+### Recommended setup
 
 `vmnet-helper` is now packaged from source in this repo.
 
@@ -92,32 +102,15 @@ or:
 nix develop
 ```
 
-On the MBP Darwin host config, `vmnet-helper` is also included in
-`environment.systemPackages`, so `just darwin-switch macbook-pro-m4` will
-install it system-wide.
 
-The package wrapper signs a per-user cached copy with the upstream
-entitlements on first run, because the Nix store itself is immutable.
 
 The vfkit runner also falls back to `.#vmnet-helper` automatically if
 `vmnet-helper` is not already on `PATH`.
 
-`vmnet-broker` is still packaged in the repo, but the nix-darwin activation
-path for installing and bootstrapping it is not finished or documented as
-supported yet.
-
 ### Provider selection
 
-For `HOME_SERVER_VM_NET_MODE=vmnet-shared|vmnet-host`, runner provider logic is:
-
-- `HOME_SERVER_VM_VMNET_PROVIDER=auto` (default)
-  - macOS 26+: try broker mode first (`vmnet-helper --network ...`), then
-    helper operation mode fallback.
-- `HOME_SERVER_VM_VMNET_PROVIDER=broker`: force broker mode.
-- `HOME_SERVER_VM_VMNET_PROVIDER=helper`: force helper operation mode.
-
-For now, use `HOME_SERVER_VM_VMNET_PROVIDER=helper` if you want the most
-predictable documented path.
+For `HOME_SERVER_VM_NET_MODE=vmnet-shared|vmnet-host`, use
+`HOME_SERVER_VM_VMNET_PROVIDER=helper` for the documented path.
 
 You can override helper binary discovery with:
 
@@ -128,13 +121,13 @@ You can override helper binary discovery with:
 
 | Path | Profile | Result | Notes |
 |---|---|---|---|
-| QEMU (`run-macos` + `check-fast`) | smoke | pass | `/healthz` stable; `/` may return `502` and is non-gating in smoke. |
-| QEMU (`parity-run-macos` + `parity-check-fast`) | parity | pass | media probes + guest service checks pass, including `vaultwarden`, `bazarr`, `lidarr`, and `readarr`. |
+| QEMU (`run-macos` + `check-fast`) | smoke | pass | `/healthz` stable and homepage passes in recent runs. |
+| QEMU (`run-macos` + `check-parity-fast`) | parity | pass | media probes + guest service checks pass, including `vaultwarden`, `bazarr`, `lidarr`, and `readarr`. |
 | vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke | pass | same smoke gating contract as QEMU. |
 | vfkit NAT parity | parity | pass | media probes + guest service checks pass, including newly re-enabled app services. |
 | vfkit vmnet-shared (`VMNET_PROVIDER=helper`) | smoke/parity | pass | validated with the packaged helper path. |
 | vfkit vmnet-host (`VMNET_PROVIDER=helper`) | smoke | pass | revalidated with the packaged helper path. |
-| vfkit broker-forced vmnet | smoke/parity | not validated | broker packaging exists, but system install/bootstrap is intentionally deferred. |
+
 
 ## Smoke-check behavior
 
@@ -168,12 +161,26 @@ QEMU runner (`scripts/run-home-server-vm-macos.sh`):
 vfkit runner (`scripts/run-home-server-vm-macos-vfkit.sh`):
 
 - `HOME_SERVER_VM_NET_MODE` (`nat`, `vmnet-shared`, `vmnet-host`)
-- `HOME_SERVER_VM_VMNET_PROVIDER` (`auto`, `broker`, `helper`)
+- `HOME_SERVER_VM_VMNET_PROVIDER` (`helper` recommended)
 - `HOME_SERVER_VM_VMNET_BIN`
 - `HOME_SERVER_VM_VMNET_HELPER_BIN` (legacy)
 - `HOME_SERVER_VM_VMNET_USE_SUDO` (`auto`, `0`, `1`)
 - `HOME_SERVER_VM_VMNET_INTERFACE_ID`
 - `HOME_SERVER_VM_REBUILD_RAW`, `HOME_SERVER_VM_REBUILD_STORE_IMAGE`
+
+## Supported command matrix
+
+Primary regression paths:
+
+- `just home-server-vm-run-macos` + `just home-server-vm-check-fast`
+- `just home-server-vm-run-macos` + `just home-server-vm-check-parity-fast`
+- `just home-server-vm-run-macos-vfkit` + `just home-server-vm-check-vfkit-fast`
+- `just home-server-vm-run-macos-vfkit` + `just home-server-vm-check-vfkit-parity-fast`
+- `HOME_SERVER_VM_NET_MODE=vmnet-shared HOME_SERVER_VM_VMNET_PROVIDER=helper ./scripts/run-home-server-vm-macos-vfkit.sh` + parity check script
+
+Secondary/manual validation:
+
+- vfkit vmnet-host smoke with `HOME_SERVER_VM_VMNET_PROVIDER=helper`
 
 ## Troubleshooting
 
@@ -193,7 +200,6 @@ vfkit runner (`scripts/run-home-server-vm-macos-vfkit.sh`):
 
 ## Not in scope yet
 
-- `vmnet-broker` system installation and launchd bootstrap via nix-darwin
 - Tailscale / WireGuard / Mullvad-bound behavior in the VM
 - Frigate parity in the local VM
 

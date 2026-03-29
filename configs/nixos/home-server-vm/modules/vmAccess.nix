@@ -62,10 +62,36 @@
 
   services.fail2ban.enable = lib.mkForce false;
 
-  services.homepage-dashboard.enable = lib.mkForce true;
-
   services.jellyseerr.configDir = lib.mkForce "/var/lib/jellyseerr/config";
   services.sonarr.dataDir = lib.mkForce "/var/lib/sonarr/.config/NzbDrone";
+
+  homelab.media.qbittorrent.bindToMullvad = lib.mkForce false;
+
+  networking.wireguard.enable = lib.mkForce false;
+  networking.wireguard.interfaces = lib.mkForce { };
+
+  services.tailscale.enable = lib.mkForce false;
+  systemd.services.tailscale-cert.enable = lib.mkForce false;
+  systemd.timers.tailscale-cert.enable = lib.mkForce false;
+
+  systemd.network.networks."40-wg-mullvad" = lib.mkForce { };
+  networking.nftables.tables.homelab-vpn = lib.mkForce {
+    family = "inet";
+    content = "";
+  };
+
+  services.frigate.enable = lib.mkForce false;
+  services.vaultwarden.enable = lib.mkForce true;
+  services.bazarr.enable = lib.mkForce true;
+  services.flaresolverr.enable = lib.mkForce false;
+  services.lidarr.enable = lib.mkForce true;
+  services.readarr.enable = lib.mkForce true;
+
+  users.users.prowlarr = {
+    isSystemUser = lib.mkForce true;
+    uid = lib.mkForce 2003;
+    group = lib.mkForce "media";
+  };
 
   systemd.services.vm-disable-nic-offload = {
     description = "Disable NIC offload features in VM test profile";
