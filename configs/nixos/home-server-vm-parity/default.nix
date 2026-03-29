@@ -1,7 +1,7 @@
 { modules, inputs, ... }:
 {
   system = "aarch64-linux";
-  hostName = "home-server-vm";
+  hostName = "home-server-vm-parity";
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
@@ -39,9 +39,11 @@
     hardware-tpm
 
     homelab-common
+    homelab-proxy-homepage
     homelab-proxy-nginx
-    homelab-security-firewall
-    homelab-security-openssh
+    homelab-security
+    homelab-media
+    homelab-home-frigate
 
     ./modules/vmAccess.nix
   ];

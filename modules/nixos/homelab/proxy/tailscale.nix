@@ -21,9 +21,7 @@
     extraUpFlags = [ "--accept-dns=true" ];
   };
 
-  systemd.tmpfiles.rules = [
-    "d /var/lib/tailscale-cert 0750 root nginx - -"
-  ];
+  systemd.tmpfiles.rules = [ "d /var/lib/tailscale-cert 0750 root nginx - -" ];
 
   systemd.services.tailscale-cert = {
     description = "Fetch Tailscale TLS certificate for nginx";

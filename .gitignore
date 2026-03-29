@@ -221,3 +221,6 @@ result/
 .direnv/
 result
 .opencode/plans/
+*.qcow2
+*.raw
+.DS_Store

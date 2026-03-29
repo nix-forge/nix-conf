@@ -61,12 +61,147 @@ os-test hostname *args:
 # Build NixOS VM launcher for a host
 [group('NixOS')]
 os-vm hostname:
-    nix build {{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vm
+    nix build path:{{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vm
 
 # Build NixOS VM with qemu helper scripts
 [group('NixOS')]
 os-vm-with-bootloader hostname:
-    nix build {{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vmWithBootLoader
+    nix build path:{{ flake }}#nixosConfigurations.{{ hostname }}.config.system.build.vmWithBootLoader
+
+# Run the home-server VM on macOS using host-native QEMU tools
+[group('NixOS')]
+home-server-vm-run-macos:
+    {{ flake }}/scripts/run-home-server-vm-macos.sh
+
+# Run the home-server VM on macOS using vfkit with NAT networking
+[group('NixOS')]
+home-server-vm-run-macos-vfkit:
+    HOME_SERVER_VM_NET_MODE=nat {{ flake }}/scripts/run-home-server-vm-macos-vfkit.sh
+
+# Run the home-server VM on macOS using vfkit vmnet shared mode
+[group('NixOS')]
+home-server-vm-run-macos-vfkit-vmnet-shared:
+    HOME_SERVER_VM_NET_MODE=vmnet-shared {{ flake }}/scripts/run-home-server-vm-macos-vfkit.sh
+
+# Run the home-server VM on macOS using vfkit vmnet shared mode (force helper)
+[group('NixOS')]
+home-server-vm-run-macos-vfkit-vmnet-shared-helper:
+    HOME_SERVER_VM_NET_MODE=vmnet-shared HOME_SERVER_VM_VMNET_PROVIDER=helper {{ flake }}/scripts/run-home-server-vm-macos-vfkit.sh
+
+# Run the home-server VM on macOS using vfkit vmnet host mode
+[group('NixOS')]
+home-server-vm-run-macos-vfkit-vmnet-host:
+    HOME_SERVER_VM_NET_MODE=vmnet-host {{ flake }}/scripts/run-home-server-vm-macos-vfkit.sh
+
+# Build the parity-oriented VM host config
+[group('NixOS')]
+home-server-vm-parity-build:
+    nix build path:{{ flake }}#nixosConfigurations.home-server-vm-parity.config.system.build.vm
+
+# Run the parity-oriented VM host config on macOS
+[group('NixOS')]
+home-server-vm-parity-run-macos:
+    HOME_SERVER_VM_HOSTNAME=home-server-vm-parity {{ flake }}/scripts/run-home-server-vm-macos.sh
+
+# Run the parity-oriented VM host config on macOS using vfkit NAT
+[group('NixOS')]
+home-server-vm-parity-run-macos-vfkit:
+    HOME_SERVER_VM_HOSTNAME=home-server-vm-parity HOME_SERVER_VM_NET_MODE=nat {{ flake }}/scripts/run-home-server-vm-macos-vfkit.sh
+
+# Build the home-server VM and run local smoke checks against a running instance
+[group('NixOS')]
+home-server-vm-check:
+    nix build path:{{ flake }}#nixosConfigurations.home-server-vm.config.system.build.vm
+    @echo "Start the VM in another terminal with: just home-server-vm-run-macos"
+    HOME_SERVER_VM_PROFILE=smoke HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 {{ flake }}/scripts/check-home-server-vm.sh
+
+# Build parity VM and run parity checks against a running parity instance
+[group('NixOS')]
+home-server-vm-parity-check:
+    nix build path:{{ flake }}#nixosConfigurations.home-server-vm-parity.config.system.build.vm
+    @echo "Start the parity VM in another terminal with: just home-server-vm-parity-run-macos"
+    HOME_SERVER_VM_PROFILE=parity HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 {{ flake }}/scripts/check-home-server-vm.sh
+
+# Build the home-server VM and run checks against a vfkit-running instance
+[group('NixOS')]
+home-server-vm-check-vfkit:
+    nix build path:{{ flake }}#nixosConfigurations.home-server-vm.config.system.build.vm
+    @echo "Start the VM in another terminal with: just home-server-vm-run-macos-vfkit"
+    HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_HTTP_PORT=8080 HOME_SERVER_VM_PROFILE=smoke HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 {{ flake }}/scripts/check-home-server-vm.sh
+
+# Build parity VM and run checks against a vfkit-running parity instance
+[group('NixOS')]
+home-server-vm-parity-check-vfkit:
+    nix build path:{{ flake }}#nixosConfigurations.home-server-vm-parity.config.system.build.vm
+    @echo "Start the parity VM in another terminal with: just home-server-vm-parity-run-macos-vfkit"
+    HOME_SERVER_VM_HOSTNAME=home-server-vm-parity HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_HTTP_PORT=8080 HOME_SERVER_VM_PROFILE=parity HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 {{ flake }}/scripts/check-home-server-vm.sh
+
+# Run fast smoke checks for a running home-server VM with short timeouts/retries
+[group('NixOS')]
+home-server-vm-check-fast:
+    HOME_SERVER_VM_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_PROFILE=smoke \
+    HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 \
+    HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
+    HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT=1 \
+    HOME_SERVER_VM_HTTP_MAX_TIME=3 \
+    HOME_SERVER_VM_HTTP_RETRIES=3 \
+    HOME_SERVER_VM_HTTP_RETRY_DELAY=2 \
+    HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=0 \
+    just home-server-vm-check
+
+# Run fast parity checks for a running parity VM with short timeout/retry defaults
+[group('NixOS')]
+home-server-vm-parity-check-fast:
+    HOME_SERVER_VM_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_PROFILE=parity \
+    HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 \
+    HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
+    HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT=1 \
+    HOME_SERVER_VM_HTTP_MAX_TIME=3 \
+    HOME_SERVER_VM_HTTP_RETRIES=3 \
+    HOME_SERVER_VM_HTTP_RETRY_DELAY=2 \
+    HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=0 \
+    just home-server-vm-parity-check
+
+# Run fast smoke checks against a running vfkit VM
+[group('NixOS')]
+home-server-vm-check-vfkit-fast:
+    HOME_SERVER_VM_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CONNECT_MODE=guest-ip \
+    HOME_SERVER_VM_SSH_PORT=22 \
+    HOME_SERVER_VM_HTTP_PORT=8080 \
+    HOME_SERVER_VM_PROFILE=smoke \
+    HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 \
+    HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
+    HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT=1 \
+    HOME_SERVER_VM_HTTP_MAX_TIME=3 \
+    HOME_SERVER_VM_HTTP_RETRIES=3 \
+    HOME_SERVER_VM_HTTP_RETRY_DELAY=2 \
+    HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=0 \
+    just home-server-vm-check-vfkit
+
+# Run fast parity checks against a running vfkit parity VM
+[group('NixOS')]
+home-server-vm-parity-check-vfkit-fast:
+    HOME_SERVER_VM_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_HOSTNAME=home-server-vm-parity \
+    HOME_SERVER_VM_CONNECT_MODE=guest-ip \
+    HOME_SERVER_VM_SSH_PORT=22 \
+    HOME_SERVER_VM_HTTP_PORT=8080 \
+    HOME_SERVER_VM_PROFILE=parity \
+    HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 \
+    HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
+    HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT=1 \
+    HOME_SERVER_VM_HTTP_MAX_TIME=3 \
+    HOME_SERVER_VM_HTTP_RETRIES=3 \
+    HOME_SERVER_VM_HTTP_RETRY_DELAY=2 \
+    HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=0 \
+    just home-server-vm-parity-check-vfkit
 
 # ─── Darwin ───────────────────────────────────────────────────────────
 
@@ -98,6 +233,16 @@ home-switch configuration *args:
 [group('Deploy')]
 deploy-check:
     nix flake check --no-allow-import-from-derivation
+
+# Run shellcheck across repo shell scripts
+[group('Dev')]
+lint-shell:
+    shellcheck --shell=bash --severity=style --external-sources scripts/*.sh
+
+# Format repo shell scripts with shfmt
+[group('Dev')]
+fmt-shell:
+    shfmt -i 2 -ci -bn -sr -kp -w scripts/*.sh
 
 # Deploy all configured profiles with deploy-rs
 [group('Deploy')]
