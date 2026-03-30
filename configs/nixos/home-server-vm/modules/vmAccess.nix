@@ -117,6 +117,15 @@ in
         chown ${config.age.secrets.mullvad-wg-private-key.owner}:${config.age.secrets.mullvad-wg-private-key.group} "$tmp_path"
         chmod ${config.age.secrets.mullvad-wg-private-key.mode} "$tmp_path"
         mv -f "$tmp_path" '${config.age.secrets.mullvad-wg-private-key.path}'
+
+        tmp_path="${config.age.secrets.vaultwarden-admin-token.path}.tmp"
+        ${config.age.ageBin} --decrypt \
+          -i /run/vm-secrets/id_ed25519 \
+          -o "$tmp_path" \
+          '${config.age.secrets.vaultwarden-admin-token.file}'
+        chown ${config.age.secrets.vaultwarden-admin-token.owner}:${config.age.secrets.vaultwarden-admin-token.group} "$tmp_path"
+        chmod ${config.age.secrets.vaultwarden-admin-token.mode} "$tmp_path"
+        mv -f "$tmp_path" '${config.age.secrets.vaultwarden-admin-token.path}'
       '';
     };
 

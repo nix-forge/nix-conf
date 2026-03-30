@@ -3,7 +3,7 @@
   assertions = [
     {
       assertion = lib.hasAttrByPath [ "age" "secrets" "vaultwarden-admin-token" ] config;
-      message = "age.secrets.vaultwarden-admin-token must exist when importing homelab.other.vaultwarden.";
+      message = "age.secrets.vaultwarden-admin-token must exist when importing homelab.apps.vaultwarden.";
     }
   ];
 
