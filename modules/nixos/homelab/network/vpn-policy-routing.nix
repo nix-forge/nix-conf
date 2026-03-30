@@ -1,17 +1,10 @@
 { lib, config, ... }:
 let
-  vpnInterface = "wg-mullvad";
+  cfg = config.homelab.network.vpnPolicyRouting;
+  vpnInterface = cfg.vpnInterface;
   vpnPeers = config.networking.wireguard.interfaces.${vpnInterface}.peers or [ ];
-  vpnUsers = [
-    "qbittorrent"
-    "nzbget"
-    "prowlarr"
-  ];
-  vpnUserUids = {
-    qbittorrent = 2001;
-    nzbget = 2002;
-    prowlarr = 2003;
-  };
+  vpnUsers = cfg.vpnUsers;
+  vpnUserUids = cfg.vpnUserUids;
   allowedIPv4Cidrs = [
     "127.0.0.0/8"
     "10.0.0.0/8"
@@ -96,45 +89,89 @@ let
     ''meta skuid ${toString (uidFor user)} oifname != "${vpnInterface}" ip6 daddr != ${renderSet allowedIPv6Cidrs} drop'';
 in
 {
-  users.users = builtins.listToAttrs (
-    map (user: {
-      name = user;
-      value = {
-        isSystemUser = lib.mkDefault true;
-        uid = lib.mkDefault (uidFor user);
-        group = lib.mkDefault "media";
+  options.homelab.network.vpnPolicyRouting = {
+    vpnInterface = lib.mkOption {
+      type = lib.types.str;
+      default = "wg-mullvad";
+      description = "WireGuard interface used for VPN policy routing.";
+    };
+
+    vpnUsers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "qbittorrent"
+        "nzbget"
+        "prowlarr"
+      ];
+      description = "System users that must route through the VPN table.";
+    };
+
+    vpnUserUids = lib.mkOption {
+      type = lib.types.attrsOf lib.types.int;
+      default = {
+        qbittorrent = 2001;
+        nzbget = 2002;
+        prowlarr = 2003;
       };
-    }) vpnUsers
-  );
+      description = "UID map used by nftables skuid rules for VPN-bound users.";
+    };
 
-  networking.nftables.enable = true;
+    sharedGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "media";
+      description = "Primary group assigned to VPN-bound service users.";
+    };
 
-  networking.nftables.tables.homelab-vpn = {
-    family = "inet";
-    content = ''
-      chain output_filter {
-        type filter hook output priority filter;
-        policy accept;
-        ${lib.concatStringsSep "\n        " (map drop4For vpnUsers)}
-        ${lib.concatStringsSep "\n        " (map drop6For vpnUsers)}
-      }
-    '';
+    sharedGroupGid = lib.mkOption {
+      type = lib.types.int;
+      default = 2000;
+      description = "GID for shared media access group used by VPN-bound users.";
+    };
   };
 
-  systemd.network.config.routeTables.homelab-vpn = routingTable;
+  config = {
+    users.users = builtins.listToAttrs (
+      map (user: {
+        name = user;
+        value = {
+          isSystemUser = lib.mkDefault true;
+          uid = lib.mkDefault (uidFor user);
+          group = lib.mkDefault cfg.sharedGroup;
+        };
+      }) vpnUsers
+    );
 
-  systemd.network.networks."40-${vpnInterface}" = {
-    routes = [
-      {
-        Destination = "0.0.0.0/0";
-        Table = toString routingTable;
-      }
-      {
-        Destination = "::/0";
-        Table = toString routingTable;
-      }
-    ];
+    users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
 
-    routingPolicyRules = lib.concatMap mkUserRoutingRules vpnUsers;
+    networking.nftables.enable = true;
+
+    networking.nftables.tables.homelab-vpn = {
+      family = "inet";
+      content = ''
+        chain output_filter {
+          type filter hook output priority filter;
+          policy accept;
+          ${lib.concatStringsSep "\n        " (map drop4For vpnUsers)}
+          ${lib.concatStringsSep "\n        " (map drop6For vpnUsers)}
+        }
+      '';
+    };
+
+    systemd.network.config.routeTables.homelab-vpn = routingTable;
+
+    systemd.network.networks."40-${vpnInterface}" = {
+      routes = [
+        {
+          Destination = "0.0.0.0/0";
+          Table = toString routingTable;
+        }
+        {
+          Destination = "::/0";
+          Table = toString routingTable;
+        }
+      ];
+
+      routingPolicyRules = lib.concatMap mkUserRoutingRules vpnUsers;
+    };
   };
 }

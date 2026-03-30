@@ -38,7 +38,6 @@
     storage-ssd
     hardware-tpm
 
-    homelab-common
     homelab-network
     homelab-proxy
     homelab-security
