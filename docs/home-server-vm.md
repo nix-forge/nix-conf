@@ -155,6 +155,12 @@ compatibility.
 VPN user egress checks verify that `qbittorrent`, `nzbget`, and `prowlarr` reach
 the public internet through the Mullvad WireGuard path.
 
+Service group model checks now assert:
+
+- `qbittorrent`, `nzbget`, and Arr services have `downloads` access,
+- Arr services plus `jellyfin` have `media` access,
+- `prowlarr` is not in either `downloads` or `media`.
+
 ## Key environment variables
 
 Checker:
@@ -210,6 +216,8 @@ Secondary/manual validation:
 - Mullvad WireGuard, VPN nftables/policy routing, and qBittorrent binding are
   enabled and validated in parity checks.
 - qBittorrent, NZBGet, and Prowlarr are all verified to egress through Mullvad.
+- Reverse path filtering remains `loose` by design to support asymmetric
+  policy-routing and tailscale traffic paths.
 
 ## Troubleshooting
 

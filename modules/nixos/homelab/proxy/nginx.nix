@@ -131,9 +131,9 @@ let
       prefix = "/qbittorrent";
       upstream = "http://127.0.0.1:8081";
       inherit forwardedProto;
+      stripPrefix = true;
       protectWithAuth = enableAuth;
       extraConfig = ''
-        rewrite ^/qbittorrent(.*)$ $1 break;
         proxy_set_header Referer "";
         proxy_set_header Host $proxy_host;
         proxy_cookie_path / "/${if secureCookies then "; Secure" else ""}";

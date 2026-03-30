@@ -16,39 +16,52 @@ in
       description = "Shared media stack root.";
     };
 
-    sharedGroup = lib.mkOption {
+    primaryGroup = lib.mkOption {
       type = lib.types.str;
-      default = "media";
-      description = "Shared group for media stack access.";
+      default = "radarr";
+      description = "Primary group for Radarr service runtime.";
     };
 
-    sharedGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2000;
-      description = "GID for the shared media group.";
+    downloadsGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "downloads";
+      description = "Shared downloads group for media ingest workflow.";
+    };
+
+    mediaGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "media";
+      description = "Shared media library group.";
     };
   };
 
   config = {
-    users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
+    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${cfg.downloadsGroup} = { };
+    users.groups.${cfg.mediaGroup} = { };
+
+    users.users.radarr.extraGroups = lib.mkAfter [
+      cfg.downloadsGroup
+      cfg.mediaGroup
+    ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 radarr ${cfg.sharedGroup} - -"
+      "d ${cfg.stateDir} 0750 radarr ${cfg.primaryGroup} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
-      "d ${cfg.stackRoot}/data 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/media 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/media/movies 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/torrents 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/torrents/movies 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/usenet 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/usenet/movies 2770 root ${cfg.sharedGroup} - -"
+      "d ${cfg.stackRoot}/data 0755 root root - -"
+      "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
+      "d ${cfg.stackRoot}/data/media/movies 2770 root ${cfg.mediaGroup} - -"
+      "d ${cfg.stackRoot}/data/torrents 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/torrents/movies 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/usenet 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/usenet/movies 2770 root ${cfg.downloadsGroup} - -"
     ];
 
     services.radarr = {
       enable = true;
       dataDir = cfg.stateDir;
       user = "radarr";
-      group = cfg.sharedGroup;
+      group = cfg.primaryGroup;
       openFirewall = false;
       settings = {
         server = {
@@ -59,5 +72,7 @@ in
       };
       environmentFiles = [ ];
     };
+
+    systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
   };
 }

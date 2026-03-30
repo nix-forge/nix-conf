@@ -15,23 +15,17 @@ in
       description = "Prowlarr state directory.";
     };
 
-    sharedGroup = lib.mkOption {
+    primaryGroup = lib.mkOption {
       type = lib.types.str;
-      default = "media";
-      description = "Shared group for media stack access.";
-    };
-
-    sharedGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2000;
-      description = "GID for the shared media group.";
+      default = "prowlarr";
+      description = "Primary group for Prowlarr service runtime.";
     };
   };
 
   config = {
-    users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
+    users.groups.${cfg.primaryGroup} = { };
 
-    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 prowlarr ${cfg.sharedGroup} - -" ];
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 prowlarr ${cfg.primaryGroup} - -" ];
 
     services.prowlarr = {
       enable = true;
@@ -45,13 +39,12 @@ in
           urlbase = "/prowlarr";
         };
       };
-      environmentFiles = [ ];
     };
 
     systemd.services.prowlarr.serviceConfig = {
       DynamicUser = lib.mkForce false;
       User = lib.mkForce "prowlarr";
-      Group = lib.mkForce cfg.sharedGroup;
+      Group = lib.mkForce cfg.primaryGroup;
     };
   };
 }

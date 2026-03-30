@@ -293,6 +293,40 @@ done
 EOF
 )
 
+remote_group_model_checks=$(
+  cat <<'EOF'
+set -euo pipefail
+
+users=(qbittorrent nzbget sonarr radarr lidarr readarr bazarr)
+for user in "${users[@]}"; do
+  if ! id -nG "$user" | tr ' ' '\n' | grep -qx downloads; then
+    echo "missing downloads group for $user" >&2
+    exit 1
+  fi
+done
+
+users=(sonarr radarr lidarr readarr bazarr jellyfin)
+for user in "${users[@]}"; do
+  if ! id -nG "$user" | tr ' ' '\n' | grep -qx media; then
+    echo "missing media group for $user" >&2
+    exit 1
+  fi
+done
+
+if id -nG prowlarr | tr ' ' '\n' | grep -qx media; then
+  echo "prowlarr should not be in media group" >&2
+  exit 1
+fi
+
+if id -nG prowlarr | tr ' ' '\n' | grep -qx downloads; then
+  echo "prowlarr should not be in downloads group" >&2
+  exit 1
+fi
+
+echo "OK   group model checks"
+EOF
+)
+
 log() {
   printf '==> %s\n' "$*"
 }
@@ -474,6 +508,9 @@ if ssh_batch true >/dev/null 2>&1; then
   if [[ ${enable_media_probes} == "1" ]] && ssh_batch 'sudo -n true' >/dev/null 2>&1; then
     log "Running service-user egress checks"
     ssh_batch "$remote_service_ip_checks"
+
+    log "Running service-user group model checks"
+    ssh_batch "$remote_group_model_checks"
   elif [[ ${enable_media_probes} != "1" ]]; then
     log "Skipping service-user egress checks for profile (${profile_mode})"
   else

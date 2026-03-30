@@ -4,42 +4,26 @@ let
   inherit (cfg) vpnInterface;
   vpnPeers = config.networking.wireguard.interfaces.${vpnInterface}.peers or [ ];
   inherit (cfg) vpnUsers;
-  allowedIPv4Cidrs = [
-    "127.0.0.0/8"
-    "10.0.0.0/8"
-    "172.16.0.0/12"
-    "192.168.0.0/16"
-    "100.64.0.0/10"
-    "169.254.0.0/16"
-  ]
-  ++ map (addr: "${addr}/32") (
-    builtins.filter (addr: addr != null) (
-      map (
-        peer:
-        let
-          endpoint = peer.endpoint or "";
-          ipv4Match = builtins.match "([^:]+):[0-9]+" endpoint;
-        in
-        if ipv4Match == null then null else builtins.elemAt ipv4Match 0
-      ) vpnPeers
-    )
-  );
-  allowedIPv6Cidrs = [
-    "::1/128"
-    "fc00::/7"
-    "fe80::/10"
-  ];
+  allowedIPv4Cidrs =
+    cfg.allowedIPv4Cidrs
+    ++ map (addr: "${addr}/32") (
+      builtins.filter (addr: addr != null) (
+        map (
+          peer:
+          let
+            endpoint = peer.endpoint or "";
+            ipv4Match = builtins.match "([^:]+):[0-9]+" endpoint;
+          in
+          if ipv4Match == null then null else builtins.elemAt ipv4Match 0
+        ) vpnPeers
+      )
+    );
+  inherit (cfg) allowedIPv6Cidrs;
   renderSet = values: "{ ${lib.concatStringsSep ", " values} }";
   routingTable = 51820;
-  uidFor =
-    user:
-    let
-      uid = lib.attrByPath [ "users" "users" user "uid" ] null config;
-    in
-    if uid == null then
-      throw "homelab.network.vpnPolicyRouting: users.users.${user}.uid must be set for nftables skuid rules"
-    else
-      uid;
+  uidFor = user: lib.attrByPath [ user ] null cfg.vpnUserUids;
+  primaryGroupFor = user: lib.attrByPath [ user ] user cfg.vpnUserPrimaryGroups;
+  extraGroupsFor = user: lib.attrByPath [ user ] [ ] cfg.vpnUserExtraGroups;
   indexOf =
     needle: haystack:
     let
@@ -113,26 +97,86 @@ in
       description = "System users that must route through the VPN table.";
     };
 
-    sharedGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "media";
-      description = "Primary group assigned to VPN-bound service users.";
+    vpnUserUids = lib.mkOption {
+      type = lib.types.attrsOf lib.types.int;
+      default = {
+        qbittorrent = 2001;
+        nzbget = 2002;
+        prowlarr = 2003;
+      };
+      description = "UID map used by nftables skuid rules for VPN-bound users.";
     };
 
-    sharedGroupGid = lib.mkOption {
+    vpnUserPrimaryGroups = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = {
+        qbittorrent = "qbittorrent";
+        nzbget = "nzbget";
+        prowlarr = "prowlarr";
+      };
+      description = "Primary group map for VPN-bound service users.";
+    };
+
+    vpnUserExtraGroups = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+      default = {
+        qbittorrent = [ "downloads" ];
+        nzbget = [ "downloads" ];
+        prowlarr = [ ];
+      };
+      description = "Supplementary groups for VPN-bound users.";
+    };
+
+    downloadsGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "downloads";
+      description = "Shared downloads group for media ingest workflow.";
+    };
+
+    downloadsGroupGid = lib.mkOption {
+      type = lib.types.int;
+      default = 2010;
+      description = "GID for shared downloads group.";
+    };
+
+    mediaGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "media";
+      description = "Shared media library group.";
+    };
+
+    mediaGroupGid = lib.mkOption {
       type = lib.types.int;
       default = 2000;
-      description = "GID for shared media access group used by VPN-bound users.";
+      description = "GID for shared media library group.";
+    };
+
+    allowedIPv4Cidrs = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "127.0.0.0/8"
+        "100.64.0.0/10"
+        "169.254.0.0/16"
+      ];
+      description = "IPv4 CIDRs allowed to bypass VPN egress filtering for VPN-bound users.";
+    };
+
+    allowedIPv6Cidrs = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "::1/128"
+        "fd7a:115c:a1e0::/48"
+        "fe80::/10"
+      ];
+      description = "IPv6 CIDRs allowed to bypass VPN egress filtering for VPN-bound users.";
     };
   };
 
   config = {
     assertions = [
       {
-        assertion = builtins.all (
-          user: lib.attrByPath [ "users" "users" user "uid" ] null config != null
-        ) vpnUsers;
-        message = "Each homelab.network.vpnPolicyRouting.vpnUsers entry must have users.users.<name>.uid set.";
+        assertion = builtins.all (user: uidFor user != null) vpnUsers;
+        message = "Each homelab.network.vpnPolicyRouting.vpnUsers entry must exist in vpnUserUids.";
       }
     ];
 
@@ -141,13 +185,23 @@ in
         name = user;
         value = {
           isSystemUser = lib.mkDefault true;
-          uid = lib.mkDefault (2001 + indexOf user vpnUsers);
-          group = lib.mkDefault cfg.sharedGroup;
+          uid = lib.mkDefault (uidFor user);
+          group = lib.mkDefault (primaryGroupFor user);
+          extraGroups = lib.mkDefault (extraGroupsFor user);
         };
       }) vpnUsers
     );
 
-    users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
+    users.groups = {
+      ${cfg.downloadsGroup}.gid = lib.mkDefault cfg.downloadsGroupGid;
+      ${cfg.mediaGroup}.gid = lib.mkDefault cfg.mediaGroupGid;
+    }
+    // builtins.listToAttrs (
+      map (user: {
+        name = primaryGroupFor user;
+        value = { };
+      }) vpnUsers
+    );
 
     networking.nftables.enable = true;
 

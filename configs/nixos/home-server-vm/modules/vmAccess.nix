@@ -65,12 +65,6 @@ in
     services.lidarr.enable = lib.mkForce true;
     services.readarr.enable = lib.mkForce true;
 
-    users.users.prowlarr = {
-      isSystemUser = lib.mkForce true;
-      uid = lib.mkForce 2003;
-      group = lib.mkForce "media";
-    };
-
     systemd.services.vm-local-secrets = {
       description = "Populate local VM agenix secrets from mounted identity";
       wantedBy = [ "network-pre.target" ];

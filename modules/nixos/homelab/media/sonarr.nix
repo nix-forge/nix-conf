@@ -16,39 +16,52 @@ in
       description = "Shared media stack root.";
     };
 
-    sharedGroup = lib.mkOption {
+    primaryGroup = lib.mkOption {
       type = lib.types.str;
-      default = "media";
-      description = "Shared group for media stack access.";
+      default = "sonarr";
+      description = "Primary group for Sonarr service runtime.";
     };
 
-    sharedGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2000;
-      description = "GID for the shared media group.";
+    downloadsGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "downloads";
+      description = "Shared downloads group for media ingest workflow.";
+    };
+
+    mediaGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "media";
+      description = "Shared media library group.";
     };
   };
 
   config = {
-    users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
+    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${cfg.downloadsGroup} = { };
+    users.groups.${cfg.mediaGroup} = { };
+
+    users.users.sonarr.extraGroups = lib.mkAfter [
+      cfg.downloadsGroup
+      cfg.mediaGroup
+    ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 sonarr ${cfg.sharedGroup} - -"
+      "d ${cfg.stateDir} 0750 sonarr ${cfg.primaryGroup} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
-      "d ${cfg.stackRoot}/data 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/media 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/media/tv 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/torrents 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/torrents/tv 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/usenet 2770 root ${cfg.sharedGroup} - -"
-      "d ${cfg.stackRoot}/data/usenet/tv 2770 root ${cfg.sharedGroup} - -"
+      "d ${cfg.stackRoot}/data 0755 root root - -"
+      "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
+      "d ${cfg.stackRoot}/data/media/tv 2770 root ${cfg.mediaGroup} - -"
+      "d ${cfg.stackRoot}/data/torrents 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/torrents/tv 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/usenet 2770 root ${cfg.downloadsGroup} - -"
+      "d ${cfg.stackRoot}/data/usenet/tv 2770 root ${cfg.downloadsGroup} - -"
     ];
 
     services.sonarr = {
       enable = true;
       dataDir = cfg.stateDir;
       user = "sonarr";
-      group = cfg.sharedGroup;
+      group = cfg.primaryGroup;
       openFirewall = false;
       settings = {
         server = {
@@ -59,5 +72,7 @@ in
       };
       environmentFiles = [ ];
     };
+
+    systemd.services.sonarr.serviceConfig.UMask = lib.mkForce "0002";
   };
 }
