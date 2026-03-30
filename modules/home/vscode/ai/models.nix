@@ -4,11 +4,7 @@ let
 in
 {
   programs.vscode.profiles.default = {
-    extensions = [
-      ## Copilot
-      # pkgs.vscode-extensions.github.copilot-chat
-    ]
-    ++ extensions.forVscode [
+    extensions = extensions.forVscode [
       ## Copilot
       "github.copilot-chat"
 
