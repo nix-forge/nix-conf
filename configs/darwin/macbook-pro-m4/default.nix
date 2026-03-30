@@ -1,7 +1,7 @@
 { modules, ... }:
 {
   system = "aarch64-darwin";
-  hostName = "Ian-MBP";
+  hostName = "MBP";
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
