@@ -40,6 +40,6 @@
     homelab-proxy
     homelab-security
     homelab-media
-    homelab-other
+    homelab-apps
   ];
 }
