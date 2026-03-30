@@ -20,9 +20,9 @@ let
     "100.64.0.0/10"
     "169.254.0.0/16"
   ]
-  ++ builtins.map (addr: "${addr}/32") (
+  ++ map (addr: "${addr}/32") (
     builtins.filter (addr: addr != null) (
-      builtins.map (
+      map (
         peer:
         let
           endpoint = peer.endpoint or "";
