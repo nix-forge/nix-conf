@@ -26,6 +26,7 @@ enable_media_probes="${HOME_SERVER_VM_ENABLE_MEDIA_PROBES:-}"
 tcp_probe_count="${HOME_SERVER_VM_TCP_PROBE_COUNT:-12}"
 tcp_probe_delay="${HOME_SERVER_VM_TCP_PROBE_DELAY:-1}"
 media_allowed_http_codes="${HOME_SERVER_VM_MEDIA_ALLOWED_HTTP_CODES:-200 301 302 303 307 308 401 403}"
+media_retry_after_service_delay="${HOME_SERVER_VM_MEDIA_RETRY_AFTER_SERVICE_DELAY:-5}"
 
 normalize_mac() {
   printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
@@ -192,7 +193,7 @@ core_paths=(
 
 media_paths=(
   /jellyfin/
-  /jellyseerr/
+  /seerr/
   /sonarr/
   /radarr/
   /lidarr/
@@ -220,7 +221,7 @@ remote_network_checks=$(
 set -euo pipefail
 echo "guest: $(hostname)"
 echo "listeners:"
-ss -ltn | grep -E "(:22 |:5055 |:6767 |:6789 |:7878 |:8080 |:8081 |:8096 |:8222 |:8686 |:8787 |:8989 |:9696 )|Local Address:Port" || true
+ss -ltn | grep -E "(:22 |:5055 |:6767 |:6789 |:7878 |:8080 |:8081 |:8096 |:8191 |:8222 |:8686 |:8787 |:8989 |:9696 )|Local Address:Port" || true
 echo
 echo "policy routing:"
 ip rule
@@ -233,23 +234,29 @@ resolvectl status || true
 echo
 echo "failed units:"
 systemctl --failed --no-pager || true
+echo
+echo "tailscale status:"
+tailscale status || true
 EOF
 )
 
 remote_services=(
   sshd
   nginx
+  fail2ban
+  tailscaled
 )
 
 if [[ ${profile_mode} == "parity" || ${enable_media_probes} == "1" ]]; then
   remote_services+=(
     jellyfin
-    jellyseerr
+    seerr
     sonarr
     radarr
     lidarr
     readarr
     bazarr
+    flaresolverr
     prowlarr
     qbittorrent
     nzbget
@@ -383,7 +390,7 @@ collect_timeout_debug() {
   done
 
   if ssh_batch true > /dev/null 2>&1; then
-    ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd jellyfin jellyseerr sonarr radarr lidarr readarr bazarr prowlarr qbittorrent nzbget vaultwarden; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|5055|6767|6789|7878|8080|8081|8082|8096|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 8080 healthz:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/healthz || true; echo "guest curl 8080 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/ || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
+    ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd fail2ban tailscaled jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|5055|6767|6789|7878|8080|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 8080 healthz:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/healthz || true; echo "guest curl 8080 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "tailscale status:"; tailscale status || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
   else
     warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
   fi
@@ -478,6 +485,7 @@ else
 fi
 
 if [[ ${enable_media_probes} == "1" ]] && ((${#media_failed_urls[@]} > 0)); then
+  sleep "${media_retry_after_service_delay}"
   log "Retrying failed media endpoints after guest service checks"
   remaining_media_failed=()
   for url in "${media_failed_urls[@]}"; do

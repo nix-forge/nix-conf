@@ -20,6 +20,8 @@ vmnet_bin="${HOME_SERVER_VM_VMNET_BIN:-}"
 vmnet_helper_bin="${HOME_SERVER_VM_VMNET_HELPER_BIN:-}"
 vmnet_interface_id="${HOME_SERVER_VM_VMNET_INTERFACE_ID:-$(uuidgen 2> /dev/null || true)}"
 rebuild_store_image="${HOME_SERVER_VM_REBUILD_STORE_IMAGE:-0}"
+default_age_identity="${HOME}/.ssh/id_ed25519"
+age_identity_file="${HOME_SERVER_VM_AGE_IDENTITY_FILE:-${default_age_identity}}"
 
 if [[ -z ${vmnet_interface_id} ]]; then
   vmnet_interface_id="$(
@@ -37,7 +39,8 @@ else
   net_mac="$(printf '%s' "${HOME_SERVER_VM_NET_MAC}" | tr '[:upper:]' '[:lower:]')"
 fi
 
-build_output="$(nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link --print-out-paths)"
+nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link > /dev/null
+build_output="$(nix path-info "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm")"
 qemu_output="$(nix build nixpkgs#qemu --no-link --print-out-paths | tail -n 1)"
 e2fs_output="$(nix build nixpkgs#e2fsprogs --no-link --print-out-paths | grep -- '-bin$' | tail -n 1)"
 vfkit_output="$(nix build nixpkgs#vfkit --no-link --print-out-paths | tail -n 1)"
@@ -83,6 +86,7 @@ xchg_dir="${run_dir}/xchg"
 work_raw="${run_dir}/${hostname}.work.raw"
 base_raw="${flake_dir}/${hostname}.raw"
 store_img="${run_dir}/${hostname}.store.img"
+secrets_img="${run_dir}/${hostname}.secrets.img"
 store_ref_file="${run_dir}/${hostname}.store.vfkit.ref"
 
 mkdir -p "${xchg_dir}"
@@ -130,6 +134,16 @@ if [[ ${rebuild_raw} == "1" || ${rebuild_store_image} == "1" || ! -e ${store_img
   printf '%s\n' "${store_paths_file}" > "${store_ref_file}"
 fi
 
+if [[ -f ${age_identity_file} ]]; then
+  secrets_root="$(mktemp -d "${run_dir}/vm-secrets.XXXXXX")"
+  install -m 0600 "${age_identity_file}" "${secrets_root}/id_ed25519"
+  "${mkfs_erofs_bin}" --quiet -L vm-secrets "${secrets_img}" "${secrets_root}"
+  chmod 600 "${secrets_img}"
+  rm -rf "${secrets_root}"
+else
+  rm -f "${secrets_img}"
+fi
+
 helper_pid=""
 ip_probe_pid=""
 ip_hint_prefix=""
@@ -149,6 +163,7 @@ cleanup() {
   if [[ ${keep_work_disk} != "1" && ${snapshot_mode} == "1" ]]; then
     rm -f "${work_raw}"
   fi
+  rm -f "${secrets_img}"
 }
 trap cleanup EXIT INT TERM
 
@@ -478,9 +493,17 @@ if [[ ${net_mode} == vmnet-shared || ${net_mode} == vmnet-host ]]; then
 fi
 printf '  net_mac: %s\n' "${net_mac}"
 printf '  run_disk: %s\n' "${run_disk}"
+if [[ -f ${secrets_img} ]]; then
+  printf '  vm_secrets: %s\n' "${age_identity_file}"
+fi
 
 printf '%s\n' "${net_mac}" > "${guest_mac_file}"
 printf '%s\n' "vfkit-${net_mode}-${vmnet_provider_selected}" > "${runner_mode_file}"
+
+extra_device_args=()
+if [[ -f ${secrets_img} ]]; then
+  extra_device_args+=(--device "virtio-blk,path=${secrets_img}")
+fi
 
 ( 
   if wait_for_guest_ip; then
@@ -497,6 +520,7 @@ ip_probe_pid="$!"
   --bootloader "${bootloader_arg}" \
   --device "virtio-blk,path=${run_disk}" \
   --device "virtio-blk,path=${store_img}" \
+  "${extra_device_args[@]}" \
   --device "${network_device_arg}" \
   --device virtio-rng \
   --device "virtio-serial,logFilePath=${serial_log}"

@@ -12,6 +12,7 @@
             shfmt
 
             vfkit
+            tailscale
 
             bashInteractive
           ])

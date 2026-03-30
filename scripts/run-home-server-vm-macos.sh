@@ -17,8 +17,11 @@ net_backend="${HOME_SERVER_VM_NET_BACKEND:-user}"
 accel_mode="${HOME_SERVER_VM_ACCEL:-}"
 cpu_model="${HOME_SERVER_VM_CPU_MODEL:-max}"
 rebuild_store_image="${HOME_SERVER_VM_REBUILD_STORE_IMAGE:-0}"
+default_age_identity="${HOME}/.ssh/id_ed25519"
+age_identity_file="${HOME_SERVER_VM_AGE_IDENTITY_FILE:-${default_age_identity}}"
 
-build_output="$(nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link --print-out-paths)"
+nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link > /dev/null
+build_output="$(nix path-info "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm")"
 qemu_output="$(nix build nixpkgs#qemu --no-link --print-out-paths | tail -n 1)"
 e2fs_output="$(nix build nixpkgs#e2fsprogs --no-link --print-out-paths | grep -- '-bin$' | tail -n 1)"
 tar_output="$(nix build nixpkgs#gnutar --no-link --print-out-paths | tail -n 1)"
@@ -44,8 +47,15 @@ fi
 
 mkdir -p "${run_dir}/xchg"
 store_img="${run_dir}/${hostname}.store.qemu.img"
+secrets_img="${run_dir}/${hostname}.secrets.qemu.img"
 store_ref_file="${run_dir}/${hostname}.store.qemu.ref"
 stored_store_ref=""
+
+cleanup() {
+  rm -f "${secrets_img}"
+}
+
+trap cleanup EXIT
 
 if [[ -f ${store_ref_file} ]]; then
   stored_store_ref="$(head -n 1 "${store_ref_file}" | tr -d '[:space:]')"
@@ -68,6 +78,16 @@ if [[ ${rebuild_store_image} == "1" || ! -e ${store_img} || ${stored_store_ref} 
       --tar=f \
       "${store_img}"
   printf '%s\n' "${store_paths_file}" > "${store_ref_file}"
+fi
+
+if [[ -f ${age_identity_file} ]]; then
+  secrets_root="$(mktemp -d "${run_dir}/vm-secrets.XXXXXX")"
+  install -m 0600 "${age_identity_file}" "${secrets_root}/id_ed25519"
+  "${mkfs_erofs_bin}" --quiet -L vm-secrets "${secrets_img}" "${secrets_root}"
+  chmod 600 "${secrets_img}"
+  rm -rf "${secrets_root}"
+else
+  rm -f "${secrets_img}"
 fi
 
 console_device='ttyS0,115200n8'
@@ -119,25 +139,38 @@ printf '  disk_cache: %s\n' "${disk_cache}"
 printf '  net_backend: %s\n' "${net_backend}"
 printf '  net_device: %s\n' "${net_device}"
 printf '  forwards: %s\n' "${forward_summary}"
+if [[ -f ${secrets_img} ]]; then
+  printf '  vm_secrets: %s\n' "${age_identity_file}"
+fi
 
-exec "${qemu_system_path}" \
-  "${machine_args[@]}" \
-  "${cpu_args[@]}" \
-  -name "${hostname}" \
-  -m "${memory_mb}" \
-  -smp "${cpu_cores}" \
-  -device virtio-rng-pci \
-  -device "${net_device},netdev=user.0" \
-  -netdev "${netdev_arg}" \
-  -virtfs local,path=/nix/store,security_model=none,mount_tag=nix-store \
-  -virtfs "local,path=${run_dir}/xchg,security_model=none,mount_tag=shared" \
-  -virtfs "local,path=${run_dir}/xchg,security_model=none,mount_tag=xchg" \
-  "${extra_args[@]}" \
-  -drive "cache=${disk_cache},file=${disk_image},id=drive1,if=none,index=1,werror=report" \
-  -device virtio-blk-pci,bootindex=1,drive=drive1,serial=root \
-  -drive "file=${store_img},id=drive2,if=none,format=raw,readonly=on" \
-  -device virtio-blk-pci,drive=drive2,serial=nix-store \
-  -kernel "${kernel_path}" \
-  -initrd "${initrd_path}" \
-  -append "${kernel_params}" \
-  -nographic
+qemu_args=(
+  "${machine_args[@]}"
+  "${cpu_args[@]}"
+  "-name" "${hostname}"
+  "-m" "${memory_mb}"
+  "-smp" "${cpu_cores}"
+  "-device" "virtio-rng-pci"
+  "-device" "${net_device},netdev=user.0"
+  "-netdev" "${netdev_arg}"
+  "-virtfs" "local,path=/nix/store,security_model=none,mount_tag=nix-store"
+  "-virtfs" "local,path=${run_dir}/xchg,security_model=none,mount_tag=shared"
+  "-virtfs" "local,path=${run_dir}/xchg,security_model=none,mount_tag=xchg"
+  "${extra_args[@]}"
+  "-drive" "cache=${disk_cache},file=${disk_image},id=drive1,if=none,index=1,werror=report"
+  "-device" "virtio-blk-pci,bootindex=1,drive=drive1,serial=root"
+  "-drive" "file=${store_img},id=drive2,if=none,format=raw,readonly=on"
+  "-device" "virtio-blk-pci,drive=drive2,serial=nix-store"
+  "-kernel" "${kernel_path}"
+  "-initrd" "${initrd_path}"
+  "-append" "${kernel_params}"
+  "-nographic"
+)
+
+if [[ -f ${secrets_img} ]]; then
+  qemu_args+=(
+    "-drive" "file=${secrets_img},id=drive3,if=none,format=raw,readonly=on"
+    "-device" "virtio-blk-pci,drive=drive3,serial=vm-secrets"
+  )
+fi
+
+"${qemu_system_path}" "${qemu_args[@]}"

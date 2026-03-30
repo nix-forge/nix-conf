@@ -7,7 +7,9 @@
 {
   assertions = [
     {
-      assertion = lib.hasAttrByPath [ "age" "secrets" "tailscale-auth-key" ] config;
+      assertion =
+        (!config.services.tailscale.enable)
+        || lib.hasAttrByPath [ "age" "secrets" "tailscale-auth-key" ] config;
       message = "age.secrets.tailscale-auth-key must exist when importing homelab.proxy.tailscale.";
     }
   ];
@@ -30,11 +32,13 @@
       "tailscaled.service"
       "tailscaled-autoconnect.service"
     ];
+    before = [ "nginx.service" ];
     wants = [
       "network-online.target"
       "tailscaled-autoconnect.service"
     ];
     wantedBy = [ "multi-user.target" ];
+    requiredBy = lib.optional config.services.nginx.enable "nginx.service";
     serviceConfig = {
       Type = "oneshot";
       User = "root";
@@ -84,5 +88,11 @@
       OnUnitActiveSec = "12h";
       RandomizedDelaySec = "30m";
     };
+  };
+
+  systemd.services.nginx = lib.mkIf config.homelab.proxy.tailscaleTls.enable {
+    after = [ "tailscale-cert.service" ];
+    requires = [ "tailscale-cert.service" ];
+    wants = [ "tailscale-cert.service" ];
   };
 }

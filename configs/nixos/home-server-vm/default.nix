@@ -39,8 +39,8 @@
     hardware-tpm
 
     homelab-common
-    homelab-proxy-homepage
-    homelab-proxy-nginx
+    homelab-network
+    homelab-proxy
     homelab-security
     homelab-media
     homelab-home-frigate

@@ -2,7 +2,9 @@
 {
   assertions = [
     {
-      assertion = lib.hasAttrByPath [ "age" "secrets" "mullvad-wg-private-key" ] config;
+      assertion =
+        (!config.networking.wireguard.enable)
+        || lib.hasAttrByPath [ "age" "secrets" "mullvad-wg-private-key" ] config;
       message = "age.secrets.mullvad-wg-private-key must exist when importing homelab.network.mullvad-wireguard.";
     }
   ];

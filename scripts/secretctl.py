@@ -538,9 +538,7 @@ def _derive_secret_from_index(  # noqa: C901, PLR0912, PLR0914, PLR0915
         recipient_set.update(target_public_keys)
 
     if not recipient_set:
-        message = (
-            f"unable to derive recipients for '{secret_id}'; no matching consumer targets found"
-        )
+        message = f"unable to derive recipients for '{secret_id}'; no matching consumer targets found"
         _fail(message)
 
     return SecretSpec(
@@ -561,7 +559,9 @@ def _lookup_or_derive_secret(
         if not allow_derived or str(exc) != f"unknown secret id: {secret_id}":
             raise
 
-    return ResolvedSecret(spec=_derive_secret_from_index(repo_root, secret_id), derived=True)
+    return ResolvedSecret(
+        spec=_derive_secret_from_index(repo_root, secret_id), derived=True
+    )
 
 
 def _cmd_recipients(repo_root: Path, secret_id: str) -> int:
@@ -603,9 +603,7 @@ def _cmd_edit(
     create: bool,
 ) -> int:
     if create:
-        spec = _lookup_or_derive_secret(
-            repo_root, secret_id, allow_derived=True
-        ).spec
+        spec = _lookup_or_derive_secret(repo_root, secret_id, allow_derived=True).spec
     else:
         spec = _lookup_secret(repo_root, secret_id)
 
@@ -677,11 +675,14 @@ def _cmd_create(repo_root: Path, secret_id: str) -> int:
 def _cmd_encrypt(repo_root: Path, secret_id: str, source_file: Path) -> int:
     resolved = _lookup_or_derive_secret(repo_root, secret_id, allow_derived=True)
     spec = resolved.spec
-    try:
-        plaintext = source_file.read_bytes()
-    except FileNotFoundError as exc:
-        message = f"plaintext file not found: {source_file}"
-        raise SecretCtlError(message) from exc
+    if source_file == Path("-"):
+        plaintext = sys.stdin.buffer.read()
+    else:
+        try:
+            plaintext = source_file.read_bytes()
+        except FileNotFoundError as exc:
+            message = f"plaintext file not found: {source_file}"
+            raise SecretCtlError(message) from exc
 
     _encrypt_bytes(plaintext, _require_recipients(spec), spec.file)
 
@@ -783,7 +784,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "encrypt", help="encrypt plaintext file into a secret"
     )
     encrypt_parser.add_argument("secret_id")
-    encrypt_parser.add_argument("--from", dest="source_file", required=True, type=Path)
+    encrypt_parser.add_argument(
+        "--from",
+        dest="source_file",
+        required=True,
+        type=Path,
+        help="plaintext file path, or '-' to read plaintext from stdin",
+    )
 
     create_parser = subparsers.add_parser(
         "create", help="create a new secret in $EDITOR"

@@ -86,9 +86,9 @@
             };
           }
           {
-            Jellyseerr = {
+            Seerr = {
               icon = "seerr.png";
-              href = "/jellyseerr/";
+              href = "/seerr/";
               description = "Requests and discovery, proxied through the single tailnet origin.";
             };
           }

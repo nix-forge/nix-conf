@@ -55,7 +55,7 @@ let
       '';
     }
     // mkPrefixLocations {
-      prefix = "/jellyseerr";
+      prefix = "/seerr";
       upstream = "http://127.0.0.1:5055";
       inherit forwardedProto;
       stripPrefix = true;
@@ -63,13 +63,13 @@ let
         proxy_set_header Accept-Encoding "";
         sub_filter_once off;
         sub_filter_types text/html application/javascript text/javascript text/css;
-        sub_filter 'href="/' 'href="/jellyseerr/';
-        sub_filter 'src="/' 'src="/jellyseerr/';
-        sub_filter 'content="/' 'content="/jellyseerr/';
-        sub_filter 'url(/' 'url(/jellyseerr/';
-        sub_filter '"/_next/' '"/jellyseerr/_next/';
-        sub_filter "'/_next/" "'/jellyseerr/_next/";
-        proxy_redirect ~^(/.*)$ /jellyseerr$1;
+        sub_filter 'href="/' 'href="/seerr/';
+        sub_filter 'src="/' 'src="/seerr/';
+        sub_filter 'content="/' 'content="/seerr/';
+        sub_filter 'url(/' 'url(/seerr/';
+        sub_filter '"/_next/' '"/seerr/_next/';
+        sub_filter "'/_next/" "'/seerr/_next/";
+        proxy_redirect ~^(/.*)$ /seerr$1;
       '';
     }
     // mkPrefixLocations {
@@ -193,6 +193,7 @@ in
       '';
       virtualHosts."_" = mkIf config.homelab.proxy.tailscaleTls.enable {
         default = true;
+        addSSL = true;
         forceSSL = false;
         enableACME = false;
         sslCertificate = "${certDir}/cert.pem";

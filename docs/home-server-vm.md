@@ -14,10 +14,16 @@ in `docs/archive/home-server-vm-history.md`.
 - Smoke still gates on `SSH + nginx + /healthz`, but the homepage now also
   passes in recent local runs.
 - Newly re-enabled and re-tested in parity: `homepage-dashboard`,
-  `vaultwarden`, `bazarr`, `lidarr`, and `readarr`.
+  `vaultwarden`, `bazarr`, `lidarr`, `readarr`, `flaresolverr`, and `seerr`.
 - For now, the supported vmnet path is `vmnet-helper`.
 - The old `home-server-vm-parity` config has been removed; parity is now only a
   check profile against `home-server-vm`.
+- SSH is back to key-based auth in the VM path, and `fail2ban` is enabled again.
+- The VM now imports and runs the network stack end-to-end:
+  `tailscaled`, Mullvad WireGuard, VPN policy routing, and qBittorrent VPN
+  binding are all active in parity runs.
+- `tailscale-cert` now works in the VM and the Tailscale HTTPS cert is issued
+  successfully for the VM node.
 
 ## Check profiles
 
@@ -122,10 +128,10 @@ You can override helper binary discovery with:
 | Path | Profile | Result | Notes |
 |---|---|---|---|
 | QEMU (`run-macos` + `check-fast`) | smoke | pass | `/healthz` stable and homepage passes in recent runs. |
-| QEMU (`run-macos` + `check-parity-fast`) | parity | pass | media probes + guest service checks pass, including `vaultwarden`, `bazarr`, `lidarr`, and `readarr`. |
+| QEMU (`run-macos` + `check-parity-fast`) | parity | pass | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass. |
 | vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke | pass | same smoke gating contract as QEMU. |
-| vfkit NAT parity | parity | pass | media probes + guest service checks pass, including newly re-enabled app services. |
-| vfkit vmnet-shared (`VMNET_PROVIDER=helper`) | smoke/parity | pass | validated with the packaged helper path. |
+| vfkit NAT parity | parity | pass | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass. |
+| vfkit vmnet-shared (`VMNET_PROVIDER=helper`) | smoke/parity | pass | validated with the packaged helper path, including VPN user egress checks and the Tailscale cert path. |
 | vfkit vmnet-host (`VMNET_PROVIDER=helper`) | smoke | pass | revalidated with the packaged helper path. |
 
 
@@ -136,11 +142,21 @@ You can override helper binary discovery with:
 - waits for SSH,
 - waits for ingress readiness (`/healthz`),
 - checks HTTP endpoints by profile,
-- checks guest services over SSH when batch SSH is available,
+- checks guest services over SSH when batch SSH is available, including
+  `fail2ban` and `tailscaled` in the base service set,
 - runs service-user egress checks in parity mode when passwordless sudo exists.
 
 Media probes accept auth challenge statuses by default (`401`, `403`) to avoid
 false negatives for intentionally protected endpoints.
+
+`flaresolverr` is checked as a guest service/listener in parity mode, not as an
+nginx-exposed public route.
+
+`seerr` is served at `/seerr/`, with `/jellyseerr/` redirected for
+compatibility.
+
+VPN user egress checks verify that `qbittorrent`, `nzbget`, and `prowlarr`
+reach the public internet through the Mullvad WireGuard path.
 
 ## Key environment variables
 
@@ -151,6 +167,7 @@ Checker:
 - `HOME_SERVER_VM_GUEST_IP`, `HOME_SERVER_VM_GUEST_IP_FILE`
 - `HOME_SERVER_VM_GUEST_IP_PREFIX`
 - `HOME_SERVER_VM_MEDIA_ALLOWED_HTTP_CODES`
+- `HOME_SERVER_VM_MEDIA_RETRY_AFTER_SERVICE_DELAY`
 
 QEMU runner (`scripts/run-home-server-vm-macos.sh`):
 
@@ -182,6 +199,19 @@ Secondary/manual validation:
 
 - vfkit vmnet-host smoke with `HOME_SERVER_VM_VMNET_PROVIDER=helper`
 
+## Security and network notes
+
+- SSH access now follows the main host more closely: key-based auth only over
+  SSH, while the console password remains available for local recovery.
+- `fail2ban` is enabled again in the VM and included in guest service checks.
+- `homelab-network` is imported and active in the VM.
+- Tailscale autoconnect works with the rotated direct auth key.
+- Tailscale HTTPS certificate issuance works, and nginx can use the issued cert
+  on 443.
+- Mullvad WireGuard, VPN nftables/policy routing, and qBittorrent binding are
+  enabled and validated in parity checks.
+- qBittorrent, NZBGet, and Prowlarr are all verified to egress through Mullvad.
+
 ## Troubleshooting
 
 - If vfkit vmnet launch fails, check runner logs in `${run_dir}`:
@@ -190,6 +220,11 @@ Secondary/manual validation:
   - `vmnet-helper.json` (legacy compatibility output)
 - If packaged `vmnet-helper` is used for the first time, the wrapper signs a
   cached copy under `~/Library/Caches/nix-conf-server/` before launch.
+- If `tailscaled-autoconnect.service` fails, check `vm-local-secrets.service`
+  first to confirm the local secret disk mounted and decrypted the auth key.
+- If nginx starts before Jellyfin is fully ready on vfkit vmnet runs, parity
+  checks now wait briefly and retry failed media endpoints after guest service
+  checks.
 - The repo-root `*.qcow2` and `*.raw` VM images are disposable local artifacts.
   If removed, the runners recreate them automatically on the next launch.
 - If guest IP resolution is wrong due stale leases, set
@@ -200,7 +235,6 @@ Secondary/manual validation:
 
 ## Not in scope yet
 
-- Tailscale / WireGuard / Mullvad-bound behavior in the VM
 - Frigate parity in the local VM
 
 ## NixOS wiring test

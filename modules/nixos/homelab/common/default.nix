@@ -27,6 +27,14 @@ in
   config = {
     systemd.tmpfiles.rules = [
       "d ${cfg.dataRoot} 0750 root media - -"
+      "d ${cfg.dataRoot}/jellyfin 0750 jellyfin media - -"
+      "d ${cfg.dataRoot}/sonarr 0750 sonarr media - -"
+      "d ${cfg.dataRoot}/radarr 0750 radarr media - -"
+      "d ${cfg.dataRoot}/lidarr 0750 lidarr media - -"
+      "d ${cfg.dataRoot}/readarr 0750 readarr media - -"
+      "d ${cfg.dataRoot}/bazarr 0750 bazarr media - -"
+      "d ${cfg.dataRoot}/prowlarr 0750 prowlarr media - -"
+      "d ${cfg.dataRoot}/qbittorrent 0750 qbittorrent media - -"
       "d ${cfg.mediaRoot} 0750 root media - -"
       "d ${cfg.downloadsRoot} 0770 root media - -"
       "d ${cfg.downloadsRoot}/incomplete 0770 root media - -"

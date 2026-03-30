@@ -1,6 +1,7 @@
-{ lib, ... }:
+{ lib, config, ... }:
 let
   vpnInterface = "wg-mullvad";
+  vpnPeers = config.networking.wireguard.interfaces.${vpnInterface}.peers or [ ];
   vpnUsers = [
     "qbittorrent"
     "nzbget"
@@ -18,7 +19,19 @@ let
     "192.168.0.0/16"
     "100.64.0.0/10"
     "169.254.0.0/16"
-  ];
+  ]
+  ++ builtins.map (addr: "${addr}/32") (
+    builtins.filter (addr: addr != null) (
+      builtins.map (
+        peer:
+        let
+          endpoint = peer.endpoint or "";
+          ipv4Match = builtins.match "([^:]+):[0-9]+" endpoint;
+        in
+        if ipv4Match == null then null else builtins.elemAt ipv4Match 0
+      ) vpnPeers
+    )
+  );
   allowedIPv6Cidrs = [
     "::1/128"
     "fc00::/7"
