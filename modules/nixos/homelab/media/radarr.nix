@@ -30,7 +30,7 @@ in
           return = "302 ${config.services.radarr.settings.server.urlbase}/";
         };
         "${config.services.radarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${config.services.radarr.settings.server.port}";
+          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${toString config.services.radarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +62,7 @@ in
           return = "302 ${config.services.radarr.settings.server.urlbase}/";
         };
         "${config.services.radarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${config.services.radarr.settings.server.port}";
+          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${toString config.services.radarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

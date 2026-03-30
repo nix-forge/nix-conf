@@ -29,7 +29,7 @@ in
           return = "302 /nzbget/";
         };
         "/nzbget/" = {
-          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${config.services.nzbget.settings.ControlPort}";
+          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${toString config.services.nzbget.settings.ControlPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -61,7 +61,7 @@ in
           return = "302 /nzbget/";
         };
         "/nzbget/" = {
-          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${config.services.nzbget.settings.ControlPort}";
+          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${toString config.services.nzbget.settings.ControlPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

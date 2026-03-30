@@ -4,6 +4,12 @@ let
 in
 {
   options.homelab.media.bazarr = {
+    stackRoot = lib.mkOption {
+      type = lib.types.str;
+      default = "/srv/media-stack";
+      description = "Shared media stack root.";
+    };
+
     downloadsGroup = lib.mkOption {
       type = lib.types.str;
       default = "downloads";
@@ -24,7 +30,7 @@ in
           return = "302 /bazarr/";
         };
         "/bazarr/" = {
-          proxyPass = "http://127.0.0.1:${config.services.bazarr.listenPort}";
+          proxyPass = "http://127.0.0.1:${toString config.services.bazarr.listenPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -56,7 +62,7 @@ in
           return = "302 /bazarr/";
         };
         "/bazarr/" = {
-          proxyPass = "http://127.0.0.1:${config.services.bazarr.listenPort}";
+          proxyPass = "http://127.0.0.1:${toString config.services.bazarr.listenPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

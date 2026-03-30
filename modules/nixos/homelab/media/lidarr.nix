@@ -30,7 +30,7 @@ in
           return = "302 ${config.services.lidarr.settings.server.urlbase}/";
         };
         "${config.services.lidarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${config.services.lidarr.settings.server.port}";
+          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${toString config.services.lidarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +62,7 @@ in
           return = "302 ${config.services.lidarr.settings.server.urlbase}/";
         };
         "${config.services.lidarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${config.services.lidarr.settings.server.port}";
+          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${toString config.services.lidarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

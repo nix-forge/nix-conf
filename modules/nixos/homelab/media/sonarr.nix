@@ -30,7 +30,7 @@ in
           return = "302 ${config.services.sonarr.settings.server.urlbase}/";
         };
         "${config.services.sonarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${config.services.sonarr.settings.server.port}";
+          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${toString config.services.sonarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +62,7 @@ in
           return = "302 ${config.services.sonarr.settings.server.urlbase}/";
         };
         "${config.services.sonarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${config.services.sonarr.settings.server.port}";
+          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${toString config.services.sonarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

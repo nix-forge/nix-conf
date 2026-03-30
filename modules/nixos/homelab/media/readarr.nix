@@ -30,7 +30,7 @@ in
           return = "302 ${config.services.readarr.settings.server.urlbase}/";
         };
         "${config.services.readarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${config.services.readarr.settings.server.port}";
+          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${toString config.services.readarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +62,7 @@ in
           return = "302 ${config.services.readarr.settings.server.urlbase}/";
         };
         "${config.services.readarr.settings.server.urlbase}/" = {
-          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${config.services.readarr.settings.server.port}";
+          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${toString config.services.readarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -120,7 +120,7 @@ in
         server = {
           port = 8787;
           bindaddress = "127.0.0.1";
-          urlbase = /readarr;
+          urlbase = "/readarr";
         };
       };
       environmentFiles = [ ];

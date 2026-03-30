@@ -11,7 +11,7 @@
         return = "302 ${config.services.prowlarr.settings.server.urlbase}/";
       };
       "${config.services.prowlarr.settings.server.urlbase}/" = {
-        proxyPass = "http://${config.services.prowlarr.settings.server.bindaddress}:${config.services.prowlarr.settings.server.port}";
+        proxyPass = "http://${config.services.prowlarr.settings.server.bindaddress}:${toString config.services.prowlarr.settings.server.port}";
         recommendedProxySettings = true;
         proxyWebsockets = true;
         extraConfig = ''
@@ -43,7 +43,7 @@
         return = "302 ${config.services.prowlarr.settings.server.urlbase}/";
       };
       "${config.services.prowlarr.settings.server.urlbase}/" = {
-        proxyPass = "http://${config.services.prowlarr.settings.server.bindaddress}:${config.services.prowlarr.settings.server.port}";
+        proxyPass = "http://${config.services.prowlarr.settings.server.bindaddress}:${toString config.services.prowlarr.settings.server.port}";
         recommendedProxySettings = true;
         proxyWebsockets = true;
         extraConfig = ''

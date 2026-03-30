@@ -36,7 +36,7 @@ in
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.qbittorrent.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
 
     users.users.qbittorrent.extraGroups = lib.mkAfter [ cfg.downloadsGroup ];
@@ -47,7 +47,7 @@ in
           return = "302 /qbittorrent/";
         };
         "/qbittorrent/" = {
-          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${config.services.qbittorrent.webuiPort}/";
+          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${toString config.services.qbittorrent.webuiPort}/";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -82,7 +82,7 @@ in
           return = "302 /qbittorrent/";
         };
         "/qbittorrent/" = {
-          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${config.services.qbittorrent.webuiPort}/";
+          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${toString config.services.qbittorrent.webuiPort}/";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''

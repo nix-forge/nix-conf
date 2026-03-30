@@ -6,7 +6,7 @@
         return = "302 /seerr/";
       };
       "/seerr/" = {
-        proxyPass = "http://127.0.0.1:${config.services.seerr.port}/";
+        proxyPass = "http://127.0.0.1:${toString config.services.seerr.port}/";
         recommendedProxySettings = true;
         proxyWebsockets = true;
         extraConfig = ''
@@ -36,7 +36,7 @@
         return = "302 /seerr/";
       };
       "/seerr/" = {
-        proxyPass = "http://127.0.0.1:${config.services.seerr.port}/";
+        proxyPass = "http://127.0.0.1:${toString config.services.seerr.port}/";
         recommendedProxySettings = true;
         proxyWebsockets = true;
         extraConfig = ''
