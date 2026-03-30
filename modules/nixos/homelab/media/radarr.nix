@@ -4,22 +4,10 @@ let
 in
 {
   options.homelab.media.radarr = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/radarr";
-      description = "Radarr state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "radarr";
-      description = "Primary group for Radarr service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -38,11 +26,11 @@ in
   config = {
     services.nginx.virtualHosts."_".locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
-        "= /radarr" = {
-          return = "302 /radarr/";
+        "= ${config.services.radarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.radarr.settings.server.urlbase}/";
         };
-        "/radarr/" = {
-          proxyPass = "http://127.0.0.1:7878";
+        "${config.services.radarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${config.services.radarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +50,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header X-Forwarded-Prefix /radarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.radarr.settings.server.urlbase};
           '';
         };
       })
@@ -70,11 +58,11 @@ in
 
     services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
-        "= /radarr" = {
-          return = "302 /radarr/";
+        "= ${config.services.radarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.radarr.settings.server.urlbase}/";
         };
-        "/radarr/" = {
-          proxyPass = "http://127.0.0.1:7878";
+        "${config.services.radarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.radarr.settings.server.bindaddress}:${config.services.radarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -82,7 +70,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto http;
-            proxy_set_header X-Forwarded-Prefix /radarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.radarr.settings.server.urlbase};
           '';
         };
       })
@@ -92,24 +80,24 @@ in
       {
         Radarr = {
           icon = "radarr.png";
-          href = "/radarr/";
+          href = "${config.services.radarr.settings.server.urlbase}/";
           description = "Movie collection and upgrade flow.";
           weight = 20;
         };
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.radarr.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.radarr.extraGroups = lib.mkAfter [
+    users.users.${config.services.radarr.user}.extraGroups = lib.mkAfter [
       cfg.downloadsGroup
       cfg.mediaGroup
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 radarr ${cfg.primaryGroup} - -"
+      "d ${config.services.radarr.dataDir} 0750 ${config.services.radarr.user} ${config.services.radarr.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -122,9 +110,8 @@ in
 
     services.radarr = {
       enable = true;
-      dataDir = cfg.stateDir;
       user = "radarr";
-      group = cfg.primaryGroup;
+      group = "radarr";
       openFirewall = false;
       settings = {
         server = {

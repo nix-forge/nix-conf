@@ -75,16 +75,6 @@
         };
       }
     ];
-    services."Home & Security" = [
-      {
-        Frigate = {
-          icon = "frigate.png";
-          href = "/frigate/";
-          description = "Cameras, review, and event browsing from the same origin.";
-          weight = 20;
-        };
-      }
-    ];
     bookmarks = [
       {
         Operations = [

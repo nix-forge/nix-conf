@@ -15,22 +15,10 @@ in
       description = "Bind qBittorrent to wg-mullvad when WireGuard is enabled.";
     };
 
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/qbittorrent";
-      description = "qBittorrent profile/state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "qbittorrent";
-      description = "Primary group for qBittorrent service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -59,7 +47,7 @@ in
           return = "302 /qbittorrent/";
         };
         "/qbittorrent/" = {
-          proxyPass = "http://127.0.0.1:8081/";
+          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${config.services.qbittorrent.webuiPort}/";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -94,7 +82,7 @@ in
           return = "302 /qbittorrent/";
         };
         "/qbittorrent/" = {
-          proxyPass = "http://127.0.0.1:8081/";
+          proxyPass = "http://${config.services.qbittorrent.serverConfig.Preferences.WebUI.Address}:${config.services.qbittorrent.webuiPort}/";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -123,7 +111,7 @@ in
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 qbittorrent ${cfg.primaryGroup} - -"
+      "d ${config.services.qbittorrent.profileDir} 0750 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/torrents 2770 root ${cfg.downloadsGroup} - -"
@@ -139,26 +127,24 @@ in
     services.qbittorrent = {
       enable = true;
       package = pkgs.qbittorrent-nox;
-      profileDir = cfg.stateDir;
       user = "qbittorrent";
-      group = cfg.primaryGroup;
+      group = "qbittorrent";
       webuiPort = 8081;
       torrentingPort = 51413;
       openFirewall = false;
       serverConfig = {
-        Preferences =
-          (lib.optionalAttrs cfg.bindToMullvad {
-            Connection = {
-              Interface = "wg-mullvad";
-              InterfaceAddress = "10.71.216.231";
-            };
-          })
-          // {
-            WebUI = {
-              Address = "127.0.0.1";
-              ReverseProxySupportEnabled = true;
-            };
+        Preferences = {
+          WebUI = {
+            Address = "127.0.0.1";
+            ReverseProxySupportEnabled = true;
           };
+        }
+        // (lib.optionalAttrs cfg.bindToMullvad {
+          Connection = {
+            Interface = "wg-mullvad";
+            InterfaceAddress = "10.71.216.231";
+          };
+        });
       };
     };
 

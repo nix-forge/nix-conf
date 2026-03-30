@@ -4,24 +4,6 @@ let
 in
 {
   options.homelab.media.bazarr = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/bazarr";
-      description = "Bazarr state directory.";
-    };
-
-    stackRoot = lib.mkOption {
-      type = lib.types.str;
-      default = "/srv/media-stack";
-      description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "bazarr";
-      description = "Primary group for Bazarr service runtime.";
-    };
-
     downloadsGroup = lib.mkOption {
       type = lib.types.str;
       default = "downloads";
@@ -42,7 +24,7 @@ in
           return = "302 /bazarr/";
         };
         "/bazarr/" = {
-          proxyPass = "http://127.0.0.1:6767";
+          proxyPass = "http://127.0.0.1:${config.services.bazarr.listenPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -74,7 +56,7 @@ in
           return = "302 /bazarr/";
         };
         "/bazarr/" = {
-          proxyPass = "http://127.0.0.1:6767";
+          proxyPass = "http://127.0.0.1:${config.services.bazarr.listenPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -99,17 +81,17 @@ in
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.bazarr.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.bazarr.extraGroups = lib.mkAfter [
+    users.users.${config.services.bazarr.user}.extraGroups = lib.mkAfter [
       cfg.downloadsGroup
       cfg.mediaGroup
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 bazarr ${cfg.primaryGroup} - -"
+      "d ${config.services.bazarr.dataDir} 0750 ${config.services.bazarr.user} ${config.services.bazarr.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -124,9 +106,8 @@ in
 
     services.bazarr = {
       enable = true;
-      dataDir = cfg.stateDir;
       user = "bazarr";
-      group = cfg.primaryGroup;
+      group = "bazarr";
       listenPort = 6767;
       openFirewall = false;
     };

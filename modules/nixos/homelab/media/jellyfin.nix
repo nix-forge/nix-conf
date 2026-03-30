@@ -4,22 +4,10 @@ let
 in
 {
   options.homelab.media.jellyfin = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/jellyfin";
-      description = "Jellyfin state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "jellyfin";
-      description = "Primary group for Jellyfin service runtime.";
     };
 
     mediaGroup = lib.mkOption {
@@ -83,13 +71,13 @@ in
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.jellyfin.group} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.jellyfin.extraGroups = lib.mkAfter [ cfg.mediaGroup ];
+    users.users.${config.services.jellyfin.user}.extraGroups = lib.mkAfter [ cfg.mediaGroup ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 jellyfin ${cfg.primaryGroup} - -"
+      "d ${config.services.jellyfin.dataDir} 0750 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -101,14 +89,13 @@ in
       "d ${cfg.stackRoot}/data/media/books/audiobooks 2770 root ${cfg.mediaGroup} - -"
       "d ${cfg.stackRoot}/data/media/books/comics 2770 root ${cfg.mediaGroup} - -"
       "d ${cfg.stackRoot}/cache 0755 root root - -"
-      "d ${cfg.stackRoot}/cache/jellyfin 2750 jellyfin ${cfg.primaryGroup} - -"
+      "d ${cfg.stackRoot}/cache/jellyfin 2750 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
     ];
 
     services.jellyfin = {
       enable = true;
       user = "jellyfin";
-      group = cfg.primaryGroup;
-      dataDir = cfg.stateDir;
+      group = "jellyfin";
       openFirewall = false;
     };
   };

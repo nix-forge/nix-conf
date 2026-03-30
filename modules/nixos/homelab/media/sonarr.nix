@@ -4,22 +4,10 @@ let
 in
 {
   options.homelab.media.sonarr = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/sonarr";
-      description = "Sonarr state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "sonarr";
-      description = "Primary group for Sonarr service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -38,11 +26,11 @@ in
   config = {
     services.nginx.virtualHosts."_".locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
-        "= /sonarr" = {
-          return = "302 /sonarr/";
+        "= ${config.services.sonarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.sonarr.settings.server.urlbase}/";
         };
-        "/sonarr/" = {
-          proxyPass = "http://127.0.0.1:8989";
+        "${config.services.sonarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${config.services.sonarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +50,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header X-Forwarded-Prefix /sonarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.sonarr.settings.server.urlbase};
           '';
         };
       })
@@ -70,11 +58,11 @@ in
 
     services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
-        "= /sonarr" = {
-          return = "302 /sonarr/";
+        "= ${config.services.sonarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.sonarr.settings.server.urlbase}/";
         };
-        "/sonarr/" = {
-          proxyPass = "http://127.0.0.1:8989";
+        "${config.services.sonarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.sonarr.settings.server.bindaddress}:${config.services.sonarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -82,7 +70,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto http;
-            proxy_set_header X-Forwarded-Prefix /sonarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.sonarr.settings.server.urlbase};
           '';
         };
       })
@@ -92,24 +80,24 @@ in
       {
         Sonarr = {
           icon = "sonarr.png";
-          href = "/sonarr/";
+          href = "${config.services.sonarr.settings.server.urlbase}/";
           description = "Series intake and release automation.";
           weight = 10;
         };
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.sonarr.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.sonarr.extraGroups = lib.mkAfter [
+    users.users.${config.services.sonarr.user}.extraGroups = lib.mkAfter [
       cfg.downloadsGroup
       cfg.mediaGroup
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 sonarr ${cfg.primaryGroup} - -"
+      "d ${config.services.sonarr.dataDir} 0750 ${config.services.sonarr.user} ${config.services.sonarr.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -122,9 +110,8 @@ in
 
     services.sonarr = {
       enable = true;
-      dataDir = cfg.stateDir;
       user = "sonarr";
-      group = cfg.primaryGroup;
+      group = "sonarr";
       openFirewall = false;
       settings = {
         server = {

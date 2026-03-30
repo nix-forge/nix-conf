@@ -9,22 +9,10 @@ let
 in
 {
   options.homelab.media.nzbget = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/nzbget";
-      description = "NZBGet state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "nzbget";
-      description = "Primary group for NZBGet service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -41,7 +29,7 @@ in
           return = "302 /nzbget/";
         };
         "/nzbget/" = {
-          proxyPass = "http://127.0.0.1:6789";
+          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${config.services.nzbget.settings.ControlPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -73,7 +61,7 @@ in
           return = "302 /nzbget/";
         };
         "/nzbget/" = {
-          proxyPass = "http://127.0.0.1:6789";
+          proxyPass = "http://${config.services.nzbget.settings.ControlIP}:${config.services.nzbget.settings.ControlPort}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -98,13 +86,13 @@ in
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.nzbget.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
 
-    users.users.nzbget.extraGroups = lib.mkAfter [ cfg.downloadsGroup ];
+    users.users.${config.services.nzbget.user}.extraGroups = lib.mkAfter [ cfg.downloadsGroup ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 nzbget ${cfg.primaryGroup} - -"
+      "d /var/lib/nzbget 0750 ${config.services.nzbget.user} ${config.services.nzbget.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/usenet 2770 root ${cfg.downloadsGroup} - -"
@@ -119,7 +107,8 @@ in
       enable = true;
       package = pkgs.nzbget;
       user = "nzbget";
-      group = cfg.primaryGroup;
+      group = "nzbget";
+      # TODO: Configure the correct settings using documentation from https://github.com/nzbgetcom/nzbget/blob/develop/nzbget.conf
       settings = {
         ControlIP = "127.0.0.1";
         ControlPort = 6789;

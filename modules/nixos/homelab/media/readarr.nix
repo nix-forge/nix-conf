@@ -4,22 +4,10 @@ let
 in
 {
   options.homelab.media.readarr = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/readarr";
-      description = "Readarr state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "readarr";
-      description = "Primary group for Readarr service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -38,11 +26,11 @@ in
   config = {
     services.nginx.virtualHosts."_".locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
-        "= /readarr" = {
-          return = "302 /readarr/";
+        "= ${config.services.readarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.readarr.settings.server.urlbase}/";
         };
-        "/readarr/" = {
-          proxyPass = "http://127.0.0.1:8787";
+        "${config.services.readarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${config.services.readarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +50,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header X-Forwarded-Prefix /readarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.readarr.settings.server.urlbase};
           '';
         };
       })
@@ -70,11 +58,11 @@ in
 
     services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
-        "= /readarr" = {
-          return = "302 /readarr/";
+        "= ${config.services.readarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.readarr.settings.server.urlbase}/";
         };
-        "/readarr/" = {
-          proxyPass = "http://127.0.0.1:8787";
+        "${config.services.readarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.readarr.settings.server.bindaddress}:${config.services.readarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -82,7 +70,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto http;
-            proxy_set_header X-Forwarded-Prefix /readarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.readarr.settings.server.urlbase};
           '';
         };
       })
@@ -92,24 +80,24 @@ in
       {
         Readarr = {
           icon = "readarr.png";
-          href = "/readarr/";
+          href = "${config.services.readarr.settings.server.urlbase}/";
           description = "Books and audiobooks pipeline.";
           weight = 40;
         };
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.readarr.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.readarr.extraGroups = lib.mkAfter [
+    users.users.${config.services.readarr.user}.extraGroups = lib.mkAfter [
       cfg.downloadsGroup
       cfg.mediaGroup
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 readarr ${cfg.primaryGroup} - -"
+      "d ${config.services.readarr.dataDir} 0750 ${config.services.readarr.user} ${config.services.readarr.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -125,15 +113,14 @@ in
 
     services.readarr = {
       enable = true;
-      dataDir = cfg.stateDir;
       user = "readarr";
-      group = cfg.primaryGroup;
+      group = "readarr";
       openFirewall = false;
       settings = {
         server = {
           port = 8787;
           bindaddress = "127.0.0.1";
-          urlbase = "/readarr";
+          urlbase = /readarr;
         };
       };
       environmentFiles = [ ];

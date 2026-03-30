@@ -240,10 +240,6 @@ Secondary/manual validation:
 - If homepage (`/`) fails but `/healthz` passes in smoke, this is expected and
   non-gating unless `HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=1` is set.
 
-## Not in scope yet
-
-- Frigate parity in the local VM
-
 ## NixOS wiring test
 
 Linux-only integration wiring check remains available through:

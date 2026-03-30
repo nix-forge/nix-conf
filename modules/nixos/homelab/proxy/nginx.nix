@@ -37,31 +37,6 @@ let
     proxy_set_header X-Webauth-Profile-Picture "$auth_profile_picture";
   '';
 
-  mkPrefixLocations =
-    {
-      prefix,
-      upstream,
-      forwardedProto,
-      proxyWebsockets ? true,
-      stripPrefix ? false,
-      protectWithAuth ? false,
-      extraConfig ? "",
-    }:
-    {
-      "= ${prefix}" = {
-        return = "302 ${prefix}/";
-      };
-      "${prefix}/" = {
-        proxyPass = if stripPrefix then "${upstream}/" else upstream;
-        recommendedProxySettings = true;
-        inherit proxyWebsockets;
-        extraConfig =
-          lib.optionalString protectWithAuth authRequestConfig
-          + commonProxyConfig prefix forwardedProto
-          + extraConfig;
-      };
-    };
-
   mkHomepageLocation = forwardedProto: {
     "/" = {
       proxyPass = "http://127.0.0.1:8082/";
@@ -158,16 +133,7 @@ in
               '';
             };
           }
-          // mkHomepageLocation "https"
-          // mkPrefixLocations {
-            prefix = "/frigate";
-            upstream = "http://127.0.0.1:5000";
-            forwardedProto = "https";
-            protectWithAuth = true;
-            extraConfig = ''
-              proxy_buffering off;
-            '';
-          };
+          // mkHomepageLocation "https";
       };
     };
 
@@ -183,18 +149,7 @@ in
           inherit (config.homelab.proxy.vmHttpAccess) port;
         }
       ];
-      locations =
-        mkHealthzLocation
-        // mkHomepageLocation "http"
-        // mkPrefixLocations {
-          prefix = "/frigate";
-          upstream = "http://127.0.0.1:5000";
-          forwardedProto = "http";
-          protectWithAuth = false;
-          extraConfig = ''
-            proxy_buffering off;
-          '';
-        };
+      locations = mkHealthzLocation // mkHomepageLocation "http";
     };
   };
 }

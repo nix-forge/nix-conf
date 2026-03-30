@@ -4,22 +4,10 @@ let
 in
 {
   options.homelab.media.lidarr = {
-    stateDir = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/lidarr";
-      description = "Lidarr state directory.";
-    };
-
     stackRoot = lib.mkOption {
       type = lib.types.str;
       default = "/srv/media-stack";
       description = "Shared media stack root.";
-    };
-
-    primaryGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "lidarr";
-      description = "Primary group for Lidarr service runtime.";
     };
 
     downloadsGroup = lib.mkOption {
@@ -38,11 +26,11 @@ in
   config = {
     services.nginx.virtualHosts."_".locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
-        "= /lidarr" = {
-          return = "302 /lidarr/";
+        "= ${config.services.lidarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.lidarr.settings.server.urlbase}/";
         };
-        "/lidarr/" = {
-          proxyPass = "http://127.0.0.1:8686";
+        "${config.services.lidarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${config.services.lidarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -62,7 +50,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header X-Forwarded-Prefix /lidarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.lidarr.settings.server.urlbase};
           '';
         };
       })
@@ -70,11 +58,11 @@ in
 
     services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
       (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
-        "= /lidarr" = {
-          return = "302 /lidarr/";
+        "= ${config.services.lidarr.settings.server.urlbase}" = {
+          return = "302 ${config.services.lidarr.settings.server.urlbase}/";
         };
-        "/lidarr/" = {
-          proxyPass = "http://127.0.0.1:8686";
+        "${config.services.lidarr.settings.server.urlbase}/" = {
+          proxyPass = "http://${config.services.lidarr.settings.server.bindaddress}:${config.services.lidarr.settings.server.port}";
           recommendedProxySettings = true;
           proxyWebsockets = true;
           extraConfig = ''
@@ -82,7 +70,7 @@ in
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Forwarded-Proto http;
-            proxy_set_header X-Forwarded-Prefix /lidarr;
+            proxy_set_header X-Forwarded-Prefix ${config.services.lidarr.settings.server.urlbase};
           '';
         };
       })
@@ -92,24 +80,24 @@ in
       {
         Lidarr = {
           icon = "lidarr.png";
-          href = "/lidarr/";
+          href = "${config.services.lidarr.settings.server.urlbase}/";
           description = "Music acquisition and metadata cleanup.";
           weight = 30;
         };
       }
     ];
 
-    users.groups.${cfg.primaryGroup} = { };
+    users.groups.${config.services.lidarr.group} = { };
     users.groups.${cfg.downloadsGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 
-    users.users.lidarr.extraGroups = lib.mkAfter [
+    users.users.${config.services.lidarr.user}.extraGroups = lib.mkAfter [
       cfg.downloadsGroup
       cfg.mediaGroup
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 lidarr ${cfg.primaryGroup} - -"
+      "d ${config.services.lidarr.dataDir} 0750 ${config.services.lidarr.user} ${config.services.lidarr.group} - -"
       "d ${cfg.stackRoot} 0755 root root - -"
       "d ${cfg.stackRoot}/data 0755 root root - -"
       "d ${cfg.stackRoot}/data/media 2770 root ${cfg.mediaGroup} - -"
@@ -118,9 +106,8 @@ in
 
     services.lidarr = {
       enable = true;
-      dataDir = cfg.stateDir;
       user = "lidarr";
-      group = cfg.primaryGroup;
+      group = "lidarr";
       openFirewall = false;
       settings = {
         server = {

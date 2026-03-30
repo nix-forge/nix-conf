@@ -58,7 +58,6 @@ in
 
     homelab.media.qbittorrent.bindToMullvad = lib.mkForce true;
 
-    services.frigate.enable = lib.mkForce false;
     services.vaultwarden.enable = lib.mkForce true;
     services.bazarr.enable = lib.mkForce true;
     services.flaresolverr.enable = lib.mkForce true;
