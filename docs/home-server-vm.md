@@ -13,15 +13,15 @@ in `docs/archive/home-server-vm-history.md`.
 - Parity checks pass on QEMU, vfkit NAT, and vfkit vmnet-shared.
 - Smoke still gates on `SSH + nginx + /healthz`, but the homepage now also
   passes in recent local runs.
-- Newly re-enabled and re-tested in parity: `homepage-dashboard`,
-  `vaultwarden`, `bazarr`, `lidarr`, `readarr`, `flaresolverr`, and `seerr`.
+- Newly re-enabled and re-tested in parity: `homepage-dashboard`, `vaultwarden`,
+  `bazarr`, `lidarr`, `readarr`, `flaresolverr`, and `seerr`.
 - For now, the supported vmnet path is `vmnet-helper`.
 - The old `home-server-vm-parity` config has been removed; parity is now only a
   check profile against `home-server-vm`.
 - SSH is back to key-based auth in the VM path, and `fail2ban` is enabled again.
-- The VM now imports and runs the network stack end-to-end:
-  `tailscaled`, Mullvad WireGuard, VPN policy routing, and qBittorrent VPN
-  binding are all active in parity runs.
+- The VM now imports and runs the network stack end-to-end: `tailscaled`,
+  Mullvad WireGuard, VPN policy routing, and qBittorrent VPN binding are all
+  active in parity runs.
 - `tailscale-cert` now works in the VM and the Tailscale HTTPS cert is issued
   successfully for the VM node.
 
@@ -108,8 +108,6 @@ or:
 nix develop
 ```
 
-
-
 The vfkit runner also falls back to `.#vmnet-helper` automatically if
 `vmnet-helper` is not already on `PATH`.
 
@@ -125,15 +123,14 @@ You can override helper binary discovery with:
 
 ## Validation matrix (latest)
 
-| Path | Profile | Result | Notes |
-|---|---|---|---|
-| QEMU (`run-macos` + `check-fast`) | smoke | pass | `/healthz` stable and homepage passes in recent runs. |
-| QEMU (`run-macos` + `check-parity-fast`) | parity | pass | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass. |
-| vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke | pass | same smoke gating contract as QEMU. |
-| vfkit NAT parity | parity | pass | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass. |
-| vfkit vmnet-shared (`VMNET_PROVIDER=helper`) | smoke/parity | pass | validated with the packaged helper path, including VPN user egress checks and the Tailscale cert path. |
-| vfkit vmnet-host (`VMNET_PROVIDER=helper`) | smoke | pass | revalidated with the packaged helper path. |
-
+| Path                                               | Profile      | Result | Notes                                                                                                  |
+| -------------------------------------------------- | ------------ | ------ | ------------------------------------------------------------------------------------------------------ |
+| QEMU (`run-macos` + `check-fast`)                  | smoke        | pass   | `/healthz` stable and homepage passes in recent runs.                                                  |
+| QEMU (`run-macos` + `check-parity-fast`)           | parity       | pass   | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass.            |
+| vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke        | pass   | same smoke gating contract as QEMU.                                                                    |
+| vfkit NAT parity                                   | parity       | pass   | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass.            |
+| vfkit vmnet-shared (`VMNET_PROVIDER=helper`)       | smoke/parity | pass   | validated with the packaged helper path, including VPN user egress checks and the Tailscale cert path. |
+| vfkit vmnet-host (`VMNET_PROVIDER=helper`)         | smoke        | pass   | revalidated with the packaged helper path.                                                             |
 
 ## Smoke-check behavior
 
@@ -155,8 +152,8 @@ nginx-exposed public route.
 `seerr` is served at `/seerr/`, with `/jellyseerr/` redirected for
 compatibility.
 
-VPN user egress checks verify that `qbittorrent`, `nzbget`, and `prowlarr`
-reach the public internet through the Mullvad WireGuard path.
+VPN user egress checks verify that `qbittorrent`, `nzbget`, and `prowlarr` reach
+the public internet through the Mullvad WireGuard path.
 
 ## Key environment variables
 
@@ -192,8 +189,10 @@ Primary regression paths:
 - `just home-server-vm-run-macos` + `just home-server-vm-check-fast`
 - `just home-server-vm-run-macos` + `just home-server-vm-check-parity-fast`
 - `just home-server-vm-run-macos-vfkit` + `just home-server-vm-check-vfkit-fast`
-- `just home-server-vm-run-macos-vfkit` + `just home-server-vm-check-vfkit-parity-fast`
-- `HOME_SERVER_VM_NET_MODE=vmnet-shared HOME_SERVER_VM_VMNET_PROVIDER=helper ./scripts/run-home-server-vm-macos-vfkit.sh` + parity check script
+- `just home-server-vm-run-macos-vfkit` +
+  `just home-server-vm-check-vfkit-parity-fast`
+- `HOME_SERVER_VM_NET_MODE=vmnet-shared HOME_SERVER_VM_VMNET_PROVIDER=helper ./scripts/run-home-server-vm-macos-vfkit.sh` +
+  parity check script
 
 Secondary/manual validation:
 

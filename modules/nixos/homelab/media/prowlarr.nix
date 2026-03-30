@@ -31,9 +31,7 @@ in
   config = {
     users.groups.${cfg.sharedGroup}.gid = lib.mkDefault cfg.sharedGroupGid;
 
-    systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 prowlarr ${cfg.sharedGroup} - -"
-    ];
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 prowlarr ${cfg.sharedGroup} - -" ];
 
     services.prowlarr = {
       enable = true;

@@ -17,11 +17,10 @@
   services.tailscale = {
     enable = true;
     openFirewall = false;
-    useRoutingFeatures = "client";
     authKeyFile = config.age.secrets.tailscale-auth-key.path;
-    permitCertUid = "nginx";
-    extraUpFlags = [ "--accept-dns=true" ];
   };
+
+  systemd.services.tailscaled-autoconnect.serviceConfig.TimeoutStartSec = "20s";
 
   systemd.tmpfiles.rules = [ "d /var/lib/tailscale-cert 0750 root nginx - -" ];
 
@@ -46,15 +45,14 @@
     };
     path = with pkgs; [
       coreutils
-      gnugrep
-      python3
+      jq
       tailscale
     ];
     script = ''
-      set -eu
+      set -euo pipefail
 
       cert_dir=/var/lib/tailscale-cert
-      dns_name="$(${pkgs.tailscale}/bin/tailscale status --json | ${pkgs.python3}/bin/python3 -c 'import json, sys; print((json.load(sys.stdin).get("Self", {}).get("DNSName") or "").rstrip("."))')"
+      dns_name="$(${pkgs.tailscale}/bin/tailscale status --json | ${pkgs.jq}/bin/jq -r '.Self.DNSName // "" | rtrimstr(".")')"
 
       if [ -z "$dns_name" ]; then
         echo "tailscale DNS name is not available yet" >&2
@@ -70,11 +68,21 @@
 
       ${pkgs.tailscale}/bin/tailscale cert --cert-file "$tmp_cert" --key-file "$tmp_key" "$dns_name"
 
-      install -m 0640 -o nginx -g nginx "$tmp_cert" "$cert_dir/cert.pem"
-      install -m 0640 -o nginx -g nginx "$tmp_key" "$cert_dir/key.pem"
+      changed=0
+
+      if ! test -f "$cert_dir/cert.pem" || ! cmp -s "$tmp_cert" "$cert_dir/cert.pem"; then
+        install -m 0640 -o nginx -g nginx "$tmp_cert" "$cert_dir/cert.pem"
+        changed=1
+      fi
+
+      if ! test -f "$cert_dir/key.pem" || ! cmp -s "$tmp_key" "$cert_dir/key.pem"; then
+        install -m 0640 -o nginx -g nginx "$tmp_key" "$cert_dir/key.pem"
+        changed=1
+      fi
+
       printf '%s\n' "$dns_name" > "$cert_dir/dns-name"
 
-      if systemctl is-active --quiet nginx.service; then
+      if [ "$changed" -eq 1 ] && systemctl is-active --quiet nginx.service; then
         systemctl reload nginx.service
       fi
     '';
@@ -84,9 +92,10 @@
     wantedBy = [ "timers.target" ];
     partOf = [ "tailscale-cert.service" ];
     timerConfig = {
-      OnBootSec = "5m";
-      OnUnitActiveSec = "12h";
-      RandomizedDelaySec = "30m";
+      OnBootSec = "10m";
+      OnCalendar = "daily";
+      RandomizedDelaySec = "6h";
+      Persistent = true;
     };
   };
 

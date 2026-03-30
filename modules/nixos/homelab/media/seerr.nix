@@ -33,12 +33,10 @@ in
     users.groups.${cfg.group} = { };
     users.users.${cfg.user} = {
       isSystemUser = true;
-      group = cfg.group;
+      inherit (cfg) group;
     };
 
-    systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} - -"
-    ];
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} - -" ];
 
     systemd.services.seerr.serviceConfig = {
       DynamicUser = lib.mkForce false;

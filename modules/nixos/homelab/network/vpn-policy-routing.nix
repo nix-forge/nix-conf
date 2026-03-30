@@ -1,10 +1,9 @@
 { lib, config, ... }:
 let
   cfg = config.homelab.network.vpnPolicyRouting;
-  vpnInterface = cfg.vpnInterface;
+  inherit (cfg) vpnInterface;
   vpnPeers = config.networking.wireguard.interfaces.${vpnInterface}.peers or [ ];
-  vpnUsers = cfg.vpnUsers;
-  vpnUserUids = cfg.vpnUserUids;
+  inherit (cfg) vpnUsers;
   allowedIPv4Cidrs = [
     "127.0.0.0/8"
     "10.0.0.0/8"
@@ -32,7 +31,15 @@ let
   ];
   renderSet = values: "{ ${lib.concatStringsSep ", " values} }";
   routingTable = 51820;
-  uidFor = user: lib.attrByPath [ user ] 3000 vpnUserUids;
+  uidFor =
+    user:
+    let
+      uid = lib.attrByPath [ "users" "users" user "uid" ] null config;
+    in
+    if uid == null then
+      throw "homelab.network.vpnPolicyRouting: users.users.${user}.uid must be set for nftables skuid rules"
+    else
+      uid;
   indexOf =
     needle: haystack:
     let
@@ -106,16 +113,6 @@ in
       description = "System users that must route through the VPN table.";
     };
 
-    vpnUserUids = lib.mkOption {
-      type = lib.types.attrsOf lib.types.int;
-      default = {
-        qbittorrent = 2001;
-        nzbget = 2002;
-        prowlarr = 2003;
-      };
-      description = "UID map used by nftables skuid rules for VPN-bound users.";
-    };
-
     sharedGroup = lib.mkOption {
       type = lib.types.str;
       default = "media";
@@ -130,12 +127,21 @@ in
   };
 
   config = {
+    assertions = [
+      {
+        assertion = builtins.all (
+          user: lib.attrByPath [ "users" "users" user "uid" ] null config != null
+        ) vpnUsers;
+        message = "Each homelab.network.vpnPolicyRouting.vpnUsers entry must have users.users.<name>.uid set.";
+      }
+    ];
+
     users.users = builtins.listToAttrs (
       map (user: {
         name = user;
         value = {
           isSystemUser = lib.mkDefault true;
-          uid = lib.mkDefault (uidFor user);
+          uid = lib.mkDefault (2001 + indexOf user vpnUsers);
           group = lib.mkDefault cfg.sharedGroup;
         };
       }) vpnUsers

@@ -139,6 +139,17 @@ in
       requires = [ "vm-local-secrets.service" ];
     };
 
+    systemd.services.tailscale-nginx-auth = {
+      after = [
+        "vm-local-secrets.service"
+        "tailscaled-autoconnect.service"
+      ];
+      wants = [
+        "vm-local-secrets.service"
+        "tailscaled-autoconnect.service"
+      ];
+    };
+
     systemd.services.vm-disable-nic-offload = {
       description = "Disable NIC offload features in VM test profile";
       wantedBy = [ "multi-user.target" ];

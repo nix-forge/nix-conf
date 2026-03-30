@@ -18,14 +18,14 @@ vmnet_use_sudo="${HOME_SERVER_VM_VMNET_USE_SUDO:-auto}"
 vmnet_provider="${HOME_SERVER_VM_VMNET_PROVIDER:-auto}"
 vmnet_bin="${HOME_SERVER_VM_VMNET_BIN:-}"
 vmnet_helper_bin="${HOME_SERVER_VM_VMNET_HELPER_BIN:-}"
-vmnet_interface_id="${HOME_SERVER_VM_VMNET_INTERFACE_ID:-$(uuidgen 2> /dev/null || true)}"
+vmnet_interface_id="${HOME_SERVER_VM_VMNET_INTERFACE_ID:-$(uuidgen 2>/dev/null || true)}"
 rebuild_store_image="${HOME_SERVER_VM_REBUILD_STORE_IMAGE:-0}"
 default_age_identity="${HOME}/.ssh/id_ed25519"
 age_identity_file="${HOME_SERVER_VM_AGE_IDENTITY_FILE:-${default_age_identity}}"
 
 if [[ -z ${vmnet_interface_id} ]]; then
   vmnet_interface_id="$(
-    python3 - << 'PY'
+    python3 - <<'PY'
 import uuid
 print(uuid.uuid4())
 PY
@@ -39,7 +39,7 @@ else
   net_mac="$(printf '%s' "${HOME_SERVER_VM_NET_MAC}" | tr '[:upper:]' '[:lower:]')"
 fi
 
-nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link > /dev/null
+nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link >/dev/null
 build_output="$(nix path-info "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm")"
 qemu_output="$(nix build nixpkgs#qemu --no-link --print-out-paths | tail -n 1)"
 e2fs_output="$(nix build nixpkgs#e2fsprogs --no-link --print-out-paths | grep -- '-bin$' | tail -n 1)"
@@ -68,8 +68,8 @@ fi
 if [[ ! -e ${disk_image} ]]; then
   raw_image="$(mktemp "${TMPDIR:-/tmp}/${hostname}.raw.XXXXXX")"
   trap 'rm -f "${raw_image}"' EXIT
-  "${qemu_img}" create -f raw "${raw_image}" 131072M > /dev/null
-  "${mkfs_ext4}" -L nixos "${raw_image}" > /dev/null 2>&1
+  "${qemu_img}" create -f raw "${raw_image}" 131072M >/dev/null
+  "${mkfs_ext4}" -L nixos "${raw_image}" >/dev/null 2>&1
   "${qemu_img}" convert -f raw -O qcow2 "${raw_image}" "${disk_image}"
 fi
 
@@ -100,7 +100,7 @@ fi
 
 if [[ ${snapshot_mode} == "1" ]]; then
   rm -f "${work_raw}"
-  if cp -c "${base_raw}" "${work_raw}" 2> /dev/null; then
+  if cp -c "${base_raw}" "${work_raw}" 2>/dev/null; then
     :
   else
     cp "${base_raw}" "${work_raw}"
@@ -121,8 +121,8 @@ if [[ ${rebuild_raw} == "1" || ${rebuild_store_image} == "1" || ! -e ${store_img
     --verbatim-files-from \
     --transform 'flags=rSh;s|/nix/store/||' \
     --transform 'flags=rSh;s|~nix~case~hack~[[:digit:]]\+||g' \
-    --files-from "${store_paths_file}" \
-                                     | "${mkfs_erofs_bin}" \
+    --files-from "${store_paths_file}" |
+    "${mkfs_erofs_bin}" \
       --quiet \
       --force-uid=0 \
       --force-gid=0 \
@@ -131,7 +131,7 @@ if [[ ${rebuild_raw} == "1" || ${rebuild_store_image} == "1" || ! -e ${store_img
       --hard-dereference \
       --tar=f \
       "${store_img}"
-  printf '%s\n' "${store_paths_file}" > "${store_ref_file}"
+  printf '%s\n' "${store_paths_file}" >"${store_ref_file}"
 fi
 
 if [[ -f ${age_identity_file} ]]; then
@@ -151,14 +151,14 @@ vmnet_provider_selected=""
 vmnet_provider_detail=""
 
 cleanup() {
-  if [[ -n ${helper_pid} ]] && ps -p "${helper_pid}" > /dev/null 2>&1; then
-    kill "${helper_pid}" > /dev/null 2>&1 || true
-    wait "${helper_pid}" > /dev/null 2>&1 || true
+  if [[ -n ${helper_pid} ]] && ps -p "${helper_pid}" >/dev/null 2>&1; then
+    kill "${helper_pid}" >/dev/null 2>&1 || true
+    wait "${helper_pid}" >/dev/null 2>&1 || true
     helper_pid=""
   fi
-  if [[ -n ${ip_probe_pid} ]] && ps -p "${ip_probe_pid}" > /dev/null 2>&1; then
-    kill "${ip_probe_pid}" > /dev/null 2>&1 || true
-    wait "${ip_probe_pid}" > /dev/null 2>&1 || true
+  if [[ -n ${ip_probe_pid} ]] && ps -p "${ip_probe_pid}" >/dev/null 2>&1; then
+    kill "${ip_probe_pid}" >/dev/null 2>&1 || true
+    wait "${ip_probe_pid}" >/dev/null 2>&1 || true
   fi
   if [[ ${keep_work_disk} != "1" && ${snapshot_mode} == "1" ]]; then
     rm -f "${work_raw}"
@@ -171,7 +171,7 @@ resolve_guest_ip_from_leases() {
   local target_mac="$1"
   local target_name="$2"
   local ip_prefix="$3"
-  python3 - "$target_mac" "$target_name" "$ip_prefix" << 'PY'
+  python3 - "$target_mac" "$target_name" "$ip_prefix" <<'PY'
 import re
 import sys
 
@@ -236,8 +236,8 @@ PY
 wait_for_guest_ip() {
   local deadline=$((SECONDS + guest_ip_timeout))
   while ((SECONDS < deadline)); do
-    if guest_ip="$(resolve_guest_ip_from_leases "${net_mac}" "${hostname}" "${ip_hint_prefix}" 2> /dev/null || true)" && [[ -n ${guest_ip} ]]; then
-      printf '%s\n' "${guest_ip}" > "${guest_ip_file}"
+    if guest_ip="$(resolve_guest_ip_from_leases "${net_mac}" "${hostname}" "${ip_hint_prefix}" 2>/dev/null || true)" && [[ -n ${guest_ip} ]]; then
+      printf '%s\n' "${guest_ip}" >"${guest_ip_file}"
       return 0
     fi
     sleep 1
@@ -258,12 +258,12 @@ find_vmnet_helper_bin() {
     return 0
   fi
 
-  if helper_from_path="$(command -v vmnet-helper 2> /dev/null || true)" && [[ -n ${helper_from_path} ]]; then
+  if helper_from_path="$(command -v vmnet-helper 2>/dev/null || true)" && [[ -n ${helper_from_path} ]]; then
     printf '%s\n' "${helper_from_path}"
     return 0
   fi
 
-  helper_pkg_output="$(nix build "${flake_ref}#vmnet-helper" --no-link --print-out-paths 2> /dev/null | tail -n 1)"
+  helper_pkg_output="$(nix build "${flake_ref}#vmnet-helper" --no-link --print-out-paths 2>/dev/null | tail -n 1)"
   helper_pkg_candidate="${helper_pkg_output}/bin/vmnet-helper"
   if [[ -x ${helper_pkg_candidate} ]]; then
     printf '%s\n' "${helper_pkg_candidate}"
@@ -285,7 +285,7 @@ find_vmnet_helper_bin() {
 
 macos_major_version() {
   local version
-  version="$(sw_vers -productVersion 2> /dev/null || true)"
+  version="$(sw_vers -productVersion 2>/dev/null || true)"
   if [[ -z ${version} ]]; then
     printf '0\n'
     return
@@ -294,7 +294,7 @@ macos_major_version() {
 }
 
 extract_vmnet_prefix_hint() {
-  python3 - "$1" << 'PY'
+  python3 - "$1" <<'PY'
 import json
 import sys
 
@@ -314,7 +314,7 @@ PY
 }
 
 write_vmnet_metadata() {
-  python3 - "${helper_info_file}" "${vmnet_info_file}" "${vmnet_provider_selected}" "${net_mode}" "${helper_socket}" "${vmnet_provider_detail}" << 'PY'
+  python3 - "${helper_info_file}" "${vmnet_info_file}" "${vmnet_provider_selected}" "${net_mode}" "${helper_socket}" "${vmnet_provider_detail}" <<'PY'
 import json
 import sys
 
@@ -351,36 +351,36 @@ start_vmnet_helper() {
   fi
 
   case "${net_mode}" in
-    vmnet-shared)
-      mode="shared"
-      ;;
-    vmnet-host)
-      mode="host"
-      ;;
-    *)
-      echo "Unsupported HOME_SERVER_VM_NET_MODE for vmnet-helper: ${net_mode}" >&2
-      exit 1
-      ;;
+  vmnet-shared)
+    mode="shared"
+    ;;
+  vmnet-host)
+    mode="host"
+    ;;
+  *)
+    echo "Unsupported HOME_SERVER_VM_NET_MODE for vmnet-helper: ${net_mode}" >&2
+    exit 1
+    ;;
   esac
 
   local -a helper_cmd
   local -a attempts
   major="$(macos_major_version)"
   case "${vmnet_provider}" in
-    auto)
-      if ((major >= 26)); then
-        attempts=(broker helper)
-      else
-        attempts=(helper broker)
-      fi
-      ;;
-    broker | helper)
-      attempts=("${vmnet_provider}")
-      ;;
-    *)
-      echo "Unsupported HOME_SERVER_VM_VMNET_PROVIDER value: ${vmnet_provider}" >&2
-      exit 1
-      ;;
+  auto)
+    if ((major >= 26)); then
+      attempts=(broker helper)
+    else
+      attempts=(helper broker)
+    fi
+    ;;
+  broker | helper)
+    attempts=("${vmnet_provider}")
+    ;;
+  *)
+    echo "Unsupported HOME_SERVER_VM_VMNET_PROVIDER value: ${vmnet_provider}" >&2
+    exit 1
+    ;;
   esac
 
   start_helper_attempt() {
@@ -392,7 +392,7 @@ start_vmnet_helper() {
     fi
 
     rm -f "${helper_info_file}" "${helper_socket}" "${helper_socket}.lock" "${vmnet_info_file}"
-    "${cmd[@]}" > "${helper_info_file}" 2>> "${vmnet_log_file}" &
+    "${cmd[@]}" >"${helper_info_file}" 2>>"${vmnet_log_file}" &
     helper_pid="$!"
 
     for _ in $(seq 1 12); do
@@ -402,8 +402,8 @@ start_vmnet_helper() {
       sleep 1
     done
 
-    if [[ -n ${helper_pid} ]] && ps -p "${helper_pid}" > /dev/null 2>&1; then
-      kill "${helper_pid}" > /dev/null 2>&1 || true
+    if [[ -n ${helper_pid} ]] && ps -p "${helper_pid}" >/dev/null 2>&1; then
+      kill "${helper_pid}" >/dev/null 2>&1 || true
     fi
     return 1
   }
@@ -469,18 +469,18 @@ bootloader_arg="linux,kernel=${kernel_path},initrd=${initrd_path},cmdline=\"${ke
 
 network_device_arg=""
 case "${net_mode}" in
-  nat)
-    network_device_arg="virtio-net,nat,mac=${net_mac}"
-    vmnet_provider_selected="nat"
-    ;;
-  vmnet-shared | vmnet-host)
-    start_vmnet_helper
-    network_device_arg="virtio-net,unixSocketPath=${helper_socket},mac=${net_mac}"
-    ;;
-  *)
-    echo "Unsupported HOME_SERVER_VM_NET_MODE value: ${net_mode}" >&2
-    exit 1
-    ;;
+nat)
+  network_device_arg="virtio-net,nat,mac=${net_mac}"
+  vmnet_provider_selected="nat"
+  ;;
+vmnet-shared | vmnet-host)
+  start_vmnet_helper
+  network_device_arg="virtio-net,unixSocketPath=${helper_socket},mac=${net_mac}"
+  ;;
+*)
+  echo "Unsupported HOME_SERVER_VM_NET_MODE value: ${net_mode}" >&2
+  exit 1
+  ;;
 esac
 
 printf 'Starting %s (vfkit)\n' "${hostname}"
@@ -497,15 +497,15 @@ if [[ -f ${secrets_img} ]]; then
   printf '  vm_secrets: %s\n' "${age_identity_file}"
 fi
 
-printf '%s\n' "${net_mac}" > "${guest_mac_file}"
-printf '%s\n' "vfkit-${net_mode}-${vmnet_provider_selected}" > "${runner_mode_file}"
+printf '%s\n' "${net_mac}" >"${guest_mac_file}"
+printf '%s\n' "vfkit-${net_mode}-${vmnet_provider_selected}" >"${runner_mode_file}"
 
 extra_device_args=()
 if [[ -f ${secrets_img} ]]; then
   extra_device_args+=(--device "virtio-blk,path=${secrets_img}")
 fi
 
-( 
+(
   if wait_for_guest_ip; then
     echo "Resolved guest IP: $(cat "${guest_ip_file}")" >&2
   else

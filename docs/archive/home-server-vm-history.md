@@ -19,22 +19,22 @@ Common historical symptoms included:
 
 ## Historical experiment snapshot (early 2026-03-29)
 
-| Run | `/healthz` | `/` | Media probes | Outcome |
-|---|---|---|---|---|
-| baseline (`CPU=max`) | pass | fail | fail | ingress up, app path unstable |
-| e1000 | pass | fail | fail | no meaningful recovery |
-| writethrough | pass | fail | fail | no meaningful recovery |
-| tcg | pass | fail (`502`) | fail (`502`) | ingress stable, upstreams failing |
-| smoke-split | pass | fail (`502`, non-fatal) | skipped | smoke contract pass |
-| parity-split | fail | n/a | n/a | parity unstable at that time |
+| Run                  | `/healthz` | `/`                     | Media probes | Outcome                           |
+| -------------------- | ---------- | ----------------------- | ------------ | --------------------------------- |
+| baseline (`CPU=max`) | pass       | fail                    | fail         | ingress up, app path unstable     |
+| e1000                | pass       | fail                    | fail         | no meaningful recovery            |
+| writethrough         | pass       | fail                    | fail         | no meaningful recovery            |
+| tcg                  | pass       | fail (`502`)            | fail (`502`) | ingress stable, upstreams failing |
+| smoke-split          | pass       | fail (`502`, non-fatal) | skipped      | smoke contract pass               |
+| parity-split         | fail       | n/a                     | n/a          | parity unstable at that time      |
 
 ## Historical failure themes
 
 - guest app readiness lagged behind ingress readiness,
 - vmnet setup had host privilege/tooling friction,
 - check script assumptions around lease ordering caused stale guest IP picks,
-- parity config had service-specific writable path issues (fixed later by
-  config dir/data dir overrides).
+- parity config had service-specific writable path issues (fixed later by config
+  dir/data dir overrides).
 
 ## Current pointer
 
