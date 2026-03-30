@@ -42,7 +42,6 @@
     homelab-proxy
     homelab-security
     homelab-media
-    homelab-home-frigate
 
     ./modules/vmAccess.nix
   ];
