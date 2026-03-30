@@ -52,7 +52,7 @@
       set -euo pipefail
 
       cert_dir=/var/lib/tailscale-cert
-      dns_name="$(${pkgs.tailscale}/bin/tailscale status --json | ${pkgs.jq}/bin/jq -r '.Self.DNSName // "" | rtrimstr(".")')"
+      dns_name="$(tailscale status --json | jq -r '.Self.DNSName // "" | rtrimstr(".")')"
 
       if [ -z "$dns_name" ]; then
         echo "tailscale DNS name is not available yet" >&2
@@ -66,7 +66,7 @@
       tmp_key=$(mktemp)
       trap 'rm -f "$tmp_cert" "$tmp_key"' EXIT
 
-      ${pkgs.tailscale}/bin/tailscale cert --cert-file "$tmp_cert" --key-file "$tmp_key" "$dns_name"
+      tailscale cert --cert-file "$tmp_cert" --key-file "$tmp_key" "$dns_name"
 
       changed=0
 
