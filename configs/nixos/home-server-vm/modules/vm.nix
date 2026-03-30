@@ -8,8 +8,8 @@ let
     }
     {
       from = "host";
-      host.port = 8080;
-      guest.port = 8080;
+      host.port = 8443;
+      guest.port = 443;
     }
   ];
 

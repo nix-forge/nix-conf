@@ -86,8 +86,9 @@ HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_PROFILE=parity ./scripts/che
 
 - QEMU default access:
   - SSH: `ssh -p 2222 testadmin@127.0.0.1`
-  - HTTP health: `http://127.0.0.1:8080/healthz`
-- vfkit checks use guest-ip mode (`SSH :22`, `HTTP :8080`) and resolve IP from
+  - HTTPS health: `https://127.0.0.1:8443/healthz` (use `-k` for direct IP
+    checks)
+- vfkit checks use guest-ip mode (`SSH :22`, `HTTPS :443`) and resolve IP from
   `${run_dir}/guest-ip` and DHCP leases.
 
 ## vmnet on macOS 26

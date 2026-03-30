@@ -99,7 +99,7 @@
     };
   };
 
-  systemd.services.nginx = lib.mkIf config.homelab.proxy.tailscaleTls.enable {
+  systemd.services.nginx = lib.mkIf config.services.nginx.enable {
     after = [ "tailscale-cert.service" ];
     requires = [ "tailscale-cert.service" ];
     wants = [ "tailscale-cert.service" ];

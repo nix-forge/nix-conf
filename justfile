@@ -112,14 +112,14 @@ home-server-vm-check-parity:
 home-server-vm-check-vfkit:
     nix build path:{{ flake }}#nixosConfigurations.home-server-vm.config.system.build.vm
     @echo "Start the VM in another terminal with: just home-server-vm-run-macos-vfkit"
-    HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_HTTP_PORT=8080 HOME_SERVER_VM_PROFILE=smoke HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 {{ flake }}/scripts/check-home-server-vm.sh
+    HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_INGRESS_PORT=443 HOME_SERVER_VM_PROFILE=smoke HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 {{ flake }}/scripts/check-home-server-vm.sh
 
 # Build the home-server VM and run parity checks against a vfkit-running instance
 [group('NixOS')]
 home-server-vm-check-vfkit-parity:
     nix build path:{{ flake }}#nixosConfigurations.home-server-vm.config.system.build.vm
     @echo "Start the VM in another terminal with: just home-server-vm-run-macos-vfkit"
-    HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_HTTP_PORT=8080 HOME_SERVER_VM_PROFILE=parity HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 {{ flake }}/scripts/check-home-server-vm.sh
+    HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_SSH_PORT=22 HOME_SERVER_VM_INGRESS_PORT=443 HOME_SERVER_VM_PROFILE=parity HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 {{ flake }}/scripts/check-home-server-vm.sh
 
 # Run fast smoke checks for a running home-server VM with short timeouts/retries
 [group('NixOS')]
@@ -158,7 +158,7 @@ home-server-vm-check-vfkit-fast:
     HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
     HOME_SERVER_VM_CONNECT_MODE=guest-ip \
     HOME_SERVER_VM_SSH_PORT=22 \
-    HOME_SERVER_VM_HTTP_PORT=8080 \
+    HOME_SERVER_VM_INGRESS_PORT=443 \
     HOME_SERVER_VM_PROFILE=smoke \
     HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 \
     HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
@@ -176,7 +176,7 @@ home-server-vm-check-vfkit-parity-fast:
     HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
     HOME_SERVER_VM_CONNECT_MODE=guest-ip \
     HOME_SERVER_VM_SSH_PORT=22 \
-    HOME_SERVER_VM_HTTP_PORT=8080 \
+    HOME_SERVER_VM_INGRESS_PORT=443 \
     HOME_SERVER_VM_PROFILE=parity \
     HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 \
     HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \

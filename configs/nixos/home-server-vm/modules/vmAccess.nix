@@ -29,8 +29,6 @@ in
   };
 
   config = {
-    homelab.proxy.vmHttpAccess.enable = true;
-
     boot.loader.grub.memtest86.enable = lib.mkForce false;
 
     fileSystems.${cfg.stackRoot} = {
@@ -46,7 +44,7 @@ in
 
     networking.firewall.allowedTCPPorts = [
       22
-      8080
+      443
     ];
 
     services.journald.storage = "volatile";

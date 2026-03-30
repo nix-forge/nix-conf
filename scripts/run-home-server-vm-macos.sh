@@ -9,7 +9,7 @@ run_dir="${HOME_SERVER_VM_RUN_DIR:-${TMPDIR:-/tmp}/${hostname}-run}"
 memory_mb="${HOME_SERVER_VM_MEMORY_MB:-8192}"
 cpu_cores="${HOME_SERVER_VM_CPU_CORES:-4}"
 ssh_port="${HOME_SERVER_VM_SSH_PORT:-2222}"
-http_port="${HOME_SERVER_VM_HTTP_PORT:-8080}"
+ingress_port="${HOME_SERVER_VM_INGRESS_PORT:-${HOME_SERVER_VM_HTTPS_PORT:-${HOME_SERVER_VM_HTTP_PORT:-8443}}}"
 snapshot_mode="${HOME_SERVER_VM_SNAPSHOT:-1}"
 disk_cache="${HOME_SERVER_VM_DISK_CACHE:-writeback}"
 net_device="${HOME_SERVER_VM_NET_DEVICE:-virtio-net-pci}"
@@ -116,8 +116,8 @@ netdev_arg=""
 forward_summary=""
 case "${net_backend}" in
 user)
-  netdev_arg="user,id=user.0,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${http_port}-:8080"
-  forward_summary="tcp ${ssh_port}->22, tcp ${http_port}->8080"
+  netdev_arg="user,id=user.0,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${ingress_port}-:443"
+  forward_summary="tcp ${ssh_port}->22, tcp ${ingress_port}->443"
   ;;
 *)
   printf 'Unsupported HOME_SERVER_VM_NET_BACKEND value: %s\n' "${net_backend}" >&2

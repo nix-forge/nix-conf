@@ -10,7 +10,9 @@ net_mac="${HOME_SERVER_VM_NET_MAC:-}"
 ssh_host="${HOME_SERVER_VM_SSH_HOST:-127.0.0.1}"
 ssh_port="${HOME_SERVER_VM_SSH_PORT:-}"
 ssh_user="${HOME_SERVER_VM_SSH_USER:-testadmin}"
-http_port="${HOME_SERVER_VM_HTTP_PORT:-}"
+ingress_port="${HOME_SERVER_VM_INGRESS_PORT:-${HOME_SERVER_VM_HTTPS_PORT:-${HOME_SERVER_VM_HTTP_PORT:-}}}"
+tls_host="${HOME_SERVER_VM_TLS_HOST:-}"
+tls_insecure="${HOME_SERVER_VM_TLS_INSECURE:-0}"
 wait_seconds="${HOME_SERVER_VM_WAIT_SECONDS:-45}"
 http_connect_timeout="${HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT:-1}"
 http_max_time="${HOME_SERVER_VM_HTTP_MAX_TIME:-3}"
@@ -161,15 +163,15 @@ if [[ ${connect_mode} == "guest-ip" ]]; then
   if [[ -z ${ssh_port} ]]; then
     ssh_port="22"
   fi
-  if [[ -z ${http_port} ]]; then
-    http_port="8080"
+  if [[ -z ${ingress_port} ]]; then
+    ingress_port="443"
   fi
 else
   if [[ -z ${ssh_port} ]]; then
     ssh_port="2222"
   fi
-  if [[ -z ${http_port} ]]; then
-    http_port="8080"
+  if [[ -z ${ingress_port} ]]; then
+    ingress_port="8443"
   fi
 fi
 ssh_opts=(
@@ -185,7 +187,7 @@ elif [[ -f ${HOME:-}/.ssh/id_ed25519 ]]; then
   ssh_opts+=(-i "${HOME}/.ssh/id_ed25519")
 fi
 
-base_url="http://${ssh_host}:${http_port}"
+base_url="https://${ssh_host}:${ingress_port}"
 core_paths=(
   /healthz
   /
@@ -216,12 +218,39 @@ fi
 core_failed_urls=()
 media_failed_urls=()
 
+derive_tls_host() {
+  local detected=""
+
+  if [[ -n ${tls_host} ]]; then
+    return 0
+  fi
+
+  detected="$(ssh_batch 'cat /var/lib/tailscale-cert/dns-name 2>/dev/null || true' | head -n 1 | tr -d '[:space:]' || true)"
+
+  if [[ -n ${detected} ]]; then
+    tls_host="${detected}"
+  fi
+}
+
+wait_for_tls_material() {
+  local deadline=$((SECONDS + core_wait_seconds))
+
+  while ((SECONDS < deadline)); do
+    if ssh_batch 'systemctl is-active --quiet tailscale-cert.service && test -s /var/lib/tailscale-cert/cert.pem && test -s /var/lib/tailscale-cert/key.pem && test -s /var/lib/tailscale-cert/dns-name' >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
 remote_network_checks=$(
   cat <<'EOF'
 set -euo pipefail
 echo "guest: $(hostname)"
 echo "listeners:"
-ss -ltn | grep -E "(:22 |:5055 |:6767 |:6789 |:7878 |:8080 |:8081 |:8096 |:8191 |:8222 |:8686 |:8787 |:8989 |:9696 )|Local Address:Port" || true
+ss -ltn | grep -E "(:22 |:443 |:5055 |:6767 |:6789 |:7878 |:8081 |:8096 |:8191 |:8222 |:8686 |:8787 |:8989 |:9696 )|Local Address:Port" || true
 echo
 echo "policy routing:"
 ip rule
@@ -359,14 +388,26 @@ check_url() {
   local allowed_codes="${2:-200 301 302 303 307 308}"
   local status
   local attempt
+  local -a curl_args
+
+  curl_args=(
+    -sS
+    -o /dev/null
+    --connect-timeout "$http_connect_timeout"
+    --max-time "$http_max_time"
+    -w '%{http_code}'
+  )
+
+  if [[ ${url} == https://* && -n ${tls_host} && ${tls_insecure} != "1" ]]; then
+    curl_args+=(--resolve "${tls_host}:${ingress_port}:${ssh_host}")
+    url="${url/https:\/\/${ssh_host}:${ingress_port}/https://${tls_host}:${ingress_port}}"
+  elif [[ ${url} == https://* && ${tls_insecure} == "1" ]]; then
+    curl_args+=(-k)
+  fi
 
   for ((attempt = 1; attempt <= http_retries; attempt += 1)); do
     status="$({
-      curl -sS -o /dev/null \
-        --connect-timeout "$http_connect_timeout" \
-        --max-time "$http_max_time" \
-        -w '%{http_code}' \
-        "$url"
+      curl "${curl_args[@]}" "$url"
     } || true)"
 
     if [[ " ${allowed_codes} " == *" ${status} "* ]]; then
@@ -407,7 +448,7 @@ collect_timeout_debug() {
   warn "Collecting timeout diagnostics"
   warn "Host listener snapshot"
   lsof -nP -iTCP:"${ssh_port}" -sTCP:LISTEN || true
-  lsof -nP -iTCP:"${http_port}" -sTCP:LISTEN || true
+  lsof -nP -iTCP:"${ingress_port}" -sTCP:LISTEN || true
 
   warn "Host TCP probe (${tcp_probe_count} samples, ${tcp_probe_delay}s delay)"
   for ((sample = 1; sample <= tcp_probe_count; sample += 1)); do
@@ -416,7 +457,7 @@ collect_timeout_debug() {
     if nc -z -w 1 "${ssh_host}" "${ssh_port}" >/dev/null 2>&1; then
       ssh_state="open"
     fi
-    if nc -z -w 1 "${ssh_host}" "${http_port}" >/dev/null 2>&1; then
+    if nc -z -w 1 "${ssh_host}" "${ingress_port}" >/dev/null 2>&1; then
       http_state="open"
     fi
     printf 'sample %02d: ssh=%s http=%s\n' "${sample}" "${ssh_state}" "${http_state}"
@@ -424,7 +465,7 @@ collect_timeout_debug() {
   done
 
   if ssh_batch true >/dev/null 2>&1; then
-    ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd fail2ban tailscaled jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|5055|6767|6789|7878|8080|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 8080 healthz:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/healthz || true; echo "guest curl 8080 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8080/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "tailscale status:"; tailscale status || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
+    ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd fail2ban tailscaled jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "tailscale status:"; tailscale status || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
   else
     warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
   fi
@@ -432,7 +473,7 @@ collect_timeout_debug() {
 
 log "Waiting for SSH on ${ssh_host}:${ssh_port}"
 log "Check profile mode: ${profile_mode} (media probes: ${enable_media_probes})"
-log "Connect mode: ${connect_mode} (ssh_host=${ssh_host}, ssh_port=${ssh_port}, http_port=${http_port})"
+log "Connect mode: ${connect_mode} (ssh_host=${ssh_host}, ssh_port=${ssh_port}, ingress_port=${ingress_port})"
 if ! wait_for_port "$ssh_host" "$ssh_port"; then
   warn "Timed out waiting for SSH on ${ssh_host}:${ssh_port}."
   if [[ ${connect_mode} == "guest-ip" ]]; then
@@ -443,14 +484,30 @@ if ! wait_for_port "$ssh_host" "$ssh_port"; then
   exit 1
 fi
 
+if ! wait_for_tls_material; then
+  warn "Timed out waiting for tailscale TLS material; continuing with probe attempts."
+fi
+
+derive_tls_host
+if [[ -z ${tls_host} && ${tls_insecure} != "1" ]]; then
+  warn "Could not derive HOME_SERVER_VM_TLS_HOST; switching to insecure TLS checks."
+  tls_insecure="1"
+fi
+
+if [[ ${tls_insecure} == "1" ]]; then
+  warn "TLS verification is disabled (HOME_SERVER_VM_TLS_INSECURE=1)."
+else
+  log "Using TLS host: ${tls_host}"
+fi
+
 log "Waiting for ingress readiness endpoint (${ingress_probe_path})"
 if ! wait_for_url "${base_url}${ingress_probe_path}"; then
-  error "HTTP ingress readiness probe failed"
+  error "HTTPS ingress readiness probe failed"
   collect_timeout_debug
   exit 1
 fi
 
-log "Checking core HTTP endpoints"
+log "Checking core HTTPS endpoints"
 for path in "${core_paths[@]}"; do
   if [[ ${path} == "/" ]]; then
     if ! check_url "${base_url}${path}"; then
@@ -471,14 +528,14 @@ for path in "${core_paths[@]}"; do
 done
 
 if [[ ${enable_media_probes} == "1" ]]; then
-  log "Checking media HTTP endpoints"
+  log "Checking media HTTPS endpoints"
   for path in "${media_paths[@]}"; do
     if ! check_url "${base_url}${path}" "${media_allowed_http_codes}"; then
       media_failed_urls+=("${base_url}${path}")
     fi
   done
 else
-  log "Skipping media HTTP endpoints for profile (${profile_mode})"
+  log "Skipping media HTTPS endpoints for profile (${profile_mode})"
 fi
 
 log "Checking whether batch SSH access is available"
@@ -536,7 +593,7 @@ fi
 failed_urls=("${core_failed_urls[@]}" "${media_failed_urls[@]}")
 
 if ((${#failed_urls[@]} > 0)); then
-  error "HTTP probes failed for ${#failed_urls[@]} endpoint(s):"
+  error "HTTPS probes failed for ${#failed_urls[@]} endpoint(s):"
   printf ' - %s\n' "${failed_urls[@]}" >&2
   collect_timeout_debug
   exit 1

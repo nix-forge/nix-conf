@@ -1,41 +1,6 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, pkgs, ... }:
 let
   certDir = "/var/lib/tailscale-cert";
-
-  inherit (lib)
-    mkEnableOption
-    mkIf
-    mkOption
-    types
-    ;
-
-  commonProxyConfig = prefix: forwardedProto: ''
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Proto ${forwardedProto};
-    proxy_set_header X-Forwarded-Prefix ${prefix};
-  '';
-
-  authRequestConfig = ''
-    auth_request /_tailscale-auth;
-    auth_request_set $auth_user $upstream_http_tailscale_user;
-    auth_request_set $auth_name $upstream_http_tailscale_name;
-    auth_request_set $auth_login $upstream_http_tailscale_login;
-    auth_request_set $auth_tailnet $upstream_http_tailscale_tailnet;
-    auth_request_set $auth_profile_picture $upstream_http_tailscale_profile_picture;
-
-    proxy_set_header X-Webauth-User "$auth_user";
-    proxy_set_header X-Webauth-Name "$auth_name";
-    proxy_set_header X-Webauth-Login "$auth_login";
-    proxy_set_header X-Webauth-Tailnet "$auth_tailnet";
-    proxy_set_header X-Webauth-Profile-Picture "$auth_profile_picture";
-  '';
 
   mkHomepageLocation = forwardedProto: {
     "/" = {
@@ -63,22 +28,6 @@ let
   };
 in
 {
-  options.homelab.proxy.vmHttpAccess = {
-    enable = mkEnableOption "a VM-only HTTP listener for local browser testing";
-
-    port = mkOption {
-      type = types.port;
-      default = 8080;
-      description = "Guest HTTP port exposed for local VM browser testing.";
-    };
-  };
-
-  options.homelab.proxy.tailscaleTls.enable = mkOption {
-    type = types.bool;
-    default = true;
-    description = "Whether to expose the main nginx vhost with Tailscale-managed TLS certificates.";
-  };
-
   config = {
     services.tailscaleAuth.enable = true;
 
@@ -97,7 +46,7 @@ in
       commonHttpConfig = ''
         access_log syslog:server=unix:/dev/log;
       '';
-      virtualHosts."_" = mkIf config.homelab.proxy.tailscaleTls.enable {
+      virtualHosts."_" = {
         default = true;
         addSSL = true;
         forceSSL = false;
@@ -135,21 +84,6 @@ in
           }
           // mkHomepageLocation "https";
       };
-    };
-
-    services.nginx.virtualHosts.vm-http = mkIf config.homelab.proxy.vmHttpAccess.enable {
-      serverName = "_";
-      listen = [
-        {
-          addr = "0.0.0.0";
-          inherit (config.homelab.proxy.vmHttpAccess) port;
-        }
-        {
-          addr = "[::]";
-          inherit (config.homelab.proxy.vmHttpAccess) port;
-        }
-      ];
-      locations = mkHealthzLocation // mkHomepageLocation "http";
     };
   };
 }
