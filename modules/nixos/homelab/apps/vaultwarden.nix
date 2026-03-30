@@ -12,7 +12,7 @@
       return = "302 /vaultwarden/";
     };
     "/vaultwarden/" = {
-      proxyPass = "http://127.0.0.1:8222/";
+      proxyPass = "http://${config.services.vaultwarden.config.ROCKET_ADDRESS}:${config.services.vaultwarden.config.SIGNUPS_ALLOWED}/";
       recommendedProxySettings = true;
       proxyWebsockets = true;
       extraConfig = ''
