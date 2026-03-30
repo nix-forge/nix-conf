@@ -35,6 +35,69 @@ in
   };
 
   config = {
+    services.nginx.virtualHosts."_".locations = lib.mkMerge [
+      (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
+        "= /nzbget" = {
+          return = "302 /nzbget/";
+        };
+        "/nzbget/" = {
+          proxyPass = "http://127.0.0.1:6789";
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          extraConfig = ''
+            auth_request /_tailscale-auth;
+            auth_request_set $auth_user $upstream_http_tailscale_user;
+            auth_request_set $auth_name $upstream_http_tailscale_name;
+            auth_request_set $auth_login $upstream_http_tailscale_login;
+            auth_request_set $auth_tailnet $upstream_http_tailscale_tailnet;
+            auth_request_set $auth_profile_picture $upstream_http_tailscale_profile_picture;
+
+            proxy_set_header X-Webauth-User "$auth_user";
+            proxy_set_header X-Webauth-Name "$auth_name";
+            proxy_set_header X-Webauth-Login "$auth_login";
+            proxy_set_header X-Webauth-Tailnet "$auth_tailnet";
+            proxy_set_header X-Webauth-Profile-Picture "$auth_profile_picture";
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Prefix /nzbget;
+          '';
+        };
+      })
+    ];
+
+    services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
+      (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
+        "= /nzbget" = {
+          return = "302 /nzbget/";
+        };
+        "/nzbget/" = {
+          proxyPass = "http://127.0.0.1:6789";
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          extraConfig = ''
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto http;
+            proxy_set_header X-Forwarded-Prefix /nzbget;
+          '';
+        };
+      })
+    ];
+
+    services.homepage-dashboard.services.Downloads = [
+      {
+        NZBGet = {
+          icon = "nzbget.png";
+          href = "/nzbget/";
+          description = "Usenet queue and unpacking path, still loopback-only.";
+          weight = 20;
+        };
+      }
+    ];
+
     users.groups.${cfg.primaryGroup} = { };
     users.groups.${cfg.downloadsGroup} = { };
 

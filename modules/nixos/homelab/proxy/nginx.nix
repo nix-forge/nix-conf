@@ -62,109 +62,6 @@ let
       };
     };
 
-  mkAppLocations =
-    forwardedProto: secureCookies: enableAuth:
-    mkPrefixLocations {
-      prefix = "/jellyfin";
-      upstream = "http://127.0.0.1:8096";
-      inherit forwardedProto;
-      stripPrefix = true;
-      extraConfig = ''
-        proxy_buffering off;
-      '';
-    }
-    // mkPrefixLocations {
-      prefix = "/seerr";
-      upstream = "http://127.0.0.1:5055";
-      inherit forwardedProto;
-      stripPrefix = true;
-      extraConfig = ''
-        proxy_set_header Accept-Encoding "";
-        sub_filter_once off;
-        sub_filter_types text/html application/javascript text/javascript text/css;
-        sub_filter 'href="/' 'href="/seerr/';
-        sub_filter 'src="/' 'src="/seerr/';
-        sub_filter 'content="/' 'content="/seerr/';
-        sub_filter 'url(/' 'url(/seerr/';
-        sub_filter '"/_next/' '"/seerr/_next/';
-        sub_filter "'/_next/" "'/seerr/_next/";
-        proxy_redirect ~^(/.*)$ /seerr$1;
-      '';
-    }
-    // mkPrefixLocations {
-      prefix = "/sonarr";
-      upstream = "http://127.0.0.1:8989";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/radarr";
-      upstream = "http://127.0.0.1:7878";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/lidarr";
-      upstream = "http://127.0.0.1:8686";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/readarr";
-      upstream = "http://127.0.0.1:8787";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/bazarr";
-      upstream = "http://127.0.0.1:6767";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/prowlarr";
-      upstream = "http://127.0.0.1:9696";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/qbittorrent";
-      upstream = "http://127.0.0.1:8081";
-      inherit forwardedProto;
-      stripPrefix = true;
-      protectWithAuth = enableAuth;
-      extraConfig = ''
-        proxy_set_header Referer "";
-        proxy_set_header Host $proxy_host;
-        proxy_cookie_path / "/${if secureCookies then "; Secure" else ""}";
-      '';
-    }
-    // mkPrefixLocations {
-      prefix = "/nzbget";
-      upstream = "http://127.0.0.1:6789";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-    }
-    // mkPrefixLocations {
-      prefix = "/vaultwarden";
-      upstream = "http://127.0.0.1:8000";
-      inherit forwardedProto;
-      stripPrefix = true;
-      protectWithAuth = enableAuth;
-      extraConfig = ''
-        proxy_buffering off;
-      '';
-    }
-    // mkPrefixLocations {
-      prefix = "/frigate";
-      upstream = "http://127.0.0.1:5000";
-      inherit forwardedProto;
-      protectWithAuth = enableAuth;
-      extraConfig = ''
-        proxy_buffering off;
-      '';
-    };
-
   mkHomepageLocation = forwardedProto: {
     "/" = {
       proxyPass = "http://127.0.0.1:8082/";
@@ -262,7 +159,15 @@ in
             };
           }
           // mkHomepageLocation "https"
-          // mkAppLocations "https" true true;
+          // mkPrefixLocations {
+            prefix = "/frigate";
+            upstream = "http://127.0.0.1:5000";
+            forwardedProto = "https";
+            protectWithAuth = true;
+            extraConfig = ''
+              proxy_buffering off;
+            '';
+          };
       };
     };
 
@@ -278,7 +183,18 @@ in
           inherit (config.homelab.proxy.vmHttpAccess) port;
         }
       ];
-      locations = mkHealthzLocation // mkHomepageLocation "http" // mkAppLocations "http" false false;
+      locations =
+        mkHealthzLocation
+        // mkHomepageLocation "http"
+        // mkPrefixLocations {
+          prefix = "/frigate";
+          upstream = "http://127.0.0.1:5000";
+          forwardedProto = "http";
+          protectWithAuth = false;
+          extraConfig = ''
+            proxy_buffering off;
+          '';
+        };
     };
   };
 }

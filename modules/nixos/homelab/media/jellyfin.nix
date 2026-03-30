@@ -30,6 +30,59 @@ in
   };
 
   config = {
+    services.nginx.virtualHosts."_".locations = lib.mkMerge [
+      (lib.mkIf config.homelab.proxy.tailscaleTls.enable {
+        "= /jellyfin" = {
+          return = "302 /jellyfin/";
+        };
+        "/jellyfin/" = {
+          proxyPass = "http://127.0.0.1:8096/";
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          extraConfig = ''
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Prefix /jellyfin;
+            proxy_buffering off;
+          '';
+        };
+      })
+    ];
+
+    services.nginx.virtualHosts.vm-http.locations = lib.mkMerge [
+      (lib.mkIf config.homelab.proxy.vmHttpAccess.enable {
+        "= /jellyfin" = {
+          return = "302 /jellyfin/";
+        };
+        "/jellyfin/" = {
+          proxyPass = "http://127.0.0.1:8096/";
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          extraConfig = ''
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto http;
+            proxy_set_header X-Forwarded-Prefix /jellyfin;
+            proxy_buffering off;
+          '';
+        };
+      })
+    ];
+
+    services.homepage-dashboard.services.Media = [
+      {
+        Jellyfin = {
+          icon = "jellyfin.png";
+          href = "/jellyfin/";
+          description = "Stream the main library with the Tailscale cert in front.";
+          weight = 10;
+        };
+      }
+    ];
+
     users.groups.${cfg.primaryGroup} = { };
     users.groups.${cfg.mediaGroup} = { };
 

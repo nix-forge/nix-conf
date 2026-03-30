@@ -42,6 +42,7 @@
     homelab-proxy
     homelab-security
     homelab-media
+    homelab-other
 
     ./modules/vmAccess.nix
   ];

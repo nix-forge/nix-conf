@@ -75,106 +75,14 @@
         };
       }
     ];
-    services = [
+    services."Home & Security" = [
       {
-        Media = [
-          {
-            Jellyfin = {
-              icon = "jellyfin.png";
-              href = "/jellyfin/";
-              description = "Stream the main library with the Tailscale cert in front.";
-            };
-          }
-          {
-            Seerr = {
-              icon = "seerr.png";
-              href = "/seerr/";
-              description = "Requests and discovery, proxied through the single tailnet origin.";
-            };
-          }
-        ];
-      }
-      {
-        Automation = [
-          {
-            Sonarr = {
-              icon = "sonarr.png";
-              href = "/sonarr/";
-              description = "Series intake and release automation.";
-            };
-          }
-          {
-            Radarr = {
-              icon = "radarr.png";
-              href = "/radarr/";
-              description = "Movie collection and upgrade flow.";
-            };
-          }
-          {
-            Lidarr = {
-              icon = "lidarr.png";
-              href = "/lidarr/";
-              description = "Music acquisition and metadata cleanup.";
-            };
-          }
-          {
-            Readarr = {
-              icon = "readarr.png";
-              href = "/readarr/";
-              description = "Books and audiobooks pipeline.";
-            };
-          }
-          {
-            Bazarr = {
-              icon = "bazarr.png";
-              href = "/bazarr/";
-              description = "Subtitle fetching for the existing media stack.";
-            };
-          }
-          {
-            Prowlarr = {
-              icon = "prowlarr.png";
-              href = "/prowlarr/";
-              description = "Indexer management behind localhost-only services.";
-            };
-          }
-        ];
-      }
-      {
-        Downloads = [
-          {
-            qBittorrent = {
-              icon = "qbittorrent.png";
-              href = "/qbittorrent/";
-              description = "Torrent client pinned to Mullvad with reverse-proxy support enabled.";
-            };
-          }
-          {
-            NZBGet = {
-              icon = "nzbget.png";
-              href = "/nzbget/";
-              description = "Usenet queue and unpacking path, still loopback-only.";
-            };
-          }
-        ];
-      }
-      {
-        "Home & Security" = [
-          {
-            Frigate = {
-              icon = "frigate.png";
-              href = "/frigate/";
-              description = "Cameras, review, and event browsing from the same origin.";
-            };
-          }
-          {
-            Vaultwarden = {
-              icon = "vaultwarden.png";
-              href = "/vaultwarden/";
-              description = "Password vault administration and client access over Tailscale.";
-            };
-          }
-        ];
+        Frigate = {
+          icon = "frigate.png";
+          href = "/frigate/";
+          description = "Cameras, review, and event browsing from the same origin.";
+          weight = 20;
+        };
       }
     ];
     bookmarks = [
