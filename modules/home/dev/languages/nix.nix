@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     nixfmt
@@ -20,13 +20,15 @@
       update_interval = "24h";
       enable_waiting_message = true;
       indexes = [
-        "nixpkgs"
+        "nixos"
+        "darwin"
         "home-manager"
+
+        "nixpkgs"
+
         "nur"
         "noogle"
-      ]
-      ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ "nixos" ]
-      ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ "darwin" ];
+      ];
     };
   };
 }
