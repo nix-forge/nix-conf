@@ -1,4 +1,24 @@
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  yamlFormat = pkgs.formats.yaml { };
+
+  normalizedServices =
+    let
+      raw = config.services.homepage-dashboard.services;
+    in
+    if builtins.isList raw then
+      raw
+    else if builtins.isAttrs raw then
+      lib.mapAttrsToList (group: entries: { "${group}" = entries; }) raw
+    else
+      [ ];
+in
+{
   services.homepage-dashboard = {
     enable = true;
     openFirewall = false;
@@ -71,4 +91,8 @@
       }
     ];
   };
+
+  environment.etc."homepage-dashboard/services.yaml".source = lib.mkForce (
+    yamlFormat.generate "services.yaml" normalizedServices
+  );
 }

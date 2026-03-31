@@ -6,6 +6,38 @@
 }:
 let
   cfg = config.homelab.vmAccess;
+
+  localIngressBypassAddresses = [
+    "127.0.0.1"
+    "::1"
+    "10.0.2.2"
+    "192.168.64.1"
+  ];
+
+  authProtectedPaths = [
+    "/vaultwarden/"
+    "/qbittorrent/"
+    "/nzbget/"
+    "/prowlarr/"
+    "/sonarr/"
+    "/radarr/"
+    "/lidarr/"
+    "/readarr/"
+    "/bazarr/"
+  ];
+
+  localIngressBypassExtraConfig = ''
+      satisfy any;
+    ${lib.concatMapStringsSep "\n" (address: "allow ${address};") localIngressBypassAddresses}
+      deny all;
+  '';
+
+  localIngressBypassLocations = lib.listToAttrs (
+    map (path: {
+      name = path;
+      value.extraConfig = lib.mkBefore localIngressBypassExtraConfig;
+    }) authProtectedPaths
+  );
 in
 {
   options.homelab.vmAccess = {
@@ -61,6 +93,9 @@ in
     services.flaresolverr.enable = lib.mkForce true;
     services.lidarr.enable = lib.mkForce true;
     services.readarr.enable = lib.mkForce true;
+
+    services.nginx.virtualHosts."_".locations =
+      lib.mkIf config.services.nginx.enable localIngressBypassLocations;
 
     systemd.services.vm-local-secrets = {
       description = "Populate local VM agenix secrets from mounted identity";
