@@ -22,8 +22,9 @@ in `docs/archive/home-server-vm-history.md`.
 - The VM now imports and runs the network stack end-to-end: `tailscaled`,
   Mullvad WireGuard, VPN policy routing, and qBittorrent VPN binding are all
   active in parity runs.
-- `tailscale-cert` now works in the VM and the Tailscale HTTPS cert is issued
-  successfully for the VM node.
+- Tailscale HTTPS cert handling now uses a resilient bootstrap+refresh model:
+  first-boot cert acquisition plus periodic refresh without hard-coupling every
+  nginx startup to refresh timing.
 
 ## Check profiles
 
@@ -230,6 +231,11 @@ Secondary/manual validation:
   cached copy under `~/Library/Caches/nix-conf-server/` before launch.
 - If `tailscaled-autoconnect.service` fails, check `vm-local-secrets.service`
   first to confirm the local secret disk mounted and decrypted the auth key.
+- If TLS is delayed on first boot, inspect:
+  - `tailscale-cert-bootstrap.service`
+  - `tailscale-cert-refresh.service`
+  - `tailscale-cert-refresh.timer` and confirm
+    `/var/lib/tailscale-cert/{cert.pem,key.pem,dns-name}` exists.
 - If nginx starts before Jellyfin is fully ready on vfkit vmnet runs, parity
   checks now wait briefly and retry failed media endpoints after guest service
   checks.

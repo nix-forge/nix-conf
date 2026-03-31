@@ -69,7 +69,8 @@ in
       before = [
         "network-pre.target"
         "tailscaled-autoconnect.service"
-        "tailscale-cert.service"
+        "tailscale-cert-bootstrap.service"
+        "tailscale-cert-refresh.service"
       ];
       path = with pkgs; [ util-linux ];
       serviceConfig = {
@@ -134,7 +135,12 @@ in
       requires = [ "vm-local-secrets.service" ];
     };
 
-    systemd.services.tailscale-cert = {
+    systemd.services.tailscale-cert-bootstrap = {
+      after = [ "vm-local-secrets.service" ];
+      requires = [ "vm-local-secrets.service" ];
+    };
+
+    systemd.services.tailscale-cert-refresh = {
       after = [ "vm-local-secrets.service" ];
       requires = [ "vm-local-secrets.service" ];
     };

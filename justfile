@@ -125,7 +125,7 @@ home-server-vm-check-vfkit-parity:
 [group('NixOS')]
 home-server-vm-check-fast:
     HOME_SERVER_VM_WAIT_SECONDS=45 \
-    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=90 \
     HOME_SERVER_VM_PROFILE=smoke \
     HOME_SERVER_VM_ENABLE_MEDIA_PROBES=0 \
     HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
@@ -140,7 +140,7 @@ home-server-vm-check-fast:
 [group('NixOS')]
 home-server-vm-check-parity-fast:
     HOME_SERVER_VM_WAIT_SECONDS=45 \
-    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=90 \
     HOME_SERVER_VM_PROFILE=parity \
     HOME_SERVER_VM_ENABLE_MEDIA_PROBES=1 \
     HOME_SERVER_VM_INGRESS_PROBE_PATH=/healthz \
@@ -155,7 +155,7 @@ home-server-vm-check-parity-fast:
 [group('NixOS')]
 home-server-vm-check-vfkit-fast:
     HOME_SERVER_VM_WAIT_SECONDS=45 \
-    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=90 \
     HOME_SERVER_VM_CONNECT_MODE=guest-ip \
     HOME_SERVER_VM_SSH_PORT=22 \
     HOME_SERVER_VM_INGRESS_PORT=443 \
@@ -173,7 +173,7 @@ home-server-vm-check-vfkit-fast:
 [group('NixOS')]
 home-server-vm-check-vfkit-parity-fast:
     HOME_SERVER_VM_WAIT_SECONDS=45 \
-    HOME_SERVER_VM_CORE_WAIT_SECONDS=45 \
+    HOME_SERVER_VM_CORE_WAIT_SECONDS=90 \
     HOME_SERVER_VM_CONNECT_MODE=guest-ip \
     HOME_SERVER_VM_SSH_PORT=22 \
     HOME_SERVER_VM_INGRESS_PORT=443 \
