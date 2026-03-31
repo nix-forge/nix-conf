@@ -30,6 +30,17 @@ tcp_probe_delay="${HOME_SERVER_VM_TCP_PROBE_DELAY:-1}"
 media_allowed_http_codes="${HOME_SERVER_VM_MEDIA_ALLOWED_HTTP_CODES:-200 301 302 303 307 308 401 403}"
 media_retry_after_service_delay="${HOME_SERVER_VM_MEDIA_RETRY_AFTER_SERVICE_DELAY:-5}"
 
+run_dir_ssh_port_file="${run_dir}/ssh-port"
+run_dir_ingress_port_file="${run_dir}/ingress-port"
+
+if [[ -z ${HOME_SERVER_VM_SSH_PORT:-} && -f ${run_dir_ssh_port_file} ]]; then
+  ssh_port="$(head -n 1 "${run_dir_ssh_port_file}" | tr -d '[:space:]')"
+fi
+
+if [[ -z ${HOME_SERVER_VM_INGRESS_PORT:-} && -z ${HOME_SERVER_VM_HTTPS_PORT:-} && -z ${HOME_SERVER_VM_HTTP_PORT:-} && -f ${run_dir_ingress_port_file} ]]; then
+  ingress_port="$(head -n 1 "${run_dir_ingress_port_file}" | tr -d '[:space:]')"
+fi
+
 normalize_mac() {
   printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
 }
@@ -39,7 +50,7 @@ resolve_guest_ip_from_leases() {
   target_mac="$(normalize_mac "$1")"
   target_name="$2"
   ip_prefix="${3:-}"
-  python3 - "$target_mac" "$target_name" "$ip_prefix" <<'PY'
+  python3 - "$target_mac" "$target_name" "$ip_prefix" << 'PY'
 import re
 import sys
 
@@ -117,7 +128,7 @@ resolve_guest_ip_prefix_hint() {
       fi
 
       if [[ -n ${info_source:-} ]]; then
-        python3 - "${info_source}" <<'PY'
+        python3 - "${info_source}" << 'PY'
 import json
 import sys
 
@@ -236,7 +247,7 @@ wait_for_tls_material() {
   local deadline=$((SECONDS + core_wait_seconds))
 
   while ((SECONDS < deadline)); do
-    if ssh_batch 'systemctl is-active --quiet tailscale-cert.service && test -s /var/lib/tailscale-cert/cert.pem && test -s /var/lib/tailscale-cert/key.pem && test -s /var/lib/tailscale-cert/dns-name' >/dev/null 2>&1; then
+    if ssh_batch 'systemctl is-active --quiet tailscale-cert.service && test -s /var/lib/tailscale-cert/cert.pem && test -s /var/lib/tailscale-cert/key.pem && test -s /var/lib/tailscale-cert/dns-name' > /dev/null 2>&1; then
       return 0
     fi
     sleep 1
@@ -246,7 +257,7 @@ wait_for_tls_material() {
 }
 
 remote_network_checks=$(
-  cat <<'EOF'
+  cat << 'EOF'
 set -euo pipefail
 echo "guest: $(hostname)"
 echo "listeners:"
@@ -312,7 +323,7 @@ for service in \"\${services[@]}\"; do
 done"
 
 remote_service_ip_checks=$(
-  cat <<'EOF'
+  cat << 'EOF'
 set -euo pipefail
 for user in qbittorrent nzbget prowlarr; do
   printf "%s public-ip: " "$user"
@@ -323,7 +334,7 @@ EOF
 )
 
 remote_group_model_checks=$(
-  cat <<'EOF'
+  cat << 'EOF'
 set -euo pipefail
 
 users=(qbittorrent nzbget sonarr radarr lidarr readarr bazarr)
@@ -374,7 +385,7 @@ wait_for_port() {
   local deadline=$((SECONDS + wait_seconds))
 
   while ((SECONDS < deadline)); do
-    if nc -z -w 1 "$host" "$port" >/dev/null 2>&1; then
+    if nc -z -w 1 "$host" "$port" > /dev/null 2>&1; then
       return 0
     fi
     sleep 1
@@ -429,7 +440,7 @@ wait_for_url() {
   local deadline=$((SECONDS + core_wait_seconds))
 
   while ((SECONDS < deadline)); do
-    if check_url "$url" >/dev/null 2>&1; then
+    if check_url "$url" > /dev/null 2>&1; then
       printf 'OK   %s became ready\n' "$url"
       return 0
     fi
@@ -454,17 +465,17 @@ collect_timeout_debug() {
   for ((sample = 1; sample <= tcp_probe_count; sample += 1)); do
     ssh_state="closed"
     http_state="closed"
-    if nc -z -w 1 "${ssh_host}" "${ssh_port}" >/dev/null 2>&1; then
+    if nc -z -w 1 "${ssh_host}" "${ssh_port}" > /dev/null 2>&1; then
       ssh_state="open"
     fi
-    if nc -z -w 1 "${ssh_host}" "${ingress_port}" >/dev/null 2>&1; then
+    if nc -z -w 1 "${ssh_host}" "${ingress_port}" > /dev/null 2>&1; then
       http_state="open"
     fi
     printf 'sample %02d: ssh=%s http=%s\n' "${sample}" "${ssh_state}" "${http_state}"
     sleep "${tcp_probe_delay}"
   done
 
-  if ssh_batch true >/dev/null 2>&1; then
+  if ssh_batch true > /dev/null 2>&1; then
     ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd fail2ban tailscaled jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "tailscale status:"; tailscale status || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
   else
     warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
@@ -539,7 +550,7 @@ else
 fi
 
 log "Checking whether batch SSH access is available"
-if ssh_batch true >/dev/null 2>&1; then
+if ssh_batch true > /dev/null 2>&1; then
   log "Checking guest service health"
   service_ok=0
   for ((attempt = 1; attempt <= service_retries; attempt += 1)); do
@@ -562,7 +573,7 @@ if ssh_batch true >/dev/null 2>&1; then
   log "Running guest-side network checks over SSH"
   ssh_batch "$remote_network_checks"
 
-  if [[ ${enable_media_probes} == "1" ]] && ssh_batch 'sudo -n true' >/dev/null 2>&1; then
+  if [[ ${enable_media_probes} == "1" ]] && ssh_batch 'sudo -n true' > /dev/null 2>&1; then
     log "Running service-user egress checks"
     ssh_batch "$remote_service_ip_checks"
 

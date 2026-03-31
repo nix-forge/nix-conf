@@ -8,8 +8,8 @@ disk_image="${HOME_SERVER_VM_DISK_IMAGE:-${flake_dir}/${hostname}.qcow2}"
 run_dir="${HOME_SERVER_VM_RUN_DIR:-${TMPDIR:-/tmp}/${hostname}-run}"
 memory_mb="${HOME_SERVER_VM_MEMORY_MB:-8192}"
 cpu_cores="${HOME_SERVER_VM_CPU_CORES:-4}"
-ssh_port="${HOME_SERVER_VM_SSH_PORT:-2222}"
-ingress_port="${HOME_SERVER_VM_INGRESS_PORT:-${HOME_SERVER_VM_HTTPS_PORT:-${HOME_SERVER_VM_HTTP_PORT:-8443}}}"
+ssh_port="${HOME_SERVER_VM_SSH_PORT:-}"
+ingress_port="${HOME_SERVER_VM_INGRESS_PORT:-${HOME_SERVER_VM_HTTPS_PORT:-${HOME_SERVER_VM_HTTP_PORT:-}}}"
 snapshot_mode="${HOME_SERVER_VM_SNAPSHOT:-1}"
 disk_cache="${HOME_SERVER_VM_DISK_CACHE:-writeback}"
 net_device="${HOME_SERVER_VM_NET_DEVICE:-virtio-net-pci}"
@@ -19,8 +19,44 @@ cpu_model="${HOME_SERVER_VM_CPU_MODEL:-max}"
 rebuild_store_image="${HOME_SERVER_VM_REBUILD_STORE_IMAGE:-0}"
 default_age_identity="${HOME}/.ssh/id_ed25519"
 age_identity_file="${HOME_SERVER_VM_AGE_IDENTITY_FILE:-${default_age_identity}}"
+ssh_port_is_default=0
+ingress_port_is_default=0
+ssh_port_auto_selected=0
+ingress_port_auto_selected=0
 
-nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link >/dev/null
+if [[ -z ${ssh_port} ]]; then
+  ssh_port="2222"
+  ssh_port_is_default=1
+fi
+
+if [[ -z ${ingress_port} ]]; then
+  ingress_port="8443"
+  ingress_port_is_default=1
+fi
+
+port_in_use() {
+  local port="$1"
+  lsof -nP -iTCP:"${port}" -sTCP:LISTEN > /dev/null 2>&1
+}
+
+find_free_port() {
+  local start_port="$1"
+  local max_tries="${2:-200}"
+  local candidate
+  local i
+
+  for ((i = 0; i < max_tries; i += 1)); do
+    candidate="$((start_port + i))"
+    if ! port_in_use "${candidate}"; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+nix build "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm" --no-link > /dev/null
 build_output="$(nix path-info "${flake_ref}#nixosConfigurations.${hostname}.config.system.build.vm")"
 qemu_output="$(nix build nixpkgs#qemu --no-link --print-out-paths | tail -n 1)"
 e2fs_output="$(nix build nixpkgs#e2fsprogs --no-link --print-out-paths | grep -- '-bin$' | tail -n 1)"
@@ -40,8 +76,8 @@ mkfs_erofs_bin="${erofs_output}/bin/mkfs.erofs"
 if [[ ! -e ${disk_image} ]]; then
   raw_image="$(mktemp "${TMPDIR:-/tmp}/${hostname}.raw.XXXXXX")"
   trap 'rm -f "${raw_image}"' EXIT
-  "${qemu_output}/bin/qemu-img" create -f raw "${raw_image}" 131072M >/dev/null
-  "${e2fs_output}/bin/mkfs.ext4" -L nixos "${raw_image}" >/dev/null 2>&1
+  "${qemu_output}/bin/qemu-img" create -f raw "${raw_image}" 131072M > /dev/null
+  "${e2fs_output}/bin/mkfs.ext4" -L nixos "${raw_image}" > /dev/null 2>&1
   "${qemu_output}/bin/qemu-img" convert -f raw -O qcow2 "${raw_image}" "${disk_image}"
 fi
 
@@ -67,8 +103,8 @@ if [[ ${rebuild_store_image} == "1" || ! -e ${store_img} || ${stored_store_ref} 
     --verbatim-files-from \
     --transform 'flags=rSh;s|/nix/store/||' \
     --transform 'flags=rSh;s|~nix~case~hack~[[:digit:]]\+||g' \
-    --files-from "${store_paths_file}" |
-    "${mkfs_erofs_bin}" \
+    --files-from "${store_paths_file}" \
+                                     | "${mkfs_erofs_bin}" \
       --quiet \
       --force-uid=0 \
       --force-gid=0 \
@@ -77,7 +113,7 @@ if [[ ${rebuild_store_image} == "1" || ! -e ${store_img} || ${stored_store_ref} 
       --hard-dereference \
       --tar=f \
       "${store_img}"
-  printf '%s\n' "${store_paths_file}" >"${store_ref_file}"
+  printf '%s\n' "${store_paths_file}" > "${store_ref_file}"
 fi
 
 if [[ -f ${age_identity_file} ]]; then
@@ -115,15 +151,52 @@ fi
 netdev_arg=""
 forward_summary=""
 case "${net_backend}" in
-user)
-  netdev_arg="user,id=user.0,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${ingress_port}-:443"
-  forward_summary="tcp ${ssh_port}->22, tcp ${ingress_port}->443"
-  ;;
-*)
-  printf 'Unsupported HOME_SERVER_VM_NET_BACKEND value: %s\n' "${net_backend}" >&2
-  printf 'QEMU runner now supports only HOME_SERVER_VM_NET_BACKEND=user; use vfkit for vmnet networking.\n' >&2
-  exit 1
-  ;;
+  user)
+    if port_in_use "${ssh_port}"; then
+      if [[ ${ssh_port_is_default} -eq 1 ]]; then
+        next_ssh_port="$(find_free_port 2222 200 || true)"
+        if [[ -z ${next_ssh_port} ]]; then
+          printf 'Unable to find a free SSH forward port near %s. Set HOME_SERVER_VM_SSH_PORT manually.\n' "${ssh_port}" >&2
+          exit 1
+        fi
+
+        printf 'WARN: host SSH port %s is in use; using %s instead.\n' "${ssh_port}" "${next_ssh_port}" >&2
+        ssh_port="${next_ssh_port}"
+        ssh_port_auto_selected=1
+      else
+        printf 'HOME_SERVER_VM_SSH_PORT=%s is already in use. Pick another port and retry.\n' "${ssh_port}" >&2
+        exit 1
+      fi
+    fi
+
+    if port_in_use "${ingress_port}"; then
+      if [[ ${ingress_port_is_default} -eq 1 ]]; then
+        next_ingress_port="$(find_free_port 8443 200 || true)"
+        if [[ -z ${next_ingress_port} ]]; then
+          printf 'Unable to find a free HTTPS forward port near %s. Set HOME_SERVER_VM_INGRESS_PORT manually.\n' "${ingress_port}" >&2
+          exit 1
+        fi
+
+        printf 'WARN: host HTTPS port %s is in use; using %s instead.\n' "${ingress_port}" "${next_ingress_port}" >&2
+        ingress_port="${next_ingress_port}"
+        ingress_port_auto_selected=1
+      else
+        printf 'HOME_SERVER_VM_INGRESS_PORT=%s is already in use. Pick another port and retry.\n' "${ingress_port}" >&2
+        exit 1
+      fi
+    fi
+
+    printf '%s\n' "${ssh_port}" > "${run_dir}/ssh-port"
+    printf '%s\n' "${ingress_port}" > "${run_dir}/ingress-port"
+
+    netdev_arg="user,id=user.0,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${ingress_port}-:443"
+    forward_summary="tcp ${ssh_port}->22, tcp ${ingress_port}->443"
+    ;;
+  *)
+    printf 'Unsupported HOME_SERVER_VM_NET_BACKEND value: %s\n' "${net_backend}" >&2
+    printf 'QEMU runner now supports only HOME_SERVER_VM_NET_BACKEND=user; use vfkit for vmnet networking.\n' >&2
+    exit 1
+    ;;
 esac
 
 kernel_params="$(cat "${top_system}/kernel-params") init=${top_system}/init regInfo=${reg_info} console=${console_device}"
@@ -139,6 +212,12 @@ printf '  disk_cache: %s\n' "${disk_cache}"
 printf '  net_backend: %s\n' "${net_backend}"
 printf '  net_device: %s\n' "${net_device}"
 printf '  forwards: %s\n' "${forward_summary}"
+if [[ ${ssh_port_auto_selected} -eq 1 || ${ingress_port_auto_selected} -eq 1 ]]; then
+  printf '  port_hint: HOME_SERVER_VM_SSH_PORT=%s HOME_SERVER_VM_INGRESS_PORT=%s\n' "${ssh_port}" "${ingress_port}"
+fi
+printf '  ssh_hint: ssh -p %s testadmin@127.0.0.1\n' "${ssh_port}"
+printf '  https_hint: https://127.0.0.1:%s/healthz\n' "${ingress_port}"
+printf '  port_files: %s/ssh-port %s/ingress-port\n' "${run_dir}" "${run_dir}"
 if [[ -f ${secrets_img} ]]; then
   printf '  vm_secrets: %s\n' "${age_identity_file}"
 fi
