@@ -38,7 +38,7 @@
     };
   };
 
-  services.homepage-dashboard.services."Home & Security" = [
+  services.homepage-dashboard.services.Apps = [
     {
       Vaultwarden = {
         icon = "vaultwarden.png";
