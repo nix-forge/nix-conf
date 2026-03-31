@@ -11,20 +11,16 @@ in `docs/archive/home-server-vm-history.md`.
 
 - Smoke checks pass on QEMU, vfkit NAT, and vfkit vmnet-shared.
 - Parity checks pass on QEMU, vfkit NAT, and vfkit vmnet-shared.
-- Smoke still gates on `SSH + nginx + /healthz`, but the homepage now also
-  passes in recent local runs.
+- Smoke now gates on `SSH + Caddy + /healthz`.
 - Newly re-enabled and re-tested in parity: `homepage-dashboard`, `vaultwarden`,
   `bazarr`, `lidarr`, `readarr`, `flaresolverr`, and `seerr`.
 - For now, the supported vmnet path is `vmnet-helper`.
 - The old `home-server-vm-parity` config has been removed; parity is now only a
   check profile against `home-server-vm`.
 - SSH is back to key-based auth in the VM path, and `fail2ban` is enabled again.
-- The VM now imports and runs the network stack end-to-end: `tailscaled`,
-  Mullvad WireGuard, VPN policy routing, and qBittorrent VPN binding are all
-  active in parity runs.
-- Tailscale HTTPS cert handling now uses a resilient bootstrap+refresh model:
-  first-boot cert acquisition plus periodic refresh without hard-coupling every
-  nginx startup to refresh timing.
+- The VM now runs Mullvad WireGuard, VPN policy routing, and qBittorrent VPN
+  binding in parity runs.
+- HTTPS ingress now uses Caddy with NixOS ACME DNS-01 via Cloudflare.
 
 ## Check profiles
 
@@ -92,6 +88,37 @@ HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_PROFILE=parity ./scripts/che
 - vfkit checks use guest-ip mode (`SSH :22`, `HTTPS :443`) and resolve IP from
   `${run_dir}/guest-ip` and DHCP leases.
 
+## Browser access matrix
+
+- QEMU hostfwd (`just home-server-vm-run-macos`):
+  - ingress is on host forwarded port (`${run_dir}/ingress-port`, usually `8443`)
+  - use `https://home.ianholloway.com:<ingress-port>/`
+  - app subdomains also require the forwarded port in browser tests,
+    for example `https://seerr.home.ianholloway.com:<ingress-port>/`
+  - homepage app links now redirect to subdomain hosts while preserving that same
+    forwarded port
+- vfkit NAT/vmnet (`just home-server-vm-run-macos-vfkit*`):
+  - checks run in `guest-ip` mode on standard `:443`
+  - use guest IP routing for browser tests (`https://<subdomain>.home.ianholloway.com/`)
+    with local DNS pointing to the guest IP
+
+### DNS requirements for subdomain ingress
+
+- Ingress is subdomain-based, not path-prefix based.
+- Apex-only DNS (`home.ianholloway.com` only) is not enough for app routes.
+- Configure wildcard or explicit local DNS records for app hosts, for example:
+  - `*.home.ianholloway.com -> <local test target>`
+  - or explicit records for `seerr.home.ianholloway.com`,
+    `jellyfin.home.ianholloway.com`, etc.
+
+For your UniFi setup (laptop-hosted VM testing), this means:
+
+- keep `home.ianholloway.com -> <laptop-fixed-ip>`
+- add `*.home.ianholloway.com -> <laptop-fixed-ip>`
+
+Without subdomain DNS, homepage can render, but redirected app links will fail
+in browser with "Server Not Found".
+
 ## vmnet on macOS 26
 
 ### Recommended setup
@@ -125,14 +152,14 @@ You can override helper binary discovery with:
 
 ## Validation matrix (latest)
 
-| Path                                               | Profile      | Result | Notes                                                                                                  |
-| -------------------------------------------------- | ------------ | ------ | ------------------------------------------------------------------------------------------------------ |
-| QEMU (`run-macos` + `check-fast`)                  | smoke        | pass   | `/healthz` stable and homepage passes in recent runs.                                                  |
-| QEMU (`run-macos` + `check-parity-fast`)           | parity       | pass   | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass.            |
-| vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke        | pass   | same smoke gating contract as QEMU.                                                                    |
-| vfkit NAT parity                                   | parity       | pass   | media probes, guest service checks, Tailscale autoconnect, and VPN user egress checks pass.            |
-| vfkit vmnet-shared (`VMNET_PROVIDER=helper`)       | smoke/parity | pass   | validated with the packaged helper path, including VPN user egress checks and the Tailscale cert path. |
-| vfkit vmnet-host (`VMNET_PROVIDER=helper`)         | smoke        | pass   | revalidated with the packaged helper path.                                                             |
+| Path                                               | Profile      | Result | Notes                                                                                             |
+| -------------------------------------------------- | ------------ | ------ | ------------------------------------------------------------------------------------------------- |
+| QEMU (`run-macos` + `check-fast`)                  | smoke        | pass   | `/healthz` stable and homepage passes in recent runs.                                             |
+| QEMU (`run-macos` + `check-parity-fast`)           | parity       | pass   | media probes, guest service checks, Caddy ingress, and VPN user egress checks pass.               |
+| vfkit NAT (`run-macos-vfkit` + `check-vfkit-fast`) | smoke        | pass   | same smoke gating contract as QEMU.                                                               |
+| vfkit NAT parity                                   | parity       | pass   | media probes, guest service checks, Caddy ingress, and VPN user egress checks pass.               |
+| vfkit vmnet-shared (`VMNET_PROVIDER=helper`)       | smoke/parity | pass   | validated with the packaged helper path, including VPN user egress checks and Caddy+ACME ingress. |
+| vfkit vmnet-host (`VMNET_PROVIDER=helper`)         | smoke        | pass   | revalidated with the packaged helper path.                                                        |
 
 ## Smoke-check behavior
 
@@ -142,17 +169,16 @@ You can override helper binary discovery with:
 - waits for ingress readiness (`/healthz`),
 - checks HTTP endpoints by profile,
 - checks guest services over SSH when batch SSH is available, including
-  `fail2ban` and `tailscaled` in the base service set,
+  `fail2ban` and `caddy` in the base service set,
 - runs service-user egress checks in parity mode when passwordless sudo exists.
 
 Media probes accept auth challenge statuses by default (`401`, `403`) to avoid
 false negatives for intentionally protected endpoints.
 
-`flaresolverr` is checked as a guest service/listener in parity mode, not as an
-nginx-exposed public route.
+`flaresolverr` is checked as a guest service/listener in parity mode, not as a
+public route.
 
-`seerr` is served at `/seerr/`, with `/jellyseerr/` redirected for
-compatibility.
+Apps are validated via per-app subdomains instead of NGINX path-prefix routes.
 
 VPN user egress checks verify that `qbittorrent`, `nzbget`, and `prowlarr` reach
 the public internet through the Mullvad WireGuard path.
@@ -171,6 +197,8 @@ Checker:
 - `HOME_SERVER_VM_CONNECT_MODE` (`auto`, `hostfwd`, `guest-ip`)
 - `HOME_SERVER_VM_GUEST_IP`, `HOME_SERVER_VM_GUEST_IP_FILE`
 - `HOME_SERVER_VM_GUEST_IP_PREFIX`
+- `HOME_SERVER_VM_BASE_DOMAIN` (default `home.ianholloway.com`)
+- `HOME_SERVER_VM_PRIMARY_HOST` (default equals base domain)
 - `HOME_SERVER_VM_MEDIA_ALLOWED_HTTP_CODES`
 - `HOME_SERVER_VM_MEDIA_RETRY_AFTER_SERVICE_DELAY`
 
@@ -210,16 +238,16 @@ Secondary/manual validation:
 
 - SSH access now follows the main host more closely: key-based auth only over
   SSH, while the console password remains available for local recovery.
+- VM profile now additionally allows password SSH auth for local recovery,
+  while still keeping key-based auth enabled.
 - `fail2ban` is enabled again in the VM and included in guest service checks.
 - `homelab-network` is imported and active in the VM.
-- Tailscale autoconnect works with the rotated direct auth key.
-- Tailscale HTTPS certificate issuance works, and nginx can use the issued cert
-  on 443.
+- HTTPS ingress uses Caddy with ACME DNS-01 certificate issuance.
 - Mullvad WireGuard, VPN nftables/policy routing, and qBittorrent binding are
   enabled and validated in parity checks.
 - qBittorrent, NZBGet, and Prowlarr are all verified to egress through Mullvad.
 - Reverse path filtering remains `loose` by design to support asymmetric
-  policy-routing and tailscale traffic paths.
+  policy-routing paths.
 
 ## Troubleshooting
 
@@ -229,14 +257,8 @@ Secondary/manual validation:
   - `vmnet-helper.json` (legacy compatibility output)
 - If packaged `vmnet-helper` is used for the first time, the wrapper signs a
   cached copy under `~/Library/Caches/nix-conf-server/` before launch.
-- If `tailscaled-autoconnect.service` fails, check `vm-local-secrets.service`
-  first to confirm the local secret disk mounted and decrypted the auth key.
-- If TLS is delayed on first boot, inspect:
-  - `tailscale-cert-bootstrap.service`
-  - `tailscale-cert-refresh.service`
-  - `tailscale-cert-refresh.timer` and confirm
-    `/var/lib/tailscale-cert/{cert.pem,key.pem,dns-name}` exists.
-- If nginx starts before Jellyfin is fully ready on vfkit vmnet runs, parity
+- If HTTPS is delayed on first boot, inspect ACME unit status and logs.
+- If Caddy starts before Jellyfin is fully ready on vfkit vmnet runs, parity
   checks now wait briefly and retry failed media endpoints after guest service
   checks.
 - The repo-root `*.qcow2` and `*.raw` VM images are disposable local artifacts.
@@ -246,6 +268,16 @@ Secondary/manual validation:
 - If checks fail immediately, confirm VM is already running in another terminal.
 - If homepage (`/`) fails but `/healthz` passes in smoke, this is expected and
   non-gating unless `HOME_SERVER_VM_HOMEPAGE_PROBE_REQUIRED=1` is set.
+- `scripts/check-home-server-vm.sh` now includes a DNS preflight warning when
+  apex resolves but a sample app subdomain does not. Disable with
+  `HOME_SERVER_VM_DNS_PREFLIGHT=0`.
+- `scripts/check-home-server-vm.sh` auto-selects connect mode in `auto` based on
+  `${run_dir}/runner-mode`:
+  - `vfkit-*` -> `guest-ip`
+  - otherwise -> `hostfwd`
+- checker now auto-falls back to insecure TLS mode for local VM checks when
+  certificate trust fails (for example LE rate-limit fallback certs on first
+  boot); disable with `HOME_SERVER_VM_TLS_AUTO_FALLBACK=0`.
 
 ## NixOS wiring test
 

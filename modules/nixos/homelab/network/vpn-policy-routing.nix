@@ -22,8 +22,6 @@ let
   renderSet = values: "{ ${lib.concatStringsSep ", " values} }";
   routingTable = 51820;
   uidFor = user: lib.attrByPath [ user ] null cfg.vpnUserUids;
-  primaryGroupFor = user: lib.attrByPath [ user ] user cfg.vpnUserPrimaryGroups;
-  extraGroupsFor = user: lib.attrByPath [ user ] [ ] cfg.vpnUserExtraGroups;
   indexOf =
     needle: haystack:
     let
@@ -89,66 +87,14 @@ in
 
     vpnUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [
-        "qbittorrent"
-        "nzbget"
-        "prowlarr"
-      ];
+      default = [ ];
       description = "System users that must route through the VPN table.";
     };
 
     vpnUserUids = lib.mkOption {
       type = lib.types.attrsOf lib.types.int;
-      default = {
-        qbittorrent = 2001;
-        nzbget = 2002;
-        prowlarr = 2003;
-      };
+      default = { };
       description = "UID map used by nftables skuid rules for VPN-bound users.";
-    };
-
-    vpnUserPrimaryGroups = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = {
-        qbittorrent = "qbittorrent";
-        nzbget = "nzbget";
-        prowlarr = "prowlarr";
-      };
-      description = "Primary group map for VPN-bound service users.";
-    };
-
-    vpnUserExtraGroups = lib.mkOption {
-      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
-      default = {
-        qbittorrent = [ "downloads" ];
-        nzbget = [ "downloads" ];
-        prowlarr = [ ];
-      };
-      description = "Supplementary groups for VPN-bound users.";
-    };
-
-    downloadsGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "downloads";
-      description = "Shared downloads group for media ingest workflow.";
-    };
-
-    downloadsGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2010;
-      description = "GID for shared downloads group.";
-    };
-
-    mediaGroup = lib.mkOption {
-      type = lib.types.str;
-      default = "media";
-      description = "Shared media library group.";
-    };
-
-    mediaGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2000;
-      description = "GID for shared media library group.";
     };
 
     allowedIPv4Cidrs = lib.mkOption {
@@ -179,29 +125,6 @@ in
         message = "Each homelab.network.vpnPolicyRouting.vpnUsers entry must exist in vpnUserUids.";
       }
     ];
-
-    users.users = builtins.listToAttrs (
-      map (user: {
-        name = user;
-        value = {
-          isSystemUser = lib.mkDefault true;
-          uid = lib.mkDefault (uidFor user);
-          group = lib.mkDefault (primaryGroupFor user);
-          extraGroups = lib.mkDefault (extraGroupsFor user);
-        };
-      }) vpnUsers
-    );
-
-    users.groups = {
-      ${cfg.downloadsGroup}.gid = lib.mkDefault cfg.downloadsGroupGid;
-      ${cfg.mediaGroup}.gid = lib.mkDefault cfg.mediaGroupGid;
-    }
-    // builtins.listToAttrs (
-      map (user: {
-        name = primaryGroupFor user;
-        value = { };
-      }) vpnUsers
-    );
 
     networking.nftables.enable = true;
 

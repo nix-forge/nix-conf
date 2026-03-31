@@ -4,73 +4,18 @@
   pkgs,
   ...
 }:
-let
-  cfg = config.homelab.vmAccess;
-
-  localIngressBypassAddresses = [
-    "127.0.0.1"
-    "::1"
-    "10.0.2.2"
-    "192.168.64.1"
-  ];
-
-  authProtectedPaths = [
-    "/vaultwarden/"
-    "/qbittorrent/"
-    "/nzbget/"
-    "/prowlarr/"
-    "/sonarr/"
-    "/radarr/"
-    "/lidarr/"
-    "/readarr/"
-    "/bazarr/"
-  ];
-
-  localIngressBypassExtraConfig = ''
-      satisfy any;
-    ${lib.concatMapStringsSep "\n" (address: "allow ${address};") localIngressBypassAddresses}
-      deny all;
-  '';
-
-  localIngressBypassLocations = lib.listToAttrs (
-    map (path: {
-      name = path;
-      value.extraConfig = lib.mkBefore localIngressBypassExtraConfig;
-    }) authProtectedPaths
-  );
-in
 {
-  options.homelab.vmAccess = {
-    stackRoot = lib.mkOption {
-      type = lib.types.str;
-      default = "/srv/media-stack";
-      description = "Shared media stack root mounted in VM profile.";
-    };
-
-    mediaGroupGid = lib.mkOption {
-      type = lib.types.int;
-      default = 2000;
-      description = "GID applied to VM tmpfs mount for shared media access.";
-    };
-
-    stackRootSize = lib.mkOption {
-      type = lib.types.str;
-      default = "4G";
-      description = "tmpfs size for the shared media stack root in VM profile.";
-    };
-  };
-
   config = {
     boot.loader.grub.memtest86.enable = lib.mkForce false;
 
-    fileSystems.${cfg.stackRoot} = {
+    fileSystems."/srv/media-stack" = {
       device = "tmpfs";
       fsType = "tmpfs";
       options = [
         "uid=0"
-        "gid=${toString cfg.mediaGroupGid}"
+        "gid=2000"
         "mode=0770"
-        "size=${cfg.stackRootSize}"
+        "size=4G"
       ];
     };
 
@@ -86,16 +31,18 @@ in
       SystemMaxUse=64M
     '';
 
-    homelab.media.qbittorrent.bindToMullvad = lib.mkForce true;
-
     services.vaultwarden.enable = lib.mkForce true;
     services.bazarr.enable = lib.mkForce true;
     services.flaresolverr.enable = lib.mkForce true;
     services.lidarr.enable = lib.mkForce true;
     services.readarr.enable = lib.mkForce true;
 
-    services.nginx.virtualHosts."_".locations =
-      lib.mkIf config.services.nginx.enable localIngressBypassLocations;
+    # VM profile convenience: keep key auth enabled, but allow password SSH
+    # for local recovery/testing when host key material drifts.
+    services.openssh.settings = {
+      PasswordAuthentication = lib.mkForce true;
+      KbdInteractiveAuthentication = lib.mkForce true;
+    };
 
     systemd.services.vm-local-secrets = {
       description = "Populate local VM agenix secrets from mounted identity";
@@ -103,9 +50,7 @@ in
       after = [ "local-fs.target" ];
       before = [
         "network-pre.target"
-        "tailscaled-autoconnect.service"
-        "tailscale-cert-bootstrap.service"
-        "tailscale-cert-refresh.service"
+        "acme-${"home.ianholloway.com"}.service"
       ];
       path = with pkgs; [ util-linux ];
       serviceConfig = {
@@ -131,19 +76,14 @@ in
         test -r /run/vm-secrets/id_ed25519
         mkdir -p /run/agenix
 
-        tmp_path="${config.age.secrets.tailscale-auth-key.path}.tmp"
+        tmp_path="${config.age.secrets.cloudflare-acme-env.path}.tmp"
         ${config.age.ageBin} --decrypt \
           -i /run/vm-secrets/id_ed25519 \
           -o "$tmp_path" \
-          '${config.age.secrets.tailscale-auth-key.file}'
-        if ! grep -q '^tskey-' "$tmp_path"; then
-          echo 'tailscale-auth-key does not look like a Tailscale auth key; expected a value starting with tskey-' >&2
-          rm -f "$tmp_path"
-          exit 1
-        fi
-        chown ${config.age.secrets.tailscale-auth-key.owner}:${config.age.secrets.tailscale-auth-key.group} "$tmp_path"
-        chmod ${config.age.secrets.tailscale-auth-key.mode} "$tmp_path"
-        mv -f "$tmp_path" '${config.age.secrets.tailscale-auth-key.path}'
+          '${config.age.secrets.cloudflare-acme-env.file}'
+        chown ${config.age.secrets.cloudflare-acme-env.owner}:${config.age.secrets.cloudflare-acme-env.group} "$tmp_path"
+        chmod ${config.age.secrets.cloudflare-acme-env.mode} "$tmp_path"
+        mv -f "$tmp_path" '${config.age.secrets.cloudflare-acme-env.path}'
 
         tmp_path="${config.age.secrets.mullvad-wg-private-key.path}.tmp"
         ${config.age.ageBin} --decrypt \
@@ -165,29 +105,14 @@ in
       '';
     };
 
-    systemd.services.tailscaled-autoconnect = {
-      after = [ "vm-local-secrets.service" ];
-      requires = [ "vm-local-secrets.service" ];
-    };
-
-    systemd.services.tailscale-cert-bootstrap = {
-      after = [ "vm-local-secrets.service" ];
-      requires = [ "vm-local-secrets.service" ];
-    };
-
-    systemd.services.tailscale-cert-refresh = {
-      after = [ "vm-local-secrets.service" ];
-      requires = [ "vm-local-secrets.service" ];
-    };
-
-    systemd.services.tailscale-nginx-auth = {
+    systemd.services.caddy = {
       after = [
         "vm-local-secrets.service"
-        "tailscaled-autoconnect.service"
+        "acme-home.ianholloway.com.service"
       ];
       wants = [
         "vm-local-secrets.service"
-        "tailscaled-autoconnect.service"
+        "acme-home.ianholloway.com.service"
       ];
     };
 

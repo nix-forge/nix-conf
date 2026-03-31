@@ -23,47 +23,25 @@ in
     enable = true;
     openFirewall = false;
     settings = {
-      title = "Home Server";
-      description = "Tailnet control room for media, automation, downloads, and ops.";
-      theme = "light";
-      color = "amber";
-      headerStyle = "boxedWidgets";
-      iconStyle = "theme";
-      target = "_self";
-      fullWidth = true;
-      maxGroupColumns = 6;
-      useEqualHeights = true;
-      disableCollapse = true;
-      statusStyle = "dot";
-      hideVersion = true;
-      disableUpdateCheck = true;
-      disableIndexing = true;
+      title = lib.mkDefault "Homepage";
+      description = lib.mkDefault "Service dashboard";
+      theme = lib.mkDefault "light";
+      color = lib.mkDefault "slate";
+      headerStyle = lib.mkDefault "boxedWidgets";
+      iconStyle = lib.mkDefault "theme";
+      target = lib.mkDefault "_self";
+      fullWidth = lib.mkDefault true;
+      maxGroupColumns = lib.mkDefault 6;
+      useEqualHeights = lib.mkDefault true;
+      disableCollapse = lib.mkDefault true;
+      statusStyle = lib.mkDefault "dot";
+      hideVersion = lib.mkDefault true;
+      disableUpdateCheck = lib.mkDefault true;
+      disableIndexing = lib.mkDefault true;
       quicklaunch = {
-        searchDescriptions = true;
-        hideInternetSearch = true;
-        provider = "duckduckgo";
-      };
-      layout = {
-        Media = {
-          style = "row";
-          columns = 2;
-          icon = "jellyfin.png";
-        };
-        Automation = {
-          style = "row";
-          columns = 3;
-          icon = "prowlarr.png";
-        };
-        Downloads = {
-          style = "row";
-          columns = 2;
-          icon = "qbittorrent.png";
-        };
-        Apps = {
-          style = "row";
-          columns = 2;
-          icon = "vaultwarden.png";
-        };
+        searchDescriptions = lib.mkDefault true;
+        hideInternetSearch = lib.mkDefault true;
+        provider = lib.mkDefault "duckduckgo";
       };
     };
     widgets = [

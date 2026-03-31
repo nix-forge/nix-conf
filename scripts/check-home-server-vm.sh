@@ -11,8 +11,9 @@ ssh_host="${HOME_SERVER_VM_SSH_HOST:-127.0.0.1}"
 ssh_port="${HOME_SERVER_VM_SSH_PORT:-}"
 ssh_user="${HOME_SERVER_VM_SSH_USER:-testadmin}"
 ingress_port="${HOME_SERVER_VM_INGRESS_PORT:-${HOME_SERVER_VM_HTTPS_PORT:-${HOME_SERVER_VM_HTTP_PORT:-}}}"
-tls_host="${HOME_SERVER_VM_TLS_HOST:-}"
 tls_insecure="${HOME_SERVER_VM_TLS_INSECURE:-0}"
+base_domain="${HOME_SERVER_VM_BASE_DOMAIN:-home.ianholloway.com}"
+primary_host="${HOME_SERVER_VM_PRIMARY_HOST:-${base_domain}}"
 wait_seconds="${HOME_SERVER_VM_WAIT_SECONDS:-45}"
 http_connect_timeout="${HOME_SERVER_VM_HTTP_CONNECT_TIMEOUT:-1}"
 http_max_time="${HOME_SERVER_VM_HTTP_MAX_TIME:-3}"
@@ -198,24 +199,23 @@ elif [[ -f ${HOME:-}/.ssh/id_ed25519 ]]; then
   ssh_opts+=(-i "${HOME}/.ssh/id_ed25519")
 fi
 
-base_url="https://${ssh_host}:${ingress_port}"
 core_paths=(
   /healthz
   /
 )
 
-media_paths=(
-  /jellyfin/
-  /seerr/
-  /sonarr/
-  /radarr/
-  /lidarr/
-  /readarr/
-  /bazarr/
-  /prowlarr/
-  /qbittorrent/
-  /nzbget/
-  /vaultwarden/
+media_hosts=(
+  "jellyfin.${base_domain}"
+  "seerr.${base_domain}"
+  "sonarr.${base_domain}"
+  "radarr.${base_domain}"
+  "lidarr.${base_domain}"
+  "readarr.${base_domain}"
+  "bazarr.${base_domain}"
+  "prowlarr.${base_domain}"
+  "qbittorrent.${base_domain}"
+  "nzbget.${base_domain}"
+  "vaultwarden.${base_domain}"
 )
 
 if [[ -z ${enable_media_probes} ]]; then
@@ -228,42 +228,6 @@ fi
 
 core_failed_urls=()
 media_failed_urls=()
-
-derive_tls_host() {
-  local detected=""
-  local read_dns_cmd
-
-  if [[ -n ${tls_host} ]]; then
-    return 0
-  fi
-
-  read_dns_cmd='if sudo -n true >/dev/null 2>&1; then sudo -n cat /var/lib/tailscale-cert/dns-name 2>/dev/null || true; else cat /var/lib/tailscale-cert/dns-name 2>/dev/null || true; fi'
-  detected="$(ssh_batch "${read_dns_cmd}" | head -n 1 | tr -d '[:space:]' || true)"
-
-  if [[ -z ${detected} ]]; then
-    detected="$(ssh_batch 'tailscale status --json 2>/dev/null | jq -r ".Self.DNSName // \"\" | rtrimstr(\".\")"' | head -n 1 | tr -d '[:space:]' || true)"
-  fi
-
-  if [[ -n ${detected} ]]; then
-    tls_host="${detected}"
-  fi
-}
-
-wait_for_tls_material() {
-  local deadline=$((SECONDS + core_wait_seconds))
-  local cert_check_cmd
-
-  cert_check_cmd='if sudo -n true >/dev/null 2>&1; then sudo -n test -s /var/lib/tailscale-cert/cert.pem && sudo -n test -s /var/lib/tailscale-cert/key.pem && sudo -n test -s /var/lib/tailscale-cert/dns-name && ( ! command -v openssl >/dev/null 2>&1 || sudo -n openssl x509 -in /var/lib/tailscale-cert/cert.pem -noout >/dev/null 2>&1 ); else test -s /var/lib/tailscale-cert/cert.pem && test -s /var/lib/tailscale-cert/key.pem && test -s /var/lib/tailscale-cert/dns-name && ( ! command -v openssl >/dev/null 2>&1 || openssl x509 -in /var/lib/tailscale-cert/cert.pem -noout >/dev/null 2>&1 ); fi'
-
-  while ((SECONDS < deadline)); do
-    if ssh_batch "${cert_check_cmd}" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
-
-  return 1
-}
 
 remote_network_checks=$(
   cat <<'EOF'
@@ -283,17 +247,13 @@ resolvectl status || true
 echo
 echo "failed units:"
 systemctl --failed --no-pager || true
-echo
-echo "tailscale status:"
-tailscale status || true
 EOF
 )
 
 remote_services=(
   sshd
-  nginx
+  caddy
   fail2ban
-  tailscaled
 )
 
 if [[ ${profile_mode} == "parity" || ${enable_media_probes} == "1" ]]; then
@@ -406,6 +366,7 @@ wait_for_port() {
 check_url() {
   local url="$1"
   local allowed_codes="${2:-200 301 302 303 307 308}"
+  local resolve_host="${3:-}"
   local status
   local attempt
   local -a curl_args
@@ -418,10 +379,11 @@ check_url() {
     -w '%{http_code}'
   )
 
-  if [[ ${url} == https://* && -n ${tls_host} && ${tls_insecure} != "1" ]]; then
-    curl_args+=(--resolve "${tls_host}:${ingress_port}:${ssh_host}")
-    url="${url/https:\/\/${ssh_host}:${ingress_port}/https://${tls_host}:${ingress_port}}"
-  elif [[ ${url} == https://* && ${tls_insecure} == "1" ]]; then
+  if [[ -n ${resolve_host} ]]; then
+    curl_args+=(--resolve "${resolve_host}:${ingress_port}:${ssh_host}")
+  fi
+
+  if [[ ${url} == https://* && ${tls_insecure} == "1" ]]; then
     curl_args+=(-k)
   fi
 
@@ -446,10 +408,11 @@ check_url() {
 
 wait_for_url() {
   local url="$1"
+  local resolve_host="${2:-}"
   local deadline=$((SECONDS + core_wait_seconds))
 
   while ((SECONDS < deadline)); do
-    if check_url "$url" >/dev/null 2>&1; then
+    if check_url "$url" "200 301 302 303 307 308" "${resolve_host}" >/dev/null 2>&1; then
       printf 'OK   %s became ready\n' "$url"
       return 0
     fi
@@ -485,7 +448,7 @@ collect_timeout_debug() {
   done
 
   if ssh_batch true >/dev/null 2>&1; then
-    ssh_batch 'set +e; echo "service states:"; systemctl is-active nginx homepage-dashboard sshd fail2ban tailscaled tailscaled-autoconnect tailscale-cert-bootstrap tailscale-cert-refresh jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "timer states:"; systemctl is-active tailscale-cert-refresh.timer || true; echo; echo "cert material:"; if sudo -n true >/dev/null 2>&1; then sudo -n ls -l /var/lib/tailscale-cert 2>/dev/null || true; else ls -l /var/lib/tailscale-cert 2>/dev/null || true; fi; if command -v openssl >/dev/null 2>&1; then echo "cert validity:"; if sudo -n true >/dev/null 2>&1; then sudo -n openssl x509 -in /var/lib/tailscale-cert/cert.pem -noout -subject -issuer -dates 2>/dev/null || true; else openssl x509 -in /var/lib/tailscale-cert/cert.pem -noout -subject -issuer -dates 2>/dev/null || true; fi; fi; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "tailscale status:"; tailscale status || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
+    ssh_batch 'set +e; echo "service states:"; systemctl is-active caddy homepage-dashboard sshd fail2ban jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "acme states:"; systemctl list-units --type=service --all "acme-*.service" --no-pager || true; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
   else
     warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
   fi
@@ -504,25 +467,14 @@ if ! wait_for_port "$ssh_host" "$ssh_port"; then
   exit 1
 fi
 
-if ! wait_for_tls_material; then
-  warn "Timed out waiting for tailscale TLS material; continuing with probe attempts."
-  warn "Check tailscale-cert-bootstrap/tailscale-cert-refresh and tailscale-cert-refresh.timer on the guest for details."
-fi
-
-derive_tls_host
-if [[ -z ${tls_host} && ${tls_insecure} != "1" ]]; then
-  warn "Could not derive HOME_SERVER_VM_TLS_HOST; switching to insecure TLS checks."
-  tls_insecure="1"
-fi
-
 if [[ ${tls_insecure} == "1" ]]; then
   warn "TLS verification is disabled (HOME_SERVER_VM_TLS_INSECURE=1)."
 else
-  log "Using TLS host: ${tls_host}"
+  log "Using TLS host override with --resolve"
 fi
 
 log "Waiting for ingress readiness endpoint (${ingress_probe_path})"
-if ! wait_for_url "${base_url}${ingress_probe_path}"; then
+if ! wait_for_url "https://${primary_host}:${ingress_port}${ingress_probe_path}" "${primary_host}"; then
   error "HTTPS ingress readiness probe failed"
   collect_timeout_debug
   exit 1
@@ -530,8 +482,11 @@ fi
 
 log "Checking core HTTPS endpoints"
 for path in "${core_paths[@]}"; do
+  target_host="${primary_host}"
+  target_url="https://${target_host}:${ingress_port}${path}"
+
   if [[ ${path} == "/" ]]; then
-    if ! check_url "${base_url}${path}"; then
+    if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
       if [[ ${homepage_probe_required} == "1" ]]; then
         error "Homepage probe failed and is required"
         collect_timeout_debug
@@ -543,16 +498,17 @@ for path in "${core_paths[@]}"; do
     continue
   fi
 
-  if ! check_url "${base_url}${path}"; then
-    core_failed_urls+=("${base_url}${path}")
+  if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
+    core_failed_urls+=("${target_url}")
   fi
 done
 
 if [[ ${enable_media_probes} == "1" ]]; then
   log "Checking media HTTPS endpoints"
-  for path in "${media_paths[@]}"; do
-    if ! check_url "${base_url}${path}" "${media_allowed_http_codes}"; then
-      media_failed_urls+=("${base_url}${path}")
+  for host in "${media_hosts[@]}"; do
+    url="https://${host}:${ingress_port}/"
+    if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
+      media_failed_urls+=("${url}")
     fi
   done
 else
@@ -604,7 +560,8 @@ if [[ ${enable_media_probes} == "1" ]] && ((${#media_failed_urls[@]} > 0)); then
   log "Retrying failed media endpoints after guest service checks"
   remaining_media_failed=()
   for url in "${media_failed_urls[@]}"; do
-    if ! check_url "${url}" "${media_allowed_http_codes}"; then
+    host="$(printf '%s' "${url}" | sed -E 's#https://([^:/]+):.*#\1#')"
+    if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
       remaining_media_failed+=("${url}")
     fi
   done

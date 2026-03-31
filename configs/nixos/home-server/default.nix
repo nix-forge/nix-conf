@@ -26,6 +26,9 @@
 
     disko
     users
+    ./modules/host-homelab-storage.nix
+    ./modules/host-homelab-network.nix
+    ./modules/host-homelab-ingress.nix
 
     boot
     boot-grub

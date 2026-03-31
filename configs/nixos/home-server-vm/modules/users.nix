@@ -1,3 +1,4 @@
+{ pkgs, ... }:
 {
   services.openssh.settings.AllowUsers = [ "testadmin" ];
 
@@ -9,5 +10,6 @@
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf"
     ];
+    shell = pkgs.bashInteractive;
   };
 }
