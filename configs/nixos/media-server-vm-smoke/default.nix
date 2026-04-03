@@ -36,7 +36,8 @@
     ../media-server/modules/site.nix
     ../media-server/modules/secrets.nix
     ../media-server/modules/exposure.nix
-    ../media-server-vm-parity/modules/vm-overrides.nix
+    ../media-server-vm-parity/modules/vm-common.nix
+    ./modules/vm-fixtures.nix
     ./modules/vm-runtime.nix
   ];
 }

@@ -39,7 +39,27 @@
       stateDir = "/srv/state";
       mediaDir = "/srv/media";
       downloadsDir = "/srv/downloads";
+      moviesDir = "/srv/media/movies";
+      showsDir = "/srv/media/tv";
+      torrentDir = "/srv/downloads/torrents";
+      usenetDir = "/srv/downloads/usenet";
       swapSize = "16G";
+    };
+
+    downloaders = {
+      qbittorrent = {
+        name = "qBittorrent";
+        host = config.my.media.hosts.qbittorrent;
+        categoryMovies = "radarr";
+        categoryShows = "sonarr";
+      };
+
+      nzbget = {
+        name = "NZBGet";
+        host = config.my.media.hosts.nzbget;
+        categoryMovies = "movies";
+        categoryShows = "tv";
+      };
     };
 
     hosts = {

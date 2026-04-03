@@ -156,6 +156,11 @@ secret-encrypt secret_id source:
 secret-reencrypt *args:
     nix run path:{{ flake }}#secretctl -- reencrypt {{ args }}
 
+# Copy and re-encrypt media VM secrets from parity to smoke
+[group('Secrets')]
+media-vm-secret-sync source="media-server-vm-parity" dest="media-server-vm-smoke":
+    {{ flake }}/scripts/media-vm-secret-sync.sh {{ source }} {{ dest }}
+
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files

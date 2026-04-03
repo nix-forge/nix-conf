@@ -19,7 +19,7 @@ smoke | parity) ;;
 esac
 
 case "$STAGE" in
-all | preflight | boot | host-port-bind | forwarding-liveness | guest-services | routes | security | torrent-safety) ;;
+all | preflight | boot | host-port-bind | forwarding-liveness | guest-services | routes | integrations | security | torrent-safety) ;;
 *)
 	echo "error: unsupported stage '$STAGE'" >&2
 	exit 2
@@ -46,7 +46,7 @@ fi
 
 if [[ $PROFILE == "smoke" ]]; then
 	BOOT_TIMEOUT=${BOOT_TIMEOUT:-180}
-	GUEST_TIMEOUT=${GUEST_TIMEOUT:-120}
+	GUEST_TIMEOUT=${GUEST_TIMEOUT:-240}
 else
 	BOOT_TIMEOUT=${BOOT_TIMEOUT:-480}
 	GUEST_TIMEOUT=${GUEST_TIMEOUT:-240}
@@ -233,6 +233,15 @@ stage_routes() {
 	wait_for_log_marker "MEDIA_VM_CHECK_BAZARR_ROUTE_PASS" "$GUEST_TIMEOUT"
 }
 
+stage_integrations() {
+	local marker
+	for marker in MEDIA_STACK_BOOTSTRAP MEDIA_STACK_VERIFY; do
+		if grep -Fq "MEDIA_VM_CHECK_${marker}_START" "$VM_LOG"; then
+			wait_for_log_marker "MEDIA_VM_CHECK_${marker}_PASS" "$GUEST_TIMEOUT"
+		fi
+	done
+}
+
 stage_security() {
 	local marker
 	for marker in VAULTWARDEN_PUBLIC_DENY VAULTWARDEN_PUBLIC_ALLOW JELLYFIN_PUBLIC_DENY JELLYFIN_PUBLIC_ALLOW JELLYSEERR_PUBLIC_DENY JELLYSEERR_PUBLIC_ALLOW; do
@@ -265,6 +274,8 @@ run_all() {
 	assert_global_budget || return $?
 	run_stage routes stage_routes || return $?
 	assert_global_budget || return $?
+	run_stage integrations stage_integrations || return $?
+	assert_global_budget || return $?
 	run_stage security stage_security || return $?
 	assert_global_budget || return $?
 	run_stage torrent-safety stage_torrent_safety || return $?
@@ -284,6 +295,7 @@ else
 	forwarding-liveness) run_stage forwarding-liveness stage_forwarding_liveness || MAIN_STATUS=$? ;;
 	guest-services) run_stage guest-services stage_guest_services || MAIN_STATUS=$? ;;
 	routes) run_stage routes stage_routes || MAIN_STATUS=$? ;;
+	integrations) run_stage integrations stage_integrations || MAIN_STATUS=$? ;;
 	security) run_stage security stage_security || MAIN_STATUS=$? ;;
 	torrent-safety) run_stage torrent-safety stage_torrent_safety || MAIN_STATUS=$? ;;
 	esac

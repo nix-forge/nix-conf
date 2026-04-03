@@ -149,6 +149,9 @@ Notes:
 
 - Mullvad no longer supports port forwarding.
 - The current production design isolates qBittorrent behind Gluetun.
+- You do not need to add the Mullvad `PublicKey = ...` value anywhere for this
+  setup. With Gluetun's Mullvad provider mode, the required values are the
+  WireGuard private key and interface address.
 
 ### `qbittorrent-env`
 
@@ -164,13 +167,15 @@ PGID=0
 TZ=America/New_York
 WEBUI_PORT=8080
 UMASK=002
+QBT_WEBUI_USERNAME=media-arr
+QBT_WEBUI_PASSWORD=REPLACE_WITH_LONG_RANDOM_PASSWORD
 ```
 
 How to get it:
 
 - No external provider is needed.
 - Set your timezone.
-- After first boot, log into qBittorrent and rotate the admin password in the UI.
+- Generate `QBT_WEBUI_PASSWORD` locally with `openssl rand -base64 24`.
 
 ### `pihole-env`
 

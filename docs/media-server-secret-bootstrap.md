@@ -131,6 +131,8 @@ PGID=0
 TZ=America/New_York
 WEBUI_PORT=8080
 UMASK=002
+QBT_WEBUI_USERNAME=media-arr
+QBT_WEBUI_PASSWORD=REPLACE_WITH_LONG_RANDOM_PASSWORD
 ```
 
 ### Pi-hole
@@ -202,6 +204,13 @@ Run before committing:
 ```bash
 just secret-lint
 just secret-check
+```
+
+To mirror the current parity VM secrets into smoke without editing each secret
+manually:
+
+```bash
+just media-vm-secret-sync
 ```
 
 If you want to confirm no plaintext is staged:

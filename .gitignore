@@ -222,3 +222,4 @@ result/
 result
 .opencode/plans/
 .artifacts/
+*.qcow2

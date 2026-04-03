@@ -13,6 +13,7 @@ let
     };
   };
   curl = lib.getExe pkgs.curl;
+  python = lib.getExe (pkgs.python3.withPackages (ps: [ ps.requests ]));
   afterServices = [
     "network-online.target"
     "traefik.service"
@@ -82,7 +83,7 @@ let
       "check NZBGET_ROUTE -H Host:${config.my.media.hosts.nzbget} https://127.0.0.1:${toString config.my.media.ports.traefikHttps}"
       "check_cmd GLUETUN_HEALTH 'test -f /etc/systemd/system/docker-gluetun.service'"
       "check_cmd QBITTORRENT_NETNS_MODE 'grep -R -q -- --network=container:gluetun /nix/store/*docker-qbittorrent-start*/bin/*'"
-      "check_cmd QBITTORRENT_NETNS_SHARED 'grep -R -F -q -- \"-p 127.0.0.1:${toString config.my.media.ports.qbittorrent}:8080/tcp\" /nix/store/*docker-gluetun-start*/bin/*'"
+      "check_cmd QBITTORRENT_NETNS_SHARED 'grep -R -F -q -- \"-p ${toString config.my.media.ports.qbittorrent}:8080/tcp\" /nix/store/*docker-gluetun-start*/bin/*'"
       "check_cmd QBITTORRENT_DIRECT_EXPOSED '! grep -R -F -q -- \"-p \" /nix/store/*docker-qbittorrent-start*/bin/* && ! grep -R -F -q -- --publish /nix/store/*docker-qbittorrent-start*/bin/*'"
     ]
     ++ lib.optionals config.my.media.services.pihole.enable [

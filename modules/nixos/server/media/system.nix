@@ -6,6 +6,18 @@ in
   config = lib.mkIf cfg.enable {
     virtualisation.oci-containers.backend = "docker";
 
+    networking.hosts."127.0.0.1" = [
+      cfg.hosts.jellyfin
+      cfg.hosts.jellyseerr
+      cfg.hosts.radarr
+      cfg.hosts.sonarr
+      cfg.hosts.prowlarr
+      cfg.hosts.bazarr
+      cfg.hosts.qbittorrent
+      cfg.hosts.nzbget
+      cfg.hosts.vaultwarden
+    ];
+
     networking.firewall = lib.mkIf cfg.network.manageHostNetworking {
       enable = true;
       allowedTCPPorts = [ cfg.ports.ssh ];

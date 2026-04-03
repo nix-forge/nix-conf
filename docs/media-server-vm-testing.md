@@ -46,9 +46,11 @@ The runner executes ordered stages and fails fast:
    - waits for internal route checks for enabled core/media services.
 6. `routes`
    - waits for internal arr route checks.
-7. `security`
+7. `integrations`
+   - reserved for deeper app-level integration markers when enabled by the VM profile.
+8. `security`
    - validates Cloudflare Access-style public route gating checks.
-8. `torrent-safety`
+9. `torrent-safety`
    - validates torrent namespace confinement markers and final self-test pass marker.
 
 ## Timeouts and retries

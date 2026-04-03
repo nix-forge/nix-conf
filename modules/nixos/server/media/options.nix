@@ -58,9 +58,65 @@ in
         type = types.str;
         default = "/srv/downloads";
       };
+      moviesDir = mkOption {
+        type = types.str;
+        default = "/srv/media/movies";
+      };
+      showsDir = mkOption {
+        type = types.str;
+        default = "/srv/media/tv";
+      };
+      torrentDir = mkOption {
+        type = types.str;
+        default = "/srv/downloads/torrents";
+      };
+      usenetDir = mkOption {
+        type = types.str;
+        default = "/srv/downloads/usenet";
+      };
       swapSize = mkOption {
         type = types.str;
         default = "16G";
+      };
+    };
+
+    downloaders = {
+      qbittorrent = {
+        name = mkOption {
+          type = types.str;
+          default = "qBittorrent";
+        };
+        host = mkOption {
+          type = types.str;
+          default = "127.0.0.1";
+        };
+        categoryMovies = mkOption {
+          type = types.str;
+          default = "radarr";
+        };
+        categoryShows = mkOption {
+          type = types.str;
+          default = "sonarr";
+        };
+      };
+
+      nzbget = {
+        name = mkOption {
+          type = types.str;
+          default = "NZBGet";
+        };
+        host = mkOption {
+          type = types.str;
+          default = "127.0.0.1";
+        };
+        categoryMovies = mkOption {
+          type = types.str;
+          default = "movies";
+        };
+        categoryShows = mkOption {
+          type = types.str;
+          default = "tv";
+        };
       };
     };
 
