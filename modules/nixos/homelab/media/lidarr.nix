@@ -1,27 +1,26 @@
 { lib, config, ... }:
 {
   config = {
-    users.groups.${config.services.lidarr.group} = { };
+    services.lidarr = {
+      user = lib.mkDefault "lidarr";
+      group = lib.mkDefault "lidarr";
+      openFirewall = lib.mkDefault false;
+      settings.server = {
+        port = lib.mkDefault 8686;
+        bindaddress = lib.mkDefault "127.0.0.1";
+        urlbase = lib.mkDefault "";
+      };
+      environmentFiles = lib.mkDefault [ ];
+    };
 
-    systemd.tmpfiles.rules = [
+    users.groups.${config.services.lidarr.group} = lib.mkIf config.services.lidarr.enable { };
+
+    systemd.tmpfiles.rules = lib.mkIf config.services.lidarr.enable [
       "d ${config.services.lidarr.dataDir} 0750 ${config.services.lidarr.user} ${config.services.lidarr.group} - -"
     ];
 
-    services.lidarr = {
-      enable = true;
-      user = "lidarr";
-      group = "lidarr";
-      openFirewall = false;
-      settings = {
-        server = {
-          port = 8686;
-          bindaddress = "127.0.0.1";
-          urlbase = "";
-        };
-      };
-      environmentFiles = [ ];
-    };
-
-    systemd.services.lidarr.serviceConfig.UMask = lib.mkForce "0002";
+    systemd.services.lidarr.serviceConfig.UMask = lib.mkIf config.services.lidarr.enable (
+      lib.mkForce "0002"
+    );
   };
 }

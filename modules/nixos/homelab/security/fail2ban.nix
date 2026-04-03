@@ -1,10 +1,9 @@
 { lib, ... }:
 {
   services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
-    jails.sshd.settings.enabled = true;
+    maxretry = lib.mkDefault 5;
+    bantime = lib.mkDefault "1h";
+    jails.sshd.settings.enabled = lib.mkDefault true;
   };
 
   services.openssh.settings.LogLevel = lib.mkDefault "VERBOSE";

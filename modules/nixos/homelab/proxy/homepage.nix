@@ -19,58 +19,23 @@ let
       [ ];
 in
 {
-  services.homepage-dashboard = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      title = lib.mkDefault "Homepage";
-      description = lib.mkDefault "Service dashboard";
-      theme = lib.mkDefault "light";
-      color = lib.mkDefault "slate";
-      headerStyle = lib.mkDefault "boxedWidgets";
-      iconStyle = lib.mkDefault "theme";
-      target = lib.mkDefault "_self";
-      fullWidth = lib.mkDefault true;
-      maxGroupColumns = lib.mkDefault 6;
-      useEqualHeights = lib.mkDefault true;
-      disableCollapse = lib.mkDefault true;
-      statusStyle = lib.mkDefault "dot";
-      hideVersion = lib.mkDefault true;
-      disableUpdateCheck = lib.mkDefault true;
-      disableIndexing = lib.mkDefault true;
-      quicklaunch = {
-        searchDescriptions = lib.mkDefault true;
-        hideInternetSearch = lib.mkDefault true;
-        provider = lib.mkDefault "duckduckgo";
+  config = {
+    services.homepage-dashboard = {
+      openFirewall = lib.mkDefault false;
+      settings = {
+        target = lib.mkDefault "_self";
+        quicklaunch = {
+          searchDescriptions = lib.mkDefault true;
+          hideInternetSearch = lib.mkDefault true;
+          provider = lib.mkDefault "duckduckgo";
+        };
       };
+      widgets = lib.mkDefault [ ];
     };
-    widgets = [
-      {
-        resources = {
-          cpu = true;
-          memory = true;
-          disk = "/";
-        };
-      }
-      {
-        search = {
-          provider = "duckduckgo";
-          target = "_blank";
-        };
-      }
-      {
-        datetime = {
-          text_size = "xl";
-          format = {
-            timeStyle = "short";
-            dateStyle = "medium";
-          };
-        };
-      }
-    ];
-  };
 
-  environment.etc."homepage-dashboard/services.yaml".source = lib.mkForce (
-    yamlFormat.generate "services.yaml" normalizedServices
-  );
+    environment.etc."homepage-dashboard/services.yaml".source =
+      lib.mkIf config.services.homepage-dashboard.enable (
+        lib.mkForce (yamlFormat.generate "services.yaml" normalizedServices)
+      );
+  };
 }

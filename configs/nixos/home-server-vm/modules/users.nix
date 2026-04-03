@@ -6,7 +6,8 @@
     isNormalUser = true;
     description = "VM test admin";
     extraGroups = [ "wheel" ];
-    initialPassword = "changeme";
+    # hashedPasswordFile = config.age.secrets.ianmh-password.path;
+    initialPassword = "password";
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf"
     ];

@@ -1,13 +1,13 @@
+{ lib, ... }:
 {
   services.openssh = {
-    enable = true;
     ports = [ 22 ];
     settings = {
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
-      PermitRootLogin = "prohibit-password";
-      X11Forwarding = false;
+      PasswordAuthentication = lib.mkDefault false;
+      KbdInteractiveAuthentication = lib.mkDefault false;
+      PermitRootLogin = lib.mkDefault "prohibit-password";
+      X11Forwarding = lib.mkDefault false;
     };
-    openFirewall = false;
+    openFirewall = lib.mkDefault false;
   };
 }

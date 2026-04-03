@@ -1,20 +1,21 @@
 { lib, config, ... }:
 {
   config = {
-    users.groups.${config.services.bazarr.group} = { };
+    services.bazarr = {
+      user = lib.mkDefault "bazarr";
+      group = lib.mkDefault "bazarr";
+      listenPort = lib.mkDefault 6767;
+      openFirewall = lib.mkDefault false;
+    };
 
-    systemd.tmpfiles.rules = [
+    users.groups.${config.services.bazarr.group} = lib.mkIf config.services.bazarr.enable { };
+
+    systemd.tmpfiles.rules = lib.mkIf config.services.bazarr.enable [
       "d ${config.services.bazarr.dataDir} 0750 ${config.services.bazarr.user} ${config.services.bazarr.group} - -"
     ];
 
-    services.bazarr = {
-      enable = true;
-      user = "bazarr";
-      group = "bazarr";
-      listenPort = 6767;
-      openFirewall = false;
-    };
-
-    systemd.services.bazarr.serviceConfig.UMask = lib.mkForce "0002";
+    systemd.services.bazarr.serviceConfig.UMask = lib.mkIf config.services.bazarr.enable (
+      lib.mkForce "0002"
+    );
   };
 }

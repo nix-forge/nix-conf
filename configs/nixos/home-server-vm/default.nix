@@ -28,6 +28,8 @@
     users
     vm
     vm-boot
+    ./modules/host-homelab-services.nix
+    ./modules/host-homelab-integration.nix
     ./modules/host-homelab-storage.nix
     ./modules/host-homelab-network.nix
     ./modules/host-homelab-ingress.nix

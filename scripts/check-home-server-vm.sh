@@ -30,28 +30,29 @@ tcp_probe_count="${HOME_SERVER_VM_TCP_PROBE_COUNT:-12}"
 tcp_probe_delay="${HOME_SERVER_VM_TCP_PROBE_DELAY:-1}"
 media_allowed_http_codes="${HOME_SERVER_VM_MEDIA_ALLOWED_HTTP_CODES:-200 301 302 303 307 308 401 403}"
 media_retry_after_service_delay="${HOME_SERVER_VM_MEDIA_RETRY_AFTER_SERVICE_DELAY:-5}"
+require_indexers="${HOME_SERVER_VM_REQUIRE_INDEXERS:-0}"
 
 run_dir_ssh_port_file="${run_dir}/ssh-port"
 run_dir_ingress_port_file="${run_dir}/ingress-port"
 
 if [[ -z ${HOME_SERVER_VM_SSH_PORT:-} && -f ${run_dir_ssh_port_file} ]]; then
-  ssh_port="$(head -n 1 "${run_dir_ssh_port_file}" | tr -d '[:space:]')"
+	ssh_port="$(head -n 1 "${run_dir_ssh_port_file}" | tr -d '[:space:]')"
 fi
 
 if [[ -z ${HOME_SERVER_VM_INGRESS_PORT:-} && -z ${HOME_SERVER_VM_HTTPS_PORT:-} && -z ${HOME_SERVER_VM_HTTP_PORT:-} && -f ${run_dir_ingress_port_file} ]]; then
-  ingress_port="$(head -n 1 "${run_dir_ingress_port_file}" | tr -d '[:space:]')"
+	ingress_port="$(head -n 1 "${run_dir_ingress_port_file}" | tr -d '[:space:]')"
 fi
 
 normalize_mac() {
-  printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
+	printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
 resolve_guest_ip_from_leases() {
-  local target_mac target_name ip_prefix
-  target_mac="$(normalize_mac "$1")"
-  target_name="$2"
-  ip_prefix="${3:-}"
-  python3 - "$target_mac" "$target_name" "$ip_prefix" <<'PY'
+	local target_mac target_name ip_prefix
+	target_mac="$(normalize_mac "$1")"
+	target_name="$2"
+	ip_prefix="${3:-}"
+	python3 - "$target_mac" "$target_name" "$ip_prefix" <<'PY'
 import re
 import sys
 
@@ -114,22 +115,22 @@ PY
 }
 
 resolve_guest_ip_prefix_hint() {
-  local mode_file vmnet_info legacy_vmnet_info mode info_source
-  mode_file="${run_dir}/runner-mode"
-  vmnet_info="${run_dir}/vmnet.json"
-  legacy_vmnet_info="${run_dir}/vmnet-helper.json"
+	local mode_file vmnet_info legacy_vmnet_info mode info_source
+	mode_file="${run_dir}/runner-mode"
+	vmnet_info="${run_dir}/vmnet.json"
+	legacy_vmnet_info="${run_dir}/vmnet-helper.json"
 
-  if [[ -f ${mode_file} ]]; then
-    mode="$(head -n 1 "${mode_file}" | tr -d '[:space:]')"
-    if [[ ${mode} == vfkit-vmnet-shared* || ${mode} == vfkit-vmnet-host* ]]; then
-      if [[ -f ${vmnet_info} ]]; then
-        info_source="${vmnet_info}"
-      elif [[ -f ${legacy_vmnet_info} ]]; then
-        info_source="${legacy_vmnet_info}"
-      fi
+	if [[ -f ${mode_file} ]]; then
+		mode="$(head -n 1 "${mode_file}" | tr -d '[:space:]')"
+		if [[ ${mode} == vfkit-vmnet-shared* || ${mode} == vfkit-vmnet-host* ]]; then
+			if [[ -f ${vmnet_info} ]]; then
+				info_source="${vmnet_info}"
+			elif [[ -f ${legacy_vmnet_info} ]]; then
+				info_source="${legacy_vmnet_info}"
+			fi
 
-      if [[ -n ${info_source:-} ]]; then
-        python3 - "${info_source}" <<'PY'
+			if [[ -n ${info_source:-} ]]; then
+				python3 - "${info_source}" <<'PY'
 import json
 import sys
 
@@ -146,91 +147,91 @@ for key in ("vmnet_start_address", "start_address"):
         print(".".join(parts[:3]))
         break
 PY
-      fi
-    fi
-  fi
+			fi
+		fi
+	fi
 }
 
 if [[ ${connect_mode} == "guest-ip" ]]; then
-  guest_ip_prefix="${HOME_SERVER_VM_GUEST_IP_PREFIX:-}"
-  if [[ -z ${guest_ip_prefix} ]]; then
-    guest_ip_prefix="$(resolve_guest_ip_prefix_hint || true)"
-  fi
+	guest_ip_prefix="${HOME_SERVER_VM_GUEST_IP_PREFIX:-}"
+	if [[ -z ${guest_ip_prefix} ]]; then
+		guest_ip_prefix="$(resolve_guest_ip_prefix_hint || true)"
+	fi
 
-  if [[ -z ${guest_ip} ]]; then
-    guest_ip="$(resolve_guest_ip_from_leases "${net_mac}" "${hostname}" "${guest_ip_prefix}" || true)"
-  fi
+	if [[ -z ${guest_ip} ]]; then
+		guest_ip="$(resolve_guest_ip_from_leases "${net_mac}" "${hostname}" "${guest_ip_prefix}" || true)"
+	fi
 
-  if [[ -z ${guest_ip} && -f ${guest_ip_file} ]]; then
-    guest_ip="$(head -n 1 "${guest_ip_file}" | tr -d '[:space:]')"
-  fi
+	if [[ -z ${guest_ip} && -f ${guest_ip_file} ]]; then
+		guest_ip="$(head -n 1 "${guest_ip_file}" | tr -d '[:space:]')"
+	fi
 
-  if [[ -z ${guest_ip} ]]; then
-    echo "ERROR: HOME_SERVER_VM_CONNECT_MODE=guest-ip but no guest IP was available." >&2
-    echo "Hint: set HOME_SERVER_VM_GUEST_IP, or provide HOME_SERVER_VM_NET_MAC, or ensure ${guest_ip_file} exists." >&2
-    exit 1
-  fi
+	if [[ -z ${guest_ip} ]]; then
+		echo "ERROR: HOME_SERVER_VM_CONNECT_MODE=guest-ip but no guest IP was available." >&2
+		echo "Hint: set HOME_SERVER_VM_GUEST_IP, or provide HOME_SERVER_VM_NET_MAC, or ensure ${guest_ip_file} exists." >&2
+		exit 1
+	fi
 
-  ssh_host="${guest_ip}"
-  if [[ -z ${ssh_port} ]]; then
-    ssh_port="22"
-  fi
-  if [[ -z ${ingress_port} ]]; then
-    ingress_port="443"
-  fi
+	ssh_host="${guest_ip}"
+	if [[ -z ${ssh_port} ]]; then
+		ssh_port="22"
+	fi
+	if [[ -z ${ingress_port} ]]; then
+		ingress_port="443"
+	fi
 else
-  if [[ -z ${ssh_port} ]]; then
-    ssh_port="2222"
-  fi
-  if [[ -z ${ingress_port} ]]; then
-    ingress_port="8443"
-  fi
+	if [[ -z ${ssh_port} ]]; then
+		ssh_port="2222"
+	fi
+	if [[ -z ${ingress_port} ]]; then
+		ingress_port="8443"
+	fi
 fi
 ssh_opts=(
-  -p "$ssh_port"
-  -o StrictHostKeyChecking=no
-  -o UserKnownHostsFile=/dev/null
-  -o ConnectTimeout=5
+	-p "$ssh_port"
+	-o StrictHostKeyChecking=no
+	-o UserKnownHostsFile=/dev/null
+	-o ConnectTimeout=5
 )
 
 if [[ -n ${HOME_SERVER_VM_SSH_IDENTITY:-} ]]; then
-  ssh_opts+=(-i "$HOME_SERVER_VM_SSH_IDENTITY")
+	ssh_opts+=(-i "$HOME_SERVER_VM_SSH_IDENTITY")
 elif [[ -f ${HOME:-}/.ssh/id_ed25519 ]]; then
-  ssh_opts+=(-i "${HOME}/.ssh/id_ed25519")
+	ssh_opts+=(-i "${HOME}/.ssh/id_ed25519")
 fi
 
 core_paths=(
-  /healthz
-  /
+	/healthz
+	/
 )
 
 media_hosts=(
-  "jellyfin.${base_domain}"
-  "seerr.${base_domain}"
-  "sonarr.${base_domain}"
-  "radarr.${base_domain}"
-  "lidarr.${base_domain}"
-  "readarr.${base_domain}"
-  "bazarr.${base_domain}"
-  "prowlarr.${base_domain}"
-  "qbittorrent.${base_domain}"
-  "nzbget.${base_domain}"
-  "vaultwarden.${base_domain}"
+	"jellyfin.${base_domain}"
+	"seerr.${base_domain}"
+	"sonarr.${base_domain}"
+	"radarr.${base_domain}"
+	"lidarr.${base_domain}"
+	"readarr.${base_domain}"
+	"bazarr.${base_domain}"
+	"prowlarr.${base_domain}"
+	"qbittorrent.${base_domain}"
+	"nzbget.${base_domain}"
+	"vaultwarden.${base_domain}"
 )
 
 if [[ -z ${enable_media_probes} ]]; then
-  if [[ ${profile_mode} == "parity" ]]; then
-    enable_media_probes="1"
-  else
-    enable_media_probes="0"
-  fi
+	if [[ ${profile_mode} == "parity" ]]; then
+		enable_media_probes="1"
+	else
+		enable_media_probes="0"
+	fi
 fi
 
 core_failed_urls=()
 media_failed_urls=()
 
 remote_network_checks=$(
-  cat <<'EOF'
+	cat <<'EOF'
 set -euo pipefail
 echo "guest: $(hostname)"
 echo "listeners:"
@@ -251,31 +252,31 @@ EOF
 )
 
 remote_services=(
-  sshd
-  caddy
-  fail2ban
+	sshd
+	caddy
+	fail2ban
 )
 
 if [[ ${profile_mode} == "parity" || ${enable_media_probes} == "1" ]]; then
-  remote_services+=(
-    jellyfin
-    seerr
-    sonarr
-    radarr
-    lidarr
-    readarr
-    bazarr
-    flaresolverr
-    prowlarr
-    qbittorrent
-    nzbget
-    vaultwarden
-  )
+	remote_services+=(
+		jellyfin
+		seerr
+		sonarr
+		radarr
+		lidarr
+		readarr
+		bazarr
+		flaresolverr
+		prowlarr
+		qbittorrent
+		nzbget
+		vaultwarden
+	)
 fi
 
 remote_service_entries=""
 for service in "${remote_services[@]}"; do
-  remote_service_entries+="  ${service}"$'\n'
+	remote_service_entries+="  ${service}"$'\n'
 done
 
 remote_service_status_checks="set -euo pipefail
@@ -292,7 +293,7 @@ for service in \"\${services[@]}\"; do
 done"
 
 remote_service_ip_checks=$(
-  cat <<'EOF'
+	cat <<'EOF'
 set -euo pipefail
 for user in qbittorrent nzbget prowlarr; do
   printf "%s public-ip: " "$user"
@@ -303,7 +304,7 @@ EOF
 )
 
 remote_group_model_checks=$(
-  cat <<'EOF'
+	cat <<'EOF'
 set -euo pipefail
 
 users=(qbittorrent nzbget sonarr radarr lidarr readarr bazarr)
@@ -336,245 +337,369 @@ echo "OK   group model checks"
 EOF
 )
 
+remote_integration_checks=$(
+	cat <<'EOF'
+set -euo pipefail
+
+if ! systemctl is-enabled --quiet homelab-reconcile.timer; then
+  echo "homelab-reconcile.timer is not enabled" >&2
+  exit 1
+fi
+
+if ! systemctl is-active --quiet homelab-reconcile.timer; then
+  echo "homelab-reconcile.timer is not active" >&2
+  exit 1
+fi
+
+if ! systemctl is-enabled --quiet homelab-backup.timer; then
+  echo "homelab-backup.timer is not enabled" >&2
+  exit 1
+fi
+
+if ! systemctl is-active --quiet homelab-backup.timer; then
+  echo "homelab-backup.timer is not active" >&2
+  exit 1
+fi
+
+if [ -f /var/lib/homelab-reconcile/state.json ]; then
+  grep -q '"ok": true' /var/lib/homelab-reconcile/state.json
+fi
+
+echo "OK   integration timer checks"
+EOF
+)
+
+remote_api_integration_checks=$(
+	cat <<'EOF'
+set -euo pipefail
+
+if ! sudo -n test -f /run/agenix/homelab-reconcile-env; then
+  echo "missing /run/agenix/homelab-reconcile-env" >&2
+  exit 1
+fi
+
+tmp_env="$(mktemp)"
+trap 'rm -f "$tmp_env"' EXIT
+sudo -n cat /run/agenix/homelab-reconcile-env >"$tmp_env"
+
+set -a
+source "$tmp_env"
+set +a
+
+if [[ -z "${PROWLARR_API_KEY:-}" && -n "${PROWLARR__AUTH__APIKEY:-}" ]]; then
+  PROWLARR_API_KEY="${PROWLARR__AUTH__APIKEY}"
+fi
+if [[ -z "${SONARR_API_KEY:-}" && -n "${SONARR__AUTH__APIKEY:-}" ]]; then
+  SONARR_API_KEY="${SONARR__AUTH__APIKEY}"
+fi
+if [[ -z "${RADARR_API_KEY:-}" && -n "${RADARR__AUTH__APIKEY:-}" ]]; then
+  RADARR_API_KEY="${RADARR__AUTH__APIKEY}"
+fi
+if [[ -z "${SEERR_API_KEY:-}" && -n "${API_KEY:-}" ]]; then
+  SEERR_API_KEY="${API_KEY}"
+fi
+
+for key in PROWLARR_API_KEY SONARR_API_KEY RADARR_API_KEY SEERR_API_KEY; do
+  if [[ -z "${!key:-}" ]]; then
+    echo "missing required key in reconcile env: ${key}" >&2
+    exit 1
+  fi
+done
+
+prowlarr_apps=$(curl -fsS -H "X-Api-Key: ${PROWLARR_API_KEY}" "http://127.0.0.1:9696/api/v1/applications")
+for app in Sonarr Radarr Lidarr Readarr; do
+  echo "$prowlarr_apps" | jq -e --arg name "$app" '.[] | select(.name == $name)' >/dev/null
+done
+
+prowlarr_dls=$(curl -fsS -H "X-Api-Key: ${PROWLARR_API_KEY}" "http://127.0.0.1:9696/api/v1/downloadclient")
+for dl in qBittorrent NZBGet; do
+  echo "$prowlarr_dls" | jq -e --arg name "$dl" '.[] | select(.name == $name)' >/dev/null
+done
+
+if [[ "${HOME_SERVER_VM_REQUIRE_INDEXERS:-0}" == "1" ]]; then
+  prowlarr_indexers=$(curl -fsS -H "X-Api-Key: ${PROWLARR_API_KEY}" "http://127.0.0.1:9696/api/v1/indexer")
+  echo "$prowlarr_indexers" | jq -e 'length > 0' >/dev/null
+fi
+
+sonarr_dls=$(curl -fsS -H "X-Api-Key: ${SONARR_API_KEY}" "http://127.0.0.1:8989/api/v3/downloadclient")
+echo "$sonarr_dls" | jq -e '.[] | select(.name == "qBittorrent")' >/dev/null
+
+radarr_dls=$(curl -fsS -H "X-Api-Key: ${RADARR_API_KEY}" "http://127.0.0.1:7878/api/v3/downloadclient")
+echo "$radarr_dls" | jq -e '.[] | select(.name == "qBittorrent")' >/dev/null
+
+seerr_radarr=$(curl -fsS -H "X-Api-Key: ${SEERR_API_KEY}" "http://127.0.0.1:5055/api/v1/settings/radarr")
+echo "$seerr_radarr" | jq -e '.[] | select(.name == "Radarr")' >/dev/null
+
+seerr_sonarr=$(curl -fsS -H "X-Api-Key: ${SEERR_API_KEY}" "http://127.0.0.1:5055/api/v1/settings/sonarr")
+echo "$seerr_sonarr" | jq -e '.[] | select(.name == "Sonarr")' >/dev/null
+
+seerr_jellyfin=$(curl -fsS -H "X-Api-Key: ${SEERR_API_KEY}" "http://127.0.0.1:5055/api/v1/settings/jellyfin")
+echo "$seerr_jellyfin" | jq -e '(.apiKey | type == "string") and (.apiKey | length > 0)' >/dev/null
+echo "$seerr_jellyfin" | jq -e '.ip == "127.0.0.1" and (.port == 8096) and (.useSsl == false)' >/dev/null
+
+seerr_main=$(curl -fsS -H "X-Api-Key: ${SEERR_API_KEY}" "http://127.0.0.1:5055/api/v1/settings/main")
+echo "$seerr_main" | jq -e '.mediaServerType == 2' >/dev/null
+
+seerr_jellyfin_libs=$(curl -fsS -H "X-Api-Key: ${SEERR_API_KEY}" "http://127.0.0.1:5055/api/v1/settings/jellyfin/library")
+for lib in Movies "TV Shows"; do
+  echo "$seerr_jellyfin_libs" | jq -e --arg name "$lib" '.[] | select(.name == $name and .enabled == true)' >/dev/null
+done
+
+echo "OK   API integration checks"
+EOF
+)
+
 log() {
-  printf '==> %s\n' "$*"
+	printf '==> %s\n' "$*"
 }
 
 warn() {
-  printf 'WARN: %s\n' "$*" >&2
+	printf 'WARN: %s\n' "$*" >&2
 }
 
 error() {
-  printf 'ERROR: %s\n' "$*" >&2
+	printf 'ERROR: %s\n' "$*" >&2
 }
 
 wait_for_port() {
-  local host="$1"
-  local port="$2"
-  local deadline=$((SECONDS + wait_seconds))
+	local host="$1"
+	local port="$2"
+	local deadline=$((SECONDS + wait_seconds))
 
-  while ((SECONDS < deadline)); do
-    if nc -z -w 1 "$host" "$port" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
+	while ((SECONDS < deadline)); do
+		if nc -z -w 1 "$host" "$port" >/dev/null 2>&1; then
+			return 0
+		fi
+		sleep 1
+	done
 
-  return 1
+	return 1
 }
 
 check_url() {
-  local url="$1"
-  local allowed_codes="${2:-200 301 302 303 307 308}"
-  local resolve_host="${3:-}"
-  local status
-  local attempt
-  local -a curl_args
+	local url="$1"
+	local allowed_codes="${2:-200 301 302 303 307 308}"
+	local resolve_host="${3:-}"
+	local status
+	local attempt
+	local -a curl_args
 
-  curl_args=(
-    -sS
-    -o /dev/null
-    --connect-timeout "$http_connect_timeout"
-    --max-time "$http_max_time"
-    -w '%{http_code}'
-  )
+	curl_args=(
+		-sS
+		-o /dev/null
+		--connect-timeout "$http_connect_timeout"
+		--max-time "$http_max_time"
+		-w '%{http_code}'
+	)
 
-  if [[ -n ${resolve_host} ]]; then
-    curl_args+=(--resolve "${resolve_host}:${ingress_port}:${ssh_host}")
-  fi
+	if [[ -n ${resolve_host} ]]; then
+		curl_args+=(--resolve "${resolve_host}:${ingress_port}:${ssh_host}")
+	fi
 
-  if [[ ${url} == https://* && ${tls_insecure} == "1" ]]; then
-    curl_args+=(-k)
-  fi
+	if [[ ${url} == https://* && ${tls_insecure} == "1" ]]; then
+		curl_args+=(-k)
+	fi
 
-  for ((attempt = 1; attempt <= http_retries; attempt += 1)); do
-    status="$({
-      curl "${curl_args[@]}" "$url"
-    } || true)"
+	for ((attempt = 1; attempt <= http_retries; attempt += 1)); do
+		status="$({
+			curl "${curl_args[@]}" "$url"
+		} || true)"
 
-    if [[ " ${allowed_codes} " == *" ${status} "* ]]; then
-      printf 'OK   %s -> %s\n' "$url" "$status"
-      return 0
-    fi
+		if [[ " ${allowed_codes} " == *" ${status} "* ]]; then
+			printf 'OK   %s -> %s\n' "$url" "$status"
+			return 0
+		fi
 
-    if ((attempt < http_retries)); then
-      sleep "$http_retry_delay"
-    fi
-  done
+		if ((attempt < http_retries)); then
+			sleep "$http_retry_delay"
+		fi
+	done
 
-  printf 'FAIL %s -> %s (after %s attempts)\n' "$url" "${status:-curl-error}" "$http_retries" >&2
-  return 1
+	printf 'FAIL %s -> %s (after %s attempts)\n' "$url" "${status:-curl-error}" "$http_retries" >&2
+	return 1
 }
 
 wait_for_url() {
-  local url="$1"
-  local resolve_host="${2:-}"
-  local deadline=$((SECONDS + core_wait_seconds))
+	local url="$1"
+	local resolve_host="${2:-}"
+	local deadline=$((SECONDS + core_wait_seconds))
 
-  while ((SECONDS < deadline)); do
-    if check_url "$url" "200 301 302 303 307 308" "${resolve_host}" >/dev/null 2>&1; then
-      printf 'OK   %s became ready\n' "$url"
-      return 0
-    fi
-    sleep 1
-  done
+	while ((SECONDS < deadline)); do
+		if check_url "$url" "200 301 302 303 307 308" "${resolve_host}" >/dev/null 2>&1; then
+			printf 'OK   %s became ready\n' "$url"
+			return 0
+		fi
+		sleep 1
+	done
 
-  printf 'FAIL %s did not become ready within %ss\n' "$url" "$core_wait_seconds" >&2
-  return 1
+	printf 'FAIL %s did not become ready within %ss\n' "$url" "$core_wait_seconds" >&2
+	return 1
 }
 
 ssh_batch() {
-  ssh "${ssh_opts[@]}" -o BatchMode=yes "${ssh_user}@${ssh_host}" "$@"
+	ssh "${ssh_opts[@]}" -o BatchMode=yes "${ssh_user}@${ssh_host}" "$@"
 }
 
 collect_timeout_debug() {
-  warn "Collecting timeout diagnostics"
-  warn "Host listener snapshot"
-  lsof -nP -iTCP:"${ssh_port}" -sTCP:LISTEN || true
-  lsof -nP -iTCP:"${ingress_port}" -sTCP:LISTEN || true
+	warn "Collecting timeout diagnostics"
+	warn "Host listener snapshot"
+	lsof -nP -iTCP:"${ssh_port}" -sTCP:LISTEN || true
+	lsof -nP -iTCP:"${ingress_port}" -sTCP:LISTEN || true
 
-  warn "Host TCP probe (${tcp_probe_count} samples, ${tcp_probe_delay}s delay)"
-  for ((sample = 1; sample <= tcp_probe_count; sample += 1)); do
-    ssh_state="closed"
-    http_state="closed"
-    if nc -z -w 1 "${ssh_host}" "${ssh_port}" >/dev/null 2>&1; then
-      ssh_state="open"
-    fi
-    if nc -z -w 1 "${ssh_host}" "${ingress_port}" >/dev/null 2>&1; then
-      http_state="open"
-    fi
-    printf 'sample %02d: ssh=%s http=%s\n' "${sample}" "${ssh_state}" "${http_state}"
-    sleep "${tcp_probe_delay}"
-  done
+	warn "Host TCP probe (${tcp_probe_count} samples, ${tcp_probe_delay}s delay)"
+	for ((sample = 1; sample <= tcp_probe_count; sample += 1)); do
+		ssh_state="closed"
+		http_state="closed"
+		if nc -z -w 1 "${ssh_host}" "${ssh_port}" >/dev/null 2>&1; then
+			ssh_state="open"
+		fi
+		if nc -z -w 1 "${ssh_host}" "${ingress_port}" >/dev/null 2>&1; then
+			http_state="open"
+		fi
+		printf 'sample %02d: ssh=%s http=%s\n' "${sample}" "${ssh_state}" "${http_state}"
+		sleep "${tcp_probe_delay}"
+	done
 
-  if ssh_batch true >/dev/null 2>&1; then
-    ssh_batch 'set +e; echo "service states:"; systemctl is-active caddy homepage-dashboard sshd fail2ban jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "acme states:"; systemctl list-units --type=service --all "acme-*.service" --no-pager || true; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
-  else
-    warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
-  fi
+	if ssh_batch true >/dev/null 2>&1; then
+		ssh_batch 'set +e; echo "service states:"; systemctl is-active caddy homepage-dashboard sshd fail2ban jellyfin seerr sonarr radarr lidarr readarr bazarr flaresolverr prowlarr qbittorrent nzbget vaultwarden; echo; echo "acme states:"; systemctl list-units --type=service --all "acme-*.service" --no-pager || true; echo; echo "listener snapshot:"; ss -ltn | grep -E ":(22|443|5055|6767|6789|7878|8081|8082|8096|8191|8222|8686|8787|8989|9696)" || true; echo; echo "guest curl 8082:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8082/ || true; echo "guest curl 443 healthz:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/healthz || true; echo "guest curl 443 root:"; curl -ksS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 https://127.0.0.1/ || true; echo "guest curl 8191 root:"; curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 2 --max-time 4 http://127.0.0.1:8191/ || true; echo; echo "kernel net watchdog snapshot:"; journalctl -k -n 120 --no-pager | grep -E "NETDEV WATCHDOG|virtio_net|hung task" || true' || true
+	else
+		warn "Batch SSH unavailable; cannot collect guest-side timeout diagnostics"
+	fi
 }
 
 log "Waiting for SSH on ${ssh_host}:${ssh_port}"
 log "Check profile mode: ${profile_mode} (media probes: ${enable_media_probes})"
 log "Connect mode: ${connect_mode} (ssh_host=${ssh_host}, ssh_port=${ssh_port}, ingress_port=${ingress_port})"
 if ! wait_for_port "$ssh_host" "$ssh_port"; then
-  warn "Timed out waiting for SSH on ${ssh_host}:${ssh_port}."
-  if [[ ${connect_mode} == "guest-ip" ]]; then
-    warn "Start the VM in another terminal with: just home-server-vm-run-macos-vfkit"
-  else
-    warn "Start the VM in another terminal with: just home-server-vm-run-macos"
-  fi
-  exit 1
+	warn "Timed out waiting for SSH on ${ssh_host}:${ssh_port}."
+	if [[ ${connect_mode} == "guest-ip" ]]; then
+		warn "Start the VM in another terminal with: just home-server-vm-run-macos-vfkit"
+	else
+		warn "Start the VM in another terminal with: just home-server-vm-run-macos"
+	fi
+	exit 1
 fi
 
 if [[ ${tls_insecure} == "1" ]]; then
-  warn "TLS verification is disabled (HOME_SERVER_VM_TLS_INSECURE=1)."
+	warn "TLS verification is disabled (HOME_SERVER_VM_TLS_INSECURE=1)."
 else
-  log "Using TLS host override with --resolve"
+	log "Using TLS host override with --resolve"
 fi
 
 log "Waiting for ingress readiness endpoint (${ingress_probe_path})"
 if ! wait_for_url "https://${primary_host}:${ingress_port}${ingress_probe_path}" "${primary_host}"; then
-  error "HTTPS ingress readiness probe failed"
-  collect_timeout_debug
-  exit 1
+	error "HTTPS ingress readiness probe failed"
+	collect_timeout_debug
+	exit 1
 fi
 
 log "Checking core HTTPS endpoints"
 for path in "${core_paths[@]}"; do
-  target_host="${primary_host}"
-  target_url="https://${target_host}:${ingress_port}${path}"
+	target_host="${primary_host}"
+	target_url="https://${target_host}:${ingress_port}${path}"
 
-  if [[ ${path} == "/" ]]; then
-    if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
-      if [[ ${homepage_probe_required} == "1" ]]; then
-        error "Homepage probe failed and is required"
-        collect_timeout_debug
-        exit 1
-      fi
+	if [[ ${path} == "/" ]]; then
+		if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
+			if [[ ${homepage_probe_required} == "1" ]]; then
+				error "Homepage probe failed and is required"
+				collect_timeout_debug
+				exit 1
+			fi
 
-      warn "Homepage probe failed, but ingress is healthy. Continuing with media and guest checks."
-    fi
-    continue
-  fi
+			warn "Homepage probe failed, but ingress is healthy. Continuing with media and guest checks."
+		fi
+		continue
+	fi
 
-  if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
-    core_failed_urls+=("${target_url}")
-  fi
+	if ! check_url "${target_url}" "200 301 302 303 307 308" "${target_host}"; then
+		core_failed_urls+=("${target_url}")
+	fi
 done
 
 if [[ ${enable_media_probes} == "1" ]]; then
-  log "Checking media HTTPS endpoints"
-  for host in "${media_hosts[@]}"; do
-    url="https://${host}:${ingress_port}/"
-    if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
-      media_failed_urls+=("${url}")
-    fi
-  done
+	log "Checking media HTTPS endpoints"
+	for host in "${media_hosts[@]}"; do
+		url="https://${host}:${ingress_port}/"
+		if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
+			media_failed_urls+=("${url}")
+		fi
+	done
 else
-  log "Skipping media HTTPS endpoints for profile (${profile_mode})"
+	log "Skipping media HTTPS endpoints for profile (${profile_mode})"
 fi
 
 log "Checking whether batch SSH access is available"
 if ssh_batch true >/dev/null 2>&1; then
-  log "Checking guest service health"
-  service_ok=0
-  for ((attempt = 1; attempt <= service_retries; attempt += 1)); do
-    if ssh_batch "$remote_service_status_checks"; then
-      service_ok=1
-      break
-    fi
+	log "Checking guest service health"
+	service_ok=0
+	for ((attempt = 1; attempt <= service_retries; attempt += 1)); do
+		if ssh_batch "$remote_service_status_checks"; then
+			service_ok=1
+			break
+		fi
 
-    warn "Guest service health attempt ${attempt}/${service_retries} failed"
-    if ((attempt < service_retries)); then
-      sleep "$service_retry_delay"
-    fi
-  done
+		warn "Guest service health attempt ${attempt}/${service_retries} failed"
+		if ((attempt < service_retries)); then
+			sleep "$service_retry_delay"
+		fi
+	done
 
-  if ((service_ok == 0)); then
-    error "Guest service health checks failed"
-    exit 1
-  fi
+	if ((service_ok == 0)); then
+		error "Guest service health checks failed"
+		exit 1
+	fi
 
-  log "Running guest-side network checks over SSH"
-  ssh_batch "$remote_network_checks"
+	log "Running guest-side network checks over SSH"
+	ssh_batch "$remote_network_checks"
 
-  if [[ ${enable_media_probes} == "1" ]] && ssh_batch 'sudo -n true' >/dev/null 2>&1; then
-    log "Running service-user egress checks"
-    ssh_batch "$remote_service_ip_checks"
+	if [[ ${profile_mode} == "parity" || ${enable_media_probes} == "1" ]]; then
+		log "Running integration timer checks"
+		ssh_batch "$remote_integration_checks"
 
-    log "Running service-user group model checks"
-    ssh_batch "$remote_group_model_checks"
-  elif [[ ${enable_media_probes} != "1" ]]; then
-    log "Skipping service-user egress checks for profile (${profile_mode})"
-  else
-    warn "Passwordless sudo is unavailable over SSH; run the service-user egress checks manually after logging in."
-  fi
+		if ssh_batch 'sudo -n true' >/dev/null 2>&1; then
+			log "Running API integration checks"
+			ssh_batch "HOME_SERVER_VM_REQUIRE_INDEXERS=${require_indexers} $remote_api_integration_checks"
+		else
+			warn "Skipping API integration checks because passwordless sudo is unavailable."
+		fi
+	fi
+
+	if [[ ${enable_media_probes} == "1" ]] && ssh_batch 'sudo -n true' >/dev/null 2>&1; then
+		log "Running service-user egress checks"
+		ssh_batch "$remote_service_ip_checks"
+
+		log "Running service-user group model checks"
+		ssh_batch "$remote_group_model_checks"
+	elif [[ ${enable_media_probes} != "1" ]]; then
+		log "Skipping service-user egress checks for profile (${profile_mode})"
+	else
+		warn "Passwordless sudo is unavailable over SSH; run the service-user egress checks manually after logging in."
+	fi
 else
-  warn "Batch SSH access is unavailable."
-  warn "Add HOME_SERVER_VM_SSH_IDENTITY or use the authorized key configured for testadmin to enable guest assertions."
+	warn "Batch SSH access is unavailable."
+	warn "Add HOME_SERVER_VM_SSH_IDENTITY or use the authorized key configured for testadmin to enable guest assertions."
 fi
 
 if [[ ${enable_media_probes} == "1" ]] && ((${#media_failed_urls[@]} > 0)); then
-  sleep "${media_retry_after_service_delay}"
-  log "Retrying failed media endpoints after guest service checks"
-  remaining_media_failed=()
-  for url in "${media_failed_urls[@]}"; do
-    host="$(printf '%s' "${url}" | sed -E 's#https://([^:/]+):.*#\1#')"
-    if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
-      remaining_media_failed+=("${url}")
-    fi
-  done
-  media_failed_urls=("${remaining_media_failed[@]}")
+	sleep "${media_retry_after_service_delay}"
+	log "Retrying failed media endpoints after guest service checks"
+	remaining_media_failed=()
+	for url in "${media_failed_urls[@]}"; do
+		host="$(printf '%s' "${url}" | sed -E 's#https://([^:/]+):.*#\1#')"
+		if ! check_url "${url}" "${media_allowed_http_codes}" "${host}"; then
+			remaining_media_failed+=("${url}")
+		fi
+	done
+	media_failed_urls=("${remaining_media_failed[@]}")
 fi
 
 failed_urls=("${core_failed_urls[@]}" "${media_failed_urls[@]}")
 
 if ((${#failed_urls[@]} > 0)); then
-  error "HTTPS probes failed for ${#failed_urls[@]} endpoint(s):"
-  printf ' - %s\n' "${failed_urls[@]}" >&2
-  collect_timeout_debug
-  exit 1
+	error "HTTPS probes failed for ${#failed_urls[@]} endpoint(s):"
+	printf ' - %s\n' "${failed_urls[@]}" >&2
+	collect_timeout_debug
+	exit 1
 fi
 
 log "Checks finished"

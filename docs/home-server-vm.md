@@ -91,16 +91,18 @@ HOME_SERVER_VM_CONNECT_MODE=guest-ip HOME_SERVER_VM_PROFILE=parity ./scripts/che
 ## Browser access matrix
 
 - QEMU hostfwd (`just home-server-vm-run-macos`):
-  - ingress is on host forwarded port (`${run_dir}/ingress-port`, usually `8443`)
+  - ingress is on host forwarded port (`${run_dir}/ingress-port`, usually
+    `8443`)
   - use `https://home.ianholloway.com:<ingress-port>/`
-  - app subdomains also require the forwarded port in browser tests,
-    for example `https://seerr.home.ianholloway.com:<ingress-port>/`
-  - homepage app links now redirect to subdomain hosts while preserving that same
-    forwarded port
+  - app subdomains also require the forwarded port in browser tests, for example
+    `https://seerr.home.ianholloway.com:<ingress-port>/`
+  - homepage app links now redirect to subdomain hosts while preserving that
+    same forwarded port
 - vfkit NAT/vmnet (`just home-server-vm-run-macos-vfkit*`):
   - checks run in `guest-ip` mode on standard `:443`
-  - use guest IP routing for browser tests (`https://<subdomain>.home.ianholloway.com/`)
-    with local DNS pointing to the guest IP
+  - use guest IP routing for browser tests
+    (`https://<subdomain>.home.ianholloway.com/`) with local DNS pointing to the
+    guest IP
 
 ### DNS requirements for subdomain ingress
 
@@ -238,8 +240,8 @@ Secondary/manual validation:
 
 - SSH access now follows the main host more closely: key-based auth only over
   SSH, while the console password remains available for local recovery.
-- VM profile now additionally allows password SSH auth for local recovery,
-  while still keeping key-based auth enabled.
+- VM profile now additionally allows password SSH auth for local recovery, while
+  still keeping key-based auth enabled.
 - `fail2ban` is enabled again in the VM and included in guest service checks.
 - `homelab-network` is imported and active in the VM.
 - HTTPS ingress uses Caddy with ACME DNS-01 certificate issuance.

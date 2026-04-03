@@ -1,21 +1,11 @@
-{ lib, config, ... }:
+{ lib, ... }:
 {
-  assertions = [
-    {
-      assertion = lib.hasAttrByPath [ "age" "secrets" "vaultwarden-admin-token" ] config;
-      message = "age.secrets.vaultwarden-admin-token must exist when importing homelab.apps.vaultwarden.";
-    }
-  ];
-
   services.vaultwarden = {
-    enable = true;
-    configureNginx = false;
-    configurePostgres = false;
+    configureNginx = lib.mkDefault false;
+    configurePostgres = lib.mkDefault false;
     config = {
-      ROCKET_ADDRESS = "127.0.0.1";
-      ROCKET_PORT = 8222;
-      SIGNUPS_ALLOWED = false;
+      ROCKET_ADDRESS = lib.mkDefault "127.0.0.1";
+      ROCKET_PORT = lib.mkDefault 8222;
     };
-    environmentFile = config.age.secrets.vaultwarden-admin-token.path;
   };
 }

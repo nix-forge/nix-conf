@@ -11,7 +11,7 @@ let
   mkVHostConf =
     hostOpts:
     let
-      sslCertDir = certs.${hostOpts.useACMEHost}.directory;
+      sslCertDir = if hostOpts.useACMEHost == null then null else certs.${hostOpts.useACMEHost}.directory;
     in
     ''
       ${hostOpts.hostName} ${lib.concatStringsSep " " hostOpts.serverAliases} {
@@ -41,9 +41,6 @@ let
 in
 {
   services.caddy = {
-    enable = true;
-    package = pkgs.caddy;
-
     # Use an unformatted generated Caddyfile to avoid nixpkgs' Caddyfile-formatted
     # runCommand, which fails on this host when cp tries to chmod in /nix/store.
     configFile = lib.mkDefault generatedCaddyfile;

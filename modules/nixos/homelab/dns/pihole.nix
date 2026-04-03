@@ -1,9 +1,6 @@
 {
-  services.pihole-ftl = {
-    enable = true;
-    openFirewallDNS = false;
-    openFirewallWebserver = false;
-    settings = { };
-    lists = [ ];
-  };
+  services.pihole-ftl.openFirewallDNS = false;
+  services.pihole-ftl.openFirewallWebserver = false;
+  services.pihole-ftl.settings = { };
+  services.pihole-ftl.lists = [ ];
 }

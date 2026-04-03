@@ -5,26 +5,27 @@
   ...
 }:
 {
-  users.groups.prowlarr = { };
-
-  systemd.tmpfiles.rules = [ "d ${config.services.prowlarr.dataDir} 0750 prowlarr prowlarr - -" ];
-
-  services.prowlarr = {
-    enable = true;
-    package = pkgs.prowlarr;
-    openFirewall = false;
-    settings = {
-      server = {
-        port = 9696;
-        bindaddress = "127.0.0.1";
-        urlbase = "";
+  config = {
+    services.prowlarr = {
+      package = lib.mkDefault pkgs.prowlarr;
+      openFirewall = lib.mkDefault false;
+      settings.server = {
+        port = lib.mkDefault 9696;
+        bindaddress = lib.mkDefault "127.0.0.1";
+        urlbase = lib.mkDefault "";
       };
     };
-  };
 
-  systemd.services.prowlarr.serviceConfig = {
-    DynamicUser = lib.mkForce false;
-    User = lib.mkForce "prowlarr";
-    Group = lib.mkForce "prowlarr";
+    users.groups.prowlarr = lib.mkIf config.services.prowlarr.enable { };
+
+    systemd.tmpfiles.rules = lib.mkIf config.services.prowlarr.enable [
+      "d ${config.services.prowlarr.dataDir} 0750 prowlarr prowlarr - -"
+    ];
+
+    systemd.services.prowlarr.serviceConfig = lib.mkIf config.services.prowlarr.enable {
+      DynamicUser = lib.mkForce false;
+      User = lib.mkForce "prowlarr";
+      Group = lib.mkForce "prowlarr";
+    };
   };
 }

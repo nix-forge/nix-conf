@@ -1,12 +1,10 @@
 { lib, ... }:
 {
   networking.firewall = {
-    enable = true;
-    # Keep reverse path filtering loose for asymmetric policy routing.
-    checkReversePath = "loose";
+    checkReversePath = lib.mkDefault "loose";
     allowPing = lib.mkForce false;
-    trustedInterfaces = [ "lo" ];
-    allowedTCPPorts = [ ];
-    allowedUDPPorts = [ ];
+    trustedInterfaces = lib.mkDefault [ "lo" ];
+    allowedTCPPorts = lib.mkDefault [ ];
+    allowedUDPPorts = lib.mkDefault [ ];
   };
 }
