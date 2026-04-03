@@ -46,14 +46,9 @@ let
     builtins.filter isFlakeInput (builtins.attrNames declaredInputs);
 
   nixosPartitionInputs = partitionInputNames ../../flake/nixos/flake.nix;
-  darwinPartitionInputs = partitionInputNames ../../flake/darwin/flake.nix;
 
   allowedByClass =
-    class: name:
-    isRootFlakeInput name
-    || (class == "nixos" && builtins.elem name nixosPartitionInputs)
-    || (class == "darwin" && builtins.elem name darwinPartitionInputs);
-
+    class: name: isRootFlakeInput name || (class == "nixos" && builtins.elem name nixosPartitionInputs);
   mkRegistry =
     {
       lib,

@@ -17,14 +17,14 @@ os-update input="":
     nix flake update {{ input }} --flake {{ flake }}/flake/nixos/
 
 [group('Flake')]
-darwin-update input="":
-    nix flake update {{ input }} --flake {{ flake }}/flake/darwin/
+dev-update input="":
+    nix flake update {{ input }} --flake {{ flake }}/flake/dev/
 
 [group('Flake')]
 update-all:
     @just update
     @just os-update
-    @just darwin-update
+    @just dev-update
 
 # Run flake checks
 [group('Flake')]

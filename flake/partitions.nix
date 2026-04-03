@@ -6,9 +6,6 @@
     nixosConfigurations = "nixos";
     nixosModules = "nixos";
 
-    darwinConfigurations = "darwin";
-    darwinModules = "darwin";
-
     apps = "dev";
     checks = "dev";
     devShells = "dev";
@@ -31,15 +28,6 @@
           ./base
         ];
         extraInputs = baseInputs // { inherit (inputs) disko agenix stylix; } // homeManagerInputs;
-      };
-
-      darwin = {
-        extraInputsFlake = ./darwin;
-        module.imports = [
-          ./darwin
-          ./base
-        ];
-        extraInputs = baseInputs // { inherit (inputs) nix-darwin agenix stylix; } // homeManagerInputs;
       };
 
       dev = {
