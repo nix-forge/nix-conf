@@ -2,20 +2,14 @@
   config,
   lib,
   pkgs,
-  self,
-  system,
   ...
 }:
 let
   typstSkillSrc = fetchGit {
     url = "https://github.com/lucifer1004/claude-skill-typst.git";
     ref = "main";
-    rev = "23905d4bc38042038b9b7032c3d41e19bf88191a";
+    rev = "aefb3d2c978bba3189702ded2654a285428851c7";
   };
-
-  opencodeCursorPkg = self.packages.${system}.opencode-cursor;
-  baseOpencodeConfigPath = "${config.xdg.configHome}/opencode/opencode.json";
-  runtimeOpencodeConfigPath = "${config.xdg.stateHome}/opencode/opencode.json";
 in
 {
   programs.opencode = {
@@ -23,17 +17,7 @@ in
     skills.typst = "${typstSkillSrc}/skills/typst";
     settings = {
       autoupdate = false;
-      plugin = [
-        "cursor-acp"
-        "opencode-gemini-auth@latest"
-        "@simonwjackson/opencode-direnv"
-      ];
-      provider.cursor-acp = {
-        name = "Cursor";
-        npm = "@ai-sdk/openai-compatible";
-        options.baseURL = "http://127.0.0.1:32124/v1";
-        models = { };
-      };
+      plugin = [ "opencode-gemini-auth@latest" ];
       formatter.typstyle = {
         command = [
           (lib.getExe pkgs.typstyle)
@@ -79,64 +63,12 @@ in
     };
   };
 
-  home.packages = [ opencodeCursorPkg ];
-
-  xdg.configFile."opencode/plugin/cursor-acp.js".source =
-    "${opencodeCursorPkg}/lib/opencode-cursor/dist/plugin-entry.js";
-
-  home.activation.syncOpencodeRuntimeConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        state_dir="${config.xdg.stateHome}/opencode"
-        mkdir -p "$state_dir"
-
-        if [ ! -f "${baseOpencodeConfigPath}" ]; then
-          exit 0
-        fi
-
-        ${lib.getExe pkgs.python3} - <<'PY'
-    import json
-    from pathlib import Path
-
-    base_path = Path(${builtins.toJSON baseOpencodeConfigPath})
-    runtime_path = Path(${builtins.toJSON runtimeOpencodeConfigPath})
-
-
-    def read_json(path: Path):
-        if not path.exists():
-            return {}
-        try:
-            value = json.loads(path.read_text(encoding="utf-8"))
-            return value if isinstance(value, dict) else {}
-        except Exception:
-            return {}
-
-
-    base_cfg = read_json(base_path)
-    runtime_cfg = read_json(runtime_path)
-
-    runtime_models = (
-        runtime_cfg.get("provider", {})
-        .get("cursor-acp", {})
-        .get("models")
-    )
-
-    if isinstance(runtime_models, dict):
-        provider = base_cfg.setdefault("provider", {})
-        cursor_provider = provider.setdefault("cursor-acp", {})
-        declared_models = cursor_provider.get("models")
-        merged_models = dict(declared_models) if isinstance(declared_models, dict) else {}
-        merged_models.update(runtime_models)
-        cursor_provider["models"] = merged_models
-
-    runtime_path.write_text(json.dumps(base_cfg, indent=2) + "\n", encoding="utf-8")
-    PY
-  '';
-
   home.sessionVariables = {
-    OPENCODE_CONFIG = runtimeOpencodeConfigPath;
-
     OPENCODE_EXPERIMENTAL_LSP_TOOLS = 1;
     OPENCODE_EXPERIMENTAL_LSP_TY = 1;
     OPENCODE_DISABLE_LSP_DOWNLOAD = 1;
+
+    OPENCODE_EXPERIMENTAL_OXFMT = 1;
 
     OPENCODE_ENABLE_EXA = 1;
     OPENCODE_EXPERIMENTAL_EXA = 1;
