@@ -2,6 +2,8 @@
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
+  lowerPriority = pkg: lib.setPrio ((pkg.meta.priority or lib.meta.defaultPriority) + 3) pkg;
+
   corePackageNames = [
     "acl"
     "attr"
@@ -42,7 +44,7 @@ let
       let
         pkg = pkgs.${name};
       in
-      lib.optional (lib.meta.availableOn pkgs.stdenv.hostPlatform pkg) pkg;
+      lib.optional (lib.meta.availableOn pkgs.stdenv.hostPlatform pkg) (lowerPriority pkg);
 
   corePackages =
     lib.concatMap resolvePackage corePackageNames
