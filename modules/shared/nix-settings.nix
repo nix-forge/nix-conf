@@ -63,6 +63,8 @@ in
 
         auto-allocate-uids = true;
         use-cgroups = true;
+
+        system-features = [ "uid-range" ];
       };
     in
     {
