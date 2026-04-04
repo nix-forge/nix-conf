@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     nixfmt
@@ -24,9 +24,9 @@
         "home-manager"
         "nur"
         "noogle"
-      ]
-      ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ "nixos" ]
-      ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ "darwin" ];
+        "nixos"
+        "darwin"
+      ];
     };
   };
 }
