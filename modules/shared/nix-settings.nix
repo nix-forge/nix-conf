@@ -27,6 +27,15 @@ let
     experimental-features = [
       "nix-command"
       "flakes"
+
+      "fetch-closure"
+      "recursive-nix"
+      "configurable-impure-env"
+
+      "ca-derivations"
+      "impure-derivations"
+
+      "blake3-hashes"
     ];
   };
 in
