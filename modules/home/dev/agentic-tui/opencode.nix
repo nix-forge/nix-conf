@@ -13,6 +13,18 @@ let
     rev = "aefb3d2c978bba3189702ded2654a285428851c7";
   };
 
+  openaiSkillsSrc = fetchGit {
+    url = "https://github.com/openai/skills.git";
+    ref = "main";
+    rev = "736f600bf6ecbc000c04f1d2710b990899f28903";
+  };
+
+  anthropicSkillsSrc = fetchGit {
+    url = "https://github.com/anthropics/skills.git";
+    ref = "main";
+    rev = "98669c11ca63e9c81c11501e1437e5c47b556621";
+  };
+
   opencodeNotifierDarwinFallback = pkgs.writeShellScript "opencode-notifier-darwin-fallback" ''
     event="''${1:-}"
     message="''${2:-}"
@@ -55,7 +67,13 @@ in
 {
   programs.opencode = {
     enable = true;
-    skills.typst = "${typstSkillSrc}/skills/typst";
+    skills = {
+      typst = "${typstSkillSrc}/skills/typst";
+      gh-address-comments = "${openaiSkillsSrc}/skills/.curated/gh-address-comments";
+      gh-fix-ci = "${openaiSkillsSrc}/skills/.curated/gh-fix-ci";
+      yeet = "${openaiSkillsSrc}/skills/.curated/yeet";
+      frontend-design = "${openaiSkillsSrc}/skills/frontend-design";
+    };
     settings = {
       autoupdate = false;
       plugin = [
