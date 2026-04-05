@@ -9,10 +9,14 @@ let
 
   mkTool = command: extensions: { inherit command extensions; };
 
-  mkDisabledTool = extensions: {
-    inherit extensions;
-    disabled = true;
-  };
+  ruffFixAndFormat = pkgs.writeShellScript "opencode-ruff-fix-and-format" ''
+    set -eu
+
+    file="$1"
+
+    ${lib.getExe pkgs.ruff} check --fix --exit-zero "$file"
+    ${lib.getExe pkgs.ruff} format "$file"
+  '';
 
   documentedLsp = {
     bash =
@@ -57,13 +61,13 @@ let
           ".astro"
           ".svelte"
         ];
-    pyright = mkDisabledTool [
-      ".py"
-      ".pyi"
-    ];
+    pyright = {
+      disabled = true;
+    };
+    ruff = (mkTool [ (lib.getExe pkgs.ruff) "server" ] [ ".py" ".pyi" ".ipynb" ]);
     rust = mkTool [ (lib.getExe pkgs.rust-analyzer) ] [ ".rs" ];
     tinymist = mkTool [ (lib.getExe pkgs.tinymist) "lsp" ] [ ".typ" ".typc" ];
-    ty = mkTool [ (lib.getExe pkgs.ty) "server" ] [ ".py" ".pyi" ];
+    ty = mkTool [ (lib.getExe pkgs.ty) "server" ] [ ".py" ".pyi" ".ipynb" ];
     typescript =
       mkTool
         [ (lib.getExe pkgs.typescript-language-server) "--stdio" ]
@@ -97,7 +101,7 @@ let
     prettier = {
       disabled = true;
     };
-    ruff = mkTool [ (lib.getExe pkgs.ruff) "format" "$FILE" ] [ ".py" ".pyi" ];
+    ruff = mkTool [ ruffFixAndFormat "$FILE" ] [ ".py" ".pyi" ".ipynb" ];
     shfmt = mkTool [ (lib.getExe pkgs.shfmt) "-w" "$FILE" ] [ ".sh" ".bash" ];
     typstyle = mkTool [ (lib.getExe pkgs.typstyle) "--inplace" "$FILE" ] [ ".typ" ];
     uv = {
