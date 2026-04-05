@@ -18,7 +18,12 @@ let
     ${lib.getExe pkgs.ruff} format "$file"
   '';
 
+  dprintAstroConfig = pkgs.writeText "opencode-dprint-astro.json" (
+    builtins.toJSON { plugins = [ "${pkgs.dprint-plugins.g-plane-markup_fmt}/plugin.wasm" ]; }
+  );
+
   documentedLsp = {
+    astro = mkTool [ (lib.getExe pkgs.astro-language-server) "--stdio" ] [ ".astro" ];
     bash =
       (mkTool [ (lib.getExe pkgs.bash-language-server) "start" ] [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ])
       // {
@@ -88,6 +93,7 @@ let
   };
 
   documentedFormatters = {
+    astro = mkTool [ (lib.getExe pkgs.dprint) "fmt" "--config" dprintAstroConfig "$FILE" ] [ ".astro" ];
     cargofmt = mkTool [ (lib.getExe pkgs.cargo) "fmt" "--" "$FILE" ] [ ".rs" ];
     clang-format =
       mkTool
