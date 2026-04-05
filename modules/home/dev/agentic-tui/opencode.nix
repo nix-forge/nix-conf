@@ -29,6 +29,15 @@ let
       // {
         env = {
           SHELLCHECK_PATH = "${lib.getExe pkgs.shellcheck}";
+          SHELLCHECK_ARGUMENTS = "--severity=warning --enable=${
+            builtins.concatStringsSep "," [
+              "deprecate-which"
+              "add-default-case"
+              "check-set-e-suppressed"
+              "check-extra-masked-returns"
+              "check-unassigned-uppercase"
+            ]
+          }";
         };
       };
     clangd =
@@ -111,7 +120,19 @@ let
       disabled = true;
     };
     ruff = mkTool [ ruffFixAndFormat "$FILE" ] [ ".py" ".pyi" ".ipynb" ];
-    shfmt = mkTool [ (lib.getExe pkgs.shfmt) "-w" "$FILE" ] [ ".sh" ".bash" ];
+    shfmt =
+      mkTool
+        [
+          (lib.getExe pkgs.shfmt)
+          "-w"
+          "-ln=bash"
+          "-i=2"
+          "-ci"
+          "-bn"
+          "-sr"
+          "$FILE"
+        ]
+        [ ".sh" ".bash" ];
     typstyle = mkTool [ (lib.getExe pkgs.typstyle) "--inplace" "$FILE" ] [ ".typ" ];
     uv = {
       disabled = true;
