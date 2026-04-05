@@ -20,9 +20,12 @@ let
 
   documentedLsp = {
     bash =
-      mkTool
-        [ (lib.getExe pkgs.bash-language-server) "start" ]
-        [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ];
+      (mkTool [ (lib.getExe pkgs.bash-language-server) "start" ] [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ])
+      // {
+        env = {
+          SHELLCHECK_PATH = "${lib.getExe pkgs.shellcheck}";
+        };
+      };
     clangd =
       mkTool
         [ (lib.getExe' pkgs.clang-tools "clangd") "--background-index" "--clang-tidy" ]
