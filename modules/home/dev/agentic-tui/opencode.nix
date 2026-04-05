@@ -7,6 +7,104 @@
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
+  mkTool = command: extensions: { inherit command extensions; };
+
+  mkDisabledTool = extensions: {
+    inherit extensions;
+    disabled = true;
+  };
+
+  documentedLsp = {
+    bash =
+      mkTool
+        [ (lib.getExe pkgs.bash-language-server) "start" ]
+        [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ];
+    clangd =
+      mkTool
+        [ (lib.getExe' pkgs.clang-tools "clangd") "--background-index" "--clang-tidy" ]
+        [
+          ".c"
+          ".cpp"
+          ".cc"
+          ".cxx"
+          ".c++"
+          ".h"
+          ".hpp"
+          ".hh"
+          ".hxx"
+          ".h++"
+        ];
+    deno = mkTool [ (lib.getExe pkgs.deno) "lsp" ] [ ".ts" ".tsx" ".js" ".jsx" ".mjs" ];
+    eslint = {
+      disabled = true;
+    };
+    gopls = mkTool [ (lib.getExe pkgs.gopls) ] [ ".go" ];
+    lua-ls = mkTool [ (lib.getExe pkgs.lua-language-server) ] [ ".lua" ];
+    nixd = mkTool [ (lib.getExe pkgs.nixd) ] [ ".nix" ];
+    oxlint =
+      mkTool
+        [ (lib.getExe pkgs.oxlint) "--lsp" ]
+        [
+          ".ts"
+          ".tsx"
+          ".js"
+          ".jsx"
+          ".mjs"
+          ".cjs"
+          ".mts"
+          ".cts"
+          ".vue"
+          ".astro"
+          ".svelte"
+        ];
+    pyright = mkDisabledTool [
+      ".py"
+      ".pyi"
+    ];
+    rust = mkTool [ (lib.getExe pkgs.rust-analyzer) ] [ ".rs" ];
+    tinymist = mkTool [ (lib.getExe pkgs.tinymist) "lsp" ] [ ".typ" ".typc" ];
+    ty = mkTool [ (lib.getExe pkgs.ty) "server" ] [ ".py" ".pyi" ];
+    typescript =
+      mkTool
+        [ (lib.getExe pkgs.typescript-language-server) "--stdio" ]
+        [
+          ".ts"
+          ".tsx"
+          ".js"
+          ".jsx"
+          ".mjs"
+          ".cjs"
+          ".mts"
+          ".cts"
+        ];
+    yaml-ls = mkTool [ (lib.getExe pkgs.yaml-language-server) "--stdio" ] [ ".yaml" ".yml" ];
+  };
+
+  documentedFormatters = {
+    cargofmt = mkTool [ (lib.getExe pkgs.cargo) "fmt" "--" "$FILE" ] [ ".rs" ];
+    clang-format =
+      mkTool
+        [ (lib.getExe' pkgs.clang-tools "clang-format") "-i" "$FILE" ]
+        [ ".c" ".cpp" ".h" ".hpp" ".ino" ];
+    gofmt = mkTool [ (lib.getExe' pkgs.go "gofmt") "-w" "$FILE" ] [ ".go" ];
+    nixfmt = mkTool [ (lib.getExe pkgs.nixfmt) "$FILE" ] [ ".nix" ];
+    oxfmt = (mkTool [ (lib.getExe pkgs.oxfmt) "$FILE" ] [ ".js" ".jsx" ".ts" ".tsx" ]) // {
+      disabled = true;
+      environment = {
+        BUN_BE_BUN = "1";
+      };
+    };
+    prettier = {
+      disabled = true;
+    };
+    ruff = mkTool [ (lib.getExe pkgs.ruff) "format" "$FILE" ] [ ".py" ".pyi" ];
+    shfmt = mkTool [ (lib.getExe pkgs.shfmt) "-w" "$FILE" ] [ ".sh" ".bash" ];
+    typstyle = mkTool [ (lib.getExe pkgs.typstyle) "--inplace" "$FILE" ] [ ".typ" ];
+    uv = {
+      disabled = true;
+    };
+  };
+
   typstSkillSrc = fetchGit {
     url = "https://github.com/lucifer1004/claude-skill-typst.git";
     ref = "main";
@@ -72,7 +170,7 @@ in
       gh-address-comments = "${openaiSkillsSrc}/skills/.curated/gh-address-comments";
       gh-fix-ci = "${openaiSkillsSrc}/skills/.curated/gh-fix-ci";
       yeet = "${openaiSkillsSrc}/skills/.curated/yeet";
-      frontend-design = "${openaiSkillsSrc}/skills/frontend-design";
+      frontend-design = "${anthropicSkillsSrc}/skills/frontend-design";
     };
     settings = {
       autoupdate = false;
@@ -80,39 +178,8 @@ in
         "opencode-gemini-auth@latest"
         "@mohak34/opencode-notifier@latest"
       ];
-      formatter.typstyle = {
-        command = [
-          (lib.getExe pkgs.typstyle)
-          "--inplace"
-          "$FILE"
-        ];
-        extensions = [ ".typ" ];
-      };
-      lsp = {
-        pyright.disabled = true;
-        tinymist = {
-          command = [
-            (lib.getExe pkgs.tinymist)
-            "lsp"
-          ];
-          extensions = [
-            ".typ"
-            ".typc"
-          ];
-        };
-        ty = {
-          command = [
-            (lib.getExe pkgs.uv)
-            "run"
-            "ty"
-            "server"
-          ];
-          extensions = [
-            ".py"
-            ".pyi"
-          ];
-        };
-      };
+      formatter = documentedFormatters;
+      lsp = documentedLsp;
       permission = {
         external_directory = {
           "${config.xdg.cacheHome}/**" = "allow";
