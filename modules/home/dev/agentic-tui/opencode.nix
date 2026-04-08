@@ -210,11 +210,16 @@ in
       lsp = documentedLsp;
       permission = {
         external_directory = {
-          "${config.xdg.cacheHome}/**" = "allow";
-          "/tmp/**" = "allow";
-        };
-        read = {
           "/nix/store/**" = "allow";
+
+          "${config.xdg.cacheHome}/opencode/**" = "allow";
+        };
+
+        read = {
+          "${config.home.homeDirectory}/.ssh/**" = "deny";
+          "${config.home.homeDirectory}/.gnupg/**" = "deny";
+          "${config.xdg.dataHome}/opencode/auth.json" = "deny";
+          "${config.xdg.dataHome}/opencode/mcp-auth.json" = "deny";
         };
       };
     };
