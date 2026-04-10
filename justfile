@@ -25,6 +25,7 @@ update-all:
     @just update
     @just os-update
     @just dev-update
+    @just update-packages
 
 # Run flake checks
 [group('Flake')]
