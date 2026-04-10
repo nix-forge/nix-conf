@@ -203,6 +203,7 @@ in
     settings = {
       autoupdate = false;
       plugin = [
+        "@opencode-ai/plugin@${pkgs.opencode.version}"
         "opencode-gemini-auth@latest"
         "@mohak34/opencode-notifier@latest"
       ];
