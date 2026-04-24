@@ -2,8 +2,10 @@
 {
   home.packages = with pkgs; [
     bun
-
     nodejs
+
+    oxlint
+    oxfmt
 
     playwright-test
     playwright-driver.browsers
