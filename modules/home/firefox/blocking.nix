@@ -119,6 +119,12 @@ let
 
     canvas.cornell.edu * 3p-script noop
     canvas.cornell.edu * 3p-frame noop
+
+    pcpartpicker.com * 3p-frame noop
+    pcpartpicker.com * 3p-script noop
+
+    gemini.google.com * 3p-frame noop
+    gemini.google.com * 3p-script noop
   '';
 
   customRules = lib.concatStrings [
