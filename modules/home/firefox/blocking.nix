@@ -99,6 +99,9 @@ let
     www.instagram.com * 3p-script noop
     www.instagram.com * 3p-frame noop
 
+    x.com * 3p-frame noop
+    x.com * 3p-script noop
+
     www.linkedin.com * 3p-script noop
     www.linkedin.com * 3p-frame noop
 
@@ -120,11 +123,17 @@ let
     canvas.cornell.edu * 3p-script noop
     canvas.cornell.edu * 3p-frame noop
 
+    cornell.app.box.com * 3p-frame noop
+    cornell.app.box.com * 3p-script noop
+
     pcpartpicker.com * 3p-frame noop
     pcpartpicker.com * 3p-script noop
 
     gemini.google.com * 3p-frame noop
     gemini.google.com * 3p-script noop
+
+    digital.fidelity.com * 3p-frame noop
+    digital.fidelity.com * 3p-script noop
   '';
 
   customRules = lib.concatStrings [
