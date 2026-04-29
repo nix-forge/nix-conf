@@ -55,7 +55,6 @@ let
           ".hxx"
           ".h++"
         ];
-    deno = mkTool [ (lib.getExe pkgs.deno) "lsp" ] [ ".ts" ".tsx" ".js" ".jsx" ".mjs" ];
     eslint = {
       disabled = true;
     };
@@ -81,7 +80,7 @@ let
     pyright = {
       disabled = true;
     };
-    ruff = (mkTool [ (lib.getExe pkgs.ruff) "server" ] [ ".py" ".pyi" ".ipynb" ]);
+    ruff = mkTool [ (lib.getExe pkgs.ruff) "server" ] [ ".py" ".pyi" ".ipynb" ];
     rust = mkTool [ (lib.getExe pkgs.rust-analyzer) ] [ ".rs" ];
     tinymist = mkTool [ (lib.getExe pkgs.tinymist) "lsp" ] [ ".typ" ".typc" ];
     ty = mkTool [ (lib.getExe pkgs.ty) "server" ] [ ".py" ".pyi" ".ipynb" ];
