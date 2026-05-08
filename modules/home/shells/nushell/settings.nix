@@ -1,4 +1,12 @@
-{ config, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+in
 {
   home.shell.enableNushellIntegration = true;
   programs.nushell = {
@@ -73,5 +81,24 @@
         header_on_separator = false;
       };
     };
+
+    extraConfig = lib.mkIf isDarwin ''
+      $env.config.keybindings ++= [
+        {
+          name: macos_option_delete_word
+          modifier: control
+          keycode: char_w
+          mode: [emacs vi_insert]
+          event: { edit: backspaceword }
+        }
+        {
+          name: macos_cmd_delete_to_line_start
+          modifier: control
+          keycode: char_u
+          mode: [emacs vi_insert]
+          event: { edit: cutfromlinestart }
+        }
+      ]
+    '';
   };
 }

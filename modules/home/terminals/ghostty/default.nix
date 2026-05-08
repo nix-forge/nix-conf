@@ -34,6 +34,15 @@ in
     // lib.optionalAttrs isDarwin {
       # Treat Option as Alt (recommended if you use terminal apps that rely on Alt bindings)
       macos-option-as-alt = true;
+      keybind = [
+        # Option+Delete / Option+Backspace => Ctrl-W
+        # Delete previous word in bash/zsh/nushell-style line editors.
+        "option+backspace=text:\\x17"
+
+        # Command+Delete / Command+Backspace => Ctrl-U
+        # Delete from cursor to beginning of line.
+        "cmd+backspace=text:\\x15"
+      ];
 
       # macOS secure input: auto-enable on detected password prompts + show indication
       macos-auto-secure-input = true;
