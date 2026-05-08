@@ -20,6 +20,9 @@ from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pkgs.update_support import HTTPS_CONTEXT
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -62,7 +65,7 @@ def _fetch_xml(url: str, *, label: str, timeout: int = 30) -> ET.Element:
 
     try:
         request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
             data = response.read()
     except URLError as exc:
         _fail(f"failed to fetch {label} from {url}: {exc}")

@@ -14,10 +14,13 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn, cast
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pkgs.update_support import HTTPS_CONTEXT
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -61,7 +64,7 @@ def _fetch_json(url: str, *, label: str, timeout: int = 30) -> object:
 
     try:
         request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
             return json.load(response)
     except URLError as exc:
         _fail(f"failed to fetch {label} from {url}: {exc}")
@@ -114,7 +117,8 @@ def _extract_latest_release(data: object) -> tuple[str, str]:
     if not isinstance(data, dict):
         _fail("Claude releases feed did not return an object")
 
-    releases = data.get("releases")
+    payload = cast("dict[str, object]", data)
+    releases = payload.get("releases")
     if not isinstance(releases, list) or not releases:
         _fail("Claude releases feed did not include any releases")
 
@@ -122,12 +126,14 @@ def _extract_latest_release(data: object) -> tuple[str, str]:
     if not isinstance(latest, dict):
         _fail("latest Claude release entry is not an object")
 
-    update_to = latest.get("updateTo")
+    latest_release = cast("dict[str, object]", latest)
+    update_to = latest_release.get("updateTo")
     if not isinstance(update_to, dict):
         _fail("latest Claude release is missing `updateTo` metadata")
 
-    version = update_to.get("version")
-    url = update_to.get("url")
+    update_to_dict = cast("dict[str, object]", update_to)
+    version = update_to_dict.get("version")
+    url = update_to_dict.get("url")
     if not isinstance(version, str) or not version:
         _fail("latest Claude release is missing a string version")
     if not isinstance(url, str) or not url:

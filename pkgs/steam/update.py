@@ -15,6 +15,9 @@ from typing import TYPE_CHECKING, Final, NoReturn
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pkgs.update_support import HTTPS_CONTEXT
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -43,7 +46,7 @@ def _fail(message: str) -> NoReturn:
 def _fetch_text(url: str, *, label: str, timeout: int = 30) -> str:
     try:
         request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
             return response.read().decode("utf-8")
     except URLError as exc:
         _fail(f"failed to fetch {label} from {url}: {exc}")
@@ -99,13 +102,17 @@ def _parse_manifest(manifest: str) -> str:
         _fail("could not find the macOS appdmg package in the Steam manifest")
 
     appdmg_files = re.findall(r'"file"\s+"([^"]+)"', appdmg_block_match.group(1))
-    appdmg_candidates = [filename for filename in appdmg_files if "steamchina" not in filename]
+    appdmg_candidates = [
+        filename for filename in appdmg_files if "steamchina" not in filename
+    ]
     if len(appdmg_candidates) != 1:
         _fail("could not uniquely determine the standard macOS appdmg package")
     return f"https://media.steampowered.com/client/{appdmg_candidates[0]}"
 
 
-def _run_checked(args: list[str], *, error_message: str) -> subprocess.CompletedProcess[str]:
+def _run_checked(
+    args: list[str], *, error_message: str
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
         args,
         capture_output=True,
@@ -116,6 +123,15 @@ def _run_checked(args: list[str], *, error_message: str) -> subprocess.Completed
         detail = completed.stderr.strip() or completed.stdout.strip() or "(no output)"
         _fail(f"{error_message}:\n{detail}")
     return completed
+
+
+def _download_file(url: str, destination: Path, *, label: str) -> None:
+    try:
+        request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
+        with urlopen(request, context=HTTPS_CONTEXT) as response:
+            destination.write_bytes(response.read())
+    except URLError as exc:
+        _fail(f"failed to download {label} from {url}: {exc}")
 
 
 def _find_required_file(root: Path, suffix: str) -> Path:
@@ -134,19 +150,7 @@ def _validate_appdmg(url: str) -> str:
         extract_root = Path(temp_dir) / "extract"
         extract_root.mkdir()
 
-        _run_checked(
-            [
-                _get_binary("curl"),
-                "--fail",
-                "--location",
-                "--silent",
-                "--show-error",
-                "--output",
-                str(archive_path),
-                url,
-            ],
-            error_message="failed to download Steam appdmg payload for validation",
-        )
+        _download_file(url, archive_path, label="Steam appdmg payload for validation")
 
         _run_checked(
             [
@@ -180,7 +184,9 @@ def _validate_appdmg(url: str) -> str:
 
         _find_required_file(extract_root, "Steam.app/Contents/Resources/Steam.icns")
         _find_required_file(extract_root, "Steam.app/Contents/Resources/Assets.car")
-        steam_binary = _find_required_file(extract_root, "Steam.app/Contents/MacOS/steam_osx")
+        steam_binary = _find_required_file(
+            extract_root, "Steam.app/Contents/MacOS/steam_osx"
+        )
         _find_required_file(extract_root, "Steam.app/Contents/Info.plist")
 
         inspect = _run_checked(
@@ -228,8 +234,12 @@ def _build_diff(old: str, new: str, path: Path) -> str:
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dry-run", action="store_true", help="print diff but do not write")
-    parser.add_argument("--check", action="store_true", help="exit non-zero when updates are available")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="print diff but do not write"
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="exit non-zero when updates are available"
+    )
     parser.add_argument(
         "--channel",
         choices=sorted(MANIFEST_URLS),
@@ -243,7 +253,9 @@ def _main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     source_path = Path(__file__).with_name("source.nix")
 
-    manifest = _fetch_text(MANIFEST_URLS[args.channel], label=f"Steam {args.channel} manifest")
+    manifest = _fetch_text(
+        MANIFEST_URLS[args.channel], label=f"Steam {args.channel} manifest"
+    )
     appdmg_url = _parse_manifest(manifest)
     version = _validate_appdmg(appdmg_url)
 

@@ -20,6 +20,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pkgs.update_support import HTTPS_CONTEXT
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -57,7 +60,7 @@ def _fetch_text(url: str, *, label: str, timeout: int = 30) -> str:
         _fail(f"unsupported URL scheme for {label}: {parsed_url.scheme!r}")
 
     try:
-        with urlopen(url, timeout=timeout) as response:
+        with urlopen(url, timeout=timeout, context=HTTPS_CONTEXT) as response:
             return response.read().decode("utf-8")
     except URLError as exc:
         _fail(f"failed to fetch {label} from {url}: {exc}")
@@ -94,13 +97,13 @@ def _resolve_iso_url(alias_url: str, *, timeout: int = 30) -> str:
 
     request = Request(alias_url, method="HEAD")
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
             final_url = response.geturl()
     except HTTPError as exc:
         if exc.code != HTTP_METHOD_NOT_ALLOWED:
             _fail(f"failed to resolve ISO alias {alias_url}: {exc}")
         try:
-            with urlopen(alias_url, timeout=timeout) as response:
+            with urlopen(alias_url, timeout=timeout, context=HTTPS_CONTEXT) as response:
                 final_url = response.geturl()
         except URLError as inner_exc:
             _fail(f"failed to resolve ISO alias {alias_url}: {inner_exc}")
@@ -123,6 +126,21 @@ def _derive_version(iso_url: str) -> str:
         return f"10.0.{match.group(1)}.{match.group(2)}"
 
     _fail(f"could not derive package version from ISO filename: {iso_name}")
+
+
+def _parse_existing_source(content: str) -> _UpstreamState:
+    version_match = re.search(r'^  version = "([^"]+)";$', content, flags=re.MULTILINE)
+    url_match = re.search(r'^    url = "([^"]+)";$', content, flags=re.MULTILINE)
+    hash_match = re.search(r'^    hash = "([^"]+)";$', content, flags=re.MULTILINE)
+
+    if version_match is None or url_match is None or hash_match is None:
+        _fail("could not parse the existing source.nix metadata")
+
+    return _UpstreamState(
+        version=version_match.group(1),
+        iso_url=url_match.group(1),
+        iso_hash_sri=hash_match.group(1),
+    )
 
 
 def _get_nix_binary() -> str:
@@ -177,7 +195,9 @@ def _prefetch_iso_hash(iso_url: str) -> str:
     return hash_value
 
 
-def _discover_upstream(eval_page_url: str) -> _UpstreamState:
+def _discover_upstream(
+    eval_page_url: str, *, existing_source: _UpstreamState | None = None
+) -> _UpstreamState:
     eval_page_text = _fetch_text(
         eval_page_url,
         label="Windows 11 Evaluation Center page",
@@ -185,6 +205,10 @@ def _discover_upstream(eval_page_url: str) -> _UpstreamState:
     release = _parse_release(eval_page_text)
     alias_url = ISO_ALIAS_TEMPLATE.format(release=release)
     iso_url = _resolve_iso_url(alias_url)
+
+    if existing_source is not None and existing_source.iso_url == iso_url:
+        return existing_source
+
     return _UpstreamState(
         version=_derive_version(iso_url),
         iso_url=iso_url,
@@ -275,8 +299,9 @@ def _main(argv: Sequence[str] | None = None) -> int:
     if not package_file.exists():
         _fail(f"default.nix not found at {package_file}")
 
-    upstream = _discover_upstream(args.eval_page_url)
     original = package_file.read_text(encoding="utf-8")
+    existing_source = _parse_existing_source(original)
+    upstream = _discover_upstream(args.eval_page_url, existing_source=existing_source)
     updated = _update_expression(original, upstream)
 
     if original == updated:
