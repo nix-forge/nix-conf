@@ -141,13 +141,13 @@ let
   typstSkillSrc = fetchGit {
     url = "https://github.com/lucifer1004/claude-skill-typst.git";
     ref = "main";
-    rev = "ef53d61755f92f2c5ec40ff1d51b135091f79fdd";
+    rev = "6628cbf7205fe5059209875f69d80c962064b360";
   };
 
   openaiSkillsSrc = fetchGit {
     url = "https://github.com/openai/skills.git";
     ref = "main";
-    rev = "50617dbacca46c29df03739c69891fa3392e6f78";
+    rev = "4c4058ebf44f6734e62c70ab4a81246d4d093fc8";
   };
 
   opencodeNotifierDarwinFallback = pkgs.writeShellScript "opencode-notifier-darwin-fallback" ''
