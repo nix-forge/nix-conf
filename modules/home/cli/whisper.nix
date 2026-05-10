@@ -1,7 +1,10 @@
 { pkgs, ... }:
+let
+  openai-whisper = pkgs.openai-whisper.override { ffmpeg-headless = pkgs.ffmpeg; };
+in
 {
   home.packages = [
-    (pkgs.openai-whisper.overridePythonAttrs (old: {
+    (openai-whisper.overridePythonAttrs (old: {
       doCheck = false;
     }))
   ];
