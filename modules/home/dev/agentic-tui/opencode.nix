@@ -197,7 +197,6 @@ in
       gh-address-comments = "${openaiSkillsSrc}/skills/.curated/gh-address-comments";
       gh-fix-ci = "${openaiSkillsSrc}/skills/.curated/gh-fix-ci";
       yeet = "${openaiSkillsSrc}/skills/.curated/yeet";
-      frontend-skill = "${openaiSkillsSrc}/skills/.curated/frontend-skill";
       security-threat-model = "${openaiSkillsSrc}/skills/.curated/security-threat-model";
     };
     settings = {
