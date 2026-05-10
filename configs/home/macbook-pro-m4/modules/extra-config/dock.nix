@@ -15,7 +15,7 @@
       { spacer.small = true; }
 
       { app = "/System/Applications/Messages.app"; }
-      { hmApp = "WhatsApp"; }
+      { app = "/Applications/‎WhatsApp.app"; }
       { app = "/System/Applications/Phone.app"; }
       { app = "/System/Applications/FaceTime.app"; }
       { hmApp = "Vesktop"; }

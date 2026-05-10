@@ -57,7 +57,6 @@
     stylix-targets-firefox
 
     discord
-    whatsapp
     signal
     zoom
     spotify
