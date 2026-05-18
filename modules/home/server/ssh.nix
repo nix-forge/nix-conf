@@ -17,44 +17,38 @@ in
       IgnoreUnknown = "UseKeychain";
     };
 
-    matchBlocks = {
-      local = {
-        host = "*.local";
-        compression = false;
-        extraOptions = {
-          ConnectTimeout = "3";
-        };
+    settings = {
+      "*.local" = {
+        Compression = false;
+        ConnectTimeout = "3";
       };
 
-      gitForges = {
-        host = "github.com gist.github.com gitlab.com codeberg.org";
-        user = "git";
+      "github.com gist.github.com gitlab.com codeberg.org" = {
+        User = "git";
       };
 
       "*" = {
-        forwardAgent = false;
-        addKeysToAgent = "yes";
-        compression = false;
+        ForwardAgent = false;
+        AddKeysToAgent = "yes";
+        Compression = false;
 
-        serverAliveInterval = 60;
-        serverAliveCountMax = 3;
+        ServerAliveInterval = 60;
+        ServerAliveCountMax = 3;
 
-        hashKnownHosts = true;
+        HashKnownHosts = true;
 
-        controlMaster = "auto";
-        controlPath = "${controlPathDir}/%C";
-        controlPersist = "10m";
+        ControlMaster = "auto";
+        ControlPath = "${controlPathDir}/%C";
+        ControlPersist = "10m";
 
-        extraOptions = {
-          ConnectTimeout = "10";
-          ConnectionAttempts = "2";
-          TCPKeepAlive = "no";
+        ConnectTimeout = "10";
+        ConnectionAttempts = "2";
+        TCPKeepAlive = "no";
 
-          StrictHostKeyChecking = "accept-new";
-          UpdateHostKeys = "yes";
-        }
-        // lib.optionalAttrs isDarwin { UseKeychain = "yes"; };
-      };
+        StrictHostKeyChecking = "accept-new";
+        UpdateHostKeys = "yes";
+      }
+      // lib.optionalAttrs isDarwin { UseKeychain = "yes"; };
     };
   };
 

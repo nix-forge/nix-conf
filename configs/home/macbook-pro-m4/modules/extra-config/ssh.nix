@@ -7,80 +7,69 @@ let
       { };
 in
 {
-  programs.ssh.matchBlocks = {
-    cornellGit = {
-      host = "github.coecis.cornell.edu gitlab.cs.cornell.edu";
-      user = "git";
-      identitiesOnly = true;
-      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+  programs.ssh.settings = {
+    "github.coecis.cornell.edu gitlab.cs.cornell.edu" = {
+      User = "git";
+      IdentitiesOnly = true;
+      IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
     };
 
     ugclinux = {
-      host = "ugclinux";
-      hostname = "ugclinux.cs.cornell.edu";
-      setEnv = {
+      HostName = "ugclinux.cs.cornell.edu";
+      SetEnv = {
         TERM = "xterm-256color";
       };
 
-      extraOptions = { } // includeCornell;
-    };
+    }
+    // includeCornell;
 
-    nerscLogin = {
-      host = "dtn*.nersc.gov perlmutter*.nersc.gov *.nersc.gov";
-      identitiesOnly = true;
-      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      setEnv = {
+    "dtn*.nersc.gov perlmutter*.nersc.gov *.nersc.gov" = {
+      IdentitiesOnly = true;
+      IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      SetEnv = {
         TERM = "xterm-256color";
       };
 
-      extraOptions = {
-        LogLevel = "QUIET";
-      }
-      // includeCornell;
-    };
+      LogLevel = "QUIET";
+    }
+    // includeCornell;
 
-    perlmutterAgent = {
-      host = "perlmutter-agent";
-      hostname = "perlmutter.nersc.gov";
-      user = null;
-      identitiesOnly = true;
-      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      forwardAgent = true;
+    "perlmutter-agent" = {
+      HostName = "perlmutter.nersc.gov";
+      User = null;
+      IdentitiesOnly = true;
+      IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      ForwardAgent = true;
 
-      setEnv = {
+      SetEnv = {
         TERM = "xterm-256color";
       };
-      extraOptions = {
-        LogLevel = "QUIET";
-      }
-      // includeCornell;
-    };
+      LogLevel = "QUIET";
+    }
+    // includeCornell;
 
-    nerscCompute = {
-      host = "nid??????";
-      hostname = "%h";
-      proxyJump = "perlmutter.nersc.gov";
+    "nid??????" = {
+      HostName = "%h";
+      ProxyJump = "perlmutter.nersc.gov";
 
-      identitiesOnly = true;
-      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      setEnv = {
+      IdentitiesOnly = true;
+      IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      SetEnv = {
         TERM = "xterm-256color";
       };
 
-      userKnownHostsFile = "${config.home.homeDirectory}/.ssh/known_hosts_nersc_compute";
+      UserKnownHostsFile = "${config.home.homeDirectory}/.ssh/known_hosts_nersc_compute";
 
-      extraOptions = {
-        LogLevel = "QUIET";
-        StrictHostKeyChecking = "accept-new";
+      LogLevel = "QUIET";
+      StrictHostKeyChecking = "accept-new";
 
-        UpdateHostKeys = "no";
-      }
-      // includeCornell;
-    };
+      UpdateHostKeys = "no";
+    }
+    // includeCornell;
 
-    gitForges = {
-      identitiesOnly = true;
-      identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+    "github.com gist.github.com gitlab.com codeberg.org" = {
+      IdentitiesOnly = true;
+      IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
     };
   };
 }
