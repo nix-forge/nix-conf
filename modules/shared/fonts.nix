@@ -30,7 +30,6 @@ let
       # Base fonts
       corefonts
       liberation_ttf
-      libertinus
       dejavu_fonts
       open-sans
       freefont_ttf
@@ -70,7 +69,6 @@ let
       kanji-stroke-order-font
 
       # OpenType Math stacks
-      libertinus
       xits-math
       newcomputermodern
       gyre-fonts
