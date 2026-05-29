@@ -86,15 +86,18 @@ in
       inputs,
       pkgs,
       lib,
+      osConfig ? null,
       ...
     }:
     let
       inherit (pkgs.stdenv.hostPlatform) isLinux;
+      usesGlobalPkgs = osConfig != null && (osConfig.home-manager.useGlobalPkgs or false);
     in
     {
       imports = [ inputs.stylix.homeModules.default ];
       stylix = lib.mkMerge [
         (stylixShared { inherit inputs pkgs; })
+        { overlays.enable = lib.mkForce (!usesGlobalPkgs); }
         (lib.mkIf isLinux (linuxShared {
           inherit pkgs;
         }))

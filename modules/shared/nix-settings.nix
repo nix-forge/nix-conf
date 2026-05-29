@@ -11,7 +11,7 @@ let
     sandbox-fallback = false;
 
     keep-derivations = true;
-    keep-outputs = true;
+    keep-outputs = false;
     keep-going = true;
 
     connect-timeout = 5;
@@ -89,6 +89,11 @@ in
       settings = sharedSettings // {
         trusted-users = sharedSettings.trusted-users ++ [ "@admin" ];
       };
+      determinateSettings = settings // {
+        min-free = 30 * 1024 * 1024 * 1024;
+        max-free = 100 * 1024 * 1024 * 1024;
+        gc-reserved-space = 1024 * 1024 * 1024;
+      };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
       hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
     in
@@ -105,7 +110,7 @@ in
         };
       })
       (lib.mkIf usingDeterminateNix {
-        determinateNix.customSettings = settings;
+        determinateNix.customSettings = determinateSettings;
         environment.etc."nix/nix.custom.conf".text = lib.mkIf hasNixAccessTokens (
           lib.mkAfter ''
             !include ${config.age.secrets.nix-access-tokens.path}

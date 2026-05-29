@@ -3,12 +3,13 @@
   pkgs,
   lib,
   config,
+  osConfig ? null,
   ...
-}@args:
+}:
 let
   hyprPkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
-  nixosHyprland = args ? nixosConfig && args.nixosConfig.programs.hyprland.enable;
-  inherit (args.nixosConfig.programs.hyprland) withUWSM;
+  nixosHyprland = osConfig != null && (osConfig.programs.hyprland.enable or false);
+  withUWSM = if nixosHyprland then osConfig.programs.hyprland.withUWSM else false;
   usingUWSMHyprland = nixosHyprland && withUWSM;
 in
 {
