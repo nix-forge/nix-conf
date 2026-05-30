@@ -3,10 +3,21 @@
   programs.firefox.profiles.default.search = {
     force = true;
 
-    default = "perplexity";
+    default = "google-ai-mode";
     privateDefault = "ddg";
 
     engines = {
+      google-ai-mode = {
+        name = "Google AI Mode";
+        searchUrl = "https://www.google.com/search?q={searchTerms}&udm=50";
+        icon = "https://www.google.com/favicon.ico";
+        definedAliases = [
+          "@google-ai"
+          "@gai"
+          "@ai"
+        ];
+      };
+
       perplexity = {
         name = "Perplexity";
         searchUrl = "https://www.perplexity.ai/search?q={searchTerms}";
