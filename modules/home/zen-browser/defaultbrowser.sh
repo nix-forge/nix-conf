@@ -15,6 +15,10 @@ fail() {
 extract_registered_entry() {
   # shellcheck disable=SC2016
   "${AWK_EXE}" -v app_path="${ZEN_APP}" '
+    BEGIN {
+      app_path_re = app_path
+      gsub(/[][\\.^$*+?(){}|]/, "\\\\&", app_path_re)
+    }
     $0 ~ /^-+$/ {
       if (block != "" && found) {
         print block
@@ -26,7 +30,7 @@ extract_registered_entry() {
     }
     {
       block = block $0 ORS
-      if ($0 ~ ("path:[[:space:]]+" app_path " \\(")) {
+      if ($0 ~ ("path:[[:space:]]+" app_path_re " \\(")) {
         found = 1
       }
     }
