@@ -611,7 +611,8 @@
         "nvf": "nvf",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
-        "systems": "systems"
+        "systems": "systems",
+        "zen-browser": "zen-browser"
       }
     },
     "spicetify-nix": {
@@ -750,6 +751,29 @@
       "original": {
         "owner": "tinted-theming",
         "repo": "base16-zed",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780123543,
+        "narHash": "sha256-vRHmt1N3rPgLJFcSQfHb2c3F7edzVPcyAk6/2QYmO1s=",
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
+        "rev": "7e1dae7aa169ad02f18ca11da247008181b2dc7f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }
