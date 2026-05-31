@@ -10,7 +10,7 @@
 
       { spacer.small = true; }
 
-      { hmApp = "Firefox"; }
+      { hmApp = "Zen Browser (Twilight)"; }
 
       { spacer.small = true; }
 
