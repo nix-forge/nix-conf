@@ -28,6 +28,8 @@ in
 
         nixpkgsConfig = mkNixpkgsConfig {
           inherit system;
+          darwinSdkVersion = args.darwinSdkVersion or null;
+          darwinMinVersion = args.darwinMinVersion or null;
           nixpkgsArgs = args.nixpkgsArgs or { };
           nixpkgsSource = inputs.nixpkgs.outPath;
         };

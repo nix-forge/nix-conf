@@ -1,6 +1,19 @@
 { modules, ... }:
+# let
+#   darwinOpenSslTestOverlay = final: prev: {
+#     openssl = prev.openssl.overrideAttrs (old: {
+#       postPatch =
+#         (old.postPatch or "")
+#         + final.lib.optionalString final.stdenv.hostPlatform.isDarwin ''
+#           rm -f test/recipes/70-test_sslmessages.t
+#         '';
+#     });
+#   };
+# in
 {
   system = "aarch64-darwin";
+  # darwinSdkVersion = "15.5";
+  # darwinMinVersion = "15.4";
   username = "ianmh";
   homeDirectory = "/Users/ianmh";
   uid = 501;
@@ -11,6 +24,7 @@
   };
 
   nixpkgsArgs = {
+    # overlays = [ darwinOpenSslTestOverlay ];
     config = {
       allowUnfree = true;
     };
@@ -37,6 +51,8 @@
     firefox
     firefox-scrolling-natural
     firefox-defaultbrowser
+    zen-browser
+    zen-browser-scrolling-natural
     chrome
 
     vscode
@@ -55,6 +71,7 @@
 
     stylix
     stylix-targets-firefox
+    stylix-targets-zen-browser
 
     discord
     signal
@@ -64,6 +81,7 @@
     bitwarden
 
     steam-darwin
+    prismlauncher
 
     extra-config
   ];

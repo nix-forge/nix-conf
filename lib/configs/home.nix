@@ -1,6 +1,7 @@
-{ lib, ... }:
+{ lib, self, ... }:
 let
   inherit (lib) concatLists singleton;
+  inherit (self) mkNixpkgsImportArgs;
 in
 rec {
   # Build a standalone Home Manager configuration
@@ -26,7 +27,12 @@ rec {
     withSystem system (
       { inputs', self', ... }:
       let
-        pkgs = import inputs.nixpkgs ({ inherit system; } // (args.nixpkgsArgs or { }));
+        pkgs = import inputs.nixpkgs (mkNixpkgsImportArgs {
+          inherit system;
+          darwinSdkVersion = args.darwinSdkVersion or null;
+          darwinMinVersion = args.darwinMinVersion or null;
+          nixpkgsArgs = args.nixpkgsArgs or { };
+        });
 
         extraSpecialArgs = {
           inherit
@@ -47,6 +53,7 @@ rec {
               homeDirectory = lib.mkForce homeDirectory;
               uid = lib.mkForce uid;
             };
+            _module.args.pkgs = lib.mkForce pkgs;
             programs.home-manager.enable = true;
           })
           (args.modules or [ ])
