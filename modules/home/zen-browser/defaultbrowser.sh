@@ -1,4 +1,4 @@
-# shellcheck disable=SC2148
+#!@runtimeShell@
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
 readonly ZEN_APP='@zenAppPath@'
@@ -81,8 +81,18 @@ fi
 printf 'setting Zen Browser as the default browser...\n' >&2
 "${DEFAULTBROWSER_EXE}" "${DEFAULTBROWSER_HANDLER}"
 
-available_handlers="$("${DEFAULTBROWSER_EXE}")"
-if ! printf '%s\n' "${available_handlers}" | grep -Eq "^\*[[:space:]]+${DEFAULTBROWSER_HANDLER}$"; then
+is_default_browser() {
+  "${DEFAULTBROWSER_EXE}" | grep -Eq "^\*[[:space:]]+${DEFAULTBROWSER_HANDLER}$"
+}
+
+retries=0
+while ! is_default_browser && [ "${retries}" -lt 10 ]; do
+  retries=$((retries + 1))
+  sleep 1
+done
+
+if ! is_default_browser; then
+  available_handlers="$("${DEFAULTBROWSER_EXE}")"
   printf 'current handlers:\n%s\n' "${available_handlers}" >&2
   fail 'failed to set Zen Browser as the default browser'
 fi
