@@ -17,7 +17,7 @@
       baseInputs = { inherit (inputs) nixpkgs home-manager; };
       homeManagerInputs = {
         inherit (inputs) nix4vscode nur-rycee;
-        inherit (inputs) firefox-betterfox firefox-ui-fix;
+        inherit (inputs) firefox-betterfox firefox-ui-fix zen-browser;
       };
     in
     {
