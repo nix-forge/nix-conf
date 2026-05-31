@@ -3,23 +3,19 @@
   programs.zen-browser.profiles.default.search = {
     force = true;
 
-    default = "Google AI";
+    default = "google-ai-mode";
     privateDefault = "ddg";
 
     engines = {
       google-ai-mode = {
-        name = "Google AI";
+        name = "Google AI Mode";
         urls = [
           {
-            template = "https://www.google.com/search";
+            template = "https://www.google.com/ai";
             params = [
               {
                 name = "q";
                 value = "{searchTerms}";
-              }
-              {
-                name = "udm";
-                value = "50";
               }
             ];
           }
