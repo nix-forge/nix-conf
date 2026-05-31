@@ -38,6 +38,9 @@
     ## Programs
     server-ssh
     mpv
+    zen-browser
+    zen-browser-scrolling-natural
+    zen-browser-defaultbrowser
 
     ## Per-host configuration
     ./ssh.nix

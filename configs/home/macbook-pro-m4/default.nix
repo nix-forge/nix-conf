@@ -50,9 +50,9 @@
 
     firefox
     firefox-scrolling-natural
-    firefox-defaultbrowser
     zen-browser
     zen-browser-scrolling-natural
+    zen-browser-defaultbrowser
     chrome
 
     vscode
