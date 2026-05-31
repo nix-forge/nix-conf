@@ -39,6 +39,14 @@
         "default_area" = "navbar";
       };
 
+      # Karakeep
+      "addon@karakeep.app" = {
+        "installation_mode" = "force_installed";
+        "temporarily_allow_weak_signatures" = false;
+        "install_url" = "https://addons.mozilla.org/firefox/downloads/latest/karakeep/latest.xpi";
+        "default_area" = "navbar";
+      };
+
       # Refined GitHub
       "{a4c4eda4-fb84-4a84-b4a1-f7c1cbf2a1ad}" = {
         "installation_mode" = "normal_installed";

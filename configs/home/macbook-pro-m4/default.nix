@@ -46,6 +46,8 @@
     cli
 
     wm-aerospace
+    karakeep
+    { services.karakeep.enable = true; }
     server-ssh
 
     firefox
