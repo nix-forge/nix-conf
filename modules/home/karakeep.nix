@@ -12,6 +12,7 @@ let
   composeFile = "${configDir}/docker-compose.yml";
   envFile = "${configDir}/.env";
   localUrl = "http://localhost:${toString cfg.port}";
+  colimaDockerSocket = "${config.home.homeDirectory}/.config/colima/default/docker.sock";
 
   generatedEnvironment = {
     KARAKEEP_VERSION = cfg.version;
@@ -271,6 +272,17 @@ in
         ProgramArguments = [
           "${pkgs.writeShellScript "karakeep-launchd" ''
             set -eu
+
+            export HOME=${lib.escapeShellArg config.home.homeDirectory}
+            export DOCKER_HOST=unix://${lib.escapeShellArg colimaDockerSocket}
+
+            for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+              if [ -S ${lib.escapeShellArg colimaDockerSocket} ]; then
+                break
+              fi
+              ${pkgs.coreutils}/bin/sleep 2
+            done
+
             ${dockerCompose} up -d
             ${colimaForward}
             trap '${dockerCompose} down' INT TERM EXIT
