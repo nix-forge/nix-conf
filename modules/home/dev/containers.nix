@@ -36,6 +36,13 @@ in
         memory = 8;
         disk = 100;
 
+        mounts = [
+          {
+            location = "${config.xdg.userDirs.documents}/Karakeep";
+            writable = true;
+          }
+        ];
+
         kubernetes.enabled = false;
 
         portForwarder = "ssh";
