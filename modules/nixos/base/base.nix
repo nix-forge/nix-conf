@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   # set the systemVersion for the entire configuration
-  system.stateVersion = "26.05";
+  system.stateVersion = "26.11";
 
   # enable dconf
   programs.dconf.enable = true;
