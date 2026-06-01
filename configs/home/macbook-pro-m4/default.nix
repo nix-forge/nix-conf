@@ -46,8 +46,26 @@
     cli
 
     wm-aerospace
+    actual
+    (
+      { config, ... }:
+      {
+        services.actual = {
+          enable = true;
+          dataDir = "${config.xdg.userDirs.documents}/Actual";
+        };
+      }
+    )
     karakeep
-    { services.karakeep.enable = true; }
+    (
+      { config, ... }:
+      {
+        services.karakeep = {
+          enable = true;
+          dataDir = "${config.xdg.userDirs.documents}/Karakeep";
+        };
+      }
+    )
     server-ssh
 
     firefox
