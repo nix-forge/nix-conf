@@ -96,6 +96,7 @@
     discord
     signal
     zoom
+    microsoft-teams
     spotify
     notion
     bitwarden
