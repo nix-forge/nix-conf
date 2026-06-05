@@ -67,6 +67,11 @@ strict = true
   "S405", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
   "S314", # The appcast is a fixed upstream document parsed without entity expansion.
 ]
+"pkgs/remindctl/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix and validate the release binary.
+  "S603", # Command args are constrained to fixed nix and validated binary invocations.
+  "S310", # URL opening is limited to validated HTTPS GitHub release URLs.
+]
 "pkgs/steam/update.py" = [
   "S404", # Uses subprocess intentionally to call nix/curl/unzip.
   "S603", # Command args are constrained to fixed local binaries and a validated URL.
