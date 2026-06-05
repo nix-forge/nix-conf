@@ -36,6 +36,8 @@ EXPECTED_DOWNLOAD_HOST: Final = "github.com"
 EXPECTED_DOWNLOAD_PATH: Final = re.compile(
     r"^/openclaw/remindctl/releases/download/v([^/]+)/remindctl-macos\.zip$"
 )
+EXPECTED_SKILL_HOST: Final = "raw.githubusercontent.com"
+EXPECTED_SKILL_PATH: Final = re.compile(r"^/openclaw/remindctl/v([^/]+)/SKILL\.md$")
 VERSION_PATTERN: Final = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
 MACHO_64_MAGIC: Final = b"\xcf\xfa\xed\xfe"
@@ -48,6 +50,7 @@ class _UpstreamState:
     version: str
     url: str
     hash_sri: str
+    agent_skill_content: str
 
 
 def _stdout(message: str) -> None:
@@ -85,6 +88,21 @@ def _fetch_json(url: str, *, label: str, timeout: int = 30) -> object:
         _fail(f"failed to parse JSON for {label} from {url}: {exc}")
 
 
+def _fetch_text(url: str, *, label: str, timeout: int = 30) -> str:
+    parsed_url = urlparse(url)
+    if parsed_url.scheme != "https":
+        _fail(f"unsupported URL scheme for {label}: {parsed_url.scheme!r}")
+
+    try:
+        request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
+        with urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
+            return response.read().decode("utf-8")
+    except URLError as exc:
+        _fail(f"failed to fetch {label} from {url}: {exc}")
+    except UnicodeDecodeError as exc:
+        _fail(f"failed to decode {label} from {url}: {exc}")
+
+
 def _get_binary(name: str) -> str:
     binary = shutil.which(name)
     if isinstance(binary, str):
@@ -106,7 +124,7 @@ def _run_checked(args: list[str], *, error_message: str) -> subprocess.Completed
     return completed
 
 
-def _prefetch_hash(url: str) -> str:
+def _prefetch_hash(url: str, *, label: str) -> str:
     completed = _run_checked(
         [
             _get_binary("nix"),
@@ -117,7 +135,7 @@ def _prefetch_hash(url: str) -> str:
             "sha256",
             url,
         ],
-        error_message="failed to prefetch release archive",
+        error_message=f"failed to prefetch {label}",
     )
 
     try:
@@ -194,6 +212,38 @@ def _validate_download_url(version: str, url: str) -> None:
         )
 
 
+def _agent_skill_url(version: str) -> str:
+    return f"https://{EXPECTED_SKILL_HOST}/openclaw/remindctl/v{version}/SKILL.md"
+
+
+def _validate_agent_skill_url(version: str, url: str) -> None:
+    parsed_url = urlparse(url)
+    if parsed_url.scheme != "https":
+        _fail(f"remindctl agent skill URL must use HTTPS: {url}")
+    if parsed_url.netloc != EXPECTED_SKILL_HOST:
+        _fail(f"unexpected remindctl agent skill host: {parsed_url.netloc!r}")
+
+    match = EXPECTED_SKILL_PATH.fullmatch(parsed_url.path)
+    if match is None:
+        _fail(f"unexpected remindctl agent skill path format: {parsed_url.path!r}")
+    if match.group(1) != version:
+        _fail(
+            "remindctl release version does not match agent skill path version: "
+            f"{version!r} != {match.group(1)!r}",
+        )
+
+
+def _validate_agent_skill(content: str) -> str:
+    normalized = content.replace("\r\n", "\n")
+    if not normalized.endswith("\n"):
+        normalized += "\n"
+    if not normalized.startswith("---\n"):
+        _fail("remindctl agent skill is missing YAML frontmatter")
+    if re.search(r"^name: apple-reminders$", normalized, flags=re.MULTILINE) is None:
+        _fail("remindctl agent skill does not declare the expected name")
+    return normalized
+
+
 def _download_file(url: str, destination: Path, *, timeout: int = 60) -> None:
     try:
         request = Request(url, headers={"User-Agent": HTTP_USER_AGENT})
@@ -254,7 +304,16 @@ def _discover_upstream() -> _UpstreamState:
     )
     _validate_download_url(version, url)
     _validate_archive(version, url)
-    return _UpstreamState(version=version, url=url, hash_sri=_prefetch_hash(url))
+    agent_skill_url = _agent_skill_url(version)
+    _validate_agent_skill_url(version, agent_skill_url)
+    return _UpstreamState(
+        version=version,
+        url=url,
+        hash_sri=_prefetch_hash(url, label="release archive"),
+        agent_skill_content=_validate_agent_skill(
+            _fetch_text(agent_skill_url, label="remindctl agent skill"),
+        ),
+    )
 
 
 def _render_source(upstream: _UpstreamState) -> str:
@@ -309,17 +368,28 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 def _main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     source_path = Path(__file__).with_name("source.nix")
+    agent_skill_path = Path(__file__).with_name("SKILL.md")
 
-    old_content = source_path.read_text(encoding="utf-8")
-    new_content = _render_source(_discover_upstream())
+    old_source_content = source_path.read_text(encoding="utf-8")
+    old_agent_skill_content = agent_skill_path.read_text(encoding="utf-8")
+    upstream = _discover_upstream()
+    new_source_content = _render_source(upstream)
+    new_agent_skill_content = upstream.agent_skill_content
 
-    if new_content == old_content:
+    if (
+        new_source_content == old_source_content
+        and new_agent_skill_content == old_agent_skill_content
+    ):
         _stdout("[update] remindctl is already up to date")
         return 0
 
-    diff_text = _build_diff(old_content, new_content, source_path)
-    if diff_text:
-        sys.stdout.write(diff_text)
+    source_diff = _build_diff(old_source_content, new_source_content, source_path)
+    agent_skill_diff = _build_diff(
+        old_agent_skill_content,
+        new_agent_skill_content,
+        agent_skill_path,
+    )
+    sys.stdout.write(source_diff + agent_skill_diff)
 
     if args.check:
         return 1
@@ -327,7 +397,8 @@ def _main(argv: Sequence[str] | None = None) -> int:
     if args.dry_run:
         return 0
 
-    _write_atomic(source_path, new_content)
+    _write_atomic(source_path, new_source_content)
+    _write_atomic(agent_skill_path, new_agent_skill_content)
     _stdout("[update] updated remindctl")
     return 0
 

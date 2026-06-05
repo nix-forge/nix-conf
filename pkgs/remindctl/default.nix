@@ -39,7 +39,10 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postInstallCheck
   '';
 
-  passthru.updateScript = [ ./update.py ];
+  passthru = {
+    agentSkill = ./SKILL.md;
+    updateScript = [ ./update.py ];
+  };
 
   meta = {
     description = "Fast command-line access to Apple Reminders";
