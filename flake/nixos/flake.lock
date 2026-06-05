@@ -59,11 +59,11 @@
         "cpu-microcodes": "cpu-microcodes"
       },
       "locked": {
-        "lastModified": 1774278023,
-        "narHash": "sha256-CdAsDvDYKanRvtvGOn/E2KjrrZk9Cu/eNdvCVynwzPQ=",
+        "lastModified": 1775751925,
+        "narHash": "sha256-JFQ0nCZHYh1AHkA9tbnqVYfpvv+RHFZoWEm0mWd4OLc=",
         "owner": "e-tho",
         "repo": "ucodenix",
-        "rev": "b04dc47972b80e538b81892b957ecce281430d33",
+        "rev": "fe203428dd45ff1f8d20644bca6d39447d450b6a",
         "type": "github"
       },
       "original": {

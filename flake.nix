@@ -1,7 +1,7 @@
 {
   inputs = {
     # Core
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     systems.url = "github:nix-systems/default";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
