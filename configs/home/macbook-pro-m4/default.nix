@@ -88,6 +88,7 @@
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
+    libreoffice
 
     stylix
     stylix-targets-firefox

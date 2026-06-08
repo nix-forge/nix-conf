@@ -38,6 +38,7 @@
     ## Programs
     server-ssh
     mpv
+    libreoffice
     zen-browser
     zen-browser-scrolling-natural
     zen-browser-defaultbrowser
