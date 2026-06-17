@@ -39,6 +39,7 @@
     server-ssh
     mpv
     libreoffice
+    { programs.libreoffice.enable = true; }
     zen-browser
     zen-browser-scrolling-natural
     zen-browser-defaultbrowser

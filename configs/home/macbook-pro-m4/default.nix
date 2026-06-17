@@ -89,6 +89,7 @@
     terminals-ghostty-defaultterminal
     mpv
     libreoffice
+    { programs.libreoffice.enable = true; }
 
     stylix
     stylix-targets-firefox
