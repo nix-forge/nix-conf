@@ -40,7 +40,6 @@ in
         "janisdd.vscode-edit-csv"
         "tomoki1207.pdf"
         "nefrob.vscode-just-syntax"
-        "mermaidchart.vscode-mermaid-chart"
 
         # Extra
         "ms-vscode-remote.remote-ssh"
