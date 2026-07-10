@@ -70,6 +70,7 @@
 
     firefox
     firefox-scrolling-natural
+    helium-browser
     zen-browser
     zen-browser-scrolling-natural
     zen-browser-defaultbrowser

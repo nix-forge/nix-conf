@@ -1,5 +1,4 @@
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   imports = [ inputs.flake-parts.flakeModules.partitions ];
 
   partitionedAttrs = {
@@ -17,7 +16,13 @@
       baseInputs = { inherit (inputs) nixpkgs home-manager; };
       homeManagerInputs = {
         inherit (inputs) nix4vscode nur-rycee;
-        inherit (inputs) firefox-betterfox firefox-ui-fix zen-browser;
+        inherit (inputs)
+          firefox-betterfox
+          firefox-ui-fix
+          helium-browser
+          helium-browser-darwin
+          zen-browser
+          ;
       };
     in
     {

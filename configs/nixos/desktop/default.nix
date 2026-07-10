@@ -23,6 +23,7 @@
   modules = with modules; [
     base-base
     registry
+    chromium-policies
     boot
     agenix
 

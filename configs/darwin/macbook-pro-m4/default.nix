@@ -37,6 +37,7 @@
     nix-settings
     registry
     cache
+    chromium-policies
     agenix
 
     ## Users

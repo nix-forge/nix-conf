@@ -63,8 +63,6 @@
       url = "github:NotAShelf/nvf";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
-        flake-parts.follows = "flake-parts";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -90,6 +88,14 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
       };
+    };
+    helium-browser = {
+      url = "github:oxcl/nix-flake-helium-browser";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    helium-browser-darwin = {
+      url = "github:schembriaiden/helium-browser-nix-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Dependency Override

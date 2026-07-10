@@ -40,6 +40,7 @@
     mpv
     libreoffice
     { programs.libreoffice.enable = true; }
+    helium-browser
     zen-browser
     zen-browser-scrolling-natural
     zen-browser-defaultbrowser
