@@ -67,10 +67,20 @@ strict = true
   "S405", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
   "S314", # The appcast is a fixed upstream document parsed without entity expansion.
 ]
+"pkgs/microsoft-teams/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
+  "S603", # Command args are constrained to a fixed nix invocation and validated CDN URL.
+  "S310", # URL opening is limited to the validated HTTPS Teams production config.
+]
 "pkgs/remindctl/update.py" = [
   "S404", # Uses subprocess intentionally to call nix and validate the release binary.
   "S603", # Command args are constrained to fixed nix and validated binary invocations.
   "S310", # URL opening is limited to validated HTTPS GitHub release URLs.
+]
+"pkgs/spotify-spotx/update.py" = [
+  "S404", # Uses subprocess intentionally to call nix and git for upstream discovery.
+  "S603", # Command args are constrained to fixed nix/git invocations and validated refs.
+  "S310", # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
 ]
 "pkgs/steam/update.py" = [
   "S404", # Uses subprocess intentionally to call nix/curl/unzip.

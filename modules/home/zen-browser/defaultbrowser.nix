@@ -11,7 +11,6 @@ let
   defaultBrowserExe = lib.getExe pkgs.defaultbrowser;
   lsregisterExe = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
   plistBuddyExe = "/usr/libexec/PlistBuddy";
-  runtimeShell = pkgs.runtimeShell;
 
   zenAppPath =
     let
@@ -42,7 +41,6 @@ let
         defaultBrowserExe
         lsregisterExe
         plistBuddyExe
-        runtimeShell
         zenAppPath
         ;
     };

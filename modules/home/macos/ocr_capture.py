@@ -283,6 +283,22 @@ def _copy_to_clipboard(text: str) -> None:
     )
 
 
+def _capture_and_copy(image_path: Path) -> int:
+    captured = _run_capture(image_path)
+    if not captured:
+        return 0
+
+    raw_text = _run_ocr(image_path)
+    cleaned = _clean_text(raw_text)
+    if not cleaned:
+        _notify("OCR capture", "No text recognized.")
+        return 0
+
+    _copy_to_clipboard(cleaned)
+    _notify("OCR capture", f"Copied {len(cleaned)} characters to the clipboard.")
+    return 0
+
+
 def _main() -> int:
     with tempfile.NamedTemporaryFile(
         prefix="hm-ocr-capture-",
@@ -292,25 +308,12 @@ def _main() -> int:
         image_path = Path(image_handle.name)
 
     try:
-        captured = _run_capture(image_path)
-        if not captured:
-            return 0
-
-        raw_text = _run_ocr(image_path)
-        cleaned = _clean_text(raw_text)
-        if not cleaned:
-            _notify("OCR capture", "No text recognized.")
-            return 0
-
-        _copy_to_clipboard(cleaned)
-        _notify("OCR capture", f"Copied {len(cleaned)} characters to the clipboard.")
+        return _capture_and_copy(image_path)
     except OCRCaptureError as err:
         return _fail("Unable to capture or extract text", details=str(err))
     finally:
         with contextlib.suppress(OSError):
             image_path.unlink(missing_ok=True)
-
-    return 0
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-#!@runtimeShell@
+# shellcheck shell=bash
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
 readonly ZEN_APP='@zenAppPath@'

@@ -150,12 +150,16 @@ def _discover_latest_version(current_version: str) -> str:
     if not isinstance(data, dict):
         _fail("Microsoft Teams production config was not a JSON object")
 
-    latest_version = (
-        data.get("BuildSettings", {})
-        .get("WebView2Canary", {})
-        .get("macOS", {})
-        .get("latestVersion")
-    )
+    build_settings = data.get("BuildSettings")
+    if not isinstance(build_settings, dict):
+        _fail("Microsoft Teams production config did not include BuildSettings")
+    webview_canary = build_settings.get("WebView2Canary")
+    if not isinstance(webview_canary, dict):
+        _fail("Microsoft Teams production config did not include WebView2Canary")
+    macos_settings = webview_canary.get("macOS")
+    if not isinstance(macos_settings, dict):
+        _fail("Microsoft Teams production config did not include macOS settings")
+    latest_version = macos_settings.get("latestVersion")
     if not isinstance(latest_version, str):
         _fail("Microsoft Teams production config did not include macOS latestVersion")
 
