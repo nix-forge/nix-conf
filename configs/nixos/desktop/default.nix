@@ -1,5 +1,4 @@
-{ modules, ... }:
-{
+{ modules, ... }: {
   system = "x86_64-linux";
   hostName = "desktop";
 

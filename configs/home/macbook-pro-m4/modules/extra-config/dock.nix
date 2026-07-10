@@ -1,5 +1,4 @@
-{ config, ... }:
-{
+{ config, ... }: {
   macos.dockItems = {
     enable = true;
 

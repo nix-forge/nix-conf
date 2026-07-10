@@ -1,5 +1,4 @@
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem.treefmt.programs = {
     # YAML and GitHub Actions

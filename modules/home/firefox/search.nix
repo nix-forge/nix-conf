@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   programs.firefox.profiles.default.search = {
     force = true;
 

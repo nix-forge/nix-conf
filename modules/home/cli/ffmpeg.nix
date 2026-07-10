@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = [ pkgs.ffmpeg ];
-}
+{ pkgs, ... }: { home.packages = [ pkgs.ffmpeg ]; }

@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   # set the systemVersion for the entire configuration
   system.stateVersion = "26.11";
 

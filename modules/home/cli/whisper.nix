@@ -4,7 +4,7 @@ let
 in
 {
   home.packages = [
-    (openai-whisper.overridePythonAttrs (old: {
+    (openai-whisper.overridePythonAttrs (_old: {
       doCheck = false;
     }))
   ];

@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = [ pkgs.notion-app ];
-}
+{ pkgs, ... }: { home.packages = [ pkgs.notion-app ]; }

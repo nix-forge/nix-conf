@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   boot.kernelModules = [ "uhid" ];
 
   security.tpm2 = {

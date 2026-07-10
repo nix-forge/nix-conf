@@ -1,5 +1,4 @@
-{ pkgs, config, ... }:
-{
+{ pkgs, config, ... }: {
   stylix.fonts = {
     monospace = {
       package = pkgs.nerd-fonts.monaspace;

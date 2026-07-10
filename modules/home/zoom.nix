@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = [ pkgs.zoom-us ];
-}
+{ pkgs, ... }: { home.packages = [ pkgs.zoom-us ]; }

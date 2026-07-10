@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = with pkgs; [ cursor-cli ];
-}
+{ pkgs, ... }: { home.packages = with pkgs; [ cursor-cli ]; }

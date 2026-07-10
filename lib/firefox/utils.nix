@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{ lib, ... }: {
   toUserJS =
     kv:
     lib.concatLines (

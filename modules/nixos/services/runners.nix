@@ -1,5 +1,4 @@
-{ pkgs, lib, ... }:
-{
+{ pkgs, lib, ... }: {
   # run appimages with appimage-run
   environment.systemPackages = [ pkgs.appimage-run ];
   boot.binfmt.registrations = lib.genAttrs [ "appimage" "AppImage" ] (_: {

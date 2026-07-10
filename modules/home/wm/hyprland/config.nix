@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{ lib, ... }: {
   wayland.windowManager.hyprland.settings = {
     # <https://wiki.hyprland.org/Configuring/Variables/#general>
     general = {

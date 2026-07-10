@@ -10,7 +10,7 @@ in
     ]
     ++ extensions.forVscode [
       ## Codex
-      "openai.chatgpt"
+      # "openai.chatgpt"
     ];
 
     userSettings = {

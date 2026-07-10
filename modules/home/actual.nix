@@ -23,7 +23,7 @@ let
 
   actualConfig = cfg.extraSettings // {
     inherit (cfg) hostname port;
-    dataDir = cfg.dataDir;
+    inherit (cfg) dataDir;
     inherit serverFiles userFiles;
     loginMethod = "password";
     allowedLoginMethods = [ "password" ];
@@ -90,7 +90,7 @@ in
     };
 
     extraSettings = lib.mkOption {
-      type = (pkgs.formats.json { }).type;
+      inherit ((pkgs.formats.json { })) type;
       default = { };
       description = ''
         Extra Actual server config.json settings. Do not put bank credentials or
@@ -147,6 +147,7 @@ in
 
     launchd.agents.actual = {
       enable = true;
+      domain = lib.mkDefault "user";
       config = {
         Label = "dev.user.actual";
         ProgramArguments = [

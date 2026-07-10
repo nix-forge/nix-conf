@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = with pkgs; [ railway ];
-}
+{ pkgs, ... }: { home.packages = with pkgs; [ railway ]; }

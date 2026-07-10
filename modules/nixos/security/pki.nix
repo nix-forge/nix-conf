@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{ lib, ... }: {
   security.pki = {
     certificates = lib.mkForce [ ];
     caCertificateBlacklist = [

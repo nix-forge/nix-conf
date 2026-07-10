@@ -1,5 +1,4 @@
-{ lib, config, ... }:
-{
+{ lib, config, ... }: {
   hardware.enableRedistributableFirmware = lib.mkDefault true;
 
   # firmware updater for machine hardware

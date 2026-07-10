@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = with pkgs; [ cloc ];
-}
+{ pkgs, ... }: { home.packages = with pkgs; [ cloc ]; }

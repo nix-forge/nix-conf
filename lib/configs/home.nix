@@ -72,23 +72,21 @@ rec {
       extraModules ? [ ],
     }:
     {
-      ${username} =
-        { lib, ... }:
-        {
-          _module.args = {
-            inherit secrets;
-            configFolderName = homeConfig.folderName;
-            configName = "${username}@${homeConfig.folderName}";
-          };
-          imports = homeConfig.modules ++ extraModules;
-          home = {
-            username = lib.mkForce username;
-            homeDirectory = lib.mkForce homeDirectory;
-            uid = lib.mkForce uid;
-          };
-          nix.package = lib.mkForce null;
-          programs.home-manager.enable = true;
+      ${username} = { lib, ... }: {
+        _module.args = {
+          inherit secrets;
+          configFolderName = homeConfig.folderName;
+          configName = "${username}@${homeConfig.folderName}";
         };
+        imports = homeConfig.modules ++ extraModules;
+        home = {
+          username = lib.mkForce username;
+          homeDirectory = lib.mkForce homeDirectory;
+          uid = lib.mkForce uid;
+        };
+        nix.package = lib.mkForce null;
+        programs.home-manager.enable = true;
+      };
     };
 
   connectHomeDarwin =
@@ -105,13 +103,7 @@ rec {
     }:
     let
       extraModules =
-        _systemConfig:
-        singleton (
-          { lib, ... }:
-          {
-            fonts.fontconfig.enable = lib.mkForce false;
-          }
-        );
+        _systemConfig: singleton ({ lib, ... }: { fonts.fontconfig.enable = lib.mkForce false; });
     in
     {
       pkgs,
@@ -193,10 +185,7 @@ rec {
       extraModules =
         systemConfig:
         singleton (
-          { lib, ... }:
-          {
-            fonts.fontconfig.enable = lib.mkForce (!systemConfig.fonts.fontconfig.enable);
-          }
+          { lib, ... }: { fonts.fontconfig.enable = lib.mkForce (!systemConfig.fonts.fontconfig.enable); }
         );
     in
     { config, homeConfigs, ... }:

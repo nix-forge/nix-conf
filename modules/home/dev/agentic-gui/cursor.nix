@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = with pkgs; [ code-cursor ];
-}
+{ pkgs, ... }: { home.packages = with pkgs; [ code-cursor ]; }

@@ -1,5 +1,4 @@
-{ config, lib, ... }:
-{
+{ config, lib, ... }: {
   targets.darwin.defaults = {
     "com.apple.screencapture" = {
       disable-shadow = true;

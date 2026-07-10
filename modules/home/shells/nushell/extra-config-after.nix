@@ -13,9 +13,7 @@ let
       config.home.sessionPath
       [ "${config.home.profileDirectory}/bin" ]
     ]
-    ++ lib.optionals isDarwinHome (
-      lib.splitString ":" osConfig.environment.systemPath
-    )
+    ++ lib.optionals isDarwinHome (lib.splitString ":" osConfig.environment.systemPath)
     ++ lib.optionals isNixosHome (
       lib.concatLists [
         [ "/run/wrappers/bin" ]

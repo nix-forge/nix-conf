@@ -23,7 +23,7 @@ let
   );
 
   documentedLsp = {
-    astro = mkTool [ (lib.getExe pkgs.astro-language-server) "--stdio" ] [ ".astro" ];
+    # astro = mkTool [ (lib.getExe pkgs.astro-language-server) "--stdio" ] [ ".astro" ];
     bash =
       (mkTool [ (lib.getExe pkgs.bash-language-server) "start" ] [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ])
       // {

@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   programs.zen-browser.profiles.default.search = {
     force = true;
 

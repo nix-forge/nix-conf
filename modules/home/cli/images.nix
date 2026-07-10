@@ -1,4 +1,1 @@
-{ pkgs, ... }:
-{
-  home.packages = [ pkgs.imagemagick ];
-}
+{ pkgs, ... }: { home.packages = [ pkgs.imagemagick ]; }

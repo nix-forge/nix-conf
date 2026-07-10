@@ -1,5 +1,4 @@
-{ config, ... }:
-{
+{ config, ... }: {
   boot =
     let
       supportedFilesystems = [
