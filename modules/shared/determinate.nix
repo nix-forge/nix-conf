@@ -5,17 +5,15 @@ let
   };
 in
 {
-  nixos =
-    { inputs, system, ... }:
-    {
-      imports = [ inputs.determinate.nixosModules.default ];
+  nixos = { inputs, system, ... }: {
+    imports = [ inputs.determinate.nixosModules.default ];
 
-      nix = { inherit settings; };
+    nix = { inherit settings; };
 
-      nixpkgs.overlays = [
-        (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
-      ];
-    };
+    nixpkgs.overlays = [
+      (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
+    ];
+  };
 
   darwin =
     {
@@ -26,6 +24,15 @@ in
     }:
     let
       inherit (pkgs.stdenv.hostPlatform) isAarch64;
+      # Determinate Nix 3.21.1 includes functional tests that require local
+      # networking and Crashpad Mach ports, both denied by the Darwin sandbox.
+      # Keep using Determinate Nix everywhere, but temporarily omit its combined
+      # functional-test build gate on Darwin.
+      determinateNixPackage =
+        inputs.determinate.inputs.nix.packages.${system}.default.overrideAttrs
+          (_old: {
+            doCheck = false;
+          });
     in
     {
       imports = [ inputs.determinate.darwinModules.default ];
@@ -48,9 +55,7 @@ in
         customSettings = settings;
       };
 
-      nixpkgs.overlays = [
-        (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
-      ];
+      nixpkgs.overlays = [ (_final: _prev: { nix = determinateNixPackage; }) ];
     };
 
   homeManager =

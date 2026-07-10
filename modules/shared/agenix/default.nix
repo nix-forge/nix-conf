@@ -1,21 +1,17 @@
 {
-  nixos =
-    { inputs, secrets, ... }:
-    {
-      imports = [ inputs.agenix.nixosModules.default ];
+  nixos = { inputs, secrets, ... }: {
+    imports = [ inputs.agenix.nixosModules.default ];
 
-      services.openssh.enable = true;
+    services.openssh.enable = true;
 
-      age = { inherit secrets; };
-    };
+    age = { inherit secrets; };
+  };
 
-  darwin =
-    { inputs, secrets, ... }:
-    {
-      imports = [ inputs.agenix.darwinModules.default ];
+  darwin = { inputs, secrets, ... }: {
+    imports = [ inputs.agenix.darwinModules.default ];
 
-      age = { inherit secrets; };
-    };
+    age = { inherit secrets; };
+  };
 
   homeManager =
     {
@@ -68,8 +64,10 @@
           ${lib.getExe' ensureDarwinRuntimeApp "hm-ensure-xdg-runtime-dir"}
         ''
       );
+      launchd.agents.activate-agenix.domain = lib.mkDefault "user";
       launchd.agents.ensure-xdg-runtime-dir = {
         enable = true;
+        domain = lib.mkDefault "user";
         config = {
           Label = "dev.user.hm-ensure-xdg-runtime-dir";
           ProgramArguments = [ (lib.getExe' ensureDarwinRuntimeApp "hm-ensure-xdg-runtime-dir") ];
