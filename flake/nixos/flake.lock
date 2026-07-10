@@ -3,11 +3,11 @@
     "cpu-microcodes": {
       "flake": false,
       "locked": {
-        "lastModified": 1774217076,
-        "narHash": "sha256-30FsjMDFzZ8zuEqt/wxxnNQ8vc2tp7fa1EyI+VxPj1g=",
+        "lastModified": 1781125738,
+        "narHash": "sha256-6KfmnLufkUJUE7+ziD/ucgdsOpx8aYmiepRq6y/wcwE=",
         "owner": "platomav",
         "repo": "CPUMicrocodes",
-        "rev": "efd81b0446842e952aa848ca10a659f0a5ed3bad",
+        "rev": "49aa6bd56d1019c1e8b47321d2eb66913a2da876",
         "type": "github"
       },
       "original": {
@@ -21,11 +21,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1780310866,
-        "narHash": "sha256-fPBRVf6A5xlACYcOI59shGrjURuvwu0lRsDoSCEXt/I=",
+        "lastModified": 1783370751,
+        "narHash": "sha256-E+3MIMvKuo9k+K+qLQ9YXzsBzkgHuyVLnsEbN2DFfuc=",
         "owner": "NixOS",
         "repo": "nixos-hardware",
-        "rev": "4ed851c979641e28597a05086332d75cdc9e395f",
+        "rev": "662bd6e312d2c8b212e32cb377abaee190749320",
         "type": "github"
       },
       "original": {
@@ -58,11 +58,11 @@
         "cpu-microcodes": "cpu-microcodes"
       },
       "locked": {
-        "lastModified": 1780616887,
-        "narHash": "sha256-scZa78VQo3YviN38/M9PJozgAOZfvCKehtUACIOkUwE=",
+        "lastModified": 1781629628,
+        "narHash": "sha256-k126RCoXFrNy7nwhUq+Ogd4GX0mY4lSzOYyAyndvBys=",
         "owner": "e-tho",
         "repo": "ucodenix",
-        "rev": "9a13941a5f53589a85e7fb53c784d90cffbd5055",
+        "rev": "5c9a1202884f7f455119f35df03c66f6a98ce5f9",
         "type": "github"
       },
       "original": {
