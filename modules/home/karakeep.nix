@@ -267,6 +267,7 @@ in
 
     launchd.agents.karakeep = lib.mkIf isDarwin {
       enable = true;
+      domain = lib.mkDefault "user";
       config = {
         Label = "dev.user.karakeep";
         ProgramArguments = [
