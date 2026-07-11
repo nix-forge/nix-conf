@@ -38,6 +38,21 @@ DOWNLOAD_URL_TEMPLATE: Final = (
 )
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
 VERSION_PATTERN: Final = re.compile(r"^[0-9]+(?:\.[0-9]+){3}$")
+SOURCE_PATTERN: Final = re.compile(
+    r"\A\{\n"
+    r'  version = "([^"]+)";\n'
+    r"  src = \{\n"
+    r'    url = "([^"]+)";\n'
+    r'    hash = "sha256-[A-Za-z0-9+/=]+";\n'
+    r"  \};\n"
+    r"\}\n\Z"
+)
+
+
+@dataclass(frozen=True)
+class _Release:
+    version: str
+    url: str
 
 
 @dataclass(frozen=True)
@@ -167,11 +182,34 @@ def _discover_latest_version(current_version: str) -> str:
     return latest_version
 
 
-def _discover_upstream(current_version: str) -> _UpstreamState:
+def _discover_release(current_version: str) -> _Release:
     version = _discover_latest_version(current_version)
     url = DOWNLOAD_URL_TEMPLATE.format(version=version)
     _validate_download_url(url, version)
-    return _UpstreamState(version=version, url=url, hash_sri=_prefetch_hash(url))
+    return _Release(version=version, url=url)
+
+
+def _fetch_upstream(release: _Release) -> _UpstreamState:
+    return _UpstreamState(
+        version=release.version,
+        url=release.url,
+        hash_sri=_prefetch_hash(release.url),
+    )
+
+
+def _source_matches_release(content: str, release: _Release) -> bool:
+    """Return whether generated source metadata already pins this release.
+
+    Returns:
+        Whether the source is in the expected form and matches the release.
+
+    """
+    match = SOURCE_PATTERN.fullmatch(content)
+    if match is None:
+        return False
+
+    version, url = match.group(1, 2)
+    return (version, url) == (release.version, release.url)
 
 
 def _render_source(upstream: _UpstreamState) -> str:
@@ -220,6 +258,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="exit non-zero when updates are available",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="re-download and re-hash the archive even when release metadata is unchanged",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -229,11 +272,12 @@ def _main(argv: Sequence[str] | None = None) -> int:
 
     old_content = source_path.read_text(encoding="utf-8")
     current_version = _parse_existing_version(old_content)
-    new_content = _render_source(_discover_upstream(current_version))
-
-    if new_content == old_content:
+    release = _discover_release(current_version)
+    if not args.refresh and _source_matches_release(old_content, release):
         _stdout("[update] microsoft-teams is already up to date")
         return 0
+
+    new_content = _render_source(_fetch_upstream(release))
 
     diff_text = _build_diff(old_content, new_content, source_path)
     if diff_text:

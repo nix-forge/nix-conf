@@ -1,7 +1,7 @@
 {
-  version = "0.3.1";
+  version = "0.3.2";
   src = {
-    url = "https://github.com/openclaw/remindctl/releases/download/v0.3.1/remindctl-macos.zip";
-    hash = "sha256-EDG87p35hCOSsN6ZhqrcTQyL8CZGxCgZXSEQqpQ03hk=";
+    url = "https://github.com/openclaw/remindctl/releases/download/v0.3.2/remindctl-macos.zip";
+    hash = "sha256-ApG2LtUP9awBEVxMAb261enBLFG3VwXP2xbQ1JJFWg8=";
   };
 }

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import difflib
-import json
+import hashlib
 import re
 import shutil
 import subprocess
@@ -61,36 +62,6 @@ def _get_binary(name: str) -> str:
     _fail(f"`{name}` executable not found in PATH")
 
 
-def _prefetch_hash(url: str) -> str:
-    completed = subprocess.run(
-        [
-            _get_binary("nix"),
-            "store",
-            "prefetch-file",
-            "--json",
-            "--hash-type",
-            "sha256",
-            url,
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or completed.stdout.strip() or "(no output)"
-        _fail(f"failed to prefetch archive hash:\n{detail}")
-
-    try:
-        data = json.loads(completed.stdout)
-    except json.JSONDecodeError as exc:
-        _fail(f"failed to parse nix prefetch JSON output: {exc}")
-
-    hash_value = data.get("hash")
-    if not isinstance(hash_value, str):
-        _fail("nix prefetch JSON did not include a string `hash` field")
-    return hash_value
-
-
 def _parse_manifest(manifest: str) -> str:
     appdmg_block_match = re.search(
         rf'"{re.escape(APPDMG_PACKAGE)}"\s*'
@@ -141,7 +112,22 @@ def _find_required_file(root: Path, suffix: str) -> Path:
     return path
 
 
-def _validate_appdmg(url: str) -> str:
+def _hash_file_sha256_sri(path: Path) -> str:
+    """Return an SRI SHA-256 hash for an already-downloaded archive.
+
+    Returns:
+        The SHA-256 digest encoded in Nix's SRI format.
+
+    """
+    digest = hashlib.sha256()
+    with path.open("rb") as archive:
+        while chunk := archive.read(1024 * 1024):
+            digest.update(chunk)
+
+    return f"sha256-{base64.b64encode(digest.digest()).decode('ascii')}"
+
+
+def _validate_appdmg(url: str) -> tuple[str, str]:
     if sys.platform != "darwin":
         _fail("Steam appdmg validation currently requires Darwin")
 
@@ -200,7 +186,12 @@ def _validate_appdmg(url: str) -> str:
         version = version_path.read_text(encoding="utf-8").strip()
         if not version:
             _fail("SteamMacBootstrapper.version was empty")
-        return version
+        return version, _hash_file_sha256_sri(archive_path)
+
+
+def _source_url(content: str) -> str | None:
+    match = re.search(r'^    url = "([^"]+)";$', content, flags=re.MULTILINE)
+    return match.group(1) if match is not None else None
 
 
 def _render_source(version: str, appdmg_url: str, appdmg_hash: str) -> str:
@@ -246,6 +237,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default="stable",
         help="Steam manifest channel to pin",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="re-download and re-validate the archive even when its URL is unchanged",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -257,14 +253,13 @@ def _main(argv: Sequence[str] | None = None) -> int:
         MANIFEST_URLS[args.channel], label=f"Steam {args.channel} manifest"
     )
     appdmg_url = _parse_manifest(manifest)
-    version = _validate_appdmg(appdmg_url)
-
-    new_content = _render_source(
-        version,
-        appdmg_url,
-        _prefetch_hash(appdmg_url),
-    )
     old_content = source_path.read_text(encoding="utf-8")
+    if not args.refresh and _source_url(old_content) == appdmg_url:
+        _stdout(f"[update] steam {args.channel} is already up to date")
+        return 0
+
+    version, appdmg_hash = _validate_appdmg(appdmg_url)
+    new_content = _render_source(version, appdmg_url, appdmg_hash)
     if new_content == old_content:
         _stdout(f"[update] steam {args.channel} is already up to date")
         return 0

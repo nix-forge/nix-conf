@@ -82,7 +82,9 @@ def _fetch_text(url: str, *, label: str, timeout: int = 30) -> str:
         _fail(f"failed to decode {label} from {url}: {exc}")
 
 
-def _run_checked(args: list[str], *, error_message: str) -> subprocess.CompletedProcess[str]:
+def _run_checked(
+    args: list[str], *, error_message: str
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(args, capture_output=True, check=False, text=True)
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or "(no output)"
@@ -215,7 +217,11 @@ def _spotify_fauth(script: str) -> str:
     return f"{fauth_header_match.group(1)}.{fauth_suffix}"
 
 
-def _discover_spotify_source(script: str) -> _SpotifySource:
+def _discover_spotify_source(
+    script: str,
+    *,
+    existing: _SpotifySource | None,
+) -> _SpotifySource:
     build = _literal_variable(script, "buildVer")
     version = re.sub(r"\.g[0-9a-f]+$", "", build)
     build_id = _literal_variable(script, "latestB_A")
@@ -223,33 +229,84 @@ def _discover_spotify_source(script: str) -> _SpotifySource:
         "https://upgrade.scdn.co/upgrade/client/osx-arm64/"
         f"spotify-autoupdate-{build}-{build_id}.tbz?fauth={_spotify_fauth(script)}"
     )
+    hash_value = (
+        existing.hash
+        if existing is not None
+        and (existing.build, existing.build_id) == (build, build_id)
+        else _prefetch_hash(
+            url,
+            name=f"spotify-autoupdate-{build}-{build_id}.tbz",
+        )
+    )
     return _SpotifySource(
         version=version,
         build=build,
         build_id=build_id,
         url=url,
-        hash=_prefetch_hash(
-            url,
-            name=f"spotify-autoupdate-{build}-{build_id}.tbz",
+        hash=hash_value,
+    )
+
+
+def _discover_source(ref: str, *, existing: _SourceState | None) -> _SourceState:
+    spotx_rev = _latest_rev(ref)
+    script_url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{spotx_rev}/spotx.sh"
+    script = _fetch_text(script_url, label="SpotX-Bash spotx.sh")
+    archive_url = (
+        f"https://github.com/{REPO_OWNER}/{REPO_NAME}/archive/{spotx_rev}.tar.gz"
+    )
+    return _SourceState(
+        spotify=_discover_spotify_source(
+            script,
+            existing=existing.spotify if existing is not None else None,
+        ),
+        spotx=_SpotxSource(
+            rev=spotx_rev,
+            hash=(
+                existing.spotx.hash
+                if existing is not None and existing.spotx.rev == spotx_rev
+                else _prefetch_hash(
+                    archive_url,
+                    unpack=True,
+                    name=f"{REPO_NAME}-{spotx_rev}.tar.gz",
+                )
+            ),
         ),
     )
 
 
-def _discover_source(ref: str) -> _SourceState:
-    spotx_rev = _latest_rev(ref)
-    script_url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{spotx_rev}/spotx.sh"
-    script = _fetch_text(script_url, label="SpotX-Bash spotx.sh")
-    archive_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/archive/{spotx_rev}.tar.gz"
+def _parse_existing_source(content: str) -> _SourceState | None:
+    version_match = re.search(r'^  version = "([^"]+)";$', content, re.MULTILINE)
+    spotify_match = re.search(
+        r"  spotify = \{\n"
+        r'    build = "([^"]+)";\n'
+        r'    buildId = "([^"]+)";\n'
+        r'    arch = "osx-arm64";\n'
+        r'    url = "([^"]+)";\n'
+        r'    hash = "(sha256-[A-Za-z0-9+/=]+)";\n'
+        r"  \};",
+        content,
+    )
+    spotx_match = re.search(
+        r"  spotx = \{\n"
+        rf'    owner = "{re.escape(REPO_OWNER)}";\n'
+        rf'    repo = "{re.escape(REPO_NAME)}";\n'
+        r'    rev = "([0-9a-f]{40})";\n'
+        r'    hash = "(sha256-[A-Za-z0-9+/=]+)";\n'
+        r"  \};",
+        content,
+    )
+    if version_match is None or spotify_match is None or spotx_match is None:
+        return None
+
     return _SourceState(
-        spotify=_discover_spotify_source(script),
-        spotx=_SpotxSource(
-            rev=spotx_rev,
-            hash=_prefetch_hash(
-                archive_url,
-                unpack=True,
-                name=f"{REPO_NAME}-{spotx_rev}.tar.gz",
-            ),
+        spotify=_SpotifySource(
+            version=version_match.group(1),
+            build=spotify_match.group(1),
+            build_id=spotify_match.group(2),
+            url=spotify_match.group(3),
+            hash=spotify_match.group(4),
         ),
+        spotx=_SpotxSource(rev=spotx_match.group(1), hash=spotx_match.group(2)),
     )
 
 
@@ -293,20 +350,34 @@ def _build_diff(old: str, new: str, path: Path) -> str:
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dry-run", action="store_true", help="print diff but do not write")
-    parser.add_argument("--check", action="store_true", help="exit non-zero when updates are available")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="print diff but do not write"
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="exit non-zero when updates are available"
+    )
     parser.add_argument("--ref", default=DEFAULT_REF, help="SpotX-Bash git ref to pin")
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="re-download and re-hash sources even when their build IDs are unchanged",
+    )
     return parser.parse_args(list(argv))
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     source_path = Path(__file__).with_name("source.nix")
-    source = _discover_source(args.ref)
-    new_content = _render_source(source)
     old_content = source_path.read_text(encoding="utf-8")
+    source = _discover_source(
+        args.ref,
+        existing=None if args.refresh else _parse_existing_source(old_content),
+    )
+    new_content = _render_source(source)
     if new_content == old_content:
-        _stdout(f"[update] spotify-spotx {source.spotify.version} is already up to date")
+        _stdout(
+            f"[update] spotify-spotx {source.spotify.version} is already up to date"
+        )
         return 0
 
     diff_text = _build_diff(old_content, new_content, source_path)
@@ -319,7 +390,9 @@ def _main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     _write_atomic(source_path, new_content)
-    _stdout(f"[update] updated spotify-spotx to {source.spotify.version} ({source.spotx.rev})")
+    _stdout(
+        f"[update] updated spotify-spotx to {source.spotify.version} ({source.spotx.rev})"
+    )
     return 0
 
 

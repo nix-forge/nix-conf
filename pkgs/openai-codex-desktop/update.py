@@ -1,4 +1,4 @@
-"""Update ``codex-app`` from OpenAI's macOS appcast."""
+"""Update ``openai-codex-desktop`` from OpenAI's macOS appcast."""
 
 from __future__ import annotations
 
@@ -30,17 +30,36 @@ if TYPE_CHECKING:
 APPCAST_URL: Final = "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
 EXPECTED_HOST: Final = "persistent.oaistatic.com"
 EXPECTED_PATH_PATTERN: Final = re.compile(
-    r"^/codex-app-prod/Codex-darwin-arm64-(.+)\.zip$"
+    r"^/codex-app-prod/([A-Za-z][A-Za-z0-9_-]*)-darwin-arm64-([0-9][0-9A-Za-z._-]*)\.zip$"
 )
+EXPECTED_ARCHIVE_NAMES: Final = frozenset({"ChatGPT", "Codex"})
 SPARKLE_NAMESPACE: Final = {
     "sparkle": "http://www.andymatuschak.org/xml-namespaces/sparkle"
 }
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
+SOURCE_PATTERN: Final = re.compile(
+    r"\A\{\n"
+    r'  version = "([^"]+)";\n'
+    r'  appName = "([^"]+)";\n'
+    r"  src = \{\n"
+    r'    url = "([^"]+)";\n'
+    r'    hash = "sha256-[A-Za-z0-9+/=]+";\n'
+    r"  \};\n"
+    r"\}\n\Z"
+)
+
+
+@dataclass(frozen=True)
+class _Release:
+    version: str
+    app_name: str
+    url: str
 
 
 @dataclass(frozen=True)
 class _UpstreamState:
     version: str
+    app_name: str
     url: str
     hash_sri: str
 
@@ -117,7 +136,36 @@ def _prefetch_hash(url: str) -> str:
     return hash_value
 
 
-def _discover_upstream() -> _UpstreamState:
+def validate_download_url(version: str, url: str) -> str:
+    """Validate the full-arm64 archive URL.
+
+    Returns:
+        The expected application bundle and executable name.
+
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme != "https":
+        _fail(f"Codex download URL must use HTTPS: {url}")
+    if parsed_url.netloc != EXPECTED_HOST:
+        _fail(f"unexpected Codex download host: {parsed_url.netloc!r}")
+
+    match = EXPECTED_PATH_PATTERN.fullmatch(parsed_url.path)
+    if match is None:
+        _fail(f"unexpected Codex archive path format: {parsed_url.path!r}")
+
+    archive_name, version_from_path = match.groups()
+    if archive_name not in EXPECTED_ARCHIVE_NAMES:
+        _fail(f"unexpected Codex archive name: {archive_name!r}")
+    if version_from_path != version:
+        _fail(
+            "Codex appcast version does not match archive path version: "
+            f"{version!r} != {version_from_path!r}",
+        )
+
+    return archive_name
+
+
+def _discover_release() -> _Release:
     root = _fetch_xml(APPCAST_URL, label="Codex appcast")
     item = root.find("./channel/item")
     if item is None:
@@ -140,30 +188,48 @@ def _discover_upstream() -> _UpstreamState:
     if not isinstance(url, str) or not url:
         _fail("latest Codex appcast item is missing an enclosure URL")
 
-    parsed_url = urlparse(url)
-    if parsed_url.scheme != "https":
-        _fail(f"Codex download URL must use HTTPS: {url}")
-    if parsed_url.netloc != EXPECTED_HOST:
-        _fail(f"unexpected Codex download host: {parsed_url.netloc!r}")
+    app_name = validate_download_url(version, url)
 
-    match = EXPECTED_PATH_PATTERN.fullmatch(parsed_url.path)
+    return _Release(
+        version=version,
+        app_name=app_name,
+        url=url,
+    )
+
+
+def _fetch_upstream(release: _Release) -> _UpstreamState:
+    return _UpstreamState(
+        version=release.version,
+        app_name=release.app_name,
+        url=release.url,
+        hash_sri=_prefetch_hash(release.url),
+    )
+
+
+def _source_matches_release(content: str, release: _Release) -> bool:
+    """Return whether generated source metadata already pins this release.
+
+    Returns:
+        Whether the source is in the expected form and matches the release.
+
+    """
+    match = SOURCE_PATTERN.fullmatch(content)
     if match is None:
-        _fail(f"unexpected Codex archive path format: {parsed_url.path!r}")
+        return False
 
-    version_from_path = match.group(1)
-    if version_from_path != version:
-        _fail(
-            "Codex appcast version does not match archive path version: "
-            f"{version!r} != {version_from_path!r}",
-        )
-
-    return _UpstreamState(version=version, url=url, hash_sri=_prefetch_hash(url))
+    version, app_name, url = match.group(1, 2, 3)
+    return (version, app_name, url) == (
+        release.version,
+        release.app_name,
+        release.url,
+    )
 
 
 def _render_source(upstream: _UpstreamState) -> str:
     return (
         "{\n"
         f'  version = "{upstream.version}";\n'
+        f'  appName = "{upstream.app_name}";\n'
         "  src = {\n"
         f'    url = "{upstream.url}";\n'
         f'    hash = "{upstream.hash_sri}";\n'
@@ -206,6 +272,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="exit non-zero when updates are available",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="re-download and re-hash the archive even when release metadata is unchanged",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -214,11 +285,12 @@ def _main(argv: Sequence[str] | None = None) -> int:
     source_path = Path(__file__).with_name("source.nix")
 
     old_content = source_path.read_text(encoding="utf-8")
-    new_content = _render_source(_discover_upstream())
-
-    if new_content == old_content:
-        _stdout("[update] codex-app is already up to date")
+    release = _discover_release()
+    if not args.refresh and _source_matches_release(old_content, release):
+        _stdout("[update] openai-codex-desktop is already up to date")
         return 0
+
+    new_content = _render_source(_fetch_upstream(release))
 
     diff_text = _build_diff(old_content, new_content, source_path)
     if diff_text:
@@ -231,7 +303,7 @@ def _main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     _write_atomic(source_path, new_content)
-    _stdout("[update] updated codex-app")
+    _stdout("[update] updated openai-codex-desktop")
     return 0
 
 

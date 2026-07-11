@@ -35,6 +35,21 @@ EXPECTED_ZIP_PATTERN: Final = re.compile(
     r"^/releases/darwin/universal/([^/]+)/Claude-([0-9a-f]+)\.zip$"
 )
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
+SOURCE_PATTERN: Final = re.compile(
+    r"\A\{\n"
+    r'  version = "([^"]+)";\n'
+    r"  src = \{\n"
+    r'    url = "([^"]+)";\n'
+    r'    hash = "sha256-[A-Za-z0-9+/=]+";\n'
+    r"  \};\n"
+    r"\}\n\Z"
+)
+
+
+@dataclass(frozen=True)
+class _Release:
+    version: str
+    url: str
 
 
 @dataclass(frozen=True)
@@ -163,13 +178,36 @@ def _validate_download_url(version: str, url: str) -> None:
         )
 
 
-def _discover_upstream() -> _UpstreamState:
+def _discover_release() -> _Release:
     version, url = _extract_latest_release(
         _fetch_json(RELEASES_URL, label="Claude releases feed"),
     )
 
     _validate_download_url(version, url)
-    return _UpstreamState(version=version, url=url, hash_sri=_prefetch_hash(url))
+    return _Release(version=version, url=url)
+
+
+def _fetch_upstream(release: _Release) -> _UpstreamState:
+    return _UpstreamState(
+        version=release.version,
+        url=release.url,
+        hash_sri=_prefetch_hash(release.url),
+    )
+
+
+def _source_matches_release(content: str, release: _Release) -> bool:
+    """Return whether generated source metadata already pins this release.
+
+    Returns:
+        Whether the source is in the expected form and matches the release.
+
+    """
+    match = SOURCE_PATTERN.fullmatch(content)
+    if match is None:
+        return False
+
+    version, url = match.group(1, 2)
+    return (version, url) == (release.version, release.url)
 
 
 def _render_source(upstream: _UpstreamState) -> str:
@@ -218,6 +256,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="exit non-zero when updates are available",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="re-download and re-hash the archive even when release metadata is unchanged",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -226,11 +269,12 @@ def _main(argv: Sequence[str] | None = None) -> int:
     source_path = Path(__file__).with_name("source.nix")
 
     old_content = source_path.read_text(encoding="utf-8")
-    new_content = _render_source(_discover_upstream())
-
-    if new_content == old_content:
+    release = _discover_release()
+    if not args.refresh and _source_matches_release(old_content, release):
         _stdout("[update] claude-desktop is already up to date")
         return 0
+
+    new_content = _render_source(_fetch_upstream(release))
 
     diff_text = _build_diff(old_content, new_content, source_path)
     if diff_text:

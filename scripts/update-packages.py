@@ -22,6 +22,7 @@ class _PackageUpdater:
 
 def _stdout(message: str) -> None:
     sys.stdout.write(f"{message}\n")
+    sys.stdout.flush()
 
 
 def _stderr(message: str) -> None:

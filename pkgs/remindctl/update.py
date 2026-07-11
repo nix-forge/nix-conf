@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import difflib
+import hashlib
 import json
 import os
 import platform
 import re
-import shutil
 import struct
 import subprocess
 import sys
@@ -30,7 +31,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-RELEASE_API_URL: Final = "https://api.github.com/repos/openclaw/remindctl/releases/latest"
+RELEASE_API_URL: Final = (
+    "https://api.github.com/repos/openclaw/remindctl/releases/latest"
+)
 EXPECTED_ASSET_NAME: Final = "remindctl-macos.zip"
 EXPECTED_DOWNLOAD_HOST: Final = "github.com"
 EXPECTED_DOWNLOAD_PATH: Final = re.compile(
@@ -41,7 +44,10 @@ EXPECTED_SKILL_PATH: Final = re.compile(r"^/openclaw/remindctl/v([^/]+)/SKILL\.m
 VERSION_PATTERN: Final = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 HTTP_USER_AGENT: Final = "nix-conf-updater/1.0 (+https://github.com/NixOS/nixpkgs)"
 MACHO_64_MAGIC: Final = b"\xcf\xfa\xed\xfe"
+MACHO_FAT_MAGIC: Final = b"\xca\xfe\xba\xbe"
 MACHO_HEADER_PREFIX_SIZE: Final = 8
+MACHO_FAT_ARCH_SIZE: Final = 20
+MAX_MACHO_FAT_ARCHITECTURES: Final = 32
 CPU_TYPE_ARM64: Final = 0x0100000C
 
 
@@ -103,15 +109,9 @@ def _fetch_text(url: str, *, label: str, timeout: int = 30) -> str:
         _fail(f"failed to decode {label} from {url}: {exc}")
 
 
-def _get_binary(name: str) -> str:
-    binary = shutil.which(name)
-    if isinstance(binary, str):
-        return binary
-
-    _fail(f"`{name}` executable not found in PATH")
-
-
-def _run_checked(args: list[str], *, error_message: str) -> subprocess.CompletedProcess[str]:
+def _run_checked(
+    args: list[str], *, error_message: str
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
         args,
         capture_output=True,
@@ -122,34 +122,6 @@ def _run_checked(args: list[str], *, error_message: str) -> subprocess.Completed
         detail = completed.stderr.strip() or completed.stdout.strip() or "(no output)"
         _fail(f"{error_message}:\n{detail}")
     return completed
-
-
-def _prefetch_hash(url: str, *, label: str) -> str:
-    completed = _run_checked(
-        [
-            _get_binary("nix"),
-            "store",
-            "prefetch-file",
-            "--json",
-            "--hash-type",
-            "sha256",
-            url,
-        ],
-        error_message=f"failed to prefetch {label}",
-    )
-
-    try:
-        data = json.loads(completed.stdout)
-    except json.JSONDecodeError as exc:
-        _fail(f"failed to parse nix prefetch JSON output: {exc}")
-
-    hash_value = data.get("hash")
-    if not isinstance(hash_value, str):
-        _fail("nix prefetch JSON did not include a string `hash` field")
-    if not re.fullmatch(r"sha256-[A-Za-z0-9+/=]+", hash_value):
-        _fail(f"nix prefetch returned an unexpected hash format: {hash_value!r}")
-
-    return hash_value
 
 
 def _extract_asset_url(assets: object) -> str:
@@ -253,19 +225,55 @@ def _download_file(url: str, destination: Path, *, timeout: int = 60) -> None:
         _fail(f"failed to download remindctl release archive from {url}: {exc}")
 
 
-def _validate_arm64_macho(binary_path: Path) -> None:
+def _validate_macho_contains_arm64(binary_path: Path) -> None:
     with binary_path.open("rb") as binary_file:
         header = binary_file.read(MACHO_HEADER_PREFIX_SIZE)
 
-    if len(header) != MACHO_HEADER_PREFIX_SIZE or header[:4] != MACHO_64_MAGIC:
-        _fail("remindctl release binary is not a thin little-endian 64-bit Mach-O")
+        if len(header) != MACHO_HEADER_PREFIX_SIZE:
+            _fail("remindctl release binary is too short to be a Mach-O executable")
 
-    cpu_type = struct.unpack("<I", header[4:])[0]
-    if cpu_type != CPU_TYPE_ARM64:
-        _fail("remindctl release binary is not arm64")
+        if header[:4] == MACHO_64_MAGIC:
+            cpu_type = struct.unpack("<I", header[4:])[0]
+            if cpu_type == CPU_TYPE_ARM64:
+                return
+            _fail("remindctl release binary is a thin Mach-O without arm64 support")
+
+        if header[:4] != MACHO_FAT_MAGIC:
+            _fail("remindctl release binary is not a Mach-O executable")
+
+        architecture_count = struct.unpack(">I", header[4:])[0]
+        if not 1 <= architecture_count <= MAX_MACHO_FAT_ARCHITECTURES:
+            _fail("remindctl release binary has an invalid Mach-O architecture count")
+
+        architectures = binary_file.read(architecture_count * MACHO_FAT_ARCH_SIZE)
+
+    if len(architectures) != architecture_count * MACHO_FAT_ARCH_SIZE:
+        _fail("remindctl release binary has a truncated Mach-O architecture table")
+
+    cpu_types = {
+        struct.unpack_from(">I", architectures, index * MACHO_FAT_ARCH_SIZE)[0]
+        for index in range(architecture_count)
+    }
+    if CPU_TYPE_ARM64 not in cpu_types:
+        _fail("remindctl release binary does not include an arm64 slice")
 
 
-def _validate_archive(version: str, url: str) -> None:
+def _hash_file_sha256_sri(path: Path) -> str:
+    """Return an SRI SHA-256 hash for an already-downloaded archive.
+
+    Returns:
+        The SHA-256 digest encoded in Nix's SRI format.
+
+    """
+    digest = hashlib.sha256()
+    with path.open("rb") as archive:
+        while chunk := archive.read(1024 * 1024):
+            digest.update(chunk)
+
+    return f"sha256-{base64.b64encode(digest.digest()).decode('ascii')}"
+
+
+def _validate_archive(version: str, url: str) -> str:
     if sys.platform != "darwin" or platform.machine() != "arm64":
         _fail("remindctl release validation requires an arm64 Darwin host")
 
@@ -277,14 +285,16 @@ def _validate_archive(version: str, url: str) -> None:
 
         try:
             with zipfile.ZipFile(archive_path) as archive:
-                members = [member for member in archive.infolist() if not member.is_dir()]
+                members = [
+                    member for member in archive.infolist() if not member.is_dir()
+                ]
                 if len(members) != 1 or members[0].filename != "remindctl":
                     _fail("remindctl release archive must contain only `remindctl`")
                 binary_path.write_bytes(archive.read(members[0]))
         except zipfile.BadZipFile as exc:
             _fail(f"failed to read remindctl release archive: {exc}")
 
-        _validate_arm64_macho(binary_path)
+        _validate_macho_contains_arm64(binary_path)
         binary_path.chmod(0o755)
         completed = _run_checked(
             [str(binary_path), "--version"],
@@ -297,19 +307,20 @@ def _validate_archive(version: str, url: str) -> None:
                 f"{reported_version!r} != {version!r}",
             )
 
+        return _hash_file_sha256_sri(archive_path)
+
 
 def _discover_upstream() -> _UpstreamState:
     version, url = _extract_release(
         _fetch_json(RELEASE_API_URL, label="remindctl latest GitHub release"),
     )
     _validate_download_url(version, url)
-    _validate_archive(version, url)
     agent_skill_url = _agent_skill_url(version)
     _validate_agent_skill_url(version, agent_skill_url)
     return _UpstreamState(
         version=version,
         url=url,
-        hash_sri=_prefetch_hash(url, label="release archive"),
+        hash_sri=_validate_archive(version, url),
         agent_skill_content=_validate_agent_skill(
             _fetch_text(agent_skill_url, label="remindctl agent skill"),
         ),

@@ -37,6 +37,7 @@
     ## Programs
     server-ssh
     mpv
+    spotify
     libreoffice
     { programs.libreoffice.enable = true; }
     helium-browser

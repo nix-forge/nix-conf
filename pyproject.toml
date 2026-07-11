@@ -60,7 +60,7 @@ strict = true
   "S603", # Command args are constrained to a fixed nix invocation and feed URL.
   "S310", # URL opening is limited to validated HTTPS release feed URLs.
 ]
-"pkgs/codex-app/update.py" = [
+"pkgs/openai-codex-desktop/update.py" = [
   "S404", # Uses subprocess intentionally to call nix store prefetch-file.
   "S603", # Command args are constrained to a fixed nix invocation and appcast URL.
   "S310", # URL opening is limited to validated HTTPS appcast URLs.
