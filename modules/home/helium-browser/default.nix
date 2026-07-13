@@ -44,10 +44,7 @@ let
       });
 in
 {
-  imports =
-    lib.optionals isLinux [ inputs.helium-browser.homeModules.default ]
-    ++ lib.optionals (isLinux || isDarwin) [ ./flags.nix ];
-
+  imports = [ ./flags.nix ] ++ lib.optionals isLinux [ inputs.helium-browser.homeModules.default ];
 }
 // lib.optionalAttrs isDarwin {
   options.programs.helium = {
