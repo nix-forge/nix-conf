@@ -19,21 +19,9 @@ let
       '';
     });
   };
-
-  #   darwinOpenSslTestOverlay = final: prev: {
-  #     openssl = prev.openssl.overrideAttrs (old: {
-  #       postPatch =
-  #         (old.postPatch or "")
-  #         + final.lib.optionalString final.stdenv.hostPlatform.isDarwin ''
-  #           rm -f test/recipes/70-test_sslmessages.t
-  #         '';
-  #     });
-  #   };
 in
 {
   system = "aarch64-darwin";
-  # darwinSdkVersion = "15.5";
-  # darwinMinVersion = "15.4";
   hostName = "Ian-MBP";
 
   secrets = {
@@ -45,6 +33,7 @@ in
     overlays = [ actualServerCaseFixOverlay ];
     config = {
       allowUnfree = true;
+      permittedInsecurePackages = [ "electron-40.10.5" ];
     };
   };
 

@@ -33,6 +33,10 @@ in
         /usr/bin/xattr -cr "$spotifyApp" 2>/dev/null || true
         /usr/bin/codesign --force --deep --options runtime --entitlements "${spotifyEntitlements}" --sign - "$spotifyApp"
         /usr/bin/codesign --verify --deep --strict --verbose=2 "$spotifyApp"
+
+        # Re-register the copied bundle so Dock and bundle-ID launches do not
+        # resolve a stale Spotify app that Spicetify created in a build temp dir.
+        /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$spotifyApp"
       fi
     ''
   );
@@ -90,8 +94,8 @@ in
     inherit spotifyPackage;
     inherit spicetifyPackage;
 
-    theme = lib.mkForce spicePkgs.themes.comfy;
-    colorScheme = lib.mkForce "Spotify";
+    theme = lib.mkForce spicePkgs.themes.default;
+    colorScheme = lib.mkForce "Base";
 
     enabledExtensions = with spicePkgs.extensions; [
       adblock
