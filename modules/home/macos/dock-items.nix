@@ -172,6 +172,13 @@ let
   renderCommandFns =
     fns: lib.concatStringsSep "\n" (map (fn: fn true) (lib.init fns) ++ [ (lib.last fns false) ]);
 
+  # Validate everything before touching the Dock.  Without this preflight,
+  # an unavailable app can leave the Dock half-rebuilt after `--remove all`.
+  validateTargets = lib.concatStringsSep "\n" (
+    (map (item: lib.optionalString (!(item ? spacer)) (validateApp item)) cfg.persistentApps)
+    ++ (map (item: validateFolder item.folder) cfg.persistentOthers)
+  );
+
   taggedAppType = lib.types.attrTag {
     hmApp = lib.mkOption {
       type = lib.types.str;
@@ -321,6 +328,7 @@ in
       # otherwise only run if the configuration hash has changed.
       if [ "$old_hash" != "$new_hash" ] || [ -n "''${DRY_RUN:-}" ]; then
         verboseEcho "setting up Dock items..."
+        ${validateTargets}
         ${renderCommandFns commandFns}
 
         # Save the new hash only if it's not a dry run

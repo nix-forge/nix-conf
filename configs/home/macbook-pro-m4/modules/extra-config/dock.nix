@@ -5,7 +5,7 @@
     persistentApps = [
       { hmApp = "Ghostty"; }
       { hmApp = "Visual Studio Code"; }
-      { hmApp = "Codex"; }
+      { hmApp = "ChatGPT"; }
 
       { spacer.small = true; }
 
@@ -29,7 +29,7 @@
       { app = "/System/Applications/Calendar.app"; }
       { app = "/System/Applications/Reminders.app"; }
       { app = "/System/Applications/Notes.app"; }
-      { hmApp = "Notion"; }
+      # { hmApp = "Notion"; }
       { app = "/System/Applications/Preview.app"; }
 
       { spacer.small = true; }
