@@ -133,6 +133,14 @@ in
           };
           "yaml.format.printWidth" = 80;
           "yaml.format.proseWrap" = "always";
+          "yaml.disableSchemaDetection" = [
+            "**/.github/workflows/*.yml"
+            "**/.github/workflows/*.yaml"
+            "**/.gitea/workflows/*.yml"
+            "**/.gitea/workflows/*.yaml"
+            "**/.forgejo/workflows/*.yml"
+            "**/.forgejo/workflows/*.yaml"
+          ];
           "[json]" = {
             "editor.tabSize" = 2;
             "editor.defaultFormatter" = "vscode.json-language-features";
