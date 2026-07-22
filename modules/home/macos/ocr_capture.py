@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 import os
 import re
-import subprocess  # noqa: S404
+import subprocess  # ruff:ignore[suspicious-subprocess-import]
 import sys
 import tempfile
 import unicodedata
@@ -60,7 +60,7 @@ def _notify(title: str, body: str) -> None:
         'display notification (system attribute "HM_OCR_BODY") '
         'with title (system attribute "HM_OCR_TITLE")'
     )
-    subprocess.run(  # noqa: S603
+    subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
         ["/usr/bin/osascript", "-e", script],
         check=False,
         env=env,
@@ -77,7 +77,7 @@ def _fail(message: str, *, details: str | None = None) -> int:
 
 
 def _run_capture(image_path: Path) -> bool:
-    proc = subprocess.run(  # noqa: S603
+    proc = subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
         ["/usr/sbin/screencapture", "-i", "-s", "-x", str(image_path)],
         capture_output=True,
         text=True,
@@ -109,7 +109,7 @@ def _ensure_swift() -> None:
 
 def _run_ocr(image_path: Path) -> str:
     _ensure_swift()
-    proc = subprocess.run(  # noqa: S603
+    proc = subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
         ["/usr/bin/xcrun", "swift", SWIFT_SOURCE, str(image_path)],
         capture_output=True,
         text=True,

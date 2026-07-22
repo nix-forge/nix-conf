@@ -1,0 +1,8 @@
+[submodule "pkgs"]
+	path = pkgs
+	url = https://github.com/IanHollow/nixpkgs-personal.git
+	branch = main
+[submodule "nix-config-framework"]
+	path = nix-config-framework
+	url = https://github.com/IanHollow/nix-config-framework.git
+	branch = main

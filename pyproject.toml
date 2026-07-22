@@ -8,20 +8,20 @@ future-annotations = true
 select = ["ALL"]
 ignore = [
   # Ruff Formatter Ignores
-  "W191",   # tab-indentation
-  "E111",   # indentation-with-invalid-multiple
-  "E114",   # indentation-with-invalid-multiple-comment
-  "E117",   # over-indented
-  "D206",   # docstring-tab-indentation
-  "D300",   # triple-single-quotes
-  "Q000",   # bad-quotes-inline-string
-  "Q001",   # bad-quotes-multiline-string
-  "Q002",   # bad-quotes-docstring
-  "Q003",   # avoidable-escaped-quote
-  "COM812", # missing-trailing-comma
-  "COM819", # prohibited-trailing-comma
-  "ISC002", # multi-line-implicit-string-concatenation, ignore if used without ISC001 and flake8-implicit-str-concat.allow-multiline = false
-  "E501",   # line-too-long
+  "tab-indentation",   # tab-indentation
+  "indentation-with-invalid-multiple",   # indentation-with-invalid-multiple
+  "indentation-with-invalid-multiple-comment",   # indentation-with-invalid-multiple-comment
+  "over-indented",   # over-indented
+  "docstring-tab-indentation",   # docstring-tab-indentation
+  "triple-single-quotes",   # triple-single-quotes
+  "bad-quotes-inline-string",   # bad-quotes-inline-string
+  "bad-quotes-multiline-string",   # bad-quotes-multiline-string
+  "bad-quotes-docstring",   # bad-quotes-docstring
+  "avoidable-escaped-quote",   # avoidable-escaped-quote
+  "missing-trailing-comma", # missing-trailing-comma
+  "prohibited-trailing-comma", # prohibited-trailing-comma
+  "multi-line-implicit-string-concatenation", # multi-line-implicit-string-concatenation, ignore if used without ISC001 and flake8-implicit-str-concat.allow-multiline = false
+  "line-too-long",   # line-too-long
 
   # Copyright
   "CPY",
@@ -30,11 +30,11 @@ ignore = [
   "FBT",
 
   # No need for init files
-  "INP001",
+  "implicit-namespace-package",
 
   # Documentation
-  "D203", # 1 blank line before class docstring
-  "D213", # multi-line-summary-first-line
+  "incorrect-blank-line-before-class", # 1 blank line before class docstring
+  "multi-line-summary-second-line", # multi-line-summary-first-line
 ]
 
 [tool.ruff.lint.flake8-bandit]
@@ -56,45 +56,53 @@ strict = true
 
 [tool.ruff.lint.per-file-ignores]
 "pkgs/claude-desktop/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
-  "S603", # Command args are constrained to a fixed nix invocation and feed URL.
-  "S310", # URL opening is limited to validated HTTPS release feed URLs.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and feed URL.
+  "suspicious-url-open-usage", # URL opening is limited to validated HTTPS release feed URLs.
 ]
 "pkgs/openai-codex-desktop/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
-  "S603", # Command args are constrained to a fixed nix invocation and appcast URL.
-  "S310", # URL opening is limited to validated HTTPS appcast URLs.
-  "S405", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
-  "S314", # The appcast is a fixed upstream document parsed without entity expansion.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and appcast URL.
+  "suspicious-url-open-usage", # URL opening is limited to validated HTTPS appcast URLs.
+  "suspicious-xml-etree-import", # xml.etree is sufficient for a trusted upstream Sparkle appcast.
+  "suspicious-xml-element-tree-usage", # The appcast is a fixed upstream document parsed without entity expansion.
 ]
 "pkgs/microsoft-teams/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
-  "S603", # Command args are constrained to a fixed nix invocation and validated CDN URL.
-  "S310", # URL opening is limited to the validated HTTPS Teams production config.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and validated CDN URL.
+  "suspicious-url-open-usage", # URL opening is limited to the validated HTTPS Teams production config.
 ]
 "pkgs/remindctl/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix and validate the release binary.
-  "S603", # Command args are constrained to fixed nix and validated binary invocations.
-  "S310", # URL opening is limited to validated HTTPS GitHub release URLs.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix and validate the release binary.
+  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix and validated binary invocations.
+  "suspicious-url-open-usage", # URL opening is limited to validated HTTPS GitHub release URLs.
+]
+"pkgs/agent-skills-updater.py" = [
+  "invalid-module-name", # The hyphenated filename is executed as a script, not imported as a Python module.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and GitHub archive URL.
+  "start-process-with-partial-path", # nix is provided by the user environment for this local updater.
+  "suspicious-url-open-usage", # URL opening is limited to fixed HTTPS GitHub API endpoints.
+  "print", # This command-line updater reports its status and diffs on stdout.
 ]
 "pkgs/spotify-spotx/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix and git for upstream discovery.
-  "S603", # Command args are constrained to fixed nix/git invocations and validated refs.
-  "S310", # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix and git for upstream discovery.
+  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix/git invocations and validated refs.
+  "suspicious-url-open-usage", # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
 ]
 "pkgs/steam/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix/curl/unzip.
-  "S603", # Command args are constrained to fixed local binaries and a validated URL.
-  "S310", # URL fetching is limited to validated HTTPS Steam endpoints.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix/curl/unzip.
+  "subprocess-without-shell-equals-true", # Command args are constrained to fixed local binaries and a validated URL.
+  "suspicious-url-open-usage", # URL fetching is limited to validated HTTPS Steam endpoints.
 ]
 "pkgs/ttf-ms-win11-auto/update.py" = [
-  "S404", # Uses subprocess intentionally to call nix store prefetch-file.
-  "S603", # Command args are constrained to a fixed nix invocation and URL.
-  "S310", # URL opening is limited to HTTPS and user-overridable by design.
+  "suspicious-subprocess-import", # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and URL.
+  "suspicious-url-open-usage", # URL opening is limited to HTTPS and user-overridable by design.
 ]
 "scripts/update-packages.py" = [
-  "S404", # Uses subprocess intentionally in a local CLI orchestrator.
-  "S603", # Command args are constrained to local script paths and CLI flags.
+  "suspicious-subprocess-import", # Uses subprocess intentionally in a local CLI orchestrator.
+  "subprocess-without-shell-equals-true", # Command args are constrained to local script paths and CLI flags.
 ]
 
 [tool.ty.environment]

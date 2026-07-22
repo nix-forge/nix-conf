@@ -6,7 +6,7 @@ import argparse
 import json
 import os
 import shlex
-import subprocess  # noqa: S404
+import subprocess  # ruff:ignore[suspicious-subprocess-import]
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -76,7 +76,7 @@ def _repo_root() -> Path:
 def _run(
     command: Sequence[str], *, cwd: Path | None = None, input_bytes: bytes | None = None
 ) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(  # noqa: S603
+    return subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
         list(command),
         cwd=str(cwd) if cwd is not None else None,
         input=input_bytes,
@@ -438,7 +438,7 @@ def _cmd_edit(repo_root: Path, secret_id: str, cli_identities: Sequence[str]) ->
         tf.write(plaintext)
 
     try:
-        completed = subprocess.run([*editor, str(tmp_path)], check=False)  # noqa: S603
+        completed = subprocess.run([*editor, str(tmp_path)], check=False)  # ruff:ignore[subprocess-without-shell-equals-true]
         if completed.returncode != 0:
             message = f"editor exited with code {completed.returncode}"
             _fail(message)

@@ -1,1 +1,0 @@
-"""Local package updater support."""

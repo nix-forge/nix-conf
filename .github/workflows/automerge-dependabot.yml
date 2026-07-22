@@ -1,0 +1,16 @@
+name: Auto-merge Dependabot
+on: # zizmor: ignore[dangerous-triggers] This workflow neither checks out nor executes PR code.
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  enable:
+    if: github.event.pull_request.user.id == 49699333
+    runs-on: ubuntu-slim
+    steps:
+      - name: Enable squash auto-merge after CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --auto --squash

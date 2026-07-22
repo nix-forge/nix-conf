@@ -2,6 +2,8 @@
   config,
   lib,
   pkgs,
+  self,
+  system,
   ...
 }:
 let
@@ -144,11 +146,31 @@ let
     rev = "6628cbf7205fe5059209875f69d80c962064b360";
   };
 
-  openaiSkillsSrc = fetchGit {
-    url = "https://github.com/openai/skills.git";
-    ref = "main";
-    rev = "4c4058ebf44f6734e62c70ab4a81246d4d093fc8";
-  };
+  anthropicSkills = self.packages.${system}.anthropic-skills;
+  openaiSkills = self.packages.${system}.openai-skills;
+  skillPath = package: name: "${package}/share/agent-skills/${name}";
+  skillSet = package: names: lib.genAttrs names (name: skillPath package name);
+
+  anthropicOpenCodeSkills = [
+    "anthropic-brand-guidelines"
+    "anthropic-frontend-design"
+    "anthropic-internal-comms"
+    "anthropic-theme-factory"
+    "anthropic-web-artifacts-builder"
+    "anthropic-webapp-testing"
+  ];
+  openaiOpenCodeSkills = [
+    "openai-cli-creator"
+    "openai-define-goal"
+    "openai-gh-address-comments"
+    "openai-gh-fix-ci"
+    "openai-playwright"
+    "openai-playwright-interactive"
+    "openai-security-best-practices"
+    "openai-security-ownership-map"
+    "openai-security-threat-model"
+    "openai-yeet"
+  ];
 
   opencodeNotifierDarwinFallback = pkgs.writeShellScript "opencode-notifier-darwin-fallback" ''
     event="''${1:-}"
@@ -194,11 +216,9 @@ in
     enable = true;
     skills = {
       typst = "${typstSkillSrc}/skills/typst";
-      gh-address-comments = "${openaiSkillsSrc}/skills/.curated/gh-address-comments";
-      gh-fix-ci = "${openaiSkillsSrc}/skills/.curated/gh-fix-ci";
-      yeet = "${openaiSkillsSrc}/skills/.curated/yeet";
-      security-threat-model = "${openaiSkillsSrc}/skills/.curated/security-threat-model";
-    };
+    }
+    // skillSet anthropicSkills anthropicOpenCodeSkills
+    // skillSet openaiSkills openaiOpenCodeSkills;
     settings = {
       autoupdate = false;
       plugin = [

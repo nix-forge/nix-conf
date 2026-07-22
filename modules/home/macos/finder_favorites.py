@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess  # noqa: S404
+import subprocess  # ruff:ignore[suspicious-subprocess-import]
 from pathlib import Path
 from typing import Final, TypedDict
 
@@ -35,7 +35,7 @@ def _mysides_bin() -> str:
 
 
 def _run_mysides(*args: str, check: bool) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603
+    return subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
         [_mysides_bin(), *args],
         check=check,
         capture_output=True,

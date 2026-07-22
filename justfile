@@ -13,17 +13,12 @@ update input="":
     nix flake update {{ input }} --flake {{ flake }}
 
 [group('Flake')]
-os-update input="":
-    nix flake update {{ input }} --flake {{ flake }}/flake/nixos/
-
-[group('Flake')]
 dev-update input="":
     nix flake update {{ input }} --flake {{ flake }}/flake/dev/
 
 [group('Flake')]
 update-all:
     @just update
-    @just os-update
     @just dev-update
     @just update-packages
 
@@ -137,12 +132,22 @@ verify:
 clean *args:
     nh clean all {{ args }}
 
-# Run updater scripts for all local packages under pkgs/*/update.py
+# Run updater scripts from the nixpkgs-personal submodule
 [group('Maintenance')]
-update-packages *args:
-    nix run nixpkgs#python3 -- {{ flake }}/scripts/update-packages.py --all {{ args }}
+prepare-pkgs-branch:
+    @root_branch="$(git -C {{ flake }} branch --show-current)"; \
+        test -n "$root_branch" || { echo "error: the superproject must be on a branch" >&2; exit 1; }; \
+        if git -C {{ flake }}/pkgs show-ref --verify --quiet "refs/heads/$root_branch"; then \
+            git -C {{ flake }}/pkgs switch "$root_branch"; \
+        else \
+            git -C {{ flake }}/pkgs switch -c "$root_branch"; \
+        fi
+
+[group('Maintenance')]
+update-packages *args: prepare-pkgs-branch
+    nix develop {{ flake }}/pkgs -c python {{ flake }}/pkgs/scripts/update-packages.py --all {{ args }}
 
 # Run updater script for one local package (e.g. ttf-ms-win11-auto)
 [group('Maintenance')]
-update-package package *args:
-    nix run nixpkgs#python3 -- {{ flake }}/scripts/update-packages.py --package {{ package }} {{ args }}
+update-package package *args: prepare-pkgs-branch
+    nix develop {{ flake }}/pkgs -c python {{ flake }}/pkgs/scripts/update-packages.py --package {{ package }} {{ args }}

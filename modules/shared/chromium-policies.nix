@@ -1,30 +1,21 @@
 let
-  extensionUpdateUrl = "https://clients2.9oo91e.qjz9zk/service/update2/crx";
+  inherit (import ./helium-extensions.nix) extensionUpdateUrl heliumExtensions;
   heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
   heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
 
-  chromiumExtensions = {
-    # SponsorBlock for YouTube
-    mnjggcdmjocbbbhaepdhchncahnbgone = { };
-
-    # Bitwarden Password Manager
-    nngceckbapebfimnlniiiahkandclblb = { };
-
-    # Karakeep
-    kgcjekpmcjjogibpjebkhaanilehneje = { };
-
-    # Refined GitHub
-    hlepfoohegkhhmjieoechaddaejaokhf = { };
-  };
-
-  extensionIds = builtins.attrNames chromiumExtensions;
+  extensionIds = builtins.attrValues heliumExtensions;
 
   forceInstallForcelist = map (extensionId: "${extensionId};${extensionUpdateUrl}") extensionIds;
 
-  forceInstallExtensionSettings = builtins.mapAttrs (_: _: {
-    installation_mode = "force_installed";
-    update_url = extensionUpdateUrl;
-  }) chromiumExtensions;
+  forceInstallExtensionSettings = builtins.listToAttrs (
+    map (extensionId: {
+      name = extensionId;
+      value = {
+        installation_mode = "force_installed";
+        update_url = extensionUpdateUrl;
+      };
+    }) extensionIds
+  );
 
   toUblockPairList =
     attrs:
@@ -237,6 +228,9 @@ let
   heliumPolicies = {
     BrowserSignin = 0;
     SyncDisabled = true;
+    BrowserAddPersonEnabled = false;
+    BrowserGuestModeEnabled = false;
+    ProfilePickerOnStartupAvailability = 1;
 
     UrlKeyedAnonymizedDataCollectionEnabled = false;
     SearchSuggestEnabled = false;
@@ -330,19 +324,6 @@ let
               '';
             };
 
-            darwinExternalExtensionDirs = mkOption {
-              type = types.listOf types.str;
-              default = [ ];
-              example = [
-                "/Library/Application Support/Chromium/External Extensions"
-                "/Library/Application Support/net.imput.helium/External Extensions"
-              ];
-              description = ''
-                macOS external extension directories where JSON install hints
-                should be written for this browser.
-              '';
-            };
-
             policies = mkOption {
               type = types.attrs;
               default = { };
@@ -379,6 +360,7 @@ let
 
       darwinTargets = filterAttrs (_: target: target.darwinBundleId != null) enabledTargets;
       plistFormat = pkgs.formats.plist { };
+      darwinPolicyDirectory = "/Library/Preferences";
       darwinPolicyPlists = mapAttrs' (
         name: target:
         nameValuePair name {
@@ -393,79 +375,67 @@ let
         ) enabledTargets
       );
 
-      darwinExtensionPolicyPlists = concatMap (
-        target:
-        mapAttrsToList (extensionId: extensionPolicy: {
-          bundleId = "${target.darwinExtensionPolicyBundlePrefix}.${extensionId}";
-          source = plistFormat.generate "${target.darwinExtensionPolicyBundlePrefix}.${extensionId}.plist" extensionPolicy;
-        }) target.extensionPolicies
-      ) darwinExtensionPolicyTargets;
-
-      darwinExtensionPolicyBundleIds = map (target: target.bundleId) darwinExtensionPolicyPlists;
-
-      darwinExternalExtensionTargets = attrValues (
-        filterAttrs (
-          _: target: target.darwinExternalExtensionDirs != [ ] && (browserPolicies target) ? ExtensionSettings
-        ) enabledTargets
-      );
-
-      darwinExternalExtensionFiles = concatMap (
-        target:
-        concatMap (
-          directory:
-          mapAttrsToList (extensionId: extensionSettings: {
-            inherit directory extensionId;
-            source = pkgs.writeText "${extensionId}.json" (
-              builtins.toJSON { external_update_url = extensionSettings.update_url; }
-            );
-          }) (browserPolicies target).ExtensionSettings
-        ) target.darwinExternalExtensionDirs
-      ) darwinExternalExtensionTargets;
-
-      darwinExternalExtensionDirs = builtins.attrNames (
-        builtins.listToAttrs (
-          map (file: {
-            name = file.directory;
-            value = true;
-          }) darwinExternalExtensionFiles
-        )
-      );
+      # Extension managed storage is only read from macOS MCX preferences. A
+      # regular plist under /Library/Preferences is enough for browser policy,
+      # but uBlock never receives it through chrome.storage.managed.
+      darwinExtensionManagedPreferences =
+        plistFormat.generate "chromium-extension-managed-preferences.plist"
+          (
+            listToAttrs (
+              concatMap (
+                target:
+                mapAttrsToList (extensionId: extensionPolicy: {
+                  name = "${target.darwinExtensionPolicyBundlePrefix}.${extensionId}";
+                  value = lib.mapAttrs (_: value: {
+                    state = "always";
+                    inherit value;
+                  }) extensionPolicy;
+                }) target.extensionPolicies
+              ) darwinExtensionPolicyTargets
+            )
+          );
 
       darwinExtensionPolicyCleanup = concatMapStringsSep "\n" (target: ''
-        for oldPolicy in "/Library/Managed Preferences/${target.darwinExtensionPolicyBundlePrefix}".*.plist; do
-          [ -e "$oldPolicy" ] || continue
-          case "$oldPolicy" in
-        ${concatMapStringsSep "\n" (
-          bundleId: ''"/Library/Managed Preferences/${bundleId}.plist") ;;''
-        ) darwinExtensionPolicyBundleIds}
-            *) rm -f "$oldPolicy" ;;
-          esac
-        done
+        rm -f "${darwinPolicyDirectory}/${target.darwinExtensionPolicyBundlePrefix}".*.plist
       '') darwinExtensionPolicyTargets;
 
-      darwinExternalExtensionCleanup = concatMapStringsSep "\n" (directory: ''
-        for oldExtension in "${directory}"/*.json; do
-          [ -e "$oldExtension" ] || continue
-          case "$oldExtension" in
-        ${concatMapStringsSep "\n" (
-          file: ''"${file.directory}/${file.extensionId}.json") ;;''
-        ) darwinExternalExtensionFiles}
-            *) rm -f "$oldExtension" ;;
-          esac
-        done
-      '') darwinExternalExtensionDirs;
+      # Chromium does not retain arbitrary files written directly to
+      # /Library/Managed Preferences on current macOS releases. Clear the
+      # previous best-effort files as policies now live in /Library/Preferences.
+      darwinLegacyManagedPolicyCleanup = concatMapStringsSep "\n" (target: ''
+        rm -f "/Library/Managed Preferences/${target.darwinBundleId}.plist"
+        ${lib.optionalString (target.darwinExtensionPolicyBundlePrefix != null) ''
+          rm -f "/Library/Managed Preferences/${target.darwinExtensionPolicyBundlePrefix}".*.plist
+        ''}
+      '') (attrValues darwinTargets);
+
+      # Migrate away from the external-extension discovery files used before
+      # force-install policy support. Keep the cleanup narrowly scoped to the
+      # extension IDs this module owns.
+      darwinLegacyExternalExtensionCleanup =
+        concatMapStringsSep "\n"
+          (
+            directory:
+            concatMapStringsSep "\n" (extensionId: ''
+              rm -f "${directory}/${extensionId}.json"
+            '') extensionIds
+          )
+          [
+            "/Library/Application Support/Chromium/External Extensions"
+            "/Library/Application Support/net.imput.helium/External Extensions"
+          ];
 
       darwinActivation = concatMapStringsSep "\n" (target: ''
-        install -m 0644 ${target.source} "/Library/Managed Preferences/${target.bundleId}.plist"
-        chown root:wheel "/Library/Managed Preferences/${target.bundleId}.plist"
-      '') (attrValues darwinPolicyPlists ++ darwinExtensionPolicyPlists);
+        install -m 0644 ${target.source} "${darwinPolicyDirectory}/${target.bundleId}.plist"
+        chown root:wheel "${darwinPolicyDirectory}/${target.bundleId}.plist"
+      '') (attrValues darwinPolicyPlists);
 
-      darwinExternalExtensionActivation = concatMapStringsSep "\n" (target: ''
-        install -d -m 0755 "${target.directory}"
-        chown root:wheel "${target.directory}"
-        install -m 0644 ${target.source} "${target.directory}/${target.extensionId}.json"
-        chown root:wheel "${target.directory}/${target.extensionId}.json"
-      '') darwinExternalExtensionFiles;
+      darwinExtensionManagedPreferencesActivation =
+        lib.optionalString (darwinExtensionPolicyTargets != [ ])
+          ''
+            /usr/bin/dscl /Local/Default -mcximport /Computers/localhost ${darwinExtensionManagedPreferences}
+            /usr/bin/mcxrefresh -n ${lib.escapeShellArg config.system.primaryUser} || true
+          '';
     in
     {
       options.programs.chromiumPolicies = {
@@ -497,16 +467,6 @@ let
               ];
               darwinBundleId = "net.imput.helium";
               darwinExtensionPolicyBundlePrefix = "net.imput.helium.extensions";
-              darwinExternalExtensionDirs = [
-                # Chromium's macOS external-extension provider keys off
-                # CrProductDirName. Helium omits that Info.plist key, so an
-                # unbranded Chromium build falls back to this product dir.
-                "/Library/Application Support/Chromium/External Extensions"
-                # Helium uses this bundle-id directory for its user data and
-                # managed preference domain, so keep a matching install hint
-                # here too in case upstream adds CrProductDirName later.
-                "/Library/Application Support/net.imput.helium/External Extensions"
-              ];
               extensionPolicies = chromiumExtensionPolicies;
             };
           };
@@ -514,11 +474,12 @@ let
         (mkIf (cfg.enable && isLinux) { environment.etc = nixosEtcEntries; })
         (mkIf (cfg.enable && isDarwin && darwinPolicyPlists != { }) {
           system.activationScripts.extraActivation.text = lib.mkAfter ''
-            install -d -m 0755 "/Library/Managed Preferences"
+            install -d -m 0755 "${darwinPolicyDirectory}"
+            ${darwinLegacyManagedPolicyCleanup}
+            ${darwinLegacyExternalExtensionCleanup}
             ${darwinExtensionPolicyCleanup}
             ${darwinActivation}
-            ${darwinExternalExtensionCleanup}
-            ${darwinExternalExtensionActivation}
+            ${darwinExtensionManagedPreferencesActivation}
             killall cfprefsd 2>/dev/null || true
           '';
         })

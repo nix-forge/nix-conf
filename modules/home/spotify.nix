@@ -12,9 +12,9 @@ let
 
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
   awkExe = lib.getExe pkgs.gawk;
-  spicetifyPackage = self.packages.${system}.spicetify-cli-fixed;
+  spicetifyPackage = pkgs.spicetify-cli;
   spotifyPackage = if isDarwin then self.packages.${system}.spotify-spotx else pkgs.spotify;
-  spotifyEntitlements = ../../pkgs/spotify-spotx/entitlements.plist;
+  spotifyEntitlements = if isDarwin then spotifyPackage.passthru.entitlements else null;
   spotifyDarwinInstallDir = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   spotifyDarwinApp = "${spotifyDarwinInstallDir}/Spotify.app";
 in

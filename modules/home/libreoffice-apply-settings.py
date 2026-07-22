@@ -7,7 +7,7 @@ import os
 import shutil
 import sys
 import tempfile
-import xml.etree.ElementTree as ET  # noqa: S405
+import xml.etree.ElementTree as ET  # ruff:ignore[suspicious-xml-etree-import]
 from pathlib import Path
 from typing import Final, TypedDict
 
@@ -35,7 +35,7 @@ def load_tree(profile: Path) -> ET.ElementTree[ET.Element]:
 
     """
     if profile.exists():
-        return ET.parse(profile)  # noqa: S314
+        return ET.parse(profile)  # ruff:ignore[suspicious-xml-element-tree-usage]
 
     root = ET.Element(
         f"{{{OOR}}}items",
