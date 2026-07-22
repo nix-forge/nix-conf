@@ -256,14 +256,17 @@ in
         { "terminal.integrated.shellIntegration.enabled" = true; }
         (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
           let
-            shell = config.home.sessionVariables.SHELL;
+            shellPath = config.home.sessionVariables.SHELL;
+            # Attribute names cannot carry Nix store-path context, while the
+            # executable path needs to retain it for the generated JSON.
+            shellName = builtins.unsafeDiscardStringContext (lib.last (lib.splitString "/" shellPath));
           in
           {
             # Define terminal profiles for all enabled shells
             "terminal.integrated.profiles.${os}" = {
-              ${shell} = {
-                path = shell;
-                icon = if shell == "nu" then "chevron-right" else "terminal-bash";
+              ${shellName} = {
+                path = shellPath;
+                icon = if shellName == "nu" then "chevron-right" else "terminal-bash";
                 overrideName = true;
                 args = [
                   "--login"
@@ -272,7 +275,7 @@ in
               };
             };
 
-            "terminal.integrated.defaultProfile.${os}" = shell;
+            "terminal.integrated.defaultProfile.${os}" = shellName;
           }
         ))
         {
