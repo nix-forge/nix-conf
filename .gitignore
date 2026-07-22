@@ -219,5 +219,6 @@ __marimo__/
 # Project Specific
 result/
 .direnv/
+.pre-commit-config.yaml
 result
 .opencode/plans/

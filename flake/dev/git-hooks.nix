@@ -59,6 +59,15 @@
           check-yaml.enable = true;
 
           flake-checker.enable = true;
+
+          nix-flake-check = {
+            enable = true;
+            name = "nix flake check (local system)";
+            entry = "${lib.getExe pkgs.nix} flake check";
+            always_run = true;
+            pass_filenames = false;
+            stages = [ "pre-push" ];
+          };
         };
       };
     };

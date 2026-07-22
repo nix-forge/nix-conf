@@ -122,6 +122,11 @@ secret-reencrypt *args:
 fmt:
     nix fmt
 
+# Install the repository's pre-commit and pre-push hooks
+[group('Maintenance')]
+hooks:
+    nix develop --command true
+
 # Verify the integrity of all store paths
 [group('Maintenance')]
 verify:

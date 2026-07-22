@@ -18,6 +18,7 @@ in
   darwin =
     {
       inputs,
+      lib,
       pkgs,
       system,
       ...
@@ -54,6 +55,20 @@ in
 
         customSettings = settings;
       };
+
+      # Determinate Nixd owns the Nix daemon and its socket on Darwin.  The
+      # legacy multi-user installer plist is unmanaged once `nix.enable` is
+      # disabled, so nix-darwin intentionally preserves it.  Remove that
+      # redundant daemon after its activation step has completed.
+      system.activationScripts.postActivation.text = lib.mkAfter ''
+        legacyNixDaemonPlist=/Library/LaunchDaemons/org.nixos.nix-daemon.plist
+        determinateNixDaemonPlist=/Library/LaunchDaemons/systems.determinate.nix-daemon.plist
+
+        if [ -e "$legacyNixDaemonPlist" ] && [ -e "$determinateNixDaemonPlist" ]; then
+          launchctl bootout system/org.nixos.nix-daemon 2>/dev/null || true
+          rm -f "$legacyNixDaemonPlist"
+        fi
+      '';
 
       nixpkgs.overlays = [ (_final: _prev: { nix = determinateNixPackage; }) ];
     };
