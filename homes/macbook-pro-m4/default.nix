@@ -58,14 +58,14 @@ in
     actual
     ({ config, ... }: {
       services.actual = {
-        enable = true;
+        enable = false;
         dataDir = "${config.xdg.userDirs.documents}/Actual";
       };
     })
     karakeep
     ({ config, ... }: {
       services.karakeep = {
-        enable = true;
+        enable = false;
         dataDir = "${config.xdg.userDirs.documents}/Karakeep";
       };
     })
@@ -76,6 +76,8 @@ in
         allowActions = true;
         reservedCores = 0;
       };
+      # Retain the host-only VM diagnostics and SSH helpers that accompany the
+      # control host.
       services.devVm.enable = true;
     })
 
