@@ -51,7 +51,11 @@
           check-case-conflicts.enable = true;
           check-added-large-files.enable = true;
           check-executables-have-shebangs.enable = true;
-          check-shebang-scripts-are-executable.enable = true;
+          check-shebang-scripts-are-executable = {
+            enable = true;
+            # Rust inner attributes start with `#![` and are not script shebangs.
+            excludes = [ "^nix-seal/.*\\.rs$" ];
+          };
           fix-byte-order-marker.enable = true;
 
           check-json.enable = true;
