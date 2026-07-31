@@ -34,6 +34,16 @@
         nix-darwin.follows = "nix-darwin";
       };
     };
+    nix-seal = {
+      url = "path:./nix-seal";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        flake-parts.follows = "flake-parts";
+        home-manager.follows = "home-manager";
+        nix-darwin.follows = "nix-darwin";
+      };
+    };
     determinate = {
       url = "github:DeterminateSystems/determinate";
       inputs = {
@@ -181,6 +191,10 @@
         extraSpecialArgsFor = { kind, target }: { secrets = secretsFor { inherit kind target; }; };
       };
 
-      perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };
+      perSystem = { system, ... }: {
+        packages = inputs.nixpkgs-personal.packages.${system} // {
+          nix-seal = inputs.nix-seal.packages.${system}.nix-seal;
+        };
+      };
     };
 }

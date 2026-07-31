@@ -6,3 +6,6 @@
 	path = nix-config-framework
 	url = https://github.com/IanHollow/nix-config-framework.git
 	branch = main
+[submodule "nix-seal"]
+	path = nix-seal
+	url = https://github.com/IanHollow/nix-seal.git
