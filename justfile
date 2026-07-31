@@ -12,19 +12,44 @@ default:
 update input="":
     nix flake update {{ input }} --flake {{ flake }}
 
+# Update all inputs for the standalone development flake, or a single input if specified
 [group('Flake')]
 dev-update input="":
     nix flake update {{ input }} --flake {{ flake }}/flake/dev/
 
+# Update all inputs for the nix-config-framework submodule, or a single input if specified
+[group('Flake')]
+framework-update input="":
+    nix flake update {{ input }} --flake {{ flake }}/nix-config-framework/
+
+# Update all inputs for the nixpkgs-personal submodule, or a single input if specified
+[group('Flake')]
+pkgs-update input="":
+    nix flake update {{ input }} --flake {{ flake }}/pkgs/
+
+# Update every flake lockfile, local package sources, and validate the resulting root flake evaluates
 [group('Flake')]
 update-all:
     @just update
     @just dev-update
+    @just framework-update
+    @just pkgs-update
     @just update-packages
+    @just check-eval
 
 # Run flake checks
 [group('Flake')]
 check:
+    nix flake check
+
+# Evaluate all flake checks without building them
+[group('Flake')]
+check-eval:
+    nix flake check --no-build
+
+# Run flake checks while rejecting import-from-derivation (IFD)
+[group('Flake')]
+check-no-ifd:
     nix flake check --no-allow-import-from-derivation
 
 # Show flake outputs
