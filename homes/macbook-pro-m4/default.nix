@@ -70,6 +70,14 @@ in
       };
     })
     server-ssh
+    (_: {
+      services.localControl = {
+        enable = true;
+        allowActions = true;
+        reservedCores = 0;
+      };
+      services.devVm.enable = true;
+    })
 
     firefox
     firefox-scrolling-natural
