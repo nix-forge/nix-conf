@@ -12,7 +12,9 @@ let
 
   darwinZenTwilightUnwrapped =
     (zenTwilightUnwrapped.override {
-      inherit (config.programs.zen-browser) policies enablePrivateDesktopEntry;
+      # On Darwin, Home Manager writes policies through the macOS defaults
+      # domain. Passing them to the package would mutate the signed app bundle.
+      inherit (config.programs.zen-browser) enablePrivateDesktopEntry;
     }).overrideAttrs
       (old: {
         # Upstream re-signs the app bundle for AdGuard compatibility, but Nix's
