@@ -32,14 +32,10 @@ let
   ];
 in
 {
-  programs.nushell.extraConfig =
-    lib.mkAfter
-      # Remove all nix binpaths from PATH, then apply them to the end of the list
-      # This ensures nix paths don't appear multiple times and are consistently at the end
-      ''
-        let nix_paths = [
-          ${binPaths}
-        ]
-        $env.PATH = ($env.PATH | split row (char esep) | where { |p| $p not-in $nix_paths } | append $nix_paths)
-      '';
+  programs.nushell.extraConfig = lib.mkAfter ''
+    let nix_paths = [
+      ${binPaths}
+    ]
+    $env.PATH = ($nix_paths | append ($env.PATH | split row (char esep) | where { |p| $p not-in $nix_paths }))
+  '';
 }

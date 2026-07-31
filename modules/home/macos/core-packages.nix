@@ -49,7 +49,32 @@ let
   corePackages =
     lib.concatMap resolvePackage corePackageNames
     ++ lib.optional (lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.stdenv.cc.libc) pkgs.stdenv.cc.libc;
+
+  nativeCommand =
+    name: path:
+    pkgs.writeShellScriptBin name ''
+      exec ${path} "$@"
+    '';
+
+  # Keep the GNU userland as the normal PATH default, but preserve macOS tools
+  # whose interface is coupled to Darwin kernel APIs or filesystem metadata.
+  # The priority is intentionally higher than the lowered GNU package priority
+  # above, so these wrappers win in the Home Manager profile without PATH hacks.
+  nativeDarwinCommands = lib.setPrio (lib.meta.defaultPriority - 1) (
+    pkgs.symlinkJoin {
+      name = "macos-native-command-wrappers";
+      paths = [
+        (nativeCommand "stty" "/bin/stty")
+        (nativeCommand "nc" "/usr/bin/nc")
+        (nativeCommand "ps" "/bin/ps")
+        (nativeCommand "top" "/usr/bin/top")
+        (nativeCommand "tar" "/usr/bin/tar")
+        (nativeCommand "gtar" "${pkgs.gnutar}/bin/tar")
+        (nativeCommand "libressl-nc" "${pkgs.netcat}/bin/nc")
+      ];
+    }
+  );
 in
 {
-  home.packages = lib.mkIf isDarwin corePackages;
+  home.packages = lib.mkIf isDarwin (corePackages ++ [ nativeDarwinCommands ]);
 }
