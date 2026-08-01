@@ -179,6 +179,7 @@
       ];
       imports = [
         inputs.nix-config-framework.flakeModules.default
+        inputs.nix-seal.flakeModules.default
         ./flake/dev
         ./flake/secrets.nix
       ];
@@ -191,10 +192,6 @@
         extraSpecialArgsFor = { kind, target }: { secrets = secretsFor { inherit kind target; }; };
       };
 
-      perSystem = { system, ... }: {
-        packages = inputs.nixpkgs-personal.packages.${system} // {
-          nix-seal = inputs.nix-seal.packages.${system}.nix-seal;
-        };
-      };
+      perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };
     };
 }
