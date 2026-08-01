@@ -97,6 +97,22 @@
         "type": "github"
       }
     },
+    "cctv": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1780686846,
+        "narHash": "sha256-kHXnsDrh3GeQRbE87uAxPw/G28IyZY5NL5sxevprYQo=",
+        "owner": "C2SP",
+        "repo": "CCTV",
+        "rev": "1e3d2860d46e94e777e1b17c7a6f2436387e3ecc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "C2SP",
+        "repo": "CCTV",
+        "type": "github"
+      }
+    },
     "determinate": {
       "inputs": {
         "determinate-nixd-aarch64-darwin": "determinate-nixd-aarch64-darwin",
@@ -466,6 +482,7 @@
     },
     "nix-seal": {
       "inputs": {
+        "cctv": "cctv",
         "flake-parts": [
           "flake-parts"
         ],
