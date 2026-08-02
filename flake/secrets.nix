@@ -56,7 +56,7 @@ in
             # generated inside the isolated check; no repository secret or
             # private key is read, and only public reports are copied to $out.
             e2e="$TMPDIR/nix-seal-e2e"
-            mkdir -p "$e2e/secrets/services/example" "$e2e/templates/services"
+            mkdir -p "$e2e/secrets/services/example" "$e2e/templates/services" "$e2e/compat"
             umask 077
             nix-seal key generate --identity-out "$e2e/admin.agekey" > "$e2e/admin.recipient"
             nix-seal key generate --identity-out "$e2e/server.agekey" > "$e2e/server.recipient"
@@ -101,6 +101,7 @@ in
               "owner = \"$runtime_owner\"" \
               "group = \"$runtime_group\"" \
               'mode = "0400"' \
+              "compatibilitySymlink = \"$e2e/compat/token\"" \
               "" \
               '[templates."services/example/config"]' \
               'source = "templates/services/example.conf"' \
@@ -157,6 +158,7 @@ in
               --arg template "$e2e/templates/services/example.conf" \
               --arg owner "$runtime_owner" \
               --arg group "$runtime_group" \
+              --arg compatibility "$e2e/compat/token" \
               '{
                 schema: "nix-seal.activation.v2",
                 runtimeRoot: $runtime,
@@ -174,7 +176,8 @@ in
                   phase: "activation",
                   mode: "0400",
                   owner: $owner,
-                  group: $group
+                  group: $group,
+                  compatibilitySymlink: $compatibility
                 }],
                 templates: [{
                   source: $template,
@@ -193,7 +196,10 @@ in
               --json > "$e2e/activation-report.json"
             test -f "$runtime_root/current/services/example/token"
             test -f "$runtime_root/current/templates/services/example/config"
+            test -L "$e2e/compat/token"
+            test "$(readlink "$e2e/compat/token")" = "$runtime_root/current/services/example/token"
             cmp "$e2e/input.secret" "$runtime_root/current/services/example/token"
+            cmp "$e2e/input.secret" "$e2e/compat/token"
             printf 'token=' > "$e2e/expected-template"
             cat "$e2e/input.secret" >> "$e2e/expected-template"
             printf '\n' >> "$e2e/expected-template"
