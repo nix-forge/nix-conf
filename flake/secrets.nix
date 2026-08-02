@@ -214,6 +214,33 @@
             nix-seal check --nix-plan ${plan}
             touch "$out"
           '';
+      nix-seal-scope-policy =
+        let
+          plan = pkgs.writeText "nix-conf-plan.v1.json" nixSealParent.planJson;
+        in
+        pkgs.runCommand "nix-conf-nix-seal-scope-policy"
+          {
+            nativeBuildInputs = [
+              pkgs.jq
+              pkgs.ripgrep
+            ];
+          }
+          ''
+            jq -e '
+              .secrets | to_entries | all(
+                if (.key | startswith("ianhollow/users/")) then
+                  (.value.source | startswith("secrets/users/")) and
+                  ((.value.consumers | all(startswith("home/"))))
+                elif (.key | startswith("ianhollow/hosts/")) then
+                  (.value.source | startswith("secrets/hosts/")) and
+                  ((.value.consumers | all(startswith("host/"))))
+                else false
+                end
+              )
+            ' ${plan} >/dev/null
+            ! rg -n 'nix-seal-artifacts' ${../flake.nix} ${../flake.lock} ${./nix-seal-parent.nix}
+            touch "$out"
+          '';
     };
   };
 }

@@ -480,18 +480,6 @@
       },
       "parent": []
     },
-    "nix-seal-artifacts": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-OnHvVsJSlOsIQiCNkoBoqaVobyu0Ecyk5jSynTFxe4M=",
-        "path": "/Users/ianmh/.local/share/nix-seal/artifacts-v3",
-        "type": "path"
-      },
-      "original": {
-        "path": "/Users/ianmh/.local/share/nix-seal/artifacts-v3",
-        "type": "path"
-      }
-    },
     "nix4vscode": {
       "inputs": {
         "nixpkgs": [
@@ -694,7 +682,6 @@
         "nix-config-framework": "nix-config-framework",
         "nix-darwin": "nix-darwin",
         "nix-seal": "nix-seal",
-        "nix-seal-artifacts": "nix-seal-artifacts",
         "nix4vscode": "nix4vscode",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-personal": "nixpkgs-personal",

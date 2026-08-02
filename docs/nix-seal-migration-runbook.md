@@ -32,11 +32,11 @@ nix run .#nix-seal -- migrate agenix \
   --json
 ```
 
-Review the eight reported mappings. The target plan in
-`flake/nix-seal-parent.nix` maps them to nine logical IDs: the old shared Nix
-access-token ciphertext becomes the system secret; a second independently
-encrypted ciphertext becomes the home secret. The seven Home Manager mappings
-are direct filename-to-ID mappings in that file.
+Review the reported mappings. The target plan in `flake/nix-seal-parent.nix`
+keeps user ciphertexts below `secrets/users/ianmh/` and creates one independent
+canonical ciphertext per host below `secrets/hosts/<platform>/<host>/`. A system
+credential is therefore never shared from a user directory or delivered through
+a user cache.
 
 ## 2. Create and verify staged canonical ciphertext
 
@@ -51,8 +51,8 @@ staging tree:
 ```console
 nix run .#nix-seal -- migrate ciphertext \
   --repository-root . \
-  --source secrets/IanHollow/nix-access-tokens.age \
-  --destination .nix-seal-migration/IanHollow/home/ianmh/nix-access-tokens.age \
+  --source secrets/hosts/nixos/desktop/nix-access-tokens.age \
+  --destination .nix-seal-migration/users/ianmh/nix-access-tokens.age \
   --identity /absolute/path/to/legacy-ssh-key \
   --verification-identity /absolute/path/to/new-admin.agekey \
   --recipient age1new-admin... \
@@ -62,9 +62,10 @@ nix run .#nix-seal -- migrate ciphertext \
 
 Independently reveal each staged ciphertext only to a protected stream and
 compare a hash with the legacy plaintext. Retain the original tree in the
-offline backup, then replace `secrets/IanHollow/` with the staged `IanHollow/`
-tree using a reviewed, recoverable Git operation. The old target-encrypted files
-are removed from the current tree at this cutover; Git history is not rewritten.
+offline backup, then move the staged files into `secrets/users/` and
+`secrets/hosts/` using a reviewed, recoverable Git operation. The old
+target-encrypted files are removed from the current tree at this cutover; Git
+history is not rewritten.
 
 ## 3. Provision all target artifacts
 
@@ -82,11 +83,13 @@ nix run .#nix-seal -- provision --plan /tmp/nix-conf-plan.v1.json \
 ```
 
 Repeat provisioning for `home/ianmh/desktop`, `home/ianmh/macbook-pro-m4`, and
-`host/darwin/macbook-pro-m4`. Export the cache to
-`~/.local/share/nix-seal/artifacts-v3`, update the `nix-seal-artifacts` locked
-flake input, then record each cache key, canonical source hash, and generation
-in the tracked `.nix-seal/public.nix` file. This uses public ciphertext-only
-data and makes pure flake evaluation possible.
+`host/darwin/macbook-pro-m4`. Export each scoped cache separately and import it
+only into its target-local cache: `/var/lib/nix-seal/cache/v1` for a host and
+the owning user's cache (`$XDG_CACHE_HOME/nix-seal/v1`, or
+`~/Library/Caches/nix-seal/v1` on macOS) for Home Manager. Record each cache
+key, canonical source hash, and generation in tracked `.nix-seal/public.nix`.
+That file contains public metadata only; it is not a flake input and no artifact
+is copied into the Nix store.
 
 ## 4. Activate and close out
 

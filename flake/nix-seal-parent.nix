@@ -11,6 +11,7 @@ let
       username = "ianmh";
       configuration = "desktop";
       public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
+      artifactRoot = "/home/ianmh/.cache/nix-seal/v1";
     };
     "home/ianmh/macbook-pro-m4" = {
       kind = "homeManager";
@@ -18,18 +19,21 @@ let
       username = "ianmh";
       configuration = "macbook-pro-m4";
       public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
+      artifactRoot = "/Users/ianmh/Library/Caches/nix-seal/v1";
     };
     "host/nixos/desktop" = {
       kind = "nixOs";
       system = "x86_64-linux";
       configuration = "desktop";
       public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
+      artifactRoot = "/var/lib/nix-seal/cache/v1";
     };
     "host/darwin/macbook-pro-m4" = {
       kind = "darwin";
       system = "aarch64-darwin";
       configuration = "macbook-pro-m4";
       public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
+      artifactRoot = "/var/lib/nix-seal/cache/v1";
     };
   };
 
@@ -44,7 +48,7 @@ let
   allTargets = homeTargets ++ systemTargets;
 
   homeSecret = name: {
-    source = "secrets/IanHollow/home/ianmh/${name}.age";
+    source = "secrets/users/ianmh/${name}.age";
     consumers = homeTargets;
     delivery = "rekeyed";
     administrators = [
@@ -72,37 +76,40 @@ let
     };
   };
 
+  systemSecret = targetId: source: {
+    inherit source;
+    consumers = [ targetId ];
+    delivery = "rekeyed";
+    administrators = [
+      "administrator"
+      "recovery"
+    ];
+    approvalPolicy = "release";
+    phase = "activation";
+    runtime = {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
+    lifecycle = {
+      contact = "Ian Hollow";
+      classification = "private";
+    };
+  };
+
   secretDefinitions = {
-    "ianhollow/nix-access-tokens/system" = {
-      source = "secrets/IanHollow/nix-access-tokens.age";
-      consumers = systemTargets;
-      delivery = "rekeyed";
-      administrators = [
-        "administrator"
-        "recovery"
-      ];
-      approvalPolicy = "release";
-      phase = "activation";
-      runtime = {
-        owner = "root";
-        group = "root";
-        mode = "0400";
-      };
-      lifecycle = {
-        contact = "Ian Hollow";
-        classification = "private";
-      };
-    };
-    "ianhollow/nix-access-tokens/home" = (homeSecret "nix-access-tokens") // {
-      source = "secrets/IanHollow/home/ianmh/nix-access-tokens.age";
-    };
-    "ianhollow/home/ianmh/cornell-net-id-ssh-config" = homeSecret "cornell-net-id-ssh-config";
-    "ianhollow/home/ianmh/git-allowedsigners" = homeSecret "git-allowedSigners";
-    "ianhollow/home/ianmh/gitconfig-username" = homeSecret "gitconfig-userName";
-    "ianhollow/home/ianmh/gitconfig-useremail" = homeSecret "gitconfig-userEmail";
-    "ianhollow/home/ianmh/gitconfig-useremail-cornell" = homeSecret "gitconfig-userEmail-Cornell";
-    "ianhollow/home/ianmh/gitconfig-useremail-github" = homeSecret "gitconfig-userEmail-GitHub";
-    "ianhollow/home/ianmh/hf-token" = homeSecret "hf_token";
+    "ianhollow/hosts/nixos/desktop/nix-access-tokens" =
+      systemSecret "host/nixos/desktop" "secrets/hosts/nixos/desktop/nix-access-tokens.age";
+    "ianhollow/hosts/darwin/macbook-pro-m4/nix-access-tokens" =
+      systemSecret "host/darwin/macbook-pro-m4" "secrets/hosts/darwin/macbook-pro-m4/nix-access-tokens.age";
+    "ianhollow/users/ianmh/nix-access-tokens" = homeSecret "nix-access-tokens";
+    "ianhollow/users/ianmh/cornell-net-id-ssh-config" = homeSecret "cornell-net-id-ssh-config";
+    "ianhollow/users/ianmh/git-allowedsigners" = homeSecret "git-allowedsigners";
+    "ianhollow/users/ianmh/gitconfig-username" = homeSecret "gitconfig-username";
+    "ianhollow/users/ianmh/gitconfig-useremail" = homeSecret "gitconfig-useremail";
+    "ianhollow/users/ianmh/gitconfig-useremail-cornell" = homeSecret "gitconfig-useremail-cornell";
+    "ianhollow/users/ianmh/gitconfig-useremail-github" = homeSecret "gitconfig-useremail-github";
+    "ianhollow/users/ianmh/hf-token" = homeSecret "hf-token";
   };
 
   targetIdentityId = targetId: "target/${targetId}";
@@ -131,7 +138,13 @@ let
     groups.ianhollow.members = allTargets;
     targets = lib.mapAttrs (
       targetId: target:
-      (builtins.removeAttrs target [ "public" ]) // { identity = targetIdentityId targetId; }
+      (builtins.removeAttrs target [
+        "public"
+        "artifactRoot"
+      ])
+      // {
+        identity = targetIdentityId targetId;
+      }
     ) targetDefinitions;
     secrets = secretDefinitions;
     approvalPolicies.release = {
@@ -161,15 +174,10 @@ let
         artifactGeneration = 1;
       }
     else
-      let
-        path = "${inputs.nix-seal-artifacts}/artifacts/${configured.cacheKey}";
-      in
       {
-        artifact = inputs.nix-seal.lib.artifactBundle {
-          inherit path;
-          target = targetId;
-          secret = secretId;
-        };
+        artifactDirectory = "${
+          targetDefinitions.${targetId}.artifactRoot
+        }/artifacts/${configured.cacheKey}";
         inherit (configured) sourceCiphertextHash;
         inherit (configured) artifactGeneration;
       };

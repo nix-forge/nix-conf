@@ -44,12 +44,6 @@
         nix-darwin.follows = "nix-darwin";
       };
     };
-    # Ciphertext-only cache export. Its locked content hash lets configuration
-    # evaluation import signed artifacts without an impure host-path lookup.
-    nix-seal-artifacts = {
-      url = "path:/Users/ianmh/.local/share/nix-seal/artifacts-v3";
-      flake = false;
-    };
     determinate = {
       url = "github:DeterminateSystems/determinate";
       inputs = {

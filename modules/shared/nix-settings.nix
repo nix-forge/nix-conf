@@ -48,7 +48,7 @@ in
       ...
     }:
     let
-      nixAccessTokensId = "ianhollow/nix-access-tokens/system";
+      nixAccessTokensId = "ianhollow/hosts/nixos/desktop/nix-access-tokens";
       hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
       settings = sharedSettings // {
         trusted-users = sharedSettings.trusted-users ++ [
@@ -96,7 +96,7 @@ in
         gc-reserved-space = 1024 * 1024 * 1024;
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
-      nixAccessTokensId = "ianhollow/nix-access-tokens/system";
+      nixAccessTokensId = "ianhollow/hosts/darwin/macbook-pro-m4/nix-access-tokens";
       hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
     in
     lib.mkMerge [
@@ -129,7 +129,7 @@ in
       ...
     }:
     let
-      nixAccessTokensId = "ianhollow/nix-access-tokens/home";
+      nixAccessTokensId = "ianhollow/users/ianmh/nix-access-tokens";
       hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
     in
     {
