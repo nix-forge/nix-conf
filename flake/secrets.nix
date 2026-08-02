@@ -236,19 +236,17 @@ in
               --index "$e2e/legacy-secret-index.json" \
               --plan-output "$e2e/secretctl-plan.v1.json" \
               --target-system 'host:nixos:server=${system}' \
+              --canonical-source-prefix migrated-secretctl \
               --administrator "migration-admin=$admin_recipient" \
               --signer "release=$signing_recipient" \
               --json > "$e2e/secretctl-plan-report.json"
-            nix-seal check \
-              --nix-plan "$e2e/secretctl-plan.v1.json" \
-              --deep \
-              --repository-root "$e2e"
             jq -e '
               .candidatePlan != null
             ' "$e2e/secretctl-plan-report.json" >/dev/null
             jq -e '
               .secrets["ianhollow.legacy"].delivery == "rekeyed"
               and (.secrets["ianhollow.legacy"].administrators | length) == 1
+              and .secrets["ianhollow.legacy"].source == "migrated-secretctl/secrets/IanHollow/legacy.age"
             ' "$e2e/secretctl-plan.v1.json" >/dev/null
             nix-seal migrate secretctl \
               --index "$e2e/legacy-secret-index.json" \
@@ -270,6 +268,10 @@ in
               --json > "$e2e/legacy-migration.json"
             migrated_ciphertext="$e2e/migrated-secretctl/secrets/IanHollow/legacy.age"
             test -f "$migrated_ciphertext"
+            nix-seal check \
+              --nix-plan "$e2e/secretctl-plan.v1.json" \
+              --deep \
+              --repository-root "$e2e"
             age -d -i "$e2e/admin.agekey" "$migrated_ciphertext" > "$e2e/migrated-plaintext"
             cmp "$e2e/legacy-plaintext" "$e2e/migrated-plaintext"
             test "$legacy_source_hash" = "$(sha256sum "$legacy_root/secrets/IanHollow/legacy.age" | cut -d' ' -f1)"
