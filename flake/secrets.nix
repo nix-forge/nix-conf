@@ -21,7 +21,9 @@ in
         {
           nativeBuildInputs = [
             inputs.nix-seal.packages.${system}.nix-seal
+            pkgs.age
             pkgs.jq
+            pkgs.openssh
           ];
           secretIndex = pkgs.writeText "nix-conf-secret-index.json" (builtins.toJSON secretIndex);
         }
@@ -196,12 +198,72 @@ in
             cat "$e2e/input.secret" >> "$e2e/expected-template"
             printf '\n' >> "$e2e/expected-template"
             cmp "$e2e/expected-template" "$runtime_root/current/templates/services/example/config"
+
+            # Synthetic side-by-side secretctl migration. This exercises the
+            # actual legacy SSH-recipient decrypt/re-encrypt path without
+            # opening any repository identity or ciphertext.
+            legacy_root="$e2e"
+            mkdir -p "$legacy_root/secrets/IanHollow"
+            umask 077
+            ssh-keygen -q -t ed25519 -N "" -f "$e2e/legacy-ssh-key"
+            legacy_recipient="$(ssh-keygen -y -f "$e2e/legacy-ssh-key" | tr -d '\n')"
+            printf '%s' 'legacy-migration-canary' > "$e2e/legacy-plaintext"
+            age -r "$legacy_recipient" -o "$legacy_root/secrets/IanHollow/legacy.age" "$e2e/legacy-plaintext"
+            legacy_source_hash="$(sha256sum "$legacy_root/secrets/IanHollow/legacy.age" | cut -d' ' -f1)"
+            jq -n \
+              --arg recipient "$legacy_recipient" \
+              '{
+                version: 1,
+                groups: {IanHollow: [$recipient]},
+                targets: {"host:nixos:server": {
+                  type: "host",
+                  groups: ["IanHollow"],
+                  publicKey: $recipient,
+                  recipients: [$recipient]
+                }},
+                secrets: {"IanHollow.legacy": {
+                  id: "IanHollow.legacy",
+                  group: "IanHollow",
+                  scope: "host",
+                  selector: null,
+                  agenixName: "legacy",
+                  file: "secrets/IanHollow/legacy.age",
+                  recipients: [$recipient],
+                  consumers: ["host:nixos:server"]
+                }}
+              }' > "$e2e/legacy-secret-index.json"
+            nix-seal migrate secretctl \
+              --index "$e2e/legacy-secret-index.json" \
+              --repository-root "$e2e" \
+              --destination migrated-secretctl \
+              --identity "$e2e/legacy-ssh-key" \
+              --verification-identity "$e2e/admin.agekey" \
+              --recipient "$admin_recipient" \
+              --json > "$e2e/legacy-migration-dry-run.json"
+            test ! -e "$e2e/migrated-secretctl/secrets/IanHollow/legacy.age"
+            nix-seal migrate secretctl \
+              --index "$e2e/legacy-secret-index.json" \
+              --repository-root "$e2e" \
+              --destination migrated-secretctl \
+              --identity "$e2e/legacy-ssh-key" \
+              --verification-identity "$e2e/admin.agekey" \
+              --recipient "$admin_recipient" \
+              --execute \
+              --json > "$e2e/legacy-migration.json"
+            migrated_ciphertext="$e2e/migrated-secretctl/secrets/IanHollow/legacy.age"
+            test -f "$migrated_ciphertext"
+            age -d -i "$e2e/admin.agekey" "$migrated_ciphertext" > "$e2e/migrated-plaintext"
+            cmp "$e2e/legacy-plaintext" "$e2e/migrated-plaintext"
+            test "$legacy_source_hash" = "$(sha256sum "$legacy_root/secrets/IanHollow/legacy.age" | cut -d' ' -f1)"
+            jq -e '.dryRun == true and .source == "secretctl"' "$e2e/legacy-migration-dry-run.json" >/dev/null
+            jq -e '.dryRun == false and .source == "secretctl"' "$e2e/legacy-migration.json" >/dev/null
             jq -n \
               --arg expectedHash "$expected_hash" \
               --arg actualHash "$actual_hash" \
               --arg cacheKey "$cache_key" \
+              --arg legacySourceHash "$legacy_source_hash" \
               --arg activationReport "$(jq -c '{activated,changed,secretCount,templateCount}' "$e2e/activation-report.json")" \
-              '{schema:"nix-seal.parent-dogfood.v1", expectedHash:$expectedHash, actualHash:$actualHash, cacheKey:$cacheKey, activation:($activationReport|fromjson)}' \
+              '{schema:"nix-seal.parent-dogfood.v1", expectedHash:$expectedHash, actualHash:$actualHash, cacheKey:$cacheKey, legacySourceHash:$legacySourceHash, migration:{dryRun:true,executed:true,source:"secretctl"}, activation:($activationReport|fromjson)}' \
               > "$out/end-to-end.json"
         '';
   };
