@@ -12,8 +12,8 @@ arguments containing a secret value, or ordinary environment variables.
   identity. The legacy key must decrypt all eight existing ciphertexts.
 - Generate or select a separate approval signing key and preserve at least two
   administrator/recovery decryption paths.
-- Fill `.nix-seal/public.nix` from its example using public recipients and
-  artifact metadata only. Do not commit it.
+- Fill and commit `.nix-seal/public.nix` from its example using public
+  recipients and artifact metadata only.
 
 ## 1. Inventory and review
 
@@ -82,9 +82,11 @@ nix run .#nix-seal -- provision --plan /tmp/nix-conf-plan.v1.json \
 ```
 
 Repeat provisioning for `home/ianmh/desktop`, `home/ianmh/macbook-pro-m4`, and
-`host/darwin/macbook-pro-m4`. Export the resulting ciphertext-only cache or
-artifact bundles and record their paths, canonical source hashes, and generation
-in the ignored `.nix-seal/public.nix` file.
+`host/darwin/macbook-pro-m4`. Export the cache to
+`~/.local/share/nix-seal/artifacts-v3`, update the `nix-seal-artifacts` locked
+flake input, then record each cache key, canonical source hash, and generation
+in the tracked `.nix-seal/public.nix` file. This uses public ciphertext-only
+data and makes pure flake evaluation possible.
 
 ## 4. Activate and close out
 

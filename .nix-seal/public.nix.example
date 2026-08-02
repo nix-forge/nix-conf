@@ -3,14 +3,15 @@
   # placeholder before enabling nix-seal on a real target. Private identities
   # and signing keys must remain outside this repository and the Nix store.
   administratorRecipient = "age1replace-with-a-real-administrator-recipient";
+  recoveryRecipient = "age1replace-with-a-separate-recovery-recipient";
   signerPublicKey = "nix-seal-ed25519-v1:replace-with-a-real-release-signer";
 
   # Each entry is emitted by the reviewed provisioning/cache-export workflow.
-  # Paths may be local or mounted cache-export directories and contain only
-  # ciphertext.age plus manifest.dsse.json.
+  # cacheKey identifies an artifact in the locked ciphertext-only cache-export
+  # flake input. Each bundle contains ciphertext.age and manifest.dsse.json.
   artifacts = {
     # "host/nixos/desktop"."ianhollow/nix-access-tokens/system" = {
-    #   path = /absolute/path/to/artifact-bundle;
+    #   cacheKey = "64-lowercase-hex-characters";
     #   sourceCiphertextHash = "64-lowercase-hex-characters";
     #   artifactGeneration = 1;
     # };

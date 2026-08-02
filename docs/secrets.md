@@ -12,10 +12,14 @@ defines four target IDs and nine logical secret IDs. The reused Nix access token
 is intentionally split into separate system and home logical secrets, because
 they have different runtime owners.
 
-Install `.nix-seal/public.nix` from `.nix-seal/public.nix.example`. It contains
-only the administrator recipient, approval public key, and public artifact
-metadata. It is ignored by Git. Never place identities, signing private keys,
-decrypted values, or prompt answers there.
+Home secrets use the target user's local group: `ianmh` on Linux and `staff` on
+macOS. The target-specific policy is signed into each artifact, so activation
+cannot substitute ownership metadata.
+
+Commit `.nix-seal/public.nix` from `.nix-seal/public.nix.example`. It contains
+only administrator/recovery recipients, an approval public key, and public
+artifact metadata. Never place identities, signing private keys, decrypted
+values, or prompt answers there.
 
 Until that file and all signed artifacts exist, the parent nix-seal modules are
 disabled. This makes an incomplete migration fail closed rather than replacing a

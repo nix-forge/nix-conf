@@ -223,6 +223,9 @@ result/
 # bindings. The checked-in example is deliberately the sole exception.
 .nix-seal/*
 !.nix-seal/public.nix.example
+!.nix-seal/public.nix
+.nix-seal.lock
+.nix-seal-migration/
 .direnv/
 .pre-commit-config.yaml
 result

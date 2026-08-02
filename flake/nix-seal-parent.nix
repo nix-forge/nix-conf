@@ -47,12 +47,23 @@ let
     source = "secrets/IanHollow/home/ianmh/${name}.age";
     consumers = homeTargets;
     delivery = "rekeyed";
-    administrators = [ "administrator" ];
+    administrators = [
+      "administrator"
+      "recovery"
+    ];
     approvalPolicy = "release";
     phase = "activation";
     runtime = {
       owner = "ianmh";
-      group = "root";
+      # Linux Home Manager conventionally uses the user's private group.
+      group = "ianmh";
+      mode = "0400";
+    };
+    runtimeOverrides."home/ianmh/macbook-pro-m4" = {
+      # macOS account groups use `staff`; a Home Manager activation cannot
+      # change to an unrelated privileged group.
+      owner = "ianmh";
+      group = "staff";
       mode = "0400";
     };
     lifecycle = {
@@ -64,9 +75,12 @@ let
   secretDefinitions = {
     "ianhollow/nix-access-tokens/system" = {
       source = "secrets/IanHollow/nix-access-tokens.age";
-      consumers = allTargets;
+      consumers = systemTargets;
       delivery = "rekeyed";
-      administrators = [ "administrator" ];
+      administrators = [
+        "administrator"
+        "recovery"
+      ];
       approvalPolicy = "release";
       phase = "activation";
       runtime = {
@@ -97,6 +111,10 @@ let
       administrator = {
         kind = "administrator";
         public = credentials.administratorRecipient;
+      };
+      recovery = {
+        kind = "administrator";
+        public = credentials.recoveryRecipient;
       };
       release = {
         kind = "signer";
@@ -143,9 +161,12 @@ let
         artifactGeneration = 1;
       }
     else
+      let
+        path = "${inputs.nix-seal-artifacts}/artifacts/${configured.cacheKey}";
+      in
       {
         artifact = inputs.nix-seal.lib.artifactBundle {
-          inherit (configured) path;
+          inherit path;
           target = targetId;
           secret = secretId;
         };
