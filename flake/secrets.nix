@@ -234,6 +234,24 @@ in
               }' > "$e2e/legacy-secret-index.json"
             nix-seal migrate secretctl \
               --index "$e2e/legacy-secret-index.json" \
+              --plan-output "$e2e/secretctl-plan.v1.json" \
+              --target-system 'host:nixos:server=${system}' \
+              --administrator "migration-admin=$admin_recipient" \
+              --signer "release=$signing_recipient" \
+              --json > "$e2e/secretctl-plan-report.json"
+            nix-seal check \
+              --nix-plan "$e2e/secretctl-plan.v1.json" \
+              --deep \
+              --repository-root "$e2e"
+            jq -e '
+              .candidatePlan != null
+            ' "$e2e/secretctl-plan-report.json" >/dev/null
+            jq -e '
+              .secrets["ianhollow.legacy"].delivery == "rekeyed"
+              and (.secrets["ianhollow.legacy"].administrators | length) == 1
+            ' "$e2e/secretctl-plan.v1.json" >/dev/null
+            nix-seal migrate secretctl \
+              --index "$e2e/legacy-secret-index.json" \
               --repository-root "$e2e" \
               --destination migrated-secretctl \
               --identity "$e2e/legacy-ssh-key" \
