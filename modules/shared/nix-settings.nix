@@ -48,7 +48,8 @@ in
       ...
     }:
     let
-      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+      nixAccessTokensId = "ianhollow/nix-access-tokens/system";
+      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
       settings = sharedSettings // {
         trusted-users = sharedSettings.trusted-users ++ [
           "@wheel"
@@ -73,7 +74,7 @@ in
         channel.enable = lib.mkDefault false;
         inherit settings;
         extraOptions = lib.mkIf hasNixAccessTokens ''
-          !include ${config.age.secrets.nix-access-tokens.path}
+          !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
         '';
       };
     };
@@ -95,7 +96,8 @@ in
         gc-reserved-space = 1024 * 1024 * 1024;
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
-      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+      nixAccessTokensId = "ianhollow/nix-access-tokens/system";
+      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) {
@@ -105,7 +107,7 @@ in
           channel.enable = lib.mkDefault false;
           inherit settings;
           extraOptions = lib.mkIf hasNixAccessTokens ''
-            !include ${config.age.secrets.nix-access-tokens.path}
+            !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
           '';
         };
       })
@@ -113,7 +115,7 @@ in
         determinateNix.customSettings = determinateSettings;
         environment.etc."nix/nix.custom.conf".text = lib.mkIf hasNixAccessTokens (
           lib.mkAfter ''
-            !include ${config.age.secrets.nix-access-tokens.path}
+            !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
           ''
         );
       })
@@ -127,14 +129,15 @@ in
       ...
     }:
     let
-      hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+      nixAccessTokensId = "ianhollow/nix-access-tokens/home";
+      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
     in
     {
       nix = {
         package = lib.mkDefault pkgs.nixVersions.latest;
         settings = lib.mkIf (config.nix.package != null) sharedSettings;
         extraOptions = lib.mkIf (config.nix.package != null && hasNixAccessTokens) ''
-          !include ${config.age.secrets.nix-access-tokens.path}
+          !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
         '';
       };
     };

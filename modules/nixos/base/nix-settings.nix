@@ -5,7 +5,8 @@
   ...
 }:
 let
-  hasNixAccessTokens = lib.hasAttrByPath [ "age" "secrets" "nix-access-tokens" ] config;
+  nixAccessTokensId = "ianhollow/nix-access-tokens/system";
+  hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
 in
 {
   nix = {
@@ -81,7 +82,7 @@ in
       use-cgroups = pkgs.stdenv.hostPlatform.isLinux;
     };
     extraOptions = lib.mkIf hasNixAccessTokens ''
-      !include ${config.age.secrets.nix-access-tokens.path}
+      !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
     '';
   };
 }

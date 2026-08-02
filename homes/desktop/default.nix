@@ -22,7 +22,7 @@
     nix-settings
     registry
     xdg
-    agenix
+    nixSeal
 
     ## Shells
     shells-aliases

@@ -1,109 +1,65 @@
-# Secrets Workflow
+# nix-seal workflow
 
-This repo uses `agenix` for runtime decryption and `secretctl` for SSH-recipient
-encryption.
+This repository uses the pinned `nix-seal` submodule for secret policy,
+administrator-to-target rekeying, signed artifacts, and runtime activation. The
+canonical ciphertext tree remains under `secrets/`; target artifacts live only
+in the ignored `.nix-seal/` workspace or an exported ciphertext cache.
 
-## Key points
+## Public policy and local credentials
 
-- No master keys are used.
-- Canonical ciphertext lives under `secrets/<owner-group>/`.
-- Each config declares its own `secrets.publicKey` and the owner groups it
-  belongs to.
-- Within each owner group, the group root, `home/`, and `system/` control which
-  configs receive a secret.
-- Forks can reuse the same owner-group names and replace only their own config
-  keys.
+`flake/nix-seal-parent.nix` is the single Nix-native source of public policy. It
+defines four target IDs and nine logical secret IDs. The reused Nix access token
+is intentionally split into separate system and home logical secrets, because
+they have different runtime owners.
 
-## Config metadata
+Install `.nix-seal/public.nix` from `.nix-seal/public.nix.example`. It contains
+only the administrator recipient, approval public key, and public artifact
+metadata. It is ignored by Git. Never place identities, signing private keys,
+decrypted values, or prompt answers there.
 
-Each host or home config defines:
+Until that file and all signed artifacts exist, the parent nix-seal modules are
+disabled. This makes an incomplete migration fail closed rather than replacing a
+working runtime with an empty one.
 
-```nix
-secrets = {
-  publicKey = "ssh-ed25519 ...";
-  groups = [ "IanHollow" ];
-};
+## Operator migration
+
+The one-time conversion requires paths to a legacy SSH identity, a new
+administrator age identity, and an approval signing key. Keep all of them
+outside the repository. First prepare the conversion report:
+
+```console
+nix run .#nix-seal -- migrate agenix \\
+  --directory secrets \\
+  --repository-root . \\
+  --destination .nix-seal-migration \\
+  --identity /absolute/path/to/legacy-ssh-key \\
+  --verification-identity /absolute/path/to/admin.agekey \\
+  --recipient age1... \\
+  --dry-run
 ```
 
-- `publicKey` is the SSH public key for that concrete target.
-- `groups` is the list of top-level owner groups that target should receive.
+After reviewing the report, repeat with `--execute`. Use the generic
+single-ciphertext adapter to create the additional home Nix access-token
+ciphertext, then round-trip check every canonical ciphertext and provision a
+signed artifact for each target. Do not delete old ciphertexts until those
+checks, activation, and rollback have succeeded.
 
-## Secret layout and IDs
+The repository-specific procedure is in `docs/nix-seal-migration-runbook.md`;
+the upstream acceptance and threat-model material is in
+`nix-seal/docs/adr/0006-migrations.md` and `nix-seal/THREAT_MODEL.md`.
 
-Example layout:
+## Daily operations
 
-```text
-secrets/IanHollow/
-  nix-access-tokens.age
-  home/
-    ianmh/
-      gitconfig-userName.age
-  system/
-    all-systems-secret.age
-    nixos/
-      all-nixos-secret.age
-      desktop/
-        some-system-secret.age
-    darwin/
-      all-darwin-secret.age
-      macbook-pro-m4/
-        another-system-secret.age
+Use the pinned CLI without copying secrets into arguments or environment
+variables:
+
+```console
+just secret plan
+just secret recipients --plan /path/to/plan.v1.json --secret <id>
+just secret rekey --plan /path/to/plan.v1.json ...
+just secret reveal --plan /path/to/plan.v1.json --secret <id> --identity /absolute/key
 ```
 
-Example IDs:
-
-- `secrets/IanHollow/nix-access-tokens.age` -> `IanHollow.nix-access-tokens`
-- `secrets/IanHollow/home/ianmh/gitconfig-userName.age` ->
-  `IanHollow.home.ianmh.gitconfig-userName`
-- `secrets/IanHollow/system/nixos/desktop/some-system-secret.age` ->
-  `IanHollow.system.nixos.desktop.some-system-secret`
-- `secrets/IanHollow/system/darwin/all-darwin-secret.age` ->
-  `IanHollow.system.darwin.all-darwin-secret`
-
-The runtime `agenix` secret name remains the file stem, so
-`secrets/IanHollow/home/ianmh/gitconfig-userName.age` is still accessed as
-`config.age.secrets.gitconfig-userName`.
-
-## Scope rules
-
-Inside each owner group:
-
-- `<group>/*.age` applies to all homes and systems in that owner group.
-- `home/*.age` applies to all homes in that owner group.
-- `home/<username>/*.age` applies only to homes with that username.
-- `system/*.age` applies to all systems in that owner group.
-- `system/nixos/*.age` applies to all NixOS systems in that owner group.
-- `system/darwin/*.age` applies to all Darwin systems in that owner group.
-- `system/nixos/<config-name>/*.age` applies only to that NixOS config folder.
-- `system/darwin/<config-name>/*.age` applies only to that Darwin config folder.
-
-Extra nested folders under the group root are not used for shared secrets; use
-the group root directly. Extra nested folders under `home/<username>/`, or
-`system/<platform>/<config-name>/` are allowed for organization.
-
-## Create or update secrets
-
-- Encrypt from plaintext file:
-  - `just secret-encrypt <secret-id> <path-to-plaintext>`
-- Edit secret with your editor:
-  - `just secret-edit <secret-id>`
-- View decrypted content:
-  - `just secret-view <secret-id>`
-- Preview recipients:
-  - `just secret-recipients <secret-id>`
-
-## Validate before commit
-
-- `just secret-lint`
-- `just secret-check`
-
-## Rotation pattern
-
-To avoid lockout when rotating keys:
-
-1. Add the new public key to the relevant config.
-2. Keep the old key temporarily on another config that should still decrypt the
-   same secrets.
-3. Run `just secret-reencrypt --all`.
-4. Verify access with the new key.
-5. Remove the old key and re-encrypt again.
+`rekey` changes encryption recipients or target artifacts. `rotate` changes the
+underlying application credential and must be performed as a separate, explicit
+operation.

@@ -218,6 +218,11 @@ __marimo__/
 
 # Project Specific
 result/
+
+# Local-only nix-seal identities, artifact bundles, and public deployment
+# bindings. The checked-in example is deliberately the sole exception.
+.nix-seal/*
+!.nix-seal/public.nix.example
 .direnv/
 .pre-commit-config.yaml
 result

@@ -72,15 +72,6 @@
         flake-parts.follows = "flake-parts";
       };
     };
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        systems.follows = "systems";
-        darwin.follows = "nix-darwin";
-        home-manager.follows = "home-manager";
-      };
-    };
     spicetify-nix = {
       url = "github:Gerg-L/spicetify-nix";
       inputs = {
@@ -149,27 +140,7 @@
     inputs:
     let
       myLib = import ./lib { inherit (inputs.nixpkgs) lib; };
-      allSecrets = import ./secrets { inherit myLib; };
-      secretsFor =
-        { kind, target }:
-        if !(target ? secrets) then
-          { }
-        else
-          myLib.secrets.selectSecretsForTarget {
-            secretsTree = allSecrets;
-            target = {
-              targetId =
-                if kind == "home" then
-                  "home:${target.username}@${target.folderName}"
-                else
-                  "host:${kind}:${target.folderName}";
-              targetType = if kind == "home" then "home" else "host";
-              username = if kind == "home" then target.username else null;
-              configName = target.folderName;
-              platform = if kind == "home" then null else kind;
-              groups = target.secrets.groups or [ ];
-            };
-          };
+      nixSealParent = import ./flake/nix-seal-parent.nix { inherit inputs; };
     in
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
@@ -185,11 +156,14 @@
       ];
 
       _module.args.myLib = myLib;
+      _module.args.nixSealParent = nixSealParent;
 
       nixConfigFramework = {
         root = ./.;
         extraSpecialArgs = { inherit myLib; };
-        extraSpecialArgsFor = { kind, target }: { secrets = secretsFor { inherit kind target; }; };
+        extraSpecialArgsFor = { kind, target }: {
+          nixSealTarget = nixSealParent.forTarget { inherit kind target; };
+        };
       };
 
       perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };

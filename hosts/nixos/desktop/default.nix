@@ -24,7 +24,7 @@
     registry
     chromium-policies
     boot
-    agenix
+    nixSeal
   ];
 
   # modules =

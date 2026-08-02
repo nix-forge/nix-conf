@@ -1,7 +1,21 @@
 { config, lib, ... }:
 let
-  hasSecret = name: lib.hasAttrByPath [ "age" "secrets" name ] config;
-  secretPath = name: if hasSecret name then config.age.secrets.${name}.path else null;
+  secretIds = {
+    git-allowedSigners = "ianhollow/home/ianmh/git-allowedsigners";
+    gitconfig-userName = "ianhollow/home/ianmh/gitconfig-username";
+    gitconfig-userEmail = "ianhollow/home/ianmh/gitconfig-useremail";
+    gitconfig-userEmail-Cornell = "ianhollow/home/ianmh/gitconfig-useremail-cornell";
+    gitconfig-userEmail-GitHub = "ianhollow/home/ianmh/gitconfig-useremail-github";
+  };
+  hasSecret =
+    name:
+    lib.hasAttrByPath [
+      "nixSeal"
+      "secrets"
+      secretIds.${name}
+    ] config;
+  secretPath =
+    name: if hasSecret name then config.nixSeal.secrets.${secretIds.${name}}.path else null;
   gitEmailConfigPath = "${config.xdg.configHome}/git/.gitconfig-email";
   makeGitEmailConfigVariations = website: emailPath: ''
     [includeIf "hasconfig:remote.*.url:https://${website}/**"]

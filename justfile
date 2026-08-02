@@ -105,40 +105,17 @@ home-switch configuration *args:
 
 # ─── Secrets ──────────────────────────────────────────────────────────
 
-# Validate config-driven secret metadata and recipients
+# Pass arguments directly to the repository-pinned nix-seal CLI.
 [group('Secrets')]
-secret-lint:
-    nix run path:{{ flake }}#secretctl -- lint
+secret *args:
+    nix run path:{{ flake }}#nix-seal -- {{ args }}
 
-# Validate secret metadata and ensure ciphertext files exist
+# Compile and inspect the public parent policy. This succeeds only after the
+# local public artifact configuration has been installed.
 [group('Secrets')]
-secret-check:
-    nix run path:{{ flake }}#secretctl -- check
-
-# Show resolved recipients for a secret ID
-[group('Secrets')]
-secret-recipients secret_id:
-    nix run path:{{ flake }}#secretctl -- recipients {{ secret_id }}
-
-# View a secret by ID
-[group('Secrets')]
-secret-view secret_id:
-    nix run path:{{ flake }}#secretctl -- view {{ secret_id }}
-
-# Edit a secret by ID via $EDITOR
-[group('Secrets')]
-secret-edit secret_id:
-    nix run path:{{ flake }}#secretctl -- edit {{ secret_id }}
-
-# Create/replace a secret from plaintext file
-[group('Secrets')]
-secret-encrypt secret_id source:
-    nix run path:{{ flake }}#secretctl -- encrypt {{ secret_id }} --from {{ source }}
-
-# Re-encrypt one secret or all secrets from config metadata
-[group('Secrets')]
-secret-reencrypt *args:
-    nix run path:{{ flake }}#secretctl -- reencrypt {{ args }}
+secret-plan:
+    nix eval {{ flake }}#nixSeal.plan --raw > /tmp/nix-conf-plan.v1.json
+    nix run path:{{ flake }}#nix-seal -- check --nix-plan /tmp/nix-conf-plan.v1.json
 
 # ─── Maintenance ──────────────────────────────────────────────────────
 

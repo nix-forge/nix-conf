@@ -47,7 +47,7 @@ in
     registry
     cache
     chromium-policies
-    agenix
+    nixSeal
 
     security
     stylix
