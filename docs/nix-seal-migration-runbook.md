@@ -12,8 +12,8 @@ arguments containing a secret value, or ordinary environment variables.
   identity. The legacy key must decrypt all eight existing ciphertexts.
 - Generate or select a separate approval signing key and preserve at least two
   administrator/recovery decryption paths.
-- Fill and commit `.nix-seal/public.nix` from its example using public
-  recipients and artifact metadata only.
+- Let `nix-seal provision --execute --lock-file nix-seal.lock.json` generate and
+  commit the public deployment lock. Do not hand-copy artifact metadata.
 
 ## 1. Inventory and review
 
@@ -79,7 +79,8 @@ nix run .#nix-seal -- check --nix-plan /tmp/nix-conf-plan.v1.json --deep --repos
 nix run .#nix-seal -- provision --plan /tmp/nix-conf-plan.v1.json \
   --repository-root . --target host/nixos/desktop --generation 1 \
   --identity /absolute/path/to/new-admin.agekey \
-  --signing-key /absolute/path/to/approval-signing-key --execute
+  --signing-key /absolute/path/to/approval-signing-key \
+  --lock-file nix-seal.lock.json --execute
 ```
 
 Repeat provisioning for `home/ianmh/desktop`, `home/ianmh/macbook-pro-m4`, and
@@ -87,9 +88,9 @@ Repeat provisioning for `home/ianmh/desktop`, `home/ianmh/macbook-pro-m4`, and
 only into its target-local cache: `/var/lib/nix-seal/cache/v1` for a host and
 the owning user's cache (`$XDG_CACHE_HOME/nix-seal/v1`, or
 `~/Library/Caches/nix-seal/v1` on macOS) for Home Manager. Record each cache
-key, canonical source hash, and generation in tracked `.nix-seal/public.nix`.
-That file contains public metadata only; it is not a flake input and no artifact
-is copied into the Nix store.
+key, canonical source hash, and generation in tracked `nix-seal.lock.json`. The
+command maintains that file atomically; it contains public metadata only, is not
+a flake input, and no artifact is copied into the Nix store.
 
 ## 4. Activate and close out
 

@@ -2,7 +2,7 @@
   flake.nixSeal = {
     schema = "nix-conf.nix-seal.v1";
     inherit (nixSealParent) available;
-    credentialsPath = toString nixSealParent.credentialsPath;
+    lockPath = toString nixSealParent.lockPath;
     targets = builtins.attrNames nixSealParent.targetDefinitions;
     secrets = builtins.attrNames nixSealParent.secretDefinitions;
     plan = nixSealParent.planJson;
@@ -128,11 +128,16 @@
                 --signing-key "$e2e/signing.key" \
                 --identity "$e2e/admin.agekey" \
                 --cache-root "$e2e/cache" \
+                --lock-file "$e2e/nix-seal.lock.json" \
                 --execute --json > "$e2e/provision.json"
               cache_key="$(jq -r '.artifacts[0].cacheKey' "$e2e/provision.json")"
               source_hash="$(jq -r '.artifacts[0].sourceCiphertextHash' "$e2e/provision.json")"
               test "$cache_key" != null
               test "$source_hash" != null
+              jq -e '
+                .schema == "nix-seal.public-lock.v1" and
+                .artifacts.server["services/example/token"].artifactGeneration == 1
+              ' "$e2e/nix-seal.lock.json" >/dev/null
               nix-seal cache export --root "$e2e/cache" --destination "$e2e/export"
               nix-seal cache import --root "$e2e/imported-cache" --source "$e2e/export"
               artifact="$e2e/imported-cache/artifacts/$cache_key"

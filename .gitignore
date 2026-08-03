@@ -219,11 +219,9 @@ __marimo__/
 # Project Specific
 result/
 
-# Local-only nix-seal identities, artifact bundles, and public deployment
-# bindings. The checked-in example is deliberately the sole exception.
+# Local-only nix-seal identities and artifact bundles. The generated public
+# deployment lock is `nix-seal.lock.json` at the repository root.
 .nix-seal/*
-!.nix-seal/public.nix.example
-!.nix-seal/public.nix
 .nix-seal.lock
 .nix-seal-migration/
 .direnv/

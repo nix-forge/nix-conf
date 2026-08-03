@@ -1,0 +1,112 @@
+{
+  "schema": "nix-seal.public-lock.v1",
+  "identities": {
+    "administrator": "age1x2k2hx0rzltg56p4et3yn4a873m6jltk62vmlrs8leamel69kamqf8ycqx",
+    "recovery": "age12h383letjnn5sag0799ssvfz94n83mwvcfcv87lkj379y0c65d0ss2t559",
+    "release": "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=",
+    "target/home/ianmh/desktop": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq",
+    "target/home/ianmh/macbook-pro-m4": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf",
+    "target/host/darwin/macbook-pro-m4": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ",
+    "target/host/nixos/desktop": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs"
+  },
+  "artifacts": {
+    "home/ianmh/desktop": {
+      "ianhollow/users/ianmh/cornell-net-id-ssh-config": {
+        "cacheKey": "dcb23e48c0f8c29235e5ce622a212219f20d95265216d1c6d3fac60272428d86",
+        "sourceCiphertextHash": "126f8939a6f4fa43c54714e6cee214d762f8009082a242f30789650b46b03b13",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/git-allowedsigners": {
+        "cacheKey": "d9a5b385214f98e71b32d3e104812d752d5eb8e3a88f3a9c0120fe2c225311e7",
+        "sourceCiphertextHash": "f1b67902836163f2e08e8cbcea2f88826e00d2a93f7ed2e27e513507c5092737",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail": {
+        "cacheKey": "6c80ae56d79088cf5e85f3798dd604811d9133489dc7dac774cf97bcab57432c",
+        "sourceCiphertextHash": "b81de4383184561f1dc50be5374fdb6d069e6e07f3113ba829d568bc857f90e9",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail-cornell": {
+        "cacheKey": "5af5b70d93dfe1663944243c57975c97004e0c2d0eaa656a8ab186151048b4c4",
+        "sourceCiphertextHash": "90ccb67ca3f05e597127092f5d2fe6882af21ba185fcc3a24fa5577e9983d8ff",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail-github": {
+        "cacheKey": "9c01c7e2c8a8a27cd9ea0c2034ab5c7634f876c21bc066ac72e0de983cc0b9ff",
+        "sourceCiphertextHash": "b9acc37d39080d4bf254466494d6fbf5dcdf8caee244f5cb22bbcdee3dc40af6",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-username": {
+        "cacheKey": "9623dd10480e7e27388d30b21d329455a1b8f6517cc3983ce5da66c266899a7d",
+        "sourceCiphertextHash": "07e0b1261069cb6bd0d675833c5bb1f49c1910b8e00a4b8185bbe8a58bd645d3",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/hf-token": {
+        "cacheKey": "cb9c50781ae7262da3113f4029df7c74027229bcacfc66c238d6eea46a7609af",
+        "sourceCiphertextHash": "a998ba1fcf2d8aad2340abca6ea1948a37d352d9f2c34abc4bcd1ea5cefb4901",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/nix-access-tokens": {
+        "cacheKey": "3ecb8a6174b7ffad5e19970eb996b36069ccf9563c9c51fad964f3ef8f25714e",
+        "sourceCiphertextHash": "76d3432f1d3dd00aa93e9fdc485bd2376e4688a49b5684ed75153fe1503f2718",
+        "artifactGeneration": 5
+      }
+    },
+    "home/ianmh/macbook-pro-m4": {
+      "ianhollow/users/ianmh/cornell-net-id-ssh-config": {
+        "cacheKey": "936b7f1d5ffd0aaf34f529a1fe5c94c187a04de67193829012ee1bae8ac9c410",
+        "sourceCiphertextHash": "126f8939a6f4fa43c54714e6cee214d762f8009082a242f30789650b46b03b13",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/git-allowedsigners": {
+        "cacheKey": "cdc903f53e9525981856fd37943a14b9abbe867939b050e16d98f302c4de5f9c",
+        "sourceCiphertextHash": "f1b67902836163f2e08e8cbcea2f88826e00d2a93f7ed2e27e513507c5092737",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail": {
+        "cacheKey": "bea90fd9abf86873c940074ace942c3f51ac8ed9a2b318f7970be7f1f9419f3c",
+        "sourceCiphertextHash": "b81de4383184561f1dc50be5374fdb6d069e6e07f3113ba829d568bc857f90e9",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail-cornell": {
+        "cacheKey": "6c5ef1775acd281f8174144ae9892d3cac89fd2c8e43a98d4434b16b01253e0e",
+        "sourceCiphertextHash": "90ccb67ca3f05e597127092f5d2fe6882af21ba185fcc3a24fa5577e9983d8ff",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-useremail-github": {
+        "cacheKey": "524d1a634eec57d1a5d741cde064a7be2407a612e9fd37a426d3c96c0195661e",
+        "sourceCiphertextHash": "b9acc37d39080d4bf254466494d6fbf5dcdf8caee244f5cb22bbcdee3dc40af6",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/gitconfig-username": {
+        "cacheKey": "25ee9327f46ad11ba19531b2b1e8a7c7a4939c2faf83dca89854fb013ac52cbb",
+        "sourceCiphertextHash": "07e0b1261069cb6bd0d675833c5bb1f49c1910b8e00a4b8185bbe8a58bd645d3",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/hf-token": {
+        "cacheKey": "3e8a0a21c30ddecb6b8ffaa61867e4841e18a79228968a37cf55cc9a77f507cf",
+        "sourceCiphertextHash": "a998ba1fcf2d8aad2340abca6ea1948a37d352d9f2c34abc4bcd1ea5cefb4901",
+        "artifactGeneration": 5
+      },
+      "ianhollow/users/ianmh/nix-access-tokens": {
+        "cacheKey": "245a11d26c826d8c799d9261c2d18ecebcb3e6b757107737cb7ef45e762aeeb7",
+        "sourceCiphertextHash": "76d3432f1d3dd00aa93e9fdc485bd2376e4688a49b5684ed75153fe1503f2718",
+        "artifactGeneration": 5
+      }
+    },
+    "host/darwin/macbook-pro-m4": {
+      "ianhollow/hosts/darwin/macbook-pro-m4/nix-access-tokens": {
+        "cacheKey": "868cf47490a3bd1091daa2f2bc9cd2408f396037bdfd3e02b2d55a248bee8120",
+        "sourceCiphertextHash": "0606e5ebc199d95d643330096c0c4e33cac7a5a674ef2a54f795f4ca941567ad",
+        "artifactGeneration": 5
+      }
+    },
+    "host/nixos/desktop": {
+      "ianhollow/hosts/nixos/desktop/nix-access-tokens": {
+        "cacheKey": "37adcf0297b1be11087c8e4124fa16578ff1674f3008b1faaf40b1772b9f19fd",
+        "sourceCiphertextHash": "1df1d61c5000b3b10963d900c49bfd5eb3a2419f3b9af4c5841d0dbad697a0bd",
+        "artifactGeneration": 5
+      }
+    }
+  }
+}

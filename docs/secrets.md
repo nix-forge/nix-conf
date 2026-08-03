@@ -16,12 +16,14 @@ Home secrets use the target user's local group: `ianmh` on Linux and `staff` on
 macOS. The target-specific policy is signed into each artifact, so activation
 cannot substitute ownership metadata.
 
-Commit `.nix-seal/public.nix` from `.nix-seal/public.nix.example`. It contains
-only administrator/recovery recipients, an approval public key, and public
-artifact metadata. Never place identities, signing private keys, decrypted
+Commit the generated top-level `nix-seal.lock.json`. It contains only public
+plan identities and public artifact metadata. Do not edit cache keys or hashes
+by hand: `nix-seal provision --execute --lock-file nix-seal.lock.json` updates
+the relevant target entry atomically after it has verified and written its
+encrypted artifacts. Never place identities, signing private keys, decrypted
 values, or prompt answers there.
 
-Until that file and all signed artifacts exist, the parent nix-seal modules are
+Until that lock and all signed artifacts exist, the parent nix-seal modules are
 disabled. This makes an incomplete migration fail closed rather than replacing a
 working runtime with an empty one.
 
