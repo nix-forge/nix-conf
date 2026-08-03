@@ -46,7 +46,7 @@ in
       ];
       approvalPolicy = "release";
       owner = "root";
-      group = "root";
+      group = "wheel";
       mode = "0400";
     };
   };
