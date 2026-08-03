@@ -50,6 +50,10 @@ let
     # shellcheck disable=SC1091
     . ${lib.escapeShellArg envFile}
     export LOCAL_CONTROL_DATABASE_URL LOCAL_CONTROL_AUTH_TOKEN
+    # The coordinated deployer records an immutable release ID in this shared
+    # environment file.  Both supervised processes must inherit it, otherwise
+    # they fall back to separate editable-source fingerprints.
+    export LOCAL_CONTROL_RELEASE_ID="''${LOCAL_CONTROL_RELEASE_ID:-}"
     export LOCAL_CONTROL_DB_ADMIN LOCAL_CONTROL_DB_USER LOCAL_CONTROL_DB_NAME
     export PGPASSWORD="$LOCAL_CONTROL_DB_PASSWORD"
   '';
