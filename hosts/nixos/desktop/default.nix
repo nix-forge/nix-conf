@@ -25,6 +25,7 @@
     chromium-policies
     boot
     nixSeal
+    ./nix-seal.nix
   ];
 
   # modules =

@@ -110,13 +110,6 @@ home-switch configuration *args:
 secret *args:
     nix run path:{{ flake }}#nix-seal -- {{ args }}
 
-# Compile and inspect the public parent policy. This succeeds only after the
-# local public artifact configuration has been installed.
-[group('Secrets')]
-secret-plan:
-    nix eval {{ flake }}#nixSeal.plan --raw > /tmp/nix-conf-plan.v1.json
-    nix run path:{{ flake }}#nix-seal -- check --nix-plan /tmp/nix-conf-plan.v1.json
-
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files

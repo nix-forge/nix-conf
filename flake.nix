@@ -140,7 +140,13 @@
     inputs:
     let
       myLib = import ./lib { inherit (inputs.nixpkgs) lib; };
-      nixSealParent = import ./flake/nix-seal-parent.nix { inherit inputs; };
+      # Public repository trust anchors. Private age identities and signing
+      # keys remain outside this repository and outside the Nix store.
+      nixSealTrust = {
+        administratorRecipient = "age1x2k2hx0rzltg56p4et3yn4a873m6jltk62vmlrs8leamel69kamqf8ycqx";
+        recoveryRecipient = "age12h383letjnn5sag0799ssvfz94n83mwvcfcv87lkj379y0c65d0ss2t559";
+        signerPublicKey = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
+      };
     in
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
@@ -152,18 +158,15 @@
         inputs.nix-config-framework.flakeModules.default
         inputs.nix-seal.flakeModules.default
         ./flake/dev
-        ./flake/secrets.nix
       ];
 
       _module.args.myLib = myLib;
-      _module.args.nixSealParent = nixSealParent;
+
+      flake.nixSealTrust = nixSealTrust;
 
       nixConfigFramework = {
         root = ./.;
-        extraSpecialArgs = { inherit myLib; };
-        extraSpecialArgsFor = { kind, target }: {
-          nixSealTarget = nixSealParent.forTarget { inherit kind target; };
-        };
+        extraSpecialArgs = { inherit myLib nixSealTrust; };
       };
 
       perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };

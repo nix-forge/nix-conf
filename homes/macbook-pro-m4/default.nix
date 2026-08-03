@@ -47,6 +47,7 @@ in
     registry
     cache
     nixSeal
+    ./nix-seal.nix
     macos
 
     fonts

@@ -48,6 +48,7 @@ in
     cache
     chromium-policies
     nixSeal
+    ./nix-seal.nix
 
     security
     stylix

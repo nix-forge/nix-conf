@@ -23,6 +23,7 @@
     registry
     xdg
     nixSeal
+    ./nix-seal.nix
 
     ## Shells
     shells-aliases
