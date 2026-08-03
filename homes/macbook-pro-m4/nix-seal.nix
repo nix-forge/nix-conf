@@ -27,47 +27,46 @@ in
     identityFile = "/Users/ianmh/.ssh/id_ed25519";
     artifactCacheRoot = "/Users/ianmh/Library/Caches/nix-seal/v1";
     repositoryRoot = ../../.;
-    secrets = lib.mapAttrs (_: source: runtime // { inherit source; }) sources;
-    planObjects = {
-      identities = {
-        administrator = {
-          kind = "administrator";
-          public = nixSealTrust.administratorRecipient;
-        };
-        recovery = {
-          kind = "recovery";
-          public = nixSealTrust.recoveryRecipient;
-        };
-        release = {
-          kind = "signer";
-          public = nixSealTrust.signerPublicKey;
-        };
-        target = {
-          kind = "target";
-          public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
-        };
+    identities = {
+      administrator = {
+        kind = "administrator";
+        public = nixSealTrust.administratorRecipient;
       };
-      targets.${targetId} = {
-        kind = "homeManager";
-        system = "aarch64-darwin";
-        username = "ianmh";
-        configuration = "macbook-pro-m4";
-        identity = "target";
+      recovery = {
+        kind = "recovery";
+        public = nixSealTrust.recoveryRecipient;
       };
-      secrets = lib.mapAttrs (_: source: {
+      release = {
+        kind = "signer";
+        public = nixSealTrust.signerPublicKey;
+      };
+      target = {
+        kind = "target";
+        public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
+      };
+    };
+    target = {
+      kind = "homeManager";
+      system = "aarch64-darwin";
+      username = "ianmh";
+      configuration = "macbook-pro-m4";
+      identity = "target";
+    };
+    approvalPolicies.release = {
+      threshold = 1;
+      signers = [ "release" ];
+    };
+    secrets = lib.mapAttrs (
+      _: source:
+      runtime
+      // {
         inherit source;
-        consumers = [ targetId ];
         administrators = [
           "administrator"
           "recovery"
         ];
         approvalPolicy = "release";
-        inherit runtime;
-      }) sources;
-      approvalPolicies.release = {
-        threshold = 1;
-        signers = [ "release" ];
-      };
-    };
+      }
+    ) sources;
   };
 }
