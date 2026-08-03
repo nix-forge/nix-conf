@@ -19,6 +19,21 @@ let
       '';
     });
   };
+  darwinBuildFixOverlay = final: prev: {
+    darktable = prev.darktable.overrideAttrs (old: {
+      versionCheckProgram = "${placeholder "out"}/bin/darktable-cli";
+      versionCheckProgramArg = "--version";
+      versionCheckKeepEnvironment = "HOME";
+      preVersionCheck = (old.preVersionCheck or "") + ''
+        export HOME="$TMPDIR"
+        mkdir -p "$HOME/.config/darktable"
+      '';
+    });
+    libgphoto2 = prev.libgphoto2.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or [ ]) ++ [ final.gettext ];
+      NIX_LDFLAGS = "-lintl";
+    });
+  };
 in
 {
   system = "aarch64-darwin";
@@ -30,7 +45,10 @@ in
   };
 
   nixpkgsArgs = {
-    overlays = [ actualServerCaseFixOverlay ];
+    overlays = [
+      actualServerCaseFixOverlay
+      darwinBuildFixOverlay
+    ];
     config = {
       allowUnfree = true;
       permittedInsecurePackages = [ "electron-40.10.5" ];
