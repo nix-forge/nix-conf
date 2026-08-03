@@ -31,12 +31,14 @@ in
       if [ -d "$spotifyApp" ]; then
         chmod -R u+w "$spotifyApp"
         /usr/bin/xattr -cr "$spotifyApp" 2>/dev/null || true
-        /usr/bin/codesign --force --deep --options runtime --entitlements "${spotifyEntitlements}" --sign - "$spotifyApp"
-        /usr/bin/codesign --verify --deep --strict --verbose=2 "$spotifyApp"
-
-        # Re-register the copied bundle so Dock and bundle-ID launches do not
-        # resolve a stale Spotify app that Spicetify created in a build temp dir.
-        /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$spotifyApp"
+        if /usr/bin/codesign --force --deep --options runtime --entitlements "${spotifyEntitlements}" --sign - "$spotifyApp" \
+          && /usr/bin/codesign --verify --deep --strict --verbose=2 "$spotifyApp"; then
+          # Re-register the copied bundle so Dock and bundle-ID launches do not
+          # resolve a stale Spotify app that Spicetify created in a build temp dir.
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$spotifyApp"
+        else
+          echo "Warning: Spotify app is incomplete or could not be signed; continuing Home Manager activation." >&2
+        fi
       fi
     ''
   );
