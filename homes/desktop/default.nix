@@ -6,7 +6,6 @@
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
-    groups = [ "IanHollow" ];
   };
 
   nixpkgsArgs = {

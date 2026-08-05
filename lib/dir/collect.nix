@@ -25,11 +25,11 @@ let
   #
   # Type: String -> String -> Path -> AttrSet
   # Example:
-  #   collectBySuffix ".age" "secrets" ./secrets/IanHollow/ianmh
+  #   collectBySuffix ".age" "secrets" ./secrets/ianhollow/users/ianmh
   #   # => {
   #   #   secrets = {
-  #   #     gitconfig-userName = { file = ./secrets/IanHollow/ianmh/gitconfig-userName.age; };
-  #   #     gitconfig-userEmail = { file = ./secrets/IanHollow/ianmh/gitconfig-userEmail.age; };
+  #   #     gitconfig-userName = { file = ./secrets/ianhollow/users/ianmh/gitconfig-userName.age; };
+  #   #     gitconfig-userEmail = { file = ./secrets/ianhollow/users/ianmh/gitconfig-userEmail.age; };
   #   #     ...
   #   #   };
   #   # }

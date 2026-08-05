@@ -113,7 +113,7 @@ let
     }
     {
       path = "/org.openoffice.Office.Recovery/AutoSave";
-      name = "TimeIntervall";
+      name = "TimeInterval";
       value = "5";
     }
     {

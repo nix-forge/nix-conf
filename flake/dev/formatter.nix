@@ -10,6 +10,20 @@
       enable = true;
       priority = 200;
     };
+    yamllint = {
+      enable = true;
+      priority = 300;
+      settings = {
+        extends = "default";
+        rules = {
+          document-start = "disable";
+          line-length = {
+            max = 160;
+            level = "warning";
+          };
+        };
+      };
+    };
 
     # Nix
     deadnix = {
@@ -25,6 +39,11 @@
       width = 100;
       strict = true;
       priority = 300;
+    };
+    nixf-diagnose = {
+      enable = true;
+      autoFix = false;
+      priority = 400;
     };
 
     # Shell
@@ -42,8 +61,19 @@
     # Other
     keep-sorted.enable = true;
     just.enable = true;
+    taplo.enable = true;
+    rumdl-check.enable = true;
+    typos = {
+      enable = true;
+      configFile = ".typos.toml";
+    };
     prettier = {
       enable = true;
+      excludes = [
+        "*.md"
+        "*.yaml"
+        "*.yml"
+      ];
       settings.proseWrap = "always";
     };
   };

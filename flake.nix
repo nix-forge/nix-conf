@@ -49,7 +49,6 @@
       inputs = {
         nix.inputs = {
           flake-parts.follows = "flake-parts";
-          git-hooks-nix.follows = "git-hooks-nix";
         };
       };
     };
@@ -123,17 +122,6 @@
       url = "github:NixOS/flake-compat";
       flake = false;
     };
-    git-hooks-nix = {
-      url = "github:cachix/git-hooks.nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -142,10 +130,28 @@
       myLib = import ./lib { inherit (inputs.nixpkgs) lib; };
       # Public repository trust anchors. Private age identities and signing
       # keys remain outside this repository and outside the Nix store.
-      nixSealTrust = {
-        administratorRecipient = "age1x2k2hx0rzltg56p4et3yn4a873m6jltk62vmlrs8leamel69kamqf8ycqx";
-        recoveryRecipient = "age12h383letjnn5sag0799ssvfz94n83mwvcfcv87lkj379y0c65d0ss2t559";
-        signerPublicKey = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
+      nixSealCatalog = {
+        administrators.ianhollow = {
+          identities = {
+            administrator = {
+              kind = "administrator";
+              public = "age1x2k2hx0rzltg56p4et3yn4a873m6jltk62vmlrs8leamel69kamqf8ycqx";
+            };
+            recovery = {
+              kind = "recovery";
+              public = "age12h383letjnn5sag0799ssvfz94n83mwvcfcv87lkj379y0c65d0ss2t559";
+            };
+            release = {
+              kind = "signer";
+              public = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
+            };
+          };
+          approvalPolicies.release = {
+            threshold = 1;
+            signers = [ "release" ];
+          };
+          defaultApprovalPolicy = "release";
+        };
       };
     in
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -157,16 +163,17 @@
       imports = [
         inputs.nix-config-framework.flakeModules.default
         inputs.nix-seal.flakeModules.default
-        ./flake/dev
+        inputs.nix-seal.flakeModules.nix-config-framework
+        ./flake/partitions.nix
       ];
 
       _module.args.myLib = myLib;
 
-      flake.nixSealTrust = nixSealTrust;
+      flake.nixSeal = nixSealCatalog;
 
       nixConfigFramework = {
         root = ./.;
-        extraSpecialArgs = { inherit myLib nixSealTrust; };
+        extraSpecialArgs = { inherit myLib; };
       };
 
       perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };

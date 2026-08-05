@@ -1,0 +1,13 @@
+files.extend-exclude = [
+  "flake.lock",
+  "**/Cargo.lock",
+  "secrets/**",
+  ".git/**",
+  ".opencode/node_modules/**",
+]
+
+[default.extend-words]
+ags = "ags"
+Calculater = "Calculater"
+extens = "extens"
+nd = "nd"

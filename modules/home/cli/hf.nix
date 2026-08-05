@@ -5,7 +5,7 @@
   ...
 }:
 let
-  secretId = "ianhollow/users/ianmh/hf-token";
+  secretId = "hf-token";
   hasSecret = lib.hasAttrByPath [ "nixSeal" "secrets" secretId ] config;
 in
 {

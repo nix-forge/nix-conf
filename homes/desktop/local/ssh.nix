@@ -1,10 +1,8 @@
 { config, lib, ... }:
 let
   includeCornell =
-    if
-      lib.hasAttrByPath [ "nixSeal" "secrets" "ianhollow/users/ianmh/cornell-net-id-ssh-config" ] config
-    then
-      { Include = config.nixSeal.secrets."ianhollow/users/ianmh/cornell-net-id-ssh-config".path; }
+    if lib.hasAttrByPath [ "nixSeal" "secrets" "cornell-net-id-ssh-config" ] config then
+      { Include = config.nixSeal.secrets."cornell-net-id-ssh-config".path; }
     else
       { };
 in

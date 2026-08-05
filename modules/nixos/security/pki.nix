@@ -4,7 +4,7 @@
     caCertificateBlacklist = [
       #
       "AC RAIZ FNMT-RCM SERVIDORES SEGUROS"
-      "Autoridad de Certificacion Firmaprofesional CIF A62634068"
+      "Autoridad de Certification Firmaprofesional CIF A62634068"
 
       # China Financial Certification Authority
       "CFCA EV ROOT"

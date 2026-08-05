@@ -7,8 +7,8 @@
       # gaps_out = 10;
       gaps_in = 0;
       gaps_out = 0;
-      "col.active_border" = lib.mkForce "rgb(0e5a94)"; # overriden by stylix
-      "col.inactive_border" = lib.mkForce "rgb(505050)"; # overriden by stylix
+      "col.active_border" = lib.mkForce "rgb(0e5a94)"; # overridden by stylix
+      "col.inactive_border" = lib.mkForce "rgb(505050)"; # overridden by stylix
       # no_cursor_warps = true;
       resize_on_border = true;
       extend_border_grab_area = 10;

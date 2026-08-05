@@ -5,7 +5,7 @@
   ...
 }:
 let
-  nixAccessTokensId = "ianhollow/hosts/nixos/desktop/nix-access-tokens";
+  nixAccessTokensId = "nix-access-tokens";
   hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
 in
 {

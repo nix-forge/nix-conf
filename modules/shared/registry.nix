@@ -45,7 +45,15 @@ let
     in
     builtins.filter isFlakeInput (builtins.attrNames declaredInputs);
 
-  nixosPartitionInputs = partitionInputNames ../../flake/nixos/flake.nix;
+  # The former NixOS partition was removed when the repository moved to the
+  # framework-managed targets. Keep this lookup optional so clean checkouts do
+  # not fail while retaining compatibility with repositories that still carry
+  # the partition file.
+  nixosPartitionInputs =
+    if builtins.pathExists ../../flake/nixos/flake.nix then
+      partitionInputNames ../../flake/nixos/flake.nix
+    else
+      [ ];
 
   allowedByClass =
     class: name: isRootFlakeInput name || (class == "nixos" && builtins.elem name nixosPartitionInputs);

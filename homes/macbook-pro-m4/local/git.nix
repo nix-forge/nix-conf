@@ -1,11 +1,11 @@
 { config, lib, ... }:
 let
   secretIds = {
-    git-allowedSigners = "ianhollow/users/ianmh/git-allowedsigners";
-    gitconfig-userName = "ianhollow/users/ianmh/gitconfig-username";
-    gitconfig-userEmail = "ianhollow/users/ianmh/gitconfig-useremail";
-    gitconfig-userEmail-Cornell = "ianhollow/users/ianmh/gitconfig-useremail-cornell";
-    gitconfig-userEmail-GitHub = "ianhollow/users/ianmh/gitconfig-useremail-github";
+    git-allowedSigners = "git-allowedsigners";
+    gitconfig-userName = "gitconfig-username";
+    gitconfig-userEmail = "gitconfig-useremail";
+    gitconfig-userEmail-Cornell = "gitconfig-useremail-cornell";
+    gitconfig-userEmail-GitHub = "gitconfig-useremail-github";
   };
   hasSecret =
     name:
