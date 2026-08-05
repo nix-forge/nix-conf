@@ -1,11 +1,11 @@
 [submodule "pkgs"]
 	path = pkgs
-	url = https://github.com/IanHollow/nixpkgs-personal.git
+	url = https://github.com/nix-forge/nixpkgs-personal.git
 	branch = main
 [submodule "nix-config-framework"]
 	path = nix-config-framework
-	url = https://github.com/IanHollow/nix-config-framework.git
+	url = https://github.com/nix-forge/nix-config-framework.git
 	branch = main
 [submodule "nix-seal"]
 	path = nix-seal
-	url = https://github.com/IanHollow/nix-seal.git
+	url = https://github.com/nix-forge/nix-seal.git
