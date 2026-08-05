@@ -9,5 +9,9 @@ files.extend-exclude = [
 [default.extend-words]
 ags = "ags"
 Calculater = "Calculater"
+Certificacion = "Certificacion"
+CROS = "CROS"
+HDA = "HDA"
 extens = "extens"
+imput = "imput"
 nd = "nd"

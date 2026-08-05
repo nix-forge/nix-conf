@@ -82,8 +82,8 @@ in
         CHARGER_RT9455 = no;
         CHARGER_RT9467 = no;
         CHARGER_RT9471 = no;
-        CHARGER_CROSS_USBPD = no;
-        CHARGER_CROSS_PCHG = no;
+        CHARGER_CROS_USBPD = no;
+        CHARGER_CROS_PCHG = no;
         CHARGER_BD99954 = no;
         CHARGER_WILCO = no;
         BATTERY_SURFACE = no;
@@ -301,12 +301,12 @@ in
         # CHROMEOS_LAPTOP = unset;
         # CHROMEOS_PSTORE = unset;
         # CHROMEOS_TBMC = unset;
-        # CROSS_EC = unset;
-        # CROSS_EC_I2C = unset;
-        # CROSS_EC_ISHTP = unset;
-        # CROSS_EC_LPC = unset;
-        # CROSS_EC_SPI = unset;
-        # CROSS_KBD_LED_BACKLIGHT = unset;
+        # CROS_EC = unset;
+        # CROS_EC_I2C = unset;
+        # CROS_EC_ISHTP = unset;
+        # CROS_EC_LPC = unset;
+        # CROS_EC_SPI = unset;
+        # CROS_KBD_LED_BACKLIGHT = unset;
 
         # SND_SOC = no;
         # SND_SOC_INTEL_SOUNDWIRE_SOF_MACH = unset;
@@ -318,8 +318,8 @@ in
         # SND_SOC_SOF_COMETLAKE = unset;
         # SND_SOC_SOF_ELKHARTLAKE = unset;
         # SND_SOC_SOF_GEMINILAKE = unset;
-        # SND_SOC_SOF_HAD_AUDIO_CODEC = unset;
-        # SND_SOC_SOF_HAD_LINK = unset;
+        # SND_SOC_SOF_HDA_AUDIO_CODEC = unset;
+        # SND_SOC_SOF_HDA_LINK = unset;
         # SND_SOC_SOF_ICELAKE = unset;
         # SND_SOC_SOF_INTEL_TOPLEVEL = unset;
         # SND_SOC_SOF_JASPERLAKE = unset;

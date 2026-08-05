@@ -307,7 +307,7 @@ let
             darwinBundleId = mkOption {
               type = types.nullOr types.str;
               default = null;
-              example = "net.input.helium";
+              example = "net.imput.helium";
               description = ''
                 macOS application bundle identifier used for the managed
                 preferences plist.
@@ -317,7 +317,7 @@ let
             darwinExtensionPolicyBundlePrefix = mkOption {
               type = types.nullOr types.str;
               default = null;
-              example = "net.input.helium.extensions";
+              example = "net.imput.helium.extensions";
               description = ''
                 macOS managed preference domain prefix used for extension
                 managed storage policies.
@@ -465,8 +465,8 @@ let
                 "chromium/policies/managed/helium-system.json"
                 "helium/policies/managed/helium-system.json"
               ];
-              darwinBundleId = "net.input.helium";
-              darwinExtensionPolicyBundlePrefix = "net.input.helium.extensions";
+              darwinBundleId = "net.imput.helium";
+              darwinExtensionPolicyBundlePrefix = "net.imput.helium.extensions";
               extensionPolicies = chromiumExtensionPolicies;
             };
           };
