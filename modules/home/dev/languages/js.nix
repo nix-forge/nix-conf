@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ config, pkgs, ... }: {
   home.packages = with pkgs; [
     bun
     nodejs
@@ -7,11 +7,12 @@
     oxfmt
 
     playwright-test
-    playwright-driver.browsers
   ];
 
   home.sessionVariables = {
-    PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
-    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = 1;
+    # Keep browser binaries writable so each project can install the exact
+    # Playwright revision pinned by its lockfile.
+    PLAYWRIGHT_BROWSERS_PATH = "${config.xdg.cacheHome}/ms-playwright";
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
   };
 }

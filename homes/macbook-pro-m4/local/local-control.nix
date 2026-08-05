@@ -88,7 +88,6 @@ let
       export LOCAL_CONTROL_BIND_HOST=127.0.0.1
       export LOCAL_CONTROL_PORT=${toString cfg.apiPort}
       export LOCAL_CONTROL_CORS_ORIGINS=http://127.0.0.1:${toString cfg.frontendPort}
-      export LOCAL_CONTROL_ALLOW_ACTIONS=${lib.boolToString cfg.allowActions}
       export LOCAL_CONTROL_WORKER_COUNT=${toString cfg.workerCount}
 
       for identifier in "$LOCAL_CONTROL_DB_ADMIN" "$LOCAL_CONTROL_DB_USER" "$LOCAL_CONTROL_DB_NAME"; do
@@ -228,12 +227,6 @@ in
 {
   options.services.localControl = {
     enable = lib.mkEnableOption "private local application stack";
-
-    allowActions = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Permit the API to queue operator-reviewed external actions.";
-    };
 
     projectDirectory = lib.mkOption {
       type = lib.types.path;
