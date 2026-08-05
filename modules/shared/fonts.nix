@@ -7,6 +7,20 @@ let
       ...
     }:
     with pkgs;
+    let
+      # google-fonts now includes the same variable M+ font files as the
+      # standalone M+ collection. Remove only those duplicates so both
+      # collections can safely be composed by buildEnv.
+      mplusOutlineFonts = mplus-outline-fonts.githubRelease.overrideAttrs (old: {
+        postInstall = (old.postInstall or "") + ''
+          rm -f \
+            "$out/share/fonts/truetype/MPLUS1Code[wght].ttf" \
+            "$out/share/fonts/truetype/MPLUS1[wght].ttf" \
+            "$out/share/fonts/truetype/MPLUS2[wght].ttf" \
+            "$out/share/fonts/truetype/MPLUSCodeLatin[wdth,wght].ttf"
+        '';
+      });
+    in
     [
       # icon fonts
       material-design-icons
@@ -65,7 +79,7 @@ let
       ipafont
       ipaexfont
       hanazono
-      mplus-outline-fonts.githubRelease
+      mplusOutlineFonts
       kanji-stroke-order-font
 
       # OpenType Math stacks
