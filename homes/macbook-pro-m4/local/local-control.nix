@@ -38,24 +38,37 @@ let
           mode require_and_verify
         }
       }
-      reverse_proxy 127.0.0.1:${toString cfg.apiPort}
+      request_header -X-Client-Certificate-Fingerprint
+      request_header -X-Agent-Proxy-Attestation
+      reverse_proxy 127.0.0.1:${toString cfg.apiPort} {
+        header_up X-Client-Certificate-Fingerprint {http.request.tls.client.fingerprint}
+        header_up X-Agent-Proxy-Attestation {$LOCAL_CONTROL_AGENT_PROXY_ATTESTATION}
+      }
     }
   '';
 
   controlEnvironment = ''
     set -eu
     # The file is created by the Nix activation step with mode 0600. It holds
-    # the database password and browser API token. Remote-client credentials
-    # remain on the client machine.
+    # the database password, browser API token, and private proxy attestation.
+    # Remote-client credentials remain on the client machine.
     # shellcheck disable=SC1091
     . ${lib.escapeShellArg envFile}
     export LOCAL_CONTROL_DATABASE_URL LOCAL_CONTROL_AUTH_TOKEN
+    export LOCAL_CONTROL_AGENT_PROXY_ATTESTATION
     # The coordinated deployer records an immutable release ID in this shared
     # environment file.  Both supervised processes must inherit it, otherwise
     # they fall back to separate editable-source fingerprints.
     export LOCAL_CONTROL_RELEASE_ID="''${LOCAL_CONTROL_RELEASE_ID:-}"
     export LOCAL_CONTROL_DB_ADMIN LOCAL_CONTROL_DB_USER LOCAL_CONTROL_DB_NAME
     export PGPASSWORD="$LOCAL_CONTROL_DB_PASSWORD"
+  '';
+
+  proxyEnvironment = ''
+    set -eu
+    # shellcheck disable=SC1091
+    . ${lib.escapeShellArg envFile}
+    export LOCAL_CONTROL_AGENT_PROXY_ATTESTATION
   '';
 
   postgres = pkgs.writeShellApplication {
@@ -186,6 +199,7 @@ let
     runtimeInputs = [ pkgs.caddy ];
     text = ''
       set -eu
+      ${proxyEnvironment}
       exec caddy run --config ${lib.escapeShellArg caddyConfig} --adapter caddyfile
     '';
   };
@@ -312,7 +326,13 @@ in
           printf 'LOCAL_CONTROL_DB_NAME=local_control\n'
           printf 'LOCAL_CONTROL_DATABASE_URL=postgresql://local_control_app:%s@127.0.0.1:${toString cfg.postgresPort}/local_control\n' "$app_password"
           printf 'LOCAL_CONTROL_AUTH_TOKEN=%s\n' "$api_token"
+          printf 'LOCAL_CONTROL_AGENT_PROXY_ATTESTATION=%s\n' "$(${pkgs.openssl}/bin/openssl rand -hex 32)"
         } > ${lib.escapeShellArg envFile}
+        chmod 600 ${lib.escapeShellArg envFile}
+      fi
+
+      if ! ${pkgs.gnugrep}/bin/grep -q '^LOCAL_CONTROL_AGENT_PROXY_ATTESTATION=' ${lib.escapeShellArg envFile}; then
+        printf 'LOCAL_CONTROL_AGENT_PROXY_ATTESTATION=%s\n' "$(${pkgs.openssl}/bin/openssl rand -hex 32)" >> ${lib.escapeShellArg envFile}
         chmod 600 ${lib.escapeShellArg envFile}
       fi
 
