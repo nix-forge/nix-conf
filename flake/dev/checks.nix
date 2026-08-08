@@ -28,6 +28,16 @@ _: {
               PATH=/no-such-path \
               ${postgresClusterValidator}/bin/local-control-validate-postgres-cluster "$existing_cluster"
 
+            if ${pkgs.coreutils}/bin/env -i \
+              HOME="$TMPDIR" \
+              PATH=/no-such-path \
+              ${postgresClusterValidator}/bin/local-control-validate-postgres-cluster "$new_cluster"; then
+              printf 'An uninitialized PostgreSQL directory was accepted.\n' >&2
+              exit 1
+            fi
+
+            # Exercise the same post-initialization branch used by activation:
+            # an empty, private directory is initialized and then validated.
             ${pkgs.postgresql_18}/bin/initdb \
               --pgdata="$new_cluster" \
               --auth-local=trust \

@@ -111,7 +111,8 @@ jobs:
         run: |
           set -euo pipefail
           nix build --keep-going --show-trace --print-build-logs --no-link \
-            ".#checks.${TARGET_SYSTEM}.treefmt"
+            ".#checks.${TARGET_SYSTEM}.treefmt" \
+            ".#checks.${TARGET_SYSTEM}.local-control-postgres-validation"
       - name: Build native Nix outputs
         id: native-build
         shell: bash
