@@ -7,9 +7,9 @@ and provides host-only SSH access to a Windows development VM.
 
 `homes/macbook-pro-m4/local/local-control.nix` manages PostgreSQL, an API, a
 background worker, a dashboard development server, and an mTLS reverse proxy
-through launchd. The public configuration uses only generic service names and
-expects the private checkout to be available at
-`~/Developer/personal/workspace-service`. Activate it with:
+through launchd. The public configuration uses only generic service names.
+Project-specific paths, commands, database variable names, and credentials stay
+in a local owner-only environment file. Activate it with:
 
 ```bash
 just home-switch ianmh@macbook-pro-m4
@@ -22,9 +22,34 @@ client certificate before forwarding requests.
 
 The private environment file is
 `~/.local/state/local-control/environment`; it is intentionally outside this
-repository and must be created by the private application checkout before
-activation. Private keys remain under `~/.local/state/local-control/pki` and
-are not committed to this repository.
+repository. Activation creates an empty regular file with mode `0600` when it
+does not exist and refuses symlinks, non-owner files, or permissions available
+to group or others.
+
+It is a shell environment file and must provide these generic settings before
+the services can run:
+
+- `LOCAL_CONTROL_PROJECT_DIRECTORY`
+- `LOCAL_CONTROL_DATABASE_URL`
+- `LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE`
+- `LOCAL_CONTROL_SCHEMA_COMMAND`
+- `LOCAL_CONTROL_API_COMMAND`
+- `LOCAL_CONTROL_WORKER_COMMAND`
+- `LOCAL_CONTROL_FRONTEND_COMMAND`
+- `LOCAL_CONTROL_PREPARE_COMMAND`
+- `LOCAL_CONTROL_READINESS_URL`
+- `SERVICE_PROXY_ATTESTATION`
+
+The database environment-variable name and every project-specific command are
+therefore private. Treat command settings as trusted owner-controlled shell
+commands. Use `local-control-prepare` to perform any locked dependency setup
+before starting services; launchd deliberately does not install dependencies at
+runtime.
+
+The PostgreSQL data directory is initialized only when empty. If it contains
+files without a valid cluster marker, activation stops without modifying or
+removing them. Private keys remain under
+`~/.local/state/local-control/pki` and are not committed to this repository.
 Check the services with:
 
 ```bash

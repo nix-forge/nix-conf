@@ -15,16 +15,84 @@ let
   inherit (cfg) environmentFile;
   logDir = "${stateDir}/logs";
 
-  loadEnvironment = ''
+  requirePrivateSettings =
+    names:
+    lib.concatMapStringsSep "\n" (name: ''
+      if [ -z "''${${name}:-}" ]; then
+        printf 'Missing required private service setting: ${name}\n' >&2
+        exit 78
+      fi
+    '') names;
+
+  loadPrivateEnvironment = ''
     set -eu
-    if [ ! -r ${lib.escapeShellArg environmentFile} ]; then
+    if [ ! -f ${lib.escapeShellArg environmentFile} ] || [ -L ${lib.escapeShellArg environmentFile} ]; then
       printf 'Missing private service environment: %s\n' ${lib.escapeShellArg environmentFile} >&2
+      exit 78
+    fi
+    if [ ! -r ${lib.escapeShellArg environmentFile} ]; then
+      printf 'Private service environment is not readable.\n' >&2
+      exit 78
+    fi
+    if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg environmentFile} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+      printf 'Private service environment must be owned by the current user.\n' >&2
+      exit 78
+    fi
+    environment_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg environmentFile} )"
+    if (( (8#$environment_mode & 0077) != 0 )); then
+      printf 'Private service environment must not be readable by group or others.\n' >&2
       exit 78
     fi
     set -a
     # shellcheck disable=SC1091
     . ${lib.escapeShellArg environmentFile}
     set +a
+  '';
+
+  prepareDatabaseEnvironment = ''
+    ${requirePrivateSettings [
+      "LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE"
+      "LOCAL_CONTROL_DATABASE_URL"
+    ]}
+    case "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE" in
+      [A-Za-z_]* )
+        case "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE" in
+          *[!A-Za-z0-9_]* )
+            printf 'The configured database environment variable name is invalid.\n' >&2
+            exit 64
+            ;;
+        esac
+        ;;
+      * )
+        printf 'The configured database environment variable name is invalid.\n' >&2
+        exit 64
+        ;;
+    esac
+    export "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE=$LOCAL_CONTROL_DATABASE_URL"
+  '';
+
+  waitForDatabase = ''
+    attempt=0
+    until ${pkgs.postgresql_18}/bin/pg_isready \
+      -h 127.0.0.1 \
+      -p ${toString cfg.postgresPort} >/dev/null 2>&1; do
+      attempt=$((attempt + 1))
+      if [ "$attempt" -ge 60 ]; then
+        printf 'Timed out waiting for local PostgreSQL readiness.\n' >&2
+        exit 75
+      fi
+      ${pkgs.coreutils}/bin/sleep 1
+    done
+  '';
+
+  runPrivateCommand = setting: ''
+    ${requirePrivateSettings [ setting ]}
+    ${pkgs.bash}/bin/bash -o errexit -o pipefail -c "''${${setting}}"
+  '';
+
+  execPrivateCommand = setting: ''
+    ${requirePrivateSettings [ setting ]}
+    exec ${pkgs.bash}/bin/bash -o errexit -o pipefail -c "''${${setting}}"
   '';
 
   caddyConfig = pkgs.writeText "local-control.Caddyfile" ''
@@ -59,6 +127,16 @@ let
     runtimeInputs = [ pkgs.postgresql_18 ];
     text = ''
       set -eu
+      if [ ! -s ${lib.escapeShellArg "${postgresDir}/PG_VERSION"} ]; then
+        printf 'Local PostgreSQL data directory is not initialized; run Home Manager activation first.\n' >&2
+        exit 78
+      fi
+      postgres_major=""
+      IFS= read -r postgres_major < ${lib.escapeShellArg "${postgresDir}/PG_VERSION"} || true
+      if [ "$postgres_major" != 18 ]; then
+        printf 'Local PostgreSQL data directory has an incompatible major version.\n' >&2
+        exit 78
+      fi
       mkdir -p ${lib.escapeShellArg postgresSocketDir}
       chmod 700 ${lib.escapeShellArg postgresSocketDir}
       exec postgres \
@@ -77,13 +155,13 @@ let
     ];
     text = ''
       set -eu
-      ${loadEnvironment}
-      until pg_isready -h 127.0.0.1 -p ${toString cfg.postgresPort}; do
-        sleep 1
-      done
-      cd ${lib.escapeShellArg cfg.projectDirectory}
-      uv run --locked alembic -c database/alembic.ini upgrade head
-      exec uv run --locked workspace-api
+      ${loadPrivateEnvironment}
+      ${prepareDatabaseEnvironment}
+      ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${waitForDatabase}
+      cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
+      ${runPrivateCommand "LOCAL_CONTROL_SCHEMA_COMMAND"}
+      ${execPrivateCommand "LOCAL_CONTROL_API_COMMAND"}
     '';
   };
 
@@ -95,16 +173,16 @@ let
     ];
     text = ''
       set -eu
-      ${loadEnvironment}
-      until pg_isready -h 127.0.0.1 -p ${toString cfg.postgresPort}; do
-        sleep 1
-      done
+      ${loadPrivateEnvironment}
+      ${prepareDatabaseEnvironment}
+      ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${waitForDatabase}
       export OMP_NUM_THREADS=1
       export OPENBLAS_NUM_THREADS=1
       export MKL_NUM_THREADS=1
       export VECLIB_MAXIMUM_THREADS=1
-      cd ${lib.escapeShellArg cfg.projectDirectory}
-      exec uv run --locked workspace-worker
+      cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
+      ${execPrivateCommand "LOCAL_CONTROL_WORKER_COMMAND"}
     '';
   };
 
@@ -116,11 +194,27 @@ let
     ];
     text = ''
       set -eu
-      cd ${lib.escapeShellArg cfg.projectDirectory}
-      if [ ! -d apps/dashboard/node_modules/.pnpm ]; then
-        pnpm --dir apps/dashboard install --frozen-lockfile
-      fi
-      exec pnpm --dir apps/dashboard dev --host 127.0.0.1 --port ${toString cfg.frontendPort}
+      ${loadPrivateEnvironment}
+      ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
+      ${execPrivateCommand "LOCAL_CONTROL_FRONTEND_COMMAND"}
+    '';
+  };
+
+  prepare = pkgs.writeShellApplication {
+    name = "local-control-prepare";
+    runtimeInputs = [
+      pkgs.nodejs_24
+      pkgs.pnpm
+      pkgs.uv
+    ];
+    text = ''
+      set -eu
+      ${loadPrivateEnvironment}
+      ${prepareDatabaseEnvironment}
+      ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
+      ${runPrivateCommand "LOCAL_CONTROL_PREPARE_COMMAND"}
     '';
   };
 
@@ -129,7 +223,8 @@ let
     runtimeInputs = [ pkgs.caddy ];
     text = ''
       set -eu
-      ${loadEnvironment}
+      ${loadPrivateEnvironment}
+      ${requirePrivateSettings [ "SERVICE_PROXY_ATTESTATION" ]}
       exec caddy run --config ${lib.escapeShellArg caddyConfig} --adapter caddyfile
     '';
   };
@@ -143,11 +238,13 @@ let
     ];
     text = ''
       set -eu
-      ${loadEnvironment}
+      ${loadPrivateEnvironment}
+      ${prepareDatabaseEnvironment}
+      ${requirePrivateSettings [ "LOCAL_CONTROL_READINESS_URL" ]}
       printf 'PostgreSQL: '
       pg_isready -h 127.0.0.1 -p ${toString cfg.postgresPort}
-      printf '\nControl API: '
-      curl --fail --silent http://127.0.0.1:${toString cfg.apiPort}/api/health/ready
+      printf '\nApplication: '
+      curl --fail --silent --show-error "$LOCAL_CONTROL_READINESS_URL"
       printf '\n\nListeners:\n'
       lsof -nP \
         -iTCP:${toString cfg.frontendPort} \
@@ -170,12 +267,6 @@ in
 {
   options.services.localControl = {
     enable = lib.mkEnableOption "private local application stack";
-
-    projectDirectory = lib.mkOption {
-      type = lib.types.path;
-      default = "/Users/ianmh/Developer/personal/workspace-service";
-      description = "Checked-out application repository used by the local services.";
-    };
 
     environmentFile = lib.mkOption {
       type = lib.types.path;
@@ -222,9 +313,26 @@ in
         assertion = isDarwin;
         message = "services.localControl is implemented for the local macOS control host.";
       }
+      {
+        assertion = !(lib.hasPrefix "${builtins.storeDir}/" (toString cfg.environmentFile));
+        message = "services.localControl.environmentFile must remain outside the Nix store.";
+      }
+      {
+        assertion =
+          builtins.length (
+            lib.unique [
+              cfg.frontendPort
+              cfg.apiPort
+              cfg.agentPort
+              cfg.postgresPort
+            ]
+          ) == 4;
+        message = "services.localControl requires distinct frontend, API, agent, and PostgreSQL ports.";
+      }
     ];
 
     home.packages = [
+      prepare
       restart
       status
     ];
@@ -234,14 +342,50 @@ in
       umask 0077
       mkdir -p \
         ${lib.escapeShellArg stateDir} \
+        ${lib.escapeShellArg postgresDir} \
         ${lib.escapeShellArg postgresSocketDir} \
         ${lib.escapeShellArg pkiDir} \
         ${lib.escapeShellArg logDir}
       chmod 700 \
         ${lib.escapeShellArg stateDir} \
+        ${lib.escapeShellArg postgresDir} \
         ${lib.escapeShellArg postgresSocketDir} \
         ${lib.escapeShellArg pkiDir} \
         ${lib.escapeShellArg logDir}
+
+      postgres_version_file=${lib.escapeShellArg "${postgresDir}/PG_VERSION"}
+      if [ -e "$postgres_version_file" ] || [ -L "$postgres_version_file" ]; then
+        if [ ! -f "$postgres_version_file" ] || [ -L "$postgres_version_file" ] || [ ! -s "$postgres_version_file" ]; then
+          printf 'Refusing to use an invalid local PostgreSQL data directory.\n' >&2
+          exit 1
+        fi
+        postgres_major=""
+        IFS= read -r postgres_major < "$postgres_version_file" || true
+        if [ "$postgres_major" != 18 ]; then
+          printf 'Refusing to use a local PostgreSQL data directory with an incompatible major version.\n' >&2
+          exit 1
+        fi
+      elif [ -n "$( ${pkgs.findutils}/bin/find ${lib.escapeShellArg postgresDir} -mindepth 1 -maxdepth 1 -print -quit )" ]; then
+        printf 'Refusing to initialize a non-empty local PostgreSQL data directory.\n' >&2
+        exit 1
+      else
+        ${pkgs.postgresql_18}/bin/initdb \
+          --pgdata=${lib.escapeShellArg postgresDir} \
+          --auth-local=trust \
+          --auth-host=scram-sha-256 \
+          --encoding=UTF8 \
+          --no-locale
+      fi
+
+      if [ -e ${lib.escapeShellArg environmentFile} ] || [ -L ${lib.escapeShellArg environmentFile} ]; then
+        if [ -L ${lib.escapeShellArg environmentFile} ] || [ ! -f ${lib.escapeShellArg environmentFile} ]; then
+          printf 'Private service environment must be a regular file.\n' >&2
+          exit 1
+        fi
+      else
+        : > ${lib.escapeShellArg environmentFile}
+      fi
+      chmod 600 ${lib.escapeShellArg environmentFile}
 
       if [ ! -f ${lib.escapeShellArg "${pkiDir}/ca.crt"} ]; then
         ${pkgs.openssl}/bin/openssl req -x509 -new -nodes -sha256 -days 3650 \
