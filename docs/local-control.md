@@ -6,21 +6,25 @@ and provides host-only SSH access to a Windows development VM.
 ## Local application stack
 
 `homes/macbook-pro-m4/local/local-control.nix` manages PostgreSQL, an API, a
-background worker, a frontend development server, and an mTLS reverse proxy
-through launchd. Activate it with:
+background worker, a dashboard development server, and an mTLS reverse proxy
+through launchd. The public configuration uses only generic service names and
+expects the private checkout to be available at
+`~/Developer/personal/workspace-service`. Activate it with:
 
 ```bash
 just home-switch ianmh@macbook-pro-m4
 ```
 
 Runtime state is stored under `~/.local/state/local-control` with owner-only
-permissions. PostgreSQL, the browser API, and the frontend bind to loopback. The
-reverse proxy binds only to the VMware host-only interface and requires a client
-certificate before forwarding requests.
+permissions. PostgreSQL, the browser API, and the dashboard bind to loopback.
+The reverse proxy binds only to the VMware host-only interface and requires a
+client certificate before forwarding requests.
 
-Secrets and private keys are generated locally in
-`~/.local/state/local-control/control.env` and
-`~/.local/state/local-control/pki`; they are not committed to this repository.
+The private environment file is
+`~/.local/state/local-control/environment`; it is intentionally outside this
+repository and must be created by the private application checkout before
+activation. Private keys remain under `~/.local/state/local-control/pki` and
+are not committed to this repository.
 Check the services with:
 
 ```bash
