@@ -208,51 +208,9 @@ let
     done
   '';
 
-  validatePostgresCluster = ''
-    validate_postgres_cluster() {
-      postgres_data_dir="$1"
-      if [ -L "$postgres_data_dir" ] || [ ! -d "$postgres_data_dir" ]; then
-        return 1
-      fi
-      if [ "$( stat -c '%u' "$postgres_data_dir" )" != "$( id -u )" ]; then
-        return 1
-      fi
-      postgres_dir_mode="$( stat -c '%a' "$postgres_data_dir" )"
-      if (( (8#$postgres_dir_mode & 0077) != 0 )); then
-        return 1
-      fi
-      for postgres_control_file in PG_VERSION postgresql.conf pg_hba.conf pg_ident.conf; do
-        postgres_control_path="$postgres_data_dir/$postgres_control_file"
-        if [ -L "$postgres_control_path" ] || [ ! -f "$postgres_control_path" ]; then
-          return 1
-        fi
-        if [ "$( stat -c '%u' "$postgres_control_path" )" != "$( id -u )" ]; then
-          return 1
-        fi
-        postgres_control_mode="$( stat -c '%a' "$postgres_control_path" )"
-        if (( (8#$postgres_control_mode & 0077) != 0 )); then
-          return 1
-        fi
-      done
-      for postgres_control_dir in base global pg_wal; do
-        postgres_control_path="$postgres_data_dir/$postgres_control_dir"
-        if [ -L "$postgres_control_path" ] || [ ! -d "$postgres_control_path" ]; then
-          return 1
-        fi
-        if [ "$( stat -c '%u' "$postgres_control_path" )" != "$( id -u )" ]; then
-          return 1
-        fi
-        postgres_control_mode="$( stat -c '%a' "$postgres_control_path" )"
-        if (( (8#$postgres_control_mode & 0077) != 0 )); then
-          return 1
-        fi
-      done
-      postgres_major=""
-      IFS= read -r postgres_major < "$postgres_data_dir/PG_VERSION" || true
-      [ "$postgres_major" = 18 ] || return 1
-      pg_controldata "$postgres_data_dir" >/dev/null 2>&1
-    }
-  '';
+  postgresClusterValidator =
+    (import ../../../lib/local-control/postgres-cluster-validator.nix { }).mkPostgresClusterValidator
+      pkgs;
 
   serviceGate = pkgs.writeShellApplication {
     name = "local-control-service-gate";
@@ -326,8 +284,7 @@ let
     ];
     text = ''
       set -eu
-      ${validatePostgresCluster}
-      if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+      if ! ${postgresClusterValidator}/bin/local-control-validate-postgres-cluster ${lib.escapeShellArg postgresDir}; then
         printf 'Local PostgreSQL data directory is incomplete, unsafe, or corrupt.\n' >&2
         exit 0
       fi
@@ -618,8 +575,7 @@ in
         exit 1
       fi
       if [ -f "$postgres_version_file" ]; then
-        ${validatePostgresCluster}
-        if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+        if ! ${postgresClusterValidator}/bin/local-control-validate-postgres-cluster ${lib.escapeShellArg postgresDir}; then
           printf 'Refusing an incomplete, unsafe, or corrupt PostgreSQL data directory.\n' >&2
           exit 1
         fi
@@ -633,8 +589,7 @@ in
           --auth-host=scram-sha-256 \
           --encoding=UTF8 \
           --no-locale
-        ${validatePostgresCluster}
-        if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+        if ! ${postgresClusterValidator}/bin/local-control-validate-postgres-cluster ${lib.escapeShellArg postgresDir}; then
           printf 'PostgreSQL initialization did not produce a valid cluster.\n' >&2
           exit 1
         fi
