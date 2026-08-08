@@ -83,7 +83,7 @@ let
       done
       cd ${lib.escapeShellArg cfg.projectDirectory}
       uv run --locked alembic -c database/alembic.ini upgrade head
-      exec uv run --locked prop-control-api
+      exec uv run --locked workspace-api
     '';
   };
 
@@ -104,7 +104,7 @@ let
       export MKL_NUM_THREADS=1
       export VECLIB_MAXIMUM_THREADS=1
       cd ${lib.escapeShellArg cfg.projectDirectory}
-      exec uv run --locked prop-calculation-worker
+      exec uv run --locked workspace-worker
     '';
   };
 
