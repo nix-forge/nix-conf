@@ -91,7 +91,6 @@ in
     (_: {
       services.localControl = {
         enable = true;
-        reservedCores = 0;
       };
       # Retain the host-only VM diagnostics and SSH helpers that accompany the
       # control host.
