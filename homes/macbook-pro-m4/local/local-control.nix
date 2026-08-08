@@ -14,6 +14,21 @@ let
   pkiDir = "${stateDir}/pki";
   inherit (cfg) environmentFile;
   logDir = "${stateDir}/logs";
+  preparationStamp = "${stateDir}/preparation-stamp";
+
+  privateServiceSettings = [
+    "LOCAL_CONTROL_PROJECT_DIRECTORY"
+    "LOCAL_CONTROL_DATABASE_URL"
+    "LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE"
+    "LOCAL_CONTROL_SCHEMA_COMMAND"
+    "LOCAL_CONTROL_API_COMMAND"
+    "LOCAL_CONTROL_WORKER_COMMAND"
+    "LOCAL_CONTROL_FRONTEND_COMMAND"
+    "LOCAL_CONTROL_PREPARE_COMMAND"
+    "LOCAL_CONTROL_PREPARATION_INPUT"
+    "LOCAL_CONTROL_READINESS_URL"
+    "SERVICE_PROXY_ATTESTATION"
+  ];
 
   requirePrivateSettings =
     names:
@@ -21,6 +36,14 @@ let
       if [ -z "''${${name}:-}" ]; then
         printf 'Missing required private service setting: ${name}\n' >&2
         exit 78
+      fi
+    '') names;
+
+  checkPrivateSettings =
+    names:
+    lib.concatMapStringsSep "\n" (name: ''
+      if [ -z "''${${name}:-}" ]; then
+        return 1
       fi
     '') names;
 
@@ -49,26 +72,126 @@ let
     set +a
   '';
 
+  validateDatabaseEnvironment = ''
+    validate_database_environment() {
+      case "''${LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE:-}" in
+        [A-Za-z_]* )
+          case "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE" in
+            *[!A-Za-z0-9_]* )
+              return 1
+              ;;
+          esac
+          ;;
+        * )
+          return 1
+          ;;
+      esac
+    }
+  '';
+
   prepareDatabaseEnvironment = ''
     ${requirePrivateSettings [
       "LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE"
       "LOCAL_CONTROL_DATABASE_URL"
     ]}
-    case "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE" in
-      [A-Za-z_]* )
-        case "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE" in
-          *[!A-Za-z0-9_]* )
-            printf 'The configured database environment variable name is invalid.\n' >&2
-            exit 64
-            ;;
-        esac
-        ;;
-      * )
-        printf 'The configured database environment variable name is invalid.\n' >&2
-        exit 64
-        ;;
-    esac
+    ${validateDatabaseEnvironment}
+    if ! validate_database_environment; then
+      printf 'The configured database environment variable name is invalid.\n' >&2
+      exit 64
+    fi
     export "$LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE=$LOCAL_CONTROL_DATABASE_URL"
+  '';
+
+  computePreparationState = ''
+    compute_preparation_state() {
+      preparation_project_directory="$(cd "$LOCAL_CONTROL_PROJECT_DIRECTORY" 2>/dev/null && pwd -P)" || return 1
+      [ -d "$preparation_project_directory" ] || return 1
+
+      preparation_revision="unversioned"
+      preparation_files_digest="unversioned"
+      if git -C "$preparation_project_directory" rev-parse --show-toplevel >/dev/null 2>&1; then
+        preparation_revision="$(git -C "$preparation_project_directory" rev-parse --verify HEAD 2>/dev/null)" || return 1
+        preparation_files_digest="$(
+          git -C "$preparation_project_directory" ls-files -co --exclude-standard -z |
+            while IFS= read -r -d "" preparation_file; do
+              preparation_path="$preparation_project_directory/$preparation_file"
+              if [ -f "$preparation_path" ] && [ ! -L "$preparation_path" ]; then
+                printf '%s\0' "$preparation_file"
+                sha256sum "$preparation_path"
+              fi
+            done |
+            sha256sum |
+            cut -d ' ' -f 1
+        )" || return 1
+      fi
+
+      preparation_command_digest="$(printf '%s' "$LOCAL_CONTROL_PREPARE_COMMAND" | sha256sum | cut -d ' ' -f 1)" || return 1
+      preparation_state="$(
+        printf '%s\0%s\0%s\0%s\0%s' \
+          "$preparation_project_directory" \
+          "$LOCAL_CONTROL_PREPARATION_INPUT" \
+          "$preparation_revision" \
+          "$preparation_files_digest" \
+          "$preparation_command_digest" |
+          sha256sum |
+          cut -d ' ' -f 1
+      )" || return 1
+    }
+  '';
+
+  checkPreparationStamp = ''
+    preparation_stamp_matches() {
+      if [ -L ${lib.escapeShellArg preparationStamp} ] || [ ! -f ${lib.escapeShellArg preparationStamp} ]; then
+        return 1
+      fi
+      if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg preparationStamp} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+        return 1
+      fi
+      preparation_stamp_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg preparationStamp} )"
+      if (( (8#$preparation_stamp_mode & 0077) != 0 )); then
+        return 1
+      fi
+      if [ "$(wc -l < ${lib.escapeShellArg preparationStamp} | tr -d ' ')" != 1 ]; then
+        return 1
+      fi
+      [ "$(tr -d '\n' < ${lib.escapeShellArg preparationStamp})" = "$preparation_state" ]
+    }
+  '';
+
+  requirePreparation = ''
+    ${requirePrivateSettings [
+      "LOCAL_CONTROL_PROJECT_DIRECTORY"
+      "LOCAL_CONTROL_PREPARE_COMMAND"
+      "LOCAL_CONTROL_PREPARATION_INPUT"
+    ]}
+    ${computePreparationState}
+    ${checkPreparationStamp}
+    if ! compute_preparation_state || ! preparation_stamp_matches; then
+      printf 'Local services require a successful owner-run local-control-prepare for the current checkout and inputs.\n' >&2
+      exit 78
+    fi
+  '';
+
+  privateEnvironmentReady = ''
+    private_environment_ready() {
+      if [ ! -f ${lib.escapeShellArg environmentFile} ] || [ -L ${lib.escapeShellArg environmentFile} ]; then
+        return 1
+      fi
+      if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg environmentFile} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+        return 1
+      fi
+      private_environment_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg environmentFile} )"
+      if (( (8#$private_environment_mode & 0077) != 0 )); then
+        return 1
+      fi
+      set -a
+      # shellcheck disable=SC1091
+      . ${lib.escapeShellArg environmentFile}
+      set +a
+      ${checkPrivateSettings privateServiceSettings}
+      ${validateDatabaseEnvironment}
+      validate_database_environment || return 1
+    }
   '';
 
   waitForDatabase = ''
@@ -84,6 +207,79 @@ let
       ${pkgs.coreutils}/bin/sleep 1
     done
   '';
+
+  validatePostgresCluster = ''
+    validate_postgres_cluster() {
+      postgres_data_dir="$1"
+      if [ -L "$postgres_data_dir" ] || [ ! -d "$postgres_data_dir" ]; then
+        return 1
+      fi
+      if [ "$( stat -c '%u' "$postgres_data_dir" )" != "$( id -u )" ]; then
+        return 1
+      fi
+      postgres_dir_mode="$( stat -c '%a' "$postgres_data_dir" )"
+      if (( (8#$postgres_dir_mode & 0077) != 0 )); then
+        return 1
+      fi
+      for postgres_control_file in PG_VERSION postgresql.conf pg_hba.conf pg_ident.conf; do
+        postgres_control_path="$postgres_data_dir/$postgres_control_file"
+        if [ -L "$postgres_control_path" ] || [ ! -f "$postgres_control_path" ]; then
+          return 1
+        fi
+        if [ "$( stat -c '%u' "$postgres_control_path" )" != "$( id -u )" ]; then
+          return 1
+        fi
+        postgres_control_mode="$( stat -c '%a' "$postgres_control_path" )"
+        if (( (8#$postgres_control_mode & 0077) != 0 )); then
+          return 1
+        fi
+      done
+      for postgres_control_dir in base global pg_wal; do
+        postgres_control_path="$postgres_data_dir/$postgres_control_dir"
+        if [ -L "$postgres_control_path" ] || [ ! -d "$postgres_control_path" ]; then
+          return 1
+        fi
+        if [ "$( stat -c '%u' "$postgres_control_path" )" != "$( id -u )" ]; then
+          return 1
+        fi
+        postgres_control_mode="$( stat -c '%a' "$postgres_control_path" )"
+        if (( (8#$postgres_control_mode & 0077) != 0 )); then
+          return 1
+        fi
+      done
+      postgres_major=""
+      IFS= read -r postgres_major < "$postgres_data_dir/PG_VERSION" || true
+      [ "$postgres_major" = 18 ] || return 1
+      pg_controldata "$postgres_data_dir" >/dev/null 2>&1
+    }
+  '';
+
+  serviceGate = pkgs.writeShellApplication {
+    name = "local-control-service-gate";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.git
+    ];
+    text = ''
+      set -eu
+      if [ "$#" -lt 1 ]; then
+        printf 'A service command is required.\n' >&2
+        exit 64
+      fi
+      ${privateEnvironmentReady}
+      if ! private_environment_ready; then
+        printf 'Private service environment or preparation proof is not ready; run local-control-prepare after configuring it.\n' >&2
+        exit 0
+      fi
+      ${computePreparationState}
+      ${checkPreparationStamp}
+      if ! compute_preparation_state || ! preparation_stamp_matches; then
+        printf 'Local service preparation is stale; run local-control-prepare before starting services.\n' >&2
+        exit 0
+      fi
+      exec "$@"
+    '';
+  };
 
   runPrivateCommand = setting: ''
     ${requirePrivateSettings [ setting ]}
@@ -124,18 +320,16 @@ let
 
   postgres = pkgs.writeShellApplication {
     name = "local-control-postgres";
-    runtimeInputs = [ pkgs.postgresql_18 ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.postgresql_18
+    ];
     text = ''
       set -eu
-      if [ ! -s ${lib.escapeShellArg "${postgresDir}/PG_VERSION"} ]; then
-        printf 'Local PostgreSQL data directory is not initialized; run Home Manager activation first.\n' >&2
-        exit 78
-      fi
-      postgres_major=""
-      IFS= read -r postgres_major < ${lib.escapeShellArg "${postgresDir}/PG_VERSION"} || true
-      if [ "$postgres_major" != 18 ]; then
-        printf 'Local PostgreSQL data directory has an incompatible major version.\n' >&2
-        exit 78
+      ${validatePostgresCluster}
+      if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+        printf 'Local PostgreSQL data directory is incomplete, unsafe, or corrupt.\n' >&2
+        exit 0
       fi
       mkdir -p ${lib.escapeShellArg postgresSocketDir}
       chmod 700 ${lib.escapeShellArg postgresSocketDir}
@@ -152,12 +346,15 @@ let
     runtimeInputs = [
       pkgs.postgresql_18
       pkgs.uv
+      pkgs.coreutils
+      pkgs.git
     ];
     text = ''
       set -eu
       ${loadPrivateEnvironment}
       ${prepareDatabaseEnvironment}
       ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${requirePreparation}
       ${waitForDatabase}
       cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
       ${runPrivateCommand "LOCAL_CONTROL_SCHEMA_COMMAND"}
@@ -170,12 +367,15 @@ let
     runtimeInputs = [
       pkgs.postgresql_18
       pkgs.uv
+      pkgs.coreutils
+      pkgs.git
     ];
     text = ''
       set -eu
       ${loadPrivateEnvironment}
       ${prepareDatabaseEnvironment}
       ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${requirePreparation}
       ${waitForDatabase}
       export OMP_NUM_THREADS=1
       export OPENBLAS_NUM_THREADS=1
@@ -191,11 +391,14 @@ let
     runtimeInputs = [
       pkgs.nodejs_24
       pkgs.pnpm
+      pkgs.coreutils
+      pkgs.git
     ];
     text = ''
       set -eu
       ${loadPrivateEnvironment}
       ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${requirePreparation}
       cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
       ${execPrivateCommand "LOCAL_CONTROL_FRONTEND_COMMAND"}
     '';
@@ -207,20 +410,39 @@ let
       pkgs.nodejs_24
       pkgs.pnpm
       pkgs.uv
+      pkgs.coreutils
+      pkgs.git
     ];
     text = ''
       set -eu
       ${loadPrivateEnvironment}
       ${prepareDatabaseEnvironment}
-      ${requirePrivateSettings [ "LOCAL_CONTROL_PROJECT_DIRECTORY" ]}
+      ${requirePrivateSettings [
+        "LOCAL_CONTROL_PROJECT_DIRECTORY"
+        "LOCAL_CONTROL_PREPARE_COMMAND"
+        "LOCAL_CONTROL_PREPARATION_INPUT"
+      ]}
       cd "$LOCAL_CONTROL_PROJECT_DIRECTORY"
       ${runPrivateCommand "LOCAL_CONTROL_PREPARE_COMMAND"}
+      umask 077
+      if [ -L ${lib.escapeShellArg preparationStamp} ] || [ -e ${lib.escapeShellArg preparationStamp} ] && [ ! -f ${lib.escapeShellArg preparationStamp} ]; then
+        printf 'Preparation proof path must be a regular file.\n' >&2
+        exit 1
+      fi
+      ${computePreparationState}
+      preparation_stamp_tmp="$(mktemp ${lib.escapeShellArg "${preparationStamp}.XXXXXX"})"
+      printf '%s\n' "$preparation_state" > "$preparation_stamp_tmp"
+      chmod 600 "$preparation_stamp_tmp"
+      mv -f "$preparation_stamp_tmp" ${lib.escapeShellArg preparationStamp}
     '';
   };
 
   caddy = pkgs.writeShellApplication {
     name = "local-control-caddy";
-    runtimeInputs = [ pkgs.caddy ];
+    runtimeInputs = [
+      pkgs.caddy
+      pkgs.coreutils
+    ];
     text = ''
       set -eu
       ${loadPrivateEnvironment}
@@ -232,6 +454,7 @@ let
   status = pkgs.writeShellApplication {
     name = "local-control-status";
     runtimeInputs = [
+      pkgs.coreutils
       pkgs.curl
       pkgs.postgresql_18
       pkgs.lsof
@@ -259,8 +482,12 @@ let
     text = ''
       set -eu
       domain="gui/$(id -u)"
-      launchctl kickstart -k "$domain/dev.ianmh.local-control-worker"
-      launchctl kickstart -k "$domain/dev.ianmh.local-control-api"
+      for service in worker api frontend caddy; do
+        label="$domain/dev.ianmh.local-control-$service"
+        if launchctl print "$label" >/dev/null 2>&1; then
+          launchctl kickstart -k "$label"
+        fi
+      done
     '';
   };
 in
@@ -340,33 +567,64 @@ in
     home.activation.localControlState = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       set -eu
       umask 0077
-      mkdir -p \
-        ${lib.escapeShellArg stateDir} \
-        ${lib.escapeShellArg postgresDir} \
-        ${lib.escapeShellArg postgresSocketDir} \
-        ${lib.escapeShellArg pkiDir} \
-        ${lib.escapeShellArg logDir}
-      chmod 700 \
-        ${lib.escapeShellArg stateDir} \
-        ${lib.escapeShellArg postgresDir} \
-        ${lib.escapeShellArg postgresSocketDir} \
-        ${lib.escapeShellArg pkiDir} \
-        ${lib.escapeShellArg logDir}
-
-      postgres_version_file=${lib.escapeShellArg "${postgresDir}/PG_VERSION"}
-      if [ -e "$postgres_version_file" ] || [ -L "$postgres_version_file" ]; then
-        if [ ! -f "$postgres_version_file" ] || [ -L "$postgres_version_file" ] || [ ! -s "$postgres_version_file" ]; then
-          printf 'Refusing to use an invalid local PostgreSQL data directory.\n' >&2
+      state_dir_preexisting=false
+      if [ -L ${lib.escapeShellArg stateDir} ] || [ -e ${lib.escapeShellArg stateDir} ] && [ ! -d ${lib.escapeShellArg stateDir} ]; then
+        printf 'Local service state directory must be a real directory.\n' >&2
+        exit 1
+      fi
+      if [ -d ${lib.escapeShellArg stateDir} ]; then
+        state_dir_preexisting=true
+      fi
+      mkdir -p ${lib.escapeShellArg stateDir}
+      if [ "$state_dir_preexisting" = true ]; then
+        if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg stateDir} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+          printf 'Local service state directory must be owned by the current user.\n' >&2
           exit 1
         fi
-        postgres_major=""
-        IFS= read -r postgres_major < "$postgres_version_file" || true
-        if [ "$postgres_major" != 18 ]; then
-          printf 'Refusing to use a local PostgreSQL data directory with an incompatible major version.\n' >&2
+        state_dir_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg stateDir} )"
+        if (( (8#$state_dir_mode & 0077) != 0 )); then
+          printf 'Local service state directory must not be accessible to group or others.\n' >&2
+          exit 1
+        fi
+      fi
+      chmod 700 ${lib.escapeShellArg stateDir}
+
+      postgres_dir_preexisting=false
+      if [ -L ${lib.escapeShellArg postgresDir} ] || [ -e ${lib.escapeShellArg postgresDir} ] && [ ! -d ${lib.escapeShellArg postgresDir} ]; then
+        printf 'Refusing a symlinked or non-directory PostgreSQL data path.\n' >&2
+        exit 1
+      fi
+      if [ -d ${lib.escapeShellArg postgresDir} ]; then
+        postgres_dir_preexisting=true
+      else
+        mkdir ${lib.escapeShellArg postgresDir}
+      fi
+      if [ "$postgres_dir_preexisting" = true ]; then
+        if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg postgresDir} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+          printf 'Refusing a PostgreSQL data directory not owned by the current user.\n' >&2
+          exit 1
+        fi
+        postgres_dir_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg postgresDir} )"
+        if (( (8#$postgres_dir_mode & 0077) != 0 )); then
+          printf 'Refusing a PostgreSQL data directory accessible to group or others.\n' >&2
+          exit 1
+        fi
+      fi
+      chmod 700 ${lib.escapeShellArg postgresDir}
+
+      postgres_version_file=${lib.escapeShellArg "${postgresDir}/PG_VERSION"}
+      if [ -L "$postgres_version_file" ] || [ -e "$postgres_version_file" ] && [ ! -f "$postgres_version_file" ]; then
+        printf 'Refusing an invalid PostgreSQL cluster marker.\n' >&2
+        exit 1
+      fi
+      if [ -f "$postgres_version_file" ]; then
+        ${validatePostgresCluster}
+        if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+          printf 'Refusing an incomplete, unsafe, or corrupt PostgreSQL data directory.\n' >&2
           exit 1
         fi
       elif [ -n "$( ${pkgs.findutils}/bin/find ${lib.escapeShellArg postgresDir} -mindepth 1 -maxdepth 1 -print -quit )" ]; then
-        printf 'Refusing to initialize a non-empty local PostgreSQL data directory.\n' >&2
+        printf 'Refusing to initialize a non-empty PostgreSQL data directory without a valid cluster marker.\n' >&2
         exit 1
       else
         ${pkgs.postgresql_18}/bin/initdb \
@@ -375,6 +633,11 @@ in
           --auth-host=scram-sha-256 \
           --encoding=UTF8 \
           --no-locale
+        ${validatePostgresCluster}
+        if ! validate_postgres_cluster ${lib.escapeShellArg postgresDir}; then
+          printf 'PostgreSQL initialization did not produce a valid cluster.\n' >&2
+          exit 1
+        fi
       fi
 
       if [ -e ${lib.escapeShellArg environmentFile} ] || [ -L ${lib.escapeShellArg environmentFile} ]; then
@@ -382,10 +645,27 @@ in
           printf 'Private service environment must be a regular file.\n' >&2
           exit 1
         fi
+        if [ "$( ${pkgs.coreutils}/bin/stat -c '%u' ${lib.escapeShellArg environmentFile} )" != "$( ${pkgs.coreutils}/bin/id -u )" ]; then
+          printf 'Private service environment must be owned by the current user.\n' >&2
+          exit 1
+        fi
+        environment_mode="$( ${pkgs.coreutils}/bin/stat -c '%a' ${lib.escapeShellArg environmentFile} )"
+        if (( (8#$environment_mode & 0077) != 0 )); then
+          printf 'Private service environment must not be readable by group or others.\n' >&2
+          exit 1
+        fi
       else
-        : > ${lib.escapeShellArg environmentFile}
+        printf 'Private service environment is not configured; services remain gated until it is created by the owner.\n' >&2
       fi
-      chmod 600 ${lib.escapeShellArg environmentFile}
+
+      mkdir -p \
+        ${lib.escapeShellArg postgresSocketDir} \
+        ${lib.escapeShellArg pkiDir} \
+        ${lib.escapeShellArg logDir}
+      chmod 700 \
+        ${lib.escapeShellArg postgresSocketDir} \
+        ${lib.escapeShellArg pkiDir} \
+        ${lib.escapeShellArg logDir}
 
       if [ ! -f ${lib.escapeShellArg "${pkiDir}/ca.crt"} ]; then
         ${pkgs.openssl}/bin/openssl req -x509 -new -nodes -sha256 -days 3650 \
@@ -461,7 +741,9 @@ in
         Label = "dev.ianmh.local-control-postgres";
         ProgramArguments = [ "${postgres}/bin/local-control-postgres" ];
         RunAtLoad = true;
-        KeepAlive = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
         ThrottleInterval = 10;
         ProcessType = "Background";
         StandardOutPath = "${logDir}/postgres.out.log";
@@ -473,9 +755,14 @@ in
       enable = true;
       config = {
         Label = "dev.ianmh.local-control-api";
-        ProgramArguments = [ "${api}/bin/local-control-api" ];
+        ProgramArguments = [
+          "${serviceGate}/bin/local-control-service-gate"
+          "${api}/bin/local-control-api"
+        ];
         RunAtLoad = true;
-        KeepAlive = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
         ThrottleInterval = 10;
         ProcessType = "Background";
         StandardOutPath = "${logDir}/api.out.log";
@@ -487,9 +774,14 @@ in
       enable = true;
       config = {
         Label = "dev.ianmh.local-control-worker";
-        ProgramArguments = [ "${worker}/bin/local-control-worker" ];
+        ProgramArguments = [
+          "${serviceGate}/bin/local-control-service-gate"
+          "${worker}/bin/local-control-worker"
+        ];
         RunAtLoad = true;
-        KeepAlive = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
         ThrottleInterval = 10;
         ProcessType = "Interactive";
         StandardOutPath = "${logDir}/worker.out.log";
@@ -501,9 +793,14 @@ in
       enable = true;
       config = {
         Label = "dev.ianmh.local-control-frontend";
-        ProgramArguments = [ "${frontend}/bin/local-control-frontend" ];
+        ProgramArguments = [
+          "${serviceGate}/bin/local-control-service-gate"
+          "${frontend}/bin/local-control-frontend"
+        ];
         RunAtLoad = true;
-        KeepAlive = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
         ThrottleInterval = 10;
         ProcessType = "Background";
         StandardOutPath = "${logDir}/frontend.out.log";
@@ -515,9 +812,14 @@ in
       enable = true;
       config = {
         Label = "dev.ianmh.local-control-caddy";
-        ProgramArguments = [ "${caddy}/bin/local-control-caddy" ];
+        ProgramArguments = [
+          "${serviceGate}/bin/local-control-service-gate"
+          "${caddy}/bin/local-control-caddy"
+        ];
         RunAtLoad = true;
-        KeepAlive = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
         ThrottleInterval = 10;
         ProcessType = "Background";
         StandardOutPath = "${logDir}/caddy.out.log";
