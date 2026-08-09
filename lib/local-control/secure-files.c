@@ -1226,7 +1226,8 @@ static int command_exec_cluster_socket(int argc, char **argv) {
     close(socket_fd);
     return 1;
   }
-  child_argv = calloc((size_t)(argc - 4), sizeof(*child_argv));
+  /* argv[4] and argv[5..argc) require one additional NULL terminator. */
+  child_argv = calloc((size_t)(argc - 3), sizeof(*child_argv));
   if (child_argv == NULL) {
     close(cluster_fd);
     close(socket_fd);
