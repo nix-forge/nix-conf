@@ -88,9 +88,10 @@ in
       };
     })
     server-ssh
-    (_: {
+    ({ config, ... }: {
       services.localControl = {
         enable = true;
+        environmentFile = "${config.xdg.stateHome}/local-control/service-environment";
       };
       # Retain the host-only VM diagnostics and SSH helpers that accompany the
       # control host.

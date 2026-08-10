@@ -2,6 +2,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
       inputs = {
