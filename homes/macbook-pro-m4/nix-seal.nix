@@ -19,15 +19,23 @@ in
         public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
       };
     };
-    secrets = lib.genAttrs [
-      "nix-access-tokens"
-      "cornell-net-id-ssh-config"
-      "git-allowedsigners"
-      "gitconfig-username"
-      "gitconfig-useremail"
-      "gitconfig-useremail-cornell"
-      "gitconfig-useremail-github"
-      "hf-token"
-    ] (_: runtime);
+    secrets =
+      lib.genAttrs [
+        "nix-access-tokens"
+        "cornell-net-id-ssh-config"
+        "git-allowedsigners"
+        "gitconfig-username"
+        "gitconfig-useremail"
+        "gitconfig-useremail-cornell"
+        "gitconfig-useremail-github"
+        "hf-token"
+      ] (_: runtime)
+      // {
+        "service-runtime-environment" = runtime // {
+          mode = "0600";
+          phase = "services";
+          restartUnits = [ "local.services.local-control-proxy" ];
+        };
+      };
   };
 }

@@ -11,40 +11,23 @@ let
   sshDir = "${config.home.homeDirectory}/.ssh";
   keyFile = "${sshDir}/dev-vm";
   stateDir = "${config.xdg.stateHome}/dev-vm";
+  hostOnlyNetwork = "172.16.42.0/24";
+  sshPort = 22;
+  devVmResolver = ./dev_vm_host.py;
 
-  # This is the MAC address of ethernet1, the VM's host-only adapter. VMware
-  # gives this adapter a lease from the 172.16.42.0/24 network on this Mac.
+  # Resolve the only present host-only adapter at runtime. The VMX remains
+  # outside the Nix store and only its validated adapter identity is retained.
   devVmHost = pkgs.writeShellApplication {
     name = "dev-vm-host";
-    runtimeInputs = [ pkgs.gawk ];
     text = ''
       set -eu
-
-      lease_file=/var/db/vmware/vmnet-dhcpd-vmnet1.leases
-      vm_mac=00:0c:29:35:9f:d5
-
-      if [ ! -r "$lease_file" ]; then
-        printf 'Cannot read VMware host-only DHCP leases: %s\n' "$lease_file" >&2
-        exit 1
-      fi
-
-      vm_host="$(${pkgs.gawk}/bin/awk -v mac="$vm_mac" '
-        /^lease / { lease = $2 }
-        $1 == "hardware" {
-          address = tolower($3)
-          sub(/;$/, "", address)
-          if (address == mac) host = lease
-        }
-        END { print host }
-      ' "$lease_file")"
-
-      case "$vm_host" in
-        172.16.42.*) printf '%s\n' "$vm_host" ;;
-        *)
-          printf 'No valid host-only lease found for the development VM (%s).\n' "$vm_mac" >&2
-          exit 1
-          ;;
-      esac
+      exec ${pkgs.python3}/bin/python3 ${devVmResolver} \
+        --vmx ${lib.escapeShellArg cfg.vmxFile} \
+        --leases ${lib.escapeShellArg cfg.leaseFile} \
+        --lease-owner-uid 0 \
+        --network ${lib.escapeShellArg hostOnlyNetwork} \
+        --require-tcp ${toString sshPort} \
+        --timeout-seconds 3
     '';
   };
 
@@ -53,6 +36,10 @@ let
     runtimeInputs = [ devVmHost ];
     text = ''
       set -eu
+      if [ "$#" -ne 1 ] || [ "$1" != ${toString sshPort} ]; then
+        printf 'dev-vm-proxy only permits the configured SSH port.\n' >&2
+        exit 1
+      fi
       # The Darwin system netcat works reliably with VMware Fusion's host-only
       # adapter.  The LibreSSL netcat packaged by Nix reports a spurious
       # host-unreachable error for this path after a VM adapter reset.
@@ -74,13 +61,17 @@ let
       vm_host="$(dev-vm-host)"
 
       printf 'Host-only VM address: %s\n' "$vm_host"
-      nc -vz -w 3 "$vm_host" 22
+      nc -vz -w 3 "$vm_host" ${toString sshPort}
 
       printf '\nMac control-host listeners:\n'
       lsof -nP -iTCP:5173 -iTCP:8788 -iTCP:8443 -sTCP:LISTEN || true
 
       printf '\nWindows development prerequisites:\n'
-      ssh dev-vm '
+      ssh_arguments=()
+      if [ -n "''${DEV_VM_SSH_CONFIG:-}" ]; then
+        ssh_arguments=(-F "$DEV_VM_SSH_CONFIG")
+      fi
+      ssh "''${ssh_arguments[@]}" dev-vm '
         set -eu
         for command_name in codex git dotnet pwsh; do
           command -v "$command_name" >/dev/null || {
@@ -97,6 +88,7 @@ let
     HostName = "dev-vm";
     HostKeyAlias = "dev-vm";
     User = cfg.windowsUser;
+    Port = sshPort;
     IdentityFile = keyFile;
     IdentitiesOnly = true;
     AddKeysToAgent = "no";
@@ -122,6 +114,18 @@ in
   options.services.devVm = {
     enable = lib.mkEnableOption "host-only SSH access to the development VM";
 
+    vmxFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/Developer/Windows11_64-bit_Arm.vmwarevm/Windows11_64-bit_Arm.vmx";
+      description = "Absolute path to the VMware VMX file used to discover the current host-only adapter identity.";
+    };
+
+    leaseFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/private/var/db/vmware/vmnet-dhcpd-vmnet1.leases";
+      description = "Absolute path to VMware Fusion's host-only DHCP lease database.";
+    };
+
     windowsUser = lib.mkOption {
       type = lib.types.str;
       default = config.home.username;
@@ -135,6 +139,14 @@ in
       {
         assertion = isDarwin;
         message = "services.devVm is implemented for the VMware Fusion host on macOS.";
+      }
+      {
+        assertion = lib.hasPrefix "/" cfg.vmxFile;
+        message = "services.devVm.vmxFile must be an absolute path.";
+      }
+      {
+        assertion = lib.hasPrefix "/" cfg.leaseFile;
+        message = "services.devVm.leaseFile must be an absolute path.";
       }
     ];
 
