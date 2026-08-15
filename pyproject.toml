@@ -55,6 +55,12 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"homes/macbook-pro-m4/local/dev_vm_host_test.py" = [
+  # This Nix check deliberately uses only the Python standard library so it
+  # can validate the runtime resolver without adding pytest to the closure.
+  "pytest-unittest-assertion",
+  "pytest-unittest-raises-assertion",
+]
 "pkgs/claude-desktop/update.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
   "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and feed URL.

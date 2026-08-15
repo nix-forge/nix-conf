@@ -20,6 +20,28 @@ let
     });
   };
   darwinBuildFixOverlay = final: prev: {
+    oxlint = prev.oxlint.overrideAttrs {
+      # napi-rs 3.8.2 probes /bin/ps after compiling, which the Darwin sandbox
+      # rejects. Build the same cdylib directly and reuse the checked-in NAPI
+      # bindings before running oxlint's normal JavaScript bundle step.
+      buildPhase = ''
+        runHook preBuild
+
+        (
+          cd apps/oxlint
+          cargo build \
+            --release \
+            --features allocator \
+            --target ${final.stdenv.hostPlatform.rust.rustcTarget}
+        )
+        cp \
+          target/${final.stdenv.hostPlatform.rust.rustcTarget}/release/liboxlint.dylib \
+          apps/oxlint/src-js/oxlint.darwin-arm64.node
+        pnpm --filter oxlint-app run build-js
+
+        runHook postBuild
+      '';
+    };
     darktable = prev.darktable.overrideAttrs (old: {
       versionCheckProgram = "${placeholder "out"}/bin/darktable-cli";
       versionCheckProgramArg = "--version";
@@ -92,7 +114,7 @@ in
     ({ config, ... }: {
       services.localControl = {
         enable = true;
-        environmentFile = "${config.xdg.stateHome}/local-control/service-environment";
+        environmentFile = config.nixSeal.secrets."service-runtime-environment".path;
       };
       # Retain the host-only VM diagnostics and SSH helpers that accompany the
       # control host.

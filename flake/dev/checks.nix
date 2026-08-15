@@ -10,8 +10,71 @@
       preparationProof = localControlLibrary.mkPreparationProof pkgs;
       preparationGate = localControlLibrary.mkPreparationGate pkgs;
       privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
+      localControlProxyConfig = pkgs.writeText "local-control-proxy-check.conf" (
+        (import ../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
+          bindAddress = "127.0.0.1";
+          stateDirectory = "/tmp/local-control";
+          webPort = 15173;
+          apiPort = 18788;
+          proxyPort = 18443;
+        }
+      );
     in
     {
+      checks.dev-vm-host-resolution =
+        pkgs.runCommand "dev-vm-host-resolution" { nativeBuildInputs = [ pkgs.python3 ]; }
+          ''
+            export DEV_VM_HOST_MODULE=${../../homes/macbook-pro-m4/local/dev_vm_host.py}
+            ${pkgs.python3}/bin/python3 ${../../homes/macbook-pro-m4/local/dev_vm_host_test.py}
+            touch "$out"
+          '';
+
+      checks.local-control-proxy-tls-policy =
+        pkgs.runCommand "local-control-proxy-tls-policy"
+          {
+            nativeBuildInputs = [
+              pkgs.caddy
+              pkgs.jq
+            ];
+          }
+          ''
+            set -euo pipefail
+
+            export LOCAL_CONTROL_PROXY_CERT=/runtime/server.crt
+            export LOCAL_CONTROL_PROXY_KEY=/runtime/server.key
+            export LOCAL_CONTROL_PROXY_CA=/runtime/ca.crt
+            export SERVICE_PROXY_ATTESTATION=fixture-private-attestation
+            caddy adapt \
+              --config ${localControlProxyConfig} \
+              --adapter caddyfile \
+              > adapted.json
+
+            private_server="$(${pkgs.jq}/bin/jq -c '
+              [.apps.http.servers[] | select(.listen == ["127.0.0.1:18443"])]
+            ' adapted.json)"
+            [ "$private_server" != '[]' ]
+            [ "$(${pkgs.jq}/bin/jq 'length' <<< "$private_server")" -eq 1 ]
+
+            # The policy must apply to every connection on the host-only bound
+            # listener. An SNI matcher would bypass mTLS for IP-address clients.
+            ${pkgs.jq}/bin/jq -e '
+              .[0].tls_connection_policies
+              | length == 1
+                and (.[0] | has("match") | not)
+                and .[0].client_authentication.mode == "require_and_verify"
+                and .[0].client_authentication.ca.provider == "file"
+            ' <<< "$private_server" >/dev/null
+
+            ${pkgs.jq}/bin/jq -e '
+              [.[0].routes[]?.handle[]?.routes[]?.handle[]?
+                | select(.handler == "reverse_proxy")
+                | .headers.request.set["X-Client-Certificate-Fingerprint"][]?]
+              | any(. == "{http.request.tls.client.fingerprint}")
+            ' <<< "$private_server" >/dev/null
+
+            touch "$out"
+          '';
+
       checks.local-control-database-validation =
         pkgs.runCommand "local-control-database-validation" { }
           ''
@@ -267,6 +330,38 @@
               exit 1
             fi
 
+            runtime_root="$test_root/runtime"
+            generation_root="$runtime_root/generation-1"
+            generation_environment="$generation_root/service/environment"
+            ${pkgs.coreutils}/bin/mkdir -p "$generation_root/service"
+            ${pkgs.coreutils}/bin/chmod 700 "$runtime_root" "$generation_root" "$generation_root/service"
+            write_valid_environment
+            ${pkgs.coreutils}/bin/cp "$environment_file" "$generation_environment"
+            ${pkgs.coreutils}/bin/chmod 600 "$generation_environment"
+            ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
+            ${secureFileSystem}/bin/local-control-secure-files inspect-generation-file \
+              "$runtime_root/current/service/environment" 600 >/dev/null
+            ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+              "$runtime_root/current/service/environment" disabled >/dev/null
+
+            ${pkgs.coreutils}/bin/rm "$runtime_root/current"
+            ${pkgs.coreutils}/bin/ln -s ../outside "$runtime_root/current"
+            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+              "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
+              printf 'An escaping current-generation link was accepted.\n' >&2
+              exit 1
+            fi
+
+            ${pkgs.coreutils}/bin/rm "$runtime_root/current"
+            ${pkgs.coreutils}/bin/chmod 750 "$generation_root"
+            ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
+            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+              "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
+              printf 'A non-private current-generation directory was accepted.\n' >&2
+              exit 1
+            fi
+            ${pkgs.coreutils}/bin/chmod 700 "$generation_root"
+
             race_source="$test_root/race-source"
             ${pkgs.coreutils}/bin/mkdir -p "$race_source"
             ${pkgs.coreutils}/bin/printf 'stable\n' > "$race_source/input"
@@ -295,6 +390,65 @@
 
             ${pkgs.coreutils}/bin/touch "$out"
           '';
+
+      checks.local-control-proxy-environment = pkgs.runCommand "local-control-proxy-environment" { } ''
+        set -euo pipefail
+
+        test_root="$TMPDIR/local-control-proxy-environment"
+        pki_directory="$test_root/pki"
+        environment_file="$test_root/environment"
+        linked_environment="$test_root/linked-environment"
+        ${pkgs.coreutils}/bin/mkdir -m 700 -p "$pki_directory"
+        ${pkgs.coreutils}/bin/printf 'ca\n' > "$pki_directory/ca.crt"
+        ${pkgs.coreutils}/bin/printf 'certificate\n' > "$pki_directory/server.crt"
+        ${pkgs.coreutils}/bin/printf 'key\n' > "$pki_directory/server.key"
+        ${pkgs.coreutils}/bin/chmod 644 "$pki_directory/ca.crt" "$pki_directory/server.crt"
+        ${pkgs.coreutils}/bin/chmod 600 "$pki_directory/server.key"
+
+        write_valid_environment() {
+          ${pkgs.coreutils}/bin/printf '%s\n' \
+            'SERVICE_DATABASE_URL=postgresql://fixture.invalid/control' \
+            'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+            'SERVICE_RELEASE_ID=0123456789abcdef0123456789abcdef01234567' \
+            > "$environment_file"
+          ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+        }
+
+        write_valid_environment
+        ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+          "$pki_directory" \
+          "$environment_file" \
+          ${pkgs.bash}/bin/bash \
+          -c '
+            [ "$SERVICE_PROXY_ATTESTATION" = fixture-proxy-attestation-0123456789abcdef ]
+            [ -r "$LOCAL_CONTROL_PROXY_CA" ]
+            [ -r "$LOCAL_CONTROL_PROXY_CERT" ]
+            [ -r "$LOCAL_CONTROL_PROXY_KEY" ]
+          '
+
+        ${pkgs.coreutils}/bin/printf '%s\n' \
+          'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+          'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-duplicated-value' \
+          > "$environment_file"
+        ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+        if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+          "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
+          >/dev/null 2>&1; then
+          printf 'A duplicated proxy attestation was accepted.\n' >&2
+          exit 1
+        fi
+
+        write_valid_environment
+        ${pkgs.coreutils}/bin/ln -s "$environment_file" "$linked_environment"
+        if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+          "$pki_directory" "$linked_environment" ${pkgs.coreutils}/bin/true \
+          >/dev/null 2>&1; then
+          printf 'A symlinked proxy environment was accepted.\n' >&2
+          exit 1
+        fi
+
+        ${pkgs.coreutils}/bin/touch "$out"
+      '';
 
       checks.local-control-preparation-proof-validation =
         pkgs.runCommand "local-control-preparation-proof-validation"
@@ -516,58 +670,63 @@
             ${pkgs.coreutils}/bin/touch "$out"
           '';
       checks.local-control-generated-activation =
-        let
-          activationHome = "/private/tmp/local-control-activation-${builtins.hashString "sha256" (builtins.readFile ../../homes/macbook-pro-m4/local/local-control.nix)}";
-          homeConfiguration = inputs.home-manager.lib.homeManagerConfiguration {
-            inherit pkgs;
-            modules = [
-              ../../homes/macbook-pro-m4/local/local-control.nix
-              {
-                home.username = "check-user";
-                home.homeDirectory = activationHome;
-                home.stateVersion = "24.11";
-                services.localControl.enable = true;
-              }
-            ];
-          };
-          activationScript = pkgs.writeText "local-control-generated-activation-script" homeConfiguration.config.home.activation.localControlState.data;
-        in
-        pkgs.runCommand "local-control-generated-activation"
-          {
-            nativeBuildInputs = [
-              pkgs.bash
-              pkgs.coreutils
-              pkgs.gnused
-            ];
-          }
-          ''
-            set -euo pipefail
-            activation_runtime_home="$TMPDIR/local-control-activation-home"
-            activation_runtime_script="$TMPDIR/local-control-activation-script"
-            ${pkgs.gnused}/bin/sed \
-              "s|${activationHome}|$activation_runtime_home|g" \
-              ${activationScript} > "$activation_runtime_script"
-            ${pkgs.bash}/bin/bash -n "$activation_runtime_script"
-            ${pkgs.bash}/bin/bash "$activation_runtime_script"
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          let
+            activationHome = "/private/tmp/local-control-activation-${builtins.hashString "sha256" (builtins.readFile ../../homes/macbook-pro-m4/local/local-control.nix)}";
+            homeConfiguration = inputs.home-manager.lib.homeManagerConfiguration {
+              inherit pkgs;
+              modules = [
+                ../../homes/macbook-pro-m4/local/local-control.nix
+                {
+                  home.username = "check-user";
+                  home.homeDirectory = activationHome;
+                  home.stateVersion = "24.11";
+                  services.localControl.enable = true;
+                }
+              ];
+            };
+            activationScript = pkgs.writeText "local-control-generated-activation-script" homeConfiguration.config.home.activation.localControlState.data;
+          in
+          pkgs.runCommand "local-control-generated-activation"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+                pkgs.gnused
+              ];
+            }
+            ''
+              set -euo pipefail
+              activation_runtime_home="$TMPDIR/local-control-activation-home"
+              activation_runtime_script="$TMPDIR/local-control-activation-script"
+              ${pkgs.gnused}/bin/sed \
+                "s|${activationHome}|$activation_runtime_home|g" \
+                ${activationScript} > "$activation_runtime_script"
+              ${pkgs.bash}/bin/bash -n "$activation_runtime_script"
+              ${pkgs.bash}/bin/bash "$activation_runtime_script"
 
-            ${pkgs.coreutils}/bin/touch "$activation_runtime_home/.local/state/local-control/logs/api.out.log"
-            ${pkgs.coreutils}/bin/chmod 644 "$activation_runtime_home/.local/state/local-control/logs/api.out.log"
-            ${pkgs.bash}/bin/bash "$activation_runtime_script"
-            [ "$(${pkgs.coreutils}/bin/stat -c '%a' "$activation_runtime_home/.local/state/local-control/logs/api.out.log")" = 600 ]
+              ${pkgs.coreutils}/bin/touch "$activation_runtime_home/.local/state/local-control/logs/proxy.out.log"
+              ${pkgs.coreutils}/bin/chmod 644 "$activation_runtime_home/.local/state/local-control/logs/proxy.out.log"
+              ${pkgs.bash}/bin/bash "$activation_runtime_script"
+              [ "$(${pkgs.coreutils}/bin/stat -c '%a' "$activation_runtime_home/.local/state/local-control/logs/proxy.out.log")" = 600 ]
 
-            ${pkgs.bash}/bin/bash "$activation_runtime_script"
+              ${pkgs.bash}/bin/bash "$activation_runtime_script"
 
-            activation_state="$activation_runtime_home/.local/state/local-control"
-            [ -d "$activation_state" ]
-            [ -f "$activation_state/database/PG_VERSION" ]
-            [ -f "$activation_state/pki/ca.crt" ]
-            [ -f "$activation_state/pki/ca.key" ]
-            [ -f "$activation_state/pki/server.crt" ]
-            [ -f "$activation_state/pki/server.key" ]
-            [ -f "$activation_state/pki/client.crt" ]
-            [ -f "$activation_state/pki/client.key" ]
-            [ ! -e "$activation_state/service-environment" ]
-            ${pkgs.coreutils}/bin/touch "$out"
+              activation_state="$activation_runtime_home/.local/state/local-control"
+              [ -d "$activation_state" ]
+              [ -f "$activation_state/database/PG_VERSION" ]
+              [ -f "$activation_state/pki/ca.crt" ]
+              [ -f "$activation_state/pki/ca.key" ]
+              [ -f "$activation_state/pki/server.crt" ]
+              [ -f "$activation_state/pki/server.key" ]
+              [ -f "$activation_state/pki/client.crt" ]
+              [ -f "$activation_state/pki/client.key" ]
+              [ ! -e "$activation_state/environment" ]
+              ${pkgs.coreutils}/bin/touch "$out"
+            ''
+        else
+          pkgs.runCommand "local-control-generated-activation-not-applicable" { } ''
+            touch "$out"
           '';
     };
 }
