@@ -1,5 +1,9 @@
 {
   targets.darwin.defaults = {
+    NSGlobalDomain = {
+      "com.apple.swipescrolldirection" = true;
+    };
+
     "com.apple.AppleMultitouchTrackpad" = {
       Clicking = true;
       Dragging = false;

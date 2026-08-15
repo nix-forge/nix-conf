@@ -1,4 +1,4 @@
-{ modules, ... }:
+{ modules, inputs, ... }:
 let
   actualServerCaseFixOverlay = _final: prev: {
     actual-server = prev.actual-server.overrideAttrs (old: {
@@ -47,6 +47,7 @@ in
 
   nixpkgsArgs = {
     overlays = [
+      inputs.nixpkgs-personal.overlays.default
       actualServerCaseFixOverlay
       darwinBuildFixOverlay
     ];
@@ -121,6 +122,39 @@ in
     mpv
     libreoffice
     { programs.libreoffice.enable = true; }
+    linearmouse
+    {
+      programs.linearmouse = {
+        enable = true;
+        menuBarVisibility = "always";
+        menuBarBatteryDisplay = "off";
+        showInDock = false;
+        settings = {
+          schemes = [
+            {
+              "if" = {
+                device = {
+                  category = "mouse";
+                };
+              };
+              pointer = {
+                # Keep macOS's adaptive acceleration and the device/system
+                # tracking speed. A numeric acceleration of 0 is not the same
+                # as disabling acceleration in LinearMouse.
+                acceleration = "unset";
+                speed = "unset";
+                disableAcceleration = false;
+              };
+              scrolling = {
+                reverse = {
+                  vertical = true;
+                };
+              };
+            }
+          ];
+        };
+      };
+    }
 
     stylix
     stylix-targets-firefox
