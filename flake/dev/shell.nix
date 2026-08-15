@@ -36,6 +36,7 @@
             yamllint
             zizmor
             config.packages.nix-seal
+            bashInteractive
           ]);
       };
     };

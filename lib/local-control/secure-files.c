@@ -24,6 +24,19 @@
 #error "O_NOFOLLOW is required for descriptor-bound path operations"
 #endif
 
+/*
+ * macOS exposes O_SEARCH for descriptor-bound directory traversal without
+ * granting directory-read access. This matters for nix-seal's shared runtime
+ * root: it is deliberately root-owned and 0711, so users may traverse to
+ * their private generation but must not enumerate other users or phases.
+ * Other platforms fall back to the conventional read-only directory open.
+ */
+#ifdef O_SEARCH
+#define DIRECTORY_LOOKUP_FLAGS (O_SEARCH | O_CLOEXEC | O_NOFOLLOW)
+#else
+#define DIRECTORY_LOOKUP_FLAGS (O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)
+#endif
+
 static void usage(void);
 
 static void fail_message(const char *message) { fprintf(stderr, "%s\n", message); }
@@ -122,8 +135,7 @@ static int open_trusted_path_internal(const char *path, int final_flags,
     return open(".", O_RDONLY | O_NONBLOCK | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW | final_flags);
   }
 
-  directory_fd = open(path[0] == '/' ? "/" : ".",
-                      O_RDONLY | O_NONBLOCK | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  directory_fd = open(path[0] == '/' ? "/" : ".", DIRECTORY_LOOKUP_FLAGS | O_NONBLOCK);
   if (directory_fd < 0) {
     return -1;
   }
@@ -168,7 +180,7 @@ static int open_trusted_path_internal(const char *path, int final_flags,
     }
     is_final = *cursor == '\0';
     if (!is_final) {
-      flags |= O_DIRECTORY;
+      flags = DIRECTORY_LOOKUP_FLAGS | O_NONBLOCK;
     } else {
       flags |= final_flags;
     }
@@ -202,8 +214,7 @@ static int open_trusted_path_internal(const char *path, int final_flags,
         errno = EINVAL;
         return -1;
       }
-      next_fd = openat(directory_fd, target,
-                      O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+      next_fd = openat(directory_fd, target, DIRECTORY_LOOKUP_FLAGS | O_NONBLOCK);
       if (next_fd < 0 || fstat(next_fd, &target_status) < 0 ||
           !verify_status(&target_status, 1, "private")) {
         int saved_errno = errno == 0 ? EPERM : errno;
