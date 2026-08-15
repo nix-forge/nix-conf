@@ -70,7 +70,7 @@ let
 
         environment_snapshot_tmp="$(${pkgs.coreutils}/bin/mktemp)"
         trap '${pkgs.coreutils}/bin/rm -f "$environment_snapshot_tmp"' EXIT
-        ${secureFileSystem}/bin/local-control-secure-files read-file \
+        ${secureFileSystem}/bin/local-control-secure-files read-generation-file \
           "$environment_file" 600 > "$environment_snapshot_tmp"
 
         environment_seen='|'

@@ -88,9 +88,30 @@ static int component_is_dot(const char *component, size_t length) {
         (length == 2 && component[0] == '.' && component[1] == '.');
 }
 
-static int open_trusted_path(const char *path, int final_flags) {
+static int valid_generation_target(const char *target) {
+  static const char prefix[] = "generation-";
+  const char *cursor;
+
+  if (target == NULL || strncmp(target, prefix, sizeof(prefix) - 1) != 0) {
+    return 0;
+  }
+  cursor = target + sizeof(prefix) - 1;
+  if (*cursor < '1' || *cursor > '9') {
+    return 0;
+  }
+  for (cursor++; *cursor != '\0'; cursor++) {
+    if (*cursor < '0' || *cursor > '9') {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static int open_trusted_path_internal(const char *path, int final_flags,
+                                      int allow_generation_link) {
   const char *cursor;
   int directory_fd;
+  int followed_generation_link = 0;
 
   if (path == NULL || *path == '\0') {
     errno = EINVAL;
@@ -153,6 +174,49 @@ static int open_trusted_path(const char *path, int final_flags) {
     }
 
     next_fd = openat(directory_fd, component, flags);
+    if (next_fd < 0 && allow_generation_link && !followed_generation_link && !is_final &&
+        strcmp(component, "current") == 0) {
+      struct stat link_status;
+      struct stat target_status;
+      char target[64];
+      ssize_t target_length;
+
+      if (fstatat(directory_fd, component, &link_status, AT_SYMLINK_NOFOLLOW) < 0 ||
+          !S_ISLNK(link_status.st_mode) || !is_owned_by_user(&link_status)) {
+        free(component);
+        close(directory_fd);
+        errno = ELOOP;
+        return -1;
+      }
+      target_length = readlinkat(directory_fd, component, target, sizeof(target) - 1);
+      if (target_length <= 0 || (size_t)target_length >= sizeof(target) - 1) {
+        free(component);
+        close(directory_fd);
+        errno = EINVAL;
+        return -1;
+      }
+      target[target_length] = '\0';
+      if (!valid_generation_target(target)) {
+        free(component);
+        close(directory_fd);
+        errno = EINVAL;
+        return -1;
+      }
+      next_fd = openat(directory_fd, target,
+                      O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+      if (next_fd < 0 || fstat(next_fd, &target_status) < 0 ||
+          !verify_status(&target_status, 1, "private")) {
+        int saved_errno = errno == 0 ? EPERM : errno;
+        if (next_fd >= 0) {
+          close(next_fd);
+        }
+        free(component);
+        close(directory_fd);
+        errno = saved_errno;
+        return -1;
+      }
+      followed_generation_link = 1;
+    }
     free(component);
     close(directory_fd);
     if (next_fd < 0) {
@@ -163,6 +227,14 @@ static int open_trusted_path(const char *path, int final_flags) {
     }
     directory_fd = next_fd;
   }
+}
+
+static int open_trusted_path(const char *path, int final_flags) {
+  return open_trusted_path_internal(path, final_flags, 0);
+}
+
+static int open_trusted_generation_path(const char *path, int final_flags) {
+  return open_trusted_path_internal(path, final_flags, 1);
 }
 
 static int valid_leaf_name(const char *name) {
@@ -249,9 +321,11 @@ static int verify_fd(int fd, int directory, const char *mode_text, struct stat *
   return verify_status(status, directory, mode_text) ? 0 : 1;
 }
 
-static int command_validate_file(const char *path, const char *mode_text, int report_state) {
+static int command_validate_file_internal(const char *path, const char *mode_text,
+                                          int report_state, int allow_generation_link) {
   struct stat status;
-  int fd = open_trusted_path(path, 0);
+  int fd = allow_generation_link ? open_trusted_generation_path(path, 0)
+                                : open_trusted_path(path, 0);
   if (fd < 0) {
     if (errno == ENOENT && report_state) {
       puts("missing");
@@ -268,6 +342,10 @@ static int command_validate_file(const char *path, const char *mode_text, int re
     puts("present");
   }
   return 0;
+}
+
+static int command_validate_file(const char *path, const char *mode_text, int report_state) {
+  return command_validate_file_internal(path, mode_text, report_state, 0);
 }
 
 static int command_repair_file_mode(const char *path, const char *mode_text) {
@@ -536,9 +614,11 @@ static int read_fd_to_stdout(int fd, const struct stat *before) {
   return 0;
 }
 
-static int command_read_file(const char *path, const char *mode_text) {
+static int command_read_file_internal(const char *path, const char *mode_text,
+                                      int allow_generation_link) {
   struct stat status;
-  int fd = open_trusted_path(path, 0);
+  int fd = allow_generation_link ? open_trusted_generation_path(path, 0)
+                                : open_trusted_path(path, 0);
   int result;
 
   if (fd < 0) {
@@ -551,6 +631,10 @@ static int command_read_file(const char *path, const char *mode_text) {
   result = read_fd_to_stdout(fd, &status);
   close(fd);
   return result;
+}
+
+static int command_read_file(const char *path, const char *mode_text) {
+  return command_read_file_internal(path, mode_text, 0);
 }
 
 static int write_stdin_to_fd(int fd) {
@@ -1061,8 +1145,167 @@ static int command_exec_files(int argc, char **argv) {
   return result;
 }
 
+static void clear_sensitive_bytes(char *value, size_t length) {
+  volatile unsigned char *cursor = (volatile unsigned char *)value;
+  while (length > 0) {
+    *cursor++ = 0;
+    length--;
+  }
+}
+
+static int valid_environment_name(const char *value, size_t length) {
+  if (length == 0 || !((value[0] >= 'A' && value[0] <= 'Z') || value[0] == '_')) {
+    return 0;
+  }
+  for (size_t index = 1; index < length; index++) {
+    if (!((value[index] >= 'A' && value[index] <= 'Z') ||
+          (value[index] >= '0' && value[index] <= '9') || value[index] == '_')) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static int load_proxy_attestation(const char *path, char **value_out) {
+  static const char expected_name[] = "SERVICE_PROXY_ATTESTATION";
+  const size_t maximum_size = 65536;
+  struct stat before;
+  struct stat after;
+  int fd = -1;
+  char *contents = NULL;
+  char *attestation = NULL;
+  size_t total = 0;
+  int found = 0;
+  int result = 1;
+
+  if (value_out == NULL) {
+    errno = EINVAL;
+    return fail_errno("proxy environment");
+  }
+  *value_out = NULL;
+  fd = open_trusted_generation_path(path, 0);
+  if (fd < 0) {
+    return fail_errno("openat");
+  }
+  if (verify_fd(fd, 0, "600", &before) != 0 || before.st_size <= 0 ||
+      (uint64_t)before.st_size > maximum_size) {
+    fail_message("Proxy environment file is empty, oversized, or unsafe.");
+    goto cleanup;
+  }
+  contents = malloc((size_t)before.st_size + 1);
+  if (contents == NULL) {
+    errno = ENOMEM;
+    fail_errno("malloc");
+    goto cleanup;
+  }
+  while (total < (size_t)before.st_size) {
+    ssize_t count = read(fd, contents + total, (size_t)before.st_size - total);
+    if (count <= 0) {
+      if (count < 0) {
+        fail_errno("read");
+      } else {
+        fail_message("Proxy environment file changed while it was read.");
+      }
+      goto cleanup;
+    }
+    total += (size_t)count;
+  }
+  {
+    unsigned char extra;
+    ssize_t count = read(fd, &extra, 1);
+    if (count != 0) {
+      if (count < 0) {
+        fail_errno("read");
+      } else {
+        fail_message("Proxy environment file changed while it was read.");
+      }
+      goto cleanup;
+    }
+  }
+  if (fstat(fd, &after) < 0) {
+    fail_errno("fstat");
+    goto cleanup;
+  }
+  if (!stat_matches(&before, &after)) {
+    fail_message("Proxy environment file changed while it was read.");
+    goto cleanup;
+  }
+  contents[total] = '\0';
+
+  for (size_t offset = 0; offset < total;) {
+    size_t line_end = offset;
+    size_t equals = offset;
+    while (line_end < total && contents[line_end] != '\n') {
+      if (contents[line_end] == '\0' || contents[line_end] == '\r') {
+        fail_message("Proxy environment file contains control data.");
+        goto cleanup;
+      }
+      line_end++;
+    }
+    if (line_end == offset || contents[offset] == '#') {
+      offset = line_end < total ? line_end + 1 : total;
+      continue;
+    }
+    while (equals < line_end && contents[equals] != '=') {
+      equals++;
+    }
+    if (equals == line_end || !valid_environment_name(contents + offset, equals - offset)) {
+      fail_message("Proxy environment file contains a malformed record.");
+      goto cleanup;
+    }
+    if ((equals - offset) == sizeof(expected_name) - 1 &&
+        memcmp(contents + offset, expected_name, sizeof(expected_name) - 1) == 0) {
+      size_t value_start = equals + 1;
+      size_t value_length = line_end - value_start;
+      if (found || value_length < 32 || value_length > 512) {
+        fail_message("Proxy attestation is missing, duplicated, or invalid.");
+        goto cleanup;
+      }
+      for (size_t index = value_start; index < line_end; index++) {
+        unsigned char character = (unsigned char)contents[index];
+        if (character < 0x21 || character > 0x7e) {
+          fail_message("Proxy attestation is missing, duplicated, or invalid.");
+          goto cleanup;
+        }
+      }
+      attestation = malloc(value_length + 1);
+      if (attestation == NULL) {
+        errno = ENOMEM;
+        fail_errno("malloc");
+        goto cleanup;
+      }
+      memcpy(attestation, contents + value_start, value_length);
+      attestation[value_length] = '\0';
+      found = 1;
+    }
+    offset = line_end < total ? line_end + 1 : total;
+  }
+  if (!found) {
+    fail_message("Proxy attestation is missing, duplicated, or invalid.");
+    goto cleanup;
+  }
+  *value_out = attestation;
+  attestation = NULL;
+  result = 0;
+
+cleanup:
+  if (fd >= 0) {
+    close(fd);
+  }
+  if (contents != NULL) {
+    clear_sensitive_bytes(contents, total);
+    free(contents);
+  }
+  if (attestation != NULL) {
+    clear_sensitive_bytes(attestation, strlen(attestation));
+    free(attestation);
+  }
+  return result;
+}
+
 static int command_exec_proxy(int argc, char **argv) {
-  char *child_argv[argc - 2];
+  char **child_argv = NULL;
+  char *proxy_attestation = NULL;
   int directory_fd;
   const char *names[] = {"ca.crt", "server.crt", "server.key"};
   const char *modes[] = {"644", "644", "600"};
@@ -1070,7 +1313,7 @@ static int command_exec_proxy(int argc, char **argv) {
     "LOCAL_CONTROL_PROXY_KEY"};
   int file_fds[3];
 
-  if (argc < 4) {
+  if (argc < 5) {
     usage();
     return 64;
   }
@@ -1098,17 +1341,50 @@ static int command_exec_proxy(int argc, char **argv) {
     }
     free(fd_path);
   }
-  child_argv[0] = argv[2];
-  for (int index = 3; index < argc; index++) {
-    child_argv[index - 2] = argv[index];
+  if (load_proxy_attestation(argv[2], &proxy_attestation) != 0 ||
+      setenv("SERVICE_PROXY_ATTESTATION", proxy_attestation, 1) < 0) {
+    if (proxy_attestation != NULL) {
+      clear_sensitive_bytes(proxy_attestation, strlen(proxy_attestation));
+      free(proxy_attestation);
+    }
+    close(directory_fd);
+    for (size_t cleanup = 0; cleanup < 3; cleanup++) {
+      close(file_fds[cleanup]);
+    }
+    return 1;
   }
-  child_argv[argc - 2] = NULL;
+  clear_sensitive_bytes(proxy_attestation, strlen(proxy_attestation));
+  free(proxy_attestation);
+
+  child_argv = calloc((size_t)argc - 2, sizeof(*child_argv));
+  if (child_argv == NULL) {
+    close(directory_fd);
+    for (size_t cleanup = 0; cleanup < 3; cleanup++) {
+      close(file_fds[cleanup]);
+    }
+    errno = ENOMEM;
+    return fail_errno("calloc");
+  }
+  child_argv[0] = argv[3];
+  for (int index = 4; index < argc; index++) {
+    child_argv[index - 3] = argv[index];
+  }
+  child_argv[argc - 3] = NULL;
   if (fchdir(directory_fd) < 0) {
     int result = fail_errno("fchdir");
+    free(child_argv);
     close(directory_fd);
+    for (size_t cleanup = 0; cleanup < 3; cleanup++) {
+      close(file_fds[cleanup]);
+    }
     return result;
   }
-  execv(argv[2], child_argv);
+  execv(argv[3], child_argv);
+  free(child_argv);
+  close(directory_fd);
+  for (size_t cleanup = 0; cleanup < 3; cleanup++) {
+    close(file_fds[cleanup]);
+  }
   return fail_errno("execv");
 }
 
@@ -1693,8 +1969,8 @@ static void usage(void) {
   fprintf(stderr, "Usage: local-control-secure-files COMMAND PATH [MODE]\n"
                   "Commands: ensure-directory, validate-directory, "
                   "validate-source-directory, "
-                  "validate-file, inspect-file, repair-file-mode, "
-                  "read-file, create-file, atomic-write, directory-empty, "
+                  "validate-file, inspect-file, inspect-generation-file, repair-file-mode, "
+                  "read-file, read-generation-file, create-file, atomic-write, directory-empty, "
                   "validate-cluster, cluster-state, initialize-cluster, exec-cluster, "
                   "exec-cluster-socket, "
                   "exec-private-directory, exec-empty-private-directory, exec-source, "
@@ -1722,11 +1998,17 @@ int main(int argc, char **argv) {
   if (strcmp(argv[1], "inspect-file") == 0 && argc == 4) {
     return command_validate_file(argv[2], argv[3], 1);
   }
+  if (strcmp(argv[1], "inspect-generation-file") == 0 && argc == 4) {
+    return command_validate_file_internal(argv[2], argv[3], 1, 1);
+  }
   if (strcmp(argv[1], "repair-file-mode") == 0 && argc == 4) {
     return command_repair_file_mode(argv[2], argv[3]);
   }
   if (strcmp(argv[1], "read-file") == 0 && argc == 4) {
     return command_read_file(argv[2], argv[3]);
+  }
+  if (strcmp(argv[1], "read-generation-file") == 0 && argc == 4) {
+    return command_read_file_internal(argv[2], argv[3], 1);
   }
   if (strcmp(argv[1], "create-file") == 0 && argc == 4) {
     return command_create_file(argv[2], argv[3]);

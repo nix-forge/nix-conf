@@ -4,6 +4,12 @@
     pre-commit = {
       check.enable = pkgs.stdenv.hostPlatform.isDarwin;
       settings = {
+        # A path flake includes a linked worktree's `.git` pointer.  The check
+        # creates its own isolated repository, so carrying that pointer into
+        # the sandbox makes Git escape to a non-existent external gitdir.
+        # Filter only standard VCS/generated metadata; all candidate source,
+        # including untracked files, remains part of the exact path input.
+        rootSrc = lib.mkForce (lib.cleanSource inputs.self.outPath);
         package = pkgs.prek;
         hooks = {
           treefmt = {
@@ -46,7 +52,6 @@
             pass_filenames = false;
             after = [ "ty" ];
           };
-
           end-of-file-fixer = {
             enable = true;
             after = [ "treefmt" ];
