@@ -177,6 +177,7 @@ in
         };
       };
     }
+    ({ pkgs, ... }: { home.packages = [ pkgs.xirp ]; })
 
     stylix
     stylix-targets-firefox
