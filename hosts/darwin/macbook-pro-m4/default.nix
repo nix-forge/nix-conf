@@ -67,6 +67,7 @@ in
 
   nixpkgsArgs = {
     overlays = [
+      inputs.nixpkgs-personal.overlays.default
       actualServerCaseFixOverlay
       darwinBuildFixOverlay
     ];
