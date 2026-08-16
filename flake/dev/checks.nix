@@ -44,6 +44,7 @@
             export LOCAL_CONTROL_PROXY_KEY=/runtime/server.key
             export LOCAL_CONTROL_PROXY_CA=/runtime/ca.crt
             export SERVICE_PROXY_ATTESTATION=fixture-private-attestation
+            export LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef
             caddy adapt \
               --config ${localControlProxyConfig} \
               --adapter caddyfile \
@@ -71,6 +72,17 @@
                 | .headers.request.set["X-Client-Certificate-Fingerprint"][]?]
               | any(. == "{http.request.tls.client.fingerprint}")
             ' <<< "$private_server" >/dev/null
+
+            loopback_server="$(${pkgs.jq}/bin/jq -c '
+              [.apps.http.servers[] | select(.listen == ["127.0.0.1:15173"])]
+            ' adapted.json)"
+            [ "$loopback_server" != '[]' ]
+            ${pkgs.jq}/bin/jq -e '
+              [.[0] | .. | objects
+                | select(.handler? == "reverse_proxy")
+                | .headers.request.set.Authorization[]?]
+              | any(. == "Bearer fixture-browser-credential-0123456789abcdef")
+            ' <<< "$loopback_server" >/dev/null
 
             touch "$out"
           '';
@@ -409,6 +421,7 @@
           ${pkgs.coreutils}/bin/printf '%s\n' \
             'SERVICE_DATABASE_URL=postgresql://fixture.invalid/control' \
             'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+            'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
             'SERVICE_RELEASE_ID=0123456789abcdef0123456789abcdef01234567' \
             > "$environment_file"
           ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
@@ -421,6 +434,7 @@
           ${pkgs.bash}/bin/bash \
           -c '
             [ "$SERVICE_PROXY_ATTESTATION" = fixture-proxy-attestation-0123456789abcdef ]
+            [ "$LOCAL_CONTROL_BROWSER_CREDENTIAL" = fixture-browser-credential-0123456789abcdef ]
             [ -r "$LOCAL_CONTROL_PROXY_CA" ]
             [ -r "$LOCAL_CONTROL_PROXY_CERT" ]
             [ -r "$LOCAL_CONTROL_PROXY_KEY" ]
@@ -429,12 +443,26 @@
         ${pkgs.coreutils}/bin/printf '%s\n' \
           'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
           'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-duplicated-value' \
+          'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
           > "$environment_file"
         ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
         if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
           "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
           >/dev/null 2>&1; then
           printf 'A duplicated proxy attestation was accepted.\n' >&2
+          exit 1
+        fi
+
+        ${pkgs.coreutils}/bin/printf '%s\n' \
+          'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+          'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
+          'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-duplicated-value' \
+          > "$environment_file"
+        ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+        if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+          "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
+          >/dev/null 2>&1; then
+          printf 'A duplicated control API token was accepted.\n' >&2
           exit 1
         fi
 

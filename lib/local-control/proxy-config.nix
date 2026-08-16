@@ -22,6 +22,10 @@ _: {
 
         handle /api/* {
           reverse_proxy 127.0.0.1:${toString apiPort} {
+            # Browser requests never receive or carry the control-plane secret.
+            # The loopback-only proxy replaces any caller-provided value with
+            # the credential loaded by its owner-only secure launcher.
+            header_up Authorization "Bearer {$LOCAL_CONTROL_BROWSER_CREDENTIAL}"
             header_up -X-Agent-Proxy-Attestation
             header_up -X-Client-Certificate-Fingerprint
           }
