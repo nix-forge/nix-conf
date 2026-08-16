@@ -2,7 +2,7 @@ _: {
   mkProxyConfig =
     {
       bindAddress,
-      stateDirectory,
+      dashboardDirectory,
       webPort,
       apiPort,
       proxyPort,
@@ -28,7 +28,7 @@ _: {
         }
 
         handle {
-          root * "${stateDirectory}/current/dashboard"
+          root * "${dashboardDirectory}"
           try_files {path} /index.html
           file_server
         }

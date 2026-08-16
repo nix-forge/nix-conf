@@ -13,7 +13,7 @@
       localControlProxyConfig = pkgs.writeText "local-control-proxy-check.conf" (
         (import ../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
           bindAddress = "127.0.0.1";
-          stateDirectory = "/tmp/local-control";
+          dashboardDirectory = "/tmp/local-control/dashboard-current";
           webPort = 15173;
           apiPort = 18788;
           proxyPort = 18443;
@@ -714,6 +714,8 @@
 
               activation_state="$activation_runtime_home/.local/state/local-control"
               [ -d "$activation_state" ]
+              [ -L "$activation_state/dashboard-current" ]
+              [ "$(readlink "$activation_state/dashboard-current")" = current/dashboard ]
               [ -f "$activation_state/database/PG_VERSION" ]
               [ -f "$activation_state/pki/ca.crt" ]
               [ -f "$activation_state/pki/ca.key" ]
