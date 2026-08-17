@@ -25,9 +25,7 @@ let
         --vmx ${lib.escapeShellArg cfg.vmxFile} \
         --leases ${lib.escapeShellArg cfg.leaseFile} \
         --lease-owner-uid 0 \
-        --network ${lib.escapeShellArg hostOnlyNetwork} \
-        --require-tcp ${toString sshPort} \
-        --timeout-seconds 3
+        --network ${lib.escapeShellArg hostOnlyNetwork}
     '';
   };
 
@@ -40,9 +38,11 @@ let
         printf 'dev-vm-proxy only permits the configured SSH port.\n' >&2
         exit 1
       fi
-      # The Darwin system netcat works reliably with VMware Fusion's host-only
-      # adapter.  The LibreSSL netcat packaged by Nix reports a spurious
-      # host-unreachable error for this path after a VM adapter reset.
+      # Keep address resolution and transport reachability separate. Python's
+      # socket probe can report a spurious host-unreachable result on Darwin
+      # after a VMware adapter reset even when the system TCP stack can connect.
+      # The Darwin system netcat both performs the real reachability check and
+      # becomes the SSH byte stream, so there is no check/use gap here.
       # Do not pass `-w`: it also times out idle reads in a healthy SSH tunnel.
       exec /usr/bin/nc "$(dev-vm-host)" "$1"
     '';

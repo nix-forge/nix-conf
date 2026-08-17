@@ -1177,19 +1177,19 @@ static int valid_environment_name(const char *value, size_t length) {
   return 1;
 }
 
-static int load_proxy_attestation(const char *path, char **value_out) {
-  static const char expected_name[] = "SERVICE_PROXY_ATTESTATION";
+static int load_proxy_secret(const char *path, const char *expected_name,
+    const char *invalid_message, char **value_out) {
   const size_t maximum_size = 65536;
   struct stat before;
   struct stat after;
   int fd = -1;
   char *contents = NULL;
-  char *attestation = NULL;
+  char *secret = NULL;
   size_t total = 0;
   int found = 0;
   int result = 1;
 
-  if (value_out == NULL) {
+  if (expected_name == NULL || invalid_message == NULL || value_out == NULL) {
     errno = EINVAL;
     return fail_errno("proxy environment");
   }
@@ -1264,39 +1264,40 @@ static int load_proxy_attestation(const char *path, char **value_out) {
       fail_message("Proxy environment file contains a malformed record.");
       goto cleanup;
     }
-    if ((equals - offset) == sizeof(expected_name) - 1 &&
-        memcmp(contents + offset, expected_name, sizeof(expected_name) - 1) == 0) {
+    if ((equals - offset) == strlen(expected_name) &&
+        memcmp(contents + offset, expected_name, strlen(expected_name)) == 0) {
       size_t value_start = equals + 1;
       size_t value_length = line_end - value_start;
       if (found || value_length < 32 || value_length > 512) {
-        fail_message("Proxy attestation is missing, duplicated, or invalid.");
+        fail_message(invalid_message);
         goto cleanup;
       }
       for (size_t index = value_start; index < line_end; index++) {
         unsigned char character = (unsigned char)contents[index];
-        if (character < 0x21 || character > 0x7e) {
-          fail_message("Proxy attestation is missing, duplicated, or invalid.");
+        if (character < 0x21 || character > 0x7e || character == '"' ||
+            character == '\\' || character == '{' || character == '}') {
+          fail_message(invalid_message);
           goto cleanup;
         }
       }
-      attestation = malloc(value_length + 1);
-      if (attestation == NULL) {
+      secret = malloc(value_length + 1);
+      if (secret == NULL) {
         errno = ENOMEM;
         fail_errno("malloc");
         goto cleanup;
       }
-      memcpy(attestation, contents + value_start, value_length);
-      attestation[value_length] = '\0';
+      memcpy(secret, contents + value_start, value_length);
+      secret[value_length] = '\0';
       found = 1;
     }
     offset = line_end < total ? line_end + 1 : total;
   }
   if (!found) {
-    fail_message("Proxy attestation is missing, duplicated, or invalid.");
+    fail_message(invalid_message);
     goto cleanup;
   }
-  *value_out = attestation;
-  attestation = NULL;
+  *value_out = secret;
+  secret = NULL;
   result = 0;
 
 cleanup:
@@ -1307,9 +1308,9 @@ cleanup:
     clear_sensitive_bytes(contents, total);
     free(contents);
   }
-  if (attestation != NULL) {
-    clear_sensitive_bytes(attestation, strlen(attestation));
-    free(attestation);
+  if (secret != NULL) {
+    clear_sensitive_bytes(secret, strlen(secret));
+    free(secret);
   }
   return result;
 }
@@ -1317,6 +1318,7 @@ cleanup:
 static int command_exec_proxy(int argc, char **argv) {
   char **child_argv = NULL;
   char *proxy_attestation = NULL;
+  char *control_auth_token = NULL;
   int directory_fd;
   const char *names[] = {"ca.crt", "server.crt", "server.key"};
   const char *modes[] = {"644", "644", "600"};
@@ -1352,11 +1354,19 @@ static int command_exec_proxy(int argc, char **argv) {
     }
     free(fd_path);
   }
-  if (load_proxy_attestation(argv[2], &proxy_attestation) != 0 ||
-      setenv("SERVICE_PROXY_ATTESTATION", proxy_attestation, 1) < 0) {
+  if (load_proxy_secret(argv[2], "SERVICE_PROXY_ATTESTATION",
+                        "Proxy attestation is missing, duplicated, or invalid.",
+                        &proxy_attestation) != 0 ||
+      load_proxy_secret(argv[2], "LOCAL_CONTROL_BROWSER_CREDENTIAL",
+                        "Browser credential is missing, duplicated, or invalid.",
+                        &control_auth_token) != 0) {
     if (proxy_attestation != NULL) {
       clear_sensitive_bytes(proxy_attestation, strlen(proxy_attestation));
       free(proxy_attestation);
+    }
+    if (control_auth_token != NULL) {
+      clear_sensitive_bytes(control_auth_token, strlen(control_auth_token));
+      free(control_auth_token);
     }
     close(directory_fd);
     for (size_t cleanup = 0; cleanup < 3; cleanup++) {
@@ -1364,8 +1374,23 @@ static int command_exec_proxy(int argc, char **argv) {
     }
     return 1;
   }
+  if (setenv("SERVICE_PROXY_ATTESTATION", proxy_attestation, 1) < 0 ||
+      setenv("LOCAL_CONTROL_BROWSER_CREDENTIAL", control_auth_token, 1) < 0) {
+    int result = fail_errno("setenv");
+    clear_sensitive_bytes(proxy_attestation, strlen(proxy_attestation));
+    free(proxy_attestation);
+    clear_sensitive_bytes(control_auth_token, strlen(control_auth_token));
+    free(control_auth_token);
+    close(directory_fd);
+    for (size_t cleanup = 0; cleanup < 3; cleanup++) {
+      close(file_fds[cleanup]);
+    }
+    return result;
+  }
   clear_sensitive_bytes(proxy_attestation, strlen(proxy_attestation));
   free(proxy_attestation);
+  clear_sensitive_bytes(control_auth_token, strlen(control_auth_token));
+  free(control_auth_token);
 
   child_argv = calloc((size_t)argc - 2, sizeof(*child_argv));
   if (child_argv == NULL) {
