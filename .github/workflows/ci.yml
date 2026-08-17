@@ -1,4 +1,4 @@
-name: CI
+name: CI Tests
 on:
   pull_request:
   push:
@@ -181,3 +181,15 @@ jobs:
           name: nix-build-log-${{ matrix.system }}
           path: ${{ runner.temp }}/nix-build-${{ matrix.system }}.log
           if-no-files-found: error
+  tests:
+    name: Repository tests
+    needs: [flake]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require the Nix test matrix to pass
+        env:
+          FLAKE_RESULT: ${{ needs.flake.result }}
+        run: test "$FLAKE_RESULT" = success
