@@ -19,43 +19,6 @@ let
       '';
     });
   };
-  darwinBuildFixOverlay = final: prev: {
-    oxlint = prev.oxlint.overrideAttrs {
-      # napi-rs 3.8.2 probes /bin/ps after compiling, which the Darwin sandbox
-      # rejects. Build the same cdylib directly and reuse the checked-in NAPI
-      # bindings before running oxlint's normal JavaScript bundle step.
-      buildPhase = ''
-        runHook preBuild
-
-        (
-          cd apps/oxlint
-          cargo build \
-            --release \
-            --features allocator \
-            --target ${final.stdenv.hostPlatform.rust.rustcTarget}
-        )
-        cp \
-          target/${final.stdenv.hostPlatform.rust.rustcTarget}/release/liboxlint.dylib \
-          apps/oxlint/src-js/oxlint.darwin-arm64.node
-        pnpm --filter oxlint-app run build-js
-
-        runHook postBuild
-      '';
-    };
-    darktable = prev.darktable.overrideAttrs (old: {
-      versionCheckProgram = "${placeholder "out"}/bin/darktable-cli";
-      versionCheckProgramArg = "--version";
-      versionCheckKeepEnvironment = "HOME";
-      preVersionCheck = (old.preVersionCheck or "") + ''
-        export HOME="$TMPDIR"
-        mkdir -p "$HOME/.config/darktable"
-      '';
-    });
-    libgphoto2 = prev.libgphoto2.overrideAttrs (old: {
-      buildInputs = (old.buildInputs or [ ]) ++ [ final.gettext ];
-      NIX_LDFLAGS = "-lintl";
-    });
-  };
 in
 {
   system = "aarch64-darwin";
@@ -71,11 +34,9 @@ in
     overlays = [
       inputs.nixpkgs-personal.overlays.default
       actualServerCaseFixOverlay
-      darwinBuildFixOverlay
     ];
     config = {
       allowUnfree = true;
-      permittedInsecurePackages = [ "electron-40.10.5" ];
     };
   };
 
