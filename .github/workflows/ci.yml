@@ -1,4 +1,4 @@
-name: CI
+name: CI Tests
 on:
   pull_request:
   push:
@@ -77,7 +77,7 @@ jobs:
       - name: Scan repository for leaked secrets
         run: nix develop --command gitleaks detect --source . --redact --no-banner
   flake:
-    name: Flake checks (${{ matrix.system }})
+    name: Nix tests and flake checks (${{ matrix.system }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     permissions:
