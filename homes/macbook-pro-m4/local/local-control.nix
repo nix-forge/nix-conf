@@ -23,7 +23,7 @@ let
   proxyConfig = pkgs.writeText "local-control-proxy.conf" (
     (import ../../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
       inherit (cfg) bindAddress;
-      stateDirectory = stateDir;
+      inherit (cfg) dashboardDirectory;
       inherit (cfg) webPort apiPort proxyPort;
     }
   );
@@ -151,6 +151,12 @@ in
       description = "Owner-only production application and proxy environment file.";
     };
 
+    dashboardDirectory = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.xdg.stateHome}/local-control/dashboard-current";
+      description = "Atomic immutable dashboard release pointer served by the loopback proxy.";
+    };
+
     bindAddress = lib.mkOption {
       type = lib.types.str;
       default = "172.16.42.1";
@@ -195,8 +201,11 @@ in
         message = "services.localControl requires the supported VMware Fusion macOS host.";
       }
       {
-        assertion = lib.hasPrefix "/" stateDir && lib.hasPrefix "/" environmentFile;
-        message = "services.localControl state and environment paths must be absolute runtime strings.";
+        assertion =
+          lib.hasPrefix "/" stateDir
+          && lib.hasPrefix "/" environmentFile
+          && lib.hasPrefix "/" cfg.dashboardDirectory;
+        message = "services.localControl state, environment, and dashboard paths must be absolute runtime strings.";
       }
       {
         assertion =
@@ -237,6 +246,14 @@ in
       ${privatePathGuard}/bin/local-control-private-path ensure-directory \
         ${lib.escapeShellArg stateDir} \
         'Local control-plane state directory'
+
+      if [ ! -e ${lib.escapeShellArg cfg.dashboardDirectory} ] \
+        && [ ! -L ${lib.escapeShellArg cfg.dashboardDirectory} ]; then
+        ln -s current/dashboard ${lib.escapeShellArg cfg.dashboardDirectory}
+      elif [ ! -L ${lib.escapeShellArg cfg.dashboardDirectory} ]; then
+        printf 'Dashboard deployment pointer must be a symbolic link.\n' >&2
+        exit 1
+      fi
       ${privatePathGuard}/bin/local-control-private-path ensure-directory \
         ${lib.escapeShellArg databaseDir} \
         'Local database directory'
