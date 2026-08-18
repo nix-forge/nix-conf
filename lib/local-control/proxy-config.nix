@@ -2,6 +2,7 @@ _: {
   mkProxyConfig =
     {
       bindAddress,
+      privateHostname,
       dashboardDirectory,
       webPort,
       apiPort,
@@ -38,11 +39,10 @@ _: {
         }
       }
 
-      # The private edge is addressed by IP. Clients therefore do not send SNI.
-      # A host-qualified Caddy site would scope client authentication to an SNI
-      # matcher and silently leave IP clients on an unauthenticated fallback TLS
-      # policy. Keep the listener catch-all and constrain it with `bind` instead.
-      https://:${toString proxyPort} {
+      # Agent TLS must use a name, not an IP literal. IP clients omit SNI and
+      # cannot safely select the mTLS policy/certificate in Caddy. The VM maps
+      # this private-only hostname directly to the VMware host-only address.
+      https://${privateHostname}:${toString proxyPort} {
         bind ${bindAddress}
         tls {$LOCAL_CONTROL_PROXY_CERT} {$LOCAL_CONTROL_PROXY_KEY} {
           client_auth {
