@@ -22,7 +22,7 @@ let
 
   proxyConfig = pkgs.writeText "local-control-proxy.conf" (
     (import ../../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
-      inherit (cfg) bindAddress;
+      inherit (cfg) bindAddress privateHostname;
       inherit (cfg) dashboardDirectory;
       inherit (cfg) webPort apiPort proxyPort;
     }
@@ -32,7 +32,7 @@ let
     basicConstraints=critical,CA:FALSE
     keyUsage=critical,digitalSignature,keyEncipherment
     extendedKeyUsage=serverAuth
-    subjectAltName=IP:${cfg.bindAddress}
+    subjectAltName=DNS:${cfg.privateHostname},IP:${cfg.bindAddress}
   '';
 
   clientCertificateExtensions = pkgs.writeText "local-control-client-extensions" ''
@@ -163,6 +163,12 @@ in
       description = "VMware host-only address for the authenticated agent edge.";
     };
 
+    privateHostname = lib.mkOption {
+      type = lib.types.str;
+      default = "agent-control.service.internal";
+      description = "Private DNS name used for the VMware agent mTLS edge and TLS SNI.";
+    };
+
     webPort = lib.mkOption {
       type = lib.types.port;
       default = 5173;
@@ -220,6 +226,10 @@ in
       {
         assertion = cfg.bindAddress == "172.16.42.1";
         message = "services.localControl.bindAddress must remain on the VMware host-only boundary.";
+      }
+      {
+        assertion = cfg.privateHostname == "agent-control.service.internal";
+        message = "services.localControl.privateHostname must remain the fixed private mTLS hostname.";
       }
       {
         assertion =

@@ -13,6 +13,7 @@
       localControlProxyConfig = pkgs.writeText "local-control-proxy-check.conf" (
         (import ../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
           bindAddress = "127.0.0.1";
+          privateHostname = "agent-control.service.internal";
           dashboardDirectory = "/tmp/local-control/dashboard-current";
           webPort = 15173;
           apiPort = 18788;
@@ -56,19 +57,20 @@
             [ "$private_server" != '[]' ]
             [ "$(${pkgs.jq}/bin/jq 'length' <<< "$private_server")" -eq 1 ]
 
-            # The policy must apply to every connection on the host-only bound
-            # listener. An SNI matcher would bypass mTLS for IP-address clients.
+            # The single private DNS hostname forces SNI, so the selected TLS
+            # policy must require a verified client certificate for that name.
             ${pkgs.jq}/bin/jq -e '
               .[0].tls_connection_policies
-              | length == 1
-                and (.[0] | has("match") | not)
-                and .[0].client_authentication.mode == "require_and_verify"
-                and .[0].client_authentication.ca.provider == "file"
+              | any(
+                  .match?.sni? == ["agent-control.service.internal"]
+                  and .client_authentication?.mode? == "require_and_verify"
+                  and (.client_authentication?.ca?.pem_files? | length == 1)
+                )
             ' <<< "$private_server" >/dev/null
 
             ${pkgs.jq}/bin/jq -e '
-              [.[0].routes[]?.handle[]?.routes[]?.handle[]?
-                | select(.handler == "reverse_proxy")
+              [.[0] | .. | objects
+                | select(.handler? == "reverse_proxy")
                 | .headers.request.set["X-Client-Certificate-Fingerprint"][]?]
               | any(. == "{http.request.tls.client.fingerprint}")
             ' <<< "$private_server" >/dev/null
