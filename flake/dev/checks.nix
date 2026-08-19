@@ -13,7 +13,7 @@
       localControlProxyConfig = pkgs.writeText "local-control-proxy-check.conf" (
         (import ../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
           bindAddress = "127.0.0.1";
-          privateHostname = "agent-control.prop.internal";
+          privateHostname = "agent-control.service.internal";
           dashboardDirectory = "/tmp/local-control/dashboard-current";
           webPort = 15173;
           apiPort = 18788;
@@ -62,7 +62,7 @@
             ${pkgs.jq}/bin/jq -e '
               .[0].tls_connection_policies
               | any(
-                  .match?.sni? == ["agent-control.prop.internal"]
+                  .match?.sni? == ["agent-control.service.internal"]
                   and .client_authentication?.mode? == "require_and_verify"
                   and (.client_authentication?.ca?.pem_files? | length == 1)
                 )

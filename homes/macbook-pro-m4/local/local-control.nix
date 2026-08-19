@@ -165,7 +165,7 @@ in
 
     privateHostname = lib.mkOption {
       type = lib.types.str;
-      default = "agent-control.prop.internal";
+      default = "agent-control.service.internal";
       description = "Private DNS name used for the VMware agent mTLS edge and TLS SNI.";
     };
 
@@ -228,7 +228,7 @@ in
         message = "services.localControl.bindAddress must remain on the VMware host-only boundary.";
       }
       {
-        assertion = cfg.privateHostname == "agent-control.prop.internal";
+        assertion = cfg.privateHostname == "agent-control.service.internal";
         message = "services.localControl.privateHostname must remain the fixed private mTLS hostname.";
       }
       {
