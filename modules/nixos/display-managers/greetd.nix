@@ -10,7 +10,7 @@
     settings =
       let
         # Define greetd-tui
-        greetd_tui_exec = lib.getExe pkgs.greetd.tuigreet;
+        greetd_tui_exec = lib.getExe pkgs.tuigreet;
         sessions = config.services.displayManager.sessionData.desktops;
         sessionsPath = lib.strings.concatStringsSep ":" [
           "${sessions}/share/wayland-sessions"

@@ -34,7 +34,9 @@ in
       IdentitiesOnly = true;
       IdentityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
       LogLevel = "QUIET";
-      StrictHostKeyChecking = "no";
+      # Compute-node names are dynamic, but TOFU still prevents a silently
+      # changed host key from being accepted after the first connection.
+      StrictHostKeyChecking = "accept-new";
       ProxyJump = "perlmutter.nersc.gov";
       SetEnv = {
         TERM = "xterm-256color";

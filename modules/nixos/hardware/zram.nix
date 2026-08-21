@@ -1,6 +1,7 @@
 {
   # Enable in-memory compressed devices and swap space provided by the zram kernel module.
-  # By enable this, we can store more data in memory instead of fallback to disk-based swap devices directly,
+  # By enabling this, we can store more data in memory before falling back to
+  # disk-based swap devices, improving I/O performance under memory pressure.
   # and thus improve I/O performance when we have a lot of memory.
   #
   #   https://www.kernel.org/doc/Documentation/blockdev/zram.txt
@@ -18,6 +19,8 @@
     memoryPercent = 50;
   };
 
-  # compress memory and store in RAM before swapping to disk
-  boot.kernelParams = [ "zswap.enabled=1" ];
+  # Do not enable zswap here. zswap and zram both compress swapped pages in
+  # memory; stacking them causes redundant compression and is unsupported by
+  # NixOS. Hosts using this module therefore use zram as the sole compressed
+  # swap layer.
 }
