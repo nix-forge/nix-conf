@@ -1,18 +1,11 @@
-{ nixosHyprland, ... }:
-{
-  pkgs,
-  inputs,
-  lib,
-  ...
-}:
-{
+{ nixosHyprland, ... }: { pkgs, lib, ... }: {
   xdg.portal = lib.mkIf (!nixosHyprland) {
     enable = true;
     xdgOpenUsePortal = true;
 
     extraPortals = [
       pkgs.xdg-desktop-portal-gtk
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland
+      pkgs.xdg-desktop-portal-hyprland
     ];
 
     config = {

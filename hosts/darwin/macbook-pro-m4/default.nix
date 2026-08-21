@@ -40,9 +40,11 @@ in
 
   modules = with modules; [
     { system.primaryUser = "ianmh"; }
+    # Original nix-darwin compatibility generation for this installation.
+    # Raising this is a migration decision, not a routine upgrade.
+    { system.stateVersion = 6; }
 
     ## Base
-    meta
     determinate
     nix-settings
     registry
@@ -50,6 +52,7 @@ in
     chromium-policies
     nixSeal
     ./nix-seal.nix
+    ./local/firewall.nix
 
     security
     stylix

@@ -16,8 +16,12 @@
   };
 
   modules = with modules; [
+    # Compatibility value for this Home Manager installation; do not raise it
+    # merely to follow the current Nixpkgs/Home Manager release.
+    { home.stateVersion = "25.05"; }
+
     ## Base
-    meta
+    determinate
     nix-settings
     registry
     xdg
@@ -35,6 +39,8 @@
     dev-direnv
 
     ## Programs
+    # The desktop host boots straight into Hyprland for headless Sunshine.
+    wm-hyprland
     server-ssh
     mpv
     spotify

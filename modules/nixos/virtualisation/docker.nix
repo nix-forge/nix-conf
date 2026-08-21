@@ -1,23 +1,16 @@
-{ lib, config, ... }:
-let
-  btrfsMounts = lib.filterAttrs (_: mount: mount.fsType == "btrfs") config.fileSystems;
-in
-{
-  # enable docker
+{ lib, ... }: {
+  # Run Docker only through the unprivileged per-user daemon. Keeping the
+  # rootful daemon off removes its root-equivalent socket and system service.
   virtualisation.docker = {
-    enable = true;
+    enable = false;
 
-    # start dockerd on boot.
-    # This is required for containers which are created with the `--restart=always` flag to work.
-    enableOnBoot = true;
-
-    # enable storage driver if btrfs is used
-    storageDriver = lib.mkIf (btrfsMounts != { }) "btrfs";
-
-    # enable rootless mode
     rootless = {
       enable = true;
       setSocketVariable = true;
     };
   };
+
+  # NixOS's rootless module installs a global user unit. Only start it for the
+  # desktop account; `users.users.ianmh.linger` keeps it available after logout.
+  systemd.user.services.docker.unitConfig.ConditionUser = lib.mkForce "ianmh";
 }

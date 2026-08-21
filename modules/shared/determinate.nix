@@ -8,6 +8,10 @@ in
   nixos = { inputs, system, ... }: {
     imports = [ inputs.determinate.nixosModules.default ];
 
+    # NixOS exposes the Determinate integration as `determinate`, whereas
+    # nix-darwin calls the corresponding option `determinateNix`.
+    determinate.enable = true;
+
     nix = { inherit settings; };
 
     nixpkgs.overlays = [
