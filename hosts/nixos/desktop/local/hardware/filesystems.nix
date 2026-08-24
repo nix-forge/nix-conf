@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  utils,
+  ...
+}:
 let
   rootLabel = "nixos";
   swapLabel = "swap";
@@ -8,6 +13,8 @@ let
   # it at a neutral mount point so any user or launcher can opt into it without
   # hard-coding a particular account's home directory.
   gamesMountPoint = "/mnt/games";
+  gamesGroup = "users";
+  gamesScrubTimer = "btrfs-scrub-${utils.escapeSystemdPath gamesMountPoint}";
 
   mkFS = label: fsType: { inherit label fsType; };
   btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
@@ -25,6 +32,15 @@ let
   bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
+  # NixOS's built-in `users` group covers normal local accounts without tying
+  # this shared game library to a particular login.  The Btrfs subvolume is
+  # also used from Windows, so make its Steam content directory group-writable
+  # when the volume is available.
+  systemd.tmpfiles.rules = [
+    "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
+    "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
+  ];
+
   # Only the filesystem needed to mount this desktop's root belongs in the
   # initrd.  Removable-media support is available after the real system starts.
   boot.initrd.supportedFilesystems = [ "btrfs" ];
@@ -91,7 +107,7 @@ in
       AccuracySec = lib.mkForce "1h";
       RandomizedDelaySec = "2h";
     };
-    "btrfs-scrub-home-ianmh-games".timerConfig = {
+    ${gamesScrubTimer}.timerConfig = {
       AccuracySec = lib.mkForce "1h";
       RandomizedDelaySec = "2h";
     };
