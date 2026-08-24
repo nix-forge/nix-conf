@@ -2,6 +2,14 @@ let
   settings = {
     builders-use-substitutes = true;
 
+    # A trusted-substituter only authorizes an untrusted client to request a
+    # cache; it does not make the daemon use that cache. Configure this signed
+    # cache explicitly so the key already trusted below improves build reuse.
+    substituters = [
+      "https://cache.nixos.org/"
+      "https://nix-community.cachix.org"
+    ];
+
     trusted-substituters = [
       "https://cache.nixos.org/"
       "https://nix-community.cachix.org"
