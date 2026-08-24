@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
   rootLabel = "nixos";
   swapLabel = "swap";
@@ -22,6 +22,10 @@ let
   bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
+  # Only the filesystem needed to mount this desktop's root belongs in the
+  # initrd.  Removable-media support is available after the real system starts.
+  boot.initrd.supportedFilesystems = [ "btrfs" ];
+
   fileSystems = {
     "/" = mkBTRFS rootLabel "@root" defaultBTRFSOptions;
     "/var" = mkBTRFS rootLabel "@var" defaultBTRFSOptions;
@@ -43,7 +47,6 @@ in
         "subvol=games"
         "compress=zstd:1"
         "noatime"
-        "discard=async"
         "nofail"
         "x-systemd.device-timeout=10s"
       ];
@@ -58,7 +61,12 @@ in
   # BTRFS Scrub
   services.btrfs.autoScrub = {
     enable = true;
-    interval = "monthly";
+    # First Sunday of every month, outside the normal desktop-use window.
+    # Btrfs recommends monthly scrub; the limit protects interactivity because
+    # this desktop uses the NVMe `none` I/O scheduler, where idle I/O priority
+    # alone is not a reliable throttle.
+    interval = "Sun *-*-01..07 03:00:00";
+    limit = "800M";
     # A scrub covers all subvolumes on its Btrfs filesystem, so one root entry
     # is sufficient for the system drive.  The independent games volume needs
     # its own entry.
@@ -66,5 +74,25 @@ in
       "/"
       gamesMountPoint
     ];
+  };
+
+  # The system is a mains-powered desktop, so defer periodic trim until AC is
+  # available.  Btrfs enables asynchronous discard itself on supported modern
+  # devices; do not pin that implementation detail in fstab.  The periodic
+  # batch trim remains the explicit maintenance policy for this host.
+  systemd.services.fstrim.unitConfig.ConditionACPower = true;
+
+  # NixOS's auto-scrub timer intentionally uses a one-day accuracy window.
+  # This single desktop can use a narrower, jittered early-morning window while
+  # retaining persistence across downtime.
+  systemd.timers = {
+    "btrfs-scrub--".timerConfig = {
+      AccuracySec = lib.mkForce "1h";
+      RandomizedDelaySec = "2h";
+    };
+    "btrfs-scrub-home-ianmh-games".timerConfig = {
+      AccuracySec = lib.mkForce "1h";
+      RandomizedDelaySec = "2h";
+    };
   };
 }

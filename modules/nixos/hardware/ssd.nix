@@ -1,26 +1,33 @@
-{
+{ lib, ... }: {
   services.fstrim = {
-    # We may enable this unconditionally across all systems because it's performance
-    # impact is negligible on systems without a SSD - which means it's a no-op with
-    # almost no downsides aside from the service firing once per week.
-    enable = true;
+    # `fstrim` skips filesystems and devices that do not implement discard, so a
+    # periodic batch trim is a safe cross-host default.  It returns unused flash
+    # blocks to SSD/NVMe firmware without adding write-time latency to foreground
+    # workloads.  Hosts that use a storage stack with its own trim policy (for
+    # example ZFS) can override this normally.
+    enable = lib.mkDefault true;
 
-    # The timer interval passed to the systemd service. The default is monthly
-    # but we prefer trimming weekly as the system receives a lot of writes.
-    interval = "weekly";
+    # The upstream NixOS default is weekly, which is an appropriate cadence for
+    # both interactive systems and servers.  Keep it explicit so a change in the
+    # upstream default is reviewed rather than silently changing maintenance.
+    interval = lib.mkDefault "weekly";
   };
 
-  # Tweak fstrim service to run only when on AC power
-  # and to be nice to other processes. This is a generally
-  # a good idea for any service that runs periodically to
-  # save power and avoid locking down the system in an
-  # unexpected manner, e.g., while working on something else.
+  # Batch maintenance should not compete with foreground work.  Whether the
+  # machine must be on AC power is a host power-policy decision, so it belongs
+  # in `local/`, not in this reusable SSD baseline.
   systemd.services.fstrim = {
-    unitConfig.ConditionACPower = true;
-
     serviceConfig = {
-      Nice = 19; # lowest priority, be nice to other processes
-      IOSchedulingClass = "idle";
+      Nice = lib.mkDefault 19;
+      IOSchedulingClass = lib.mkDefault "idle";
     };
+  };
+
+  # Run missed maintenance after a machine was powered off at the scheduled
+  # time, while avoiding synchronized I/O spikes across systems.
+  systemd.timers.fstrim.timerConfig = {
+    AccuracySec = lib.mkDefault "1h";
+    Persistent = lib.mkDefault true;
+    RandomizedDelaySec = lib.mkDefault "2h";
   };
 }

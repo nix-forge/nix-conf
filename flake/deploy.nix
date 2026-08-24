@@ -84,7 +84,11 @@ in
         assert hasUdevPackage "minidv-firewire-udev-rules";
         assert lib.elem "https://nix-community.cachix.org" desktop.nix.settings.substituters;
         assert desktop.networking.nftables.enable;
+        assert desktop.networking.firewall.enable;
         assert desktop.networking.firewall.backend == "nftables";
+        assert desktop.networking.useNetworkd;
+        assert !desktop.networking.useDHCP;
+        assert !desktop.networking.networkmanager.enable;
         assert !(lib.elem 22 desktop.networking.firewall.allowedTCPPorts);
         assert lib.hasInfix "ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22 accept"
           desktop.networking.firewall.extraInputRules;
@@ -92,6 +96,27 @@ in
           desktop.networking.firewall.extraInputRules;
         assert !desktop.services.openssh.openFirewall;
         assert !desktop.services.avahi.enable;
+        assert desktop.services.resolved.enable;
+        assert desktop.services.resolved.settings.Resolve.DNSSEC == "allow-downgrade";
+        assert desktop.services.resolved.settings.Resolve.LLMNR == "false";
+        assert desktop.services.resolved.settings.Resolve.MulticastDNS == "resolve";
+        assert desktop.networking.wireless.iwd.enable;
+        assert desktop.networking.wireless.iwd.settings.General.EnableNetworkConfiguration == false;
+        assert desktop.networking.wireless.iwd.settings.General.AddressRandomization == "disabled";
+        assert desktop.networking.wireless.iwd.settings.Settings.AutoConnect;
+        assert desktop.networking.wireless.iwd.settings.DriverQuirks.PowerSaveDisable == "mt7921e";
+        assert desktop.systemd.network.enable;
+        assert !desktop.systemd.network.wait-online.enable;
+        assert desktop.systemd.network.networks."30-wired-networks".dhcpV4Config.RouteMetric == 100;
+        assert desktop.systemd.network.networks."30-wireless-networks".dhcpV4Config.RouteMetric == 600;
+        assert desktop.systemd.network.networks."30-wired-networks".dhcpV4Config.UseDomains == "route";
+        assert desktop.systemd.network.networks."30-wireless-networks".dhcpV4Config.UseDomains == "route";
+        assert !desktop.systemd.network.networks."30-wired-networks".dhcpV4Config.SendHostname;
+        assert !desktop.systemd.network.networks."30-wireless-networks".dhcpV4Config.SendHostname;
+        assert !desktop.systemd.network.networks."30-wired-networks".ipv6AcceptRAConfig.UseRedirect;
+        assert !desktop.systemd.network.networks."30-wireless-networks".ipv6AcceptRAConfig.UseRedirect;
+        assert desktop.boot.kernel.sysctl."net.ipv4.conf.all.accept_redirects" == 0;
+        assert desktop.boot.kernel.sysctl."net.ipv6.conf.all.accept_redirects" == 0;
         assert desktop.programs.nh.enable;
         assert desktop.boot.loader.systemd-boot.enable;
         assert desktop.boot.loader.systemd-boot.editor == false;
@@ -134,13 +159,190 @@ in
         assert desktop.console.earlySetup;
         assert desktop.console.useXkbConfig;
         assert desktop.services.getty.autologinUser == null;
+        assert desktop.security.desktopKeyring.enable;
+        assert desktop.services.gnome.gnome-keyring.enable;
+        assert desktop.services.gnome.gcr-ssh-agent.enable;
+        assert !desktop.programs.ssh.startAgent;
+        assert !desktop.services.oo7.enable;
+        assert desktop.security.wrappers.gnome-keyring-daemon.capabilities == "cap_ipc_lock=ep";
+        assert desktop.security.pam.services.su.requireWheel;
+        assert !desktop.security.pam.services.login.allowNullPassword;
+        assert desktop.security.pam.services.login.failDelay.enable;
+        assert desktop.security.pam.services.login.failDelay.delay == 3000000;
+        assert desktop.security.pam.services.login.lastlog.enable;
+        assert !desktop.security.pam.services.login.lastlog.silent;
+        assert desktop.security.pam.services.login.enableGnomeKeyring;
+        assert !desktop.security.pam.services.greetd.enableGnomeKeyring;
+        assert !desktop.security.pam.services.login.gnupg.enable;
+        assert desktop.security.pam.services.hyprlock.enable;
+        assert desktop.security.pki.installCACerts;
+        assert !desktop.security.pki.useCompatibleBundle;
+        assert desktop.security.pki.certificateFiles == [ ];
+        assert desktop.security.pki.certificates == [ ];
+        assert desktop.security.pki.caCertificateBlacklist == [ ];
+        assert lib.hasInfix "/etc/ssl/certs/ca-bundle.crt" (toString desktop.security.pki.caBundle);
+        assert
+          desktop.environment.etc."ssl/certs/ca-certificates.crt".source == desktop.security.pki.caBundle;
+        assert desktop.environment.etc."ssl/trust-source".source != null;
+        assert desktop.security.polkit.enable;
+        assert !desktop.security.polkit.enablePkexecWrapper;
+        assert desktop.security.polkit.adminIdentities == [ "unix-group:wheel" ];
+        assert desktop.security.polkit.settings.Polkitd.ExpirationSeconds == 300;
+        assert
+          desktop.security.polkit.extraArgs == [
+            "--no-debug"
+            "--log-level=notice"
+          ];
+        assert !lib.hasInfix "polkit.log(" desktop.security.polkit.extraConfig;
+        assert lib.hasInfix "org.freedesktop.fwupd.get-remotes" desktop.security.polkit.extraConfig;
+        assert lib.hasInfix "subject.user == \"fwupd-refresh\"" desktop.security.polkit.extraConfig;
+        assert lib.hasInfix "polkit-gnome-authentication-agent-1" (
+          toString desktop.systemd.user.services.polkit-gnome-authentication-agent-1.serviceConfig.ExecStart
+        );
+        assert
+          desktop.systemd.user.services.polkit-gnome-authentication-agent-1.serviceConfig.Restart
+          == "on-failure";
+        assert desktop.security.sudo.enable;
+        assert desktop.security.sudo.wheelNeedsPassword;
+        assert desktop.security.sudo.execWheelOnly;
+        assert desktop.security.sudo.defaultOptions == [ "NOSETENV" ];
+        assert !lib.hasInfix "NOPASSWD" desktop.security.sudo.configFile;
+        assert lib.hasInfix "Defaults use_pty" desktop.security.sudo.configFile;
+        assert lib.hasInfix "Defaults timestamp_type=tty" desktop.security.sudo.configFile;
+        assert lib.hasInfix "Defaults timestamp_timeout=5" desktop.security.sudo.configFile;
+        assert lib.hasInfix "Defaults !pwfeedback" desktop.security.sudo.configFile;
+        assert desktop.security.wrappers.sudo.group == "wheel";
+        assert desktop.security.wrappers.sudo.setuid;
+        assert desktop.security.wrappers.sudo.permissions == "u+rx,g+x";
+        assert !desktop.security.pam.sshAgentAuth.enable;
+        assert !desktop.security.pam.ussh.enable;
+        assert !desktop.security.pam.services.sudo.sshAgentAuth;
+        assert !desktop.security.pam.services.sudo.usshAuth;
+        assert desktop.security.appArmorBaseline.enable;
+        assert desktop.security.apparmor.enable;
+        assert !desktop.security.apparmor.enableCache;
+        assert !desktop.security.apparmor.killUnconfinedConfinables;
+        assert desktop.security.apparmor.policies == { };
+        assert lib.elem "apparmor" desktop.security.lsm;
+        assert lib.elem "apparmor=1" desktop.boot.kernelParams;
+        assert lib.length (lib.filter (param: lib.hasPrefix "lsm=" param) desktop.boot.kernelParams) == 1;
+        assert
+          lib.length (lib.filter (param: lib.hasPrefix "loglevel=" param) desktop.boot.kernelParams) == 1;
+        assert desktop.boot.consoleLogLevel == 3;
+        assert desktop.systemd.services.apparmor.unitConfig.ConditionSecurity == "apparmor";
+        assert desktop.security.clamav.enable;
+        assert desktop.services.clamav.daemon.enable;
+        assert desktop.services.clamav.updater.enable;
+        assert desktop.services.clamav.scanner.enable;
+        assert desktop.services.clamav.clamonacc.enable;
+        assert !desktop.services.clamav.fangfrisch.enable;
+        assert desktop.services.clamav.updater.frequency == 6;
+        assert desktop.services.clamav.updater.interval == "*-*-* 00/4:00:00";
+        assert desktop.services.clamav.daemon.settings.LocalSocketMode == "660";
+        assert desktop.services.clamav.daemon.settings.MaxThreads == 4;
+        assert desktop.services.clamav.daemon.settings.MaxQueue == 8;
+        assert desktop.services.clamav.daemon.settings.OnAccessPrevention;
+        assert desktop.services.clamav.daemon.settings.OnAccessExtraScanning;
+        assert desktop.services.clamav.daemon.settings.OnAccessIncludePath == [ "/home/ianmh/Downloads" ];
+        assert desktop.services.clamav.scanner.interval == "Sun *-*-* 03:30:00";
+        assert
+          desktop.services.clamav.scanner.scanDirectories == [
+            "/home/ianmh/Downloads"
+            "/home/ianmh/Desktop"
+            "/home/ianmh/Documents"
+            "/home/ianmh/Projects"
+          ];
+        assert desktop.systemd.timers.clamav-freshclam.timerConfig.Persistent;
+        assert desktop.systemd.timers.clamav-freshclam.timerConfig.RandomizedDelaySec == "30m";
+        assert desktop.systemd.timers.clamdscan.timerConfig.Persistent;
+        assert desktop.systemd.timers.clamdscan.timerConfig.RandomizedDelaySec == "2h";
+        assert desktop.systemd.services.clamdscan.serviceConfig.Nice == 19;
+        assert desktop.systemd.services.clamdscan.serviceConfig.IOSchedulingClass == "idle";
+        assert desktop.security.usbguardBaseline.enable;
+        assert desktop.services.usbguard.enable;
+        assert desktop.services.usbguard.implicitPolicyTarget == "block";
+        assert desktop.services.usbguard.presentDevicePolicy == "apply-policy";
+        assert desktop.services.usbguard.presentControllerPolicy == "keep";
+        assert desktop.services.usbguard.insertedDevicePolicy == "apply-policy";
+        assert !desktop.services.usbguard.restoreControllerDeviceState;
+        assert desktop.services.usbguard.deviceRulesWithPort;
+        assert desktop.services.usbguard.IPCAllowedUsers == [ "root" ];
+        assert desktop.services.usbguard.IPCAllowedGroups == [ ];
+        assert !desktop.services.usbguard.dbus.enable;
+        assert lib.hasInfix "allow hash \"kL7WFVC+wRu2UhoA7qb7Ga7AhIMyAuHfB4xoYj5eFDA=\""
+          desktop.services.usbguard.rules;
+        assert !lib.hasInfix "090c:1000" desktop.services.usbguard.rules;
+        assert desktop.security.allowUserNamespaces;
+        assert desktop.security.virtualisation.flushL1DataCache == null;
+        assert
+          !lib.any (param: lib.hasPrefix "kvm-intel.vmentry_l1d_flush=" param) desktop.boot.kernelParams;
+        assert !desktop.virtualisation.libvirtd.enable;
+        assert !desktop.virtualisation.docker.enable;
+        assert desktop.virtualisation.docker.rootless.enable;
+        assert desktop.virtualisation.docker.rootless.daemon.settings."live-restore";
+        assert desktop.virtualisation.docker.rootless.daemon.settings."log-driver" == "local";
+        assert desktop.virtualisation.docker.rootless.daemon.settings."log-opts"."max-size" == "10m";
+        assert desktop.virtualisation.docker.rootless.daemon.settings."log-opts"."max-file" == "3";
+        assert !(desktop.users.groups ? docker);
+        assert !desktop.i18n.imperativeLocale;
+        assert desktop.i18n.defaultLocale == "en_US.UTF-8";
+        assert desktop.time.timeZone == "America/Los_Angeles";
+        assert !desktop.time.hardwareClockInLocalTime;
+        assert desktop.services.chrony.enable;
+        assert desktop.services.chrony.enableNTS;
+        assert
+          desktop.services.chrony.servers == [
+            "time.cloudflare.com"
+            "nts.netnod.se"
+          ];
+        assert desktop.services.chrony.serverOption == "iburst";
+        assert desktop.services.chrony.enableMemoryLocking;
+        assert desktop.services.chrony.enableRTCTrimming;
+        assert desktop.services.chrony.makestep.enable;
+        assert desktop.services.chrony.makestep.threshold == 0.1;
+        assert desktop.services.chrony.makestep.limit == 3;
+        assert lib.hasInfix "cmdport 0" desktop.services.chrony.extraConfig;
+        assert !desktop.services.chrony.dispatcherScript;
+        assert !desktop.services.timesyncd.enable;
         assert lib.all (module: lib.elem module desktop.boot.initrd.kernelModules) [
           "nvme"
           "btrfs"
         ];
+        assert desktop.boot.initrd.supportedFilesystems == { btrfs = true; };
         assert desktop.services.telegraf.enable;
         assert desktop.services.telegraf.extraConfig.outputs.prometheus_client.listen == "127.0.0.1:9273";
         assert desktop.security.wrappers.smartctl-telegraf.owner == "telegraf";
+        assert desktop.services.fstrim.enable;
+        assert desktop.services.fstrim.interval == "weekly";
+        assert desktop.systemd.services.fstrim.unitConfig.ConditionACPower;
+        assert desktop.systemd.services.fstrim.serviceConfig.Nice == 19;
+        assert desktop.systemd.services.fstrim.serviceConfig.IOSchedulingClass == "idle";
+        assert desktop.systemd.timers.fstrim.timerConfig.AccuracySec == "1h";
+        assert desktop.systemd.timers.fstrim.timerConfig.Persistent;
+        assert desktop.systemd.timers.fstrim.timerConfig.RandomizedDelaySec == "2h";
+        assert desktop.zramSwap.enable;
+        assert desktop.zramSwap.algorithm == "zstd";
+        assert desktop.zramSwap.swapDevices == 1;
+        assert desktop.zramSwap.memoryPercent == 50;
+        assert desktop.zramSwap.priority == 5;
+        assert desktop.zramSwap.writebackDevice == null;
+        assert !desktop.boot.zswap.enable;
+        assert desktop.systemd.oomd.enable;
+        assert !desktop.systemd.oomd.enableRootSlice;
+        assert !desktop.systemd.oomd.enableSystemSlice;
+        assert !desktop.systemd.oomd.enableUserSlices;
+        assert desktop.services.zram-generator.settings.zram0."compression-algorithm" == "zstd";
+        assert desktop.services.zram-generator.settings.zram0."swap-priority" == 5;
+        assert desktop.services.zram-generator.settings.zram0."zram-size" == "50 / 100 * ram";
+        assert desktop.services.zram-generator.settings.zram0."zram-resident-limit" == "ram / 4";
+        assert desktop.services.gvfs.enable;
+        assert desktop.services.tumbler.enable;
+        assert desktop.services.udisks2.enable;
+        assert !desktop.services.udisks2.mountOnMedia;
+        assert desktop.services.udisks2.settings."udisks2.conf".defaults.encryption == "luks2";
+        assert desktop.services.udisks2.settings."udisks2.conf".udisks2.modules == [ "*" ];
+        assert
+          desktop.services.udisks2.settings."udisks2.conf".udisks2.modules_load_preference == "ondemand";
         assert desktop.services.openssh.settings.X11Forwarding == false;
         assert desktop.services.openssh.settings.UseDns == false;
         assert desktop.services.openssh.settings.StreamLocalBindUnlink == true;
@@ -178,11 +380,18 @@ in
           "subvol=games"
           "compress=zstd:1"
           "noatime"
-          "discard=async"
           "nofail"
           "x-systemd.device-timeout=10s"
         ];
+        assert !lib.elem "discard=async" desktop.fileSystems.${gamesMountPoint}.options;
+        assert desktop.services.btrfs.autoScrub.enable;
         assert lib.elem gamesMountPoint desktop.services.btrfs.autoScrub.fileSystems;
+        assert desktop.services.btrfs.autoScrub.interval == "Sun *-*-01..07 03:00:00";
+        assert desktop.services.btrfs.autoScrub.limit == "800M";
+        assert desktop.systemd.timers."btrfs-scrub--".timerConfig.AccuracySec == "1h";
+        assert desktop.systemd.timers."btrfs-scrub--".timerConfig.RandomizedDelaySec == "2h";
+        assert desktop.systemd.timers."btrfs-scrub-home-ianmh-games".timerConfig.AccuracySec == "1h";
+        assert desktop.systemd.timers."btrfs-scrub-home-ianmh-games".timerConfig.RandomizedDelaySec == "2h";
         assert desktop.services.sunshine.enable;
         assert desktop.services.sunshine.autoStart;
         assert !desktop.services.sunshine.openFirewall;

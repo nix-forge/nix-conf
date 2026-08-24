@@ -1,41 +1,29 @@
-{ lib, ... }: {
+{ config, lib, ... }: {
   security.pki = {
-    certificates = lib.mkForce [ ];
-    caCertificateBlacklist = [
-      #
-      "AC RAIZ FNMT-RCM SERVIDORES SEGUROS"
-      "Autoridad de Certificacion Firmaprofesional CIF A62634068"
+    # NixOS derives this bundle from the Mozilla root program and also exposes
+    # p11-kit trust data.  This gives command-line and system services one
+    # maintained trust store, including upstream distrust information.
+    installCACerts = lib.mkDefault true;
 
-      # China Financial Certification Authority
-      "CFCA EV ROOT"
-
-      # Chunghwa Telecom Co., Ltd
-      "ePKI Root Certification Authority"
-      "HiPKI Root CA - G1"
-
-      # Dhimyotis
-      "Certigna"
-      "Certigna Root CA"
-
-      # GUANG DONG CERTIFICATE AUTHORITY
-      "GDCA TrustAUTH R5 ROOT"
-
-      # Hongkong Post
-      "Hongkong Post Root CA 3"
-
-      # iTrusChina Co.,Ltd.
-      "vTrus ECC Root CA"
-      "vTrus Root CA"
-
-      # Krajowa Izba Rozliczeniowa S.A.
-      "SZAFIR ROOT CA2"
-
-      # NetLock Kft.
-      "NetLock Arany (Class Gold) Főtanúsítvány"
-
-      # TAIWAN-CA
-      "TWCA Root Certification Authority"
-      "TWCA Global Root CA"
-    ];
+    # Do not use the PEM-only compatibility bundle: it strips OpenSSL/p11-kit
+    # trust rules, including purpose restrictions and distrust metadata.
+    useCompatibleBundle = lib.mkDefault false;
   };
+
+  assertions = [
+    {
+      assertion = config.security.pki.installCACerts;
+      message = "This security PKI baseline requires the system CA bundle; use a minimal image profile instead of disabling it here.";
+    }
+    {
+      assertion = !config.security.pki.useCompatibleBundle;
+      message = "security.pki.useCompatibleBundle removes certificate trust rules. Fix the incompatible application or scope a separate, reviewed bundle to it instead.";
+    }
+  ];
+
+  # Trust anchors and exclusions are security-sensitive, system-specific
+  # policy.  Declare them under a host's local/ directory after independently
+  # verifying the certificate fingerprint, issuer, validity period, key usage,
+  # and the exact service that needs it.  Certificate files are public CA
+  # material and may enter the Nix store; never place a private key there.
 }
