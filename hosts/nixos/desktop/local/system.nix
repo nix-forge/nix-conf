@@ -11,7 +11,23 @@
 
   time.timeZone = "America/Los_Angeles";
 
-  boot.loader.systemd-boot.enable = true;
+  # Firmware mode and NVRAM ownership are properties of this physical host.
+  # Shared boot modules only add policy after a host selects its loader.
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    systemd-boot.enable = true;
+  };
+
+  # This desktop's ESP is 1 GiB.  Reserve enough space for systemd-boot
+  # generations and a safely staged firmware capsule; a firmware update will
+  # fail closed rather than crowd the ESP.  Capsule delivery remains fwupd's
+  # vendor-detected default, while MSI BIOS images continue to use M-Flash.
+  services.fwupd.uefiCapsuleSettings.RequireESPFreeSpace = 128;
+
+  # This interactive workstation has sufficient RAM for a volatile /tmp.
+  # Builders and memory-constrained hosts choose their own temporary-storage
+  # policy instead of inheriting this desktop trade-off.
+  boot.tmp.useTmpfs = true;
 
   users.users.ianmh = {
     isNormalUser = true;
@@ -21,10 +37,13 @@
     # wheel is required for administration. GPU devices are granted through
     # logind/udev ACLs to the active graphical session; `uinput` is the narrow
     # additional permission Sunshine needs for virtual controller, keyboard,
-    # and mouse input. Rootless Docker needs no root-equivalent docker group.
+    # and mouse input. `tss` permits access to the kernel TPM resource manager
+    # for deliberate TPM key management, not the raw TPM device. Rootless
+    # Docker needs no root-equivalent docker group.
     extraGroups = [
       "wheel"
       "ianmh"
+      "tss"
       "uinput"
     ];
     openssh.authorizedKeys.keys = [
@@ -76,8 +95,6 @@
   environment.etc."determinate/config.json".text = builtins.toJSON {
     garbageCollector.strategy = "automatic";
   };
-
-  boot.loader.systemd-boot.configurationLimit = 12;
 
   # `nh` is the local interface for building and activating this host.  Keep
   # its flake path unset: the checkout may live on a different filesystem on

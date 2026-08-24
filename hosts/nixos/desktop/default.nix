@@ -32,11 +32,14 @@
 
     ## Boot and hardware
     boot-generic
+    boot-console
+    boot-systemd
     hardware-bluetooth
     hardware-firmware
     hardware-sound
     hardware-ssd
     hardware-storage
+    hardware-tpm
     hardware-zram
     gaming
 

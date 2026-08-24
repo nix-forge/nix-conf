@@ -1,16 +1,8 @@
-{
-  boot = {
-    loader = {
-      efi = {
-        canTouchEfiVariables = true;
-      };
-
-      grub = {
-        enable = true;
-        efiSupport = true;
-        device = "nodev";
-        configurationLimit = 15; # default is 100
-      };
-    };
+{ config, lib, ... }: {
+  # Loader selection, firmware mode, installation target, and NVRAM writes
+  # are properties of a host. This shared policy applies only after a host has
+  # explicitly selected GRUB.
+  config = lib.mkIf config.boot.loader.grub.enable {
+    boot.loader.grub.configurationLimit = lib.mkDefault 12;
   };
 }

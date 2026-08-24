@@ -1,5 +1,4 @@
 {
-  config,
   lib,
   modulesPath,
   pkgs,
@@ -15,6 +14,13 @@
     "usbhid"
     "usb_storage"
     "sd_mod"
+  ];
+  # The system volume is a Btrfs filesystem on this NVMe controller. Keep the
+  # drivers needed before the real root mounts with this host rather than in a
+  # shared boot profile.
+  boot.initrd.kernelModules = [
+    "nvme"
+    "btrfs"
   ];
   # Capture reliability takes precedence over scheduler tuning: the prior
   # XanMod build reproduced an AMD-Vi/firewire_ohci DMA fault. Use the matching
@@ -44,8 +50,19 @@
     options cfg80211 ieee80211_regdom=US
   '';
 
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  # Zen 4 receives vendor microcode through the initrd before the kernel
+  # starts normal userspace. Keep this explicit for this AMD physical host;
+  # it must not depend on a shared firmware-policy default.
+  hardware.cpu.amd.updateMicrocode = true;
   hardware.wirelessRegulatoryDatabase = true;
+
+  # This mains-powered MediaTek controller advertises Fast Connectable support.
+  # Favor faster reconnection of the desktop's established audio peripherals;
+  # a modest resume delay also lets the shared Wi-Fi/BT radio settle first.
+  hardware.bluetooth.settings = {
+    General.FastConnectable = true;
+    Policy.ResumeDelay = 3;
+  };
 
   services = {
     irqbalance.enable = true;

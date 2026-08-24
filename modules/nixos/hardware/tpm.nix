@@ -1,31 +1,28 @@
 { pkgs, ... }: {
-  boot.kernelModules = [ "uhid" ];
-
   security.tpm2 = {
-    # Enable Trusted Platform Module 2 support
+    # This module is selected only by systems with a TPM 2.0 device. Enable
+    # the NixOS TPM stack, including its udev ownership and persistent FAPI
+    # storage setup, but do not enroll disk-unlock or login credentials here.
+    # Those policies bind to a specific threat model and belong to the host.
     enable = true;
-
     applyUdevRules = true;
 
-    # Enable Trusted Platform 2 userspace resource manager daemon
-    # Setting this option to true will have TMP2 as a userspace daemon
-    # and set the `security.tmp2.tssUser` that the daemon will run as.
+    # Use NixOS's userspace resource manager. It serializes stateful TPM
+    # access across clients and is the TCTI selected below for tools and
+    # PKCS#11 consumers.
     abrmd.enable = true;
 
-    # The TCTI is the "Transmission Interface" that is used to communicate with a
-    # TPM. this option sets TCTI environment variables to the specified values if enabled
-    #  - TPM2TOOLS_TCTI
-    #  - TPM2_PKCS11_TCTI
-    tctiEnvironment.enable = true;
+    tctiEnvironment = {
+      enable = true;
+      interface = "tabrmd";
+    };
 
-    # enable TPM2 PKCS#11 tool and shared library in system path
+    # Expose the PKCS#11 provider for applications that deliberately create
+    # non-exportable TPM-backed keys. No keys are generated automatically.
     pkcs11.enable = true;
   };
 
-  # Utilities to work with TPM2 on Linux.
-  environment.systemPackages = with pkgs; [
-    tpm2-tools
-    tpm2-tss
-    tpm2-abrmd
-  ];
+  # Keep the supported diagnostic/enrollment CLI available without exposing
+  # implementation libraries and daemons redundantly in every user's PATH.
+  environment.systemPackages = with pkgs; [ tpm2-tools ];
 }
