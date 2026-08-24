@@ -7,6 +7,7 @@
 let
   hyprctl = "${config.programs.hyprland.package}/bin/hyprctl";
   jq = lib.getExe pkgs.jq;
+  steam = lib.getExe config.programs.steam.package;
   headlessOutput = "SUNSHINE";
   prepareHeadlessOutput = pkgs.writeShellScript "prepare-sunshine-headless-output" ''
     set -eu
@@ -44,13 +45,51 @@ let
       ${pkgs.coreutils}/bin/sleep 1
     done
 
-    # 1080p60 is deliberately the conservative no-hardware baseline.  It is
-    # universally decodable on the MacBook, avoids an unnecessary 4K encode
-    # load, and can be raised later after a stable stream is confirmed.
-    ${hyprctl} eval 'hl.monitor({ output = "${headlessOutput}", mode = "1920x1080@60", position = "0x0", scale = 1 })'
+    # Keep the MacBook Pro's non-standard panel aspect ratio without requiring
+    # native-resolution streaming. 2560x1655 is an aspect-ratio match to
+    # rounding precision and costs roughly 45% fewer pixels than 3456x2234 at
+    # 120 Hz, preserving smooth input and presentation without overloading
+    # NVENC or the current Wi-Fi link.
+    #
+    # Sunshine's wlroots screencopy backend is the right unprivileged capture
+    # method for this headless Hyprland session, but it cannot transport HDR
+    # metadata. Keep the virtual output explicitly SDR rather than allowing
+    # games to render HDR that Sunshine would then mislabel as SDR. Genuine
+    # Linux HDR capture requires Sunshine's privileged KMS backend and a
+    # suitable DRM-attached HDR display; neither is appropriate here.
+    ${hyprctl} eval 'hl.monitor({ output = "${headlessOutput}", mode = "2560x1655@120", position = "0x0", scale = 1, bitdepth = 8, cm = "srgb", supports_wide_color = 0, supports_hdr = 0 })'
   '';
 in
 {
+  # This is desktop-user behaviour, not a generic Sunshine policy. Steam is
+  # explicitly detached because it replaces its bootstrap process during
+  # startup. Do not add an undo command: Sunshine runs undo commands after a
+  # Moonlight disconnect, and launching `steam://close/bigpicture` there starts
+  # a new persistent Steam process under Sunshine. That orphaned process kept
+  # the control/cancel endpoint busy until Moonlight timed out.
+  services.sunshine.applications.apps = [
+    {
+      name = "Desktop";
+      "image-path" = "desktop.png";
+    }
+    {
+      name = "Steam Big Picture";
+      "image-path" = "steam.png";
+      detached = [ "${steam} steam://open/bigpicture" ];
+    }
+  ];
+
+  services.sunshine.settings = {
+    # A 60 Mbit/s hard ceiling contains adaptive bitrate if the Wi-Fi radio
+    # falls back again. Moonlight's 55 Mbit/s default remains below this cap.
+    max_bitrate = 60000;
+
+    # Keep AV1 Main10 available: both the RTX 4070 and M4 Pro support it.
+    # The active wlroots capture path remains SDR; the profile is retained for
+    # compatibility and a future supported HDR capture configuration.
+    av1_mode = 3;
+  };
+
   # With no physical monitor, a login manager cannot wait for interactive
   # credentials.  Greetd directly starts the owner's local Wayland session on
   # boot.  LAN firewalling plus Moonlight's pairing and encryption still guard

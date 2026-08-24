@@ -10,7 +10,11 @@ in
     # DOCS: https://ghostty.org/docs/config/reference
     settings = {
       shell-integration = "detect";
-      shell-integration-features = true;
+      # Hosts that need Ghostty's terminfo declare it themselves (notably the
+      # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a
+      # spurious failure even when the remote system already has the entry.
+      # Keep the normal prompt, title, cursor, sudo, and PATH integration.
+      shell-integration-features = "no-ssh-terminfo";
       cursor-click-to-move = true;
 
       scrollback-limit = 268435456;
