@@ -1,12 +1,15 @@
 { config, lib, ... }: {
   # This host has no physical monitor.  The virtual output is created by the
   # host's Sunshine service, and this matching rule keeps its logical desktop
-  # at 1080p rather than Hyprland's high-DPI fallback scale.
+  # at the MacBook Pro client's 2560x1655/120 streaming mode rather than
+  # Hyprland's high-DPI fallback scale. Keep this in lockstep with the
+  # host-local Sunshine headless-output service so a Hyprland reload does not
+  # downgrade an active Moonlight stream.
   wayland.windowManager.hyprland.settings = {
     monitor = [
       {
         output = "SUNSHINE";
-        mode = "1920x1080@60";
+        mode = "2560x1655@120";
         position = "0x0";
         scale = 1;
       }

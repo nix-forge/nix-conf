@@ -8,6 +8,10 @@ let
   gamesMountPoint = "/home/ianmh/games";
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
+  hasSystemPackage =
+    name: lib.any (package: lib.getName package == name) desktop.environment.systemPackages;
+  hasUdevPackage =
+    name: lib.any (package: lib.getName package == name) desktop.services.udev.packages;
   hasMacbookHomePackage =
     name: lib.any (package: lib.getName package == name) macbookHome.home.packages;
   sharedUblockFilters = (import ../modules/shared/ublock-filter-lists.nix).customFilterLists;
@@ -22,6 +26,9 @@ let
   zenImportedLists = builtins.elemAt (lib.findFirst (
     entry: builtins.elemAt entry 0 == "importedLists"
   ) null zenUblockSettings) 1;
+  steamBigPicture = lib.findFirst (
+    app: app.name == "Steam Big Picture"
+  ) null desktop.services.sunshine.applications.apps;
 in
 {
   flake = {
@@ -44,13 +51,37 @@ in
         assert desktopHome.programs.zen-browser.enable;
         assert desktopHome.programs.helium.enable;
         assert desktopHome.wayland.windowManager.hyprland.enable;
+        assert desktopHome.programs.fuzzel.enable;
+        assert desktopHome.programs.fuzzel.settings.main."match-mode" == "fzf";
+        assert lib.any (
+          binding: lib.hasInfix "fuzzel" (builtins.toJSON binding)
+        ) desktopHome.wayland.windowManager.hyprland.settings.bind;
         assert desktopHome.wayland.windowManager.hyprland.configType == "lua";
         assert desktopHome.wayland.windowManager.hyprland.extraConfig == "";
+        assert desktopHome.home.pointerCursor.enable;
+        assert desktopHome.home.pointerCursor.name == "Bibata-Modern-Ice";
+        assert desktopHome.home.pointerCursor.size == 24;
+        assert desktopHome.home.pointerCursor.gtk.enable;
+        assert desktopHome.home.pointerCursor.x11.enable;
         assert
           (builtins.head desktopHome.wayland.windowManager.hyprland.settings.monitor).output == "SUNSHINE";
+        assert
+          (builtins.head desktopHome.wayland.windowManager.hyprland.settings.monitor).mode == "2560x1655@120";
         assert hasHomePackage "libreoffice";
         assert hasHomePackage "mpv-with-scripts";
         assert hasHomePackage "spotify";
+        assert hasHomePackage "fuzzel";
+        assert hasSystemPackage "dvgrab";
+        assert hasSystemPackage "ffmpeg";
+        assert hasSystemPackage "pciutils";
+        assert hasSystemPackage "ghostty";
+        assert hasSystemPackage "minidv-capture";
+        assert hasSystemPackage "minidv-diagnose";
+        assert hasSystemPackage "minidv-finalize";
+        assert hasSystemPackage "minidv-transcode";
+        assert hasSystemPackage "minidv-upscale";
+        assert hasSystemPackage "minidv-verify";
+        assert hasUdevPackage "minidv-firewire-udev-rules";
         assert lib.elem "https://nix-community.cachix.org" desktop.nix.settings.substituters;
         assert desktop.networking.nftables.enable;
         assert desktop.networking.firewall.backend == "nftables";
@@ -61,6 +92,15 @@ in
           desktop.networking.firewall.extraInputRules;
         assert !desktop.services.openssh.openFirewall;
         assert !desktop.services.avahi.enable;
+        assert desktop.programs.nh.enable;
+        assert desktop.services.telegraf.enable;
+        assert desktop.services.telegraf.extraConfig.outputs.prometheus_client.listen == "127.0.0.1:9273";
+        assert desktop.security.wrappers.smartctl-telegraf.owner == "telegraf";
+        assert desktop.services.openssh.settings.X11Forwarding == false;
+        assert desktop.services.openssh.settings.UseDns == false;
+        assert desktop.services.openssh.settings.StreamLocalBindUnlink == true;
+        assert builtins.hasAttr "updateDiff" desktop.system.preSwitchChecks;
+        assert builtins.hasAttr "expectedHostname" desktop.system.preSwitchChecks;
         assert desktop.programs.gamemode.enable;
         assert desktop.programs.gamemode.enableRenice;
         assert desktop.programs.gamemode.settings.general.softrealtime == "off";
@@ -90,6 +130,8 @@ in
         assert !desktop.services.sunshine.capSysAdmin;
         assert desktop.systemd.user.services.sunshine.unitConfig.ConditionUser == "ianmh";
         assert desktop.services.sunshine.settings.encoder == "nvenc";
+        assert desktop.services.sunshine.settings.max_bitrate == 60000;
+        assert desktop.services.sunshine.settings.av1_mode == 3;
         assert desktop.services.sunshine.settings.adapter_name == "/dev/dri/renderD129";
         assert desktop.services.sunshine.settings.capture == "wlr";
         assert desktop.services.sunshine.settings.upnp == "disabled";
@@ -97,6 +139,11 @@ in
           desktop.services.sunshine.settings.csrf_allowed_origins
           == "https://desktop:47990,https://desktop.local:47990,https://192.168.10.178:47990";
         assert desktop.services.sunshine.settings.lan_encryption_mode == 2;
+        assert steamBigPicture != null;
+        assert
+          steamBigPicture.detached
+          == [ "${lib.getExe desktop.programs.steam.package} steam://open/bigpicture" ];
+        assert !(builtins.hasAttr "prep-cmd" steamBigPicture);
         assert desktop.programs.hyprland.enable;
         assert desktop.programs.hyprland.withUWSM;
         assert desktop.programs.uwsm.enable;
@@ -117,6 +164,13 @@ in
         assert lib.hasInfix "udp dport { 47998, 47999, 48000, 48002, 48010 } accept"
           desktop.networking.firewall.extraInputRules;
         assert hasMacbookHomePackage "moonlight-qt";
+        assert lib.hasInfix "width -int 2560" macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "height -int 1655" macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "fps -int 120" macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "bitrate -int 55000"
+          macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "videocfg -int 4" macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "hdr -bool false" macbookHome.home.activation.configureMoonlightStreaming.data;
         assert !desktop.virtualisation.docker.enable;
         assert desktop.virtualisation.docker.rootless.enable;
         assert desktop.users.users.ianmh.linger;

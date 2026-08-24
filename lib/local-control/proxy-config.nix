@@ -42,8 +42,14 @@ _: {
       # Agent TLS must use a name, not an IP literal. IP clients omit SNI and
       # cannot safely select the mTLS policy/certificate in Caddy. The VM maps
       # this private-only hostname directly to the VMware host-only address.
+      #
+      # Keep the identical mTLS edge on loopback too.  The loopback listener is
+      # not externally reachable; it supports a tightly scoped SSH reverse
+      # tunnel when a VMware virtual network can establish TCP but stops
+      # carrying application traffic.  The tunnel still presents the same
+      # hostname/SNI, client certificate, and proxy-attestation policy below.
       https://${privateHostname}:${toString proxyPort} {
-        bind ${bindAddress}
+        bind ${if bindAddress == "127.0.0.1" then bindAddress else "127.0.0.1 ${bindAddress}"}
         tls {$LOCAL_CONTROL_PROXY_CERT} {$LOCAL_CONTROL_PROXY_KEY} {
           client_auth {
             trust_pool file {$LOCAL_CONTROL_PROXY_CA}
@@ -51,11 +57,12 @@ _: {
           }
         }
 
-        @agent_paths path \
-          /api/agent/enroll \
-          /api/agents/*/heartbeat \
-          /api/agents/*/commands* \
-          /api/agents/*/endpoints/*/commands/*:consume
+        # The mTLS edge may forward only the agent namespace. The control API
+        # still authenticates every endpoint with the agent bearer token and
+        # the certificate fingerprint injected below. Keeping the route at
+        # this namespace boundary prevents a deeper receipt URL from silently
+        # falling through to 404 when a command API adds a path segment.
+        @agent_paths path /api/agent/enroll /api/agents/*
         handle @agent_paths {
           request_header -X-Client-Certificate-Fingerprint
           request_header -X-Agent-Proxy-Attestation

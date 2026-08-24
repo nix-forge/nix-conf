@@ -1,15 +1,8 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ lib, ... }:
 let
   privateIPv4 = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
   sunshineTcpPorts = "47984, 47989, 47990, 48010";
   sunshineUdpPorts = "47998, 47999, 48000, 48002, 48010";
-  steam = lib.getExe config.programs.steam.package;
-  setsid = "${pkgs.util-linux}/bin/setsid";
 in
 {
   # Sunshine is the host; Moonlight on the MacBook is the client.  The desktop
@@ -54,22 +47,6 @@ in
       wan_encryption_mode = 2;
     };
 
-    # Keep the Moonlight app list declarative.  Steam Big Picture is detached
-    # because the Steam bootstrap process exits after handing off to its client.
-    applications = {
-      apps = [
-        {
-          name = "Desktop";
-          "image-path" = "desktop.png";
-        }
-        {
-          name = "Steam Big Picture";
-          "image-path" = "steam.png";
-          detached = [ "${setsid} ${steam} steam://open/bigpicture" ];
-          "prep-cmd" = [ { undo = "${setsid} ${steam} steam://close/bigpicture"; } ];
-        }
-      ];
-    };
   };
 
   # NixOS installs this user unit for every graphical account; it must never
