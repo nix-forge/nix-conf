@@ -96,6 +96,13 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    lanzaboote = {
+      # Keep the boot-chain implementation on a released interface.  Secure
+      # Boot policy and key material remain in the NixOS configuration and on
+      # the physical host respectively, never in this flake input.
+      url = "github:nix-community/lanzaboote/v1.1.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Firefox UserJS
     firefox-betterfox = {

@@ -22,7 +22,7 @@
     ## Base system
     base-base
     base-kernel
-    base-packages
+    base-wordlist
     determinate
     nixSeal
     nix-settings
@@ -31,7 +31,9 @@
     chromium-policies
     security-apparmor
     security-clamav
+    security-dbus-dconf
     security-keyring
+    security-kernel
     security-pam
     security-pki
     security-polkit
@@ -42,6 +44,7 @@
     ## Boot and hardware
     boot-generic
     boot-console
+    boot-secure-boot
     boot-systemd
     hardware-bluetooth
     hardware-firmware
@@ -79,12 +82,10 @@
   #     tree.hosts.${folderName} // tree.hosts.${folderName}.hardware // tree.configs.os
   #   ); [
   #     ## Base
-  #     base.nix-settings
   #     ./cache.nix
   #     (import ./secrets.nix { })
   #     base.base
   #     base.kernel
-  #     base.packages
   #     # secrets
   #     users
   #     (
