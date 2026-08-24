@@ -41,8 +41,11 @@ in
   };
 
   modules = with modules; [
+    # Compatibility value for this Home Manager installation; do not raise it
+    # merely to follow the current Nixpkgs/Home Manager release.
+    { home.stateVersion = "25.05"; }
+
     ## Base
-    meta
     determinate
     nix-settings
     registry
@@ -153,6 +156,7 @@ in
     darktable
 
     steam-darwin
+    moonlight
     prismlauncher
   ];
 }

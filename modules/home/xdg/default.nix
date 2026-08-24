@@ -19,6 +19,10 @@ in
 
     userDirs = {
       enable = true;
+      # Preserve the behavior from the original Home Manager generation.
+      # This explicit value avoids an implicit compatibility default changing
+      # on a future Home Manager upgrade.
+      setSessionVariables = true;
       createDirectories = true;
       extraConfig = {
         DEVELOPER = "${homeDirectory}/Developer";
@@ -30,4 +34,8 @@ in
   };
 
   home.preferXdgDirectories = config.xdg.enable;
+
+  # Preserve the pre-26.05 Zsh layout explicitly.  Moving this to XDG is a
+  # separate migration because it changes where interactive shell files live.
+  programs.zsh.dotDir = config.home.homeDirectory;
 }

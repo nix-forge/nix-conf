@@ -1,5 +1,6 @@
 let
   inherit (import ./helium-extensions.nix) extensionUpdateUrl heliumExtensions;
+  inherit (import ./ublock-filter-lists.nix) customFilterLists;
   heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
   heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
 
@@ -29,55 +30,6 @@ let
         (if builtins.isBool value then if value then "true" else "false" else toString value)
       ]
     ) (builtins.attrNames attrs);
-
-  # Privacy filters
-  privacyEssentials = "https://raw.githubusercontent.com/yokoffing/filterlists/main/privacy_essentials.txt";
-  haegeziProMini = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.mini.txt";
-  legitUrlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
-  clearUrlsUbo = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/ClearURLs%20for%20uBo/clear_urls_uboified.txt";
-  thirdPartyFonts = "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt";
-
-  # Annoyances filters
-  yokoffingAnnoyances = "https://raw.githubusercontent.com/yokoffing/filterlists/main/annoyance_list.txt";
-  browseWithoutLogin = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/BrowseWebsitesWithoutLoggingIn.txt";
-  youTubeClearView = "https://raw.githubusercontent.com/yokoffing/filterlists/main/youtube_clear_view.txt";
-  bypassPaywallsClean = "https://gitflic.ru/project/magnolia1234/bypass-paywalls-clean-filters/blob/raw?file=bpc-paywall-filter.txt";
-  antiPaywall = "https://raw.githubusercontent.com/liamengland1/miscfilters/master/antipaywall.txt";
-
-  # Security filters
-  mostAbusedTlds = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/spam-tlds-ublock.txt";
-  dandelionAntiMalware = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Dandelion%20Sprout's%20Anti-Malware%20List.txt";
-  maliciousWebsiteBlocklist = "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/antimalware.txt";
-
-  # All-purpose combo lists
-  ublockComboList = "https://raw.githubusercontent.com/iam-py-test/uBlock-combo/main/list.txt";
-  haegeziComboAltMini = "https://raw.githubusercontent.com/cbuijs/hagezi/refs/heads/main/combo/alt-suggested-mini/domains.top-n.adblock";
-
-  # Extra optional filter lists
-  youTubeShorts = "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt";
-
-  customFilterLists = [
-    privacyEssentials
-    haegeziProMini
-    legitUrlShortener
-    clearUrlsUbo
-    thirdPartyFonts
-
-    yokoffingAnnoyances
-    browseWithoutLogin
-    youTubeClearView
-    bypassPaywallsClean
-    antiPaywall
-
-    mostAbusedTlds
-    dandelionAntiMalware
-    maliciousWebsiteBlocklist
-
-    ublockComboList
-    haegeziComboAltMini
-
-    youTubeShorts
-  ];
 
   ublockCustomRules = ''
     * * 3p-script block

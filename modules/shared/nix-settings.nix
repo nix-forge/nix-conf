@@ -3,10 +3,6 @@ let
     max-jobs = "auto";
     cores = 0;
 
-    allowed-users = [ "*" ];
-
-    trusted-users = [ "root" ];
-
     sandbox = true;
     sandbox-fallback = false;
 
@@ -19,7 +15,9 @@ let
 
     log-lines = 25;
 
-    warn-dirty = false;
+    # A dirty configuration is useful during development but should never be
+    # silently deployed as though it were a reproducible revision.
+    warn-dirty = true;
     accept-flake-config = false;
 
     auto-optimise-store = true;
@@ -51,10 +49,15 @@ in
       nixAccessTokensId = "nix-access-tokens";
       hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
       settings = sharedSettings // {
-        trusted-users = sharedSettings.trusted-users ++ [
+        # Restrict daemon access to administrators without assuming a
+        # particular account name. Root is trusted by Nix by default.
+        allowed-users = [
           "@wheel"
           "@sudo"
-          "nix-builder"
+        ];
+        trusted-users = [
+          "@wheel"
+          "@sudo"
         ];
 
         experimental-features = sharedSettings.experimental-features ++ [
@@ -88,7 +91,16 @@ in
     }:
     let
       settings = sharedSettings // {
-        trusted-users = sharedSettings.trusted-users ++ [ "@admin" ];
+        # macOS administrators are the only local users allowed to access the
+        # daemon. This remains valid for every account on a host.
+        allowed-users = [
+          "root"
+          "@admin"
+        ];
+        trusted-users = [
+          "root"
+          "@admin"
+        ];
       };
       determinateSettings = settings // {
         min-free = 30 * 1024 * 1024 * 1024;
@@ -135,6 +147,9 @@ in
     {
       nix = {
         package = lib.mkDefault pkgs.nixVersions.latest;
+        # Daemon authorization is intentionally system-level. Home Manager
+        # configures only client-safe settings, so a user cannot grant themself
+        # daemon access or trusted-user privileges.
         settings = lib.mkIf (config.nix.package != null) sharedSettings;
         extraOptions = lib.mkIf (config.nix.package != null && hasNixAccessTokens) ''
           !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}

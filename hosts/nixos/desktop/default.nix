@@ -1,4 +1,4 @@
-{ modules, ... }: {
+{ modules, inputs, ... }: {
   system = "x86_64-linux";
   hostName = "desktop";
 
@@ -19,13 +19,47 @@
   };
 
   modules = with modules; [
+    ## Base system
     base-base
+    base-kernel
+    base-packages
+    determinate
+    nixSeal
+    nix-settings
+    cache
     registry
     chromium-policies
-    boot
-    nixSeal
+
+    ## Boot and hardware
+    boot-generic
+    hardware-bluetooth
+    hardware-firmware
+    hardware-sound
+    hardware-ssd
+    hardware-storage
+    hardware-zram
+    gaming
+
+    ## Desktop and services
+    ../../../modules/nixos/desktop-envs/hyprland.nix
+    ../../../modules/nixos/display-managers/greetd.nix
+    locale-timesync
+    server-ssh
+    virtualisation-docker
+    # Host-specific sealed system secrets must be imported explicitly: the
+    # framework only auto-loads files under local/.
     ./nix-seal.nix
   ];
+
+  homes.ianmh = {
+    # Keep desktop-bootstrap available as a standalone recovery profile, but
+    # use the complete desktop environment for the installed workstation.
+    config = "ianmh@desktop";
+    user = {
+      description = "Ian Holloway";
+      shell = inputs.nixpkgs.legacyPackages.x86_64-linux.nushell;
+    };
+  };
 
   # modules =
   #   with (

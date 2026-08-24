@@ -1,15 +1,12 @@
-{
-  config,
-  inputs,
-  pkgs,
-  ...
-}:
-{
+{ config, pkgs, ... }: {
   programs.hyprland = {
     enable = true;
-    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-    portalPackage =
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+    # Keep the compositor and portal on the same nixpkgs revision as the
+    # kernel, NVIDIA driver, and wlroots stack.  The former flake-input
+    # reference was not declared by this repository and therefore made the
+    # module unevaluable when enabled.
+    package = pkgs.hyprland;
+    portalPackage = pkgs.xdg-desktop-portal-hyprland;
 
     withUWSM = true;
   };

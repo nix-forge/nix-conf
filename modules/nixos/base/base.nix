@@ -1,6 +1,6 @@
 { pkgs, ... }: {
-  # set the systemVersion for the entire configuration
-  system.stateVersion = "26.11";
+  # system.stateVersion is deliberately host-local: it records the NixOS
+  # release at installation time and must not be inherited by future hosts.
 
   # enable dconf
   programs.dconf.enable = true;

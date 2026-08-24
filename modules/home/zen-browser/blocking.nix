@@ -1,5 +1,6 @@
 { lib, ... }:
 let
+  inherit (import ../../shared/ublock-filter-lists.nix) customFilterLists;
   toPairList =
     attrs:
     lib.pipe attrs [
@@ -9,61 +10,6 @@ let
         nameValue.value
       ]))
     ];
-
-  # Privacy filters
-  privacyEssentials = "https://raw.githubusercontent.com/yokoffing/filterlists/main/privacy_essentials.txt";
-  haegeziProMini = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.mini.txt";
-  legitUrlShortener = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt";
-  clearUrlsUbo = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/ClearURLs%20for%20uBo/clear_urls_uboified.txt";
-  thirdPartyFonts = "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt";
-
-  # Annoyances filters
-  yokoffingAnnoyances = "https://raw.githubusercontent.com/yokoffing/filterlists/main/annoyance_list.txt";
-  browseWithoutLogin = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/BrowseWebsitesWithoutLoggingIn.txt";
-  youTubeClearView = "https://raw.githubusercontent.com/yokoffing/filterlists/main/youtube_clear_view.txt";
-  bypassPaywallsClean = "https://gitflic.ru/project/magnolia1234/bypass-paywalls-clean-filters/blob/raw?file=bpc-paywall-filter.txt";
-  antiPaywall = "https://raw.githubusercontent.com/liamengland1/miscfilters/master/antipaywall.txt";
-
-  # Security filters
-  mostAbusedTlds = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/spam-tlds-ublock.txt";
-  dandelionAntiMalware = "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Dandelion%20Sprout's%20Anti-Malware%20List.txt";
-  maliciousWebsiteBlocklist = "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/antimalware.txt";
-
-  # All-purpose combo lists
-  ublockComboList = "https://raw.githubusercontent.com/iam-py-test/uBlock-combo/main/list.txt";
-  haegeziComboAltMini = "https://raw.githubusercontent.com/cbuijs/hagezi/refs/heads/main/combo/alt-suggested-mini/domains.top-n.adblock";
-
-  # Extra optional filter lists
-  youTubeShorts = "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt";
-
-  # Create a nix list of all custom lists
-  customFilterLists = [
-    # Privacy filters
-    privacyEssentials
-    haegeziProMini
-    legitUrlShortener
-    clearUrlsUbo
-    thirdPartyFonts
-
-    # Annoyances filters
-    yokoffingAnnoyances
-    browseWithoutLogin
-    youTubeClearView
-    bypassPaywallsClean
-    antiPaywall
-
-    # Security filters
-    mostAbusedTlds
-    dandelionAntiMalware
-    maliciousWebsiteBlocklist
-
-    # All-purpose combo lists
-    ublockComboList
-    haegeziComboAltMini
-
-    # Optional extra lists
-    youTubeShorts
-  ];
 
   # uBO medium mode (global) dynamic rules
   mediumModeRules = ''

@@ -295,7 +295,7 @@ in
       example = [
         {
           folder = {
-            path = "/Users/example/Downloads";
+            path = "${config.home.homeDirectory}/Downloads";
             displayAs = "folder";
             showAs = "grid";
             arrangement = "date-added";

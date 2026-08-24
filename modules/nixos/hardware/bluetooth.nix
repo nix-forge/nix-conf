@@ -11,7 +11,9 @@
         Enable = "Source,Sink,Media,Socket";
         ControllerMode = "dual";
 
-        JustWorksRepairing = "always";
+        # Require local confirmation before a previously paired Bluetooth
+        # device can silently replace its pairing key.
+        JustWorksRepairing = "confirm";
         MultiProfile = "multiple";
       };
     };

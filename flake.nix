@@ -21,10 +21,15 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    flake-schemas.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/0";
     nix-config-framework = {
       url = "path:./nix-config-framework";
       inputs = {
@@ -165,6 +170,8 @@
         inputs.nix-seal.flakeModules.default
         inputs.nix-seal.flakeModules.nix-config-framework
         ./flake/partitions.nix
+        ./flake/deploy.nix
+        ./flake/schemas.nix
       ];
 
       _module.args.myLib = myLib;
