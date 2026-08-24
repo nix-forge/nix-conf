@@ -93,6 +93,51 @@ in
         assert !desktop.services.openssh.openFirewall;
         assert !desktop.services.avahi.enable;
         assert desktop.programs.nh.enable;
+        assert desktop.boot.loader.systemd-boot.enable;
+        assert desktop.boot.loader.systemd-boot.editor == false;
+        assert desktop.boot.loader.systemd-boot.bootCounting.enable;
+        assert desktop.boot.loader.systemd-boot.configurationLimit == 12;
+        assert desktop.boot.initrd.systemd.enable;
+        assert desktop.boot.initrd.systemd.emergencyAccess == false;
+        assert desktop.boot.tmp.useTmpfs;
+        assert desktop.hardware.cpu.amd.updateMicrocode;
+        assert desktop.hardware.enableRedistributableFirmware;
+        assert desktop.hardware.firmwareCompression == "zstd";
+        assert desktop.services.fwupd.enable;
+        assert
+          desktop.services.fwupd.daemonSettings.EspLocation == desktop.boot.loader.efi.efiSysMountPoint;
+        assert desktop.services.fwupd.uefiCapsuleSettings.RebootCleanup;
+        assert desktop.services.fwupd.uefiCapsuleSettings.RequireESPFreeSpace == 128;
+        assert lib.elem "timers.target" desktop.systemd.timers.fwupd-refresh.wantedBy;
+        assert desktop.hardware.bluetooth.enable;
+        assert desktop.hardware.bluetooth.powerOnBoot;
+        assert desktop.hardware.bluetooth.disabledPlugins == [ "sap" ];
+        assert desktop.hardware.bluetooth.settings.General.ControllerMode == "dual";
+        assert desktop.hardware.bluetooth.settings.General.Privacy == "device";
+        assert desktop.hardware.bluetooth.settings.General.PairableTimeout == 60;
+        assert desktop.hardware.bluetooth.settings.General.JustWorksRepairing == "confirm";
+        assert desktop.hardware.bluetooth.settings.General.SecureConnections == "on";
+        assert desktop.hardware.bluetooth.settings.General.FastConnectable;
+        assert desktop.hardware.bluetooth.settings.Policy.ResumeDelay == 3;
+        assert desktop.hardware.bluetooth.input.General.ClassicBondedOnly;
+        assert desktop.hardware.bluetooth.input.General.LEAutoSecurity;
+        assert desktop.services.blueman.enable;
+        assert
+          desktop.services.pipewire.wireplumber.extraConfig."10-bluetooth-policy"."wireplumber.settings"."device.routes.mute-on-bluetooth-playback-removed";
+        assert desktop.security.tpm2.enable;
+        assert desktop.security.tpm2.applyUdevRules;
+        assert desktop.security.tpm2.abrmd.enable;
+        assert desktop.security.tpm2.tctiEnvironment.enable;
+        assert desktop.security.tpm2.tctiEnvironment.interface == "tabrmd";
+        assert desktop.security.tpm2.pkcs11.enable;
+        assert lib.elem "tss" desktop.users.users.ianmh.extraGroups;
+        assert desktop.console.earlySetup;
+        assert desktop.console.useXkbConfig;
+        assert desktop.services.getty.autologinUser == null;
+        assert lib.all (module: lib.elem module desktop.boot.initrd.kernelModules) [
+          "nvme"
+          "btrfs"
+        ];
         assert desktop.services.telegraf.enable;
         assert desktop.services.telegraf.extraConfig.outputs.prometheus_client.listen == "127.0.0.1:9273";
         assert desktop.security.wrappers.smartctl-telegraf.owner == "telegraf";
