@@ -25,6 +25,7 @@
     nix-settings
     registry
     xdg
+    steam-library
     nixSeal
     ./nix-seal.nix
 

@@ -24,10 +24,18 @@ in
       # on a future Home Manager upgrade.
       setSessionVariables = true;
       createDirectories = true;
-      extraConfig = {
-        DEVELOPER = "${homeDirectory}/Developer";
-        SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
-      };
+      extraConfig =
+        lib.optionalAttrs isDarwin {
+          # macOS tools and the Dock expose source work through Developer.
+          DEVELOPER = "${homeDirectory}/Developer";
+        }
+        // lib.optionalAttrs (!isDarwin) {
+          # xdg-user-dirs 0.20 standardizes this general project location.
+          PROJECTS = "${homeDirectory}/Projects";
+        }
+        // {
+          SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
+        };
       videos = lib.mkIf isDarwin (lib.mkDefault "${homeDirectory}/Movies");
       templates = lib.mkIf isDarwin (lib.mkDefault null);
     };

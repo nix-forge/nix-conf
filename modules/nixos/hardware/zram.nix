@@ -1,26 +1,37 @@
-{
-  # Enable in-memory compressed devices and swap space provided by the zram kernel module.
-  # By enabling this, we can store more data in memory before falling back to
-  # disk-based swap devices, improving I/O performance under memory pressure.
-  # and thus improve I/O performance when we have a lot of memory.
-  #
-  #   https://www.kernel.org/doc/Documentation/blockdev/zram.txt
+{ config, lib, ... }: {
+  # zram holds compressed swapped pages in RAM, avoiding slow storage I/O until
+  # memory pressure exceeds what compression can absorb.  These are reusable
+  # defaults: host-specific capacity and memory ceilings belong in local/.
   zramSwap = {
-    enable = true;
-    # one of "lzo", "lz4", "zstd"
-    algorithm = "zstd";
-    # Priority of the zram swap devices.
-    # It should be a number higher than the priority of your disk-based swap devices
-    # (so that the system will fill the zram swap devices before falling back to disk swap).
-    priority = 5;
-    # Maximum total amount of memory that can be stored in the zram swap devices (as a percentage of your total memory).
-    # Defaults to 1/2 of your total RAM. Run zramctl to check how good memory is compressed.
-    # This doesn’t define how much memory will be used by the zram swap devices.
-    memoryPercent = 50;
+    enable = lib.mkDefault true;
+    # zstd favours compression ratio, which is useful for general desktop
+    # workloads and is supported by current kernels.
+    algorithm = lib.mkDefault "zstd";
+    # Use one device: NixOS and zram-generator recommend this normal case.
+    swapDevices = lib.mkDefault 1;
+    # Prefer zram to any physical swap device, whose priority should remain
+    # lower.  This is an ordering preference, not a memory reservation.
+    priority = lib.mkDefault 5;
+    # Logical zram capacity.  It does not preallocate RAM; local hosts may set
+    # a resident-memory limit through services.zram-generator instead.
+    memoryPercent = lib.mkDefault 50;
   };
 
-  # Do not enable zswap here. zswap and zram both compress swapped pages in
-  # memory; stacking them causes redundant compression and is unsupported by
-  # NixOS. Hosts using this module therefore use zram as the sole compressed
-  # swap layer.
+  # Retain systemd-oomd as a last-resort, pressure-aware safety net.  Do not
+  # opt whole root, system, or user slices into eviction here: that policy is
+  # workload-specific and can otherwise kill an entire desktop session.
+  systemd.oomd.enable = lib.mkDefault true;
+
+  assertions = [
+    {
+      # Both layers compress swap in RAM.  NixOS treats their combination as
+      # unsupported, and it wastes CPU while making pressure behavior opaque.
+      assertion = !(config.zramSwap.enable && config.boot.zswap.enable);
+      message = "zramSwap and boot.zswap must not be enabled together; choose one compressed-swap layer.";
+    }
+  ];
+
+  # Do not set zram writebackDevice generically.  It needs a dedicated,
+  # deliberately provisioned backing block device and a wear/latency policy;
+  # reusing an existing swap partition for writeback is unsafe.
 }

@@ -29,6 +29,15 @@
     cache
     registry
     chromium-policies
+    security-apparmor
+    security-clamav
+    security-keyring
+    security-pam
+    security-pki
+    security-polkit
+    security-sudo
+    security-usbguard
+    security-virtualization
 
     ## Boot and hardware
     boot-generic
@@ -36,6 +45,7 @@
     boot-systemd
     hardware-bluetooth
     hardware-firmware
+    hardware-networking
     hardware-sound
     hardware-ssd
     hardware-storage
