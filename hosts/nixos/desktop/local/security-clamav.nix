@@ -1,6 +1,17 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
-  homeDirectory = config.users.users.ianmh.home;
+  normalUsers = lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users;
+  normalUserHomes = lib.mapAttrsToList (_: user: user.home) normalUsers;
+  onAccessDirectories = lib.concatMap (home: [
+    "${home}/Downloads"
+    "${home}/Desktop"
+  ]) normalUserHomes;
+  weeklyScanDirectories = normalUserHomes ++ [
+    "/etc"
+    "/tmp"
+    "/var/lib"
+    "/var/tmp"
+  ];
 in
 {
   security.clamav.enable = true;
@@ -29,11 +40,11 @@ in
       MaxThreads = 4;
       MaxQueue = 8;
 
-      # Real-time prevention is deliberately restricted to the untrusted file
-      # ingress directory. It is recursive and scans write/move events as
-      # well as access events; expanding this to /home or / risks exhausting
-      # inotify watches, causing visible latency, or blocking vital files.
-      OnAccessIncludePath = [ "${homeDirectory}/Downloads" ];
+      # Real-time prevention covers each declared normal user's two ordinary
+      # ingress surfaces. It is recursive and scans write/move events as well
+      # as access events; monitoring full homes or / would exhaust inotify
+      # watches, cause visible latency, and risk blocking vital files.
+      OnAccessIncludePath = onAccessDirectories;
       OnAccessPrevention = true;
       OnAccessExtraScanning = true;
     };
@@ -41,17 +52,13 @@ in
     clamonacc.enable = true;
 
     scanner = {
-      # Scan persistent user content weekly during an idle period. Excluding
-      # Nix closures, container layers, caches, and the large games subvolume
-      # prevents redundant I/O and avoids disrupting the desktop; Downloads
-      # receives both this scan and on-access prevention.
+      # Scan every declared normal user's complete home weekly, which includes
+      # every XDG user directory and any user-managed project, application, or
+      # executable data. Include the mutable system locations from NixOS's
+      # ClamAV baseline; exclude immutable Nix closures and pseudo-filesystems.
+      # Downloads and Desktop additionally receive on-access prevention.
       interval = "Sun *-*-* 03:30:00";
-      scanDirectories = [
-        "${homeDirectory}/Downloads"
-        "${homeDirectory}/Desktop"
-        "${homeDirectory}/Documents"
-        "${homeDirectory}/Projects"
-      ];
+      scanDirectories = weeklyScanDirectories;
     };
   };
 

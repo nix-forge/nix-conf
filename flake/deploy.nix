@@ -4,9 +4,21 @@ let
   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
   desktop = self.nixosConfigurations.desktop.config;
   desktopHome = desktop.home-manager.users.ianmh;
-  desktopUserHome = desktop.users.users.ianmh.home;
+  desktopNormalUserHomes = lib.mapAttrsToList (_: user: user.home) (
+    lib.filterAttrs (_: user: user.isNormalUser or false) desktop.users.users
+  );
+  clamavOnAccessDirectories = lib.concatMap (home: [
+    "${home}/Downloads"
+    "${home}/Desktop"
+  ]) desktopNormalUserHomes;
+  clamavWeeklyScanDirectories = desktopNormalUserHomes ++ [
+    "/etc"
+    "/tmp"
+    "/var/lib"
+    "/var/tmp"
+  ];
   macbookHome = self.homeConfigurations."ianmh@macbook-pro-m4".config;
-  gamesMountPoint = "${desktopUserHome}/games";
+  gamesMountPoint = "/mnt/games";
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
   hasSystemPackage =
@@ -64,6 +76,12 @@ in
         assert desktopHome.home.pointerCursor.size == 24;
         assert desktopHome.home.pointerCursor.gtk.enable;
         assert desktopHome.home.pointerCursor.x11.enable;
+        assert
+          desktopHome.xdg.userDirs.extraConfig.PROJECTS == "${desktopHome.home.homeDirectory}/Projects";
+        assert !(desktopHome.xdg.userDirs.extraConfig ? DEVELOPER);
+        assert
+          macbookHome.xdg.userDirs.extraConfig.DEVELOPER == "${macbookHome.home.homeDirectory}/Developer";
+        assert !(macbookHome.xdg.userDirs.extraConfig ? PROJECTS);
         assert
           (builtins.head desktopHome.wayland.windowManager.hyprland.settings.monitor).output == "SUNSHINE";
         assert
@@ -244,16 +262,9 @@ in
         assert desktop.services.clamav.daemon.settings.MaxQueue == 8;
         assert desktop.services.clamav.daemon.settings.OnAccessPrevention;
         assert desktop.services.clamav.daemon.settings.OnAccessExtraScanning;
-        assert
-          desktop.services.clamav.daemon.settings.OnAccessIncludePath == [ "${desktopUserHome}/Downloads" ];
+        assert desktop.services.clamav.daemon.settings.OnAccessIncludePath == clamavOnAccessDirectories;
         assert desktop.services.clamav.scanner.interval == "Sun *-*-* 03:30:00";
-        assert
-          desktop.services.clamav.scanner.scanDirectories == [
-            "${desktopUserHome}/Downloads"
-            "${desktopUserHome}/Desktop"
-            "${desktopUserHome}/Documents"
-            "${desktopUserHome}/Projects"
-          ];
+        assert desktop.services.clamav.scanner.scanDirectories == clamavWeeklyScanDirectories;
         assert desktop.systemd.timers.clamav-freshclam.timerConfig.Persistent;
         assert desktop.systemd.timers.clamav-freshclam.timerConfig.RandomizedDelaySec == "30m";
         assert desktop.systemd.timers.clamdscan.timerConfig.Persistent;

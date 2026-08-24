@@ -4,12 +4,10 @@ let
   swapLabel = "swap";
   bootLabel = "boot";
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
-  # File-system attribute names are evaluated while the NixOS user set is
-  # still being resolved, so this mount-point key cannot safely depend on
-  # `config.users.users.ianmh.home` without creating a module-evaluation
-  # cycle. Service and Home Manager paths derive from their declarative home
-  # options instead.
-  gamesMountPoint = "/home/ianmh/games";
+  # The shared Steam library is system storage, not a user's home data. Keep
+  # it at a neutral mount point so any user or launcher can opt into it without
+  # hard-coding a particular account's home directory.
+  gamesMountPoint = "/mnt/games";
 
   mkFS = label: fsType: { inherit label fsType; };
   btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
@@ -39,10 +37,8 @@ in
     "/home" = mkBTRFS rootLabel "@home" defaultBTRFSOptions;
 
     # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
-    # The Btrfs default subvolume contains a `games` subvolume.  Mount that
-    # subvolume directly so Steam's persisted library path
-    # (/home/ianmh/games/SteamLibrary) resolves to the shared library on both
-    # operating systems.
+    # The Btrfs default subvolume contains a `games` subvolume. Mount it at a
+    # neutral system location so Steam libraries can be selected by any user.
     # The non-critical game disk must not block the desktop from booting if it
     # is absent or unhealthy.
     ${gamesMountPoint} = {
