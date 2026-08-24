@@ -14,9 +14,6 @@ in
       User = "ianmh";
       IdentitiesOnly = true;
       IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      # Ghostty's automatic terminfo installer emits POSIX shell syntax, which
-      # the desktop's Nushell login shell cannot parse for remote commands.
-      SetEnv.TERM = "xterm-256color";
     };
 
     "github.coecis.cornell.edu gitlab.cs.cornell.edu" = {

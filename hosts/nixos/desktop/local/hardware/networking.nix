@@ -29,6 +29,12 @@ in
         Network.EnableIPv6 = true;
         Scan.DisablePeriodicScan = false;
         Settings.AutoConnect = true;
+        DriverQuirks = {
+          # This stationary, mains-powered desktop uses MediaTek's mt7921e
+          # driver.  Its current 2.4 GHz association has high transmit retry
+          # counts; avoid Wi-Fi power-save latency/throughput penalties.
+          PowerSaveDisable = "mt7921e";
+        };
       };
     };
   };

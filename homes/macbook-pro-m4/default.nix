@@ -108,6 +108,13 @@ in
     mpv
     libreoffice
     { programs.libreoffice.enable = true; }
+    vorssaint
+    {
+      programs.vorssaint = {
+        enable = true;
+        startAtLogin = true;
+      };
+    }
     linearmouse
     {
       programs.linearmouse = {
