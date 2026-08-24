@@ -1,3 +1,7 @@
+{ config, ... }:
+let
+  homeDirectory = config.users.users.ianmh.home;
+in
 {
   security.clamav.enable = true;
 
@@ -29,7 +33,7 @@
       # ingress directory. It is recursive and scans write/move events as
       # well as access events; expanding this to /home or / risks exhausting
       # inotify watches, causing visible latency, or blocking vital files.
-      OnAccessIncludePath = [ "/home/ianmh/Downloads" ];
+      OnAccessIncludePath = [ "${homeDirectory}/Downloads" ];
       OnAccessPrevention = true;
       OnAccessExtraScanning = true;
     };
@@ -43,10 +47,10 @@
       # receives both this scan and on-access prevention.
       interval = "Sun *-*-* 03:30:00";
       scanDirectories = [
-        "/home/ianmh/Downloads"
-        "/home/ianmh/Desktop"
-        "/home/ianmh/Documents"
-        "/home/ianmh/Projects"
+        "${homeDirectory}/Downloads"
+        "${homeDirectory}/Desktop"
+        "${homeDirectory}/Documents"
+        "${homeDirectory}/Projects"
       ];
     };
   };

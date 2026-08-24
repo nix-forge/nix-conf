@@ -4,8 +4,9 @@ let
   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
   desktop = self.nixosConfigurations.desktop.config;
   desktopHome = desktop.home-manager.users.ianmh;
+  desktopUserHome = desktop.users.users.ianmh.home;
   macbookHome = self.homeConfigurations."ianmh@macbook-pro-m4".config;
-  gamesMountPoint = "/home/ianmh/games";
+  gamesMountPoint = "${desktopUserHome}/games";
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
   hasSystemPackage =
@@ -243,14 +244,15 @@ in
         assert desktop.services.clamav.daemon.settings.MaxQueue == 8;
         assert desktop.services.clamav.daemon.settings.OnAccessPrevention;
         assert desktop.services.clamav.daemon.settings.OnAccessExtraScanning;
-        assert desktop.services.clamav.daemon.settings.OnAccessIncludePath == [ "/home/ianmh/Downloads" ];
+        assert
+          desktop.services.clamav.daemon.settings.OnAccessIncludePath == [ "${desktopUserHome}/Downloads" ];
         assert desktop.services.clamav.scanner.interval == "Sun *-*-* 03:30:00";
         assert
           desktop.services.clamav.scanner.scanDirectories == [
-            "/home/ianmh/Downloads"
-            "/home/ianmh/Desktop"
-            "/home/ianmh/Documents"
-            "/home/ianmh/Projects"
+            "${desktopUserHome}/Downloads"
+            "${desktopUserHome}/Desktop"
+            "${desktopUserHome}/Documents"
+            "${desktopUserHome}/Projects"
           ];
         assert desktop.systemd.timers.clamav-freshclam.timerConfig.Persistent;
         assert desktop.systemd.timers.clamav-freshclam.timerConfig.RandomizedDelaySec == "30m";
