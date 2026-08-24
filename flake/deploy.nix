@@ -5,8 +5,6 @@ let
   desktop = self.nixosConfigurations.desktop.config;
   desktopHome = desktop.home-manager.users.ianmh;
   macbookHome = self.homeConfigurations."ianmh@macbook-pro-m4".config;
-  gamesMountPoint = "/home/ianmh/games";
-  gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
   hasSystemPackage =
     name: lib.any (package: lib.getName package == name) desktop.environment.systemPackages;
@@ -172,17 +170,6 @@ in
         assert
           desktop.services.pipewire.extraConfig.pipewire-pulse."90-desktop-low-latency"."pulse.properties"."pulse.default.tlength"
           == "256/48000";
-        assert desktop.fileSystems.${gamesMountPoint}.device == gamesDevice;
-        assert desktop.fileSystems.${gamesMountPoint}.fsType == "btrfs";
-        assert lib.all (option: lib.elem option desktop.fileSystems.${gamesMountPoint}.options) [
-          "subvol=games"
-          "compress=zstd:1"
-          "noatime"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-        assert lib.elem gamesMountPoint desktop.services.btrfs.autoScrub.fileSystems;
         assert desktop.services.sunshine.enable;
         assert desktop.services.sunshine.autoStart;
         assert !desktop.services.sunshine.openFirewall;

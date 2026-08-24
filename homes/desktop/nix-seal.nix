@@ -1,5 +1,6 @@
-{ lib, ... }:
+{ config, lib, ... }:
 let
+  homeDirectory = config.home.homeDirectory;
   runtime = {
     owner = "ianmh";
     group = "ianmh";
@@ -10,8 +11,8 @@ in
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
-    identityFile = "/home/ianmh/.ssh/id_ed25519";
-    artifactCacheRoot = "/home/ianmh/.cache/nix-seal/v1";
+    identityFile = "${homeDirectory}/.ssh/id_ed25519";
+    artifactCacheRoot = "${homeDirectory}/.cache/nix-seal/v1";
     repositoryRoot = ../../.;
     identities = {
       target = {

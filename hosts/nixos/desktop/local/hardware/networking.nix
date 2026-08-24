@@ -7,9 +7,7 @@ in
     useDHCP = false;
     useNetworkd = true;
     networkmanager.enable = false;
-    nftables.enable = true;
     firewall = {
-      enable = true;
       # Keep the global SSH firewall integration disabled so it cannot add a
       # public port-22 rule ahead of these source-address restrictions.
       extraInputRules = ''
@@ -24,6 +22,10 @@ in
         General = {
           Country = "US";
           EnableNetworkConfiguration = false;
+          # Keep the adapter MAC stable on this trusted LAN. The desktop's
+          # SSH and Sunshine clients intentionally use its DHCP identity; a
+          # per-network randomized MAC would require matching router changes.
+          AddressRandomization = "disabled";
         };
         IPv6.Enabled = true;
         Network.EnableIPv6 = true;
@@ -31,19 +33,41 @@ in
         Settings.AutoConnect = true;
         DriverQuirks = {
           # This stationary, mains-powered desktop uses MediaTek's mt7921e
-          # driver.  Its current 2.4 GHz association has high transmit retry
-          # counts; avoid Wi-Fi power-save latency/throughput penalties.
+          # driver. Keep power save disabled to avoid added Wi-Fi latency and
+          # throughput variation; RF retry rates are an AP/radio concern, not
+          # something to mask with unsafe driver parameters.
           PowerSaveDisable = "mt7921e";
         };
       };
     };
   };
 
-  services.resolved.enable = true;
-  # systemd-resolved resolves .local names without making this host an mDNS
-  # responder. Disable Avahi's listener and its UDP/5353 firewall exception.
+  services.resolved = {
+    enable = true;
+    settings.Resolve = {
+      # Validate when the supplied resolver supports DNSSEC, without making
+      # this home network unavailable when its router cannot validate it.
+      DNSSEC = "allow-downgrade";
+      # Resolve .local names without advertising this host. Avahi remains off,
+      # so there is no mDNS listener or UDP/5353 firewall exception.
+      LLMNR = "false";
+      MulticastDNS = "resolve";
+    };
+  };
   services.avahi.enable = lib.mkForce false;
   services.openssh.openFirewall = lib.mkForce false;
+
+  # This is a multi-homed client, not a router. Router Advertisements remain
+  # enabled for IPv6 connectivity, but ICMP redirects are unnecessary and can
+  # change routing policy on an untrusted or compromised LAN.
+  boot.kernel.sysctl = {
+    "net.ipv4.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.default.accept_redirects" = 0;
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.default.send_redirects" = 0;
+    "net.ipv6.conf.all.accept_redirects" = 0;
+    "net.ipv6.conf.default.accept_redirects" = 0;
+  };
 
   systemd.network = {
     enable = true;
@@ -71,11 +95,24 @@ in
           # the interface identifier private without using that path.
           IPv6PrivacyExtensions = false;
         };
-        dhcpV4Config.RouteMetric = 100;
+        dhcpV4Config = {
+          RouteMetric = 100;
+          # Keep DHCP limited to addressing, routing, and DNS. Chrony owns
+          # time sync; neither link may rename the host, install a global
+          # search suffix, nor opt into a network-designated DNS resolver.
+          SendHostname = false;
+          UseHostname = false;
+          UseNTP = false;
+          UseDomains = "route";
+          UseDNR = false;
+        };
         ipv6AcceptRAConfig = {
           DHCPv6Client = false;
           RouteMetric = 100;
           Token = "prefixstable";
+          UseDomains = "route";
+          UseDNR = false;
+          UseRedirect = false;
         };
       };
 
@@ -90,11 +127,21 @@ in
           IPv6AcceptRA = true;
           IPv6PrivacyExtensions = false;
         };
-        dhcpV4Config.RouteMetric = 600;
+        dhcpV4Config = {
+          RouteMetric = 600;
+          SendHostname = false;
+          UseHostname = false;
+          UseNTP = false;
+          UseDomains = "route";
+          UseDNR = false;
+        };
         ipv6AcceptRAConfig = {
           DHCPv6Client = false;
           RouteMetric = 600;
           Token = "prefixstable";
+          UseDomains = "route";
+          UseDNR = false;
+          UseRedirect = false;
         };
       };
     };

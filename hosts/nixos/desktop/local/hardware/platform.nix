@@ -27,15 +27,15 @@
   # upstream kernel as this host's ordinary kernel for a controlled comparison.
   # This is not a boot specialisation.
   boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
-  # Keep this host's kernel command line narrowly tailored to its Zen 4
-  # platform. In particular, do not globally disable USB autosuspend or run
-  # zswap on top of the configured zram swap device.
-  boot.kernelParams = lib.mkForce [
-    "amd_pstate=active"
-    "root=fstab"
-    "loglevel=3"
-    "lsm=landlock,yama,bpf"
-  ];
+  # Keep this host's additions narrowly tailored to its Zen 4 platform. Do
+  # not force-replace the whole command line: NixOS derives the LSM sequence
+  # and AppArmor's activation parameter from enabled security modules. In
+  # particular, do not globally disable USB autosuspend or run zswap on top
+  # of the configured zram swap device.
+  boot.kernelParams = [ "amd_pstate=active" ];
+  # Use NixOS's console-level option rather than a duplicate kernel argument,
+  # so both the early kernel command line and runtime printk setting agree.
+  boot.consoleLogLevel = 3;
   boot.kernelModules = [
     "kvm-amd"
     "k10temp"
@@ -55,6 +55,18 @@
   # it must not depend on a shared firmware-policy default.
   hardware.cpu.amd.updateMicrocode = true;
   hardware.wirelessRegulatoryDatabase = true;
+
+  # This 30 GiB workstation benefits from zram before its 8 GiB NVMe swap
+  # fallback.  The 50% logical device permits compression gains, while the
+  # 25%-of-RAM resident cap preserves headroom for an interactive desktop and
+  # lets the lower-priority physical swap absorb excess cold pages.
+  zramSwap = {
+    algorithm = "zstd";
+    memoryPercent = 50;
+    priority = 5;
+    swapDevices = 1;
+  };
+  services.zram-generator.settings.zram0.zram-resident-limit = "ram / 4";
 
   # This mains-powered MediaTek controller advertises Fast Connectable support.
   # Favor faster reconnection of the desktop's established audio peripherals;

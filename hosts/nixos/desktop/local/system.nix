@@ -9,7 +9,57 @@
   # it must never be raised to match the current nixpkgs release.
   system.stateVersion = "23.11";
 
-  time.timeZone = "America/Los_Angeles";
+  # Region and language are properties of this workstation. Keep the RTC in
+  # UTC: it is robust across daylight-saving transitions and avoids making the
+  # firmware clock depend on the configured display timezone. If this machine
+  # continues to boot native Windows, configure that installation for UTC too.
+  time = {
+    timeZone = "America/Los_Angeles";
+    hardwareClockInLocalTime = false;
+  };
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  # This desktop uses the established GNOME Keyring Secret Service and GCR SSH
+  # agent. Keep OpenSSH's legacy agent off so applications have one predictable
+  # SSH_AUTH_SOCK; a future oo7 migration must first back up and test the
+  # existing login keyring because its migration is one-way.
+  security.desktopKeyring.enable = true;
+  programs.ssh.startAgent = false;
+
+  # This password-based greetd stack includes PAM's `login` service. Reject
+  # null-password accounts despite the permissive shadow-program default,
+  # retain a short failure delay against rapid local guessing, and show the
+  # most recent successful login for basic user-visible auditing. `su` is
+  # intentionally limited to wheel administrators; remote SSH passwords are
+  # already disabled in the SSH policy. Do not enable pam_gnupg: this account
+  # has no managed private-key/keygrip preset configuration to unlock.
+  security.pam.services = {
+    login = {
+      allowNullPassword = lib.mkForce false;
+      failDelay = {
+        enable = true;
+        delay = 3000000;
+      };
+      lastlog = {
+        enable = true;
+        silent = false;
+      };
+      gnupg.enable = false;
+    };
+    su.requireWheel = true;
+  };
+
+  # NTS authenticates time received over NTP. Use two independent public
+  # providers instead of an NTP pool: NTS cannot safely be assumed for a pool
+  # member, and Cloudflare's anycast endpoint keeps latency low on this US
+  # desktop while Netnod supplies an independent trust domain.
+  services.chrony = {
+    enableNTS = true;
+    servers = [
+      "time.cloudflare.com"
+      "nts.netnod.se"
+    ];
+  };
 
   # Firmware mode and NVRAM ownership are properties of this physical host.
   # Shared boot modules only add policy after a host selects its loader.
@@ -79,13 +129,6 @@
       X11Forwarding = false;
       UseDns = false;
       StreamLocalBindUnlink = true;
-    };
-    resolved.settings.Resolve = {
-      # The desktop does not need to advertise itself through these legacy
-      # discovery protocols. Keep .local resolution available without acting
-      # as a responder, while removing LLMNR entirely.
-      LLMNR = "false";
-      MulticastDNS = "resolve";
     };
   };
 
