@@ -3,6 +3,10 @@ let
   fuzzel = lib.getExe pkgs.fuzzel;
 in
 {
+  # This host deliberately supplies a complete launcher palette and font.
+  # Disable Stylix's fuzzel target so it cannot redefine those same settings.
+  stylix.targets.fuzzel.enable = false;
+
   # Fuzzel is a small, wlroots-native application launcher. It performs
   # desktop-entry search without an auxiliary daemon, which makes it the most
   # reliable low-overhead launcher for this headless Hyprland desktop.

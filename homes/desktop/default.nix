@@ -25,32 +25,56 @@
     nix-settings
     registry
     xdg
-    steam-library
     nixSeal
     ./nix-seal.nix
 
-    ## Shells
+    fonts
+    dev
+    xdg
+    cli
+
     shells-aliases
     shells-starship
     shells-carapace
     shells-eza
     shells-tmux
 
-    ## Development
-    dev-direnv
-
-    ## Programs
-    # The desktop host boots straight into Hyprland for headless Sunshine.
     wm-hyprland
     server-ssh
-    mpv
     spotify
-    libreoffice
-    { programs.libreoffice.enable = true; }
-    helium-browser
+
     zen-browser
     zen-browser-scrolling-natural
     zen-browser-defaultbrowser
+    helium-browser
+    chrome
 
+    vscode
+    vscode-languages
+    vscode-ai
+    vscode-defaultvisual
+    neovim
+    neovim-defaulteditor
+
+    shells
+    shells-tmux
+    shells-nushell-defaultshell
+    terminals-ghostty
+    terminals-ghostty-defaultterminal
+    mpv
+    libreoffice
+    { programs.libreoffice.enable = true; }
+
+    stylix
+    stylix-targets-zen-browser
+
+    discord
+    signal
+    zoom
+    spotify
+    bitwarden
+    darktable
+
+    steam-library
   ];
 }

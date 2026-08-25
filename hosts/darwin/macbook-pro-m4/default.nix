@@ -1,26 +1,4 @@
-{ modules, inputs, ... }:
-let
-  actualServerCaseFixOverlay = _final: prev: {
-    actual-server = prev.actual-server.overrideAttrs (old: {
-      postPatch = (old.postPatch or "") + ''
-        ln -s themes~nix~case~hack~1 packages/component-library/src/themes
-        mkdir -p packages/desktop-client/src/style/themes
-        cp \
-          packages/component-library/src/themes~nix~case~hack~1/dark.css \
-          packages/component-library/src/themes~nix~case~hack~1/light.css \
-          packages/component-library/src/themes~nix~case~hack~1/midnight.css \
-          packages/component-library/src/themes~nix~case~hack~1/palette.css \
-          packages/desktop-client/src/style/themes/
-        substituteInPlace packages/desktop-client/src/style/theme.tsx \
-          --replace-fail "@actual-app/components/themes/dark.css?inline" "./themes/dark.css?inline" \
-          --replace-fail "@actual-app/components/themes/light.css?inline" "./themes/light.css?inline" \
-          --replace-fail "@actual-app/components/themes/midnight.css?inline" "./themes/midnight.css?inline" \
-          --replace-fail "@actual-app/components/themes/palette.css?inline" "./themes/palette.css?inline"
-      '';
-    });
-  };
-in
-{
+{ modules, inputs, ... }: {
   system = "aarch64-darwin";
   hostName = "Ian-MBP";
 
@@ -29,10 +7,7 @@ in
   };
 
   nixpkgsArgs = {
-    overlays = [
-      inputs.nixpkgs-personal.overlays.default
-      actualServerCaseFixOverlay
-    ];
+    overlays = [ inputs.nixpkgs-personal.overlays.default ];
     config = {
       allowUnfree = true;
     };
