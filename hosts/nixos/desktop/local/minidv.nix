@@ -1,70 +1,114 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 let
-  commonInputs = with pkgs; [
-    acl
-    bash
-    coreutils
-    dvgrab
-    ffmpeg
-    findutils
-    gawk
-    gnugrep
-    jq
-    kmod
-    pciutils
-    systemd
-    util-linux
-  ];
+  # Every external command used by the shell sources below resolves through
+  # these functions.  The bodies contain absolute Nix-store executables, so
+  # the archival commands neither modify nor depend on the caller's PATH.
+  minidvRuntime = ''
+    basename() { ${lib.getExe' pkgs.coreutils "basename"} "$@"; }
+    cat() { ${lib.getExe' pkgs.coreutils "cat"} "$@"; }
+    cp() { ${lib.getExe' pkgs.coreutils "cp"} "$@"; }
+    date() { ${lib.getExe' pkgs.coreutils "date"} "$@"; }
+    df() { ${lib.getExe' pkgs.coreutils "df"} "$@"; }
+    dirname() { ${lib.getExe' pkgs.coreutils "dirname"} "$@"; }
+    id() { ${lib.getExe' pkgs.coreutils "id"} "$@"; }
+    hostname() { ${lib.getExe' pkgs.coreutils "hostname"} "$@"; }
+    ls() { ${lib.getExe' pkgs.coreutils "ls"} "$@"; }
+    mkdir() { ${lib.getExe' pkgs.coreutils "mkdir"} "$@"; }
+    mktemp() { ${lib.getExe' pkgs.coreutils "mktemp"} "$@"; }
+    mv() { ${lib.getExe' pkgs.coreutils "mv"} "$@"; }
+    realpath() { ${lib.getExe' pkgs.coreutils "realpath"} "$@"; }
+    rm() { ${lib.getExe' pkgs.coreutils "rm"} "$@"; }
+    sha256sum() { ${lib.getExe' pkgs.coreutils "sha256sum"} "$@"; }
+    sleep() { ${lib.getExe' pkgs.coreutils "sleep"} "$@"; }
+    tee() { ${lib.getExe' pkgs.coreutils "tee"} "$@"; }
+    tail() { ${lib.getExe' pkgs.coreutils "tail"} "$@"; }
+    tr() { ${lib.getExe' pkgs.coreutils "tr"} "$@"; }
+    uname() { ${lib.getExe' pkgs.coreutils "uname"} "$@"; }
+    wc() { ${lib.getExe' pkgs.coreutils "wc"} "$@"; }
+    awk() { ${lib.getExe pkgs.gawk} "$@"; }
+    grep() { ${lib.getExe pkgs.gnugrep} "$@"; }
+    find() { ${lib.getExe pkgs.findutils} "$@"; }
+    getfacl() { ${lib.getExe' pkgs.acl "getfacl"} "$@"; }
+    dvgrab() { ${lib.getExe pkgs.dvgrab} "$@"; }
+    ffmpeg() { ${lib.getExe pkgs.ffmpeg} "$@"; }
+    ffprobe() { ${lib.getExe' pkgs.ffmpeg "ffprobe"} "$@"; }
+    jq() { ${lib.getExe pkgs.jq} "$@"; }
+    flock() { ${lib.getExe' pkgs.util-linux "flock"} "$@"; }
+    lspci() { ${lib.getExe pkgs.pciutils} "$@"; }
+    lsmod() { ${lib.getExe' pkgs.kmod "lsmod"} "$@"; }
+    modinfo() { ${lib.getExe' pkgs.kmod "modinfo"} "$@"; }
+    pgrep() { ${lib.getExe' pkgs.procps "pgrep"} "$@"; }
+    journalctl() { ${lib.getExe' pkgs.systemd "journalctl"} "$@"; }
+    timedatectl() { ${lib.getExe' pkgs.systemd "timedatectl"} "$@"; }
+    udevadm() { ${lib.getExe' pkgs.systemd "udevadm"} "$@"; }
+  '';
 
-  minidvVerify = pkgs.writeShellApplication {
+  mkMiniDvApplication =
+    {
+      name,
+      script,
+      replacements ? { },
+    }:
+    (pkgs.replaceVarsWith {
+      inherit name;
+      src = script;
+      dir = "bin";
+      isExecutable = true;
+      replacements = {
+        bash = lib.getExe pkgs.bash;
+        inherit minidvRuntime;
+      }
+      // replacements;
+    }).overrideAttrs
+      (old: {
+        meta = (old.meta or { }) // {
+          mainProgram = name;
+        };
+      });
+
+  minidvVerify = mkMiniDvApplication {
     name = "minidv-verify";
-    runtimeInputs = commonInputs;
-    text = builtins.readFile ../minidv/minidv-verify.sh;
+    script = ../minidv/minidv-verify.sh;
   };
 
-  minidvCapture = pkgs.writeShellApplication {
+  minidvCapture = mkMiniDvApplication {
     name = "minidv-capture";
-    runtimeInputs = commonInputs ++ [ minidvVerify ];
-    text = builtins.readFile ../minidv/minidv-capture.sh;
+    script = ../minidv/minidv-capture.sh;
+    replacements.minidvVerify = lib.getExe minidvVerify;
   };
 
-  minidvClipManifest = pkgs.writeShellApplication {
+  minidvClipManifest = mkMiniDvApplication {
     name = "minidv-clip-manifest";
-    runtimeInputs = commonInputs;
-    text = builtins.readFile ../minidv/minidv-clip-manifest.sh;
+    script = ../minidv/minidv-clip-manifest.sh;
   };
 
-  minidvTranscode = pkgs.writeShellApplication {
+  minidvTranscode = mkMiniDvApplication {
     name = "minidv-transcode";
-    runtimeInputs = commonInputs ++ [
-      minidvVerify
-      minidvClipManifest
-    ];
-    text = builtins.readFile ../minidv/minidv-transcode.sh;
+    script = ../minidv/minidv-transcode.sh;
+    replacements = {
+      minidvVerify = lib.getExe minidvVerify;
+      minidvClipManifest = lib.getExe minidvClipManifest;
+    };
   };
 
-  minidvUpscale = pkgs.writeShellApplication {
+  minidvUpscale = mkMiniDvApplication {
     name = "minidv-upscale";
-    runtimeInputs = commonInputs ++ [
-      minidvVerify
-      minidvClipManifest
-    ];
-    text = builtins.readFile ../minidv/minidv-upscale.sh;
+    script = ../minidv/minidv-upscale.sh;
+    replacements = {
+      minidvVerify = lib.getExe minidvVerify;
+      minidvClipManifest = lib.getExe minidvClipManifest;
+    };
   };
 
-  minidvFinalize = pkgs.writeShellApplication {
+  minidvFinalize = mkMiniDvApplication {
     name = "minidv-finalize";
-    runtimeInputs = commonInputs ++ [
-      minidvVerify
-      pkgs.procps
-    ];
-    text = builtins.readFile ../minidv/minidv-finalize.sh;
+    script = ../minidv/minidv-finalize.sh;
+    replacements.minidvVerify = lib.getExe minidvVerify;
   };
 
-  minidvDiagnose = pkgs.writeShellApplication {
+  minidvDiagnose = mkMiniDvApplication {
     name = "minidv-diagnose";
-    runtimeInputs = commonInputs;
-    text = builtins.readFile ../minidv/minidv-diagnose.sh;
+    script = ../minidv/minidv-diagnose.sh;
   };
 
   minidvUdevRules = pkgs.writeTextFile {
@@ -82,9 +126,6 @@ in
   # bus/DMA driver before there is hardware for it, and do not enable legacy
   # ieee1394, raw1394, dv1394, or video1394 kernel modules.
   environment.systemPackages = [
-    pkgs.dvgrab
-    pkgs.ffmpeg
-    pkgs.pciutils
     # rsync must be installed on the source as well as the Mac destination;
     # it is used for checksum-verifiable copies of the archival master.
     pkgs.rsync

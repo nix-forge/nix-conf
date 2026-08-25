@@ -1,5 +1,8 @@
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 printf '%s\n' '== MiniDV / FireWire diagnostic report =='
 printf 'Generated: %s\n' "$(date --iso-8601=seconds)"

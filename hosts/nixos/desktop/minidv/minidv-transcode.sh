@@ -1,5 +1,8 @@
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 usage() {
   cat <<'USAGE'
@@ -32,9 +35,7 @@ master_directory="$tape_directory/master"
 logs_directory="$tape_directory/logs"
 upscale_run=${3:-}
 
-command -v minidv-verify >/dev/null 2>&1 || fail "minidv-verify is not available."
-command -v minidv-clip-manifest >/dev/null 2>&1 || fail "minidv-clip-manifest is not available."
-minidv-verify "$tape_directory"
+@minidvVerify@ "$tape_directory"
 
 master_count=$(find "$master_directory" -maxdepth 1 -type f -name '*.dv' -printf . | wc -c)
 if [ "$master_count" -ne 1 ]; then
@@ -92,7 +93,7 @@ if [ -n "$upscale_run" ]; then
   derivative_directory="$tape_directory/derivatives/apple/upscaled-clips"
   source_mode=upscaled-prores
 else
-  manifest=$(MINIDV_TIME_ZONE="$time_zone" minidv-clip-manifest "$tape_directory")
+  manifest=$(MINIDV_TIME_ZONE="$time_zone" @minidvClipManifest@ "$tape_directory")
   [ -s "$manifest" ] || fail "clip manifest was not created successfully."
   derivative_directory="$tape_directory/derivatives/apple/clips"
   source_mode=raw-dv

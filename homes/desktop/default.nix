@@ -87,6 +87,5 @@
     bitwarden
     darktable
 
-    steam-library
   ];
 }
