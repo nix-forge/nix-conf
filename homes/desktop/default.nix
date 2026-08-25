@@ -31,7 +31,19 @@
     fonts
     dev
     xdg
-    cli
+
+    # Keep the workstation's command-line tools explicit. `cli-whisper`
+    # brings a machine-learning runtime and is intentionally opt-in rather
+    # than an implicit dependency of every desktop Home Manager generation.
+    cli-ffmpeg
+    cli-hf
+    cli-images
+    cli-jq
+    cli-nh
+    cli-pandoc
+    cli-pdf
+    cli-remindctl
+    cli-ripgrep
 
     shells-aliases
     shells-starship
