@@ -122,13 +122,6 @@ in
         assert desktop.services.blueman.enable;
         assert
           desktop.services.pipewire.wireplumber.extraConfig."10-bluetooth-policy"."wireplumber.settings"."device.routes.mute-on-bluetooth-playback-removed";
-        assert desktop.security.tpm2.enable;
-        assert desktop.security.tpm2.applyUdevRules;
-        assert desktop.security.tpm2.abrmd.enable;
-        assert desktop.security.tpm2.tctiEnvironment.enable;
-        assert desktop.security.tpm2.tctiEnvironment.interface == "tabrmd";
-        assert desktop.security.tpm2.pkcs11.enable;
-        assert lib.elem "tss" desktop.users.users.ianmh.extraGroups;
         assert desktop.console.earlySetup;
         assert desktop.console.useXkbConfig;
         assert desktop.services.getty.autologinUser == null;

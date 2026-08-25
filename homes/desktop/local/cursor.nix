@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 let
   cursorTheme = "Bibata-Modern-Ice";
   cursorSize = 24;
@@ -9,13 +9,13 @@ in
   # the packaged theme provides native XCursor assets at this exact size.
   # Use the already packaged Nixpkgs derivation rather than duplicating or
   # downloading a cursor theme imperatively.
-  home.pointerCursor = {
-    enable = true;
-    package = pkgs.bibata-cursors;
-    name = cursorTheme;
-    size = cursorSize;
-    gtk.enable = true;
-    x11.enable = true;
+  # Stylix owns Home Manager's pointerCursor settings when it is enabled. Set
+  # its cursor values here rather than defining the generated options a second
+  # time, keeping the complete desktop profile composable with Stylix.
+  stylix.cursor = {
+    package = lib.mkForce pkgs.bibata-cursors;
+    name = lib.mkForce cursorTheme;
+    size = lib.mkForce cursorSize;
   };
 
   # Bibata supplies XCursor assets, not a Hyprcursor theme. Keep the values in
