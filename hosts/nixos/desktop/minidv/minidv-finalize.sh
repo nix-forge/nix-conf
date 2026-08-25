@@ -1,6 +1,8 @@
-#!/usr/bin/env bash
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 usage() {
   cat <<'USAGE'
@@ -86,7 +88,7 @@ done
 printf 'capture_state=complete-pending-verification\ncompletion_method=manual-tape-end\nmanual_end_finalized_at=%s\nmaster=%s\n' \
   "$(date --iso-8601=seconds)" "$final_master" >>"$capture_metadata"
 
-if ! minidv-verify "$tape_directory"; then
+if ! @minidvVerify@ "$tape_directory"; then
   printf 'capture_state=verification-failed\nverified_at=%s\n' "$(date --iso-8601=seconds)" >>"$capture_metadata"
   fail "capture was preserved and finalized by name, but did not pass verification; do not treat it as archived."
 fi
