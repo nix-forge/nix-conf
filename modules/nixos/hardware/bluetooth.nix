@@ -1,4 +1,17 @@
-{ lib, ... }: {
+{ lib, pkgs, ... }:
+let
+  disableBluetoothPairing = pkgs.writeShellScript "disable-bluetooth-pairing" ''
+    set -euo pipefail
+    shopt -s nullglob
+
+    for adapter in /sys/class/bluetooth/hci*; do
+      name="''${adapter##*/}"
+      ${lib.getExe' pkgs.systemd "busctl"} set-property \
+        org.bluez "/org/bluez/$name" org.bluez.Adapter1 Pairable b false
+    done
+  '';
+in
+{
   hardware.bluetooth = {
     enable = lib.mkDefault true;
     powerOnBoot = lib.mkDefault true;
@@ -34,7 +47,6 @@
       # as a shared desktop default.
       Experimental = false;
       Testing = false;
-      KernelExperimental = false;
     };
 
     input.General = {
@@ -47,6 +59,32 @@
 
   # Blueman provides a regular-user pairing and device-management flow.
   services.blueman.enable = lib.mkDefault true;
+
+  # BlueZ defaults every powered adapter to Pairable=true.  AlwaysPairable
+  # only controls whether pairing is accepted without an agent, so enforce the
+  # stricter default after bluetoothd has registered every adapter.  This does
+  # not disable the radio or discovery, and a user can still deliberately turn
+  # pairing on through Blueman or bluetoothctl when adding a device.
+  systemd.services.bluetooth-disable-pairing = {
+    description = "Disable unsolicited Bluetooth pairing";
+    wantedBy = [ "bluetooth.target" ];
+    requires = [ "bluetooth.service" ];
+    after = [ "bluetooth.service" ];
+    partOf = [ "bluetooth.service" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = disableBluetoothPairing;
+      CapabilityBoundingSet = "";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectHome = true;
+      ProtectSystem = "strict";
+      ProtectKernelTunables = true;
+      ProtectControlGroups = true;
+      RestrictAddressFamilies = [ "AF_UNIX" ];
+    };
+  };
 
   # PipeWire/WirePlumber owns Bluetooth audio. Preserve its adaptive codec
   # selection and headset-profile handling, but prevent private audio from

@@ -75,4 +75,20 @@ in
       RandomizedDelaySec = "2h";
     };
   };
+
+  # This desktop deliberately does not block boot on Wi-Fi association.  A
+  # persisted FreshClam timer can therefore run before DNS is usable after a
+  # reboot.  Retry transient update failures instead of leaving the system in
+  # a degraded state until the next scheduled interval.
+  systemd.services.clamav-freshclam = {
+    unitConfig = {
+      StartLimitIntervalSec = "1h";
+      StartLimitBurst = 12;
+    };
+
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "5min";
+    };
+  };
 }

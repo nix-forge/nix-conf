@@ -1,5 +1,8 @@
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 usage() {
   cat <<'USAGE'
@@ -33,9 +36,6 @@ case "$archive_directory" in
 /*) ;;
 *) fail "ABSOLUTE_ARCHIVE_DIRECTORY must be an absolute path." ;;
 esac
-
-command -v dvgrab >/dev/null 2>&1 || fail "dvgrab is not available. Rebuild into the declarative desktop configuration first."
-command -v minidv-verify >/dev/null 2>&1 || fail "minidv-verify is not available. Rebuild into the declarative desktop configuration first."
 
 mkdir -p -- "$archive_directory"
 archive_directory=$(realpath -e -- "$archive_directory")
@@ -264,7 +264,7 @@ printf 'capture_state=complete-pending-verification\nended_at=%s\ndvgrab_exit_st
 # minidv-verify writes its own timestamped verification log. Keep capture.log
 # reserved for dvgrab output so a verifier message can never be mistaken for a
 # capture-time failure on a later verification.
-if ! minidv-verify "$tape_directory"; then
+if ! @minidvVerify@ "$tape_directory"; then
   printf 'capture_state=verification-failed\nverified_at=%s\n' "$(date --iso-8601=seconds)" >>"$capture_metadata"
   fail "capture was retained but did not pass verification; do not treat it as archived yet."
 fi

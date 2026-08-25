@@ -29,6 +29,17 @@ in
         so leave the app's built-in Launch at Login setting disabled.
       '';
     };
+
+    acknowledgeFanControlLimitation = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Confirm that this configuration intentionally runs without Vorssaint's
+        Fan Control feature. Setting this to true suppresses the corresponding
+        evaluation warning only; it does not install a privileged helper or
+        enable fan control.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -42,14 +53,12 @@ in
 
     home.packages = [ cfg.package ];
 
-    warnings = [
-      ''
-        programs.vorssaint: Fan Control is unavailable from the Nix package.
-        Vorssaint requires its Apple Developer-ID-signed privileged helper, and
-        this reproducibly ad-hoc-signed package cannot satisfy that XPC trust
-        requirement. The module does not install a substitute root daemon.
-      ''
-    ];
+    warnings = lib.optional (!cfg.acknowledgeFanControlLimitation) ''
+      programs.vorssaint: Fan Control is unavailable from the Nix package.
+      Vorssaint requires its Apple Developer-ID-signed privileged helper, and
+      this reproducibly ad-hoc-signed package cannot satisfy that XPC trust
+      requirement. The module does not install a substitute root daemon.
+    '';
 
     # LaunchServices and SMAppService require a stable, mutable application
     # location. A copied bundle also avoids running this GUI app from a

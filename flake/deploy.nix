@@ -69,9 +69,9 @@ in
         assert hasHomePackage "mpv-with-scripts";
         assert hasHomePackage "spotify";
         assert hasHomePackage "fuzzel";
-        assert hasSystemPackage "dvgrab";
-        assert hasSystemPackage "ffmpeg";
-        assert hasSystemPackage "pciutils";
+        # The MiniDV tools embed their exact runtime dependencies in their
+        # Nix-store wrappers, so those implementation packages deliberately do
+        # not need to be exposed in the global system profile.
         assert hasSystemPackage "ghostty";
         assert hasSystemPackage "minidv-capture";
         assert hasSystemPackage "minidv-diagnose";
@@ -229,7 +229,7 @@ in
         assert lib.elem "noswap" desktop.fileSystems."/run/nix-seal".options;
         assert lib.hasInfix "/bin/mount -- /run/nix-seal"
           desktop.system.activationScripts.nixSealRuntime.text;
-        assert desktop.systemd.services.nix-seal-runtime.serviceConfig.RequiresMountsFor == "/run/nix-seal";
+        assert desktop.systemd.services.nix-seal-runtime.unitConfig.RequiresMountsFor == "/run/nix-seal";
         assert lib.hasInfix "/run/nix-seal/users/ianmh" desktopHome.home.activation.nixSeal.data;
         assert !lib.hasInfix "XDG_RUNTIME_DIR is required" desktopHome.home.activation.nixSeal.data;
         assert heliumUblockSettings.userSettings.importedLists == sharedUblockFilters;

@@ -1,5 +1,8 @@
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 usage() {
   cat <<'USAGE'

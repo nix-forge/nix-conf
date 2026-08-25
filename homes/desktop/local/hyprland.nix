@@ -60,7 +60,7 @@
       export SDL_VIDEODRIVER=wayland,x11,windows
       export CLUTTER_BACKEND=wayland
       export QT_AUTO_SCREEN_SCALE_FACTOR=1
-      export QT_QPA_PLATFORM=wayland;xcb
+      export QT_QPA_PLATFORM="wayland;xcb"
       export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
       export ELECTRON_OZONE_PLATFORM_HINT=auto
       export _JAVA_AWT_WM_NONREPARENTING=1

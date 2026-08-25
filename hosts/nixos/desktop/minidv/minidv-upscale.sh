@@ -1,6 +1,8 @@
-#!/usr/bin/env bash
+#!@bash@
 # shellcheck shell=bash
 set -euo pipefail
+
+@minidvRuntime@
 
 usage() {
   cat <<'USAGE'
@@ -35,9 +37,7 @@ master_directory="$tape_directory/master"
 logs_directory="$tape_directory/logs"
 derivative_directory="$tape_directory/derivatives/upscaled/clips"
 
-command -v minidv-verify >/dev/null 2>&1 || fail "minidv-verify is not available."
-command -v minidv-clip-manifest >/dev/null 2>&1 || fail "minidv-clip-manifest is not available."
-minidv-verify "$tape_directory"
+@minidvVerify@ "$tape_directory"
 
 master_count=$(find "$master_directory" -maxdepth 1 -type f -name '*.dv' -printf . | wc -c)
 if [ "$master_count" -ne 1 ]; then
@@ -98,7 +98,7 @@ time_zone=${time_zone:-UTC}
 if ! TZ="$time_zone" date -d '2000-01-01 00:00' +%s >/dev/null 2>&1; then
   fail "desktop time zone '$time_zone' is not usable by date."
 fi
-manifest=$(MINIDV_TIME_ZONE="$time_zone" minidv-clip-manifest "$tape_directory")
+manifest=$(MINIDV_TIME_ZONE="$time_zone" @minidvClipManifest@ "$tape_directory")
 [ -s "$manifest" ] || fail "clip manifest was not created successfully."
 
 run_directory="$derivative_directory/$stamp"
