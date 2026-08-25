@@ -28,7 +28,19 @@ let
   mkBTRFS =
     label: subvol: extra:
     (mkFS label "btrfs") // (btrfsOptions subvol extra);
-  mkBoot = label: mkFS label "vfat";
+  mkBoot =
+    label:
+    (mkFS label "vfat")
+    // {
+      # The ESP is FAT and therefore has no per-file Unix ownership.  Mount it
+      # root-only while Linux is running so systemd-boot's random seed cannot
+      # be read by unprivileged local users.  UEFI firmware ignores these
+      # Linux-only masks when it reads boot files before the kernel starts.
+      options = [
+        "fmask=0077"
+        "dmask=0077"
+      ];
+    };
   bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
