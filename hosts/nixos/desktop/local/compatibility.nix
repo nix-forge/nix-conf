@@ -10,7 +10,6 @@
     displayManager.gdm.enable = lib.mkForce false;
   };
 
-  programs.dconf.enable = true;
   environment.gnome.excludePackages = [ ];
 
   systemd.sleep.settings.Sleep = {
