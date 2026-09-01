@@ -1,3 +1,4 @@
-# Review ownership for the single-maintainer repository. Add independent
-# reviewers here as the maintainer team grows.
-* @IanHollow
+# This repository has one maintainer and no required code-owner reviews.
+# Leave paths unassigned so automated dependency PRs do not request a review
+# that cannot add an independent approval. Add a maintainer team here when one
+# exists and require code-owner review in the branch rule at the same time.
