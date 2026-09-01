@@ -23,3 +23,53 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --auto --squash
+      - name: Enqueue the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pull_request_id="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq .node_id)"
+          queue_entry="$(
+            # shellcheck disable=SC2016
+            gh api graphql \
+              -f query='query($id: ID!) { node(id: $id) { ... on PullRequest { mergeQueueEntry { id } } } }' \
+              -f id="$pull_request_id" \
+              --jq '.data.node.mergeQueueEntry.id'
+          )"
+
+          attempt=0
+          while [ "$attempt" -lt 90 ]; do
+            if [ "$queue_entry" != "null" ] && [ -n "$queue_entry" ]; then
+              exit 0
+            fi
+
+            failed_checks="$(
+              gh pr checks "$PR_NUMBER" --repo "$REPOSITORY" --json state \
+                --jq '[.[] | select(.state == "FAILURE" or .state == "CANCELLED" or .state == "TIMED_OUT" or .state == "ACTION_REQUIRED")] | length'
+            )"
+            if [ "$failed_checks" -gt 0 ]; then
+              echo "required checks failed; leaving this pull request out of the merge queue"
+              exit 0
+            fi
+
+            # shellcheck disable=SC2016
+            if gh api graphql \
+              -f query='mutation($pullRequestId: ID!) { enqueuePullRequest(input: { pullRequestId: $pullRequestId }) { mergeQueueEntry { id } } }' \
+              -f pullRequestId="$pull_request_id" >/dev/null 2>&1; then
+              exit 0
+            fi
+
+            attempt=$((attempt + 1))
+            sleep 30
+            queue_entry="$(
+              # shellcheck disable=SC2016
+              gh api graphql \
+                -f query='query($id: ID!) { node(id: $id) { ... on PullRequest { mergeQueueEntry { id } } } }' \
+                -f id="$pull_request_id" \
+                --jq '.data.node.mergeQueueEntry.id'
+            )"
+          done
+
+          echo "required checks did not become queueable within 45 minutes" >&2
+          exit 1
