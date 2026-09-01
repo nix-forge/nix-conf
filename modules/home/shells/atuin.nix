@@ -1,8 +1,10 @@
 { lib, pkgs, ... }:
 let
-  # Nushell 0.115 validates binding names. Atuin's generated integration uses
-  # the name `atuin` for both Ctrl-R and Up Arrow, which produces a startup
-  # warning even though the shortcuts themselves are distinct.
+  # Atuin fixed the duplicate Nushell keybinding names in 18.20.1. Retain a
+  # compatibility shim only for older packages, then automatically return to
+  # Home Manager's upstream integration when the packaged fix is available.
+  needsNushellIntegrationShim = lib.versionOlder pkgs.atuin.version "18.20.1";
+
   atuinNushellConfig =
     pkgs.runCommand "atuin-nushell-config.nu" { nativeBuildInputs = [ pkgs.gawk ]; }
       ''
@@ -31,7 +33,7 @@ in
   programs.atuin = {
     enable = true;
     daemon.enable = true;
-    enableNushellIntegration = false;
+    enableNushellIntegration = !needsNushellIntegrationShim;
 
     settings = {
       auto_sync = true;
@@ -44,7 +46,7 @@ in
     };
   };
 
-  programs.nushell.extraConfig = ''
+  programs.nushell.extraConfig = lib.optionalString needsNushellIntegrationShim ''
     source ${atuinNushellConfig}
   '';
 }
