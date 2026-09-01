@@ -33,9 +33,9 @@ let
       else
         ''
           if ${lib.getExe' pkgs.systemd "systemctl"} --user is-active --quiet docker.service; then
-            container_ids="$(${lib.getExe pkgs.docker} container ls --quiet)"
-            if [ -n "$container_ids" ]; then
-              ${lib.getExe pkgs.docker} container stop $container_ids
+            mapfile -t container_ids < <(${lib.getExe pkgs.docker} container ls --quiet)
+            if [ "''${#container_ids[@]}" -gt 0 ]; then
+              ${lib.getExe pkgs.docker} container stop "''${container_ids[@]}"
             fi
             ${lib.getExe' pkgs.systemd "systemctl"} --user stop docker.service
           else
