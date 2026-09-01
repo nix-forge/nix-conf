@@ -37,7 +37,7 @@
             pkgs.systemd
           ];
           text = ''
-            if systemd-bless-boot good; then
+            if ${pkgs.systemd}/lib/systemd/systemd-bless-boot good; then
               exit 0
             else
               status="$?"
