@@ -25,7 +25,7 @@ The changes worth considering are additive and deliberate:
 The deployed system confirms that the visual problem is mostly configuration,
 not a missing desktop shell.
 
-* [The host Hyprland profile](../../homes/desktop/local/hyprland.nix) sets
+* [The host Hyprland profile](../homes/desktop/local/hyprland.nix) sets
   `gaps_in = 0`, `gaps_out = 0`, and `decoration.rounding = 0`. It therefore
   removes the spatial separation, rounded geometry, shadows, and motion that
   make a window manager feel like a modern desktop.
