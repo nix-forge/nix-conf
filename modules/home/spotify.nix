@@ -83,15 +83,24 @@ let
   # value during evaluation avoids trying to build a Linux derivation merely
   # to read CSS on the macOS deployment workstation.
   carbonNeonCss =
-    builtins.replaceStrings
-      [ "@stylixSansSerif@" "@paletteWarning@" "@paletteAccentHover@" "@paletteAccentPressed@" ]
-      [
+    let
+      template = builtins.readFile ../../assets/spotify/carbon-neon.css;
+      templateTokens = [
+        "NIX_STYLIX_SANS_SERIF"
+        "NIX_PALETTE_WARNING"
+        "NIX_PALETTE_ACCENT_HOVER"
+        "NIX_PALETTE_ACCENT_PRESSED"
+      ];
+      rendered = builtins.replaceStrings templateTokens [
         (builtins.toJSON config.stylix.fonts.sansSerif.name)
         "#${palette.warning}"
         "#${palette.accentHover}"
         "#${palette.accentPressed}"
-      ]
-      (builtins.readFile ../../assets/spotify/carbon-neon.css);
+      ] template;
+    in
+    assert lib.all (token: lib.hasInfix token template) templateTokens;
+    assert lib.all (token: !(lib.hasInfix token rendered)) templateTokens;
+    rendered;
   carbonNeonTheme = spicePkgs.themes.default // {
     name = "CarbonNeon";
     additionalCss = carbonNeonCss;
