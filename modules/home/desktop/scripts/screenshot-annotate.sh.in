@@ -1,0 +1,10 @@
+#!@bash@
+set -euo pipefail
+
+umask 077
+output_directory='@outputDirectory@'
+@mkdir@ -p -- "$output_directory"
+timestamp="$(@date@ +%Y-%m-%d_%H-%M-%S)"
+@grim@ -g "$(@slurp@)" -t ppm - | @satty@ --filename - --fullscreen \
+  --output-filename "$output_directory/$timestamp.png" \
+  --copy-command @wlCopy@

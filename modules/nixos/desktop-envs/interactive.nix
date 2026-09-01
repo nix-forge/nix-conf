@@ -1,0 +1,40 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.desktop.system;
+in
+{
+  options.desktop.system.enable = lib.mkEnableOption "services needed by an interactive standalone Wayland desktop";
+
+  config = lib.mkIf cfg.enable {
+    # GTK and libadwaita store several user-facing settings through dconf.
+    # Keep the service system-wide while individual applications remain in
+    # Home Manager, where they can be selected independently.
+    programs.dconf.enable = true;
+
+    # Upower and power-profiles-daemon provide the D-Bus APIs used by Waybar
+    # and ordinary desktop control panels. Do not enable TLP alongside this
+    # module: it would compete for the same power policy.
+    services.upower.enable = true;
+    services.power-profiles-daemon.enable = true;
+
+    # Thunar's system integration supplies the volume-management and archive
+    # plugins. Mount authorization still flows through UDisks and Polkit.
+    programs.thunar = {
+      enable = true;
+      plugins = [
+        pkgs.thunar-archive-plugin
+        pkgs.thunar-volman
+      ];
+    };
+
+    environment.systemPackages = [
+      pkgs.ddcutil
+      pkgs.wev
+    ];
+  };
+}

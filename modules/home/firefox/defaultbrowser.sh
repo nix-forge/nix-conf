@@ -1,4 +1,5 @@
-# shellcheck disable=SC2148
+#!@bash@
+# shellcheck shell=bash
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
 readonly FIREFOX_APP='@firefoxAppPath@'

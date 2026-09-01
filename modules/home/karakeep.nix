@@ -71,48 +71,21 @@ let
   };
 
   dockerCompose = "${pkgs.docker-compose}/bin/docker-compose --project-directory ${configDir} -f ${composeFile}";
-  colimaForward = pkgs.writeShellScript "karakeep-colima-forward" ''
-    set -eu
-
-    url=${lib.escapeShellArg localUrl}
-    ssh_config="$HOME/.config/colima/_lima/colima/ssh.config"
-    colima_bin=""
-
-    if ${pkgs.curl}/bin/curl -fsSI --max-time 2 "$url" >/dev/null 2>&1; then
-      exit 0
-    fi
-
-    for candidate in \
-      "$HOME/.nix-profile/bin/colima" \
-      "/etc/profiles/per-user/${config.home.username}/bin/colima" \
-      "/run/current-system/sw/bin/colima"
-    do
-      if [ -x "$candidate" ]; then
-        colima_bin="$candidate"
-        break
-      fi
-    done
-
-    if [ -z "$colima_bin" ] && command -v colima >/dev/null 2>&1; then
-      colima_bin="$(command -v colima)"
-    fi
-
-    if [ ! -f "$ssh_config" ] || [ -z "$colima_bin" ]; then
-      exit 0
-    fi
-
-    for _ in $(${pkgs.coreutils}/bin/seq 1 12); do
-      if "$colima_bin" ssh -- ${pkgs.curl}/bin/curl -fsSI --max-time 2 ${lib.escapeShellArg "http://127.0.0.1:${toString cfg.port}"} >/dev/null 2>&1; then
-        /usr/bin/ssh -F "$ssh_config" \
-          -O forward \
-          -L ${lib.escapeShellArg "127.0.0.1:${toString cfg.port}:127.0.0.1:${toString cfg.port}"} \
-          -N -f lima-colima >/dev/null 2>&1 || true
-        exit 0
-      fi
-
-      ${pkgs.coreutils}/bin/sleep 2
-    done
-  '';
+  colimaForward = pkgs.replaceVarsWith {
+    name = "karakeep-colima-forward";
+    src = ./scripts/karakeep-colima-forward.sh;
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      localUrl = lib.escapeShellArg localUrl;
+      username = config.home.username;
+      curl = lib.getExe pkgs.curl;
+      seq = lib.getExe' pkgs.coreutils "seq";
+      sleep = lib.getExe' pkgs.coreutils "sleep";
+      loopbackUrl = lib.escapeShellArg "http://127.0.0.1:${toString cfg.port}";
+      forwardAddress = lib.escapeShellArg "127.0.0.1:${toString cfg.port}:127.0.0.1:${toString cfg.port}";
+    };
+  };
   managedEnvironmentNames = [
     "BROWSER_WEB_URL"
     "DATA_DIR"
@@ -123,28 +96,16 @@ let
     "NEXTAUTH_URL"
   ];
 
-  extensionSetup = pkgs.writeShellApplication {
+  extensionSetup = pkgs.replaceVarsWith {
     name = "karakeep-extension-setup";
-    runtimeInputs = lib.optionals isLinux [ pkgs.xdg-utils ];
-    text = ''
-      cat <<'EOF'
-      Karakeep local server:
-        ${localUrl}
-
-      The Firefox and Zen Karakeep extension is force-installed by policy.
-      Open the extension options, set the server address above, then sign in
-      or paste an API key from Karakeep.
-
-      The extension stores its settings in browser sync storage, so the API key
-      is intentionally not managed from Nix.
-      EOF
-
-      if command -v open >/dev/null 2>&1; then
-        open "${localUrl}" >/dev/null 2>&1 || true
-      elif command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "${localUrl}" >/dev/null 2>&1 || true
-      fi
-    '';
+    src = ./scripts/karakeep-extension-setup.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      inherit localUrl;
+      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe pkgs.xdg-utils;
+    };
   };
 in
 {
@@ -201,51 +162,35 @@ in
 
     xdg.configFile."karakeep/docker-compose.yml".text = builtins.toJSON composeConfig;
 
-    xdg.configFile."karakeep/extension-setup.md".text = ''
-      # Karakeep Browser Extension
-
-      Local server URL: `${localUrl}`
-
-      The Karakeep Firefox/Zen extension is installed by browser policy. Open
-      the extension options, set the server address to the URL above, then sign
-      in or paste an API key from Karakeep.
-
-      The extension stores configuration in `chrome.storage.sync`; Karakeep does
-      not currently expose Firefox managed-storage policy for this setting.
-    '';
+    xdg.configFile."karakeep/extension-setup.md".source = pkgs.replaceVarsWith {
+      name = "karakeep-extension-setup.md";
+      src = ./karakeep-extension-setup.md.in;
+      replacements = { inherit localUrl; };
+    };
 
     home.activation.karakeepEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      set -eu
-
-      mkdir -p ${lib.escapeShellArg configDir} ${lib.escapeShellArg cfg.dataDir}/data ${lib.escapeShellArg cfg.dataDir}/meilisearch
-      mkdir -p ${lib.escapeShellArg config.xdg.stateHome}/karakeep
-      chmod 700 ${lib.escapeShellArg cfg.dataDir}
-
-      nextauth_secret=""
-      meili_master_key=""
-
-      if [ -f ${lib.escapeShellArg envFile} ]; then
-        nextauth_secret="$(${pkgs.gnugrep}/bin/grep -E '^NEXTAUTH_SECRET=' ${lib.escapeShellArg envFile} | ${pkgs.coreutils}/bin/head -n1 | ${pkgs.gnused}/bin/sed 's/^NEXTAUTH_SECRET=//' || true)"
-        meili_master_key="$(${pkgs.gnugrep}/bin/grep -E '^MEILI_MASTER_KEY=' ${lib.escapeShellArg envFile} | ${pkgs.coreutils}/bin/head -n1 | ${pkgs.gnused}/bin/sed 's/^MEILI_MASTER_KEY=//' || true)"
-      fi
-
-      if [ -z "$nextauth_secret" ]; then
-        nextauth_secret="$(${pkgs.openssl}/bin/openssl rand -base64 36)"
-      fi
-
-      if [ -z "$meili_master_key" ]; then
-        meili_master_key="$(${pkgs.openssl}/bin/openssl rand -base64 36)"
-      fi
-
-      umask 0077
-      tmp_env="$(${pkgs.coreutils}/bin/mktemp ${lib.escapeShellArg configDir}/.env.XXXXXX)"
-      {
-        printf '%s\n' '# Generated by Home Manager. Secrets are preserved across rebuilds.'
-        printf '%s\n' ${lib.escapeShellArg envLines}
-        printf 'NEXTAUTH_SECRET=%s\n' "$nextauth_secret"
-        printf 'MEILI_MASTER_KEY=%s\n' "$meili_master_key"
-      } > "$tmp_env"
-      ${pkgs.coreutils}/bin/mv "$tmp_env" ${lib.escapeShellArg envFile}
+      ${pkgs.replaceVarsWith {
+        name = "karakeep-env";
+        src = ./scripts/karakeep-env.sh;
+        isExecutable = true;
+        replacements = {
+          bash = lib.getExe pkgs.bash;
+          mkdir = lib.getExe' pkgs.coreutils "mkdir";
+          chmod = lib.getExe' pkgs.coreutils "chmod";
+          grep = lib.getExe pkgs.gnugrep;
+          head = lib.getExe' pkgs.coreutils "head";
+          sed = lib.getExe pkgs.gnused;
+          openssl = lib.getExe pkgs.openssl;
+          mktemp = lib.getExe' pkgs.coreutils "mktemp";
+          cat = lib.getExe' pkgs.coreutils "cat";
+          mv = lib.getExe' pkgs.coreutils "mv";
+          configDir = lib.escapeShellArg configDir;
+          dataDir = lib.escapeShellArg cfg.dataDir;
+          stateDir = lib.escapeShellArg "${config.xdg.stateHome}/karakeep";
+          envFile = lib.escapeShellArg envFile;
+          environmentDefaults = pkgs.writeText "karakeep-default-environment" envLines;
+        };
+      }}
     '';
 
     systemd.user.services.karakeep = lib.mkIf isLinux {
@@ -271,26 +216,20 @@ in
       config = {
         Label = "dev.user.karakeep";
         ProgramArguments = [
-          "${pkgs.writeShellScript "karakeep-launchd" ''
-            set -eu
-
-            export HOME=${lib.escapeShellArg config.home.homeDirectory}
-            export DOCKER_HOST=unix://${lib.escapeShellArg colimaDockerSocket}
-
-            for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
-              if [ -S ${lib.escapeShellArg colimaDockerSocket} ]; then
-                break
-              fi
-              ${pkgs.coreutils}/bin/sleep 2
-            done
-
-            ${dockerCompose} up -d
-            ${colimaForward}
-            trap '${dockerCompose} down' INT TERM EXIT
-            while true; do
-              ${pkgs.coreutils}/bin/sleep 3600
-            done
-          ''}"
+          "${pkgs.replaceVarsWith {
+            name = "karakeep-launchd";
+            src = ./scripts/karakeep-launchd.sh;
+            isExecutable = true;
+            replacements = {
+              bash = lib.getExe pkgs.bash;
+              homeDirectory = lib.escapeShellArg config.home.homeDirectory;
+              dockerSocket = lib.escapeShellArg colimaDockerSocket;
+              seq = lib.getExe' pkgs.coreutils "seq";
+              sleep = lib.getExe' pkgs.coreutils "sleep";
+              inherit dockerCompose;
+              inherit colimaForward;
+            };
+          }}"
         ];
         RunAtLoad = true;
         KeepAlive = true;

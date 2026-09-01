@@ -61,12 +61,6 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - uses: DeterminateSystems/determinate-nix-action@527f17dd63d2d60d3e5552934bc84b9a33a14d11 # v3.22.2
-      - name: Reclaim unused Nix store space
-        if: runner.os == 'macOS'
-        run: |
-          set -euo pipefail
-          nix store gc
-          df -h /
       - name: Materialize partition sources
         run: |
           nix store add-path flake/dev
@@ -123,11 +117,9 @@ jobs:
           case "${TARGET_SYSTEM}" in
             x86_64-linux)
               nix eval --raw '.#nixosConfigurations.desktop.config.system.build.toplevel.drvPath' >/dev/null
-              nix eval --raw '.#homeConfigurations.ianmh@desktop.activationPackage.drvPath' >/dev/null
               ;;
             aarch64-darwin)
               nix eval --raw '.#darwinConfigurations.macbook-pro-m4.system.drvPath' >/dev/null
-              nix eval --raw '.#homeConfigurations.ianmh@macbook-pro-m4.activationPackage.drvPath' >/dev/null
               ;;
           esac
       - name: Build native Nix outputs

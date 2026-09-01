@@ -1,4 +1,9 @@
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   fuzzel = lib.getExe pkgs.fuzzel;
 in
@@ -14,7 +19,9 @@ in
     enable = true;
     settings = {
       main = {
-        font = "MonaspiceNe Nerd Font:size=14";
+        # A launcher is general UI, not a code editor. Keep it aligned with
+        # Stylix's sans-serif role while preserving the host's larger scale.
+        font = "${config.stylix.fonts.sansSerif.name}:size=14";
         terminal = "${lib.getExe pkgs.ghostty} -e";
         prompt = "Apps> ";
         placeholder = "Search applications and commands";

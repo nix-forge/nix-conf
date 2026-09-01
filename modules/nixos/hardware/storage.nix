@@ -1,5 +1,5 @@
 { config, lib, ... }: {
-  boot =
+  config.boot =
     let
       supportedFilesystems = [
         "vfat"
@@ -17,7 +17,7 @@
       inherit supportedFilesystems;
     };
 
-  services = {
+  config.services = {
     # Desktop storage UX.  GVfs provides the GIO volume monitor and FUSE-backed
     # virtual filesystems, while Tumbler provides on-demand thumbnails.  They
     # are defaults rather than requirements, so a headless or locked-down host

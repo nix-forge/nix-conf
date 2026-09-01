@@ -134,6 +134,13 @@
       url = "github:NixOS/flake-compat";
       flake = false;
     };
+
+    # Pinned DNS blocking data. Updating this input is an explicit policy
+    # review captured in flake.lock, not an unreviewed runtime list download.
+    stevenblack-hosts = {
+      url = "github:StevenBlack/hosts";
+      flake = false;
+    };
   };
 
   outputs =

@@ -8,7 +8,6 @@ let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 in
 {
-  home.shell.enableNushellIntegration = true;
   programs.nushell = {
     enable = true;
 
@@ -27,16 +26,14 @@ in
 
       edit_mode = "vi";
 
-      buffer_editor = ""; # If Unset it will use the EDITOR env var to determine the editor
-
       cursor_shape = {
-        emacs = "block";
-        vi_insert = "block";
-        vi_normal = "underscore";
+        emacs = "line";
+        vi_insert = "line";
+        vi_normal = "block";
       };
 
       completions = {
-        algorithm = "prefix";
+        algorithm = "fuzzy";
         case_sensitive = false;
         quick = true;
         partial = true;

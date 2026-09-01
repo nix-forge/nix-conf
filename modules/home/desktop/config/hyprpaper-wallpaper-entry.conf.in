@@ -1,0 +1,5 @@
+wallpaper {
+  monitor = @output@
+  path = @path@
+  fit_mode = @fitMode@
+}

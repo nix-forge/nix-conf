@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.vorssaint.clamshellMode;
   validUser = user: builtins.match "[A-Za-z0-9._-]+" user != null;
@@ -31,8 +36,10 @@ in
     # declarative and removes it automatically when the module is disabled.
     # It grants no shell access and permits only the two state changes used by
     # the feature.
-    environment.etc."sudoers.d/vorssaint-clamshell".text = ''
-      ${cfg.user} ALL=(root) NOPASSWD: /usr/bin/pmset disablesleep 0, /usr/bin/pmset disablesleep 1
-    '';
+    environment.etc."sudoers.d/vorssaint-clamshell".source = pkgs.replaceVarsWith {
+      name = "vorssaint-clamshell-sudoers";
+      src = ./vorssaint-sudoers.in;
+      replacements.user = cfg.user;
+    };
   };
 }

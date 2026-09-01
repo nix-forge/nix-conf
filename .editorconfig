@@ -17,5 +17,11 @@ indent_size = 4
 [*.py]
 indent_size = 4
 
+[*.md]
+# Markdown list continuations must align beneath the marker; their indentation
+# therefore varies with the number of digits in the list marker. Rumdl owns
+# Markdown formatting and linting, so do not impose a fixed EditorConfig width.
+indent_size = unset
+
 [Makefile]
 indent_style = tab

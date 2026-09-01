@@ -15,124 +15,105 @@ let
   logDir = "${stateDir}/logs";
   inherit (cfg) environmentFile;
 
-  localControlLibrary = import ../../../lib/local-control/postgres-cluster-validator.nix { };
+  # These helpers are implementation details of the MacBook control host, not
+  # reusable repository library API. They live next to this profile while this
+  # file remains the automatically imported Home Manager module.
+  localControlLibrary = import ../support/local-control/runtime-helpers.nix { };
   databaseClusterValidator = localControlLibrary.mkDatabaseClusterValidator pkgs;
   privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
   secureFileSystem = localControlLibrary.mkSecureFileSystem pkgs;
 
-  proxyConfig = pkgs.writeText "local-control-proxy.conf" (
-    (import ../../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
-      inherit (cfg) bindAddress privateHostname;
-      inherit (cfg) dashboardDirectory;
+  proxyConfig = pkgs.replaceVarsWith {
+    name = "local-control-proxy.conf";
+    src = ../support/local-control/config/proxy.Caddyfile.in;
+    replacements = {
+      bindAddresses =
+        if cfg.bindAddress == "127.0.0.1" then cfg.bindAddress else "127.0.0.1 ${cfg.bindAddress}";
+      inherit (cfg) dashboardDirectory privateHostname;
       inherit (cfg) webPort apiPort proxyPort;
-    }
-  );
+    };
+  };
 
-  serverCertificateExtensions = pkgs.writeText "local-control-server-extensions" ''
-    basicConstraints=critical,CA:FALSE
-    keyUsage=critical,digitalSignature,keyEncipherment
-    extendedKeyUsage=serverAuth
-    subjectAltName=DNS:${cfg.privateHostname},IP:${cfg.bindAddress}
-  '';
+  serverCertificateExtensions = pkgs.replaceVarsWith {
+    name = "local-control-server-extensions";
+    src = ../support/local-control/config/server-extensions.conf.in;
+    replacements = { inherit (cfg) privateHostname bindAddress; };
+  };
 
-  clientCertificateExtensions = pkgs.writeText "local-control-client-extensions" ''
-    basicConstraints=critical,CA:FALSE
-    keyUsage=critical,digitalSignature,keyEncipherment
-    extendedKeyUsage=clientAuth
-  '';
+  clientCertificateExtensions = pkgs.replaceVarsWith {
+    name = "local-control-client-extensions";
+    src = ../support/local-control/config/client-extensions.conf;
+    replacements = { };
+  };
 
-  database = pkgs.writeShellApplication {
+  localControlState = pkgs.replaceVarsWith {
+    name = "local-control-initialize-state.sh";
+    src = ../support/local-control/scripts/initialize-state.sh;
+    replacements = {
+      privatePathGuard = lib.getExe' privatePathGuard "local-control-private-path";
+      secureFileSystem = lib.getExe' secureFileSystem "local-control-secure-files";
+      initdb = lib.getExe' pkgs.postgresql_18 "initdb";
+      openssl = lib.getExe pkgs.openssl;
+      serverCertificateExtensions = lib.escapeShellArg serverCertificateExtensions;
+      clientCertificateExtensions = lib.escapeShellArg clientCertificateExtensions;
+    };
+  };
+
+  database = pkgs.replaceVarsWith {
     name = "local-control-database";
-    runtimeInputs = [ pkgs.postgresql_18 ];
-    text = ''
-      set -eu
-      if ! ${privatePathGuard}/bin/local-control-private-path validate-directory \
-        ${lib.escapeShellArg databaseDir} \
-        'Local database directory'; then
-        exit 0
-      fi
-      if ! ${databaseClusterValidator}/bin/local-control-validate-database-cluster \
-        ${lib.escapeShellArg databaseDir}; then
-        printf 'Local database directory is incomplete, unsafe, or corrupt.\n' >&2
-        exit 0
-      fi
-      if ! ${privatePathGuard}/bin/local-control-private-path validate-directory \
-        ${lib.escapeShellArg databaseSocketDir} \
-        'Local database socket directory'; then
-        exit 0
-      fi
-      exec ${secureFileSystem}/bin/local-control-secure-files exec-cluster-socket \
-        ${lib.escapeShellArg databaseDir} 18 \
-        ${lib.escapeShellArg databaseSocketDir} \
-        ${pkgs.postgresql_18}/bin/postgres \
-        -D . \
-        -h 127.0.0.1 \
-        -k @socket@ \
-        -p ${toString cfg.databasePort}
-    '';
+    src = ../support/local-control/scripts/database.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      privatePathGuard = lib.getExe' privatePathGuard "local-control-private-path";
+      databaseClusterValidator = lib.getExe' databaseClusterValidator "local-control-validate-database-cluster";
+      secureFileSystem = lib.getExe' secureFileSystem "local-control-secure-files";
+      databaseDir = lib.escapeShellArg databaseDir;
+      databaseSocketDir = lib.escapeShellArg databaseSocketDir;
+      postgres = lib.getExe' pkgs.postgresql_18 "postgres";
+      databasePort = toString cfg.databasePort;
+    };
   };
 
-  proxy = pkgs.writeShellApplication {
+  proxy = pkgs.replaceVarsWith {
     name = "local-control-proxy";
-    runtimeInputs = [ pkgs.caddy ];
-    text = ''
-      set -eu
-      environment_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-generation-file \
-        ${lib.escapeShellArg environmentFile} 600)" || {
-        printf 'Control-plane environment is unsafe; private proxy remains stopped.\n' >&2
-        exit 0
-      }
-      if [ "$environment_state" = missing ]; then
-        printf 'Control-plane environment is absent; private proxy remains stopped.\n' >&2
-        exit 0
-      fi
-      exec ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
-        ${lib.escapeShellArg pkiDir} \
-        ${lib.escapeShellArg environmentFile} \
-        ${pkgs.caddy}/bin/caddy \
-        run --config ${lib.escapeShellArg proxyConfig} --adapter caddyfile
-    '';
+    src = ../support/local-control/scripts/proxy.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      secureFileSystem = lib.getExe' secureFileSystem "local-control-secure-files";
+      environmentFile = lib.escapeShellArg environmentFile;
+      pkiDir = lib.escapeShellArg pkiDir;
+      caddy = lib.getExe pkgs.caddy;
+      proxyConfig = lib.escapeShellArg proxyConfig;
+    };
   };
 
-  status = pkgs.writeShellApplication {
+  status = pkgs.replaceVarsWith {
     name = "local-control-status";
-    runtimeInputs = [
-      pkgs.curl
-      pkgs.lsof
-      pkgs.postgresql_18
-    ];
-    text = ''
-      set -eu
-      printf 'Database: '
-      pg_isready -h 127.0.0.1 -p ${toString cfg.databasePort}
-      printf '\nAPI: '
-      curl --fail --silent --show-error \
-        http://127.0.0.1:${toString cfg.apiPort}/api/health/ready
-      printf '\nDashboard: '
-      curl --fail --silent --show-error --output /dev/null \
-        http://127.0.0.1:${toString cfg.webPort}/
-      printf 'ready\n\nListeners:\n'
-      lsof -nP \
-        -iTCP:${toString cfg.webPort} \
-        -iTCP:${toString cfg.apiPort} \
-        -iTCP:${toString cfg.proxyPort} \
-        -iTCP:${toString cfg.databasePort} \
-        -sTCP:LISTEN || true
-    '';
+    src = ../support/local-control/scripts/status.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      pgIsReady = lib.getExe' pkgs.postgresql_18 "pg_isready";
+      curl = lib.getExe pkgs.curl;
+      lsof = lib.getExe pkgs.lsof;
+      databasePort = toString cfg.databasePort;
+      apiPort = toString cfg.apiPort;
+      webPort = toString cfg.webPort;
+      proxyPort = toString cfg.proxyPort;
+    };
   };
 
-  restart = pkgs.writeShellApplication {
+  restart = pkgs.replaceVarsWith {
     name = "local-control-restart";
-    text = ''
-      set -eu
-      domain="gui/$(id -u)"
-      for service in database proxy; do
-        label="$domain/local.services.local-control-$service"
-        if launchctl print "$label" >/dev/null 2>&1; then
-          launchctl kickstart -k "$label"
-        fi
-      done
-    '';
+    src = ../support/local-control/scripts/restart.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements.bash = lib.getExe pkgs.bash;
   };
 in
 {
@@ -251,262 +232,14 @@ in
     ];
 
     home.activation.localControlState = lib.hm.dag.entryAfter [ "nixSealServices" ] ''
-      set -eu
-      umask 0077
-      ${privatePathGuard}/bin/local-control-private-path ensure-directory \
-        ${lib.escapeShellArg stateDir} \
-        'Local control-plane state directory'
-
-      if [ ! -e ${lib.escapeShellArg cfg.dashboardDirectory} ] \
-        && [ ! -L ${lib.escapeShellArg cfg.dashboardDirectory} ]; then
-        ln -s current/dashboard ${lib.escapeShellArg cfg.dashboardDirectory}
-      elif [ ! -L ${lib.escapeShellArg cfg.dashboardDirectory} ]; then
-        printf 'Dashboard deployment pointer must be a symbolic link.\n' >&2
-        exit 1
-      fi
-      ${privatePathGuard}/bin/local-control-private-path ensure-directory \
-        ${lib.escapeShellArg databaseDir} \
-        'Local database directory'
-
-      database_state="$(${secureFileSystem}/bin/local-control-secure-files cluster-state \
-        ${lib.escapeShellArg databaseDir} 18)" || {
-        printf 'Refusing an incomplete, unsafe, or incompatible database directory.\n' >&2
-        exit 1
-      }
-      if [ "$database_state" = missing ]; then
-        if ! ${secureFileSystem}/bin/local-control-secure-files initialize-cluster \
-          ${lib.escapeShellArg databaseDir} \
-          18 \
-          ${pkgs.postgresql_18}/bin/initdb \
-          --pgdata=. \
-          --auth-local=trust \
-          --auth-host=scram-sha-256 \
-          --encoding=UTF8 \
-          --no-locale; then
-          printf 'Refusing to initialize an unsafe database directory.\n' >&2
-          exit 1
-        fi
-      fi
-
-      environment_file_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-generation-file \
-        ${lib.escapeShellArg environmentFile} 600)" || {
-        printf 'Production environment must be a safe owner-only regular file.\n' >&2
-        exit 1
-      }
-      if [ "$environment_file_state" = missing ]; then
-        printf 'Production environment is not configured; application and proxy remain stopped.\n' >&2
-      fi
-
-      ${privatePathGuard}/bin/local-control-private-path ensure-directory \
-        ${lib.escapeShellArg databaseSocketDir} \
-        'Local database socket directory'
-      ${privatePathGuard}/bin/local-control-private-path ensure-directory \
-        ${lib.escapeShellArg pkiDir} \
-        'Local service PKI directory'
-      ${privatePathGuard}/bin/local-control-private-path ensure-directory \
-        ${lib.escapeShellArg logDir} \
-        'Local service log directory'
-
-      check_optional_generated_file() {
-        if ! ${secureFileSystem}/bin/local-control-secure-files inspect-file "$1" "$2" >/dev/null; then
-          printf 'Generated path is missing, unsafe, or has the wrong mode: %s\n' "$1" >&2
-          exit 1
-        fi
-      }
-
-      repair_log_file_mode() {
-        if ! ${secureFileSystem}/bin/local-control-secure-files repair-file-mode "$1" 600 >/dev/null; then
-          printf 'Service log is unsafe or could not be made private: %s\n' "$1" >&2
-          exit 1
-        fi
-      }
-
-      ${lib.concatMapStringsSep "\n"
-        ({ path, mode }: ''
-          check_optional_generated_file \
-            ${lib.escapeShellArg path} \
-            ${lib.escapeShellArg mode}
-        '')
-        [
-          {
-            path = "${pkiDir}/ca.key";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/ca.crt";
-            mode = "644";
-          }
-          {
-            path = "${pkiDir}/ca.srl";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/server.key";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/server.crt";
-            mode = "644";
-          }
-          {
-            path = "${pkiDir}/server.csr";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/client.key";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/client.crt";
-            mode = "644";
-          }
-          {
-            path = "${pkiDir}/client.csr";
-            mode = "600";
-          }
-          {
-            path = "${pkiDir}/client.pfx";
-            mode = "600";
-          }
-        ]
-      }
-      ${lib.concatMapStringsSep "\n"
-        (path: ''
-          repair_log_file_mode ${lib.escapeShellArg path}
-        '')
-        [
-          "${logDir}/database.out.log"
-          "${logDir}/database.err.log"
-          "${logDir}/proxy.out.log"
-          "${logDir}/proxy.err.log"
-          "${logDir}/control-api.log"
-          "${logDir}/control-api.error.log"
-          "${logDir}/calculation-worker.log"
-          "${logDir}/calculation-worker.error.log"
-        ]
-      }
-
-      ca_certificate_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/ca.crt"} 644)" || exit 1
-      ca_key_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/ca.key"} 600)" || exit 1
-      if [ "$ca_certificate_state" = missing ] && [ "$ca_key_state" = missing ]; then
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --create ca.key 600 \
-          --create ca.crt 644 \
-          -- \
-          req -x509 -new -nodes -sha256 -days 3650 \
-          -newkey rsa:3072 \
-          -keyout @ca.key@ \
-          -out @ca.crt@ \
-          -subj '/CN=Local Service CA' \
-          -addext 'basicConstraints=critical,CA:TRUE' \
-          -addext 'keyUsage=critical,keyCertSign,cRLSign'
-      elif [ "$ca_certificate_state" = missing ] || [ "$ca_key_state" = missing ]; then
-        printf 'The local service CA is incomplete.\n' >&2
-        exit 1
-      fi
-
-      ca_serial_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/ca.srl"} 600)" || exit 1
-      if [ "$ca_serial_state" = missing ]; then
-        printf '01\n' | ${secureFileSystem}/bin/local-control-secure-files create-file \
-          ${lib.escapeShellArg "${pkiDir}/ca.srl"} 600
-      fi
-
-      server_certificate_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/server.crt"} 644)" || exit 1
-      server_key_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/server.key"} 600)" || exit 1
-      if [ "$server_certificate_state" = missing ] && [ "$server_key_state" = missing ]; then
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --create server.key 600 \
-          --create server.csr 600 \
-          -- \
-          req -new -nodes -newkey rsa:3072 \
-          -keyout @server.key@ \
-          -out @server.csr@ \
-          -subj '/CN=local-service'
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --read ca.crt 644 \
-          --read ca.key 600 \
-          --update ca.srl 600 \
-          --read server.csr 600 \
-          --create server.crt 644 \
-          -- \
-          x509 -req -sha256 -days 825 \
-          -in @server.csr@ \
-          -CA @ca.crt@ \
-          -CAkey @ca.key@ \
-          -CAserial @ca.srl@ \
-          -out @server.crt@ \
-          -extfile ${lib.escapeShellArg serverCertificateExtensions}
-      elif [ "$server_certificate_state" = missing ] || [ "$server_key_state" = missing ]; then
-        printf 'The local service server identity is incomplete.\n' >&2
-        exit 1
-      fi
-
-      client_bundle_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/client.pfx"} 600)" || exit 1
-      client_key_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/client.key"} 600)" || exit 1
-      client_certificate_state="$(${secureFileSystem}/bin/local-control-secure-files inspect-file \
-        ${lib.escapeShellArg "${pkiDir}/client.crt"} 644)" || exit 1
-      if [ "$client_bundle_state" = missing ] \
-        && [ "$client_key_state" = missing ] \
-        && [ "$client_certificate_state" = missing ]; then
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --create client.key 600 \
-          --create client.csr 600 \
-          -- \
-          req -new -nodes -newkey rsa:3072 \
-          -keyout @client.key@ \
-          -out @client.csr@ \
-          -subj '/CN=local-client'
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --read ca.crt 644 \
-          --read ca.key 600 \
-          --update ca.srl 600 \
-          --read client.csr 600 \
-          --create client.crt 644 \
-          -- \
-          x509 -req -sha256 -days 825 \
-          -in @client.csr@ \
-          -CA @ca.crt@ \
-          -CAkey @ca.key@ \
-          -CAserial @ca.srl@ \
-          -out @client.crt@ \
-          -extfile ${lib.escapeShellArg clientCertificateExtensions}
-        ${secureFileSystem}/bin/local-control-secure-files exec-files \
-          ${lib.escapeShellArg pkiDir} \
-          ${pkgs.openssl}/bin/openssl \
-          --read ca.crt 644 \
-          --read client.key 600 \
-          --read client.crt 644 \
-          --create client.pfx 600 \
-          -- \
-          pkcs12 -export \
-          -out @client.pfx@ \
-          -inkey @client.key@ \
-          -in @client.crt@ \
-          -certfile @ca.crt@ \
-          -passout pass:
-      elif [ "$client_bundle_state" = missing ] \
-        || [ "$client_key_state" = missing ] \
-        || [ "$client_certificate_state" = missing ]; then
-        printf 'The local service client identity is incomplete.\n' >&2
-        exit 1
-      fi
+      export LOCAL_CONTROL_STATE_DIR=${lib.escapeShellArg stateDir}
+      export LOCAL_CONTROL_DASHBOARD_DIR=${lib.escapeShellArg cfg.dashboardDirectory}
+      export LOCAL_CONTROL_DATABASE_DIR=${lib.escapeShellArg databaseDir}
+      export LOCAL_CONTROL_DATABASE_SOCKET_DIR=${lib.escapeShellArg databaseSocketDir}
+      export LOCAL_CONTROL_PKI_DIR=${lib.escapeShellArg pkiDir}
+      export LOCAL_CONTROL_LOG_DIR=${lib.escapeShellArg logDir}
+      export LOCAL_CONTROL_ENVIRONMENT_FILE=${lib.escapeShellArg environmentFile}
+      source ${localControlState}
     '';
 
     launchd.agents.local-control-database = {

@@ -1,0 +1,35 @@
+* {
+  font-family: sans-serif;
+  font-size: 14px;
+}
+.control-center,
+.notification {
+  background: #141920;
+  color: #eaf2f8;
+  border: 1px solid #31536b;
+  border-radius: 10px;
+}
+.notification {
+  margin: 8px;
+  padding: 10px;
+}
+.notification-row:focus,
+.notification-row:hover {
+  background: #1e3344;
+}
+.widget-title,
+.widget-dnd,
+.widget-mpris,
+.widget-volume,
+.widget-backlight {
+  margin: 8px 12px;
+}
+button {
+  background: #0e5a94;
+  color: #ffffff;
+  border-radius: 7px;
+  padding: 6px 10px;
+}
+button:hover {
+  background: #1678bd;
+}

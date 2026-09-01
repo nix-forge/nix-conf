@@ -1,0 +1,7 @@
+SSID={{nix-seal:ssid}}
+[Security]
+Passphrase={{nix-seal:passphrase}}
+
+[Settings]
+AutoConnect=true
+Hidden=false

@@ -117,10 +117,12 @@ secret *args:
 fmt:
     nix fmt
 
-# Install the repository's pre-commit and pre-push hooks
+# Install the repository's pre-commit and pre-push hooks in this clone.  Use
+# the justfile directory rather than the caller's current directory so this
+# also works when `just -f /path/to/justfile hooks` is invoked elsewhere.
 [group('Maintenance')]
 hooks:
-    nix develop --command true
+    cd {{ flake }} && nix develop . --command true
 
 # Verify the integrity of all store paths
 [group('Maintenance')]

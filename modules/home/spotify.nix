@@ -17,78 +17,110 @@ let
   spotifyEntitlements = if isDarwin then spotifyPackage.passthru.entitlements else null;
   spotifyDarwinInstallDir = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   spotifyDarwinApp = "${spotifyDarwinInstallDir}/Spotify.app";
+  spotifyRepair =
+    if isDarwin then
+      pkgs.replaceVarsWith {
+        name = "repair-spotify-darwin-app.sh";
+        src = ./scripts/repair-spotify-darwin-app.sh;
+        replacements = {
+          chmod = "/bin/chmod";
+          xattr = "/usr/bin/xattr";
+          codesign = "/usr/bin/codesign";
+          lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
+          spotifyApp = lib.escapeShellArg spotifyDarwinApp;
+          # Keep this store-valued replacement unescaped so `replaceVarsWith`
+          # retains Nix's dependency context for the generated script.
+          inherit spotifyEntitlements;
+        };
+      }
+    else
+      null;
+  spotifyQuality = pkgs.replaceVarsWith {
+    name = "configure-spotify-quality.sh";
+    src = ./scripts/configure-spotify-quality.sh;
+    replacements = {
+      pgrep = "/usr/bin/pgrep";
+      mktemp = lib.getExe' pkgs.coreutils "mktemp";
+      awk = awkExe;
+      mv = lib.getExe' pkgs.coreutils "mv";
+      spotifyPreferences =
+        if isDarwin then
+          "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"
+        else
+          lib.escapeShellArg "${config.xdg.configHome}/spotify/prefs";
+    };
+  };
+  isCarbonNeon = builtins.elem config.appearance.theme [
+    "carbon-neon"
+    "carbon-neon-oled"
+  ];
+  carbonNeonScheme = with config.lib.stylix.colors; {
+    text = base05;
+    subtext = base04;
+    sidebar-text = base05;
+    main = base00;
+    main-elevated = base01;
+    highlight = base01;
+    highlight-elevated = base02;
+    sidebar = base00;
+    player = base00;
+    card = base02;
+    shadow = "000000";
+    selected-row = base04;
+    button = base0D;
+    # Keep primary actions and selected playback states in Carbon's cyan rather
+    # than Spotify's familiar green.  The latter is too close to Carbon's
+    # reserved success colour and was the lime control shown in the screenshot.
+    button-active = base0D;
+    button-disabled = base03;
+    tab-active = base01;
+    notification = base0D;
+    notification-error = base08;
+    misc = base04;
+  };
+  carbonNeonCss = builtins.readFile ../../assets/spotify/carbon-neon.css;
+  carbonNeonTheme = spicePkgs.themes.default // {
+    name = "CarbonNeon";
+    additionalCss = carbonNeonCss;
+  };
+  theme =
+    if config.appearance.theme == "catppuccin-mocha" then
+      {
+        theme = spicePkgs.themes.catppuccin;
+        colorScheme = "mocha";
+      }
+    else if config.appearance.theme == "gruvbox-dark-medium" then
+      {
+        # Spicetify's upstream Text theme includes the canonical Gruvbox
+        # Medium palette, including its #282828 background.
+        theme = spicePkgs.themes.text;
+        colorScheme = "Gruvbox";
+      }
+    else
+      {
+        # The base theme supplies Spicetify's layout hooks.  The local CSS also
+        # maps Spotify's newer native tokens to the generated Carbon palette.
+        theme = carbonNeonTheme;
+        colorScheme = "custom";
+      };
 in
 {
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
 
-  # Nixpkgs' sandbox-friendly darwin.sigtool signs Mach-O files in the package,
-  # but Spotify's CEF bundle also needs a full app resource envelope after
-  # Home Manager copies the app out of the immutable store.
+  # The patched application and its Spicetify configuration are produced in a
+  # sandboxed build. The final macOS bundle envelope can only be signed after
+  # Home Manager copies the mutable app out of the store; darwin.sigtool does
+  # not support that host-only `codesign --deep` operation in the sandbox.
   home.activation.repairSpotifyDarwinAppSignature = lib.mkIf isDarwin (
     lib.hm.dag.entryAfter [ "copyApps" ] ''
-      spotifyApp="${spotifyDarwinApp}"
-
-      if [ -d "$spotifyApp" ]; then
-        chmod -R u+w "$spotifyApp"
-        /usr/bin/xattr -cr "$spotifyApp" 2>/dev/null || true
-        if /usr/bin/codesign --force --deep --options runtime --entitlements "${spotifyEntitlements}" --sign - "$spotifyApp" \
-          && /usr/bin/codesign --verify --deep --strict --verbose=2 "$spotifyApp"; then
-          # Re-register the copied bundle so Dock and bundle-ID launches do not
-          # resolve a stale Spotify app that Spicetify created in a build temp dir.
-          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$spotifyApp"
-        else
-          echo "Warning: Spotify app is incomplete or could not be signed; continuing Home Manager activation." >&2
-        fi
-      fi
+      source ${spotifyRepair}
     ''
   );
 
+  # Spotify's account-specific prefs live beneath a runtime-created profile
+  # directory, so they are the one intentionally runtime configuration step.
   home.activation.configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if pgrep -x Spotify >/dev/null 2>&1 || pgrep -x spotify >/dev/null 2>&1; then
-      echo "Skipping Spotify quality settings because Spotify is running."
-    else
-      update_pref() {
-        prefs="$1"
-        key="$2"
-        value="$3"
-        temporary_prefs="$(mktemp "''${prefs}.tmp.XXXXXX")"
-
-        "${awkExe}" -v key="$key" -v value="$value" '
-          index($0, key "=") == 1 {
-            if (!found++) print key "=" value
-            next
-          }
-          { print }
-          END {
-            if (!found) print key "=" value
-          }
-        ' "$prefs" > "$temporary_prefs"
-        mv "$temporary_prefs" "$prefs"
-      }
-
-      spotify_prefs=()
-      ${
-        if isDarwin then
-          ''
-            for prefs in "${config.home.homeDirectory}"/Library/Application\ Support/Spotify/Users/*-user/prefs; do
-              [ -f "$prefs" ] && spotify_prefs+=("$prefs")
-            done
-          ''
-        else
-          ''
-            prefs="${config.xdg.configHome}/spotify/prefs"
-            [ -f "$prefs" ] && spotify_prefs+=("$prefs")
-          ''
-      }
-
-      for prefs in "''${spotify_prefs[@]}"; do
-        # Spotify reports this account/device as Standard-capable, whose
-        # highest streaming tier is High (3); Lossless (5) is unavailable.
-        update_pref "$prefs" audio.play_bitrate_enumeration 3
-        update_pref "$prefs" audio.play_bitrate_non_metered_enumeration 3
-        update_pref "$prefs" audio.allow_downgrade false
-      done
-    fi
+    source ${spotifyQuality}
   '';
 
   programs.spicetify = {
@@ -96,8 +128,10 @@ in
     inherit spotifyPackage;
     inherit spicetifyPackage;
 
-    theme = lib.mkForce spicePkgs.themes.default;
-    colorScheme = lib.mkForce "Base";
+    # Use the maintained native port for the selected shared palette.
+    theme = lib.mkForce theme.theme;
+    colorScheme = lib.mkForce theme.colorScheme;
+    customColorScheme = lib.mkIf isCarbonNeon carbonNeonScheme;
 
     enabledExtensions = with spicePkgs.extensions; [
       adblock

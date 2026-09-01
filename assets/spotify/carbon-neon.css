@@ -1,0 +1,77 @@
+/*
+ * Spotify's current Encore UI consumes these design-system variables in
+ * addition to Spicetify's --spice-* palette. Map them back to the generated
+ * Carbon palette so native UI added by Spotify stays coherent.
+ */
+:root {
+  --background-base: var(--spice-main);
+  --background-base-min-contrast: var(--spice-main);
+  --background-base-high-contrast: var(--spice-card);
+  --background-highlight: var(--spice-highlight);
+  --background-press: var(--spice-highlight-elevated);
+  --background-elevated-base: var(--spice-card);
+  --background-elevated-highlight: var(--spice-highlight-elevated);
+  --background-elevated-press: var(--spice-highlight-elevated);
+  --background-tinted-base: var(--spice-card);
+  --background-tinted-highlight: var(--spice-highlight);
+  --background-tinted-press: var(--spice-highlight-elevated);
+  --text-base: var(--spice-text);
+  --text-subdued: var(--spice-subtext);
+  --text-bright-accent: var(--spice-button);
+  --text-positive: var(--spice-button);
+  --text-negative: var(--spice-notification-error);
+  --text-warning: #d5b05f;
+  --text-announcement: var(--spice-button);
+  --essential-base: var(--spice-button);
+  --essential-subdued: var(--spice-subtext);
+  --essential-bright-accent: var(--spice-button);
+  --essential-positive: var(--spice-button);
+  --essential-negative: var(--spice-notification-error);
+  --essential-warning: #d5b05f;
+  --decorative-base: var(--spice-card);
+  --decorative-subdued: var(--spice-button-disabled);
+  --background-noise: none;
+
+  /* A lightened teal hover and blue-teal pressed state, never Spotify green. */
+  --carbon-neon-button-hover: #9de0da;
+  --carbon-neon-button-press: #6ebad7;
+}
+
+/*
+ * Encore applies its own bright-accent/positive palette directly to playback
+ * buttons. Those component-local variables outrank :root and otherwise
+ * restore Spotify's #1ED760 green on hover. Keep the interaction ladder in
+ * Carbon's cyan family instead.
+ */
+.encore-dark-theme :is(.encore-bright-accent-set, .encore-positive-set),
+.encore-light-theme :is(.encore-bright-accent-set, .encore-positive-set) {
+  --background-base: var(--spice-button) !important;
+  --background-highlight: var(--carbon-neon-button-hover) !important;
+  --background-press: var(--carbon-neon-button-press) !important;
+  --background-elevated-base: var(--spice-button) !important;
+  --background-elevated-highlight: var(--carbon-neon-button-hover) !important;
+  --background-elevated-press: var(--carbon-neon-button-press) !important;
+  --background-tinted-base: var(--spice-button) !important;
+  --background-tinted-highlight: var(--carbon-neon-button-hover) !important;
+  --background-tinted-press: var(--carbon-neon-button-press) !important;
+  --text-base: var(--spice-main) !important;
+  --text-subdued: var(--spice-main) !important;
+  --text-bright-accent: var(--spice-main) !important;
+  --text-positive: var(--spice-main) !important;
+  --essential-base: var(--spice-main) !important;
+  --essential-subdued: var(--spice-main) !important;
+  --essential-bright-accent: var(--spice-main) !important;
+  --essential-positive: var(--spice-main) !important;
+}
+
+/*
+ * Spotify derives this playlist/album-header gradient from artwork. It bypasses
+ * palette roles entirely, so make the content header Carbon black while
+ * leaving actual cover art untouched.
+ */
+.main-entityHeader-backgroundColor {
+  --color-from: var(--spice-main) !important;
+  --color-to: var(--spice-main) !important;
+  --dither: none !important;
+  background-image: none !important;
+}

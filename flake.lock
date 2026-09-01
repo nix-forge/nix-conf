@@ -853,6 +853,7 @@
         "nixpkgs-personal": "nixpkgs-personal",
         "nvf": "nvf",
         "spicetify-nix": "spicetify-nix",
+        "stevenblack-hosts": "stevenblack-hosts",
         "stylix": "stylix",
         "systems": "systems_3",
         "zen-browser": "zen-browser"
@@ -899,6 +900,22 @@
       "original": {
         "owner": "Gerg-L",
         "repo": "spicetify-nix",
+        "type": "github"
+      }
+    },
+    "stevenblack-hosts": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787527074,
+        "narHash": "sha256-23LbJ9ADxnAhIhqBBFb6NLDbHYu9mOfdjAOSOZQWuJ8=",
+        "owner": "StevenBlack",
+        "repo": "hosts",
+        "rev": "9d7273b7e16d02fbe0ce2eb8c6cd3772a377590c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "StevenBlack",
+        "repo": "hosts",
         "type": "github"
       }
     },

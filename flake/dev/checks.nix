@@ -2,7 +2,9 @@
   perSystem =
     { pkgs, ... }:
     let
-      localControlLibrary = import ../../lib/local-control/postgres-cluster-validator.nix { };
+      localControlLibrary =
+        import ../../homes/macbook-pro-m4/support/local-control/runtime-helpers.nix
+          { };
       secureFileSystem = localControlLibrary.mkSecureFileSystem pkgs;
       environmentSnapshot = localControlLibrary.mkEnvironmentSnapshot pkgs;
       sourceTreeSnapshot = localControlLibrary.mkSourceTreeSnapshot pkgs;
@@ -10,18 +12,69 @@
       preparationProof = localControlLibrary.mkPreparationProof pkgs;
       preparationGate = localControlLibrary.mkPreparationGate pkgs;
       privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
-      localControlProxyConfig = pkgs.writeText "local-control-proxy-check.conf" (
-        (import ../../lib/local-control/proxy-config.nix { }).mkProxyConfig {
-          bindAddress = "127.0.0.1";
+      localControlSecureFilesRust =
+        import ../../homes/macbook-pro-m4/support/local-control/secure-files-rs/package.nix
+          { inherit pkgs; };
+      localControlProxyConfig = pkgs.replaceVarsWith {
+        name = "local-control-proxy-check.conf";
+        src = ../../homes/macbook-pro-m4/support/local-control/config/proxy.Caddyfile.in;
+        replacements = {
+          bindAddresses = "127.0.0.1";
           privateHostname = "agent-control.service.internal";
           dashboardDirectory = "/tmp/local-control/dashboard-current";
           webPort = 15173;
           apiPort = 18788;
           proxyPort = 18443;
-        }
-      );
+        };
+      };
     in
     {
+      # This is intentionally separate from the Darwin-only pre-commit check.
+      # `nix flake check --no-build` evaluates checks but does not execute
+      # them, and the previous Python coverage therefore depended on running a
+      # platform-specific hook. Copy the exact flake source to a writable
+      # directory: Ruff needs a cache directory and compileall writes bytecode,
+      # while a Nix source path is immutable.
+      checks.python-quality =
+        pkgs.runCommand "python-quality"
+          {
+            nativeBuildInputs = [
+              pkgs.python3
+              pkgs.ruff
+              pkgs.ty
+            ];
+          }
+          ''
+            set -euo pipefail
+
+            work_directory="$TMPDIR/python-quality-source"
+            mkdir "$work_directory"
+            cp -R ${inputs.self.outPath}/. "$work_directory"
+            chmod -R u+w "$work_directory"
+            cd "$work_directory"
+
+            export RUFF_CACHE_DIR="$TMPDIR/ruff-cache"
+            export PYTHONPYCACHEPREFIX="$TMPDIR/python-pycache"
+
+            # Do not let Ruff's project-level `fix = true` mutate a check.
+            # Passing the configuration path makes its use unambiguous even
+            # when this check is invoked from an arbitrary Nix build directory.
+            ruff check --no-fix --config pyproject.toml .
+            ruff format --check --config pyproject.toml .
+
+            # `--project .` makes ty discover [tool.ty] in this exact copied
+            # pyproject.toml. Use Nix Python rather than an impure developer
+            # virtualenv so the result is reproducible on every system.
+            ty check --project . --python ${pkgs.python3}/bin/python3
+
+            # Cover every Python-bearing top-level source tree, including the
+            # MacBook local-control resolver and its unittest fixture. Bytecode
+            # is redirected outside the source tree above.
+            python3 -m compileall -q homes modules scripts pkgs
+
+            touch "$out"
+          '';
+
       checks.dev-vm-host-resolution =
         pkgs.runCommand "dev-vm-host-resolution" { nativeBuildInputs = [ pkgs.python3 ]; }
           ''
@@ -29,6 +82,8 @@
             ${pkgs.python3}/bin/python3 ${../../homes/macbook-pro-m4/local/dev_vm_host_test.py}
             touch "$out"
           '';
+
+      checks.local-control-rust = localControlSecureFilesRust;
 
       checks.local-control-proxy-tls-policy =
         pkgs.runCommand "local-control-proxy-tls-policy"
@@ -194,7 +249,7 @@
               ${pkgs.postgresql_18}/bin/postgres \
               -D . \
               -h "" \
-              -k @socket@ \
+              -k __LOCAL_CONTROL_SOCKET_PATH__ \
               -p 55439 \
               > "$postgres_log" 2>&1 &
             postgres_pid=$!

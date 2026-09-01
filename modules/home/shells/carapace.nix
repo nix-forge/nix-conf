@@ -1,7 +1,9 @@
 {
   programs.carapace = {
     enable = true;
+    ignoreCase = true;
   };
 
-  home.sessionVariables.CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
+  # Only bridge to installed shells. Nushell uses Carapace's native support.
+  home.sessionVariables.CARAPACE_BRIDGES = "zsh,bash";
 }

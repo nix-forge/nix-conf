@@ -25,6 +25,10 @@ in
   username = "ianmh";
   homeDirectory = "/Users/ianmh";
   uid = 501;
+  # nix-seal's plaintext runtime is mounted and managed by nix-darwin. Do not
+  # expose an independent activation that would fall back to persistent cache
+  # storage in the user profile.
+  standalone = false;
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
@@ -49,6 +53,7 @@ in
     determinate
     nix-settings
     registry
+    browser-policies
     cache
     nixSeal
     ./nix-seal.nix
@@ -74,7 +79,7 @@ in
         dataDir = "${config.xdg.userDirs.documents}/Karakeep";
       };
     })
-    server-ssh
+    ssh
     ({ config, ... }: {
       services.localControl = {
         enable = true;

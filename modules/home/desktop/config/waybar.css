@@ -1,0 +1,41 @@
+* {
+  border: none;
+  border-radius: 0;
+  font-family: sans-serif;
+  font-size: 13px;
+  min-height: 0;
+}
+window#waybar {
+  background: rgba(20, 25, 32, 0.94);
+  color: #eaf2f8;
+}
+#workspaces button {
+  color: #aab7c4;
+  padding: 0 7px;
+}
+#workspaces button.active {
+  color: #ffffff;
+  background: #0e5a94;
+}
+#window {
+  padding: 0 12px;
+  color: #c9d5df;
+}
+#clock,
+#wireplumber,
+#network,
+#bluetooth,
+#battery,
+#power-profiles-daemon,
+#tray {
+  padding: 0 9px;
+}
+#wireplumber.muted,
+#network.disconnected,
+#bluetooth.disabled,
+#battery.critical {
+  color: #ff8a8a;
+}
+#battery.warning {
+  color: #ffd166;
+}
