@@ -3,7 +3,6 @@ let
   inherit (pkgs.stdenv.hostPlatform) isLinux;
 in
 {
-  home.shell.enableBashIntegration = true;
   programs.bash = {
     enable = true;
     enableCompletion = true;
@@ -14,8 +13,18 @@ in
       "erasedups"
     ];
     historyIgnore = [
-      "exit"
+      "cd"
       "clear"
+      "exit"
+      "history"
+      "ls"
+      "l"
+      "la"
+      "ll"
+      "lla"
+      "lt"
+      "lg"
+      "pwd"
     ];
     historySize = 100000;
     historyFileSize = 200000;
@@ -26,6 +35,8 @@ in
       "extglob"
       "globstar"
       "cmdhist"
+      "checkjobs"
+      "lithist"
     ];
   };
 }

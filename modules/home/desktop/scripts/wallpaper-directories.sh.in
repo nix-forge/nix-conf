@@ -1,0 +1,7 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+mkdir -p -- '@wallpaperDirectory@' '@stateDirectory@'
+chmod 700 -- '@wallpaperDirectory@' '@stateDirectory@'

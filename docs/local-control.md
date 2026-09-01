@@ -5,6 +5,12 @@ an API, a background worker, a web process, and an optional authenticated
 listener. Runtime values remain in an owner-only environment file; the public
 configuration contains only generic service logic and immutable tool identities.
 
+The Home Manager module is local to the MacBook profile at
+`homes/macbook-pro-m4/local/local-control.nix`. Its implementation-only helper
+functions and C source live beside that profile under
+`homes/macbook-pro-m4/support/local-control/`; they are deliberately not part
+of the repository-wide `lib` API.
+
 Runtime state is stored under `~/.local/state/local-control` with owner-only
 permissions. The environment file is
 `~/.local/state/local-control/environment`, outside this repository. A fresh

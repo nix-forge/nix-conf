@@ -1,0 +1,15 @@
+#!@bash@
+set -euo pipefail
+
+umask 077
+output_directory='@outputDirectory@'
+@mkdir@ -p -- "$output_directory"
+timestamp="$(@date@ +%Y-%m-%d_%H-%M-%S)"
+output_file="$output_directory/$timestamp.png"
+if [ "$#" -gt 0 ] && [ "$1" = "full" ]; then
+  @grim@ "$output_file"
+else
+  @grim@ -g "$(@slurp@)" "$output_file"
+fi
+@wlCopy@ < "$output_file"
+printf '%s\n' "$output_file"

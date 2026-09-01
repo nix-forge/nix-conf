@@ -39,6 +39,7 @@ in
   imports = [
     inputs.zen-browser.homeModules.twilight
     ./blocking.nix
+    ./acceleration.nix
     ./extensions.nix
     ./language.nix
     ./policies.nix

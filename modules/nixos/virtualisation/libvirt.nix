@@ -18,10 +18,7 @@
   ];
 
   # For passthrough with VFI
-  services.udev.extraRules = ''
-    # Supporting VFIO
-    SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"
-  '';
+  services.udev.extraRules = builtins.readFile ./50-vfio.rules;
 
   # enable virt-manager
   programs.virt-manager.enable = true;

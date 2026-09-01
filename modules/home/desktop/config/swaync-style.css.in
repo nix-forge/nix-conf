@@ -1,0 +1,113 @@
+@define-color surface @base00@;
+@define-color surface-raised @base01@;
+@define-color surface-hover @base02@;
+@define-color outline @base03@;
+@define-color muted @base04@;
+@define-color text @base05@;
+@define-color red @base08@;
+@define-color green @base0B@;
+@define-color accent @base0D@;
+
+* {
+  border: 0;
+  box-shadow: none;
+  font-family: @font@;
+  font-size: 14px;
+}
+
+.control-center,
+.notification {
+  background: alpha(@surface, 0.97);
+  border: 1px solid alpha(@outline, 0.78);
+  border-radius: 16px;
+  color: @text;
+}
+
+.control-center {
+  padding: 10px;
+}
+
+.notification-row {
+  outline: none;
+  margin: 6px 0;
+}
+
+.notification-content,
+.widget-mpris,
+.widget-volume,
+.widget-dnd {
+  background: alpha(@surface-raised, 0.90);
+  border: 1px solid alpha(@outline, 0.55);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.notification-content:hover,
+.widget-mpris:hover {
+  background: alpha(@surface-hover, 0.92);
+}
+
+.summary {
+  color: @text;
+  font-weight: 650;
+}
+
+.body,
+.time,
+.widget-title > label {
+  color: @muted;
+}
+
+.widget-title {
+  margin: 4px 2px 10px;
+}
+
+.widget-title > button,
+.notification-default-action,
+.notification-action,
+.widget-mpris button {
+  background: transparent;
+  border-radius: 9px;
+  color: @text;
+  padding: 6px 9px;
+}
+
+.widget-title > button:hover,
+.notification-default-action:hover,
+.notification-action:hover,
+.widget-mpris button:hover {
+  background: alpha(@accent, 0.22);
+}
+
+.widget-dnd switch,
+.widget-dnd switch slider {
+  border-radius: 999px;
+}
+
+.widget-dnd switch:checked {
+  background: @accent;
+}
+
+scale trough {
+  background: alpha(@outline, 0.68);
+  border-radius: 999px;
+}
+
+scale highlight {
+  background: @accent;
+  border-radius: 999px;
+}
+
+.close-button {
+  background: alpha(@surface-hover, 0.94);
+  border-radius: 999px;
+  color: @text;
+  margin: 6px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.close-button:hover {
+  background: alpha(@red, 0.82);
+  color: @surface;
+}

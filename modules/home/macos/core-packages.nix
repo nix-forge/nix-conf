@@ -52,9 +52,16 @@ let
 
   nativeCommand =
     name: path:
-    pkgs.writeShellScriptBin name ''
-      exec ${path} "$@"
-    '';
+    pkgs.replaceVarsWith {
+      inherit name;
+      src = ./native-command.sh;
+      dir = "bin";
+      isExecutable = true;
+      replacements = {
+        bash = lib.getExe pkgs.bash;
+        command = path;
+      };
+    };
 
   # Keep the GNU userland as the normal PATH default, but preserve macOS tools
   # whose interface is coupled to Darwin kernel APIs or filesystem metadata.

@@ -36,20 +36,33 @@ let
 
   generatedConfig = pkgs.writeText "actual-config.json" (builtins.toJSON actualConfig);
 
-  actualOpen = pkgs.writeShellApplication {
+  actualOpen = pkgs.replaceVarsWith {
     name = "actual-open";
-    runtimeInputs = lib.optionals (!isDarwin) [ pkgs.xdg-utils ];
-    text = ''
-      url=${lib.escapeShellArg localUrl}
+    src = ./scripts/actual-open.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe pkgs.xdg-utils;
+      url = lib.escapeShellArg localUrl;
+    };
+  };
 
-      if command -v open >/dev/null 2>&1; then
-        open "$url" >/dev/null 2>&1
-      elif command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "$url" >/dev/null 2>&1
-      else
-        printf '%s\n' "$url"
-      fi
-    '';
+  actualSetup = pkgs.replaceVarsWith {
+    name = "actual-setup.sh";
+    src = ./scripts/actual-setup.sh;
+    replacements = {
+      mkdir = lib.getExe' pkgs.coreutils "mkdir";
+      chmod = lib.getExe' pkgs.coreutils "chmod";
+      install = lib.getExe' pkgs.coreutils "install";
+      configDir = lib.escapeShellArg configDir;
+      stateDir = lib.escapeShellArg stateDir;
+      dataDir = lib.escapeShellArg cfg.dataDir;
+      serverFiles = lib.escapeShellArg serverFiles;
+      userFiles = lib.escapeShellArg userFiles;
+      generatedConfig = lib.escapeShellArg generatedConfig;
+      configFile = lib.escapeShellArg configFile;
+    };
   };
 in
 {
@@ -119,24 +132,7 @@ in
     ];
 
     home.activation.actualSetup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      set -eu
-
-      umask 0077
-      mkdir -p \
-        ${lib.escapeShellArg configDir} \
-        ${lib.escapeShellArg stateDir} \
-        ${lib.escapeShellArg cfg.dataDir} \
-        ${lib.escapeShellArg serverFiles} \
-        ${lib.escapeShellArg userFiles}
-
-      chmod 700 \
-        ${lib.escapeShellArg configDir} \
-        ${lib.escapeShellArg stateDir} \
-        ${lib.escapeShellArg cfg.dataDir} \
-        ${lib.escapeShellArg serverFiles} \
-        ${lib.escapeShellArg userFiles}
-
-      ${pkgs.coreutils}/bin/install -m 600 ${lib.escapeShellArg generatedConfig} ${lib.escapeShellArg configFile}
+      source ${actualSetup}
     '';
 
     home.activation.actualOpen = lib.mkIf cfg.openOnActivation (

@@ -1,128 +1,65 @@
 let
-  lockData = builtins.fromJSON (builtins.readFile ../../flake.lock);
-  rootInputs = lockData.nodes.root.inputs;
+  # The registry is a CLI convenience layer, not a dependency mechanism.
+  # Keep flake inputs explicit in flake.nix so each project records its own
+  # dependencies in flake.lock.
+  mkRegistry = { inputs, self, ... }: {
+    # Keep this list deliberately short. Every store-path alias retains its
+    # input source in the active system closure.
+    nixpkgs = {
+      flake = inputs.nixpkgs;
+      exact = true;
+    };
+    self = {
+      flake = self;
+      exact = true;
+    };
+  };
 
-  resolveNodeRef =
-    ref:
-    if builtins.isString ref then
-      ref
-    else if builtins.isList ref then
-      resolvePath ref
-    else
-      throw "Unsupported flake.lock input reference type";
-
-  resolvePath =
-    path:
-    builtins.foldl' (
-      nodeName: segment:
-      let
-        node = lockData.nodes.${nodeName};
-      in
-      resolveNodeRef node.inputs.${segment}
-    ) lockData.root path;
-
-  isRootFlakeInput =
-    name:
-    if !(builtins.hasAttr name rootInputs) then
-      false
-    else
-      let
-        nodeName = resolveNodeRef rootInputs.${name};
-      in
-      lockData.nodes.${nodeName}.flake or true;
-
-  partitionInputNames =
-    flakeFile:
-    let
-      partitionFlake = import flakeFile;
-      declaredInputs = partitionFlake.inputs or { };
-      isFlakeInput =
-        name:
-        let
-          spec = declaredInputs.${name};
-        in
-        if builtins.isAttrs spec then spec.flake or true else true;
-    in
-    builtins.filter isFlakeInput (builtins.attrNames declaredInputs);
-
-  # The former NixOS partition was removed when the repository moved to the
-  # framework-managed targets. Keep this lookup optional so clean checkouts do
-  # not fail while retaining compatibility with repositories that still carry
-  # the partition file.
-  nixosPartitionInputs =
-    if builtins.pathExists ../../flake/nixos/flake.nix then
-      partitionInputNames ../../flake/nixos/flake.nix
-    else
-      [ ];
-
-  allowedByClass =
-    class: name: isRootFlakeInput name || (class == "nixos" && builtins.elem name nixosPartitionInputs);
-  mkRegistry =
-    {
-      lib,
-      inputs,
-      self,
-      class,
-    }:
-    let
-      # Register direct root flake inputs from flake.lock, plus class-specific
-      # partition inputs (darwin/nixos only).
-      flakeInputs = lib.filterAttrs (
-        name: value: allowedByClass class name && builtins.isAttrs value && value ? outputs
-      ) inputs;
-      registryFlakes = flakeInputs // {
-        inherit self;
-      };
-    in
-    lib.mapAttrs (_: flake: { inherit flake; }) registryFlakes;
+  # Nix resolves registries in this order: global, system, user, command
+  # line. A managed system registry is enough here. Disabling the mutable,
+  # network-fetched global registry avoids a request during indirect flake
+  # resolution and prevents undeclared aliases from changing underneath us.
+  nixSettings = {
+    flake-registry = "";
+  };
 in
 {
-  nixos =
-    {
-      inputs,
-      self,
-      lib,
-      ...
-    }:
-    {
-      nix.registry = mkRegistry {
-        inherit lib inputs self;
-        class = "nixos";
-      };
+  nixos = args: {
+    nix = {
+      registry = mkRegistry args;
+      settings = nixSettings;
     };
+  };
 
   darwin =
-    {
-      inputs,
-      self,
-      lib,
-      config,
-      ...
-    }:
+    args@{ lib, config, ... }:
     let
-      registry = mkRegistry {
-        inherit lib inputs self;
-        class = "darwin";
-      };
+      registry = mkRegistry args;
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
     in
     lib.mkMerge [
-      (lib.mkIf (!usingDeterminateNix) { nix.registry = registry; })
+      (lib.mkIf (!usingDeterminateNix) {
+        nix = {
+          inherit registry;
+          settings = nixSettings;
+        };
+      })
+      # The Determinate nix-darwin module renders this registry at
+      # /etc/nix/registry.json and points Determinate Nix at it. Do not put
+      # flake-registry in customSettings as that would fight its generated
+      # setting.
       (lib.mkIf usingDeterminateNix { determinateNix.registry = registry; })
     ];
 
   homeManager =
+    args@{ lib, config, ... }:
     {
-      inputs,
-      self,
-      lib,
-      config,
-      ...
-    }:
-    {
-      nix.registry = lib.mkIf (config.nix.package != null) (mkRegistry {
-        inherit lib inputs self;
-        class = "homeManager";
-      });
+      # Standalone Home Manager owns a client registry. OS-managed Home
+      # Manager configurations leave nix.package null, so the system registry
+      # remains the single source of truth.
+      nix = lib.mkIf (config.nix.package != null) {
+        registry = mkRegistry args;
+        settings = nixSettings;
+      };
     };
 }

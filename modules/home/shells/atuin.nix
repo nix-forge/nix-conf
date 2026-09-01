@@ -1,6 +1,7 @@
 {
   programs.atuin = {
     enable = true;
+    daemon.enable = true;
 
     settings = {
       auto_sync = true;

@@ -1,0 +1,33 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+input_file="$1"
+output_file="$2"
+
+# This is an explicit SDR display conversion. awww renders only 8-bit wl_shm
+# buffers, so retaining an EXR for a future HDR-capable renderer is important.
+# The derivative uses 16-bit PNG to avoid introducing an additional lossy
+# encode before awww performs its own final 8-bit display conversion.
+dimensions="$(magick identify -ping -format '%w %h' -- "$input_file")"
+width="${dimensions%% *}"
+height="${dimensions##* }"
+[ "$width" -gt 0 ]
+[ "$height" -gt 0 ]
+[ $((width * height)) -le @maxPixels@ ]
+
+# EXR and Radiance HDR are scene-referred floating-point images. ImageMagick
+# performs the linear-to-sRGB conversion, then maps the observed range into a
+# 16-bit display image. The limits make malformed decompression bombs fail
+# before they can consume unbounded memory or disk.
+magick \
+  -limit memory 1GiB \
+  -limit map 2GiB \
+  -limit disk 4GiB \
+  "${input_file}[0]" \
+  -colorspace sRGB \
+  -auto-level \
+  -depth 16 \
+  -define png:color-type=2 \
+  "PNG48:$output_file"

@@ -3,6 +3,9 @@
   username = "ianmh";
   homeDirectory = "/home/ianmh";
   uid = 1000;
+  # nix-seal's plaintext runtime is mounted and managed by NixOS. Do not
+  # expose an independent activation that cannot preserve its noswap guarantee.
+  standalone = false;
 
   secrets = {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
@@ -24,13 +27,14 @@
     determinate
     nix-settings
     registry
+    browser-policies
     xdg
     nixSeal
     ./nix-seal.nix
 
     fonts
     dev
-    xdg
+    xdg-portal
 
     # Keep the workstation's command-line tools explicit. `cli-whisper`
     # brings a machine-learning runtime and is intentionally opt-in rather
@@ -52,7 +56,8 @@
     shells-tmux
 
     wm-hyprland
-    server-ssh
+    desktop
+    ssh
     spotify
 
     zen-browser
@@ -75,7 +80,14 @@
     terminals-ghostty-defaultterminal
     mpv
     libreoffice
-    { programs.libreoffice.enable = true; }
+    {
+      programs.libreoffice = {
+        enable = true;
+        # The matching NixOS policy is declared in the desktop-local
+        # AppArmor module; other hosts deliberately remain unconfined.
+        languageTool.appArmorProfile = "nixos-languagetool";
+      };
+    }
 
     stylix
     stylix-targets-zen-browser

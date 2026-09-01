@@ -1,0 +1,2 @@
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="3710", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3710", TAG+="uaccess"

@@ -1,0 +1,7 @@
+# Karakeep Browser Extension
+
+Local server URL: `@localUrl@`
+
+The Karakeep Firefox/Zen extension is installed by browser policy. Open the extension options, set the server address to the URL above, then sign in or paste an API key from Karakeep.
+
+The extension stores configuration in `chrome.storage.sync`; Karakeep does not currently expose Firefox managed-storage policy for this setting.

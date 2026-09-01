@@ -6,23 +6,16 @@
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
+  gitPackage = pkgs.git.override {
+    osxkeychainSupport = isDarwin;
+    withLibsecret = isLinux;
+  };
 in
 {
-  home.activation.removeExistingGitconfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-    rm -f ${config.home.homeDirectory}/.gitconfig
-  '';
-
   programs.git = {
     enable = true;
 
-    package = pkgs.git.override {
-      osxkeychainSupport = isDarwin;
-      withLibsecret = isLinux;
-    };
-
-    maintenance.enable = true;
-
-    attributes = [ "*.pdf diff=pdf" ];
+    package = gitPackage;
 
     lfs.enable = true;
 
@@ -34,41 +27,35 @@ in
     ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
     settings = {
-      credential.helper =
-        if isDarwin then
-          "osxkeychain"
-        else if isLinux then
-          lib.getExe' config.programs.git.package "git-credential-libsecret"
-        else
-          null;
-
+      alias = {
+        last = "log -1 HEAD";
+        lg = "log --graph --decorate --oneline";
+        st = "status --short --branch";
+      };
       init.defaultBranch = "main";
       fetch = {
         prune = true;
         pruneTags = true;
         writeCommitGraph = true;
         recurseSubmodules = "on-demand";
-        negotiationAlgorithm = "skipping";
         showForcedUpdates = true;
       };
-      commit.verbose = true;
-      commit.status = true;
-      rerere.enabled = true;
-      rerere.autoupdate = true;
-
-      pull = {
-        rebase = true;
+      commit = {
+        status = true;
+        verbose = true;
       };
+
+      rerere.enabled = true;
+
+      pull.rebase = true;
       branch.autoSetupRebase = "always";
       rebase = {
-        autoStash = true;
         autosquash = true;
         updateRefs = true;
         rescheduleFailedExec = true;
       };
       merge = {
-        autoStash = true;
-        strategy = "ort";
+        conflictStyle = "zdiff3";
         stat = true;
       };
       push = {
@@ -77,21 +64,25 @@ in
         default = "simple";
       };
       core = {
-        fsmonitor = true;
-        untrackedCache = true;
         autocrlf = "input";
         editor = lib.mkIf (config.home.sessionVariables ? EDITOR) config.home.sessionVariables.EDITOR;
         whitespace = "trailing-space,space-before-tab";
         abbrev = 12;
-        precomposeUnicode = isDarwin;
+      }
+      // lib.optionalAttrs isDarwin {
+        fsmonitor = true;
+        precomposeUnicode = true;
       };
+
       color.ui = "auto";
       feature.manyFiles = true;
       gc.writeCommitGraph = true;
       index.threads = 0;
+      maintenance.strategy = "incremental";
+      transfer.credentialsInUrl = "die";
       diff = {
         algorithm = "histogram";
-        colorMoved = "default";
+        colorMoved = "zebra";
         renames = true;
         submodule = "log";
       };
@@ -99,10 +90,13 @@ in
         aheadBehind = true;
         submoduleSummary = true;
       };
-      submodule.recurse = true;
       help.autocorrect = "prompt";
       tag.sort = "version:refname";
       branch.sort = "-committerdate";
+    }
+    // lib.optionalAttrs isDarwin { credential.helper = "osxkeychain"; }
+    // lib.optionalAttrs isLinux {
+      credential.helper = lib.getExe' gitPackage "git-credential-libsecret";
     };
   };
 

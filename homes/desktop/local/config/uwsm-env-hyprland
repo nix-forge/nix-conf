@@ -1,0 +1,4 @@
+# The RTX 4070 is the only GPU that drives the headless Sunshine output.
+# AQ_DRM_DEVICES is intentionally host-local: multi-GPU ordering is a hardware
+# policy, not a reusable Hyprland default.
+export AQ_DRM_DEVICES=/dev/dri/card1

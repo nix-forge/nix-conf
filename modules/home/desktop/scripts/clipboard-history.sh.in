@@ -1,0 +1,10 @@
+#!@bash@
+set -euo pipefail
+
+@cliphist@ wipe
+@wlPaste@ --type text --watch @cliphist@ store &
+text_watcher=$!
+@wlPaste@ --type image --watch @cliphist@ store &
+image_watcher=$!
+trap 'kill "$text_watcher" "$image_watcher"' EXIT INT TERM
+wait

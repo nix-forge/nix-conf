@@ -1,0 +1,4 @@
+[server]
+min_brightness = 5
+show_percentage = true
+keyboard_backlight = true

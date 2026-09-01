@@ -53,6 +53,7 @@
     security
     stylix
     fonts
+    ssh
   ];
 
   homes.ianmh = {

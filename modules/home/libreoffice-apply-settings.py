@@ -33,9 +33,27 @@ def load_tree(profile: Path) -> ET.ElementTree[ET.Element]:
     Returns:
         The parsed or newly created registry tree.
 
+    Raises:
+        SystemExit: If an existing profile is malformed or has an unexpected
+            registry root, leaving it unchanged.
+
     """
     if profile.exists():
-        return ET.parse(profile)  # ruff:ignore[suspicious-xml-element-tree-usage]
+        try:
+            tree = ET.parse(profile)  # ruff:ignore[suspicious-xml-element-tree-usage]
+        except ET.ParseError as error:
+            sys.stderr.write(
+                "warning: LibreOffice profile is malformed; settings were not changed: "
+                f"{error}\n"
+            )
+            raise SystemExit(0) from error
+        if tree.getroot().tag != f"{{{OOR}}}items":
+            sys.stderr.write(
+                "warning: LibreOffice profile has an unexpected root element; "
+                "settings were not changed\n"
+            )
+            raise SystemExit(0)
+        return tree
 
     root = ET.Element(
         f"{{{OOR}}}items",

@@ -42,13 +42,7 @@
     "nct6683"
   ];
   boot.blacklistedKernelModules = [ "zenpower" ];
-  boot.extraModprobeConfig = ''
-    options kvm_amd nested=1
-    # The board uses a Nuvoton NCT6687D-R.  The upstream nct6683 driver
-    # supports it, but requires force=1 on non-Intel boards.
-    options nct6683 force=1
-    options cfg80211 ieee80211_regdom=US
-  '';
+  boot.extraModprobeConfig = builtins.readFile ./platform-modprobe.conf;
 
   # Zen 4 receives vendor microcode through the initrd before the kernel
   # starts normal userspace. Keep this explicit for this AMD physical host;

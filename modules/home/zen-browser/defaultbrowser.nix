@@ -36,6 +36,7 @@ let
     dir = "bin";
     isExecutable = true;
     replacements = {
+      bash = lib.getExe pkgs.bash;
       inherit
         awkExe
         defaultBrowserExe

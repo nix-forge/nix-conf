@@ -13,75 +13,69 @@ let
   stateDir = "${config.xdg.stateHome}/dev-vm";
   hostOnlyNetwork = "172.16.42.0/24";
   sshPort = 22;
-  devVmResolver = ./dev_vm_host.py;
+  # Make the Python source an explicit store dependency of the generated
+  # wrapper rather than interpolating a context-free local path.
+  devVmResolver = builtins.path {
+    path = ./dev_vm_host.py;
+    name = "dev-vm-host.py";
+  };
 
   # Resolve the only present host-only adapter at runtime. The VMX remains
   # outside the Nix store and only its validated adapter identity is retained.
-  devVmHost = pkgs.writeShellApplication {
+  devVmHost = pkgs.replaceVarsWith {
     name = "dev-vm-host";
-    text = ''
-      set -eu
-      exec ${pkgs.python3}/bin/python3 ${devVmResolver} \
-        --vmx ${lib.escapeShellArg cfg.vmxFile} \
-        --leases ${lib.escapeShellArg cfg.leaseFile} \
-        --lease-owner-uid 0 \
-        --network ${lib.escapeShellArg hostOnlyNetwork}
-    '';
+    src = ./scripts/dev-vm-host.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      python = lib.getExe pkgs.python3;
+      resolver = devVmResolver;
+      vmxFile = lib.escapeShellArg cfg.vmxFile;
+      leaseFile = lib.escapeShellArg cfg.leaseFile;
+      hostOnlyNetwork = lib.escapeShellArg hostOnlyNetwork;
+    };
   };
 
-  devVmProxy = pkgs.writeShellApplication {
+  devVmProxy = pkgs.replaceVarsWith {
     name = "dev-vm-proxy";
-    runtimeInputs = [ devVmHost ];
-    text = ''
-      set -eu
-      if [ "$#" -ne 1 ] || [ "$1" != ${toString sshPort} ]; then
-        printf 'dev-vm-proxy only permits the configured SSH port.\n' >&2
-        exit 1
-      fi
-      # Keep address resolution and transport reachability separate. Python's
-      # socket probe can report a spurious host-unreachable result on Darwin
-      # after a VMware adapter reset even when the system TCP stack can connect.
-      # The Darwin system netcat both performs the real reachability check and
-      # becomes the SSH byte stream, so there is no check/use gap here.
-      # Do not pass `-w`: it also times out idle reads in a healthy SSH tunnel.
-      exec /usr/bin/nc "$(dev-vm-host)" "$1"
-    '';
+    src = ./scripts/dev-vm-proxy.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      devVmHost = lib.getExe' devVmHost "dev-vm-host";
+      sshPort = toString sshPort;
+    };
   };
 
-  devVmStatus = pkgs.writeShellApplication {
+  devVmStatus = pkgs.replaceVarsWith {
     name = "dev-vm-status";
-    runtimeInputs = [
-      devVmHost
-      pkgs.netcat
-      pkgs.lsof
-      pkgs.openssh
-    ];
-    text = ''
-      set -eu
-      vm_host="$(dev-vm-host)"
+    src = ./scripts/dev-vm-status.sh;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      devVmHost = lib.getExe' devVmHost "dev-vm-host";
+      netcat = lib.getExe pkgs.netcat;
+      lsof = lib.getExe pkgs.lsof;
+      ssh = lib.getExe pkgs.openssh;
+      sshPort = toString sshPort;
+    };
+  };
 
-      printf 'Host-only VM address: %s\n' "$vm_host"
-      nc -vz -w 3 "$vm_host" ${toString sshPort}
-
-      printf '\nMac control-host listeners:\n'
-      lsof -nP -iTCP:5173 -iTCP:8788 -iTCP:8443 -sTCP:LISTEN || true
-
-      printf '\nWindows development prerequisites:\n'
-      ssh_arguments=()
-      if [ -n "''${DEV_VM_SSH_CONFIG:-}" ]; then
-        ssh_arguments=(-F "$DEV_VM_SSH_CONFIG")
-      fi
-      ssh "''${ssh_arguments[@]}" dev-vm '
-        set -eu
-        for command_name in codex git dotnet pwsh; do
-          command -v "$command_name" >/dev/null || {
-            printf "Missing required command: %s\n" "$command_name" >&2
-            exit 1
-          }
-          printf "%s: %s\n" "$command_name" "$(command -v "$command_name")"
-        done
-      '
-    '';
+  devVmKeySetup = pkgs.replaceVarsWith {
+    name = "dev-vm-key-setup.sh";
+    src = ./scripts/create-dev-vm-key.sh;
+    replacements = {
+      mkdir = lib.getExe' pkgs.coreutils "mkdir";
+      chmod = lib.getExe' pkgs.coreutils "chmod";
+      sshKeygen = lib.getExe' pkgs.openssh "ssh-keygen";
+      sshDir = lib.escapeShellArg sshDir;
+      stateDir = lib.escapeShellArg stateDir;
+      keyFile = lib.escapeShellArg keyFile;
+      publicKeyFile = lib.escapeShellArg "${keyFile}.pub";
+    };
   };
 
   devVmSshSettings = {
@@ -156,26 +150,7 @@ in
     ];
 
     home.activation.devVmKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      set -eu
-      umask 0077
-      mkdir -p ${lib.escapeShellArg sshDir} ${lib.escapeShellArg stateDir}
-      chmod 700 ${lib.escapeShellArg sshDir} ${lib.escapeShellArg stateDir}
-
-      if [ ! -f ${lib.escapeShellArg keyFile} ]; then
-        ${pkgs.openssh}/bin/ssh-keygen \
-          -t ed25519 \
-          -a 100 \
-          -N "" \
-          -C 'dev-vm tunnel key' \
-          -f ${lib.escapeShellArg keyFile}
-      fi
-
-      if [ ! -f ${lib.escapeShellArg "${keyFile}.pub"} ]; then
-        ${pkgs.openssh}/bin/ssh-keygen -y -f ${lib.escapeShellArg keyFile} > ${lib.escapeShellArg "${keyFile}.pub"}
-      fi
-
-      chmod 600 ${lib.escapeShellArg keyFile}
-      chmod 644 ${lib.escapeShellArg "${keyFile}.pub"}
+      source ${devVmKeySetup}
     '';
 
     programs.ssh.settings = {

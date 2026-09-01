@@ -9,11 +9,26 @@
 let
   # package = inputs.nixpkgs-wayland.packages.${system}.waybar;
 
+  waybarColors =
+    with config.lib.stylix.colors.withHashtag;
+    pkgs.writeTextDir "waybar/_stylix-colors.scss" ''
+      $base00: ${base00};
+      $base01: ${base01};
+      $base02: ${base02};
+      $base03: ${base03};
+      $base04: ${base04};
+      $base05: ${base05};
+      $base08: ${base08};
+      $base09: ${base09};
+      $base0A: ${base0A};
+      $base0B: ${base0B};
+      $base0C: ${base0C};
+      $base0D: ${base0D};
+      $base0E: ${base0E};
+    '';
+
   # the fonts that will be included with the waybar package
-  fontPackages = [
-    pkgs.ubuntu-classic
-    pkgs.material-design-icons
-  ];
+  fontPackages = [ pkgs.material-design-icons ];
 
   # patch those fonts in
   package' =
@@ -35,7 +50,7 @@ let
     "${
       pkgs.runCommandLocal name { } ''
         mkdir -p $out
-        ${lib.getExe pkgs.sassc} -t expanded '${source}' > $out/${name}.css
+        ${lib.getExe pkgs.sassc} -I '${waybarColors}/waybar' -t expanded '${source}' > $out/${name}.css
       ''
     }/${name}.css";
 
@@ -66,10 +81,13 @@ let
       # inputVolumeUp = "${kbFns} input +0.05";
       # inputVolumeDown = "${kbFns} input -0.05";
       bluetoothSettings =
-        (pkgs.writeShellScript "waybar-bluetooth-settings" ''
-          set -eux
-          export PATH="${
-            lib.makeBinPath (
+        (pkgs.replaceVarsWith {
+          name = "waybar-bluetooth-settings";
+          src = ./scripts/bluetooth-settings.sh;
+          isExecutable = true;
+          replacements = {
+            bash = lib.getExe pkgs.bash;
+            runtimePath = lib.makeBinPath (
               with pkgs;
               [
                 coreutils
@@ -79,26 +97,17 @@ let
                 nettools
                 blueman
               ]
-            )
-          }:$PATH"
-          is_powered_on="$(
-            bluetoothctl show | \
-            awk '/Name: '"$(hostname)"'$/{p=1} p && /Powered: yes/{print "true"; exit} END{if(!NR || !p) print "false"}'
-          )"
-          if [[ $is_powered_on == 'true' ]]; then
-            blueman-manager
-          else
-            rfkill unblock bluetooth && sleep 1 || true
-            bluetoothctl power on
-            sleep 0.5
-            blueman-manager
-          fi
-        '').outPath;
+            );
+          };
+        }).outPath;
       bluetoothToggle =
-        (pkgs.writeShellScript "waybar-bluetooth-toggle" ''
-          set -eux
-          export PATH="${
-            lib.makeBinPath (
+        (pkgs.replaceVarsWith {
+          name = "waybar-bluetooth-toggle";
+          src = ./scripts/bluetooth-toggle.sh;
+          isExecutable = true;
+          replacements = {
+            bash = lib.getExe pkgs.bash;
+            runtimePath = lib.makeBinPath (
               with pkgs;
               [
                 coreutils
@@ -107,19 +116,9 @@ let
                 bluez
                 nettools
               ]
-            )
-          }:$PATH"
-          is_powered_on="$(
-            bluetoothctl show | \
-            awk '/Name: '"$(hostname)"'$/{p=1} p && /Powered: yes/{print "true"; exit} END{if(!NR || !p) print "false"}'
-          )"
-          if [[ $is_powered_on == 'true' ]]; then
-            bluetoothctl power off
-          else
-            rfkill unblock bluetooth && sleep 1 || true
-            bluetoothctl power on
-          fi
-        '').outPath;
+            );
+          };
+        }).outPath;
       bluetoothKill = "rfkill block bluetooth && ${systemctl} restart bluetooth.service";
       bluetoothOff = "${bluetoothctl} power off";
       wirelessSettings = iwgtk;

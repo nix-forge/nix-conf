@@ -7,6 +7,10 @@ let
       { };
 in
 {
+  # The desktop uses its GNOME Keyring-backed SSH agent. Agent integration is
+  # personal, so it stays out of the shared client policy.
+  programs.ssh.settings."*".AddKeysToAgent = "yes";
+
   programs.ssh.settings = {
     # Servers
     "ugclinux" = {

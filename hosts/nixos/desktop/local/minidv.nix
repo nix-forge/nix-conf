@@ -11,7 +11,7 @@ let
     df() { ${lib.getExe' pkgs.coreutils "df"} "$@"; }
     dirname() { ${lib.getExe' pkgs.coreutils "dirname"} "$@"; }
     id() { ${lib.getExe' pkgs.coreutils "id"} "$@"; }
-    hostname() { ${lib.getExe' pkgs.coreutils "hostname"} "$@"; }
+    hostname() { ${lib.getExe pkgs.hostname} "$@"; }
     ls() { ${lib.getExe' pkgs.coreutils "ls"} "$@"; }
     mkdir() { ${lib.getExe' pkgs.coreutils "mkdir"} "$@"; }
     mktemp() { ${lib.getExe' pkgs.coreutils "mktemp"} "$@"; }
@@ -111,13 +111,9 @@ let
     script = ../minidv/minidv-diagnose.sh;
   };
 
-  minidvUdevRules = pkgs.writeTextFile {
-    name = "minidv-firewire-udev-rules";
-    destination = "/etc/udev/rules.d/70-minidv-firewire.rules";
-    text = ''
-      SUBSYSTEM=="firewire", KERNEL=="fw[0-9]*", ATTR{is_local}=="1", ATTRS{vendor}=="0x104c", ATTRS{device}=="0x8024", TAG+="uaccess"
-    '';
-  };
+  minidvUdevRules = pkgs.runCommand "minidv-firewire-udev-rules" { } ''
+    install -Dm644 ${../minidv/70-minidv-firewire.rules} "$out/etc/udev/rules.d/70-minidv-firewire.rules"
+  '';
 in
 {
   # A PCI OHCI FireWire controller carries the standard PCI class alias for

@@ -7,46 +7,168 @@
 }:
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  palette = config.appearance.palette;
+  themeReplacements = lib.genAttrs [
+    "surface"
+    "surfaceRaised"
+    "surfaceHover"
+    "surfaceChrome"
+    "outline"
+    "outlineSubtle"
+    "muted"
+    "text"
+    "textStrong"
+    "danger"
+    "warning"
+    "success"
+    "info"
+    "accent"
+    "special"
+    "cursor"
+    "lineNumber"
+    "scrollbar"
+    "syntaxFunction"
+    "diffAdded"
+    "diffRemoved"
+    "base06"
+    "base09"
+    "base0F"
+  ] (name: "#${palette.${name}}");
+  carbonNeonThemeSource =
+    let
+      themeFile =
+        name: source: tokens:
+        pkgs.replaceVarsWith {
+          inherit name;
+          src = source;
+          replacements = lib.getAttrs tokens themeReplacements;
+        };
+    in
+    pkgs.runCommandLocal "carbon-neon-vscode-theme-source" { } ''
+      mkdir -p "$out/themes"
+      cp ${./themes/carbon-neon/package.json} "$out/package.json"
+      cp ${
+        themeFile "carbon-neon-color-theme.json" ./themes/carbon-neon/themes/carbon-neon-color-theme.json [
+          "surface"
+          "surfaceRaised"
+          "surfaceHover"
+          "surfaceChrome"
+          "outline"
+          "outlineSubtle"
+          "muted"
+          "text"
+          "textStrong"
+          "danger"
+          "warning"
+          "success"
+          "info"
+          "accent"
+          "special"
+          "cursor"
+          "lineNumber"
+          "scrollbar"
+          "syntaxFunction"
+          "diffAdded"
+          "diffRemoved"
+          "base09"
+          "base0F"
+        ]
+      } "$out/themes/carbon-neon-color-theme.json"
+      cp ${
+        themeFile "carbon-neon-oled-color-theme.json"
+          ./themes/carbon-neon/themes/carbon-neon-oled-color-theme.json
+          [
+            "surface"
+            "surfaceChrome"
+          ]
+      } "$out/themes/carbon-neon-oled-color-theme.json"
+    '';
+  carbonNeonTheme = pkgs.vscode-utils.buildVscodeExtension {
+    pname = "carbon-neon-theme";
+    version = "0.1.0";
+    src = carbonNeonThemeSource;
+    sourceRoot = "carbon-neon-vscode-theme-source";
+    vscodeExtPublisher = "ianhollow";
+    vscodeExtName = "carbon-neon-theme";
+    vscodeExtUniqueId = "ianhollow.carbon-neon-theme";
+  };
+  theme =
+    if config.appearance.theme == "catppuccin-mocha" then
+      {
+        extensionIds = [
+          "catppuccin.catppuccin-vsc"
+          "catppuccin.catppuccin-vsc-icons"
+        ];
+        colorTheme = "Catppuccin Mocha";
+        iconTheme = "catppuccin-mocha";
+        productIconTheme = null;
+        localExtensions = [ ];
+      }
+    else if config.appearance.theme == "gruvbox-dark-medium" then
+      {
+        extensionIds = [
+          "tomphilbin.gruvbox-themes"
+          "pkief.material-icon-theme"
+        ];
+        colorTheme = "Gruvbox Dark (Medium)";
+        iconTheme = "material-icon-theme";
+        productIconTheme = null;
+        localExtensions = [ ];
+      }
+    else
+      {
+        extensionIds = [ "pkief.material-icon-theme" ];
+        colorTheme =
+          if config.appearance.theme == "carbon-neon-oled" then "Carbon Neon OLED" else "Carbon Neon";
+        iconTheme = "material-icon-theme";
+        productIconTheme = "material-product-icons";
+        # Vira ships a cohesive set of UI glyphs. Use the maintained,
+        # open Material Product Icons equivalent for Carbon Neon instead of
+        # copying Vira's commercial icon assets.
+        localExtensions = [
+          carbonNeonTheme
+          pkgs.vscode-extensions.pkief.material-product-icons
+        ];
+      };
 in
 {
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode (
-      [
-        ## Appearances ##
-        "pkief.material-icon-theme"
-        "vira.vsc-vira-theme"
+    extensions =
+      theme.localExtensions
+      ++ extensions.forVscode (
+        theme.extensionIds
+        ++ [
+          ## Intelligence ##
+          "usernamehw.errorlens"
+          "christian-kohler.path-intellisense"
+          "streetsidesoftware.code-spell-checker"
 
-        ## Intelligence ##
-        "usernamehw.errorlens"
-        "christian-kohler.path-intellisense"
-        "streetsidesoftware.code-spell-checker"
+          ## Version Control ##
+          "github.vscode-github-actions"
+          "mhutchie.git-graph"
 
-        ## Version Control ##
-        "github.vscode-github-actions"
-        "mhutchie.git-graph"
+          ## Collaboration Features
+          "ms-vsliveshare.vsliveshare"
 
-        ## Collaboration Features
-        "ms-vsliveshare.vsliveshare"
+          ## Editor Extension ##
+          "sleistner.vscode-fileutils"
+          "aaron-bond.better-comments"
+          "kevinkyang.auto-comment-blocks"
 
-        ## Editor Extension ##
-        "sleistner.vscode-fileutils"
-        "aaron-bond.better-comments"
-        "kevinkyang.auto-comment-blocks"
+          ## Base Language Support ##
+          "redhat.vscode-yaml"
+          "tamasfe.even-better-toml"
+          "mechatroner.rainbow-csv"
+          "janisdd.vscode-edit-csv"
+          "tomoki1207.pdf"
+          "nefrob.vscode-just-syntax"
 
-        ## Base Language Support ##
-        "redhat.vscode-yaml"
-        "tamasfe.even-better-toml"
-        "mechatroner.rainbow-csv"
-        "janisdd.vscode-edit-csv"
-        "tomoki1207.pdf"
-        "nefrob.vscode-just-syntax"
-
-        # Extra
-        "ms-vscode-remote.remote-ssh"
-      ]
-      # Direnv integration
-      ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
-    );
+          # Extra
+          "ms-vscode-remote.remote-ssh"
+        ]
+        # Direnv integration
+        ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
+      );
 
     userSettings =
       let
@@ -66,11 +188,10 @@ in
           # popups are really annoying
           "editor.hover.delay" = 700;
 
-          # colors
-          "workbench.colorTheme" = lib.mkForce "Vira Carbon High Contrast";
-          # icons
-          "workbench.iconTheme" = "vira-icons-carbon";
-          # "workbench.productIconTheme" = "viraUIIcons";
+          # Keep VS Code's native theme and icon port aligned with Stylix.
+          "workbench.colorTheme" = lib.mkForce theme.colorTheme;
+          "workbench.iconTheme" = theme.iconTheme;
+          "workbench.productIconTheme" = lib.mkIf (theme.productIconTheme != null) theme.productIconTheme;
 
           # title
           "window.titleSeparator" = " - ";
@@ -98,6 +219,9 @@ in
           "terminal.integrated.cursorStyle" = "line";
           # fix fuzzy text in integrated terminal
           "terminal.integrated.gpuAcceleration" = "on";
+          # Preserve the selected theme's terminal palette instead of forcing
+          # VS Code to brighten it for contrast heuristics.
+          "terminal.integrated.minimumContrastRatio" = 1;
           # Add editor inline suggestions
           "editor.inlineSuggest.enabled" = true;
 

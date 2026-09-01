@@ -11,14 +11,15 @@ let
 
   mkTool = command: extensions: { inherit command extensions; };
 
-  ruffFixAndFormat = pkgs.writeShellScript "opencode-ruff-fix-and-format" ''
-    set -eu
-
-    file="$1"
-
-    ${lib.getExe pkgs.ruff} check --fix --exit-zero "$file"
-    ${lib.getExe pkgs.ruff} format "$file"
-  '';
+  ruffFixAndFormat = pkgs.replaceVarsWith {
+    name = "opencode-ruff-fix-and-format";
+    src = ./scripts/opencode-ruff-fix-and-format.sh;
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      ruff = lib.getExe pkgs.ruff;
+    };
+  };
 
   dprintAstroConfig = pkgs.writeText "opencode-dprint-astro.json" (
     builtins.toJSON { plugins = [ "${pkgs.dprint-plugins.g-plane-markup_fmt}/plugin.wasm" ]; }
@@ -172,44 +173,12 @@ let
     "openai-yeet"
   ];
 
-  opencodeNotifierDarwinFallback = pkgs.writeShellScript "opencode-notifier-darwin-fallback" ''
-    event="''${1:-}"
-    message="''${2:-}"
-
-    case "$event" in
-      permission|question|plan_exit|complete|error) ;;
-      *) exit 0 ;;
-    esac
-
-    is_ghostty=0
-
-    case "''${TERM_PROGRAM-}" in
-      ghostty|Ghostty) is_ghostty=1 ;;
-    esac
-
-    case "''${LC_TERMINAL-}" in
-      ghostty|Ghostty) is_ghostty=1 ;;
-    esac
-
-    case "''${TERM-}" in
-      *ghostty*|*GHOSTTY*) is_ghostty=1 ;;
-    esac
-
-    if [ -n "''${TMUX-}" ] && command -v tmux >/dev/null 2>&1; then
-      tmux_client_term="$(tmux display-message -p '#{client_termname}' 2>/dev/null || true)"
-      case "$tmux_client_term" in
-        *ghostty*|*GHOSTTY*) is_ghostty=1 ;;
-      esac
-    fi
-
-    if [ "$is_ghostty" -eq 1 ]; then
-      exit 0
-    fi
-
-    HM_OPENCODE_NOTIFY_TITLE="OpenCode ($event)" \
-    HM_OPENCODE_NOTIFY_BODY="$message" \
-      /usr/bin/osascript -e 'display notification (system attribute "HM_OPENCODE_NOTIFY_BODY") with title (system attribute "HM_OPENCODE_NOTIFY_TITLE")' >/dev/null 2>&1 || true
-  '';
+  opencodeNotifierDarwinFallback = pkgs.replaceVarsWith {
+    name = "opencode-notifier-darwin-fallback";
+    src = ./scripts/opencode-notifier-darwin-fallback.sh;
+    isExecutable = true;
+    replacements.bash = lib.getExe pkgs.bash;
+  };
 in
 {
   programs.opencode = {

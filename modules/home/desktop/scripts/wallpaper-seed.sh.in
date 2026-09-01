@@ -1,0 +1,13 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+
+# Run each source serially. The source services retain their individual
+# sandbox, network policy, image validation, and cache limits.
+for source_unit in @sourceUnits@; do
+  for _ in $(seq 1 @initialFetches@); do
+    # A source can legitimately reject an oversized or non-wallpaper asset.
+    # Continue seeding the other source libraries in that case.
+    @systemctl@ --user start "$source_unit" || true
+  done
+done

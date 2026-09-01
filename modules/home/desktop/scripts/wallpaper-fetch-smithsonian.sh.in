@@ -1,0 +1,205 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+cache_directory='@wallpaperDirectory@'
+state_directory='@stateDirectory@'
+temporary_directory="$(mktemp -d)"
+trap 'rm -rf -- "$temporary_directory"' EXIT
+mkdir -p -- "$cache_directory" "$state_directory"
+chmod 700 -- "$cache_directory" "$state_directory"
+
+# nix-seal supplies this only to this service through systemd LoadCredential.
+# Keep it out of argv, the environment, Nix evaluation, and the Nix store.
+credential_directory="${CREDENTIALS_DIRECTORY:?Smithsonian credential was not supplied by systemd}"
+credential_file="$credential_directory/smithsonian-open-access-api-key"
+[ -r "$credential_file" ]
+api_key="$(tr -d '\r\n' <"$credential_file")"
+case "$api_key" in
+'' | *[!A-Za-z0-9._~-]*)
+  echo 'Smithsonian Open Access credential is empty or has an unexpected format.' >&2
+  exit 78
+  ;;
+esac
+
+# curl reads the authentication parameter from this private temporary file,
+# rather than an argument visible to other local processes.
+api_curl_config="$temporary_directory/api-key.curlrc"
+printf 'data-urlencode = "api_key=%s"\n' "$api_key" >"$api_curl_config"
+chmod 600 -- "$api_curl_config"
+unset api_key
+
+queries_json=@queriesJson@
+rejected_terms_json=@rejectedTermsJson@
+allowed_object_types_json=@allowedObjectTypesJson@
+allowed_unit_codes_json=@allowedUnitCodesJson@
+user_agent=@userAgent@
+candidates_file="$temporary_directory/candidates"
+: >"$candidates_file"
+
+# `object_type` is an indexed Smithsonian search field. The API does not
+# consistently return that controlled field in every record payload, so apply
+# the positive admission rule at search time rather than treating missing
+# response metadata as a reason to fall back to every collection object.
+object_type_query="$(jq -r '[.[] | "object_type:" + .] | join(" OR ")' <<<"$allowed_object_types_json")"
+[ -n "$object_type_query" ] || {
+  echo 'Smithsonian Open Access requires at least one allowed object type.' >&2
+  exit 78
+}
+
+# The API returns an explicit High-resolution JPEG or TIFF rendition with
+# dimensions. Only collection-object and media records marked CC0 are allowed;
+# thumbnails and delivery-service previews are never wallpaper candidates.
+while IFS= read -r query; do
+  response_json="$temporary_directory/search-$(sha256sum <<<"$query" | cut -c1-16).json"
+  if ! curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 60 \
+    --max-filesize 10485760 --user-agent "$user_agent" --config "$api_curl_config" --get \
+    --data-urlencode "q=($query) AND online_media_type:Images AND ($object_type_query)" \
+    --data-urlencode 'rows=50' --data-urlencode 'sort=random' \
+    --data-urlencode 'type=edanmdm' --data-urlencode 'row_group=objects' \
+    --output "$response_json" 'https://api.si.edu/openaccess/api/v1.0/search'; then
+    continue
+  fi
+
+  jq -r --argjson rejected_terms "$rejected_terms_json" \
+    --argjson allowed_object_types "$allowed_object_types_json" \
+    --argjson allowed_unit_codes "$allowed_unit_codes_json" '
+    .response.rows[]? as $row
+    | $row.content as $content
+    | ($content.descriptiveNonRepeating // {}) as $descriptive
+    | ($content.indexedStructured // {}) as $indexed
+    | ($descriptive.title.content // $row.title // "") as $title
+    | ($descriptive.unit_code // $content.unitCode // "") as $unit_code
+    | ([ $indexed.object_type[]? | select(type == "string") | ascii_downcase ]) as $object_types
+    | ([
+        $title,
+        ($indexed.object_type[]? // ""),
+        ($indexed.topic[]? // ""),
+        ($content.freetext.objectType[]?.content // ""),
+        ($content.freetext.physicalDescription[]?.content // ""),
+        ($descriptive.record_link // ""),
+        ($content.freetext.notes[]?.content // ""),
+        ($content.freetext.description[]?.content // "")
+      ] | map(select(type == "string")) | join(" ") | ascii_downcase) as $metadata
+    | select(($descriptive.metadata_usage.access // "") == "CC0")
+    | select(($object_types | length) == 0 or any($allowed_object_types[]; . | ascii_downcase as $type | ($object_types | index($type))))
+    | select(($allowed_unit_codes | length) == 0 or any($allowed_unit_codes[]; . == $unit_code))
+    | select(all($rejected_terms[]; . as $term | ($metadata | contains($term | ascii_downcase) | not)))
+    | $descriptive.online_media.media[]?
+    | select((.type // "") == "Images" and (.usage.access // "") == "CC0")
+    | . as $media
+    | $media.resources[]?
+    | select((.label // "") | test("^High-resolution (JPEG|TIFF)$"))
+    | select((.url? | type) == "string" and (.url | startswith("https://ids.si.edu/ids/download?id=")))
+    | select((.width? // 0) >= 3840 and (.height? // 0) >= 2160 and .width >= .height)
+    | {
+        source_id: $row.id,
+        source_page: ($row.url // $descriptive.record_link // ""),
+        unit_code: $unit_code,
+        object_types: ($indexed.object_type // []),
+        title: $title,
+        media_id: ($media.id // $media.idsId // ""),
+        media_accessibility: ($media.altTextAccessibility // $media.extDescrAccessibility // ""),
+        url,
+        width,
+        height,
+        label: .label,
+        license: "CC0"
+      }
+    | @base64
+  ' "$response_json" >>"$candidates_file"
+done < <(jq -r '.[]' <<<"$queries_json" | shuf)
+
+mapfile -t candidates < <(shuf "$candidates_file" | head -n @maxCandidateRecords@)
+[ "${#candidates[@]}" -gt 0 ] || {
+  echo 'Smithsonian Open Access returned no suitable CC0 4K landscape candidates.' >&2
+  exit 0
+}
+
+candidate=''
+download_file=''
+extension=''
+for encoded_candidate in "${candidates[@]}"; do
+  candidate_json="$(printf '%s' "$encoded_candidate" | base64 -d)"
+  media_url="$(jq -r '.url' <<<"$candidate_json")"
+  attempted_file="$temporary_directory/image"
+  if ! curl --fail --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    --connect-timeout 15 --max-time 180 --max-filesize @maxFileSizeBytes@ \
+    --user-agent "$user_agent" --output "$attempted_file" "$media_url"; then
+    continue
+  fi
+
+  mime_type="$(file --brief --mime-type -- "$attempted_file")"
+  case "$mime_type" in
+  image/jpeg) attempted_extension=jpg ;;
+  image/tiff) attempted_extension=tiff ;;
+  *) continue ;;
+  esac
+
+  dimensions="$(magick identify -ping -format '%w %h' -- "$attempted_file" 2>/dev/null)" || continue
+  width="$(printf '%s' "$dimensions" | cut -d ' ' -f 1)"
+  height="$(printf '%s' "$dimensions" | cut -d ' ' -f 2)"
+  if ! {
+    [ "$width" -ge 3840 ] &&
+    [ "$height" -ge 2160 ] &&
+    [ "$width" -ge "$height" ] &&
+    [ $((width * 1000)) -ge $((height * @minAspectRatioScaled@)) ] &&
+    [ $((width * 1000)) -le $((height * @maxAspectRatioScaled@)) ]
+  }; then
+    continue
+  fi
+
+  candidate="$candidate_json"
+  download_file="$attempted_file"
+  extension="$attempted_extension"
+  break
+done
+
+[ -n "$candidate" ] || {
+  echo 'Smithsonian Open Access candidates did not pass the decoded 4K landscape validation.' >&2
+  exit 0
+}
+
+source_id="$(jq -r '.source_id' <<<"$candidate")"
+media_id="$(jq -r '.media_id' <<<"$candidate")"
+safe_id="$(printf '%s-%s' "$source_id" "$media_id" | tr -cs 'A-Za-z0-9._-' '_')"
+checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
+destination="$cache_directory/smithsonian-$safe_id-$checksum.$extension"
+if [ ! -e "$destination" ]; then
+  install -m 600 -- "$download_file" "$destination"
+  jq -n \
+    --arg source_id "$source_id" --arg media_id "$media_id" \
+    --arg source_page "$(jq -r '.source_page' <<<"$candidate")" \
+    --arg unit_code "$(jq -r '.unit_code' <<<"$candidate")" \
+    --arg url "$(jq -r '.url' <<<"$candidate")" \
+    --arg title "$(jq -r '.title' <<<"$candidate")" \
+    --arg media_accessibility "$(jq -r '.media_accessibility' <<<"$candidate")" \
+    --arg rendition "$(jq -r '.label' <<<"$candidate")" \
+    --arg retrieved_at "$(date --iso-8601=seconds)" --arg checksum "$checksum" \
+    --argjson width "$(jq -r '.width' <<<"$candidate")" \
+    --argjson height "$(jq -r '.height' <<<"$candidate")" \
+    --argjson object_types "$(jq -c '.object_types' <<<"$candidate")" \
+    '{ source: "Smithsonian Open Access", source_id: $source_id, media_id: $media_id,
+      source_page: $source_page, url: $url, title: $title, unit_code: $unit_code,
+      object_types: $object_types,
+      media_accessibility: $media_accessibility, rendition: $rendition,
+      license: "CC0", retrieved_at: $retrieved_at, sha256: $checksum,
+      width: $width, height: $height }' >"$destination.json"
+  chmod 600 -- "$destination.json"
+fi
+
+current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
+mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'smithsonian-*' \
+  ! -name '*.json' -printf '%T@:%p\\0' | sort -z -n)
+excess=$((${#files[@]} - @maxImages@))
+if [ "$excess" -gt 0 ]; then
+  removed=0
+  for entry in "${files[@]}"; do
+    [ "$removed" -ge "$excess" ] && break
+    stale_file="${entry#*:}"
+    [ "$stale_file" = "$current_file" ] && continue
+    rm -f -- "$stale_file" "$stale_file.json"
+    removed=$((removed + 1))
+  done
+fi

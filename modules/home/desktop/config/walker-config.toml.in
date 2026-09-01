@@ -1,0 +1,62 @@
+force_keyboard_focus = true
+close_when_open = true
+click_to_close = true
+selection_wrap = true
+hide_action_hints = true
+hide_action_hints_dmenu = true
+hide_quick_activation = true
+resume_last_query = false
+theme = "stylix"
+
+[shell]
+anchor_top = true
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+
+[placeholders]
+"default" = { input = "Search apps, calculate, or use a prefix", list = "No matching results" }
+"desktopapplications" = { input = "Launch application", list = "No applications found" }
+"files" = { input = "Find file", list = "No files found" }
+"runner" = { input = "Run command", list = "No commands found" }
+
+[keybinds]
+close = ["Escape"]
+next = ["Down", "ctrl j"]
+previous = ["Up", "ctrl k"]
+
+[providers]
+default = ["desktopapplications", "calc"]
+empty = ["desktopapplications"]
+max_results = 36
+
+[providers.max_results_provider]
+desktopapplications = 24
+calc = 6
+files = 24
+runner = 12
+clipboard = 20
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = ">"
+provider = "runner"
+
+[[providers.prefixes]]
+prefix = "="
+provider = "calc"
+
+[[providers.prefixes]]
+prefix = ":"
+provider = "clipboard"
+
+[[providers.prefixes]]
+prefix = "."
+provider = "symbols"

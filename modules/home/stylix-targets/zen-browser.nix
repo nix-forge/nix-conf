@@ -1,6 +1,6 @@
 {
   stylix.targets.zen-browser = {
-    enable = false;
+    enable = true;
     profileNames = [ "default" ];
   };
 }

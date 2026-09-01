@@ -5,7 +5,6 @@
     ./language.nix
     ./policies.nix
     ./search.nix
-    ./theme.nix
     ./user-js.nix
   ];
 

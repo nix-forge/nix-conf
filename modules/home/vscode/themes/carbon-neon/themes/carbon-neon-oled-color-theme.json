@@ -1,0 +1,22 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Carbon Neon OLED",
+  "include": "./carbon-neon-color-theme.json",
+  "colors": {
+    "widget.shadow": "@surface@CC",
+    "titleBar.activeBackground": "@surface@",
+    "titleBar.inactiveBackground": "@surface@",
+    "activityBar.background": "@surface@",
+    "activityBarTop.background": "@surfaceChrome@",
+    "sideBar.background": "@surface@",
+    "editorGroupHeader.tabsBackground": "@surfaceChrome@",
+    "tab.activeBackground": "@surface@",
+    "tab.inactiveBackground": "@surfaceChrome@",
+    "editor.background": "@surface@",
+    "editorGutter.background": "@surface@",
+    "statusBar.background": "@surface@",
+    "statusBar.noFolderBackground": "@surface@",
+    "panel.background": "@surface@",
+    "terminal.background": "@surface@"
+  }
+}

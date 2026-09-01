@@ -6,24 +6,33 @@ let
       lib.mapAttrsToList (
         n: v:
         let
-          replaceVars =
-            varsIn: varsOut: v:
-            "$env.${n} = ${
-              if lib.typeOf v == "string" then "\"${builtins.replaceStrings varsIn varsOut v}\"" else toString v
-            }";
-          replaceVarPresets =
-            v:
-            builtins.replaceStrings
-              [ "$\\{${n}:+:$${n}}\"" ]
-              [
-                ''" + (do { let x = ($env.${n}? | default ""); if $x == "" { "" } else { ":" + $x } }) | split row (char esep) | uniq''
-              ]
-              v;
+          shellVar = "$" + n;
+          shellConditional = "$" + "{" + n + ":+:}";
+          shellConditionalWithValue = "$" + "{" + n + ":+:$" + n + "}";
+          nuVar = ''" + ($env.${n}? | default "") + "'';
+          nuConditional = ''" + (if (($env.${n}? | default "") | is-empty) { "" } else { ":" }) + "'';
+          toNuAssignment =
+            value:
+            if lib.typeOf value == "string" then
+              let
+                withHomeVars =
+                  builtins.replaceStrings [ "$HOME" "$USER" ] [ config.home.homeDirectory config.home.username ]
+                    value;
+                # Home Manager session variables use shell syntax. Translate
+                # self-references such as $TERMINFO_DIRS${TERMINFO_DIRS:+:}
+                # before Nushell sees the value as a literal string.
+                expanded = builtins.replaceStrings [ shellVar ] [ nuVar ] (
+                  builtins.replaceStrings
+                    [ shellConditional shellConditionalWithValue ]
+                    [ nuConditional nuConditional ]
+                    withHomeVars
+                );
+              in
+              "$env.${n} = \"${expanded}\""
+            else
+              "$env.${n} = ${toString value}";
         in
-        lib.pipe v [
-          (replaceVars [ "$HOME" "$USER" ] [ config.home.homeDirectory config.home.username ])
-          replaceVarPresets
-        ]
+        lib.pipe v [ toNuAssignment ]
       ) vars
     );
 in

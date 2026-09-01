@@ -1,15 +1,14 @@
 { lib, pkgs, ... }:
 let
-  disableBluetoothPairing = pkgs.writeShellScript "disable-bluetooth-pairing" ''
-    set -euo pipefail
-    shopt -s nullglob
-
-    for adapter in /sys/class/bluetooth/hci*; do
-      name="''${adapter##*/}"
-      ${lib.getExe' pkgs.systemd "busctl"} set-property \
-        org.bluez "/org/bluez/$name" org.bluez.Adapter1 Pairable b false
-    done
-  '';
+  disableBluetoothPairing = pkgs.replaceVarsWith {
+    name = "disable-bluetooth-pairing";
+    src = ./scripts/disable-bluetooth-pairing.sh;
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      busctl = lib.getExe' pkgs.systemd "busctl";
+    };
+  };
 in
 {
   hardware.bluetooth = {

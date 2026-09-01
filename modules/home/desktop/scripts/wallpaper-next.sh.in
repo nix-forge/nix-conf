@@ -1,0 +1,28 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+
+source_directory='@wallpaperDirectory@'
+[ -d "$source_directory" ] || exit 0
+candidate="$(find "$source_directory" -maxdepth 1 -type f \
+  \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jpeg' \
+  -o -iname '*.jpg' -o -iname '*.jxl' -o -iname '*.png' -o -iname '*.tif' \
+  -o -iname '*.tiff' -o -iname '*.webp' \) -print0 \
+  | shuf -z -n 1 | tr -d '\0')"
+
+# An empty library is a normal first-run condition. Do not make the graphical
+# session unhealthy while the user is still curating images.
+[ -n "$candidate" ] || exit 0
+
+state_directory='@stateDirectory@'
+mkdir -p -- "$state_directory"
+chmod 700 -- "$state_directory"
+printf '%s\n' "$candidate" > "$state_directory/current"
+
+exec awww img @awwwOutputs@ \
+  --resize crop \
+  --filter Lanczos3 \
+  --transition-type @transition@ \
+  --transition-duration @transitionDuration@ \
+  --transition-fps @transitionFps@ \
+  "$candidate"

@@ -9,8 +9,5 @@
   # device. The product ID differs by wired/wireless/firmware mode, so scope
   # the rule to Pulsar's USB vendor ID rather than granting generic hidraw
   # access. `uaccess` grants access only to the active local session.
-  services.udev.extraRules = ''
-    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="3710", TAG+="uaccess"
-    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3710", TAG+="uaccess"
-  '';
+  services.udev.extraRules = builtins.readFile ./70-pulsar.rules;
 }

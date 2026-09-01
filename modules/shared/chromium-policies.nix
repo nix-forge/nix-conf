@@ -1,219 +1,4 @@
 let
-  inherit (import ./helium-extensions.nix) extensionUpdateUrl heliumExtensions;
-  inherit (import ./ublock-filter-lists.nix) customFilterLists;
-  heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
-  heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
-
-  extensionIds = builtins.attrValues heliumExtensions;
-
-  forceInstallForcelist = map (extensionId: "${extensionId};${extensionUpdateUrl}") extensionIds;
-
-  forceInstallExtensionSettings = builtins.listToAttrs (
-    map (extensionId: {
-      name = extensionId;
-      value = {
-        installation_mode = "force_installed";
-        update_url = extensionUpdateUrl;
-      };
-    }) extensionIds
-  );
-
-  toUblockPairList =
-    attrs:
-    map (
-      name:
-      let
-        value = attrs.${name};
-      in
-      [
-        name
-        (if builtins.isBool value then if value then "true" else "false" else toString value)
-      ]
-    ) (builtins.attrNames attrs);
-
-  ublockCustomRules = ''
-    * * 3p-script block
-    * * 3p-frame block
-
-    * challenges.cloudflare.com * noop
-    * www.google.com * noop
-    * www.gstatic.com * noop
-    * hcaptcha.com * noop
-    * recaptcha.net * noop
-
-    * youtube.com * 3p-script noop
-
-    github.com * 3p-script noop
-    github.com * 3p-frame noop
-
-    www.reddit.com * 3p-script noop
-    www.reddit.com * 3p-frame noop
-
-    edstem.org * 3p-script noop
-    edstem.org * 3p-frame noop
-
-    accounts.google.com * 3p-script noop
-
-    chatgpt.com * 3p-script noop
-    chatgpt.com * 3p-frame noop
-
-    home-manager-options.extranix.com * 3p-script noop
-
-    www.instagram.com * 3p-script noop
-    www.instagram.com * 3p-frame noop
-
-    x.com * 3p-frame noop
-    x.com * 3p-script noop
-
-    www.linkedin.com * 3p-script noop
-    www.linkedin.com * 3p-frame noop
-
-    www.doordash.com * 3p-script noop
-    www.doordash.com * 3p-frame noop
-
-    www.gradescope.com * 3p-frame noop
-    www.gradescope.com * 3p-script noop
-
-    myworkdayjobs.com * 3p-script noop
-    myworkdayjobs.com * 3p-frame noop
-
-    www.instacart.com * 3p-script noop
-    www.instacart.com * 3p-frame noop
-
-    grammarly.com * 3p-script noop
-    grammarly.com * 3p-frame noop
-
-    canvas.cornell.edu * 3p-script noop
-    canvas.cornell.edu * 3p-frame noop
-
-    cornell.app.box.com * 3p-frame noop
-    cornell.app.box.com * 3p-script noop
-
-    pcpartpicker.com * 3p-frame noop
-    pcpartpicker.com * 3p-script noop
-
-    gemini.google.com * 3p-frame noop
-    gemini.google.com * 3p-script noop
-
-    digital.fidelity.com * 3p-frame noop
-    digital.fidelity.com * 3p-script noop
-  '';
-
-  defaultFilterLists = [
-    "user-filters"
-
-    # Helium's own uBO service publishes browser-specific lists for cleanups and
-    # webcompat. Keep these alongside the upstream uBlock lists.
-    "helium-annoyances"
-    "helium-unbreak"
-
-    "ublock-filters"
-    "ublock-badware"
-    "ublock-privacy"
-    "ublock-quick-fixes"
-    "ublock-unbreak"
-
-    "easylist"
-    "adguard-generic"
-
-    "easyprivacy"
-    "adguard-spyware-url"
-
-    "urlhaus-1"
-
-    "plowe-0"
-
-    "fanboy-cookiemonster"
-
-    "adguard-cookies"
-    "ublock-cookies-easylist"
-    "easylist-newsletters"
-    "easylist-notifications"
-    "ublock-annoyances"
-  ];
-
-  ublockAdminSettings = {
-    assetsBootstrapLocation = heliumUblockAssetsBootstrapLocation;
-    dynamicFilteringString = ublockCustomRules;
-    selectedFilterLists = defaultFilterLists ++ customFilterLists;
-    userSettings = {
-      prefetchingDisabled = true;
-      hyperlinkAuditingDisabled = true;
-      cnameUncloakEnabled = true;
-      autoUpdate = true;
-      advancedUserEnabled = true;
-      dynamicFilteringEnabled = true;
-      importedLists = customFilterLists;
-    };
-  };
-
-  ublockOriginPolicy = {
-    # uBO's Chromium managed-storage schema requires a JSON string in backup
-    # format. The backup still carries Helium's assets bootstrap URL for uBO's
-    # admin restore path while keeping chrome://policy validation clean.
-    adminSettings = builtins.toJSON ublockAdminSettings;
-
-    userSettings = toUblockPairList {
-      prefetchingDisabled = true;
-      hyperlinkAuditingDisabled = true;
-      cnameUncloakEnabled = true;
-      autoUpdate = true;
-      advancedUserEnabled = true;
-      dynamicFilteringEnabled = true;
-    };
-
-    advancedSettings = toUblockPairList {
-      autoUpdateDelayAfterLaunch = 37;
-      updateAssetBypassBrowserCache = true;
-    };
-
-    toOverwrite = {
-      filters = [ ];
-      filterLists = defaultFilterLists ++ customFilterLists;
-    };
-  };
-
-  chromiumExtensionPolicies = {
-    ${heliumUblockOriginId} = ublockOriginPolicy;
-  };
-
-  heliumPolicies = {
-    BrowserSignin = 0;
-    SyncDisabled = true;
-    BrowserAddPersonEnabled = false;
-    BrowserGuestModeEnabled = false;
-    ProfilePickerOnStartupAvailability = 1;
-
-    UrlKeyedAnonymizedDataCollectionEnabled = false;
-    SearchSuggestEnabled = false;
-    AlternateErrorPagesEnabled = false;
-
-    PasswordManagerEnabled = false;
-    AutofillAddressEnabled = false;
-    AutofillCreditCardEnabled = false;
-    PaymentMethodQueryEnabled = false;
-
-    HttpsOnlyMode = "force_enabled";
-    SafeBrowsingProtectionLevel = 1;
-    SafeBrowsingExtendedReportingEnabled = false;
-    DnsOverHttpsMode = "automatic";
-
-    DefaultCookiesSetting = 1;
-    BlockThirdPartyCookies = true;
-
-    ShowHomeButton = true;
-    BookmarkBarEnabled = false;
-    DefaultBrowserSettingEnabled = false;
-    BackgroundModeEnabled = false;
-
-    SpellcheckEnabled = true;
-    SpellcheckLanguage = [ "en-US" ];
-
-    ExtensionInstallAllowlist = extensionIds;
-    ExtensionInstallForcelist = forceInstallForcelist;
-    ExtensionSettings = forceInstallExtensionSettings;
-  };
-
   module =
     {
       config,
@@ -223,6 +8,7 @@ let
     }:
     let
       cfg = config.programs.chromiumPolicies;
+
       inherit (lib)
         attrValues
         concatMap
@@ -238,6 +24,183 @@ let
         nameValuePair
         types
         ;
+
+      inherit (cfg) extensionUpdateUrl;
+      inherit (cfg) heliumExtensions;
+      inherit (cfg) customFilterLists;
+      catppuccinMochaThemeId = "bkkmolkhemgaeaeggcmfbghljjjoofoh";
+      gruvboxDarkMediumThemeId = "ihennfdbghdiflogeancnalflhgmanop";
+      browserTheme =
+        {
+          catppuccin-mocha = {
+            name = "catppuccinMocha";
+            id = catppuccinMochaThemeId;
+          };
+          gruvbox-dark-medium = {
+            name = "gruvboxDarkMedium";
+            id = gruvboxDarkMediumThemeId;
+          };
+        }
+        .${config.appearance.theme} or null;
+      chromiumSystemResolverPolicy = {
+        DnsOverHttpsMode = cfg.dnsOverHttpsMode;
+      };
+      heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
+      heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
+
+      extensionIds = builtins.attrValues heliumExtensions;
+
+      forceInstallForcelist = map (extensionId: "${extensionId};${extensionUpdateUrl}") extensionIds;
+
+      forceInstallExtensionSettings = builtins.listToAttrs (
+        map (extensionId: {
+          name = extensionId;
+          value = {
+            installation_mode = "force_installed";
+            update_url = extensionUpdateUrl;
+          };
+        }) extensionIds
+      );
+
+      toUblockPairList =
+        attrs:
+        map (
+          name:
+          let
+            value = attrs.${name};
+          in
+          [
+            name
+            (if builtins.isBool value then if value then "true" else "false" else toString value)
+          ]
+        ) (builtins.attrNames attrs);
+
+      ublockCustomRules = builtins.readFile ./ublock-dynamic-filtering.txt;
+
+      defaultFilterLists = [
+        "user-filters"
+
+        # Helium's own uBO service publishes browser-specific lists for cleanups and
+        # webcompat. Keep these alongside the upstream uBlock lists.
+        "helium-annoyances"
+        "helium-unbreak"
+
+        "ublock-filters"
+        "ublock-badware"
+        "ublock-privacy"
+        "ublock-quick-fixes"
+        "ublock-unbreak"
+
+        "easylist"
+        "adguard-generic"
+
+        "easyprivacy"
+        "adguard-spyware-url"
+
+        "urlhaus-1"
+
+        "plowe-0"
+
+        "fanboy-cookiemonster"
+
+        "adguard-cookies"
+        "ublock-cookies-easylist"
+        "easylist-newsletters"
+        "easylist-notifications"
+        "ublock-annoyances"
+      ];
+
+      ublockAdminSettings = {
+        assetsBootstrapLocation = heliumUblockAssetsBootstrapLocation;
+        dynamicFilteringString = ublockCustomRules;
+        selectedFilterLists = defaultFilterLists ++ customFilterLists;
+        userSettings = {
+          prefetchingDisabled = true;
+          hyperlinkAuditingDisabled = true;
+          cnameUncloakEnabled = true;
+          autoUpdate = true;
+          advancedUserEnabled = true;
+          dynamicFilteringEnabled = true;
+          importedLists = customFilterLists;
+        };
+      };
+
+      ublockOriginPolicy = {
+        # uBO's Chromium managed-storage schema requires a JSON string in backup
+        # format. The backup still carries Helium's assets bootstrap URL for uBO's
+        # admin restore path while keeping chrome://policy validation clean.
+        adminSettings = builtins.toJSON ublockAdminSettings;
+
+        userSettings = toUblockPairList {
+          prefetchingDisabled = true;
+          hyperlinkAuditingDisabled = true;
+          cnameUncloakEnabled = true;
+          autoUpdate = true;
+          advancedUserEnabled = true;
+          dynamicFilteringEnabled = true;
+        };
+
+        advancedSettings = toUblockPairList {
+          autoUpdateDelayAfterLaunch = 37;
+          updateAssetBypassBrowserCache = true;
+        };
+
+        toOverwrite = {
+          filters = [ ];
+          filterLists = defaultFilterLists ++ customFilterLists;
+        };
+      };
+
+      chromiumExtensionPolicies = {
+        ${heliumUblockOriginId} = ublockOriginPolicy;
+      };
+
+      browserThemePolicy = lib.optionalAttrs (browserTheme != null) {
+        ${browserTheme.id} = {
+          installation_mode = "force_installed";
+          update_url = extensionUpdateUrl;
+        };
+      };
+
+      heliumPolicies = {
+        BrowserSignin = 0;
+        SyncDisabled = true;
+        BrowserAddPersonEnabled = false;
+        BrowserGuestModeEnabled = false;
+        ProfilePickerOnStartupAvailability = 1;
+
+        UrlKeyedAnonymizedDataCollectionEnabled = false;
+        SearchSuggestEnabled = false;
+        AlternateErrorPagesEnabled = false;
+
+        PasswordManagerEnabled = false;
+        AutofillAddressEnabled = false;
+        AutofillCreditCardEnabled = false;
+        PaymentMethodQueryEnabled = false;
+
+        HttpsOnlyMode = "force_enabled";
+        SafeBrowsingProtectionLevel = 1;
+        SafeBrowsingExtendedReportingEnabled = false;
+        # DoH belongs to the local system resolver policy, not the browser. A
+        # desktop-local override used to carry this setting; keeping it here makes
+        # the behavior consistent for every Helium host.
+        inherit (chromiumSystemResolverPolicy) DnsOverHttpsMode;
+
+        DefaultCookiesSetting = 1;
+        BlockThirdPartyCookies = true;
+
+        ShowHomeButton = true;
+        BookmarkBarEnabled = false;
+        DefaultBrowserSettingEnabled = false;
+        BackgroundModeEnabled = false;
+
+        SpellcheckEnabled = true;
+        SpellcheckLanguage = [ "en-US" ];
+
+        ExtensionInstallAllowlist = extensionIds;
+        ExtensionInstallForcelist = forceInstallForcelist;
+        ExtensionSettings = forceInstallExtensionSettings;
+      };
 
       inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
@@ -287,12 +250,24 @@ let
               default = { };
               description = "Managed storage policies keyed by Chromium extension ID.";
             };
+
+            inheritSharedPolicies = mkOption {
+              type = types.bool;
+              default = true;
+              description = ''
+                Whether this target receives the shared Chromium policy set.
+                Disable this for a distinct browser whose policy should be
+                narrowly scoped rather than inheriting Helium-specific
+                extensions and UX controls.
+              '';
+            };
           };
         }
       );
 
       enabledTargets = filterAttrs (_: target: target.enable) cfg.targets;
-      browserPolicies = target: cfg.policies // target.policies;
+      browserPolicies =
+        target: lib.optionalAttrs target.inheritSharedPolicies cfg.policies // target.policies;
       linuxTargetPolicies =
         target:
         (browserPolicies target)
@@ -393,6 +368,54 @@ let
       options.programs.chromiumPolicies = {
         enable = mkEnableOption "system-level Chromium managed policies";
 
+        dnsOverHttpsMode = mkOption {
+          type = types.enum [
+            "off"
+            "automatic"
+            "secure"
+          ];
+          default = "off";
+          description = ''
+            Managed Secure DNS mode for Chromium-family browsers. Set this to
+            "off" when the operating-system resolver is the DNS authority.
+          '';
+        };
+
+        extensionUpdateUrl = mkOption {
+          type = types.str;
+          default = "https://clients2.google.com/service/update2/crx";
+          description = "Chrome Web Store update URL for managed Chromium extensions.";
+        };
+
+        heliumExtensions = mkOption {
+          type = types.attrsOf types.str;
+          default = {
+            sponsorBlock = "mnjggcdmjocbbbhaepdhchncahnbgone";
+            bitwarden = "nngceckbapebfimnlniiiahkandclblb";
+            karakeep = "kgcjekpmcjjogibpjebkhaanilehneje";
+            refinedGitHub = "hlepfoohegkhhmjieoechaddaejaokhf";
+          }
+          // lib.optionalAttrs (browserTheme != null) { ${browserTheme.name} = browserTheme.id; };
+          description = "Named Chrome Web Store extension IDs managed for Helium.";
+        };
+
+        customFilterLists = mkOption {
+          type = types.listOf types.str;
+          default = [
+            "https://raw.githubusercontent.com/yokoffing/filterlists/main/privacy_essentials.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.mini.txt"
+            "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt"
+            "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/ClearURLs%20for%20uBo/clear_urls_uboified.txt"
+            "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/spam-tlds-ublock.txt"
+            "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt"
+          ];
+          description = ''
+            Extra uBlock Origin filter lists used by Helium's managed extension
+            policy and exposed to an attached Home Manager profile via osConfig.
+          '';
+        };
+
         policies = mkOption {
           type = types.attrs;
           default = heliumPolicies;
@@ -420,6 +443,22 @@ let
               darwinBundleId = "net.imput.helium";
               darwinExtensionPolicyBundlePrefix = "net.imput.helium.extensions";
               extensionPolicies = chromiumExtensionPolicies;
+            };
+
+            # Chrome can install the maintained Catppuccin and Gruvbox ports
+            # directly. Carbon Neon deliberately leaves Chrome's native dark
+            # UI unbranded instead of forcing an unrelated Web Store theme.
+            targets.google-chrome = {
+              enable = lib.mkDefault true;
+              inheritSharedPolicies = false;
+              linuxManagedPaths = [ "opt/chrome/policies/managed/nixos-system.json" ];
+              darwinBundleId = "com.google.Chrome";
+              policies =
+                chromiumSystemResolverPolicy
+                // lib.optionalAttrs (browserTheme != null) {
+                  ExtensionInstallForcelist = [ "${browserTheme.id};${extensionUpdateUrl}" ];
+                  ExtensionSettings = browserThemePolicy;
+                };
             };
           };
         }

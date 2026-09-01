@@ -5,6 +5,16 @@
   ...
 }:
 {
+  # Noctalia's pinned `cachix` branch is built by its upstream CI. Nix accepts
+  # only store paths signed by this explicit public key; unsigned or altered
+  # substitutes still fail verification.
+  nix.settings = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   # This is an existing installation. Keep its original compatibility version;
   # it must never be raised to match the current nixpkgs release.
   system.stateVersion = "23.11";
@@ -21,10 +31,35 @@
 
   # This desktop uses the established GNOME Keyring Secret Service and GCR SSH
   # agent. Keep OpenSSH's legacy agent off so applications have one predictable
-  # SSH_AUTH_SOCK; a future oo7 migration must first back up and test the
-  # existing login keyring because its migration is one-way.
+  # SSH_AUTH_SOCK. oo7 also depends on a PAM-supplied password, so it would not
+  # improve the headless-login flow and would require a separate keyring-data
+  # migration.
   security.desktopKeyring.enable = true;
   programs.ssh.startAgent = false;
+  environment.systemPackages = [ pkgs.seahorse ];
+
+  # The headless Sunshine session must boot directly into Hyprland in order to
+  # provide a capture target, then immediately locks with Hyprlock. Feed the
+  # one password entered at that lock screen to GNOME Keyring as well. That
+  # unlocks the encrypted Login keyring before Helium starts using Secret
+  # Service, without leaving an unlocked desktop at the physical console.
+  programs.hyprlock.enable = true;
+  # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
+  # XDG environment and therefore cannot discover Home Manager's config at
+  # boot. Give the host-owned unit the persistent user config explicitly.
+  systemd.user.services.hypridle.serviceConfig.ExecStart = lib.mkForce [
+    ""
+    "${lib.getExe config.services.hypridle.package} -c /home/ianmh/.config/hypr/hypridle.conf"
+  ];
+  security.pam.services = {
+    hyprlock.enableGnomeKeyring = true;
+
+    # NixOS enables the Keyring hooks for `login`, which greetd's interactive
+    # path includes. Also enable the password-change hook: otherwise a later
+    # `passwd` change can leave the Login keyring encrypted with an obsolete
+    # password and cause the separate prompt Helium reported.
+    passwd.enableGnomeKeyring = true;
+  };
 
   # This password-based greetd stack includes PAM's `login` service. Reject
   # null-password accounts despite the permissive shadow-program default,
@@ -115,30 +150,6 @@
     "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf ianmh@Ians-MacBook-Pro.local"
   ];
 
-  services = {
-    openssh.settings = {
-      AllowUsers = [
-        "ianmh"
-        "root"
-      ];
-
-      # This desktop is administered over SSH but never used as an X11 jump
-      # host.  DNS lookups during authentication are both unnecessary on the
-      # LAN and a common source of delayed logins; stale Unix sockets should
-      # not prevent a new SSH connection from starting either.
-      X11Forwarding = false;
-      UseDns = false;
-      StreamLocalBindUnlink = true;
-    };
-  };
-
-  # Determinate Nixd is the Nix daemon on this host and owns garbage
-  # collection. Do not run NixOS's legacy nix-gc timer alongside it.
-  # This mirrors the automatic collection policy used on the MacBook.
-  environment.etc."determinate/config.json".text = builtins.toJSON {
-    garbageCollector.strategy = "automatic";
-  };
-
   # `nh` is the local interface for building and activating this host.  Keep
   # its flake path unset: the checkout may live on a different filesystem on
   # the desktop than it does on the MacBook.  From a checkout, use
@@ -158,7 +169,7 @@
       incoming="''${1-}"
       if [[ -e /run/current-system && -n "$incoming" ]]; then
         echo "--- diff to current system"
-        ${pkgs.nvd}/bin/nvd diff /run/current-system "$incoming"
+        PATH="$incoming/sw/bin:$PATH" ${pkgs.nvd}/bin/nvd diff /run/current-system "$incoming"
         echo "---"
       fi
     '';
@@ -174,8 +185,7 @@
     '';
   };
 
-  # The rootless Docker module installs a global user unit.  Limit it to the
-  # actual desktop user so GDM's greeter account does not repeatedly attempt
-  # (and fail) to start a Docker daemon at the login screen.
+  # The rootless Docker module installs a global user unit. Limit it to the
+  # actual desktop user so the greeter never gets a Docker daemon.
   systemd.user.services.docker.unitConfig.ConditionUser = lib.mkForce "ianmh";
 }

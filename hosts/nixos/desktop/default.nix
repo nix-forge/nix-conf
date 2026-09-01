@@ -47,7 +47,17 @@
     boot-systemd
     hardware-bluetooth
     hardware-firmware
+    hardware-graphics
     hardware-networking
+    network-manager
+    network-wireless
+    network-performance
+    network-resolved
+    network-unbound
+    network-wireguard
+    network-blocking
+    network-fail2ban
+    network-tarpit
     hardware-sound
     hardware-ssd
     hardware-storage
@@ -56,10 +66,15 @@
     gaming
 
     ## Desktop and services
+    # Apply the same Stylix roles before login as the Home Manager desktop.
+    # This covers system GTK/Qt programs and provides the primary Fontconfig
+    # aliases for every account on the machine.
+    stylix
     ../../../modules/nixos/desktop-envs/hyprland.nix
+    ../../../modules/nixos/desktop-envs/interactive.nix
     ../../../modules/nixos/display-managers/greetd.nix
     locale-timesync
-    server-ssh
+    ssh
     virtualisation-docker
     # Host-specific sealed system secrets must be imported explicitly: the
     # framework only auto-loads files under local/.

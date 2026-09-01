@@ -1,4 +1,5 @@
 [tool.ruff]
+exclude = ["nix-seal"]
 fix = true
 preview = true
 
@@ -61,29 +62,64 @@ strict = true
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
 ]
-"pkgs/claude-desktop/update.py" = [
+"pkgs/pkgs/by-name/cl/claude-desktop/update.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
   "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and feed URL.
   "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS release feed URLs.
 ]
-"pkgs/openai-codex-desktop/update.py" = [
+"pkgs/pkgs/by-name/li/libreoffice/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call an absolute nix executable selected from PATH.
+  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a host-validated HTTPS download URL.
+  "suspicious-url-open-usage",            # URL opening is limited to the Document Foundation's validated HTTPS release URLs.
+]
+"pkgs/pkgs/by-name/li/linearmouse/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
+  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a GitHub path-validated HTTPS asset URL.
+  "suspicious-url-open-usage",            # URL opening is limited to GitHub's validated HTTPS release API and asset URLs.
+]
+"pkgs/pkgs/by-name/mi/microsoft-teams/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and validated CDN URL.
+  "suspicious-url-open-usage",            # URL opening is limited to the validated HTTPS Teams production config.
+]
+"pkgs/pkgs/by-name/op/openai-codex-desktop/update.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
   "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and appcast URL.
   "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS appcast URLs.
   "suspicious-xml-etree-import",          # xml.etree is sufficient for a trusted upstream Sparkle appcast.
   "suspicious-xml-element-tree-usage",    # The appcast is a fixed upstream document parsed without entity expansion.
 ]
-"pkgs/microsoft-teams/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and validated CDN URL.
-  "suspicious-url-open-usage",            # URL opening is limited to the validated HTTPS Teams production config.
-]
-"pkgs/remindctl/update.py" = [
+"pkgs/pkgs/by-name/re/remindctl/update.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix and validate the release binary.
   "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix and validated binary invocations.
   "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS GitHub release URLs.
 ]
-"pkgs/agent-skills-updater.py" = [
+"pkgs/pkgs/by-name/sp/spotify-spotx/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix and git for upstream discovery.
+  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix/git invocations and validated refs.
+  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
+]
+"pkgs/pkgs/by-name/st/steam/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix/curl/unzip.
+  "subprocess-without-shell-equals-true", # Command args are constrained to fixed local binaries and a validated URL.
+  "suspicious-url-open-usage",            # URL fetching is limited to validated HTTPS Steam endpoints.
+]
+"pkgs/pkgs/by-name/t3/t3-code/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
+  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a release path-validated HTTPS asset URL.
+  "suspicious-url-open-usage",            # URL opening is limited to GitHub's validated HTTPS release API and asset URLs.
+]
+"pkgs/pkgs/by-name/tt/ttf-ms-win11-auto/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
+  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and URL.
+  "suspicious-url-open-usage",            # URL opening is limited to HTTPS and user-overridable by design.
+]
+"pkgs/pkgs/by-name/vo/vorssaint/update.py" = [
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
+  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a revision-bound GitHub archive URL.
+  "suspicious-url-open-usage",            # URL opening is limited to fixed GitHub API endpoints and revision-bound HTTPS URLs.
+]
+"pkgs/scripts/agent-skills-updater.py" = [
   "invalid-module-name",                  # The hyphenated filename is executed as a script, not imported as a Python module.
   "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
   "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and GitHub archive URL.
@@ -91,20 +127,10 @@ strict = true
   "suspicious-url-open-usage",            # URL opening is limited to fixed HTTPS GitHub API endpoints.
   "print",                                # This command-line updater reports its status and diffs on stdout.
 ]
-"pkgs/spotify-spotx/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix and git for upstream discovery.
-  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix/git invocations and validated refs.
-  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
-]
-"pkgs/steam/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix/curl/unzip.
-  "subprocess-without-shell-equals-true", # Command args are constrained to fixed local binaries and a validated URL.
-  "suspicious-url-open-usage",            # URL fetching is limited to validated HTTPS Steam endpoints.
-]
-"pkgs/ttf-ms-win11-auto/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and URL.
-  "suspicious-url-open-usage",            # URL opening is limited to HTTPS and user-overridable by design.
+"pkgs/scripts/update-packages.py" = [
+  "invalid-module-name",                  # The hyphenated filename is executed as a script, not imported as a Python module.
+  "suspicious-subprocess-import",         # Runs only a discovered local package updater through sys.executable.
+  "subprocess-without-shell-equals-true", # Command args are an interpreter, an in-repository updater path, and user-supplied child args without a shell.
 ]
 "scripts/update-packages.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally in a local CLI orchestrator.
@@ -112,6 +138,10 @@ strict = true
 ]
 
 [tool.ty.environment]
+# Pin the target independently of a developer's active virtual environment so
+# editor, pre-commit, and pure Nix checks analyse the same Python language and
+# standard-library surface.
+python-version = "3.14"
 python-platform = "all"
 
 [tool.ty.src]
@@ -125,6 +155,7 @@ exclude = [
   "**/__pycache__",
   "dist",
   "build",
+  "nix-seal",
   "result",
 ]
 

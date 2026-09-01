@@ -1,4 +1,4 @@
-{ lib, ... }: {
+{ lib, pkgs, ... }: {
   services.fstrim = {
     # `fstrim` skips filesystems and devices that do not implement discard, so a
     # periodic batch trim is a safe cross-host default.  It returns unused flash
@@ -20,6 +20,13 @@
     serviceConfig = {
       Nice = lib.mkDefault 19;
       IOSchedulingClass = lib.mkDefault "idle";
+
+      # Keep online discard off and batch TRIM instead.  Skipping tiny extents
+      # avoids the highest request overhead for the least reclaimed space.
+      ExecStart = lib.mkForce [
+        ""
+        "${pkgs.util-linux}/bin/fstrim --all --minimum 1M"
+      ];
     };
   };
 

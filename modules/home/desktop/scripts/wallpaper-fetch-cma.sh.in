@@ -1,0 +1,68 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+cache_directory='@wallpaperDirectory@'
+state_directory='@stateDirectory@'
+temporary_directory="$(mktemp -d)"
+trap 'rm -rf -- "$temporary_directory"' EXIT
+mkdir -p -- "$cache_directory" "$state_directory"
+chmod 700 -- "$cache_directory" "$state_directory"
+
+api_json="$temporary_directory/artworks.json"
+curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 60 \
+  --max-filesize 10485760 --output "$api_json" \
+  'https://openaccess-api.clevelandart.org/api/artworks/?cc0=1&limit=100'
+
+# CMA supplies images only for CC0 records. Still enforce licence, trusted CDN,
+# landscape geometry, and byte ceiling before downloading the original TIFF.
+candidate="$(jq -r '
+  [ .data[]
+    | select(.share_license_status == "CC0")
+    | select(.images.full.url? | startswith("https://openaccess-cdn.clevelandart.org/"))
+    | select((.images.full.width | tonumber) >= 3840 and (.images.full.height | tonumber) >= 2160)
+    | select((.images.full.width | tonumber) >= (.images.full.height | tonumber))
+    | select((.images.full.filesize | tonumber) <= @maxFileSizeBytes@)
+    | { id, title, url: .images.full.url, width: (.images.full.width | tonumber), height: (.images.full.height | tonumber) }
+  ] | .[] | @base64' "$api_json" | shuf -n 1)"
+[ -n "$candidate" ]
+
+id="$(echo "$candidate" | base64 -d | jq -r '.id')"
+title="$(echo "$candidate" | base64 -d | jq -r '.title')"
+media_url="$(echo "$candidate" | base64 -d | jq -r '.url')"
+download_file="$temporary_directory/image.tiff"
+curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 180 \
+  --max-filesize @maxFileSizeBytes@ --output "$download_file" "$media_url"
+
+[ "$(file --brief --mime-type -- "$download_file")" = 'image/tiff' ]
+dimensions="$(magick identify -ping -format '%w %h' -- "$download_file")"
+[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 1)" -ge 3840 ]
+[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 2)" -ge 2160 ]
+
+checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
+destination="$cache_directory/cma-$id-$checksum.tiff"
+[ -e "$destination" ] || install -m 600 -- "$download_file" "$destination"
+jq -n --arg id "$id" --arg title "$title" --arg url "$media_url" \
+  --arg retrieved_at "$(date --iso-8601=seconds)" --arg checksum "$checksum" \
+  '{ source: "Cleveland Museum of Art Open Access", source_id: $id, title: $title,
+    url: $url, license: "CC0", retrieved_at: $retrieved_at, sha256: $checksum }' \
+  > "$destination.json"
+chmod 600 -- "$destination.json"
+
+# The private collection has both a per-file byte ceiling and a per-source
+# count ceiling. Never prune the wallpaper that awww is currently displaying.
+current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
+mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'cma-*' \
+  ! -name '*.json' -printf '%T@:%p\\0' | sort -z -n)
+excess=$((${#files[@]} - @maxImages@))
+if [ "$excess" -gt 0 ]; then
+  removed=0
+  for entry in "${files[@]}"; do
+    [ "$removed" -ge "$excess" ] && break
+    stale_file="${entry#*:}"
+    [ "$stale_file" = "$current_file" ] && continue
+    rm -f -- "$stale_file" "$stale_file.json"
+    removed=$((removed + 1))
+  done
+fi

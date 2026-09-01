@@ -1,15 +1,29 @@
-{ inputs, ... }: {
+{
+  inputs,
+  lib,
+  config,
+  ...
+}:
+let
+  themeDefinitions = import ../../../themes { inherit inputs; };
+in
+{
   imports = [ inputs.stylix.nixosModules.stylix ];
-  stylix = {
+
+  options.appearance.theme = lib.mkOption {
+    type = lib.types.enum themeDefinitions.names;
+    default = themeDefinitions.defaultName;
+    description = "Shared dark theme for Stylix and native application integrations.";
+  };
+
+  config.stylix = {
     enable = true; # enable Stylix
     autoEnable = true; # auto enable Stylix for all applications
 
     polarity = "dark";
 
-    # Theme
-    # View how themes look as text here:
-    # tinted-theming.github.io/tinted-gallery/
-    base16Scheme = inputs.stylix.inputs.tinted-schemes + "/base16/pop.yaml";
+    # Keep the standalone Stylix component in step with the shared profile.
+    base16Scheme = themeDefinitions.schemes.${config.appearance.theme};
 
     # Wallpaper
     # image = ./background.jpg;

@@ -1,0 +1,107 @@
+@define-color surface @base00@;
+@define-color surface-raised @base01@;
+@define-color surface-hover @base02@;
+@define-color outline @base03@;
+@define-color muted @base04@;
+@define-color text @base05@;
+@define-color red @base08@;
+@define-color orange @base09@;
+@define-color yellow @base0A@;
+@define-color green @base0B@;
+@define-color accent @base0D@;
+
+* {
+  font-family: @font@;
+  font-size: 15px;
+}
+
+.box-wrapper {
+  background: alpha(@surface, 0.96);
+  border: 1px solid alpha(@outline, 0.85);
+  border-radius: 18px;
+  box-shadow: 0 16px 42px alpha(#000000, 0.42);
+  min-width: 700px;
+  padding: 16px;
+}
+
+.box {
+  background: transparent;
+}
+
+.search-container {
+  background: @surface-raised;
+  border: 1px solid alpha(@outline, 0.85);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  padding: 2px 12px;
+}
+
+.input {
+  background: transparent;
+  color: @text;
+  min-height: 42px;
+}
+
+.input placeholder,
+.placeholder,
+.elephant-hint,
+.item-subtext {
+  color: @muted;
+}
+
+.content-container,
+.list {
+  background: transparent;
+}
+
+child {
+  border-radius: 12px;
+  margin: 2px 0;
+}
+
+child:hover,
+child:selected {
+  background: alpha(@accent, 0.20);
+}
+
+.item-box {
+  min-height: 48px;
+  padding: 0 12px;
+}
+
+.item-text {
+  color: @text;
+  font-weight: 550;
+}
+
+.item-image {
+  margin-right: 12px;
+}
+
+.item-quick-activation {
+  background: alpha(@surface-hover, 0.92);
+  border-radius: 7px;
+  color: @muted;
+  font-size: 11px;
+  margin-left: 10px;
+  padding: 3px 6px;
+}
+
+.keybinds-wrapper {
+  border-top: 1px solid alpha(@outline, 0.65);
+  color: @muted;
+  font-size: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.error {
+  background: alpha(@red, 0.24);
+  border-radius: 10px;
+  color: @text;
+  padding: 10px;
+}
+
+scrollbar {
+  opacity: 0;
+}
