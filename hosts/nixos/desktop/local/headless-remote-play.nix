@@ -9,56 +9,18 @@ let
   jq = lib.getExe pkgs.jq;
   steam = lib.getExe config.programs.steam.package;
   headlessOutput = "SUNSHINE";
-  prepareHeadlessOutput = pkgs.writeShellScript "prepare-sunshine-headless-output" ''
-    set -eu
-
-    # UWSM exports the Wayland and Hyprland instance environment to services
-    # activated by graphical-session.target.  Wait for the compositor socket
-    # rather than relying on a timing-sensitive Hyprland exec-once directive.
-    ready=0
-    # A cold NVIDIA/Wayland boot can take longer than the nominal graphical
-    # session target. Keep waiting for the compositor's actual control socket
-    # instead of failing Sunshine's first startup attempt at an arbitrary
-    # short threshold.
-    for attempt in $(${pkgs.coreutils}/bin/seq 1 120); do
-      if ${hyprctl} monitors -j >/dev/null 2>&1; then
-        ready=1
-        break
-      fi
-      ${pkgs.coreutils}/bin/sleep 1
-    done
-    if [ "$ready" -ne 1 ]; then
-      echo "Hyprland did not become ready for the Sunshine virtual output" >&2
-      exit 1
-    fi
-
-    if ! ${hyprctl} monitors -j | ${jq} -e --arg output ${headlessOutput} \
-      '.[] | select(.name == $output)' >/dev/null; then
-      ${hyprctl} output create headless ${headlessOutput}
-    fi
-
-    for attempt in $(${pkgs.coreutils}/bin/seq 1 10); do
-      if ${hyprctl} monitors -j | ${jq} -e --arg output ${headlessOutput} \
-        '.[] | select(.name == $output)' >/dev/null; then
-        break
-      fi
-      ${pkgs.coreutils}/bin/sleep 1
-    done
-
-    # Keep the MacBook Pro's non-standard panel aspect ratio without requiring
-    # native-resolution streaming. 2560x1655 is an aspect-ratio match to
-    # rounding precision and costs roughly 45% fewer pixels than 3456x2234 at
-    # 120 Hz, preserving smooth input and presentation without overloading
-    # NVENC or the current Wi-Fi link.
-    #
-    # Sunshine's wlroots screencopy backend is the right unprivileged capture
-    # method for this headless Hyprland session, but it cannot transport HDR
-    # metadata. Keep the virtual output explicitly SDR rather than allowing
-    # games to render HDR that Sunshine would then mislabel as SDR. Genuine
-    # Linux HDR capture requires Sunshine's privileged KMS backend and a
-    # suitable DRM-attached HDR display; neither is appropriate here.
-    ${hyprctl} eval 'hl.monitor({ output = "${headlessOutput}", mode = "2560x1655@120", position = "0x0", scale = 1, bitdepth = 8, cm = "srgb", supports_wide_color = 0, supports_hdr = 0 })'
-  '';
+  prepareHeadlessOutput = pkgs.replaceVarsWith {
+    name = "prepare-sunshine-headless-output";
+    src = ./scripts/prepare-sunshine-headless-output.sh;
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      seq = lib.getExe' pkgs.coreutils "seq";
+      sleep = lib.getExe' pkgs.coreutils "sleep";
+      inherit hyprctl jq;
+      inherit headlessOutput;
+    };
+  };
 in
 {
   # This is desktop-user behaviour, not a generic Sunshine policy. Steam is
@@ -91,11 +53,15 @@ in
   };
 
   # With no physical monitor, a login manager cannot wait for interactive
-  # credentials.  Greetd directly starts the owner's local Wayland session on
-  # boot.  LAN firewalling plus Moonlight's pairing and encryption still guard
-  # remote access; anyone with physical console access can reach this session.
+  # credentials. Greetd directly starts the owner's local Wayland session on
+  # boot so Sunshine has a capture target. `sunshine-session-lock` immediately
+  # authenticates the session through Hyprlock before it becomes usable; that
+  # same PAM transaction unlocks the GNOME Login keyring.
   services.greetd.settings.initial_session = {
-    command = "env AQ_DRM_DEVICES=/dev/dri/card1 GBM_BACKEND=nvidia-drm ${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
+    # GPU and toolkit variables live in the user's UWSM environment files.
+    # Keeping this command free of hardware assignments means the exact same
+    # UWSM session path is used by greetd and an interactive display manager.
+    command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
     user = "ianmh";
   };
 
@@ -135,6 +101,29 @@ in
       ExecStartPre = lib.mkBefore [ prepareHeadlessOutput ];
       Restart = lib.mkForce "on-failure";
       RestartSec = lib.mkForce "5s";
+    };
+  };
+
+  # Autologin cannot unlock an encrypted keyring: it deliberately supplies no
+  # password to PAM. Lock the auto-started session instead of weakening or
+  # removing its keyring password. This leaves a headless capture target for
+  # Sunshine while making the first Moonlight/console interaction a normal
+  # password authentication, which unlocks both Hyprlock and GNOME Keyring.
+  systemd.user.services.sunshine-session-lock = {
+    description = "Lock the auto-started Sunshine session before use";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    unitConfig = {
+      After = [
+        "graphical-session.target"
+        "sunshine-headless-output.service"
+      ];
+      ConditionUser = "ianmh";
+    };
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = lib.getExe config.programs.hyprlock.package;
+      Restart = "no";
     };
   };
 }

@@ -1,0 +1,201 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+cache_directory='@wallpaperDirectory@'
+state_directory='@stateDirectory@'
+source_archive_directory="$cache_directory/.originals"
+temporary_directory="$(mktemp -d)"
+trap 'rm -rf -- "$temporary_directory"' EXIT
+mkdir -p -- "$cache_directory" "$state_directory" "$source_archive_directory"
+chmod 700 -- "$cache_directory" "$state_directory" "$source_archive_directory"
+
+queries_json=@queriesJson@
+rejected_terms_json=@rejectedTermsJson@
+required_title_terms_json=@requiredTitleTermsJson@
+
+# The Image and Video Library search catalogue is used only to find a record.
+# The preview URL is deliberately never used as a wallpaper: every candidate is
+# resolved through /asset/{nasa_id} and downloaded from its original rendition.
+candidate=''
+download_file=''
+original_file=''
+original_extension=''
+extension=''
+converted=0
+attempts=0
+while IFS= read -r query; do
+  [ "$attempts" -ge @maxCandidateRecords@ ] && break
+  search_json="$temporary_directory/search-$attempts.json"
+  if ! curl --fail --proto '=https' --tlsv1.2 \
+    --connect-timeout 15 --max-time 60 --max-filesize 10485760 \
+    --get --data-urlencode "q=$query" --data-urlencode 'media_type=image' \
+    --data-urlencode 'year_start=@minYear@' \
+    --data-urlencode 'page_size=100' --output "$search_json" \
+    'https://images-api.nasa.gov/search'; then
+    continue
+  fi
+
+  mapfile -t candidate_records < <(jq -r --argjson rejected_terms "$rejected_terms_json" --argjson required_title_terms "$required_title_terms_json" '
+    .collection.items[]?
+    | .data[0]? as $record
+    | select($record != null and ($record.media_type // "") == "image")
+    | ($record.title // "" | ascii_downcase) as $title
+    | ([
+        $record.title?,
+        $record.description?,
+        $record.secondary_creator?,
+        ($record.keywords[]? // empty)
+      ] | map(select(type == "string")) | join(" ") | ascii_downcase) as $metadata
+    | select(all($rejected_terms[]; . as $term | ($metadata | contains($term | ascii_downcase) | not)))
+    | select(any($required_title_terms[]; . as $term | ($title | contains($term | ascii_downcase))))
+    | {
+        nasa_id: $record.nasa_id,
+        title: ($record.title // ""),
+        center: ($record.center // ""),
+        description: ($record.description // ""),
+        keywords: ($record.keywords // [])
+      }
+    | select(.nasa_id | type == "string" and length > 0)
+    | @base64
+  ' "$search_json" | shuf)
+
+  for candidate_record in "${candidate_records[@]}"; do
+    [ "$attempts" -ge @maxCandidateRecords@ ] && break 2
+    attempts=$((attempts + 1))
+    record_json="$(printf '%s' "$candidate_record" | base64 -d)"
+    nasa_id="$(jq -r '.nasa_id' <<< "$record_json")"
+    asset_json="$temporary_directory/asset-$attempts.json"
+    if ! curl --fail --proto '=https' --tlsv1.2 \
+      --connect-timeout 15 --max-time 30 --max-filesize 10485760 \
+      --output "$asset_json" "https://images-api.nasa.gov/asset/$nasa_id"; then
+      continue
+    fi
+
+    media_url="$(jq -r '
+      [ .collection.items[]?.href?
+        | sub("^http://images-assets\\.nasa\\.gov/"; "https://images-assets.nasa.gov/")
+        | select(test("^https://images-assets\\.nasa\\.gov/image/"))
+        | select(test("~orig\\.(avif|bmp|exr|hdr|heic|heif|jpe?g|jxl|png|tiff?|webp)$"; "i"))
+      ] | .[0] // empty
+    ' "$asset_json")"
+    [ -n "$media_url" ] || continue
+    attempted_file="$temporary_directory/image-$attempts"
+    if ! curl --fail --proto '=https' --tlsv1.2 \
+      --connect-timeout 15 --max-time 180 --max-filesize @maxFileSizeBytes@ \
+      --output "$attempted_file" "$media_url"; then
+      continue
+    fi
+
+    mime_type="$(file --brief --mime-type -- "$attempted_file")"
+    converted=0
+    original_file=''
+    original_extension=''
+    case "$mime_type" in
+    image/avif) attempted_extension=avif ;;
+    image/jpeg) attempted_extension=jpg ;;
+    image/png) attempted_extension=png ;;
+    image/tiff) attempted_extension=tiff ;;
+    image/webp) attempted_extension=webp ;;
+    image/x-exr|image/vnd.radiance|image/x-hdr)
+      original_extension=exr
+      converted=1
+      ;;
+    image/heic|image/heif)
+      original_extension=heif
+      converted=1
+      ;;
+    image/jxl)
+      original_extension=jxl
+      converted=1
+      ;;
+    image/bmp|image/x-ms-bmp)
+      original_extension=bmp
+      converted=1
+      ;;
+    *) continue ;;
+    esac
+
+    if [ "$converted" -eq 1 ]; then
+      original_file="$attempted_file"
+      attempted_file="$temporary_directory/display-$attempts.png"
+      if ! '@normalizeSdr@' "$original_file" "$attempted_file"; then
+        continue
+      fi
+      attempted_extension=png
+    fi
+
+    dimensions="$(magick identify -ping -format '%w %h' -- "$attempted_file" 2>/dev/null)" || continue
+    width="$(printf '%s' "$dimensions" | cut -d ' ' -f 1)"
+    height="$(printf '%s' "$dimensions" | cut -d ' ' -f 2)"
+    if ! {
+      [ "$width" -ge 3840 ] &&
+      [ "$height" -ge 2160 ] &&
+      [ "$width" -ge "$height" ] &&
+      [ $((width * 1000)) -ge $((height * @minAspectRatioScaled@)) ] &&
+      [ $((width * 1000)) -le $((height * @maxAspectRatioScaled@)) ]
+    }; then
+      continue
+    fi
+
+    candidate="$(jq -n --argjson record "$record_json" --arg url "$media_url" '$record + { url: $url }')"
+    download_file="$attempted_file"
+    extension="$attempted_extension"
+    break 2
+  done
+done < <(jq -r '.[]' <<< "$queries_json" | shuf)
+[ -n "$candidate" ] || {
+  echo 'NASA Image Library returned no suitable native 4K landscape candidates.' >&2
+  exit 0
+}
+
+nasa_id="$(jq -r '.nasa_id' <<< "$candidate")"
+safe_nasa_id="$(printf '%s' "$nasa_id" | tr -cs 'A-Za-z0-9._-' '_')"
+media_url="$(jq -r '.url' <<< "$candidate")"
+
+checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
+destination="$cache_directory/nasa-image-library-$safe_nasa_id-$checksum.$extension"
+if [ ! -e "$destination" ]; then
+  install -m 600 -- "$download_file" "$destination"
+  if [ "$converted" -eq 1 ] && [ '@keepOriginals@' -eq 1 ]; then
+    install -m 600 -- "$original_file" "$source_archive_directory/nasa-image-library-$safe_nasa_id-$checksum.source.$original_extension"
+  fi
+  jq -n \
+    --arg id "$nasa_id" --arg url "$media_url" --arg title "$(jq -r '.title' <<< "$candidate")" \
+    --arg center "$(jq -r '.center' <<< "$candidate")" \
+    --arg description "$(jq -r '.description' <<< "$candidate")" \
+    --arg retrieved_at "$(date --iso-8601=seconds)" --arg checksum "$checksum" \
+    --arg source_mime "$mime_type" \
+    --arg conversion "$(if [ "$converted" -eq 1 ]; then printf '%s' '16-bit sRGB PNG SDR derivative'; fi)" \
+    --argjson keywords "$(jq -c '.keywords' <<< "$candidate")" \
+    --argjson width "$width" --argjson height "$height" \
+    '{ source: "NASA Image and Video Library", source_id: $id, url: $url,
+      title: $title, center: $center, description: $description, keywords: $keywords,
+      license: "NASA media may be public domain unless the record states otherwise",
+      retrieved_at: $retrieved_at, sha256: $checksum, source_mime: $source_mime,
+      conversion: $conversion, width: $width, height: $height }' \
+    > "$destination.json"
+  chmod 600 -- "$destination.json"
+fi
+
+current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
+mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f \
+  \( -name 'nasa-image-library-*.avif' -o -name 'nasa-image-library-*.jpg' \
+    -o -name 'nasa-image-library-*.png' -o -name 'nasa-image-library-*.tiff' \
+    -o -name 'nasa-image-library-*.webp' \) \
+  -printf '%T@:%p\\0' | sort -z -n)
+excess=$((${#files[@]} - @maxImages@))
+if [ "$excess" -gt 0 ]; then
+  removed=0
+  for entry in "${files[@]}"; do
+    [ "$removed" -ge "$excess" ] && break
+    stale_file="${entry#*:}"
+    [ "$stale_file" = "$current_file" ] && continue
+    rm -f -- "$stale_file" "$stale_file.json"
+    stale_basename="$(basename -- "$stale_file")"
+    stale_basename="${stale_basename%.*}"
+    find "$source_archive_directory" -maxdepth 1 -type f -name "${stale_basename}.source.*" -delete
+    removed=$((removed + 1))
+  done
+fi

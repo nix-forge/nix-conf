@@ -1,0 +1,4 @@
+#!@bash@
+set -euo pipefail
+
+@cliphist@ list | @walker@ --dmenu --prompt 'Clipboard> ' | @cliphist@ decode | @wlCopy@

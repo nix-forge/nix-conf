@@ -6,6 +6,9 @@ in
   networking = {
     useDHCP = false;
     useNetworkd = true;
+    # The temporary GNOME compatibility layer defaults this on. This desktop's
+    # physical links are intentionally owned by systemd-networkd + IWD until a
+    # separately tested NetworkManager migration replaces their profiles.
     networkmanager.enable = false;
     firewall = {
       # Keep the global SSH firewall integration disabled so it cannot add a
@@ -16,46 +19,9 @@ in
       '';
     };
 
-    wireless.iwd = {
-      enable = true;
-      settings = {
-        General = {
-          Country = "US";
-          EnableNetworkConfiguration = false;
-          # Keep the adapter MAC stable on this trusted LAN. The desktop's
-          # SSH and Sunshine clients intentionally use its DHCP identity; a
-          # per-network randomized MAC would require matching router changes.
-          AddressRandomization = "disabled";
-        };
-        IPv6.Enabled = true;
-        Network.EnableIPv6 = true;
-        Scan.DisablePeriodicScan = false;
-        Settings.AutoConnect = true;
-        DriverQuirks = {
-          # This stationary, mains-powered desktop uses MediaTek's mt7921e
-          # driver. Keep power save disabled to avoid added Wi-Fi latency and
-          # throughput variation; RF retry rates are an AP/radio concern, not
-          # something to mask with unsafe driver parameters.
-          PowerSaveDisable = "mt7921e";
-        };
-      };
-    };
   };
 
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      # Validate when the supplied resolver supports DNSSEC, without making
-      # this home network unavailable when its router cannot validate it.
-      DNSSEC = "allow-downgrade";
-      # Resolve .local names without advertising this host. Avahi remains off,
-      # so there is no mDNS listener or UDP/5353 firewall exception.
-      LLMNR = "false";
-      MulticastDNS = "resolve";
-    };
-  };
   services.avahi.enable = lib.mkForce false;
-  services.openssh.openFirewall = lib.mkForce false;
 
   # This is a multi-homed client, not a router. Router Advertisements remain
   # enabled for IPv6 connectivity, but ICMP redirects are unnecessary and can
@@ -102,6 +68,10 @@ in
           # search suffix, nor opt into a network-designated DNS resolver.
           SendHostname = false;
           UseHostname = false;
+          # Blocky is the explicitly configured DNS policy point. Do not let
+          # DHCP inject a per-link resolver that systemd-resolved can prefer
+          # over its loopback-only Blocky upstream.
+          UseDNS = false;
           UseNTP = false;
           UseDomains = "route";
           UseDNR = false;
@@ -111,6 +81,7 @@ in
           RouteMetric = 100;
           Token = "prefixstable";
           UseDomains = "route";
+          UseDNS = false;
           UseDNR = false;
           UseRedirect = false;
         };
@@ -131,6 +102,9 @@ in
           RouteMetric = 600;
           SendHostname = false;
           UseHostname = false;
+          # See the wired profile: all ordinary DNS must traverse the local
+          # Blocky service, while router advertisements still supply routing.
+          UseDNS = false;
           UseNTP = false;
           UseDomains = "route";
           UseDNR = false;
@@ -140,6 +114,7 @@ in
           RouteMetric = 600;
           Token = "prefixstable";
           UseDomains = "route";
+          UseDNS = false;
           UseDNR = false;
           UseRedirect = false;
         };

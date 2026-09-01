@@ -1,9 +1,11 @@
-$default-foreground: #ebdbb2;
-$highlight-foreground: #fbf1c7;
+@import "stylix-colors";
+
+$default-foreground: $base05;
+$highlight-foreground: $base00;
 
 * {
   all: unset;
-  font-family: Ubuntu, "Material Design Icons";
+  font-family: Inter, "Material Design Icons";
   font-size: 10.5pt;
   color: $default-foreground;
 }
@@ -42,7 +44,7 @@ $highlight-foreground: #fbf1c7;
       box-shadow 600ms ease-out,
       background 600ms ease-out;
     box-shadow: 0 2px 0 0 $color inset;
-    background: #3c3836;
+    background: $base02;
   }
 }
 
@@ -74,15 +76,14 @@ $highlight-foreground: #fbf1c7;
 }
 
 window#waybar {
-  // background: #1d2021;
-  background: #000000;
-  // border-bottom: 1px solid #3c3836;
+  background: $base01;
+  border-bottom: 1px solid $base02;
 }
 
 tooltip,
 window.popup {
-  background: #282828;
-  border: 1px solid #665c54;
+  background: $base00;
+  border: 1px solid $base04;
   // border-radius: 3px;
 }
 
@@ -124,13 +125,13 @@ window.popup {
           background 100ms ease-out;
 
         color: $highlight-foreground;
-        background: #689d6a;
+        background: $base0B;
       }
     }
 
     separator {
       min-height: 1px;
-      background: #665c54;
+      background: $base04;
       margin: 4px 0;
     }
   }
@@ -142,16 +143,16 @@ window.popup {
 
 #tray {
   & > * {
-    @include indicate-hover(#282828);
+    @include indicate-hover($base02);
   }
 }
 
 #mpris {
-  @include indicate-hover(#282828);
+  @include indicate-hover($base02);
 }
 
 #submap {
-  @include indicate-active(#d3869b, "&");
+  @include indicate-active($base0E, "&");
 }
 
 #workspaces {
@@ -159,76 +160,64 @@ window.popup {
     min-width: 26px;
     padding: 6px;
 
-    @include indicate-hover(#282828);
-    @include indicate-active(#f38019, "&.active");
+    @include indicate-hover($base02);
+    @include indicate-active($base09, "&.active");
 
     &.urgent {
       animation-delay: 5s;
-      @include pulse-highlight(10%, #458588, 1.5s);
+      @include pulse-highlight(10%, $base0D, 1.5s);
     }
   }
 }
 
 #network {
-  @include indicate-hover(#282828);
-  @include indicate-active(#689d6a, "&.wifi");
-  @include indicate-active(#458588, "&.ethernet");
-  @include indicate-active(#b16286, "&.linked");
+  @include indicate-hover($base02);
+  @include indicate-active($base0B, "&.wifi");
+  @include indicate-active($base0D, "&.ethernet");
+  @include indicate-active($base0E, "&.linked");
 }
 
 #bluetooth {
-  @include indicate-hover(#282828);
-  @include indicate-active(#458588, "&.on");
-  @include indicate-active(#98971a, "&.connected");
+  @include indicate-hover($base02);
+  @include indicate-active($base0D, "&.on");
+  @include indicate-active($base0B, "&.connected");
 
   &.on {
-    @include breathe-highlight(#458588, 5s);
+    @include breathe-highlight($base0D, 5s);
   }
-
-  // &.discoverable {
-  //   @include breathe-highlight(#b16286, 5s);
-  // }
-
-  // &.discovering {
-  //   @include breathe-highlight(#b16286, 5s);
-  // }
-
-  // &.pairable:not(.connected) {
-  //   @include breathe-highlight(#b16286, 5s);
-  // }
 }
 
 #battery {
   &.battery-30:not(.charging) {
-    @include breathe-highlight(#d64d0e, 10s);
+    @include breathe-highlight($base09, 10s);
   }
 
   &.battery-20:not(.charging) {
-    @include pulse-highlight(10%, #d64d0e, 5s);
+    @include pulse-highlight(10%, $base09, 5s);
   }
 
   &.battery-10:not(.charging) {
-    @include pulse-highlight(30%, #cc241d, 750ms);
+    @include pulse-highlight(30%, $base08, 750ms);
   }
 }
 
 #temperature.critical {
-  @include pulse-highlight(30%, #cc241d, 750ms);
+  @include pulse-highlight(30%, $base08, 750ms);
 }
 
 #idle_inhibitor {
-  @include indicate-hover(#282828);
-  @include indicate-active(#d79921, "&.activated");
+  @include indicate-hover($base02);
+  @include indicate-active($base0A, "&.activated");
 
   &.activated {
-    @include pulse-highlight(10%, #d79921, 5s);
+    @include pulse-highlight(10%, $base0A, 5s);
   }
 }
 
 #pulseaudio {
-  @include indicate-hover(#282828);
+  @include indicate-hover($base02);
 
   &.output:not(.safe) {
-    @include breathe-highlight(#cc241d, 10s);
+    @include breathe-highlight($base08, 10s);
   }
 }

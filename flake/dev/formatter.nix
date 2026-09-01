@@ -63,6 +63,21 @@
         priority = 200;
       };
 
+      # Rust
+      rustfmt.enable = true;
+
+      # Lua
+      stylua = {
+        enable = true;
+        settings = {
+          column_width = 100;
+          indent_type = "Spaces";
+          indent_width = 2;
+          line_endings = "Unix";
+          quote_style = "AutoPreferDouble";
+        };
+      };
+
       # Other
       keep-sorted.enable = true;
       just.enable = true;

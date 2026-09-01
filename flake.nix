@@ -1,4 +1,11 @@
 {
+  nixConfig = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   inputs = {
     self.submodules = true;
 
@@ -90,6 +97,10 @@
         flake-compat.follows = "flake-compat";
       };
     };
+    noctalia = {
+      url = "github:noctalia-dev/noctalia/cachix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # NixOS Hardware
     disko = {
@@ -132,6 +143,13 @@
     # Dependency Override
     flake-compat = {
       url = "github:NixOS/flake-compat";
+      flake = false;
+    };
+
+    # Pinned DNS blocking data. Updating this input is an explicit policy
+    # review captured in flake.lock, not an unreviewed runtime list download.
+    stevenblack-hosts = {
+      url = "github:StevenBlack/hosts";
       flake = false;
     };
   };

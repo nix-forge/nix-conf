@@ -1,0 +1,100 @@
+#!@shell@
+set -euo pipefail
+
+if [ "$#" -gt 0 ]; then
+  codex_config=$1
+else
+  codex_config=@codexConfig@
+fi
+
+@mkdir@ -p "$(@dirname@ "$codex_config")"
+
+export CODEX_APPEARANCE_THEME=@appearanceTheme@
+export CODEX_ACCENT=@accent@
+export CODEX_SURFACE=@surface@
+export CODEX_INK=@ink@
+export CODEX_DIFF_ADDED=@diffAdded@
+export CODEX_DIFF_REMOVED=@diffRemoved@
+export CODEX_SKILL=@skill@
+export CODEX_UI_FONT=@uiFont@
+export CODEX_CODE_FONT=@codeFont@
+
+@perl@ - "$codex_config" <<'PERL'
+use strict;
+use warnings;
+use File::Basename qw(dirname);
+use File::Temp qw(tempfile);
+
+my $path = shift @ARGV;
+my $content = "";
+my $mode = 0600;
+
+if (-e $path) {
+  open my $input, "<", $path or die "cannot read $path: $!";
+  local $/;
+  $content = <$input>;
+  close $input or die "cannot close $path: $!";
+  $mode = (stat $path)[2] & 07777;
+}
+
+sub toml_string {
+  my ($value) = @_;
+  $value =~ s/\\/\\\\/g;
+  $value =~ s/"/\\"/g;
+  return qq{"$value"};
+}
+
+sub upsert {
+  my ($section, $key, $value) = @_;
+  my $header = "[$section]";
+
+  if ($content !~ /(?m)^\Q$header\E\s*$/) {
+    $content .= "\n" if length($content) && $content !~ /\n\z/;
+    $content .= "\n$header\n$key = $value\n";
+    return;
+  }
+
+  my $header_end = $+[0];
+  my $tail = substr($content, $header_end);
+  my $next_header = index($tail, "\n[");
+  my $section_end = $next_header < 0 ? length($content) : $header_end + $next_header + 1;
+  my $body = substr($content, $header_end, $section_end - $header_end);
+
+  if ($body =~ s/(?m)^\Q$key\E\s*=.*$/$key = $value/) {
+    # Replace the current value while preserving all other settings in the table.
+  } else {
+    $body .= "\n" unless $body =~ /\n\z/;
+    $body .= "$key = $value\n";
+  }
+
+  substr($content, $header_end, $section_end - $header_end, $body);
+}
+
+upsert("desktop", "appearanceTheme", toml_string($ENV{CODEX_APPEARANCE_THEME}));
+upsert("desktop", "appearanceLightCodeThemeId", toml_string("codex"));
+upsert("desktop", "appearanceDarkCodeThemeId", toml_string("codex"));
+upsert("desktop", "appearanceDiffMarkerStyle", toml_string("color"));
+upsert("desktop", "sansFontSize", "16");
+upsert("desktop", "codeFontSize", "16");
+upsert("desktop", "useFontSmoothing", "true");
+upsert("desktop", "usePointerCursors", "true");
+
+upsert("desktop.appearanceDarkChromeTheme", "surface", toml_string($ENV{CODEX_SURFACE}));
+upsert("desktop.appearanceDarkChromeTheme", "ink", toml_string($ENV{CODEX_INK}));
+upsert("desktop.appearanceDarkChromeTheme", "accent", toml_string($ENV{CODEX_ACCENT}));
+upsert("desktop.appearanceDarkChromeTheme", "contrast", "60");
+upsert("desktop.appearanceDarkChromeTheme", "opaqueWindows", "true");
+
+upsert("desktop.appearanceDarkChromeTheme.fonts", "ui", toml_string($ENV{CODEX_UI_FONT}));
+upsert("desktop.appearanceDarkChromeTheme.fonts", "code", toml_string($ENV{CODEX_CODE_FONT}));
+
+upsert("desktop.appearanceDarkChromeTheme.semanticColors", "diffAdded", toml_string($ENV{CODEX_DIFF_ADDED}));
+upsert("desktop.appearanceDarkChromeTheme.semanticColors", "diffRemoved", toml_string($ENV{CODEX_DIFF_REMOVED}));
+upsert("desktop.appearanceDarkChromeTheme.semanticColors", "skill", toml_string($ENV{CODEX_SKILL}));
+
+my ($output, $temporary_path) = tempfile(".codex-appearance-XXXXXX", DIR => dirname($path), UNLINK => 0);
+print {$output} $content or die "cannot write $temporary_path: $!";
+close $output or die "cannot close $temporary_path: $!";
+chmod $mode, $temporary_path or die "cannot set mode on $temporary_path: $!";
+rename $temporary_path, $path or die "cannot replace $path: $!";
+PERL

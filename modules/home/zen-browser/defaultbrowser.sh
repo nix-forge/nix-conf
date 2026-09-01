@@ -1,3 +1,4 @@
+#!@bash@
 # shellcheck shell=bash
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'

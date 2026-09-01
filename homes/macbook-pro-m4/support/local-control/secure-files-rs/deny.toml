@@ -1,0 +1,21 @@
+# Dependency policy for the local-control native helper.  This binary handles
+# private, descriptor-bound filesystem operations, so each new dependency must
+# be justified and reviewed rather than accepted implicitly.
+
+[advisories]
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+confidence-threshold = 0.93
+allow = ["Apache-2.0", "MIT"]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

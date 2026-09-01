@@ -7,6 +7,14 @@ let
       { };
 in
 {
+  # UseKeychain is Apple's extension. Ignore it if a Nix-provided OpenSSH
+  # client is selected, while the system client uses the macOS Keychain.
+  programs.ssh.extraOptionOverrides.IgnoreUnknown = "UseKeychain";
+  programs.ssh.settings."*" = {
+    AddKeysToAgent = "yes";
+    UseKeychain = "yes";
+  };
+
   programs.ssh.settings = {
     desktop = {
       HostName = "192.168.10.178";

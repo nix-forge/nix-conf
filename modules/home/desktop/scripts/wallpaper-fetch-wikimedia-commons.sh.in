@@ -1,0 +1,93 @@
+#!@bash@
+set -euo pipefail
+export PATH="@runtimePath@"
+umask 077
+
+cache_directory='@wallpaperDirectory@'
+state_directory='@stateDirectory@'
+category=@category@
+user_agent=@userAgent@
+temporary_directory="$(mktemp -d)"
+trap 'rm -rf -- "$temporary_directory"' EXIT
+mkdir -p -- "$cache_directory" "$state_directory"
+chmod 700 -- "$cache_directory" "$state_directory"
+
+api_json="$temporary_directory/featured-pictures.json"
+curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 60 \
+  --max-filesize 10485760 --user-agent "$user_agent" --output "$api_json" \
+  --get --data-urlencode 'action=query' \
+  --data-urlencode 'generator=categorymembers' \
+  --data-urlencode "gcmtitle=Category:$category" \
+  --data-urlencode 'gcmtype=file' \
+  --data-urlencode 'gcmlimit=100' \
+  --data-urlencode 'prop=imageinfo' \
+  --data-urlencode 'iiprop=url|size|mime|extmetadata' \
+  --data-urlencode 'format=json' \
+  'https://commons.wikimedia.org/w/api.php'
+
+# Commons has per-file licences. Automated collection deliberately admits only
+# files whose API metadata calls them CC0 or public domain. The sidecar keeps
+# the original metadata for provenance.
+candidate="$(jq -r '
+  [ .query.pages[]?
+    | .imageinfo[0]? as $image
+    | select($image != null)
+    | ($image.extmetadata.LicenseShortName.value // "") as $license
+    | select($license | test("^(CC0|Public domain|Public Domain)$"; "i"))
+    | select(($image.url? | type) == "string" and ($image.url | startswith("https://upload.wikimedia.org/")))
+    | select(($image.width? // 0) >= 3840 and ($image.height? // 0) >= 2160 and $image.width >= $image.height)
+    | select(($image.mime? // "") | test("^image/(jpeg|png|tiff|webp)$"))
+    | select(($image.size? // 0) > 0 and $image.size <= @maxFileSizeBytes@)
+    | { id: (.pageid | tostring), title, url: $image.url, width: $image.width, height: $image.height,
+        mime: $image.mime, license: $license, metadata: $image.extmetadata }
+  ] | .[] | @base64' "$api_json" | shuf -n 1)"
+[ -n "$candidate" ]
+
+id="$(echo "$candidate" | base64 -d | jq -r '.id')"
+title="$(echo "$candidate" | base64 -d | jq -r '.title')"
+media_url="$(echo "$candidate" | base64 -d | jq -r '.url')"
+download_file="$temporary_directory/image"
+curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 180 \
+  --max-filesize @maxFileSizeBytes@ --user-agent "$user_agent" --output "$download_file" "$media_url"
+
+mime_type="$(file --brief --mime-type -- "$download_file")"
+case "$mime_type" in
+  image/jpeg) extension=jpg ;;
+  image/png) extension=png ;;
+  image/tiff) extension=tiff ;;
+  image/webp) extension=webp ;;
+  *) echo "Commons file was not an accepted wallpaper image ($mime_type)." >&2; exit 65 ;;
+esac
+
+dimensions="$(magick identify -ping -format '%w %h' -- "$download_file")"
+[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 1)" -ge 3840 ]
+[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 2)" -ge 2160 ]
+
+checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
+destination="$cache_directory/wikimedia-commons-$id-$checksum.$extension"
+if [ ! -e "$destination" ]; then
+  install -m 600 -- "$download_file" "$destination"
+  echo "$candidate" | base64 -d | jq \
+    --arg retrieved_at "$(date --iso-8601=seconds)" \
+    --arg checksum "$checksum" \
+    --arg source_page "https://commons.wikimedia.org/?curid=$id" \
+    '. + { source: "Wikimedia Commons Quality Landscapes", source_id: .id,
+      source_page: $source_page, retrieved_at: $retrieved_at, sha256: $checksum }' \
+    > "$destination.json"
+  chmod 600 -- "$destination.json"
+fi
+
+current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
+mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'wikimedia-commons-*' \
+  ! -name '*.json' -printf '%T@:%p\\0' | sort -z -n)
+excess=$((${#files[@]} - @maxImages@))
+if [ "$excess" -gt 0 ]; then
+  removed=0
+  for entry in "${files[@]}"; do
+    [ "$removed" -ge "$excess" ] && break
+    stale_file="${entry#*:}"
+    [ "$stale_file" = "$current_file" ] && continue
+    rm -f -- "$stale_file" "$stale_file.json"
+    removed=$((removed + 1))
+  done
+fi

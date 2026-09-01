@@ -1,0 +1,118 @@
+icon_theme = "@iconTheme@"
+position = "top"
+height = 40
+anchor_to_edges = true
+exclusive_zone = true
+
+[margin]
+top = 10
+left = 12
+right = 12
+bottom = 0
+
+[[start]]
+type = "menu"
+label = "󰍜"
+
+[[start]]
+type = "workspaces"
+
+[[start]]
+type = "focused"
+show_icon = true
+show_title = true
+icon_size = 18
+
+[start.truncate]
+mode = "end"
+max_length = 52
+
+[[center]]
+type = "clock"
+format = "<b>%a, %b %-d</b>  %H:%M"
+format_popup = "%A, %B %-d\n%H:%M"
+
+[[end]]
+type = "music"
+player_type = "mpris"
+
+[[end]]
+type = "volume"
+format = "{icon} {percentage}%"
+mute_format = "󰝟 Muted"
+show_sources = true
+
+[[end]]
+type = "custom"
+name = "network"
+class = "network"
+
+[[end.bar]]
+type = "button"
+name = "network-button"
+label = "󰖩"
+on_click = "@networkCommand@"
+
+[[end]]
+type = "bluetooth"
+
+[end.format]
+disabled = "󰂲"
+enabled = "󰂯"
+connected = "󰂱 {device_alias}"
+connected_battery = "󰂱 {device_battery_percent}%"
+
+[[end]]
+type = "notifications"
+show_count = true
+
+[[end]]
+type = "tray"
+
+[[end]]
+type = "custom"
+name = "power-menu"
+class = "power-menu"
+
+[[end.bar]]
+type = "button"
+name = "power-button"
+label = "󰐥"
+on_click = "popup:toggle"
+
+[[end.popup]]
+type = "box"
+orientation = "vertical"
+
+[[end.popup.widgets]]
+type = "label"
+name = "header"
+label = "Session"
+
+[[end.popup.widgets]]
+type = "box"
+name = "buttons"
+
+[[end.popup.widgets.widgets]]
+type = "button"
+class = "power-action lock"
+label = "󰌾"
+on_click = "!loginctl lock-session"
+
+[[end.popup.widgets.widgets]]
+type = "button"
+class = "power-action suspend"
+label = "󰤄"
+on_click = "!systemctl suspend"
+
+[[end.popup.widgets.widgets]]
+type = "button"
+class = "power-action restart"
+label = "󰜉"
+on_click = "!systemctl reboot"
+
+[[end.popup.widgets.widgets]]
+type = "button"
+class = "power-action shutdown"
+label = "󰐥"
+on_click = "!systemctl poweroff"

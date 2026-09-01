@@ -16,7 +16,7 @@ enum OCRCaptureError: LocalizedError {
     switch self {
     case .missingImagePath:
       return "Expected a screenshot path argument."
-    case let .unreadableImage(path):
+    case .unreadableImage(let path):
       return "Could not read screenshot at \(path)."
     }
   }

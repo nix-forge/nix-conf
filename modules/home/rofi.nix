@@ -35,14 +35,19 @@
           # };
           inherit (config.lib.formats.rasi) mkLiteral;
 
-          # Colors
-          bg0 = mkLiteral "#242424E6";
-          bg1 = mkLiteral "#7E7E7E80";
-          bg2 = mkLiteral "#0860f2E6";
-
-          fg0 = mkLiteral "#DEDEDE";
-          fg1 = mkLiteral "#FFFFFF";
-          fg2 = mkLiteral "#DEDEDE80";
+          inherit (config.lib.stylix.colors.withHashtag)
+            base00
+            base02
+            base04
+            base05
+            base0D
+            ;
+          bg0 = mkLiteral "${base00}E6";
+          bg1 = mkLiteral "${base02}CC";
+          bg2 = mkLiteral "${base0D}E6";
+          fg0 = mkLiteral base05;
+          fg1 = mkLiteral base00;
+          fg2 = mkLiteral "${base04}CC";
         in
         lib.mkForce {
           # Theme from: https://github.com/newmanls/rofi-themes-collection

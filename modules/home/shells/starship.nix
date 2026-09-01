@@ -4,15 +4,18 @@
 
     settings = {
       add_newline = false;
-      command_timeout = 800;
-      scan_timeout = 50;
+      # Keep a slow project or network filesystem from delaying every prompt.
+      command_timeout = 250;
+      scan_timeout = 30;
 
       format = lib.concatStrings [
         "$directory"
         "$character"
       ];
 
-      right_format = "$all";
+      # `$all` probes every language and tool integration on every prompt.
+      # These modules keep the useful context without the constant overhead.
+      right_format = "$git_branch$git_status$git_state$direnv$cmd_duration$status";
 
       character = {
         success_symbol = "[❯](bold green)";

@@ -14,6 +14,13 @@ in
 
     nix = { inherit settings; };
 
+    # Determinate Nixd is the Nix daemon on NixOS and owns garbage
+    # collection.  Keep its documented default explicit so host modules do
+    # not add a competing `nix.gc` or `nix-collect-garbage` schedule.
+    environment.etc."determinate/config.json".text = builtins.toJSON {
+      garbageCollector.strategy = "automatic";
+    };
+
     nixpkgs.overlays = [
       (_final: _prev: { nix = inputs.determinate.inputs.nix.packages.${system}.default; })
     ];

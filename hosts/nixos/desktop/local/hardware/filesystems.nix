@@ -5,6 +5,7 @@
   ...
 }:
 let
+  encryptedRoot = config.hardware.storage.encryptedRoot.enable;
   rootLabel = "nixos";
   swapLabel = "swap";
   bootLabel = "boot";
@@ -24,6 +25,10 @@ let
     # package archives, and other already-compressed data.
     "compress=zstd:1"
     "noatime"
+    # Btrfs otherwise defaults to asynchronous discard on supported devices.
+    # Determinate Nixd can delete many store paths at once, so batch TRIM is
+    # preferable to issuing discards while its collector is active.
+    "nodiscard"
   ];
   mkBTRFS =
     label: subvol: extra:
@@ -44,84 +49,91 @@ let
   bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
-  # NixOS's built-in `users` group covers normal local accounts without tying
-  # this shared game library to a particular login.  The Btrfs subvolume is
-  # also used from Windows, so make its Steam content directory group-writable
-  # when the volume is available.
-  systemd.tmpfiles.rules = [
-    "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
-    "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
-  ];
+  # This switch exists only during this desktop's one-time Disko migration.
+  # It is deliberately declared locally: a shared storage module must not
+  # expose a host-specific root-layout transition as a reusable option.
+  options.hardware.storage.encryptedRoot.enable = lib.mkEnableOption ''
+    this desktop's Disko-managed LUKS2 encrypted root layout
+  '';
 
-  # Only the filesystem needed to mount this desktop's root belongs in the
-  # initrd.  Removable-media support is available after the real system starts.
-  boot.initrd.supportedFilesystems = [ "btrfs" ];
-
-  fileSystems = {
-    "/" = mkBTRFS rootLabel "@root" defaultBTRFSOptions;
-    "/var" = mkBTRFS rootLabel "@var" defaultBTRFSOptions;
-    "/tmp" = mkBTRFS rootLabel "@tmp" defaultBTRFSOptions;
-    "/nix" = mkBTRFS rootLabel "@nix" defaultBTRFSOptions;
-    "/home" = mkBTRFS rootLabel "@home" defaultBTRFSOptions;
-
-    # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
-    # The Btrfs default subvolume contains a `games` subvolume. Mount it at a
-    # neutral system location so Steam libraries can be selected by any user.
-    # The non-critical game disk must not block the desktop from booting if it
-    # is absent or unhealthy.
-    ${gamesMountPoint} = {
-      device = gamesDevice;
-      fsType = "btrfs";
-      options = [
-        "subvol=games"
-        "compress=zstd:1"
-        "noatime"
-        "nofail"
-        "x-systemd.device-timeout=10s"
+  config = lib.mkMerge [
+    {
+      # NixOS's built-in `users` group covers normal local accounts without
+      # tying this shared game library to a particular login.  The Btrfs
+      # subvolume is also used from Windows, so make its Steam content
+      # directory group-writable when the volume is available.
+      systemd.tmpfiles.rules = [
+        "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
+        "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
       ];
-    };
 
-    ${bootMP} = mkBoot bootLabel; # should be /boot by default
-  };
+      # Only the filesystem needed to mount this desktop's root belongs in the
+      # initrd. Removable-media support is available after the real system
+      # starts.
+      boot.initrd.supportedFilesystems = [ "btrfs" ];
 
-  # Swap
-  swapDevices = [ { label = swapLabel; } ];
+      fileSystems.${gamesMountPoint} = {
+        # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
+        # Its absence must not block the desktop from booting.
+        device = gamesDevice;
+        fsType = "btrfs";
+        options = [
+          "subvol=games"
+          "compress=zstd:1"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
 
-  # BTRFS Scrub
-  services.btrfs.autoScrub = {
-    enable = true;
-    # First Sunday of every month, outside the normal desktop-use window.
-    # Btrfs recommends monthly scrub; the limit protects interactivity because
-    # this desktop uses the NVMe `none` I/O scheduler, where idle I/O priority
-    # alone is not a reliable throttle.
-    interval = "Sun *-*-01..07 03:00:00";
-    limit = "800M";
-    # A scrub covers all subvolumes on its Btrfs filesystem, so one root entry
-    # is sufficient for the system drive.  The independent games volume needs
-    # its own entry.
-    fileSystems = [
-      "/"
-      gamesMountPoint
-    ];
-  };
+      # Btrfs scrub covers all subvolumes on a filesystem, so one root entry
+      # is enough for either storage layout. The games drive is independent.
+      services.btrfs.autoScrub = {
+        enable = true;
+        interval = "Sun *-*-01..07 03:00:00";
+        limit = "800M";
+        fileSystems = [
+          "/"
+          gamesMountPoint
+        ];
+      };
 
-  # The system is a mains-powered desktop, so defer periodic trim until AC is
-  # available.  Btrfs enables asynchronous discard itself on supported modern
-  # devices; do not pin that implementation detail in fstab.  The periodic
-  # batch trim remains the explicit maintenance policy for this host.
-  systemd.services.fstrim.unitConfig.ConditionACPower = true;
+      # Keep continuous discard off for the Btrfs filesystem that contains
+      # `/nix`; the shared SSD module runs periodic batch TRIM instead.
+      systemd.services.fstrim.unitConfig.ConditionACPower = true;
 
-  # NixOS's auto-scrub timer intentionally uses a one-day accuracy window.
-  # This single desktop can use a narrower, jittered early-morning window while
-  # retaining persistence across downtime.
-  systemd.timers = {
-    "btrfs-scrub--".timerConfig = {
-      AccuracySec = lib.mkForce "1h";
-      RandomizedDelaySec = "2h";
-    };
-    ${gamesScrubTimer}.timerConfig = {
-      AccuracySec = lib.mkForce "1h";
-      RandomizedDelaySec = "2h";
-    };
-  };
+      # NixOS's auto-scrub timer intentionally uses a one-day accuracy window.
+      # This single desktop uses a narrower, jittered early-morning window.
+      systemd.timers = {
+        "btrfs-scrub--".timerConfig = {
+          AccuracySec = lib.mkForce "1h";
+          RandomizedDelaySec = "2h";
+        };
+        ${gamesScrubTimer}.timerConfig = {
+          AccuracySec = lib.mkForce "1h";
+          RandomizedDelaySec = "2h";
+        };
+      };
+    }
+
+    # Disko creates its own Btrfs subvolumes, initrd LUKS mapping, and
+    # encrypted swap. Keep the currently-deployed plaintext root layout behind
+    # an explicit switch so the offline migration does not merge incompatible
+    # mounts or leave a plaintext swap device behind. This defaults to false
+    # and changes nothing on the current live desktop.
+    (lib.mkIf (!encryptedRoot) {
+      fileSystems = {
+        "/" = mkBTRFS rootLabel "@root" defaultBTRFSOptions;
+        "/var" = mkBTRFS rootLabel "@var" defaultBTRFSOptions;
+        "/tmp" = mkBTRFS rootLabel "@tmp" defaultBTRFSOptions;
+        "/nix" = mkBTRFS rootLabel "@nix" defaultBTRFSOptions;
+        "/home" = mkBTRFS rootLabel "@home" defaultBTRFSOptions;
+        ${bootMP} = mkBoot bootLabel; # should be /boot by default
+      };
+
+      # Legacy plaintext swap. Disko replaces this with a LUKS-encrypted Btrfs
+      # swapfile, retaining the same zram-first priority order.
+      swapDevices = [ { label = swapLabel; } ];
+    })
+  ];
 }

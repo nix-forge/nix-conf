@@ -1,0 +1,28 @@
+{
+  "name": "carbon-neon-theme",
+  "displayName": "Carbon Neon Theme",
+  "description": "Near-black, high-contrast VS Code themes with vivid Carbon Neon accents.",
+  "publisher": "ianhollow",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Carbon Neon",
+        "uiTheme": "vs-dark",
+        "path": "./themes/carbon-neon-color-theme.json"
+      },
+      {
+        "label": "Carbon Neon OLED",
+        "uiTheme": "vs-dark",
+        "path": "./themes/carbon-neon-oled-color-theme.json"
+      }
+    ]
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,24 @@
+window#osd {
+  background: alpha(@base00@, 0.94);
+  border: 1px solid alpha(@base03@, 0.80);
+  border-radius: 16px;
+  color: @base05@;
+  font-family: @font@;
+  font-size: 16px;
+  padding: 14px 18px;
+}
+
+image {
+  color: @base0D@;
+}
+
+progressbar trough {
+  background: alpha(@base03@, 0.70);
+  border-radius: 999px;
+  min-height: 8px;
+}
+
+progressbar progress {
+  background: @base0D@;
+  border-radius: 999px;
+}
