@@ -95,7 +95,10 @@
             local-control-rust-clippy = {
               enable = true;
               name = "local-control Clippy";
-              entry = "cargo clippy --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets -- -D warnings";
+              # Cargo invoked outside the development shell cannot find
+              # Darwin's libiconv. Keep the hook in the same toolchain and
+              # linker environment developers use for local Rust checks.
+              entry = "nix develop --command cargo clippy --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets -- -D warnings";
               language = "system";
               extraPackages = [
                 pkgs.cargo
@@ -109,7 +112,7 @@
             local-control-rust-test = {
               enable = true;
               name = "local-control Rust tests";
-              entry = "cargo test --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets";
+              entry = "nix develop --command cargo test --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets";
               language = "system";
               extraPackages = [ pkgs.cargo ];
               always_run = true;
