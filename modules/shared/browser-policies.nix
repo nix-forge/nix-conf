@@ -55,9 +55,7 @@ let
               karakeep = "kgcjekpmcjjogibpjebkhaanilehneje";
               refinedGitHub = "hlepfoohegkhhmjieoechaddaejaokhf";
             }
-            // lib.optionalAttrs (browserTheme != null) {
-              ${browserTheme.name} = browserTheme.id;
-            };
+            // lib.optionalAttrs (browserTheme != null) { ${browserTheme.name} = browserTheme.id; };
             description = "Named Chrome Web Store extension IDs managed for Helium.";
           };
         };

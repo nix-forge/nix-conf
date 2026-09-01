@@ -7,6 +7,7 @@
 let
   cfg = config.desktop.notifications;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
+  colors = config.lib.stylix.colors.withHashtag;
   hyprBind = key: command: {
     _args = [
       key
@@ -27,57 +28,29 @@ in
 
     home.packages = [ pkgs.libnotify ];
 
-    xdg.configFile."swaync/config.json".text = builtins.toJSON {
-      positionX = "right";
-      positionY = "top";
-      "control-center-positionX" = "right";
-      "control-center-positionY" = "top";
-      "control-center-width" = 420;
-      "control-center-height" = 620;
-      "control-center-margin-top" = 42;
-      "control-center-margin-right" = 12;
-      "notification-icon-size" = 48;
-      "notification-body-image-height" = 140;
-      "notification-body-image-width" = 240;
-      "notification-inline-replies" = true;
-      "notification-grouping" = true;
-      "image-visibility" = "when-available";
-      timeout = 8;
-      "timeout-low" = 5;
-      "timeout-critical" = 0;
-      widgets = [
-        "title"
-        "dnd"
-        "notifications"
-        "mpris"
-        "volume"
-        "backlight"
-      ];
-      "widget-config" = {
-        title = {
-          text = "Notifications";
-          "clear-all-button" = true;
-        };
-        dnd = {
-          text = "Do not disturb";
-        };
-        mpris = {
-          "image-size" = 96;
-          "image-radius" = 8;
-        };
-        volume = {
-          label = "Volume";
-        };
-        backlight = {
-          label = "Brightness";
-        };
-      };
+    xdg.configFile."swaync/config.json".source = pkgs.replaceVarsWith {
+      name = "swaync-config";
+      src = ./config/swaync-config.json.in;
+      replacements = { };
     };
 
     xdg.configFile."swaync/style.css".source = pkgs.replaceVarsWith {
       name = "swaync-desktop-style";
-      src = ./config/swaync.css;
-      replacements = { };
+      src = ./config/swaync-style.css.in;
+      replacements = {
+        font = builtins.toJSON config.stylix.fonts.sansSerif.name;
+        inherit (colors)
+          base00
+          base01
+          base02
+          base03
+          base04
+          base05
+          base08
+          base0B
+          base0D
+          ;
+      };
     };
 
     systemd.user.services.swaync = {

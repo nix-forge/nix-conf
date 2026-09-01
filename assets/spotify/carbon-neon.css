@@ -4,6 +4,14 @@
  * Carbon palette so native UI added by Spotify stays coherent.
  */
 :root {
+  /* Keep Spotify's text in sync with Stylix while retaining multilingual fallbacks. */
+  --encore-body-font-stack:
+    @stylixSansSerif @, "Noto Sans CJK SC", "Noto Sans CJK TC",
+    "Noto Sans CJK HK", "Noto Sans CJK JP", "Noto Sans CJK KR",
+    "Noto Color Emoji", sans-serif;
+  --encore-title-font-stack: var(--encore-body-font-stack);
+  --encore-variable-font-stack: var(--encore-body-font-stack);
+
   --background-base: var(--spice-main);
   --background-base-min-contrast: var(--spice-main);
   --background-base-high-contrast: var(--spice-card);
@@ -20,21 +28,21 @@
   --text-bright-accent: var(--spice-button);
   --text-positive: var(--spice-button);
   --text-negative: var(--spice-notification-error);
-  --text-warning: #d5b05f;
+  --text-warning: @paletteWarning @;
   --text-announcement: var(--spice-button);
   --essential-base: var(--spice-button);
   --essential-subdued: var(--spice-subtext);
   --essential-bright-accent: var(--spice-button);
   --essential-positive: var(--spice-button);
   --essential-negative: var(--spice-notification-error);
-  --essential-warning: #d5b05f;
+  --essential-warning: @paletteWarning @;
   --decorative-base: var(--spice-card);
   --decorative-subdued: var(--spice-button-disabled);
   --background-noise: none;
 
   /* A lightened teal hover and blue-teal pressed state, never Spotify green. */
-  --carbon-neon-button-hover: #9de0da;
-  --carbon-neon-button-press: #6ebad7;
+  --carbon-neon-button-hover: @paletteAccentHover @;
+  --carbon-neon-button-press: @paletteAccentPressed @;
 }
 
 /*

@@ -52,15 +52,29 @@ in
     # Manager generate that API call correctly.
     settings.config = {
       general = {
-        border_size = 2;
-        gaps_in = 0;
-        gaps_out = 0;
+        border_size = 1;
+        gaps_in = 8;
+        gaps_out = 16;
         "col.active_border" = lib.mkForce "rgb(${colors.base0D})";
         "col.inactive_border" = lib.mkForce "rgb(${colors.base02})";
         resize_on_border = true;
       };
 
-      decoration.rounding = 0;
+      decoration = {
+        rounding = 16;
+        rounding_power = 2;
+        active_opacity = 1.0;
+        inactive_opacity = 1.0;
+        shadow = {
+          enabled = true;
+          range = 12;
+          render_power = 3;
+        };
+        blur = {
+          enabled = false;
+        };
+      };
+      animations.enabled = true;
       input = {
         follow_mouse = 2;
         float_switch_override_focus = 0;
@@ -70,6 +84,10 @@ in
         vrr = 0;
         key_press_enables_dpms = true;
         mouse_move_enables_dpms = true;
+      };
+      binds = {
+        workspace_back_and_forth = true;
+        allow_workspace_cycles = true;
       };
       dwindle = {
         force_split = 2;
@@ -92,6 +110,7 @@ in
         grace = 0;
         hide_cursor = true;
         ignore_empty_input = true;
+        immediate_render = true;
       };
 
       background = {
@@ -102,6 +121,7 @@ in
       "input-field" = {
         monitor = "";
         size = "420, 64";
+        rounding = 14;
         outline_thickness = 2;
         dots_size = 0.2;
         dots_spacing = 0.2;
@@ -109,6 +129,7 @@ in
         outer_color = lib.mkForce "rgb(${colors.base0D})";
         inner_color = lib.mkForce "rgb(${colors.base01})";
         font_color = lib.mkForce "rgb(${colors.base05})";
+        font_family = config.stylix.fonts.sansSerif.name;
         fade_on_empty = false;
         placeholder_text = "<i>Unlock desktop</i>";
         hide_input = true;

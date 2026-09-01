@@ -4,17 +4,15 @@
   config,
   ...
 }:
+let
+  themeDefinitions = import ../../../themes { inherit inputs; };
+in
 {
   imports = [ inputs.stylix.nixosModules.stylix ];
 
   options.appearance.theme = lib.mkOption {
-    type = lib.types.enum [
-      "catppuccin-mocha"
-      "gruvbox-dark-medium"
-      "carbon-neon"
-      "carbon-neon-oled"
-    ];
-    default = "carbon-neon";
+    type = lib.types.enum themeDefinitions.names;
+    default = themeDefinitions.defaultName;
     description = "Shared dark theme for Stylix and native application integrations.";
   };
 
@@ -25,14 +23,7 @@
     polarity = "dark";
 
     # Keep the standalone Stylix component in step with the shared profile.
-    base16Scheme =
-      {
-        catppuccin-mocha = inputs.stylix.inputs.tinted-schemes + "/base16/catppuccin-mocha.yaml";
-        gruvbox-dark-medium = inputs.stylix.inputs.tinted-schemes + "/base16/gruvbox-dark-medium.yaml";
-        carbon-neon = ../../../themes/carbon-neon.yaml;
-        carbon-neon-oled = ../../../themes/carbon-neon-oled.yaml;
-      }
-      .${config.appearance.theme};
+    base16Scheme = themeDefinitions.schemes.${config.appearance.theme};
 
     # Wallpaper
     # image = ./background.jpg;

@@ -104,9 +104,15 @@ jobs:
           TARGET_SYSTEM: ${{ matrix.system }}
         run: |
           set -euo pipefail
-          nix build --keep-going --show-trace --print-build-logs --no-link \
-            ".#checks.${TARGET_SYSTEM}.treefmt" \
+          check_targets=(
+            ".#checks.${TARGET_SYSTEM}.treefmt"
+            ".#checks.${TARGET_SYSTEM}.python-quality"
             ".#checks.${TARGET_SYSTEM}.local-control-database-validation"
+          )
+          if [[ "$TARGET_SYSTEM" == "x86_64-linux" ]]; then
+            check_targets+=(".#checks.${TARGET_SYSTEM}.desktop-configuration-contract")
+          fi
+          nix build --keep-going --show-trace --print-build-logs --no-link "${check_targets[@]}"
       - name: Evaluate deployable configurations
         shell: bash
         env:

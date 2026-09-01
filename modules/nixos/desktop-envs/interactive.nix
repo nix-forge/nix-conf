@@ -22,15 +22,8 @@ in
     services.upower.enable = true;
     services.power-profiles-daemon.enable = true;
 
-    # Thunar's system integration supplies the volume-management and archive
-    # plugins. Mount authorization still flows through UDisks and Polkit.
-    programs.thunar = {
-      enable = true;
-      plugins = [
-        pkgs.thunar-archive-plugin
-        pkgs.thunar-volman
-      ];
-    };
+    # Mount authorization remains with UDisks and Polkit. The GTK4 file
+    # manager itself is configured per-user by the Home Manager desktop module.
 
     environment.systemPackages = [
       pkgs.ddcutil

@@ -5,6 +5,16 @@
   ...
 }:
 {
+  # Noctalia's pinned `cachix` branch is built by its upstream CI. Nix accepts
+  # only store paths signed by this explicit public key; unsigned or altered
+  # substitutes still fail verification.
+  nix.settings = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   # This is an existing installation. Keep its original compatibility version;
   # it must never be raised to match the current nixpkgs release.
   system.stateVersion = "23.11";
@@ -34,6 +44,13 @@
   # unlocks the encrypted Login keyring before Helium starts using Secret
   # Service, without leaving an unlocked desktop at the physical console.
   programs.hyprlock.enable = true;
+  # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
+  # XDG environment and therefore cannot discover Home Manager's config at
+  # boot. Give the host-owned unit the persistent user config explicitly.
+  systemd.user.services.hypridle.serviceConfig.ExecStart = lib.mkForce [
+    ""
+    "${lib.getExe config.services.hypridle.package} -c /home/ianmh/.config/hypr/hypridle.conf"
+  ];
   security.pam.services = {
     hyprlock.enableGnomeKeyring = true;
 
@@ -168,8 +185,7 @@
     '';
   };
 
-  # The rootless Docker module installs a global user unit.  Limit it to the
-  # actual desktop user so GDM's greeter account does not repeatedly attempt
-  # (and fail) to start a Docker daemon at the login screen.
+  # The rootless Docker module installs a global user unit. Limit it to the
+  # actual desktop user so the greeter never gets a Docker daemon.
   systemd.user.services.docker.unitConfig.ConditionUser = lib.mkForce "ianmh";
 }

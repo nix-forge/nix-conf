@@ -7,91 +7,16 @@
 let
   cfg = config.desktop.bar;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
-  json = builtins.toJSON {
-    layer = "top";
-    position = "top";
-    height = 30;
-    spacing = 8;
-    "modules-left" = [
-      "hyprland/workspaces"
-      "hyprland/window"
-    ];
-    "modules-center" = [ "clock" ];
-    "modules-right" = [
-      "wireplumber"
-      "network"
-      "bluetooth"
-      "battery"
-      "power-profiles-daemon"
-      "tray"
-    ];
-    "hyprland/workspaces" = {
-      "all-outputs" = false;
-      "disable-scroll" = true;
-      format = "{name}";
-    };
-    "hyprland/window" = {
-      "max-length" = 80;
-      "separate-outputs" = true;
-    };
-    clock = {
-      format = "{:%a %b %d  %H:%M}";
-      "tooltip-format" = "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>";
-    };
-    wireplumber = {
-      format = "{icon} {volume}%";
-      "format-muted" = "Muted";
-      "format-icons" = [
-        "Volume"
-        "Volume"
-        "Volume"
-      ];
-      "on-click" = "pwvucontrol";
-      "on-click-right" = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-    };
-    network = {
-      format-wifi = "Wi-Fi {signalStrength}%";
-      format-ethernet = "Wired";
-      format-disconnected = "Offline";
-      tooltip-format = "{ifname}: {ipaddr}/{cidr}";
-      "on-click" = cfg.networkCommand;
-    };
-    bluetooth = {
-      format = "Bluetooth";
-      "format-disabled" = "Bluetooth off";
-      "format-connected" = "Bluetooth {device_alias}";
-      "on-click" = "blueman-manager";
-    };
-    battery = {
-      states.warning = 30;
-      states.critical = 15;
-      format = "{capacity}%";
-      "format-charging" = "Charging {capacity}%";
-      "format-plugged" = "AC {capacity}%";
-    };
-    "power-profiles-daemon" = {
-      format = "{icon}";
-      "tooltip-format" = "Power profile: {profile}";
-      "format-icons" = {
-        default = "Balanced";
-        performance = "Performance";
-        power-saver = "Saver";
-      };
-    };
-    tray = {
-      "icon-size" = 16;
-      spacing = 8;
-    };
-  };
+  colors = config.lib.stylix.colors.withHashtag;
 in
 {
   options.desktop.bar = {
-    enable = lib.mkEnableOption "a low-overhead Waybar desktop panel";
+    enable = lib.mkEnableOption "a GTK4 Ironbar desktop panel";
 
     networkCommand = lib.mkOption {
       type = lib.types.str;
       default = "nm-connection-editor";
-      description = "Command that opens the host's network-management UI.";
+      description = "Command opened by the panel's network shortcut.";
     };
   };
 
@@ -103,19 +28,59 @@ in
       }
     ];
 
-    home.packages = [ pkgs.pwvucontrol ];
+    # Ironbar replaces Waybar rather than running beside it: one panel avoids
+    # duplicate status indicators, tray hosts, and notification affordances.
+    programs.waybar.enable = lib.mkForce false;
+    home.packages = [ pkgs.ironbar ];
 
-    programs.waybar = {
-      enable = true;
-      systemd.enable = true;
-      settings.mainBar = builtins.fromJSON json;
-      style = builtins.readFile (
-        pkgs.replaceVarsWith {
-          name = "waybar-desktop-style";
-          src = ./config/waybar.css;
-          replacements = { };
-        }
-      );
+    xdg.configFile = {
+      "ironbar/config.toml".source = pkgs.replaceVarsWith {
+        name = "ironbar-config";
+        src = ./config/ironbar-config.toml.in;
+        replacements = {
+          iconTheme = config.stylix.icons.dark;
+          inherit (cfg) networkCommand;
+        };
+      };
+
+      "ironbar/style.css".source = pkgs.replaceVarsWith {
+        name = "ironbar-style";
+        src = ./config/ironbar-style.css.in;
+        replacements = {
+          font = builtins.toJSON config.stylix.fonts.sansSerif.name;
+          inherit (colors)
+            base00
+            base01
+            base02
+            base03
+            base04
+            base05
+            base08
+            base09
+            base0A
+            base0B
+            base0D
+            ;
+        };
+      };
+    };
+
+    systemd.user.services.ironbar = {
+      Unit = {
+        Description = "Ironbar GTK4 desktop panel";
+        PartOf = [ "graphical-session.target" ];
+        After = [
+          "graphical-session.target"
+          "swaync.service"
+        ];
+        Wants = [ "swaync.service" ];
+      };
+      Service = {
+        ExecStart = "${lib.getExe pkgs.ironbar} --config ${config.xdg.configHome}/ironbar/config.toml --theme ${config.xdg.configHome}/ironbar/style.css";
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
     };
   };
 }

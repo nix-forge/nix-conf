@@ -32,7 +32,7 @@ let
     replacements = {
       bash = lib.getExe pkgs.bash;
       cliphist = lib.getExe pkgs.cliphist;
-      fuzzel = lib.getExe pkgs.fuzzel;
+      walker = lib.getExe pkgs.walker;
       wlCopy = lib.getExe' pkgs.wl-clipboard "wl-copy";
     };
   };

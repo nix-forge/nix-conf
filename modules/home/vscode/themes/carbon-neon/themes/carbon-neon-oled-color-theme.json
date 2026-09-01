@@ -3,27 +3,20 @@
   "name": "Carbon Neon OLED",
   "include": "./carbon-neon-color-theme.json",
   "colors": {
-    "widget.shadow": "#000000CC",
-    "titleBar.activeBackground": "#000000",
-    "titleBar.inactiveBackground": "#000000",
-    "activityBar.background": "#000000",
-    "activityBarTop.background": "#101213",
-    "sideBar.background": "#000000",
-    "editorGroupHeader.tabsBackground": "#101213",
-    "tab.activeBackground": "#000000",
-    "tab.inactiveBackground": "#101213",
-    "editor.background": "#000000",
-    "editorGutter.background": "#000000",
-    "statusBar.background": "#000000",
-    "statusBar.noFolderBackground": "#000000",
-    "panel.background": "#000000",
-    "terminal.background": "#000000"
-  },
-  "tokenColors": [
-    {
-      "settings": {
-        "background": "#000000"
-      }
-    }
-  ]
+    "widget.shadow": "@surface@CC",
+    "titleBar.activeBackground": "@surface@",
+    "titleBar.inactiveBackground": "@surface@",
+    "activityBar.background": "@surface@",
+    "activityBarTop.background": "@surfaceChrome@",
+    "sideBar.background": "@surface@",
+    "editorGroupHeader.tabsBackground": "@surfaceChrome@",
+    "tab.activeBackground": "@surface@",
+    "tab.inactiveBackground": "@surfaceChrome@",
+    "editor.background": "@surface@",
+    "editorGutter.background": "@surface@",
+    "statusBar.background": "@surface@",
+    "statusBar.noFolderBackground": "@surface@",
+    "panel.background": "@surface@",
+    "terminal.background": "@surface@"
+  }
 }

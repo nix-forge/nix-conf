@@ -30,5 +30,9 @@ else
     update_pref "$prefs" audio.play_bitrate_enumeration 3
     update_pref "$prefs" audio.play_bitrate_non_metered_enumeration 3
     update_pref "$prefs" audio.allow_downgrade false
+    # Spotify owns the platform-specific registration. Persist the supported
+    # "off" preference so subsequent Spotify launches do not recreate it.
+    update_pref "$prefs" app.autostart-configured true
+    update_pref "$prefs" app.autostart-mode '"off"'
   done
 fi

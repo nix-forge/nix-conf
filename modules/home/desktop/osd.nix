@@ -7,7 +7,22 @@
 let
   cfg = config.desktop.osd;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
+  colors = config.lib.stylix.colors.withHashtag;
   client = lib.getExe' pkgs.swayosd "swayosd-client";
+  focusedClient = pkgs.replaceVarsWith {
+    name = "desktop-swayosd-focused";
+    src = ./scripts/swayosd-focused.sh.in;
+    dir = "bin";
+    isExecutable = true;
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      hyprctl = lib.getExe' pkgs.hyprland "hyprctl";
+      jq = lib.getExe pkgs.jq;
+      swayosdClient = client;
+    };
+  };
+  targetedClient =
+    if cfg.targetFocusedMonitor then lib.getExe' focusedClient "desktop-swayosd-focused" else client;
   hyprBind = key: command: {
     _args = [
       key
@@ -16,7 +31,19 @@ let
   };
 in
 {
-  options.desktop.osd.enable = lib.mkEnableOption "SwayOSD for volume, brightness, and media feedback";
+  options.desktop.osd = {
+    enable = lib.mkEnableOption "SwayOSD for volume, brightness, and media feedback";
+
+    targetFocusedMonitor = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Show OSD feedback only on Hyprland's focused output. Outside Hyprland,
+        or before an output is available, SwayOSD falls back to its normal
+        all-output behavior.
+      '';
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     assertions = [
@@ -30,12 +57,29 @@ in
       pkgs.brightnessctl
       pkgs.playerctl
       pkgs.swayosd
+      focusedClient
     ];
 
-    xdg.configFile."swayosd/config.toml".source = pkgs.replaceVarsWith {
-      name = "swayosd-config";
-      src = ./config/swayosd.toml;
-      replacements = { };
+    xdg.configFile = {
+      "swayosd/config.toml".source = pkgs.replaceVarsWith {
+        name = "swayosd-config";
+        src = ./config/swayosd.toml.in;
+        replacements.stylePath = "${config.xdg.configHome}/swayosd/style.css";
+      };
+
+      "swayosd/style.css".source = pkgs.replaceVarsWith {
+        name = "swayosd-style";
+        src = ./config/swayosd-style.css.in;
+        replacements = {
+          font = builtins.toJSON config.stylix.fonts.sansSerif.name;
+          inherit (colors)
+            base00
+            base03
+            base05
+            base0D
+            ;
+        };
+      };
     };
 
     systemd.user.services.swayosd = {
@@ -61,15 +105,15 @@ in
       lib.mkIf config.wayland.windowManager.hyprland.enable
         (
           lib.mkAfter [
-            (hyprBind "XF86AudioRaiseVolume" "${client} --output-volume raise")
-            (hyprBind "XF86AudioLowerVolume" "${client} --output-volume lower")
-            (hyprBind "XF86AudioMute" "${client} --output-volume mute-toggle")
-            (hyprBind "XF86AudioMicMute" "${client} --input-volume mute-toggle")
-            (hyprBind "XF86MonBrightnessUp" "${client} --brightness raise")
-            (hyprBind "XF86MonBrightnessDown" "${client} --brightness lower")
-            (hyprBind "XF86AudioPlay" "${client} --playerctl play-pause")
-            (hyprBind "XF86AudioNext" "${client} --playerctl next")
-            (hyprBind "XF86AudioPrev" "${client} --playerctl previous")
+            (hyprBind "XF86AudioRaiseVolume" "${targetedClient} --output-volume raise")
+            (hyprBind "XF86AudioLowerVolume" "${targetedClient} --output-volume lower")
+            (hyprBind "XF86AudioMute" "${targetedClient} --output-volume mute-toggle")
+            (hyprBind "XF86AudioMicMute" "${targetedClient} --input-volume mute-toggle")
+            (hyprBind "XF86MonBrightnessUp" "${targetedClient} --brightness raise")
+            (hyprBind "XF86MonBrightnessDown" "${targetedClient} --brightness lower")
+            (hyprBind "XF86AudioPlay" "${targetedClient} --playerctl play-pause")
+            (hyprBind "XF86AudioNext" "${targetedClient} --playerctl next")
+            (hyprBind "XF86AudioPrev" "${targetedClient} --playerctl previous")
           ]
         );
   };

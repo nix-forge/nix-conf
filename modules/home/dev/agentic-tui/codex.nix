@@ -35,12 +35,12 @@ let
       perl = lib.getExe pkgs.perl;
       codexConfig = lib.escapeShellArg "${config.xdg.configHome}/codex/config.toml";
       appearanceTheme = lib.escapeShellArg "dark";
-      surface = lib.escapeShellArg "#${config.lib.stylix.colors.base00}";
-      ink = lib.escapeShellArg "#${config.lib.stylix.colors.base05}";
-      accent = lib.escapeShellArg "#${config.lib.stylix.colors.base0D}";
-      diffAdded = lib.escapeShellArg "#${config.lib.stylix.colors.base0B}";
-      diffRemoved = lib.escapeShellArg "#${config.lib.stylix.colors.base08}";
-      skill = lib.escapeShellArg "#${config.lib.stylix.colors.base0E}";
+      surface = lib.escapeShellArg "#${config.appearance.palette.surface}";
+      ink = lib.escapeShellArg "#${config.appearance.palette.text}";
+      accent = lib.escapeShellArg "#${config.appearance.palette.accent}";
+      diffAdded = lib.escapeShellArg "#${config.appearance.palette.diffAdded}";
+      diffRemoved = lib.escapeShellArg "#${config.appearance.palette.diffRemoved}";
+      skill = lib.escapeShellArg "#${config.appearance.palette.special}";
       uiFont = lib.escapeShellArg config.stylix.fonts.sansSerif.name;
       codeFont = lib.escapeShellArg config.stylix.fonts.monospace.name;
     };

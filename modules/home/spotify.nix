@@ -45,40 +45,53 @@ let
       mv = lib.getExe' pkgs.coreutils "mv";
       spotifyPreferences =
         if isDarwin then
-          "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"
+          "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/prefs"} ${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"
         else
           lib.escapeShellArg "${config.xdg.configHome}/spotify/prefs";
     };
   };
+  palette = config.appearance.palette;
   isCarbonNeon = builtins.elem config.appearance.theme [
     "carbon-neon"
     "carbon-neon-oled"
   ];
-  carbonNeonScheme = with config.lib.stylix.colors; {
-    text = base05;
-    subtext = base04;
-    sidebar-text = base05;
-    main = base00;
-    main-elevated = base01;
-    highlight = base01;
-    highlight-elevated = base02;
-    sidebar = base00;
-    player = base00;
-    card = base02;
+  carbonNeonScheme = {
+    inherit (palette) text;
+    subtext = palette.muted;
+    sidebar-text = palette.text;
+    main = palette.surface;
+    main-elevated = palette.surfaceRaised;
+    highlight = palette.surfaceRaised;
+    highlight-elevated = palette.surfaceHover;
+    sidebar = palette.surface;
+    player = palette.surface;
+    card = palette.surfaceHover;
     shadow = "000000";
-    selected-row = base04;
-    button = base0D;
+    selected-row = palette.muted;
+    button = palette.accent;
     # Keep primary actions and selected playback states in Carbon's cyan rather
     # than Spotify's familiar green.  The latter is too close to Carbon's
     # reserved success colour and was the lime control shown in the screenshot.
-    button-active = base0D;
-    button-disabled = base03;
-    tab-active = base01;
-    notification = base0D;
-    notification-error = base08;
-    misc = base04;
+    button-active = palette.accent;
+    button-disabled = palette.outline;
+    tab-active = palette.surfaceRaised;
+    notification = palette.accent;
+    notification-error = palette.danger;
+    misc = palette.muted;
   };
-  carbonNeonCss = builtins.readFile ../../assets/spotify/carbon-neon.css;
+  # `additionalCss` is an in-memory Home Manager value. Substituting its one
+  # value during evaluation avoids trying to build a Linux derivation merely
+  # to read CSS on the macOS deployment workstation.
+  carbonNeonCss =
+    builtins.replaceStrings
+      [ "@stylixSansSerif@" "@paletteWarning@" "@paletteAccentHover@" "@paletteAccentPressed@" ]
+      [
+        (builtins.toJSON config.stylix.fonts.sansSerif.name)
+        "#${palette.warning}"
+        "#${palette.accentHover}"
+        "#${palette.accentPressed}"
+      ]
+      (builtins.readFile ../../assets/spotify/carbon-neon.css);
   carbonNeonTheme = spicePkgs.themes.default // {
     name = "CarbonNeon";
     additionalCss = carbonNeonCss;
@@ -118,10 +131,32 @@ in
   );
 
   # Spotify's account-specific prefs live beneath a runtime-created profile
-  # directory, so they are the one intentionally runtime configuration step.
+  # directory. macOS also keeps startup policy in a parent `prefs` file, so
+  # these are intentionally managed at activation rather than copied once.
   home.activation.configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     source ${spotifyQuality}
   '';
+
+  # The macOS client has already registered its StartUpHelper as a background
+  # login item. Spotify's preference above prevents it being registered again.
+  # Keep launchd's user-level policy disabled as well, which controls the
+  # registration that exists before this generation is activated.
+  home.activation.disableSpotifyDarwinAutostart = lib.mkIf isDarwin (
+    lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ''
+      run /bin/launchctl disable "gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper"
+    ''
+  );
+
+  # Linux desktop sessions discover autostart applications through XDG. A
+  # same-name user entry with `Hidden=true` overrides a vendor entry even if
+  # Spotify or a package later supplies one.
+  xdg.configFile."autostart/spotify.desktop" = lib.mkIf (!isDarwin) {
+    text = ''
+      [Desktop Entry]
+      Type=Application
+      Hidden=true
+    '';
+  };
 
   programs.spicetify = {
     enable = true;

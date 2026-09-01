@@ -12,6 +12,12 @@ let
   wipeCommand = lib.optionalString (
     config.desktop.clipboard.enable && config.desktop.clipboard.wipeOnLock
   ) "${lib.getExe pkgs.cliphist} wipe";
+  onLockCommand = lib.concatStringsSep "; " (
+    lib.filter (command: command != "true") [
+      wipeCommand
+      cfg.onLockCommand
+    ]
+  );
   hyprBind = key: command: {
     _args = [
       key
@@ -40,6 +46,16 @@ in
       default = 900;
       description = "Idle time before system suspend.";
     };
+
+    onLockCommand = lib.mkOption {
+      type = lib.types.str;
+      default = "true";
+      description = ''
+        Extra user-session command run after locking. Use it for state that
+        must be cleared at the lock boundary, such as shell-owned clipboard
+        history.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -67,7 +83,7 @@ in
         lockAfterSeconds = toString cfg.lockAfterSeconds;
         displayOffAfterSeconds = toString cfg.displayOffAfterSeconds;
         suspendAfterSeconds = toString cfg.suspendAfterSeconds;
-        onLockCommand = if wipeCommand == "" then "true" else wipeCommand;
+        onLockCommand = if onLockCommand == "" then "true" else onLockCommand;
       };
     };
 

@@ -12,7 +12,8 @@ let
   composeFile = "${configDir}/docker-compose.yml";
   envFile = "${configDir}/.env";
   localUrl = "http://localhost:${toString cfg.port}";
-  colimaDockerSocket = "${config.home.homeDirectory}/.config/colima/default/docker.sock";
+  colimaHome = "${config.home.homeDirectory}/${config.services.colima.colimaHomeDir}";
+  colimaDockerSocket = "${colimaHome}/default/docker.sock";
 
   generatedEnvironment = {
     KARAKEEP_VERSION = cfg.version;
@@ -79,6 +80,7 @@ let
       bash = lib.getExe pkgs.bash;
       localUrl = lib.escapeShellArg localUrl;
       username = config.home.username;
+      colimaHome = lib.escapeShellArg colimaHome;
       curl = lib.getExe pkgs.curl;
       seq = lib.getExe' pkgs.coreutils "seq";
       sleep = lib.getExe' pkgs.coreutils "sleep";
@@ -224,6 +226,7 @@ in
               bash = lib.getExe pkgs.bash;
               homeDirectory = lib.escapeShellArg config.home.homeDirectory;
               dockerSocket = lib.escapeShellArg colimaDockerSocket;
+              colima = lib.getExe pkgs.colima;
               seq = lib.getExe' pkgs.coreutils "seq";
               sleep = lib.getExe' pkgs.coreutils "sleep";
               inherit dockerCompose;

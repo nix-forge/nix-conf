@@ -57,6 +57,8 @@ in
     cache
     nixSeal
     ./nix-seal.nix
+    ./local/containers.nix
+    ./local/moonlight.nix
     macos
 
     fonts

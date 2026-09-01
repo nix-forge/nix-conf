@@ -25,6 +25,7 @@ let
     name: lib.any (package: lib.getName package == name) desktop.services.udev.packages;
   hasMacbookHomePackage =
     name: lib.any (package: lib.getName package == name) macbookHome.home.packages;
+  moonlightStreamingScript = builtins.readFile ../homes/macbook-pro-m4/local/scripts/configure-moonlight.sh;
   sharedUblockFilters = desktop.programs.chromiumPolicies.customFilterLists;
   heliumPolicies =
     builtins.fromJSON
@@ -101,60 +102,122 @@ in
         assert desktopHome.programs.zen-browser.enable;
         assert desktopHome.programs.helium.enable;
         assert desktopHome.wayland.windowManager.hyprland.enable;
-        assert desktopHome.programs.fuzzel.enable;
-        assert desktopHome.programs.fuzzel.settings.main."match-mode" == "fzf";
+        assert !desktopHome.programs.fuzzel.enable;
         assert desktopHome.desktop.enable;
         assert desktop.desktop.system.enable;
         assert desktop.programs.dconf.enable;
         assert desktop.services.upower.enable;
         assert desktop.services.power-profiles-daemon.enable;
-        assert desktop.programs.thunar.enable;
-        assert desktopHome.programs.waybar.enable;
-        assert desktopHome.programs.waybar.settings.mainBar.network."on-click" == "iwgtk";
+        assert !desktop.programs.thunar.enable;
+        assert !desktopHome.programs.waybar.enable;
+        assert desktopHome.desktop.noctalia.enable;
+        assert desktopHome.programs.noctalia.enable;
+        assert desktopHome.programs.noctalia.systemd.enable;
+        assert !desktopHome.desktop.bar.enable;
+        assert !desktopHome.desktop.notifications.enable;
+        assert !desktopHome.desktop.osd.enable;
+        assert !desktopHome.desktop.clipboard.enable;
+        assert desktop.appearance.theme == "carbon-neon";
         assert desktopHome.desktop.applications.networkBackend == "iwd";
         assert desktopHome.desktop.clipboard.wipeOnLock;
         assert desktopHome.desktop.wallpaper.enable;
+        assert hasHomePackage "nix-seal";
         assert desktopHome.desktop.wallpaper.mode == "rotate";
-        assert desktopHome.desktop.wallpaper.sources.nasaSvs.enable;
-        assert desktopHome.desktop.wallpaper.sources.nasaSvs.maxCandidatePages == 5;
+        assert !desktopHome.desktop.wallpaper.sources.nasaSvs.enable;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.enable;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxCandidateRecords == 60;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.minYear == 2000;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxFileSizeMiB == 150;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.minAspectRatio == 1.4;
+        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxAspectRatio == 2.4;
         assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.enable;
-        assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxFileSizeMiB == 60;
+        assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxFileSizeMiB == 150;
         assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxImages == 20;
+        assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.enable;
+        assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.maxFileSizeMiB == 150;
+        assert
+          desktopHome.desktop.wallpaper.sources.smithsonian.enable
+          == !desktopHome.nixSeal.secrets."smithsonian-open-access-api-key".pending;
+        assert desktopHome.desktop.wallpaper.sources.smithsonian.maxFileSizeMiB == 150;
+        assert desktopHome.desktop.wallpaper.sources.smithsonian.maxCandidateRecords == 80;
+        assert desktopHome.desktop.wallpaper.sources.initialFetches == 2;
         assert desktopHome.desktop.wallpaper.rotation.interval == "30min";
-        assert builtins.hasAttr "swaync" desktopHome.systemd.user.services;
-        assert builtins.hasAttr "swayosd" desktopHome.systemd.user.services;
-        assert builtins.hasAttr "cliphist" desktopHome.systemd.user.services;
+        assert builtins.hasAttr "noctalia" desktopHome.systemd.user.services;
+        assert !(builtins.hasAttr "swaync" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "swayosd" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "cliphist" desktopHome.systemd.user.services);
         assert builtins.hasAttr "awww" desktopHome.systemd.user.services;
+        assert builtins.hasAttr "desktop-wallpaper-directories" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-rotate" desktopHome.systemd.user.services;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.services;
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.services);
+        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.services;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-wikimedia-commons"
+          desktopHome.systemd.user.services;
+        assert
+          builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.services
+          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
+        assert builtins.hasAttr "desktop-wallpaper-seed" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-rotate" desktopHome.systemd.user.timers;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.timers;
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.timers);
+        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.timers;
         assert builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.timers;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa-bootstrap" desktopHome.systemd.user.timers;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-cma-bootstrap" desktopHome.systemd.user.timers;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-wikimedia-commons" desktopHome.systemd.user.timers;
         assert
-          desktopHome.systemd.user.timers.desktop-wallpaper-fetch-nasa-bootstrap.Timer.Unit
-          == "desktop-wallpaper-fetch-nasa.service";
+          builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.timers
+          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
+        assert builtins.hasAttr "desktop-wallpaper-seed" desktopHome.systemd.user.timers;
         assert
-          desktopHome.systemd.user.timers.desktop-wallpaper-fetch-cma-bootstrap.Timer.Unit
-          == "desktop-wallpaper-fetch-cma.service";
+          desktopHome.systemd.user.timers.desktop-wallpaper-seed.Timer.Unit
+          == "desktop-wallpaper-seed.service";
+        assert lib.elem "desktop-wallpaper-directories.service"
+          desktopHome.systemd.user.services.desktop-wallpaper-fetch-nasa-library.Unit.Requires;
+        assert lib.elem "desktop-wallpaper-directories.service"
+          desktopHome.systemd.user.services.desktop-wallpaper-fetch-cma.Unit.Requires;
+        assert lib.elem "desktop-wallpaper-directories.service"
+          desktopHome.systemd.user.services.desktop-wallpaper-fetch-wikimedia-commons.Unit.Requires;
+        assert
+          !desktopHome.desktop.wallpaper.sources.smithsonian.enable
+          || lib.elem "desktop-wallpaper-directories.service" desktopHome.systemd.user.services.desktop-wallpaper-fetch-smithsonian.Unit.Requires;
+        assert lib.elem "desktop-wallpaper-directories.service"
+          desktopHome.systemd.user.services.desktop-wallpaper-rotate.Unit.Requires;
         # NixOS's Hyprlock module owns the packaged Hypridle service. Home
         # Manager supplies only its configuration and must not shadow it.
         assert desktop.services.hypridle.enable;
         assert !(builtins.hasAttr "hypridle" desktopHome.systemd.user.services);
+        assert lib.any (
+          command: lib.hasInfix "-c /home/ianmh/.config/hypr/hypridle.conf" command
+        ) desktop.systemd.user.services.hypridle.serviceConfig.ExecStart;
+        assert desktopHome.programs.hyprlock.settings.general.immediate_render;
+        assert desktopHome.desktop.workflow.enable;
+        assert desktopHome.desktop.workflow.workspaceCount == 10;
+        assert desktopHome.desktop.workflow.terminalCommand != null;
+        assert desktopHome.desktop.applications.sessionLauncher == "uwsm app --";
         assert hasHomePackage "obs-studio";
         assert hasHomePackage "satty";
-        assert hasHomePackage "cliphist";
+        assert hasHomePackage "noctalia";
+        assert !(hasHomePackage "cliphist");
+        assert !(hasHomePackage "desktop-swayosd-focused");
         assert hasHomePackage "desktop-wallpaper-next";
-        assert hasHomePackage "desktop-wallpaper-fetch-nasa";
+        assert hasHomePackage "desktop-wallpaper-fetch-nasa-library";
+        assert !(hasHomePackage "desktop-wallpaper-fetch-nasa");
         assert hasHomePackage "desktop-wallpaper-fetch-cma";
+        assert hasHomePackage "desktop-wallpaper-fetch-wikimedia-commons";
+        assert
+          hasHomePackage "desktop-wallpaper-fetch-smithsonian"
+          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
         assert !(hasHomePackage "desktop-wallpaper-source");
         assert lib.any (
-          binding: lib.hasInfix "fuzzel" (builtins.toJSON binding)
+          binding: lib.hasInfix "panel-toggle launcher" (builtins.toJSON binding)
         ) desktopHome.wayland.windowManager.hyprland.settings.bind;
         assert lib.any (
-          binding: lib.hasInfix "swayosd-client" (builtins.toJSON binding)
+          binding: lib.hasInfix "panel-toggle control-center" (builtins.toJSON binding)
+        ) desktopHome.wayland.windowManager.hyprland.settings.bind;
+        assert lib.any (
+          binding: lib.hasInfix "hl.dsp.window.close" (builtins.toJSON binding)
+        ) desktopHome.wayland.windowManager.hyprland.settings.bind;
+        assert lib.any (
+          binding: lib.hasInfix "workspace =" (builtins.toJSON binding)
         ) desktopHome.wayland.windowManager.hyprland.settings.bind;
         assert lib.any (
           binding: lib.hasInfix "desktop-screenshot" (builtins.toJSON binding)
@@ -192,7 +255,22 @@ in
         assert hasHomePackage "libreoffice";
         assert hasHomePackage "mpv-with-scripts";
         assert hasHomePackage "spotify";
-        assert hasHomePackage "fuzzel";
+        assert lib.hasInfix "launchctl disable \"gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper\""
+          macbookHome.home.activation.disableSpotifyDarwinAutostart.data;
+        assert
+          desktopHome.xdg.configFile."autostart/spotify.desktop".text == ''
+            [Desktop Entry]
+            Type=Application
+            Hidden=true
+          '';
+        assert !(hasHomePackage "walker");
+        assert !(hasHomePackage "elephant");
+        assert !(hasHomePackage "ironbar");
+        assert hasHomePackage "nautilus";
+        assert !(builtins.hasAttr "walker" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "elephant" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "ironbar" desktopHome.systemd.user.services);
+        assert lib.hasInfix "clipboard-clear" desktopHome.desktop.idle.onLockCommand;
         # The MiniDV tools embed their exact runtime dependencies in their
         # Nix-store wrappers, so those implementation packages deliberately do
         # not need to be exposed in the global system profile.
@@ -444,10 +522,17 @@ in
         assert desktop.xdg.portal.config.hyprland.default == "hyprland;gtk";
         assert desktop.services.pipewire.enable;
         assert desktop.services.pipewire.wireplumber.enable;
-        assert lib.hasInfix "export AQ_DRM_DEVICES=/dev/dri/card1"
-          desktopHome.xdg.configFile."uwsm/env-hyprland".text;
-        assert !lib.hasInfix "HYPRLAND_NO_SD_VARS" desktopHome.xdg.configFile."uwsm/env-hyprland".text;
-        assert !lib.hasInfix "HYPRLAND_NO_SD_NOTIFY" desktopHome.xdg.configFile."uwsm/env-hyprland".text;
+        assert lib.hasInfix "export AQ_DRM_DEVICES=/dev/dri/card1" (
+          builtins.readFile ../homes/desktop/local/config/uwsm-env-hyprland
+        );
+        assert
+          !lib.hasInfix "HYPRLAND_NO_SD_VARS" (
+            builtins.readFile ../homes/desktop/local/config/uwsm-env-hyprland
+          );
+        assert
+          !lib.hasInfix "HYPRLAND_NO_SD_NOTIFY" (
+            builtins.readFile ../homes/desktop/local/config/uwsm-env-hyprland
+          );
         assert desktop.services.greetd.enable;
         assert !desktop.services.displayManager.gdm.enable;
         assert desktop.services.greetd.settings.initial_session.user == "ianmh";
@@ -473,24 +558,44 @@ in
         assert lib.hasInfix "udp dport { 47998, 47999, 48000, 48002, 48010 } accept"
           desktop.networking.firewall.extraInputRules;
         assert hasMacbookHomePackage "moonlight-qt";
-        assert lib.hasInfix "width -int 2562" macbookHome.home.activation.configureMoonlightStreaming.data;
-        assert lib.hasInfix "height -int 1656" macbookHome.home.activation.configureMoonlightStreaming.data;
-        assert lib.hasInfix "fps -int 120" macbookHome.home.activation.configureMoonlightStreaming.data;
+        assert lib.hasInfix "width -int 2562" moonlightStreamingScript;
+        assert lib.hasInfix "height -int 1656" moonlightStreamingScript;
+        assert lib.hasInfix "fps -int 120" moonlightStreamingScript;
         assert lib.hasInfix "bitrate -int 55000"
-          macbookHome.home.activation.configureMoonlightStreaming.data;
-        assert lib.hasInfix "videocfg -int 4" macbookHome.home.activation.configureMoonlightStreaming.data;
-        assert lib.hasInfix "hdr -bool false" macbookHome.home.activation.configureMoonlightStreaming.data;
+          moonlightStreamingScript;
+        assert lib.hasInfix "videocfg -int 4" moonlightStreamingScript;
+        assert lib.hasInfix "hdr -bool false" moonlightStreamingScript;
         assert !desktop.virtualisation.docker.enable;
         assert desktop.virtualisation.docker.rootless.enable;
         assert desktop.users.users.ianmh.linger;
         assert !(desktop.systemd.services ? docker);
         assert desktop.systemd.user.services.docker.unitConfig.ConditionUser == "ianmh";
+        assert desktop.systemd.user.services.docker.wantedBy == [ ];
+        assert desktop.systemd.user.services.docker.serviceConfig.Restart == "on-failure";
+        assert desktop.virtualisation.docker.rootless.daemon.settings.features.buildkit;
+        assert desktop.virtualisation.docker.rootless.daemon.settings."default-cgroupns-mode" == "private";
+        assert desktop.virtualisation.docker.rootless.daemon.settings."no-new-privileges";
+        assert desktop.systemd.services."user@".serviceConfig.Delegate == "cpu cpuset io memory pids";
+        assert desktopHome.programs.docker-cli.settings.currentContext == "rootless";
+        assert
+          desktopHome.programs.docker-cli.contexts.rootless.Endpoints.docker.Host
+          == "unix:///run/user/1000/docker.sock";
+        assert !macbookHome.services.colima.profiles.default.isService;
+        assert !macbookHome.services.colima.profiles.default.isActive;
+        assert !macbookHome.services.colima.profiles.default.setDockerHost;
+        assert macbookHome.services.colima.colimaHomeDir == ".colima";
+        assert macbookHome.services.colima.profiles.default.settings.vmType == "vz";
+        assert macbookHome.services.colima.profiles.default.settings.mountType == "virtiofs";
+        assert macbookHome.services.colima.profiles.default.settings.rosetta;
+        assert macbookHome.services.colima.profiles.default.settings.cpu == 2;
+        assert macbookHome.services.colima.profiles.default.settings.memory == 4;
+        assert macbookHome.services.colima.profiles.default.settings.disk == 60;
         assert desktopHome.programs.ssh.settings."nid??????".data.StrictHostKeyChecking == "accept-new";
         assert desktopHome.programs.ssh.enable;
         assert desktopHome.programs.ssh.settings."*".data.AddKeysToAgent == "yes";
-        assert desktopHome.programs.ssh.settings."*".data.ForwardAgent == "no";
-        assert desktopHome.programs.ssh.settings."*".data.ForwardX11 == "no";
-        assert desktopHome.programs.ssh.settings."*".data.HashKnownHosts == "yes";
+        assert !desktopHome.programs.ssh.settings."*".data.ForwardAgent;
+        assert !desktopHome.programs.ssh.settings."*".data.ForwardX11;
+        assert desktopHome.programs.ssh.settings."*".data.HashKnownHosts;
         assert desktopHome.programs.ssh.settings."*".data.StrictHostKeyChecking == "accept-new";
         assert desktopHome.programs.ssh.settings."*".data.UpdateHostKeys == "yes";
         assert desktopHome.programs.ssh.settings."*".data.ControlPath == "/home/ianmh/.ssh/cm/%C";
@@ -509,7 +614,7 @@ in
           == "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
         assert desktop.fileSystems."/run/nix-seal".fsType == "tmpfs";
         assert lib.elem "noswap" desktop.fileSystems."/run/nix-seal".options;
-        assert lib.hasInfix "/bin/mount -- /run/nix-seal"
+        assert lib.hasInfix "nix-seal-runtime-activation"
           desktop.system.activationScripts.nixSealRuntime.text;
         assert desktop.systemd.services.nix-seal-runtime.unitConfig.RequiresMountsFor == "/run/nix-seal";
         assert lib.hasInfix "/run/nix-seal/users/ianmh" desktopHome.home.activation.nixSeal.data;

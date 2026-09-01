@@ -20,15 +20,42 @@ in
         public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
       };
     };
-    secrets = lib.genAttrs [
-      "nix-access-tokens"
-      "cornell-net-id-ssh-config"
-      "git-allowedsigners"
-      "gitconfig-username"
-      "gitconfig-useremail"
-      "gitconfig-useremail-cornell"
-      "gitconfig-useremail-github"
-      "hf-token"
-    ] (_: runtime);
+    # Optional source credentials must not make unrelated desktop deployments
+    # fail when their encrypted artifact has not been provisioned yet.
+    secrets =
+      lib.genAttrs
+        (
+          [
+            "nix-access-tokens"
+            "cornell-net-id-ssh-config"
+            "git-allowedsigners"
+            "gitconfig-username"
+            "gitconfig-useremail"
+            "gitconfig-useremail-cornell"
+            "gitconfig-useremail-github"
+            "hf-token"
+          ]
+          ++ [ "smithsonian-open-access-api-key" ]
+        )
+        (
+          name:
+          runtime
+          // lib.optionalAttrs (name == "smithsonian-open-access-api-key") {
+            # This key has not been sealed yet. It remains completely out of
+            # desktop activation until delegated first-creation completes.
+            pending =
+              !builtins.pathExists ../../secrets/ianhollow/users/ianmh/smithsonian-open-access-api-key.age;
+
+            # When the secret is sealed, systemd exposes it only to this fetcher
+            # through CREDENTIALS_DIRECTORY. It is neither an environment variable
+            # nor a Nix-store input.
+            serviceCredentials = [
+              {
+                unit = "desktop-wallpaper-fetch-smithsonian.service";
+                name = "smithsonian-open-access-api-key";
+              }
+            ];
+          }
+        );
   };
 }

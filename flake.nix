@@ -1,4 +1,11 @@
 {
+  nixConfig = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   inputs = {
     self.submodules = true;
 
@@ -90,6 +97,10 @@
         flake-compat.follows = "flake-compat";
       };
     };
+    noctalia = {
+      url = "github:noctalia-dev/noctalia/cachix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # NixOS Hardware
     disko = {
@@ -163,6 +174,13 @@
             release = {
               kind = "signer";
               public = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
+            };
+            delegated-create = {
+              # This public key may issue only short-lived, create-only
+              # capabilities for Nix-declared pending secrets. Its private
+              # key is stored outside the repository and Nix store.
+              kind = "authorizer";
+              public = "nix-seal-ed25519-v1:Izzr/Ats9t9oXkXLl7+WotqnPeGdRhQdiR/i7Xlym2k=";
             };
           };
           approvalPolicies.release = {

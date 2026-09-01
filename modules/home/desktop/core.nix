@@ -31,6 +31,7 @@ in
       clipboard.enable = lib.mkDefault true;
       capture.enable = lib.mkDefault true;
       applications.enable = lib.mkDefault true;
+      workflow.enable = lib.mkDefault true;
       wallpaper.enable = lib.mkDefault true;
     };
   };

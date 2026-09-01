@@ -83,7 +83,13 @@
             touch "$out"
           '';
 
-      checks.local-control-rust = localControlSecureFilesRust;
+      checks.local-control-rust =
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          localControlSecureFilesRust
+        else
+          pkgs.runCommand "local-control-rust-not-applicable" { } ''
+            touch "$out"
+          '';
 
       checks.local-control-proxy-tls-policy =
         pkgs.runCommand "local-control-proxy-tls-policy"
