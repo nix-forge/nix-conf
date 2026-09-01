@@ -32,9 +32,12 @@
       (lib.getExe (
         pkgs.writeShellApplication {
           name = "nix-conf-systemd-bless-boot";
-          runtimeInputs = [ pkgs.binutils ];
+          runtimeInputs = [
+            pkgs.binutils
+            pkgs.systemd
+          ];
           text = ''
-            if ${lib.getExe' pkgs.systemd "systemd-bless-boot"} good; then
+            if systemd-bless-boot good; then
               exit 0
             else
               status="$?"
