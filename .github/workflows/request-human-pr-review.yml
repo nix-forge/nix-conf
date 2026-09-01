@@ -1,11 +1,8 @@
 name: Request review for human pull requests
-
 on: # zizmor: ignore[dangerous-triggers] This workflow does not check out or run pull request code. It only requests a reviewer from event metadata.
   pull_request_target:
     types: [opened, reopened, ready_for_review]
-
 permissions: {}
-
 jobs:
   request-review:
     if: >-
