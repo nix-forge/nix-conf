@@ -1,10 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-{
+{ lib, pkgs, ... }: {
   # Keep the workstation's interactive shell explicit. The generic modules
   # remain reusable in lightweight, recovery, and non-Hyprland profiles.
   desktop.enable = true;
@@ -32,9 +26,5 @@
   desktop.wallpaper.sources.nasaImageLibrary.enable = true;
   desktop.wallpaper.sources.clevelandMuseum.enable = true;
   desktop.wallpaper.sources.wikimediaCommons.enable = true;
-  # A source selection stays declarative: Smithsonian becomes active as soon
-  # as its encrypted credential exists. Until then, no broken fetch unit is
-  # installed and unrelated desktop deployment remains unaffected.
-  desktop.wallpaper.sources.smithsonian.enable =
-    !config.nixSeal.secrets."smithsonian-open-access-api-key".pending;
+  desktop.wallpaper.sources.smithsonian.enable = true;
 }

@@ -41,11 +41,6 @@ in
           name:
           runtime
           // lib.optionalAttrs (name == "smithsonian-open-access-api-key") {
-            # This key has not been sealed yet. It remains completely out of
-            # desktop activation until delegated first-creation completes.
-            pending =
-              !builtins.pathExists ../../secrets/ianhollow/users/ianmh/smithsonian-open-access-api-key.age;
-
             # When the secret is sealed, systemd exposes it only to this fetcher
             # through CREDENTIALS_DIRECTORY. It is neither an environment variable
             # nor a Nix-store input.

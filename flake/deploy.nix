@@ -135,9 +135,7 @@ in
         assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxImages == 20;
         assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.enable;
         assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.maxFileSizeMiB == 150;
-        assert
-          desktopHome.desktop.wallpaper.sources.smithsonian.enable
-          == !desktopHome.nixSeal.secrets."smithsonian-open-access-api-key".pending;
+        assert desktopHome.desktop.wallpaper.sources.smithsonian.enable;
         assert desktopHome.desktop.wallpaper.sources.smithsonian.maxFileSizeMiB == 150;
         assert desktopHome.desktop.wallpaper.sources.smithsonian.maxCandidateRecords == 80;
         assert desktopHome.desktop.wallpaper.sources.initialFetches == 2;

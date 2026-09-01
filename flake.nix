@@ -175,13 +175,6 @@
               kind = "signer";
               public = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
             };
-            delegated-create = {
-              # This public key may issue only short-lived, create-only
-              # capabilities for Nix-declared pending secrets. Its private
-              # key is stored outside the repository and Nix store.
-              kind = "authorizer";
-              public = "nix-seal-ed25519-v1:Izzr/Ats9t9oXkXLl7+WotqnPeGdRhQdiR/i7Xlym2k=";
-            };
           };
           approvalPolicies.release = {
             threshold = 1;
