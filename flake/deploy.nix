@@ -561,8 +561,7 @@ in
         assert lib.hasInfix "width -int 2562" moonlightStreamingScript;
         assert lib.hasInfix "height -int 1656" moonlightStreamingScript;
         assert lib.hasInfix "fps -int 120" moonlightStreamingScript;
-        assert lib.hasInfix "bitrate -int 55000"
-          moonlightStreamingScript;
+        assert lib.hasInfix "bitrate -int 55000" moonlightStreamingScript;
         assert lib.hasInfix "videocfg -int 4" moonlightStreamingScript;
         assert lib.hasInfix "hdr -bool false" moonlightStreamingScript;
         assert !desktop.virtualisation.docker.enable;
