@@ -33,6 +33,7 @@
     stylix
     fonts
     ssh
+    network-wireguard-roaming
   ];
 
   homes.ianmh = {

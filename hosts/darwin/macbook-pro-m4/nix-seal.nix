@@ -24,6 +24,11 @@
       group = "wheel";
       mode = "0400";
     };
+    secrets."wireguard-home-private-key" = {
+      owner = "root";
+      group = "wheel";
+      mode = "0400";
+    };
   };
 
   # The nix-seal service phase creates the private netrc before this runs.
