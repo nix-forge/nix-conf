@@ -15,6 +15,11 @@
       localControlSecureFilesRust =
         import ../../homes/macbook-pro-m4/support/local-control/secure-files-rs/package.nix
           { inherit pkgs; };
+      finderFavoritesSwift =
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.finder-favorites
+        else
+          null;
       localControlProxyConfig = pkgs.replaceVarsWith {
         name = "local-control-proxy-check.conf";
         src = ../../homes/macbook-pro-m4/support/local-control/config/proxy.Caddyfile.in;
@@ -88,6 +93,114 @@
             touch "$out"
           '';
 
+      checks.macos-home-helpers =
+        pkgs.runCommand "macos-home-helpers" { nativeBuildInputs = [ pkgs.python3 ]; }
+          ''
+            set -euo pipefail
+            export MACOS_HOME_MODULE_DIRECTORY=${../../modules/home/macos}
+            ${pkgs.python3}/bin/python3 -m unittest discover \
+              --start-directory ${../../tests/macos} \
+              --pattern 'test_*.py' \
+              --verbose
+            touch "$out"
+          '';
+
+      checks.browser-home-helpers =
+        pkgs.runCommand "browser-home-helpers" { nativeBuildInputs = [ pkgs.python3 ]; }
+          ''
+            set -euo pipefail
+            export BROWSER_HOME_MODULE_DIRECTORY=${../../modules/home/browsers}
+            ${pkgs.python3}/bin/python3 -m unittest discover \
+              --start-directory ${../../tests/browsers} \
+              --pattern 'test_*.py' \
+              --verbose
+            touch "$out"
+          '';
+
+      checks.macos-home-dry-run =
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          let
+            fakeDockutil = pkgs.writeShellScriptBin "dockutil" ''
+              printf 'dockutil must not execute during a dry run\n' >&2
+              exit 99
+            '';
+            fakeFinderFavorites = pkgs.writeShellScriptBin "finder-favorites" ''
+              printf 'finder-favorites must not execute during a dry run\n' >&2
+              exit 99
+            '';
+            dryRunHome = inputs.home-manager.lib.homeManagerConfiguration {
+              inherit pkgs;
+              modules = [
+                ../../modules/home/macos
+                {
+                  home = {
+                    username = "check-user";
+                    homeDirectory = "/Users/check-user";
+                    stateVersion = "25.05";
+                  };
+                  macos.dockItems = {
+                    enable = true;
+                    mode = "authoritative";
+                    package = fakeDockutil;
+                    persistentApps = [ { app = "/Applications/Missing Test.app"; } ];
+                  };
+                  macos.finderFavorites = {
+                    enable = true;
+                    mode = "reconcile";
+                    allowDeprecatedBackend = true;
+                    package = fakeFinderFavorites;
+                    entries = [
+                      {
+                        id = "dry-run";
+                        label = "Dry Run";
+                        path = "/Users/check-user/Dry Run";
+                        onMissing = "createDirectory";
+                      }
+                    ];
+                  };
+                }
+              ];
+            };
+            dockActivation = pkgs.writeText "macos-dock-dry-run" dryRunHome.config.home.activation.syncDockItems.data;
+            finderActivation = pkgs.writeText "macos-finder-favorites-dry-run" dryRunHome.config.home.activation.syncFinderFavorites.data;
+            finderConfiguration = dryRunHome.config.xdg.configFile."finder-favorites/config.json".source;
+          in
+          pkgs.runCommand "macos-home-dry-run"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.gnugrep
+              ];
+            }
+            ''
+              set -euo pipefail
+              export DRY_RUN=1
+              run() {
+                printf 'DRY-RUN %s\n' "$*"
+              }
+              verboseEcho() {
+                printf '%s\n' "$*"
+              }
+              export -f run verboseEcho
+
+              bash ${dockActivation} > "$TMPDIR/output"
+              grep -F -- '--remove all' "$TMPDIR/output" >/dev/null
+              grep -F -- '--add /Applications/Missing Test.app' "$TMPDIR/output" >/dev/null
+              bash ${finderActivation} > "$TMPDIR/finder-output"
+              grep -F -- 'finder-favorites apply' "$TMPDIR/finder-output" >/dev/null
+              test -f ${finderConfiguration}
+              test ! -L ${finderConfiguration}
+              grep -F -- '--config ${finderConfiguration}' \
+                "$TMPDIR/finder-output" >/dev/null
+              test ! -e /Users/check-user/.cache/home-manager-macos
+              test ! -e /Users/check-user/.local/state/finder-favorites
+              touch "$out"
+            ''
+        else
+          pkgs.runCommand "macos-home-dry-run-not-applicable" { } ''
+            touch "$out"
+          '';
+
       checks.dev-vm-host-resolution =
         pkgs.runCommand "dev-vm-host-resolution" { nativeBuildInputs = [ pkgs.python3 ]; }
           ''
@@ -97,6 +210,8 @@
           '';
 
       checks.local-control-rust = mkDarwinLocalControlCheck "local-control-rust" localControlSecureFilesRust;
+
+      checks.finder-favorites-swift = mkDarwinLocalControlCheck "finder-favorites-swift" finderFavoritesSwift;
 
       checks.local-control-proxy-tls-policy =
         pkgs.runCommand "local-control-proxy-tls-policy"
