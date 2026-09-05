@@ -18,8 +18,15 @@ in
     defaultOptions = [
       "--height=40%"
       "--layout=reverse"
-      "--border"
+      "--border=rounded"
       "--cycle"
+      "--info=inline-right"
+      "--marker=◆"
+      "--pointer=▶"
+      "--prompt=› "
+      "--scrollbar=│"
+      "--bind=ctrl-/:toggle-preview"
+      "--preview-window=border-rounded"
     ];
   };
 }

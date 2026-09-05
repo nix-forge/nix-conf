@@ -16,10 +16,18 @@ let
   skillSet = package: names: lib.genAttrs names (name: skillPath package name);
 
   mattpocockCodexSkills = [
+    "mattpocock-ask-matt"
+    "mattpocock-codebase-design"
     "mattpocock-code-review"
     "mattpocock-diagnosing-bugs"
+    "mattpocock-domain-modeling"
+    "mattpocock-grill-me"
+    "mattpocock-grill-with-docs"
+    "mattpocock-grilling"
     "mattpocock-handoff"
     "mattpocock-research"
+    "mattpocock-resolving-merge-conflicts"
+    "mattpocock-setup-matt-pocock-skills"
     "mattpocock-tdd"
     "mattpocock-wizard"
     "mattpocock-writing-for-agents"

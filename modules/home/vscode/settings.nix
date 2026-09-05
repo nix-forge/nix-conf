@@ -8,6 +8,11 @@
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
   palette = config.appearance.palette;
+  vscode = lib.getExe config.programs.vscode.package;
+  direnvBashInit = pkgs.runCommandLocal "vscode-direnv-bash-init" { } ''
+    ${lib.getExe config.programs.direnv.package} hook bash > "$out"
+    ${lib.getExe config.programs.bash.package} -n "$out"
+  '';
   themeReplacements = lib.genAttrs [
     "surface"
     "surfaceRaised"
@@ -98,10 +103,11 @@ let
         extensionIds = [
           "catppuccin.catppuccin-vsc"
           "catppuccin.catppuccin-vsc-icons"
+          "pkief.material-product-icons"
         ];
         colorTheme = "Catppuccin Mocha";
         iconTheme = "catppuccin-mocha";
-        productIconTheme = null;
+        productIconTheme = "material-product-icons";
         localExtensions = [ ];
       }
     else if config.appearance.theme == "gruvbox-dark-medium" then
@@ -109,26 +115,24 @@ let
         extensionIds = [
           "tomphilbin.gruvbox-themes"
           "pkief.material-icon-theme"
+          "pkief.material-product-icons"
         ];
         colorTheme = "Gruvbox Dark (Medium)";
         iconTheme = "material-icon-theme";
-        productIconTheme = null;
+        productIconTheme = "material-product-icons";
         localExtensions = [ ];
       }
     else
       {
-        extensionIds = [ "pkief.material-icon-theme" ];
+        extensionIds = [
+          "pkief.material-icon-theme"
+          "pkief.material-product-icons"
+        ];
         colorTheme =
           if config.appearance.theme == "carbon-neon-oled" then "Carbon Neon OLED" else "Carbon Neon";
         iconTheme = "material-icon-theme";
         productIconTheme = "material-product-icons";
-        # Vira ships a cohesive set of UI glyphs. Use the maintained,
-        # open Material Product Icons equivalent for Carbon Neon instead of
-        # copying Vira's commercial icon assets.
-        localExtensions = [
-          carbonNeonTheme
-          pkgs.vscode-extensions.pkief.material-product-icons
-        ];
+        localExtensions = [ carbonNeonTheme ];
       };
 in
 {
@@ -403,12 +407,13 @@ in
           }
         ))
         {
-          # set the default shell for automation tasks to a fully POSIX compliant shell
+          # Automation needs a deterministic Bash without login files, prompts,
+          # aliases, or interactive hooks.
           "terminal.integrated.automationProfile.${os}" = {
-            path = lib.getExe' pkgs.bashInteractive "sh";
+            path = lib.getExe pkgs.bashInteractive;
             args = [
-              "--login"
-              "-i"
+              "--noprofile"
+              "--norc"
             ];
           };
         }
@@ -433,7 +438,7 @@ in
       ];
   };
 
-  programs.bash.initExtra = lib.mkOrder 99 (
+  programs.bash.initExtra = lib.mkOrder 10 (
     lib.concatLines [
       ''
         # VSCode Copilot Minimal Integration
@@ -441,16 +446,22 @@ in
           # Set minimal PS1
           PS1='copilot:\w\$ '
 
-          # VSCode Shell Integration
-          [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"
+          # VS Code Shell Integration. Resolve the script with the pinned
+          # executable and only source an existing regular file.
+          if [[ "$TERM_PROGRAM" == "vscode" ]]; then
+            __vscode_shell_integration="$(${vscode} --locate-shell-integration-path bash 2>/dev/null)"
+            if [[ -f "$__vscode_shell_integration" && -r "$__vscode_shell_integration" ]]; then
+              builtin source -- "$__vscode_shell_integration"
+            fi
+            unset __vscode_shell_integration
+          fi
       ''
-      (lib.optionalString (config.programs.direnv.enable && config.programs.direnv.enableBashIntegration)
-        lib.concatLines
-        [
+      (lib.optionalString config.programs.direnv.enable (
+        lib.concatLines [
           "  # Direnv Shell Integration"
-          "  eval \"$(${lib.getExe config.programs.direnv.package} hook bash)\""
+          "  builtin source -- \"${direnvBashInit}\""
         ]
-      )
+      ))
       ''
           return
         fi
