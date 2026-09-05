@@ -6,4 +6,5 @@ exec @python@ @resolver@ \
   --vmx @vmxFile@ \
   --leases @leaseFile@ \
   --lease-owner-uid 0 \
-  --network @hostOnlyNetwork@
+  --network @hostOnlyNetwork@ \
+  "$@"

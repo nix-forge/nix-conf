@@ -1,6 +1,11 @@
-{ config, ... }: {
+{ config, ... }:
+let
+  zenAppName = config.programs.zen-browser.package.applicationName;
+in
+{
   macos.dockItems = {
     enable = true;
+    mode = "authoritative";
 
     persistentApps = [
       { hmApp = "Ghostty"; }
@@ -9,7 +14,7 @@
 
       { spacer.small = true; }
 
-      { hmApp = "Zen Browser (Twilight)"; }
+      { hmApp = zenAppName; }
 
       { spacer.small = true; }
 

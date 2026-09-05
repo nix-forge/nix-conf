@@ -1,0 +1,10 @@
+flowchart LR
+  User[User] --> Daily[Daily profile]
+  User --> Shopping[Shopping profile]
+  Daily --> Research[Research sites with uBlock Origin]
+  Shopping --> Rakuten[Rakuten.com]
+  Rakuten --> Merchant[Merchant checkout]
+  Daily --> DailyData[Daily data and add-ons]
+  Shopping --> ShopData[Shopping data and minimal add-ons]
+  Policy[Application-wide Firefox policy] -. must permit both extension sets .-> Daily
+  Policy -. must permit both extension sets .-> Shopping

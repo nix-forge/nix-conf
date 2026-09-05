@@ -444,6 +444,54 @@ def require_tcp_reachable(host: str, port: int, timeout_seconds: float) -> None:
         _fail(f"resolved VM is unreachable on TCP/{port}", cause=error)
 
 
+def _validated_route_source(
+    host: str,
+    source_address: str,
+    network_text: str,
+) -> ipaddress.IPv4Address:
+    try:
+        host_address = ipaddress.ip_address(host)
+        expected_source = ipaddress.ip_address(source_address)
+        network = ipaddress.ip_network(network_text, strict=True)
+    except ValueError as error:
+        _fail("host-only route parameters are invalid", cause=error)
+    if not isinstance(host_address, ipaddress.IPv4Address):
+        _fail("host-only route host must be IPv4")
+    if not isinstance(expected_source, ipaddress.IPv4Address):
+        _fail("host-only route source must be IPv4")
+    if not isinstance(network, ipaddress.IPv4Network):
+        _fail("host-only route network must be IPv4")
+    if network.prefixlen != HOST_ONLY_PREFIX_LENGTH:
+        _fail("host-only route network must be one IPv4 /24")
+    if host_address not in network or expected_source not in network:
+        _fail("host-only route parameters do not share the configured IPv4 /24")
+    reserved_addresses = {network.network_address, network.broadcast_address}
+    if host_address in reserved_addresses or expected_source in reserved_addresses:
+        _fail("host-only route cannot use a reserved network address")
+    return expected_source
+
+
+def require_host_only_route(
+    host: str,
+    port: int,
+    source_address: str,
+    network_text: str,
+) -> None:
+    """Require the kernel to select the configured host-only source address."""
+    if not MIN_TCP_PORT <= port <= MAX_TCP_PORT:
+        _fail("route probe port is invalid")
+    expected_source = _validated_route_source(host, source_address, network_text)
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as route_probe:
+            route_probe.connect((host, port))
+            selected_source = ipaddress.ip_address(route_probe.getsockname()[0])
+    except (OSError, TypeError, ValueError) as error:
+        _fail("host-only route could not be resolved", cause=error)
+    if selected_source != expected_source:
+        _fail("resolved VM route does not use the configured host-only source address")
+
+
 def _utc_now(value: str | None) -> dt.datetime:
     if value is None:
         return dt.datetime.now(tz=dt.timezone.utc)
@@ -489,11 +537,20 @@ def main(arguments: list[str] | None = None) -> int:
     parser.add_argument("--lease-owner-uid", type=int, default=0)
     parser.add_argument("--network", default="172.16.42.0/24")
     parser.add_argument("--require-tcp", type=int)
+    parser.add_argument("--require-route-source")
+    parser.add_argument("--route-port", type=int, default=22)
     parser.add_argument("--timeout-seconds", type=float, default=3.0)
     parser.add_argument("--now", help=argparse.SUPPRESS)
     options = parser.parse_args(arguments)
     try:
         host = resolve_host(_resolver_config(options))
+        if options.require_route_source is not None:
+            require_host_only_route(
+                host,
+                options.route_port,
+                options.require_route_source,
+                options.network,
+            )
         if options.require_tcp is not None:
             require_tcp_reachable(host, options.require_tcp, options.timeout_seconds)
     except ResolutionError as error:

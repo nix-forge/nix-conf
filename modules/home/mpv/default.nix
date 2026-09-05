@@ -55,6 +55,11 @@ in
 
       "save-position-on-quit" = true;
       "keep-open" = true;
+    }
+    // lib.optionalAttrs isLinux {
+      # Hyprland 0.56 uses this source hint to recognize HDR video and switch
+      # the physical output through render:cm_auto_hdr.
+      "target-colorspace-hint-mode" = "source";
     };
 
     scriptOpts = {

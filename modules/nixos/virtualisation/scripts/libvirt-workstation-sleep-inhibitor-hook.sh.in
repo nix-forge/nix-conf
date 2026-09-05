@@ -1,0 +1,43 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -u -o pipefail
+
+export LC_ALL=C
+
+guest_name=${1:-}
+operation=${2:-}
+suboperation=${3:-}
+guest_manifest=@guestManifest@
+
+inhibit_sleep=0
+while IFS=$'\t' read -r manifest_guest _ssh_host _exclusive_group _required_profile _autostart manifest_inhibit_sleep; do
+  if [[ $manifest_guest == "$guest_name" ]]; then
+    inhibit_sleep=$manifest_inhibit_sleep
+    break
+  fi
+done <"$guest_manifest"
+
+[[ $inhibit_sleep == 1 ]] || exit 0
+
+unit="$(@systemdEscape@ --template=libvirt-workstation-sleep-inhibit@.service "$guest_name")"
+case "$operation/$suboperation" in
+prepare/begin)
+  # A normal start is rejected if the availability guard cannot be acquired.
+  @systemctl@ start "$unit" || {
+    printf 'Refusing to start %s: could not acquire its host sleep inhibitor.\n' "$guest_name" >&2
+    exit 1
+  }
+  ;;
+reconnect/begin)
+  # Never kill an already-running guest merely because libvirt reconnected
+  # while systemd-logind was temporarily unavailable. `vm doctor` reports it.
+  @systemctl@ start "$unit" ||
+    printf 'Could not restore the host sleep inhibitor for active guest %s.\n' "$guest_name" >&2
+  ;;
+release/end)
+  @systemctl@ stop "$unit" ||
+    printf 'Could not release the host sleep inhibitor for guest %s.\n' "$guest_name" >&2
+  ;;
+esac
+
+exit 0

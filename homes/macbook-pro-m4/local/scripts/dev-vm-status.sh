@@ -2,10 +2,12 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-vm_host="$(@devVmHost@)"
+vm_host="$(@devVmHost@ \
+  --require-route-source @hostOnlySourceAddress@ \
+  --route-port @sshPort@)"
 
 printf 'Host-only VM address: %s\n' "$vm_host"
-@netcat@ -vz -w 3 "$vm_host" @sshPort@
+@netcat@ -4 -s @hostOnlySourceAddress@ -vz -w 3 "$vm_host" @sshPort@
 
 printf '\nMac control-host listeners:\n'
 @lsof@ -nP -iTCP:5173 -iTCP:8788 -iTCP:8443 -sTCP:LISTEN || true

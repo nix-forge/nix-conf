@@ -1,0 +1,106 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -u -o pipefail
+
+export LC_ALL=C
+
+guest_name=${1:-}
+operation=${2:-}
+suboperation=${3:-}
+guest_manifest=@guestManifest@
+profile_marker=@profileMarker@
+vfio_device_manifest=@vfioDeviceManifest@
+vfio_profile=@vfioProfile@
+
+# Only the prepare/begin event can veto a start without interfering with guest
+# shutdown, migration cleanup, or libvirt daemon lifecycle events.
+if [[ $operation != prepare || $suboperation != begin ]]; then
+  exit 0
+fi
+
+required_profile=-
+while IFS=$'\t' read -r manifest_guest _ssh_host _exclusive_group manifest_profile _autostart _inhibit_sleep; do
+  if [[ $manifest_guest == "$guest_name" ]]; then
+    required_profile=$manifest_profile
+    break
+  fi
+done <"$guest_manifest"
+
+if [[ $required_profile == - ]]; then
+  exit 0
+fi
+
+if [[ -r $profile_marker ]]; then
+  current_profile=$(<"$profile_marker")
+else
+  current_profile=unknown
+fi
+
+if [[ $current_profile != "$required_profile" ]]; then
+  printf 'Refusing to start %s: boot profile %s is active, but %s is required.\n' \
+    "$guest_name" "$current_profile" "$required_profile" >&2
+  exit 1
+fi
+
+if [[ $required_profile != "$vfio_profile" ]]; then
+  exit 0
+fi
+
+declare -A expected_group_members=()
+declare -A expected_groups=()
+while IFS=$'\t' read -r device_name pci_address vendor_device_id iommu_group; do
+  [[ -n $device_name ]] || continue
+
+  device_path="/sys/bus/pci/devices/$pci_address"
+  if [[ ! -e $device_path ]]; then
+    printf 'Refusing to start %s: configured VFIO device %s (%s) is missing.\n' \
+      "$guest_name" "$device_name" "$pci_address" >&2
+    exit 1
+  fi
+
+  actual_vendor=$(<"$device_path/vendor")
+  actual_device=$(<"$device_path/device")
+  actual_id="${actual_vendor#0x}:${actual_device#0x}"
+  if [[ ${actual_id,,} != "$vendor_device_id" ]]; then
+    printf 'Refusing to start %s: %s identifies as %s, expected %s.\n' \
+      "$guest_name" "$pci_address" "$actual_id" "$vendor_device_id" >&2
+    exit 1
+  fi
+
+  if [[ ! -L $device_path/iommu_group ]]; then
+    printf 'Refusing to start %s: %s has no IOMMU group.\n' \
+      "$guest_name" "$pci_address" >&2
+    exit 1
+  fi
+
+  actual_group="$(@basename@ "$(@readlink@ -f "$device_path/iommu_group")")"
+  if [[ $actual_group != "$iommu_group" ]]; then
+    printf 'Refusing to start %s: %s moved from IOMMU group %s to %s.\n' \
+      "$guest_name" "$pci_address" "$iommu_group" "$actual_group" >&2
+    exit 1
+  fi
+
+  if [[ ! -L $device_path/driver ]] ||
+    [[ $(@basename@ "$(@readlink@ -f "$device_path/driver")") != vfio-pci ]]; then
+    printf 'Refusing to start %s: %s is not bound to vfio-pci.\n' \
+      "$guest_name" "$pci_address" >&2
+    exit 1
+  fi
+
+  expected_group_members["$iommu_group:$pci_address"]=1
+  expected_groups["$iommu_group"]=1
+done <"$vfio_device_manifest"
+
+# Every function in a selected group must be declared. This catches a firmware
+# or topology change that moves an unnoticed host device into the group.
+for iommu_group in "${!expected_groups[@]}"; do
+  for device_path in "/sys/kernel/iommu_groups/$iommu_group/devices/"*; do
+    [[ -e $device_path ]] || continue
+    pci_address=$(@basename@ "$device_path")
+    if [[ -z ${expected_group_members["$iommu_group:$pci_address"]+present} ]]; then
+      printf 'Refusing to start %s: undeclared function %s is now in IOMMU group %s.\n' \
+        "$guest_name" "$pci_address" "$iommu_group" >&2
+      exit 1
+    fi
+  done
+done

@@ -59,25 +59,44 @@ show:
 
 # ─── NixOS ────────────────────────────────────────────────────────────
 
+[private]
+guard-desktop-build-location hostname:
+    @actual_hostname="$(hostname -s)"; \
+        if [[ "{{ hostname }}" == "desktop" && "$actual_hostname" != "desktop" ]]; then \
+            echo "error: refusing to build NixOS host '{{ hostname }}' on '$actual_hostname'" >&2; \
+            echo "hint: use 'just desktop-build' or 'just desktop-deploy' from another machine" >&2; \
+            exit 1; \
+        fi
+
 # Build a NixOS configuration (dry build, no activation)
 [group('NixOS')]
-os-build hostname *args:
+os-build hostname *args: (guard-desktop-build-location hostname)
     nh os build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration, and make it the boot default
 [group('NixOS')]
-os-switch hostname *args:
+os-switch hostname *args: (guard-desktop-build-location hostname)
     nh os switch {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build a NixOS configuration and make it the boot default (no activation)
 [group('NixOS')]
-os-boot hostname *args:
+os-boot hostname *args: (guard-desktop-build-location hostname)
     nh os boot {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration (without adding to boot menu)
 [group('NixOS')]
-os-test hostname *args:
+os-test hostname *args: (guard-desktop-build-location hostname)
     nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+
+# Build the desktop on the desktop and show the activation diff without applying it
+[group('NixOS')]
+desktop-build *args:
+    deploy --remote-build --dry-activate {{ args }} {{ flake }}#desktop
+
+# Build and activate the desktop on the desktop
+[group('NixOS')]
+desktop-deploy *args:
+    deploy --remote-build {{ args }} {{ flake }}#desktop
 
 # ─── Darwin ───────────────────────────────────────────────────────────
 

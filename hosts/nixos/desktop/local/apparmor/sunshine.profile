@@ -100,9 +100,11 @@ profile nixos-sunshine @sunshinePackage@/bin/sunshine flags=(mediate_deleted) {
   @sunshineStateDir@/ rw,
   @sunshineStateDir@/** rwk,
 
-  # Sunshine's NVIDIA encoder and its Wayland DRM capture path need these
-  # device nodes.  Keep device access precise; do not grant all of /dev.
-  /dev/dri/card1 rw,
+  # Sunshine's NVIDIA encoder and its Wayland DRM capture path need DRM card
+  # and render nodes. Their numeric suffixes depend on driver probe order, so
+  # match only those two DRM node classes rather than one unstable number.
+  /dev/dri/card[0-9]* rw,
+  /dev/dri/renderD[0-9]* rw,
   /dev/nvidia0 rw,
   /dev/nvidiactl rw,
   /dev/nvidia-modeset rw,

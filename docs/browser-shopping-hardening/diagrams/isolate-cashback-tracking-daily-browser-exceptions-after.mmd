@@ -1,0 +1,8 @@
+flowchart LR
+  User[User] --> Daily[Daily browser profile]
+  Daily --> Research[Research sites]
+  Daily --> Container[Shopping container]
+  Container --> Merchant[Merchant checkout]
+  UBO[uBlock Origin with exceptions] --> Daily
+  Rakuten[Rakuten website or extension] -. profile-wide access if installed .-> Daily
+  Daily --> Shared[Shared add-ons and policy]

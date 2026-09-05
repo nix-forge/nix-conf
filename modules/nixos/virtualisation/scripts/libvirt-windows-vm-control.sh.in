@@ -1,0 +1,693 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2016,SC2239
+set -euo pipefail
+
+export LC_ALL=C
+unset LIBVIRT_DEFAULT_URI VIRSH_DEFAULT_CONNECT_URI
+umask 0077
+
+guest_name=@guestName@
+guest_uuid=@guestUuid@
+image_name=@imageName@
+libvirt_uri=@libvirtUri@
+disk_path=@diskPath@
+disk_size_gib=@diskSizeGiB@
+download_page=@downloadPage@
+iso_path=@isoPath@
+configured_iso_sha256=@isoSha256@
+windows_release=@release@
+state_dir=@stateDirectory@
+private_dir=@privateDirectory@
+runtime_dir=@runtimeDirectory@
+media_inspection_dir=@mediaInspectionDirectory@
+media_inspector_user=@mediaInspectorUser@
+media_inspector_group=@mediaInspectorGroup@
+password_file=@passwordFile@
+authorized_keys_file=@authorizedKeysFile@
+install_marker=@installMarker@
+seed_tree="$runtime_dir/seed"
+seed_iso=@seedIso@
+prime_disk=@primeDisk@
+runtime_definition=@runtimeDefinition@
+installer_definition=@installerDefinition@
+answer_template=@answerTemplate@
+bootstrap_script=@bootstrapScript@
+baseline_test=@baselineTest@
+recipe_fingerprint=@recipeFingerprint@
+autologon_archive=@autologonArchive@
+autostart=@autostart@
+candidate_cleanup=
+media_mount=
+
+cleanup_candidate() {
+  if [[ -n $candidate_cleanup && -f $candidate_cleanup && ! -L $candidate_cleanup ]]; then
+    @rm@ -f -- "$candidate_cleanup"
+  fi
+}
+
+run_as_media_inspector() {
+  @setpriv@ \
+    --reuid="$media_inspector_user" \
+    --regid="$media_inspector_group" \
+    --init-groups \
+    --inh-caps=-all \
+    --reset-env \
+    -- @env@ --chdir="$media_inspection_dir" PATH=/run/wrappers/bin LC_ALL=C "$@"
+}
+
+release_media_mount() {
+  if [[ -z $media_mount ]]; then
+    return
+  fi
+  if @mountpoint@ --quiet -- "$media_mount"; then
+    @umount@ -- "$media_mount" || return 1
+  fi
+  @rmdir@ -- "$media_mount" || return 1
+  media_mount=
+}
+
+cleanup_temporary_state() {
+  release_media_mount 2>/dev/null || true
+  cleanup_candidate
+}
+trap cleanup_temporary_state EXIT
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  libvirt-windows-vm-control credential <guest>
+  libvirt-windows-vm-control authorize <guest>
+  libvirt-windows-vm-control plan <guest>
+  libvirt-windows-vm-control verify-media <guest>
+  libvirt-windows-vm-control install <guest>
+  libvirt-windows-vm-control resume <guest>
+  libvirt-windows-vm-control phase <guest>
+  libvirt-windows-vm-control wait-baseline <guest>
+  libvirt-windows-vm-control finalize <guest>
+  libvirt-windows-vm-control discard <guest> DISCARD-INCOMPLETE-INSTALL
+  libvirt-windows-vm-control baseline <guest>
+  libvirt-windows-vm-control provisioning-log <guest>
+  libvirt-windows-vm-control provisioning-log-previous <guest>
+  libvirt-windows-vm-control host-key <guest>
+EOF
+  exit 64
+}
+
+die() {
+  printf 'error: %s\n' "$1" >&2
+  exit 1
+}
+
+require_guest() {
+  [[ ${1:-} == "$guest_name" ]] || die "guest is not the managed Windows VM: ${1:-missing}"
+}
+
+domain_exists() {
+  @virsh@ --connect "$libvirt_uri" dominfo "$guest_name" >/dev/null 2>&1
+}
+
+domain_active() {
+  local domain_id
+  domain_id="$(@virsh@ --connect "$libvirt_uri" domid "$guest_name" 2>/dev/null)" || return 1
+  [[ $domain_id != - ]]
+}
+
+require_inactive_domain() {
+  if domain_active; then
+    die "$guest_name is running; request a graceful shutdown and retry"
+  fi
+}
+
+verify_domain_identity() {
+  local existing_uuid existing_disk
+  domain_exists || return 0
+
+  existing_uuid="$(@virsh@ --connect "$libvirt_uri" domuuid "$guest_name")"
+  [[ $existing_uuid == "$guest_uuid" ]] ||
+    die "$guest_name has UUID $existing_uuid, expected $guest_uuid"
+
+  existing_disk="$(@virsh@ --connect "$libvirt_uri" domblklist "$guest_name" --inactive --details |
+    @awk@ '$2 == "disk" && $3 == "sda" { print $4; exit }')"
+  if [[ -n $existing_disk && $existing_disk != "$disk_path" ]]; then
+    die "$guest_name uses unexpected system disk $existing_disk"
+  fi
+}
+
+verify_installer_topology() {
+  local writable_disks writable_source writable_serial writable_target writable_bus
+  local helper_disks helper_source optical_disks writable_cdroms
+
+  writable_disks="$(@xmllint@ --xpath \
+    'count(/domain/devices/disk[@device="disk" and not(readonly)])' \
+    "$installer_definition")" || die "could not parse the installer domain definition"
+  [[ $writable_disks == 1 ]] ||
+    die "installer domain must expose exactly one writable disk, found $writable_disks"
+
+  writable_source="$(@xmllint@ --xpath \
+    'string(/domain/devices/disk[@device="disk" and not(readonly)]/source/@file)' \
+    "$installer_definition")"
+  [[ $writable_source == "$disk_path" ]] ||
+    die "installer writable disk is $writable_source, expected $disk_path"
+
+  writable_serial="$(@xmllint@ --xpath \
+    'string(/domain/devices/disk[@device="disk" and not(readonly)]/serial)' \
+    "$installer_definition")"
+  [[ $writable_serial == @diskSerial@ ]] ||
+    die "installer writable disk has unexpected serial $writable_serial"
+
+  writable_target="$(@xmllint@ --xpath \
+    'string(/domain/devices/disk[@device="disk" and not(readonly)]/target/@dev)' \
+    "$installer_definition")"
+  writable_bus="$(@xmllint@ --xpath \
+    'string(/domain/devices/disk[@device="disk" and not(readonly)]/target/@bus)' \
+    "$installer_definition")"
+  [[ $writable_target == sda && $writable_bus == sata ]] ||
+    die "installer writable disk must be the SATA sda target"
+
+  helper_disks="$(@xmllint@ --xpath \
+    'count(/domain/devices/disk[@device="disk" and readonly])' \
+    "$installer_definition")"
+  [[ $helper_disks == 1 ]] ||
+    die "installer domain must expose exactly one read-only driver-prime disk"
+  helper_source="$(@xmllint@ --xpath \
+    'string(/domain/devices/disk[@device="disk" and readonly]/source/@file)' \
+    "$installer_definition")"
+  [[ $helper_source == "$prime_disk" ]] ||
+    die "installer read-only helper disk is $helper_source, expected $prime_disk"
+
+  optical_disks="$(@xmllint@ --xpath \
+    'count(/domain/devices/disk[@device="cdrom"])' \
+    "$installer_definition")"
+  [[ $optical_disks == 3 ]] || die "installer domain must expose exactly three optical media"
+  writable_cdroms="$(@xmllint@ --xpath \
+    'count(/domain/devices/disk[@device="cdrom" and not(readonly)])' \
+    "$installer_definition")"
+  [[ $writable_cdroms == 0 ]] || die "all installer optical media must be read-only"
+}
+
+verify_system_disk_file() {
+  local metadata format virtual_size expected_size backing_file
+  [[ -f $disk_path && ! -L $disk_path ]] || die "system disk is missing or is a symlink"
+
+  metadata="$(@qemuImg@ info --output=json "$disk_path")" ||
+    die "qemu-img could not inspect the system disk"
+  format="$(printf '%s' "$metadata" | @jq@ -er '.format')" ||
+    die "system disk metadata has no format"
+  [[ $format == qcow2 ]] || die "system disk format is $format, expected qcow2"
+
+  virtual_size="$(printf '%s' "$metadata" | @jq@ -er '."virtual-size"')" ||
+    die "system disk metadata has no virtual size"
+  expected_size=$((disk_size_gib * 1024 * 1024 * 1024))
+  [[ $virtual_size == "$expected_size" ]] ||
+    die "system disk virtual size is $virtual_size bytes, expected $expected_size"
+
+  backing_file="$(printf '%s' "$metadata" | @jq@ -r '."backing-filename" // empty')"
+  [[ -z $backing_file ]] || die "system disk has an unexpected backing file: $backing_file"
+}
+
+expected_iso_sha256() {
+  [[ $configured_iso_sha256 =~ ^[0-9a-f]{64}$ ]] ||
+    die "the Windows ISO SHA-256 declared in Nix is invalid"
+  printf '%s\n' "$configured_iso_sha256"
+}
+
+verify_media() {
+  local expected actual install_image
+  [[ -f $iso_path && ! -L $iso_path ]] || die "Windows installation media is missing or is a symlink: $iso_path"
+  expected=$(expected_iso_sha256)
+  actual="$(@sha256sum@ "$iso_path")"
+  actual=${actual%% *}
+  actual=${actual,,}
+  [[ $actual == "$expected" ]] || die "Windows ISO hash is $actual, expected $expected"
+  printf 'PASS  Windows ISO matches SHA-256 %s\n' "$expected"
+
+  @mkdir@ -p -- "$media_inspection_dir"
+  media_mount="$(@mktemp@ --directory "$media_inspection_dir/.windows-media.XXXXXX")"
+  @chown@ "$media_inspector_user:$media_inspector_group" "$media_mount"
+  @chmod@ 0700 "$media_mount"
+  run_as_media_inspector @fuseArchive@ \
+    -o nocache,noexternal,nospecials,nosymlinks,notrim,quiet \
+    "$iso_path" \
+    "$media_mount" || die "could not inspect the verified Windows ISO through read-only FUSE"
+  install_image="$(run_as_media_inspector @find@ "$media_mount" -maxdepth 2 -type f \
+    \( -iname 'install.wim' -o -iname 'install.esd' \) -print -quit 2>/dev/null)"
+  if [[ -z $install_image ]]; then
+    die "the Windows ISO has no sources/install.wim or sources/install.esd"
+  fi
+  if ! run_as_media_inspector @wiminfo@ "$install_image" "$image_name" >/dev/null 2>&1; then
+    printf 'error: configured Windows image is absent: %s\n' "$image_name" >&2
+    printf 'Images available in %s:\n' "${install_image#"$media_mount/"}" >&2
+    run_as_media_inspector @wiminfo@ "$install_image" >&2 || true
+    die "stage released production media containing the configured image"
+  fi
+  release_media_mount || die "could not unmount the verified Windows ISO"
+  printf 'PASS  Windows ISO contains image %s\n' "$image_name"
+
+  [[ -f @virtioIso@ && ! -L @virtioIso@ ]] || die "pinned VirtIO ISO is missing: @virtioIso@"
+  [[ -f $autologon_archive && ! -L $autologon_archive ]] || die "pinned Autologon archive is missing"
+  printf 'PASS  pinned VirtIO and Sysinternals media are present\n'
+}
+
+set_credential() {
+  local password _extra categories temporary
+  IFS= read -r password || die "no password was supplied on standard input"
+  if IFS= read -r _extra || [[ -n $_extra ]]; then
+    die "password input must contain exactly one line"
+  fi
+  ((${#password} >= 16)) || die "password must contain at least 16 characters"
+  [[ $password != *[[:space:]]* ]] || die "password must not contain whitespace"
+  [[ $password != *[![:graph:]]* ]] || die "password must contain printable ASCII characters only"
+  [[ $password == [[:alnum:]]* ]] || die "password must begin with a letter or digit to avoid native CLI option ambiguity"
+
+  categories=0
+  [[ $password =~ [a-z] ]] && categories=$((categories + 1))
+  [[ $password =~ [A-Z] ]] && categories=$((categories + 1))
+  [[ $password =~ [0-9] ]] && categories=$((categories + 1))
+  [[ $password =~ [^a-zA-Z0-9] ]] && categories=$((categories + 1))
+  ((categories >= 3)) || die "password must use at least three character categories"
+
+  @mkdir@ -p -- "$runtime_dir"
+  temporary="$(@mktemp@ "$runtime_dir/.administrator-password.XXXXXX")"
+  printf '%s\n' "$password" >"$temporary"
+  @chown@ root:root "$temporary"
+  @chmod@ 0400 "$temporary"
+  @mv@ -f -- "$temporary" "$password_file"
+  printf 'Stored the temporary installer credential in volatile memory.\n'
+}
+
+add_authorized_key() {
+  local key _extra temporary
+  IFS= read -r key || die "no public key was supplied on standard input"
+  if IFS= read -r _extra || [[ -n $_extra ]]; then
+    die "public-key input must contain exactly one line"
+  fi
+  [[ $key == 'ssh-ed25519 '* || $key == 'sk-ssh-ed25519@openssh.com '* ]] ||
+    die "only an Ed25519 OpenSSH public key without authorized_keys options is accepted"
+
+  @mkdir@ -p -- "$state_dir"
+  temporary="$(@mktemp@ "$state_dir/.authorized-key.XXXXXX")"
+  printf '%s\n' "$key" >"$temporary"
+  @sshKeygen@ -l -f "$temporary" >/dev/null || die "public key is not valid OpenSSH key material"
+
+  if [[ -f $authorized_keys_file ]] && @grep@ -Fqx -- "$key" "$authorized_keys_file"; then
+    @rm@ -f -- "$temporary"
+    printf 'Public key is already authorized.\n'
+    return
+  fi
+
+  if [[ -f $authorized_keys_file ]]; then
+    @cat@ "$authorized_keys_file" >>"$temporary.combined"
+  fi
+  @cat@ "$temporary" >>"$temporary.combined"
+  @chown@ root:root "$temporary.combined"
+  @chmod@ 0600 "$temporary.combined"
+  @mv@ -f -- "$temporary.combined" "$authorized_keys_file"
+  @rm@ -f -- "$temporary"
+  printf 'Authorized the Ed25519 key for the Windows administrator.\n'
+}
+
+validate_private_tree() {
+  local unexpected
+  [[ -d $private_dir && ! -L $private_dir ]] || die "private provisioning directory is missing or is a symlink: $private_dir"
+  unexpected="$(@find@ "$private_dir" -xdev -mindepth 1 ! -type d ! -type f ! -type l -print -quit)"
+  [[ -z $unexpected ]] || die "private provisioning contains an unsupported file type: $unexpected"
+  unexpected="$(@find@ "$private_dir" -xdev -type l -print -quit)"
+  [[ -z $unexpected ]] || die "private provisioning must not contain symlinks: $unexpected"
+}
+
+create_seed() {
+  [[ -f $password_file && ! -L $password_file ]] ||
+    die "temporary installer credential is absent; run windows-vm credential $guest_name"
+  [[ -f $authorized_keys_file && ! -L $authorized_keys_file ]] ||
+    die "no SSH public key is staged; run windows-vm authorize $guest_name KEY_FILE"
+  validate_private_tree
+
+  [[ $seed_tree == "$runtime_dir/seed" ]] || die "internal seed path invariant failed"
+  @rm@ -rf --one-file-system -- "$seed_tree"
+  @mkdir@ -p -- "$seed_tree/managed-vm-seed/private"
+
+  @install@ -m 0600 "$bootstrap_script" "$seed_tree/managed-vm-seed/Bootstrap.ps1"
+  @install@ -m 0600 "$baseline_test" "$seed_tree/managed-vm-seed/Test-Baseline.ps1"
+  @install@ -m 0600 "$authorized_keys_file" "$seed_tree/managed-vm-seed/authorized_keys"
+  @install@ -m 0600 "$autologon_archive" "$seed_tree/managed-vm-seed/AutoLogon.zip"
+  @cp@ -a -- "$private_dir/." "$seed_tree/managed-vm-seed/private/"
+
+  @seedRenderer@ \
+    --template "$answer_template" \
+    --answer-file "$seed_tree/Autounattend.xml" \
+    --credential-file "$seed_tree/managed-vm-seed/administrator-password.txt" \
+    --password-file "$password_file"
+
+  @xorriso@ -as mkisofs \
+    -quiet \
+    -iso-level 4 \
+    -J \
+    -R \
+    -V MANAGEDVM \
+    -o "$seed_iso" \
+    "$seed_tree"
+  @chown@ root:@qemuGroup@ "$seed_iso"
+  @chmod@ 0640 "$seed_iso"
+
+  @rm@ -f -- "$prime_disk"
+  @qemuImg@ create -q -f raw "$prime_disk" 64M
+  @chown@ @qemuUser@:@qemuGroup@ "$prime_disk"
+  @chmod@ 0600 "$prime_disk"
+}
+
+write_install_marker() {
+  local temporary
+  @mkdir@ -p -- "$state_dir"
+  temporary="$(@mktemp@ "$state_dir/.installing.XXXXXX")"
+  printf 'schema=managed-windows-vm-install-v1\nuuid=%s\ndisk=%s\nfingerprint=%s\n' \
+    "$guest_uuid" "$disk_path" "$recipe_fingerprint" >"$temporary"
+  @chown@ root:root "$temporary"
+  @chmod@ 0600 "$temporary"
+  @mv@ -f -- "$temporary" "$install_marker"
+}
+
+verify_install_marker() {
+  [[ -f $install_marker && ! -L $install_marker ]] || die "there is no resumable installation"
+  @grep@ -Fqx "schema=managed-windows-vm-install-v1" "$install_marker" ||
+    die "installation marker has an unsupported schema"
+  @grep@ -Fqx "uuid=$guest_uuid" "$install_marker" ||
+    die "installation marker belongs to a different guest UUID"
+  @grep@ -Fqx "disk=$disk_path" "$install_marker" ||
+    die "installation marker names a different system disk"
+  @grep@ -Fqx "fingerprint=$recipe_fingerprint" "$install_marker" ||
+    die "incomplete installation belongs to a different public recipe; restore that configuration or discard it explicitly"
+}
+
+start_install() {
+  local mode=$1 candidate_disk
+  verify_installer_topology
+  verify_media
+  require_inactive_domain
+  verify_domain_identity
+
+  if [[ $mode == fresh ]]; then
+    [[ ! -e $install_marker ]] || die "an installation is already in progress; use resume"
+    [[ ! -e $disk_path ]] || die "system disk already exists; this installer never overwrites it"
+    candidate_disk="${disk_path}.installing"
+    if [[ -e $candidate_disk || -L $candidate_disk ]]; then
+      [[ -f $candidate_disk && ! -L $candidate_disk ]] ||
+        die "stale candidate disk is not a regular file: $candidate_disk"
+      @rm@ -f -- "$candidate_disk"
+    fi
+    candidate_cleanup=$candidate_disk
+    @qemuImg@ create -q -f qcow2 \
+      -o cluster_size=2M,lazy_refcounts=on,preallocation=metadata \
+      "$candidate_disk" "${disk_size_gib}G"
+    @chown@ @qemuUser@:@qemuGroup@ "$candidate_disk"
+    @chmod@ 0600 "$candidate_disk"
+    @mv@ --no-clobber -- "$candidate_disk" "$disk_path"
+    [[ ! -e $candidate_disk && -f $disk_path && ! -L $disk_path ]] ||
+      die "could not atomically install the new system disk"
+    candidate_cleanup=
+    write_install_marker
+  else
+    verify_install_marker
+    [[ -f $disk_path && ! -L $disk_path ]] || die "the installation disk is missing or is a symlink"
+  fi
+
+  verify_system_disk_file
+  create_seed
+  @virsh@ --connect "$libvirt_uri" define "$installer_definition" --validate >/dev/null
+  @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+  @virsh@ --connect "$libvirt_uri" start "$guest_name"
+  printf 'Windows installation started. Keep the host running until baseline status reports PASS.\n'
+}
+
+read_guest_file() {
+  local windows_path=$1 response handle encoded
+  domain_active || die "$guest_name must be running to read guest status"
+  response="$(@virsh@ --connect "$libvirt_uri" qemu-agent-command "$guest_name" --timeout 10 \
+    "{\"execute\":\"guest-file-open\",\"arguments\":{\"path\":\"$windows_path\",\"mode\":\"r\"}}")" ||
+    die "the QEMU guest agent is not ready"
+  handle="$(printf '%s' "$response" | @jq@ -er '.return')" || die "guest agent did not open the requested file"
+
+  response="$(@virsh@ --connect "$libvirt_uri" qemu-agent-command "$guest_name" --timeout 10 \
+    "{\"execute\":\"guest-file-read\",\"arguments\":{\"handle\":$handle,\"count\":65536}}")"
+  @virsh@ --connect "$libvirt_uri" qemu-agent-command "$guest_name" --timeout 10 \
+    "{\"execute\":\"guest-file-close\",\"arguments\":{\"handle\":$handle}}" >/dev/null || true
+  encoded="$(printf '%s' "$response" | @jq@ -er '.return["buf-b64"]')" || die "guest agent did not return file content"
+  printf '%s' "$encoded" | @base64@ --decode
+}
+
+baseline_status() {
+  local status
+  status="$(read_guest_file 'C:\\ProgramData\\ManagedVm\\baseline-status.txt')" || return 1
+  # PowerShell writes CRLF, and the Windows guest agent returns the raw bytes.
+  # Normalize only line endings before matching complete status fields.
+  printf '%s\n' "${status//$'\r'/}"
+}
+
+provisioning_log() {
+  read_guest_file 'C:\\ProgramData\\ManagedVm\\provisioning-steps.jsonl'
+}
+
+previous_provisioning_log() {
+  read_guest_file 'C:\\ProgramData\\ManagedVm\\provisioning-steps.previous.jsonl'
+}
+
+require_current_recipe_status() {
+  local status=$1
+  @grep@ -Fqx "fingerprint=$recipe_fingerprint" <<<"$status" ||
+    die "Windows reports a stale baseline; expected recipe $recipe_fingerprint"
+}
+
+wait_for_baseline() {
+  local timeout_seconds=$1 deadline inactive_since status
+  deadline=$((SECONDS + timeout_seconds))
+  inactive_since=0
+  while true; do
+    if domain_active; then
+      inactive_since=0
+    elif ((inactive_since == 0)); then
+      inactive_since=$SECONDS
+    elif ((SECONDS - inactive_since >= 60)); then
+      printf 'Windows stopped for at least 60 seconds before its baseline passed; inspect the installer console and resume it.\n' >&2
+      return 1
+    fi
+
+    if status="$(baseline_status 2>/dev/null)"; then
+      if @grep@ -Fqx 'state=PASS' <<<"$status"; then
+        require_current_recipe_status "$status"
+        printf '%s' "$status"
+        [[ $status == *$'\n' ]] || printf '\n'
+        return
+      fi
+      if @grep@ -Fqx 'state=FAIL' <<<"$status"; then
+        printf '%s' "$status" >&2
+        [[ $status == *$'\n' ]] || printf '\n' >&2
+        return 1
+      fi
+    fi
+    if ((SECONDS >= deadline)); then
+      printf 'Windows baseline did not pass within %s seconds.\n' "$timeout_seconds" >&2
+      return 1
+    fi
+    @sleep@ 5
+  done
+}
+
+installation_phase() {
+  verify_domain_identity
+  if [[ -e $install_marker || -L $install_marker ]]; then
+    [[ -f $install_marker && ! -L $install_marker ]] || die "installation marker is not a regular file"
+    if domain_active; then
+      printf 'installing-running\n'
+    else
+      printf 'installing-stopped\n'
+    fi
+    return
+  fi
+
+  if [[ -e $disk_path || -L $disk_path ]]; then
+    [[ -f $disk_path && ! -L $disk_path ]] || die "system disk is not a regular file"
+    if domain_active; then
+      printf 'runtime-running\n'
+    else
+      printf 'runtime-stopped\n'
+    fi
+    return
+  fi
+
+  printf 'uninstalled\n'
+}
+
+host_key() {
+  read_guest_file 'C:\\ProgramData\\ManagedVm\\ssh-host-ed25519-key.pub'
+}
+
+finalize_install() {
+  local deadline status
+  [[ -f $install_marker && ! -L $install_marker ]] || die "there is no installation to finalize"
+  [[ -f $disk_path && ! -L $disk_path ]] || die "the installation disk is missing or is a symlink"
+  status="$(baseline_status)"
+  @grep@ -Fqx 'state=PASS' <<<"$status" || die "Windows baseline has not reported PASS"
+  require_current_recipe_status "$status"
+
+  @virsh@ --connect "$libvirt_uri" shutdown "$guest_name" --mode agent >/dev/null 2>&1 ||
+    @virsh@ --connect "$libvirt_uri" shutdown "$guest_name" --mode acpi >/dev/null ||
+    die "could not request a graceful Windows shutdown"
+  deadline=$((SECONDS + 300))
+  while domain_active; do
+    ((SECONDS < deadline)) || die "Windows did not shut down within five minutes; the installer definition remains intact"
+    @sleep@ 2
+  done
+
+  @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
+  if ((autostart == 1)); then
+    @virsh@ --connect "$libvirt_uri" autostart "$guest_name" >/dev/null
+  else
+    @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+  fi
+
+  [[ $runtime_dir == /run/libvirt-workstation/* ]] || die "internal runtime path invariant failed"
+  @rm@ -rf --one-file-system -- "$seed_tree"
+  @rm@ -f -- "$seed_iso" "$prime_disk" "$password_file"
+
+  @virsh@ --connect "$libvirt_uri" start "$guest_name" >/dev/null ||
+    die "the VirtIO runtime definition did not start; the installation marker was retained for recovery"
+  if ! wait_for_baseline 600 >/dev/null; then
+    die "Windows did not return healthy through the guest agent; the installation marker was retained for recovery"
+  fi
+
+  @rm@ -f -- "$install_marker"
+  printf '%s\n' 'Installation finalized. Windows cold-booted from the VirtIO system disk and returned through the guest agent.'
+}
+
+discard_install() {
+  [[ ${1:-} == DISCARD-INCOMPLETE-INSTALL ]] || die "discard confirmation token is missing"
+  [[ -f $install_marker && ! -L $install_marker ]] || die "there is no incomplete installation to discard"
+  require_inactive_domain
+  verify_domain_identity
+
+  if domain_exists; then
+    @virsh@ --connect "$libvirt_uri" undefine "$guest_name" --nvram --tpm >/dev/null
+  fi
+  [[ $disk_path == @storageRoot@/* ]] || die "internal disk path invariant failed"
+  @rm@ -f -- "$disk_path" "${disk_path}.installing" "$prime_disk" "$seed_iso" "$password_file" "$install_marker"
+  @rm@ -rf --one-file-system -- "$seed_tree"
+  @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
+  @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+  printf 'Discarded the incomplete Windows installation and its firmware and TPM state.\n'
+}
+
+show_plan() {
+  local domain_state disk_state marker_state credential_state media_state private_hook
+  verify_domain_identity
+  domain_state=missing
+  domain_exists && domain_state="$(@virsh@ --connect "$libvirt_uri" domstate "$guest_name")"
+  disk_state=missing
+  [[ -f $disk_path ]] && disk_state=present
+  marker_state=absent
+  [[ -f $install_marker ]] && marker_state=present
+  credential_state=absent
+  [[ -f $password_file ]] && credential_state='present in tmpfs'
+  media_state=missing
+  [[ -f $iso_path ]] && media_state=present
+  private_hook=absent
+  [[ -f $private_dir/Install.ps1 ]] && private_hook=present
+
+  cat <<EOF
+Guest:                 $guest_name
+UUID:                  $guest_uuid
+Domain:                $domain_state
+System disk:           $disk_state ($disk_path, ${disk_size_gib} GiB maximum)
+Install marker:        $marker_state
+Windows ISO:           $media_state ($iso_path)
+Windows source:        $download_page
+Windows release:       $windows_release
+Windows image:         $image_name
+Windows ISO SHA-256:   $configured_iso_sha256
+Public recipe SHA-256: $recipe_fingerprint
+Temporary credential: $credential_state
+Authorized keys:       $authorized_keys_file
+Private hook:          $private_hook ($private_dir/Install.ps1)
+Autostart after setup: $autostart
+
+The fresh installer refuses to run if the system disk already exists.
+EOF
+}
+
+command=${1:-}
+case $command in
+credential)
+  (($# == 2)) || usage
+  require_guest "$2"
+  set_credential
+  ;;
+authorize)
+  (($# == 2)) || usage
+  require_guest "$2"
+  add_authorized_key
+  ;;
+plan)
+  (($# == 2)) || usage
+  require_guest "$2"
+  show_plan
+  ;;
+verify-media)
+  (($# == 2)) || usage
+  require_guest "$2"
+  verify_media
+  ;;
+install)
+  (($# == 2)) || usage
+  require_guest "$2"
+  start_install fresh
+  ;;
+resume)
+  (($# == 2)) || usage
+  require_guest "$2"
+  start_install resume
+  ;;
+phase)
+  (($# == 2)) || usage
+  require_guest "$2"
+  installation_phase
+  ;;
+wait-baseline)
+  (($# == 2)) || usage
+  require_guest "$2"
+  wait_for_baseline 2700 || die "Windows provisioning did not reach a passing baseline"
+  ;;
+finalize)
+  (($# == 2)) || usage
+  require_guest "$2"
+  finalize_install
+  ;;
+discard)
+  (($# == 3)) || usage
+  require_guest "$2"
+  discard_install "$3"
+  ;;
+baseline)
+  (($# == 2)) || usage
+  require_guest "$2"
+  status="$(baseline_status)"
+  printf '%s' "$status"
+  [[ $status == *$'\n' ]] || printf '\n'
+  require_current_recipe_status "$status"
+  ;;
+provisioning-log)
+  (($# == 2)) || usage
+  require_guest "$2"
+  provisioning_log
+  ;;
+provisioning-log-previous)
+  (($# == 2)) || usage
+  require_guest "$2"
+  previous_provisioning_log
+  ;;
+host-key)
+  (($# == 2)) || usage
+  require_guest "$2"
+  host_key
+  ;;
+*)
+  usage
+  ;;
+esac

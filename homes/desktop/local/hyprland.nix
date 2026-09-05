@@ -2,48 +2,48 @@
   config,
   lib,
   pkgs,
+  osConfig ? null,
   ...
 }:
 let
   cursor = config.stylix.cursor;
   colors = config.lib.stylix.colors;
+  hyprlockPackage = if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock;
+  monitor = "desc:ASUSTek COMPUTER INC PG32UCWM";
 in
 {
-  # This host has no physical monitor.  The virtual output is created by the
-  # host's Sunshine service, and this matching rule keeps its logical desktop
-  # at the MacBook Pro client's 2562x1656/120 streaming mode. This mode is
-  # within 0.13% of the existing stream's pixel count and divides exactly at
-  # the MacBook-matched 1.5 scale. Keep this in lockstep with the
-  # host-local Sunshine headless-output service so a Hyprland reload does not
-  # downgrade an active Moonlight stream.
+  # Match the monitor by its EDID make/model prefix so the rule survives using
+  # a different DisplayPort socket. The 31.5-inch panel is about 140 PPI, so
+  # the shared scaling module resolves its physical dimensions to 1.5x. That
+  # produces a 2560x1440 logical desktop while driving every native pixel.
+  # The alternate 1080p/480 Hz mode remains an explicit gaming choice because
+  # it needs a different scale and should not replace the sharp desktop mode.
   wayland.windowManager.hyprland = {
     displayScaling = {
       enable = true;
-      displays.SUNSHINE = {
-        mode = "2562x1656@120";
+      displays.${monitor} = {
+        mode = "3840x2160@240";
         position = "0x0";
-        # The stream is a 75%-sized rendering of the MacBook Pro 16-inch
-        # panel (3456x2234 at 254 PPI), not a panel with its own EDID. An
-        # explicit 1.5 scale therefore preserves the MacBook's near-2x UI
-        # density after Moonlight presents the stream at native panel size.
-        # Its real panel dimensions must not be supplied to the generic
-        # DPI-derived path because that path correctly treats an output's
-        # configured pixels as physical pixels.
         resolution = {
-          width = 2562;
-          height = 1656;
+          width = 3840;
+          height = 2160;
         };
-        scale = 1.5;
+        # ASUS specifies a 696.58 x 391.82 mm visible area. The option takes
+        # whole millimetres; rounding each dimension preserves the 140 PPI
+        # result and therefore the intended conventional 1.5 scale.
+        physicalSizeMm = {
+          width = 697;
+          height = 392;
+        };
       };
 
-      # Moonlight upscales this 2562px stream to the MacBook's 3456px Retina
-      # panel. A 16px logical cursor therefore resolves to a 24px stream
-      # bitmap at 1.5x, or about 16 macOS points after that upscale. The
-      # generic module exports this value consistently to Home Manager,
-      # Stylix, UWSM, GTK, Qt, Chromium, and XWayland.
+      # A 16px logical cursor resolves to 24 physical pixels at 1.5x. The
+      # generic module exports that size to native Wayland apps, XWayland,
+      # GTK, Qt, Chromium, Stylix, and the UWSM session.
       cursor = {
         enable = true;
         logicalSize = 16;
+        referenceOutput = monitor;
       };
     };
 
@@ -51,6 +51,11 @@ in
     # `hl.config` table.  Keeping the table under this Nix option makes Home
     # Manager generate that API call correctly.
     settings.config = {
+      # Steam still uses XWayland. Keep its buffers at native pixels so the
+      # compositor does not resample text at the output's fractional scale.
+      # Steam supplies its matching UI scale through the NixOS package wrapper.
+      xwayland.force_zero_scaling = true;
+
       general = {
         border_size = 1;
         gaps_in = 8;
@@ -100,14 +105,24 @@ in
     };
   };
 
+  desktop.hdr = {
+    enable = true;
+    output = monitor;
+    mode = "3840x2160@240";
+    position = "0x0";
+    scale = 1.5;
+    colorManagement = "auto";
+    autoHdr = 1;
+    vrr = 2;
+  };
+
   # Keep the authentication surface declarative so Home Manager renders the
   # native Hyprlock configuration and can validate its Nix structure.
   programs.hyprlock = {
     enable = true;
+    package = hyprlockPackage;
     settings = {
       general = {
-        disable_loading_bar = true;
-        grace = 0;
         hide_cursor = true;
         ignore_empty_input = true;
         immediate_render = true;

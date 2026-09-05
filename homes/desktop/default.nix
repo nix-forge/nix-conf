@@ -27,7 +27,6 @@
     determinate
     nix-settings
     registry
-    browser-policies
     xdg
     nixSeal
     ./nix-seal.nix
@@ -50,10 +49,15 @@
     cli-ripgrep
 
     shells-aliases
+    shells-atuin
+    shells-bash
     shells-starship
     shells-carapace
     shells-eza
+    shells-fzf
+    shells-integration
     shells-tmux
+    shells-zoxide
 
     wm-hyprland
     desktop
@@ -61,8 +65,6 @@
     spotify
 
     zen-browser
-    zen-browser-scrolling-natural
-    zen-browser-defaultbrowser
     helium-browser
     chrome
 
@@ -73,9 +75,6 @@
     neovim
     neovim-defaulteditor
 
-    shells
-    shells-tmux
-    shells-nushell-defaultshell
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv

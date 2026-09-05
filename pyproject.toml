@@ -56,6 +56,43 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"pkgs/pkgs/by-name/op/openai-codex-desktop/test_update.py" = [
+  "private-member-access",            # Tests exercise the updater's internal parsers without network requests.
+  "pytest-unittest-assertion",        # Package checks use the standard-library unittest runner in the Nix sandbox.
+  "pytest-unittest-raises-assertion", # Keep the updater checks free of a pytest runtime dependency.
+]
+"pkgs/pkgs/by-name/wo/wootility/update.py" = [
+  "suspicious-subprocess-import",         # Invokes the discovered Nix executable to prefetch a validated release URL.
+  "subprocess-without-shell-equals-true", # Uses fixed nix arguments and an HTTPS URL with no shell.
+  "suspicious-url-open-usage",            # Validates Wooting discovery URLs and the version-bound download endpoint.
+]
+"modules/nixos/virtualisation/scripts/windows-vm-render-seed.py" = [
+  "hardcoded-password-string",         # The flagged value is a public placeholder token, not a credential.
+  "suspicious-xml-element-tree-usage", # The immutable template is trusted and all variable text is escaped first.
+  "suspicious-xml-etree-import",       # ElementTree only proves that the locally generated answer file is well-formed.
+]
+"tests/browsers/test_gecko_install_registry.py" = [
+  # The check uses the standard-library unittest runner in the Nix sandbox.
+  "pytest-unittest-assertion",
+]
+"tests/virtualisation/test_windows_seed_renderer.py" = [
+  "hardcoded-password-string",         # Test-only credential fixtures contain no operational secret.
+  "pytest-unittest-assertion",         # The Nix sandbox intentionally uses the standard-library unittest runner.
+  "pytest-unittest-raises-assertion",  # Keep the focused check free of a pytest runtime dependency.
+  "suspicious-xml-element-tree-usage", # The parsed document was generated from a fixed local test template.
+  "suspicious-xml-etree-import",       # ElementTree is sufficient for trusted test output without entity declarations.
+]
+"tests/virtualisation/test_libvirt_workstation_setup.py" = [
+  "pytest-unittest-assertion",            # The Nix sandbox intentionally uses the standard-library unittest runner.
+  "subprocess-without-shell-equals-true", # The test invokes a generated fixture path without a shell.
+  "suspicious-subprocess-import",         # The subprocess is the script under test.
+]
+"pkgs/pkgs/by-name/bi/bitwarden-desktop/update.py" = [
+  "complex-structure",                    # Release parsing validates several independent fields in one linear pass.
+  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
+  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a path-validated HTTPS asset URL.
+  "suspicious-url-open-usage",            # URL opening is limited to GitHub's fixed HTTPS release API.
+]
 "homes/macbook-pro-m4/local/dev_vm_host_test.py" = [
   # This Nix check deliberately uses only the Python standard library so it
   # can validate the runtime resolver without adding pytest to the closure.

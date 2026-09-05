@@ -3,20 +3,27 @@
   # remain reusable in lightweight, recovery, and non-Hyprland profiles.
   desktop.enable = true;
   desktop.noctalia.enable = true;
-  # This host renders a single virtual Sunshine output. Night light works at
-  # the compositor layer without an external network lookup; brightness does
-  # not, so hide that non-functional control rather than exposing a dead UI.
+  # Night light stays in the compositor. The physical ASUS display exposes
+  # brightness through DDC/CI, so Noctalia can use the ddcutil package and the
+  # active-seat I2C access supplied by the NixOS hardware profile.
   desktop.noctalia = {
     nightLight.enable = true;
     brightness = {
       enable = true;
-      disabledOutputs = [ "SUNSHINE" ];
+      enableDdcutil = true;
     };
   };
   desktop.bar.networkCommand = "iwgtk";
   desktop.applications.networkBackend = "iwd";
   desktop.applications.sessionLauncher = "uwsm app --";
   desktop.workflow.terminalCommand = "uwsm app -- ${lib.getExe pkgs.ghostty}";
+
+  # Noctalia already shows the active network and opens iwgtk on demand. Hide
+  # iwgtk's separate status-notifier autostart without removing the app.
+  xdg.configFile."autostart/iwgtk-indicator.desktop".text = ''
+    [Desktop Entry]
+    Hidden=true
+  '';
 
   # Source selection is declarative. NASA's Image and Video Library has
   # curated mission photography; SVS remains available as an opt-in source

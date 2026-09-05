@@ -1,9 +1,7 @@
-{ pkgs, ... }: {
-  # The NixOS-packaged Wootility app and its vendor-maintained udev rules give
-  # the logged-in user WebHID/hidraw access to a Wooting 80HE without broad
-  # membership in the `input` group.
-  environment.systemPackages = [ pkgs.wootility ];
-  services.udev.packages = [ pkgs.wooting-udev-rules ];
+_: {
+  # Nixpkgs installs its sandbox-preserving Wootility wrapper and grants
+  # Wooting HID access only to the active local session through uaccess.
+  hardware.wooting.enable = true;
 
   # Pulsar's Linux Web Driver (Bibimbap) requires a uaccess ACL on the HID
   # device. The product ID differs by wired/wireless/firmware mode, so scope

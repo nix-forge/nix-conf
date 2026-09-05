@@ -12,6 +12,7 @@ let
   keyFile = "${sshDir}/dev-vm";
   stateDir = "${config.xdg.stateHome}/dev-vm";
   hostOnlyNetwork = "172.16.42.0/24";
+  hostOnlySourceAddress = "172.16.42.1";
   sshPort = 22;
   # Make the Python source an explicit store dependency of the generated
   # wrapper rather than interpolating a context-free local path.
@@ -46,6 +47,7 @@ let
       bash = lib.getExe pkgs.bash;
       devVmHost = lib.getExe' devVmHost "dev-vm-host";
       sshPort = toString sshPort;
+      inherit hostOnlySourceAddress;
     };
   };
 
@@ -61,6 +63,7 @@ let
       lsof = lib.getExe pkgs.lsof;
       ssh = lib.getExe pkgs.openssh;
       sshPort = toString sshPort;
+      inherit hostOnlySourceAddress;
     };
   };
 
@@ -76,6 +79,21 @@ let
       keyFile = lib.escapeShellArg keyFile;
       publicKeyFile = lib.escapeShellArg "${keyFile}.pub";
     };
+  };
+
+  devVmAgentTunnel = pkgs.writeShellApplication {
+    name = "dev-vm-agent-tunnel";
+    runtimeInputs = [ pkgs.openssh ];
+    text = ''
+      exec ssh \
+        -F ${lib.escapeShellArg "${sshDir}/config"} \
+        -N \
+        -o ExitOnForwardFailure=yes \
+        -o ServerAliveInterval=15 \
+        -o ServerAliveCountMax=3 \
+        -R 127.0.0.1:8443:127.0.0.1:8443 \
+        dev-vm
+    '';
   };
 
   devVmSshSettings = {
@@ -158,6 +176,27 @@ in
       # not create a local port forward.
       dev-vm = devVmSshSettings;
 
+    };
+
+    # Windows resolves the private mTLS hostname to loopback. Keep the
+    # reverse tunnel alive declaratively so agent enrollment and heartbeats do
+    # not depend on a shell-owned background process. The remote endpoint is
+    # still the same loopback-only Caddy listener with the same client
+    # certificate and proxy-attestation policy.
+    launchd.agents.dev-vm-agent-tunnel = {
+      enable = true;
+      config = {
+        Label = "local.services.dev-vm-agent-tunnel";
+        ProgramArguments = [ "${devVmAgentTunnel}/bin/dev-vm-agent-tunnel" ];
+        RunAtLoad = true;
+        KeepAlive = {
+          SuccessfulExit = false;
+        };
+        ThrottleInterval = 60;
+        ProcessType = "Background";
+        StandardOutPath = "${stateDir}/agent-tunnel.out.log";
+        StandardErrorPath = "${stateDir}/agent-tunnel.err.log";
+      };
     };
   };
 }

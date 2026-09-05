@@ -30,16 +30,20 @@
     ./local/firewall.nix
 
     security
+    macos
     stylix
     fonts
     ssh
+    # nix-darwin defaults this to false. Link system package completions so
+    # Bash users outside Home Manager receive packaged completions as well.
+    { programs.bash.completion.enable = true; }
   ];
 
   homes.ianmh = {
     config = "ianmh@macbook-pro-m4";
     user = {
       description = "Ian Holloway";
-      shell = inputs.nixpkgs.legacyPackages.aarch64-darwin.nushell;
+      shell = inputs.nixpkgs.legacyPackages.aarch64-darwin.bashInteractive;
     };
   };
 }

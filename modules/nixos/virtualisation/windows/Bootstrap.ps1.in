@@ -1,0 +1,540 @@
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+
+$AdministratorName = '__ADMINISTRATOR_NAME__'
+$ManagementGuestAddress = '__MANAGEMENT_GUEST_ADDRESS__'
+$ManagementHostAddress = '__MANAGEMENT_HOST_ADDRESS__'
+$ActiveHoursStart = __ACTIVE_HOURS_START__
+$ActiveHoursEnd = __ACTIVE_HOURS_END__
+$BaselineVersion = '__BASELINE_VERSION__'
+$BaselineProfile = '__BASELINE_PROFILE__'
+$HeadlessRuntime = __HEADLESS_RUNTIME__
+$RecipeFingerprint = '__RECIPE_FINGERPRINT__'
+$WindowsRelease = '__WINDOWS_RELEASE__'
+$DeclaredAppxPackages = @(
+__REMOVE_APPX_PACKAGES__
+)
+$ManagedRoot = Join-Path $env:ProgramData 'ManagedVm'
+$ProvisioningRoot = Join-Path $ManagedRoot 'Provisioning'
+$StatusPath = Join-Path $ManagedRoot 'baseline-status.txt'
+$StepLogPath = Join-Path $ManagedRoot 'provisioning-steps.jsonl'
+$PreviousStepLogPath = Join-Path $ManagedRoot 'provisioning-steps.previous.jsonl'
+$ProvisioningRunId = [Guid]::NewGuid().ToString('D')
+$RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+$RunValue = 'ManagedVmBootstrap'
+$LocalBootstrap = Join-Path $ProvisioningRoot 'Bootstrap.ps1'
+$WinlogonKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+$AutologonMarker = Join-Path $ManagedRoot 'autologon-configured-v1'
+
+function Write-BaselineStatus {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('PENDING', 'PASS', 'FAIL')]
+        [string]$State,
+        [string]$Detail = ''
+    )
+
+    $safeDetail = ($Detail -replace "[\r\n]+", ' ').Trim()
+    @(
+        'schema=managed-windows-vm-baseline-v1'
+        "state=$State"
+        "version=$BaselineVersion"
+        "fingerprint=$RecipeFingerprint"
+        "profile=$BaselineProfile"
+        "release=$WindowsRelease"
+        "run=$ProvisioningRunId"
+        "timestamp=$([DateTime]::UtcNow.ToString('o'))"
+        "detail=$safeDetail"
+    ) | Set-Content -LiteralPath $StatusPath -Encoding ascii -Force
+}
+
+function Add-ProvisioningRecord {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('INFO', 'PASS', 'FAIL')]
+        [string]$State,
+        [Parameter(Mandatory = $true)]
+        [string]$Step,
+        [Parameter(Mandatory = $true)]
+        [DateTime]$StartedAt,
+        [string]$Detail = ''
+    )
+
+    [ordered]@{
+        timestamp = [DateTime]::UtcNow.ToString('o')
+        runId = $ProvisioningRunId
+        state = $State
+        step = $Step
+        durationMs = [Math]::Round([DateTime]::UtcNow.Subtract($StartedAt).TotalMilliseconds)
+        detail = $Detail
+    } | ConvertTo-Json -Compress | Add-Content -LiteralPath $StepLogPath -Encoding utf8
+}
+
+function Invoke-ProvisioningStep {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Action
+    )
+
+    $startedAt = [DateTime]::UtcNow
+    $state = 'PASS'
+    $detail = ''
+    Write-BaselineStatus -State 'PENDING' -Detail "Running provisioning step: $Name"
+    try {
+        & $Action
+    }
+    catch {
+        $state = 'FAIL'
+        $detail = $_.Exception.Message
+        throw "Provisioning step '$Name' failed: $detail"
+    }
+    finally {
+        Add-ProvisioningRecord -State $state -Step $Name -StartedAt $startedAt -Detail $detail
+    }
+}
+
+function Set-RegistryDword {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter(Mandatory = $true)]
+        [int]$Value
+    )
+
+    New-Item -Path $Path -Force | Out-Null
+    New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
+}
+
+function Invoke-CheckedProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        [string[]]$ArgumentList = @(),
+        [int[]]$SuccessExitCodes = @(0)
+    )
+
+    $process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -Wait -PassThru -NoNewWindow
+    if ($process.ExitCode -notin $SuccessExitCodes) {
+        throw "$FilePath exited with code $($process.ExitCode)"
+    }
+}
+
+function Find-VirtioMedia {
+    foreach ($volume in Get-Volume -ErrorAction SilentlyContinue) {
+        if (-not $volume.DriveLetter) {
+            continue
+        }
+        $root = "$($volume.DriveLetter):\"
+        if (Test-Path -LiteralPath (Join-Path $root 'guest-agent\qemu-ga-x86_64.msi')) {
+            return $root
+        }
+    }
+    throw 'The pinned VirtIO driver media is not mounted'
+}
+
+function Install-VirtioDrivers {
+    param([Parameter(Mandatory = $true)][string]$MediaRoot)
+
+    $drivers = @(
+        'NetKVM\w11\amd64\netkvm.inf',
+        'vioscsi\w11\amd64\vioscsi.inf',
+        'viostor\w11\amd64\viostor.inf',
+        'vioserial\w11\amd64\vioser.inf',
+        'Balloon\w11\amd64\balloon.inf',
+        'viorng\w11\amd64\viorng.inf',
+        'vioinput\w11\amd64\vioinput.inf',
+        'viogpudo\w11\amd64\viogpudo.inf'
+    )
+
+    foreach ($relativePath in $drivers) {
+        $driver = Join-Path $MediaRoot $relativePath
+        if (-not (Test-Path -LiteralPath $driver)) {
+            throw "Required VirtIO driver is missing: $relativePath"
+        }
+        Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\pnputil.exe" -ArgumentList @('/add-driver', $driver, '/install')
+    }
+
+    $guestAgentInstaller = Join-Path $MediaRoot 'guest-agent\qemu-ga-x86_64.msi'
+    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList @('/i', $guestAgentInstaller, '/qn', '/norestart') -SuccessExitCodes @(0, 1641, 3010)
+    Set-Service -Name 'qemu-ga' -StartupType Automatic
+    Start-Service -Name 'qemu-ga'
+}
+
+function Install-OpenSsh {
+    $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0'
+    if ($capability.State -ne 'Installed') {
+        $deadline = [DateTime]::UtcNow.AddMinutes(5)
+        while (-not (Test-NetConnection -ComputerName 'www.microsoft.com' -Port 443 -InformationLevel Quiet)) {
+            if ([DateTime]::UtcNow -ge $deadline) {
+                throw 'Network access did not become ready for OpenSSH installation'
+            }
+            Start-Sleep -Seconds 5
+        }
+        Add-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' | Out-Null
+    }
+
+    $authorizedKeySource = Join-Path $ProvisioningRoot 'authorized_keys'
+    if (-not (Test-Path -LiteralPath $authorizedKeySource)) {
+        throw 'No administrator SSH public key was supplied by the host'
+    }
+
+    $sshDirectory = Join-Path $env:ProgramData 'ssh'
+    $authorizedKeys = Join-Path $sshDirectory 'administrators_authorized_keys'
+    New-Item -ItemType Directory -Path $sshDirectory -Force | Out-Null
+    Copy-Item -LiteralPath $authorizedKeySource -Destination $authorizedKeys -Force
+    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\icacls.exe" -ArgumentList @($authorizedKeys, '/inheritance:r', '/grant', '*S-1-5-18:F', '/grant', '*S-1-5-32-544:F')
+
+    $sshdConfig = Join-Path $sshDirectory 'sshd_config'
+    @(
+        'Port 22'
+        'AddressFamily inet'
+        'ListenAddress 0.0.0.0'
+        'PubkeyAuthentication yes'
+        'PasswordAuthentication no'
+        'KbdInteractiveAuthentication no'
+        'PermitEmptyPasswords no'
+        "AllowUsers $AdministratorName"
+        'Subsystem sftp sftp-server.exe'
+        'Match Group administrators'
+        '    AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys'
+    ) | Set-Content -LiteralPath $sshdConfig -Encoding ascii -Force
+
+    Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue | Disable-NetFirewallRule
+    Get-NetFirewallRule -DisplayName 'Managed VM SSH from host' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+    New-NetFirewallRule -DisplayName 'Managed VM SSH from host' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 22 -RemoteAddress $ManagementHostAddress -Profile Any | Out-Null
+
+    Set-Service -Name 'sshd' -StartupType Automatic
+    Restart-Service -Name 'sshd'
+}
+
+function Set-ManagementNetworkPolicy {
+    $deadline = [DateTime]::UtcNow.AddMinutes(2)
+    $managementAddress = $null
+    while ($null -eq $managementAddress) {
+        $managementAddress = Get-NetIPAddress -AddressFamily IPv4 -IPAddress $ManagementGuestAddress -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $managementAddress) {
+            break
+        }
+        if ([DateTime]::UtcNow -ge $deadline) {
+            throw "The management NIC did not receive $ManagementGuestAddress"
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    # The isolated NIC is only for host administration. Give it a deliberately
+    # high metric and remove any accidental default route so runtime egress uses
+    # the NAT NIC without pinning either virtual CPU or host resource.
+    Set-NetIPInterface -InterfaceIndex $managementAddress.InterfaceIndex -AddressFamily IPv4 -AutomaticMetric Disabled -InterfaceMetric 5000
+    Get-NetRoute -InterfaceIndex $managementAddress.InterfaceIndex -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+        Remove-NetRoute -Confirm:$false -ErrorAction Continue
+    Set-DnsClient -InterfaceIndex $managementAddress.InterfaceIndex -RegisterThisConnectionsAddress $false
+}
+
+function Set-Autologon {
+    $credentialPath = Join-Path $ProvisioningRoot 'administrator-password.txt'
+    if (-not (Test-Path -LiteralPath $credentialPath)) {
+        $configured = Get-ItemProperty -LiteralPath $WinlogonKey -ErrorAction SilentlyContinue
+        if (
+            -not (Test-Path -LiteralPath $AutologonMarker) -or
+            $null -eq $configured -or
+            $configured.AutoAdminLogon -ne '1' -or
+            $configured.DefaultUserName -ne $AdministratorName -or
+            $configured.DefaultDomainName -ne $env:COMPUTERNAME
+        ) {
+            throw 'The transient autologon credential is unavailable and autologon is not configured'
+        }
+        Remove-ItemProperty -LiteralPath $WinlogonKey -Name 'AutoLogonCount' -ErrorAction SilentlyContinue
+        Remove-ItemProperty -LiteralPath $WinlogonKey -Name 'DefaultPassword' -ErrorAction SilentlyContinue
+        return
+    }
+
+    $password = (Get-Content -LiteralPath $credentialPath -Raw).TrimEnd("`r", "`n")
+    $archive = Join-Path $ProvisioningRoot 'AutoLogon.zip'
+    $toolDirectory = Join-Path $ManagedRoot 'Autologon'
+    if (-not (Test-Path -LiteralPath $archive)) {
+        throw 'The pinned Sysinternals Autologon archive is missing'
+    }
+    Remove-Item -LiteralPath $toolDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    Expand-Archive -LiteralPath $archive -DestinationPath $toolDirectory -Force
+    $tool = Join-Path $toolDirectory 'Autologon64.exe'
+    $signature = Get-AuthenticodeSignature -LiteralPath $tool
+    if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') {
+        throw 'Sysinternals Autologon does not have a valid Microsoft signature'
+    }
+    & $tool $AdministratorName $env:COMPUTERNAME $password '/accepteula'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Sysinternals Autologon exited with code $LASTEXITCODE"
+    }
+    $configured = Get-ItemProperty -LiteralPath $WinlogonKey
+    if (
+        $configured.AutoAdminLogon -ne '1' -or
+        $configured.DefaultUserName -ne $AdministratorName -or
+        $configured.DefaultDomainName -ne $env:COMPUTERNAME
+    ) {
+        throw 'Sysinternals Autologon returned success without configuring the requested local account'
+    }
+
+    # Unattend needs a finite LogonCount for the first session. Sysinternals
+    # replaces that bootstrap credential with an LSA secret; remove the old
+    # counter and any legacy plaintext registry value to make it permanent.
+    Remove-ItemProperty -LiteralPath $WinlogonKey -Name 'AutoLogonCount' -ErrorAction SilentlyContinue
+    Remove-ItemProperty -LiteralPath $WinlogonKey -Name 'DefaultPassword' -ErrorAction SilentlyContinue
+    [DateTime]::UtcNow.ToString('o') | Set-Content -LiteralPath $AutologonMarker -Encoding ascii -Force
+    Remove-Item -LiteralPath $credentialPath -Force
+    $password = $null
+}
+
+function Remove-CachedAnswerFiles {
+    $pantherRoot = Join-Path $env:SystemRoot 'Panther'
+    if (-not (Test-Path -LiteralPath $pantherRoot)) {
+        return
+    }
+
+    # FirstLogonCommands runs after the oobeSystem pass, so Windows Setup no
+    # longer needs its cached answer. Restrict deletion to answer-file names;
+    # preserve Panther's setup diagnostics for troubleshooting.
+    $cachedAnswerFiles = @(
+        Get-ChildItem -LiteralPath $pantherRoot -Recurse -Force -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -in @('unattend.xml', 'autounattend.xml') }
+    )
+    foreach ($answerFile in $cachedAnswerFiles) {
+        Remove-Item -LiteralPath $answerFile.FullName -Force
+    }
+}
+
+function Set-OperatingSystemBaseline {
+    $powerCfg = "$env:SystemRoot\System32\powercfg.exe"
+    Invoke-CheckedProcess -FilePath $powerCfg -ArgumentList @('/hibernate', 'off')
+    Invoke-CheckedProcess -FilePath $powerCfg -ArgumentList @('/setactive', 'SCHEME_BALANCED')
+    Invoke-CheckedProcess -FilePath $powerCfg -ArgumentList @('/change', 'standby-timeout-ac', '0')
+    Invoke-CheckedProcess -FilePath $powerCfg -ArgumentList @('/change', 'hibernate-timeout-ac', '0')
+    Invoke-CheckedProcess -FilePath $powerCfg -ArgumentList @('/change', 'monitor-timeout-ac', '0')
+
+    $computerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
+    if (-not $computerSystem.AutomaticManagedPagefile) {
+        Set-CimInstance -InputObject $computerSystem -Property @{ AutomaticManagedPagefile = $true } | Out-Null
+    }
+
+    Set-RegistryDword -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
+    Set-RegistryDword -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0
+    Set-RegistryDword -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableAutomaticRestartSignOn' -Value 1
+
+    $policies = @(
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; Name = 'AllowTelemetry'; Value = 1 },
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR'; Name = 'AllowGameDVR'; Value = 0 },
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'; Name = 'EnableSmartScreen'; Value = 1 },
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh'; Name = 'AllowNewsAndInterests'; Value = 0 },
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'; Name = 'DODownloadMode'; Value = 0 }
+    )
+    foreach ($policy in $policies) {
+        Set-RegistryDword -Path $policy.Path -Name $policy.Name -Value $policy.Value
+    }
+
+    $windowsUpdatePolicy = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    New-Item -Path $windowsUpdatePolicy -Force | Out-Null
+    New-ItemProperty -Path $windowsUpdatePolicy -Name 'ProductVersion' -PropertyType String -Value 'Windows 11' -Force | Out-Null
+    New-ItemProperty -Path $windowsUpdatePolicy -Name 'TargetReleaseVersion' -PropertyType DWord -Value 1 -Force | Out-Null
+    New-ItemProperty -Path $windowsUpdatePolicy -Name 'TargetReleaseVersionInfo' -PropertyType String -Value $WindowsRelease -Force | Out-Null
+    Set-RegistryDword -Path $windowsUpdatePolicy -Name 'SetActiveHours' -Value 1
+    Set-RegistryDword -Path $windowsUpdatePolicy -Name 'ActiveHoursStart' -Value $ActiveHoursStart
+    Set-RegistryDword -Path $windowsUpdatePolicy -Name 'ActiveHoursEnd' -Value $ActiveHoursEnd
+
+    $userCloudContentPolicy = 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent'
+    Set-RegistryDword -Path $userCloudContentPolicy -Name 'DisableThirdPartySuggestions' -Value 1
+    Set-RegistryDword -Path $userCloudContentPolicy -Name 'DisableTailoredExperiencesWithDiagnosticData' -Value 1
+
+    $edgePolicy = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
+    Set-RegistryDword -Path $edgePolicy -Name 'SmartScreenEnabled' -Value 1
+    Set-RegistryDword -Path $edgePolicy -Name 'SmartScreenPuaEnabled' -Value 1
+
+    New-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' -Force | Out-Null
+    New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -PropertyType DWord -Value 0 -Force | Out-Null
+    New-Item -Path 'HKCU:\Control Panel\Desktop' -Force | Out-Null
+    New-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveActive' -PropertyType String -Value '0' -Force | Out-Null
+
+    if ($HeadlessRuntime) {
+        Set-RegistryDword -Path $edgePolicy -Name 'BackgroundModeEnabled' -Value 0
+        Set-RegistryDword -Path $edgePolicy -Name 'StartupBoostEnabled' -Value 0
+        Set-RegistryDword -Path $edgePolicy -Name 'HideFirstRunExperience' -Value 1
+
+        $explorerAdvanced = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+        Set-RegistryDword -Path $explorerAdvanced -Name 'HideFileExt' -Value 0
+        Set-RegistryDword -Path $explorerAdvanced -Name 'LaunchTo' -Value 1
+        Set-RegistryDword -Path $explorerAdvanced -Name 'ShowTaskViewButton' -Value 0
+        Set-RegistryDword -Path $explorerAdvanced -Name 'TaskbarAnimations' -Value 0
+        Set-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 0
+        Set-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'EnableTransparency' -Value 0
+        Set-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
+    }
+
+    if (Get-Command Set-MpPreference -ErrorAction SilentlyContinue) {
+        Set-MpPreference -ScanScheduleDay 0 -ScanScheduleTime '02:00:00' -CheckForSignaturesBeforeRunningScan $true
+    }
+
+    $optionalFeatures = @(
+        'Microsoft-Hyper-V-All',
+        'VirtualMachinePlatform',
+        'Microsoft-Windows-Subsystem-Linux',
+        'Containers-DisposableClientVM',
+        'MicrosoftWindowsPowerShellV2Root',
+        'MicrosoftWindowsPowerShellV2',
+        'SMB1Protocol'
+    )
+    foreach ($featureName in $optionalFeatures) {
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
+        if ($null -ne $feature -and $feature.State -notin @('Disabled', 'DisabledWithPayloadRemoved', 'DisablePending')) {
+            Disable-WindowsOptionalFeature -Online -FeatureName $featureName -NoRestart | Out-Null
+        }
+    }
+
+    Set-LocalUser -Name $AdministratorName -PasswordNeverExpires $true
+}
+
+function Remove-DeclaredAppxPackages {
+    $provisionedApps = @(Get-AppxProvisionedPackage -Online)
+    $initialState = @{}
+    foreach ($packageName in $DeclaredAppxPackages) {
+        $startedAt = [DateTime]::UtcNow
+        $installed = @(Get-AppxPackage -AllUsers -Name $packageName -ErrorAction SilentlyContinue)
+        $provisioned = @($provisionedApps | Where-Object DisplayName -EQ $packageName)
+        $initialState[$packageName] = @{
+            Installed = $installed.Count
+            Provisioned = $provisioned.Count
+            StartedAt = $startedAt
+        }
+
+        $installed | Remove-AppxPackage -AllUsers -ErrorAction Continue
+        $provisioned | Remove-AppxProvisionedPackage -Online -AllUsers -ErrorAction Continue | Out-Null
+    }
+
+    $remainingPackages = [System.Collections.Generic.List[string]]::new()
+    $remainingProvisioned = @(Get-AppxProvisionedPackage -Online)
+    foreach ($packageName in $DeclaredAppxPackages) {
+        $installedAfter = @(Get-AppxPackage -AllUsers -Name $packageName -ErrorAction SilentlyContinue)
+        $provisionedAfter = @($remainingProvisioned | Where-Object DisplayName -EQ $packageName)
+        $before = $initialState[$packageName]
+
+        if ($installedAfter.Count -gt 0) {
+            $remainingPackages.Add("installed:$packageName")
+        }
+        if ($provisionedAfter.Count -gt 0) {
+            $remainingPackages.Add("provisioned:$packageName")
+        }
+
+        $state = 'PASS'
+        $detail = "removed; installedBefore=$($before.Installed); provisionedBefore=$($before.Provisioned)"
+        if ($before.Installed -eq 0 -and $before.Provisioned -eq 0) {
+            $state = 'INFO'
+            $detail = 'not present in this Windows image'
+        }
+        if ($installedAfter.Count -gt 0 -or $provisionedAfter.Count -gt 0) {
+            $state = 'FAIL'
+            $detail = "still present; installed=$($installedAfter.Count); provisioned=$($provisionedAfter.Count)"
+        }
+        Add-ProvisioningRecord -State $state -Step "remove Appx $packageName" -StartedAt $before.StartedAt -Detail $detail
+    }
+    if ($remainingPackages.Count -gt 0) {
+        throw "Declared Appx packages remain after removal: $($remainingPackages -join ', ')"
+    }
+}
+
+function Invoke-PrivateProvisioning {
+    $privateSource = Join-Path $ProvisioningRoot 'private'
+    $privateDestination = Join-Path $ManagedRoot 'Private'
+    if (-not (Test-Path -LiteralPath $privateSource)) {
+        return
+    }
+
+    $privateItems = @(Get-ChildItem -LiteralPath $privateSource -Force)
+    if ($privateItems.Count -eq 0) {
+        return
+    }
+
+    New-Item -ItemType Directory -Path $privateDestination -Force | Out-Null
+    foreach ($item in $privateItems) {
+        Copy-Item -LiteralPath $item.FullName -Destination $privateDestination -Recurse -Force
+    }
+    $installer = Join-Path $privateDestination 'Install.ps1'
+    if (Test-Path -LiteralPath $installer) {
+        & $installer -AdministratorName $AdministratorName -ManagedRoot $ManagedRoot
+        if (-not $?) {
+            throw 'Private provisioning returned a failure status'
+        }
+    }
+}
+
+function Initialize-LocalProvisioningCopy {
+    if ($PSScriptRoot -eq $ProvisioningRoot) {
+        return
+    }
+
+    New-Item -ItemType Directory -Path $ManagedRoot -Force | Out-Null
+    Remove-Item -LiteralPath $ProvisioningRoot -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path $ProvisioningRoot -Force | Out-Null
+    foreach ($item in @(Get-ChildItem -LiteralPath $PSScriptRoot -Force)) {
+        Copy-Item -LiteralPath $item.FullName -Destination $ProvisioningRoot -Recurse -Force
+    }
+    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\icacls.exe" -ArgumentList @($ManagedRoot, '/inheritance:r', '/grant', '*S-1-5-18:(OI)(CI)F', '/grant', '*S-1-5-32-544:(OI)(CI)F')
+}
+
+Initialize-LocalProvisioningCopy
+New-ItemProperty -Path $RunKey -Name $RunValue -PropertyType String -Value "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$LocalBootstrap`"" -Force | Out-Null
+New-Item -ItemType Directory -Path $ManagedRoot -Force | Out-Null
+if (Test-Path -LiteralPath $StepLogPath) {
+    Move-Item -LiteralPath $StepLogPath -Destination $PreviousStepLogPath -Force
+}
+New-Item -ItemType File -Path $StepLogPath -Force | Out-Null
+Write-BaselineStatus -State 'PENDING' -Detail 'Provisioning is running'
+
+$transcript = Join-Path $ManagedRoot 'bootstrap.log'
+try {
+    Start-Transcript -LiteralPath $transcript -Append | Out-Null
+    Invoke-ProvisioningStep -Name 'remove cached answer files' -Action {
+        Remove-CachedAnswerFiles
+    }
+    Invoke-ProvisioningStep -Name 'install VirtIO drivers and guest agent' -Action {
+        $virtioMedia = Find-VirtioMedia
+        Install-VirtioDrivers -MediaRoot $virtioMedia
+    }
+    Invoke-ProvisioningStep -Name 'configure isolated management network' -Action {
+        Set-ManagementNetworkPolicy
+    }
+    Invoke-ProvisioningStep -Name 'install and harden OpenSSH' -Action {
+        Install-OpenSsh
+    }
+    Invoke-ProvisioningStep -Name 'configure protected automatic logon' -Action {
+        Set-Autologon
+    }
+    Invoke-ProvisioningStep -Name "apply $BaselineProfile operating-system profile" -Action {
+        Set-OperatingSystemBaseline
+    }
+    Invoke-ProvisioningStep -Name 'remove declared Appx packages' -Action {
+        Remove-DeclaredAppxPackages
+    }
+    Invoke-ProvisioningStep -Name 'run private provisioning hook' -Action {
+        Invoke-PrivateProvisioning
+    }
+    Invoke-ProvisioningStep -Name 'verify managed baseline' -Action {
+        & (Join-Path $ProvisioningRoot 'Test-Baseline.ps1')
+    }
+    Invoke-ProvisioningStep -Name 'publish SSH host identity' -Action {
+        Copy-Item -LiteralPath (Join-Path $env:ProgramData 'ssh\ssh_host_ed25519_key.pub') -Destination (Join-Path $ManagedRoot 'ssh-host-ed25519-key.pub') -Force
+    }
+    Remove-ItemProperty -Path $RunKey -Name $RunValue -ErrorAction SilentlyContinue
+    Write-BaselineStatus -State 'PASS' -Detail 'Public baseline and private provisioning completed'
+}
+catch {
+    Write-BaselineStatus -State 'FAIL' -Detail $_.Exception.Message
+    throw
+}
+finally {
+    try { Stop-Transcript | Out-Null } catch { }
+}

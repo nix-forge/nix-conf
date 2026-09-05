@@ -1,0 +1,428 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2016,SC2239
+set -u -o pipefail
+
+export LC_ALL=C
+unset LIBVIRT_DEFAULT_URI VIRSH_DEFAULT_CONNECT_URI
+
+libvirt_uri=@libvirtUri@
+guest_manifest=@guestManifest@
+network_manifest=@networkManifest@
+vfio_device_manifest=@vfioDeviceManifest@
+profile_marker=@profileMarker@
+pool_name=@poolName@
+pool_path=@poolPath@
+vfio_profile=@vfioProfile@
+emulate_aarch64=@emulateAarch64@
+iommu_enabled=@iommuEnabled@
+storage_nocow=@storageNocow@
+vfio_enabled=@vfioEnabled@
+
+failures=0
+warnings=0
+
+usage() {
+  printf '%s\n' 'usage: libvirt-workstation-control list|doctor [guest]|status <guest>|start <guest>|stop <guest>|ip <guest>|console <guest>' >&2
+  exit 64
+}
+
+die() {
+  printf 'error: %s\n' "$1" >&2
+  exit 1
+}
+
+pass() {
+  printf 'PASS  %s\n' "$1"
+}
+
+warn() {
+  warnings=$((warnings + 1))
+  printf 'WARN  %s\n' "$1"
+}
+
+fail() {
+  failures=$((failures + 1))
+  printf 'FAIL  %s\n' "$1"
+}
+
+current_profile() {
+  if [[ -r $profile_marker ]]; then
+    local profile
+    profile=$(<"$profile_marker")
+    printf '%s\n' "$profile"
+  else
+    printf '%s\n' unknown
+  fi
+}
+
+lookup_guest() {
+  local requested=$1
+  guest_name=
+  guest_exclusive_group=-
+  guest_required_profile=-
+  guest_inhibit_sleep=0
+
+  while IFS=$'\t' read -r manifest_name _manifest_ssh_host manifest_exclusive_group manifest_required_profile _manifest_autostart manifest_inhibit_sleep; do
+    if [[ $manifest_name == "$requested" ]]; then
+      guest_name=$manifest_name
+      guest_exclusive_group=$manifest_exclusive_group
+      guest_required_profile=$manifest_required_profile
+      guest_inhibit_sleep=$manifest_inhibit_sleep
+      return 0
+    fi
+  done <"$guest_manifest"
+
+  die "guest is not allowlisted: $requested"
+}
+
+domain_exists() {
+  @virsh@ --connect "$libvirt_uri" dominfo "$1" >/dev/null 2>&1
+}
+
+domain_active() {
+  local domain_id
+  domain_id="$(@virsh@ --connect "$libvirt_uri" domid "$1" 2>/dev/null)" || return 1
+  [[ $domain_id != - ]]
+}
+
+require_profile() {
+  local active_profile
+  [[ $guest_required_profile != - ]] || return 0
+  active_profile=$(current_profile)
+  if [[ $active_profile != "$guest_required_profile" ]]; then
+    die "$guest_name requires boot profile $guest_required_profile; current profile is $active_profile"
+  fi
+}
+
+list_guests() {
+  local state
+  printf '%-24s %-16s %-18s %s\n' NAME STATE PROFILE SSH_ALIAS
+  while IFS=$'\t' read -r name ssh_host _exclusive_group required_profile _autostart _inhibit_sleep; do
+    [[ -n $name ]] || continue
+    state="$(@virsh@ --connect "$libvirt_uri" domstate "$name" 2>/dev/null)" || state=missing
+    [[ $required_profile != - ]] || required_profile=any
+    [[ $ssh_host != - ]] || ssh_host=unconfigured
+    printf '%-24s %-16s %-18s %s\n' "$name" "$state" "$required_profile" "$ssh_host"
+  done <"$guest_manifest"
+}
+
+start_guest() {
+  local peer_name peer_group
+  domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
+  require_profile
+
+  if [[ $guest_exclusive_group != - ]]; then
+    while IFS=$'\t' read -r peer_name _peer_ssh peer_group _peer_profile _peer_autostart _peer_inhibit_sleep; do
+      [[ $peer_name != "$guest_name" && $peer_group == "$guest_exclusive_group" ]] || continue
+      if domain_active "$peer_name"; then
+        die "$peer_name is already active in exclusive group $guest_exclusive_group"
+      fi
+    done <"$guest_manifest"
+  fi
+
+  exec @virsh@ --connect "$libvirt_uri" start "$guest_name"
+}
+
+stop_guest() {
+  domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
+  exec @virsh@ --connect "$libvirt_uri" shutdown "$guest_name"
+}
+
+show_status() {
+  printf 'Host profile: %s\n' "$(current_profile)"
+  printf 'Required profile: %s\n' "$guest_required_profile"
+  domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
+  @virsh@ --connect "$libvirt_uri" dominfo "$guest_name"
+}
+
+show_ip() {
+  local addresses
+  domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
+
+  addresses="$(@virsh@ --connect "$libvirt_uri" domifaddr "$guest_name" --source agent 2>/dev/null |
+    @awk@ 'NR > 2 && $4 != "" { sub(/\/.*/, "", $4); print $4 }')"
+  if [[ -z $addresses ]]; then
+    addresses="$(@virsh@ --connect "$libvirt_uri" domifaddr "$guest_name" --source lease 2>/dev/null |
+      @awk@ 'NR > 2 && $4 != "" { sub(/\/.*/, "", $4); print $4 }')"
+  fi
+
+  [[ -n $addresses ]] || die "no guest-agent or DHCP lease address is available for $guest_name"
+  printf '%s\n' "$addresses"
+}
+
+check_vfio_devices() {
+  local device_name pci_address expected_id expected_group
+  local device_path actual_group actual_driver actual_id group_path group_member
+  declare -A expected_group_members=()
+  declare -A expected_groups=()
+
+  while IFS=$'\t' read -r device_name pci_address expected_id expected_group; do
+    [[ -n $device_name ]] || continue
+    device_path="/sys/bus/pci/devices/$pci_address"
+
+    if [[ ! -e $device_path ]]; then
+      fail "configured VFIO device $device_name ($pci_address) is missing"
+      continue
+    fi
+
+    actual_id="$(@lspci@ -Dn -s "$pci_address" | @awk@ '{ print tolower($3) }')"
+    if [[ ${actual_id,,} == "$expected_id" ]]; then
+      pass "$pci_address still identifies as $expected_id"
+    else
+      fail "$pci_address identifies as ${actual_id:-unknown}, expected $expected_id"
+    fi
+
+    if [[ -L $device_path/iommu_group ]]; then
+      actual_group="$(@basename@ "$(@readlink@ -f "$device_path/iommu_group")")"
+      if [[ $actual_group == "$expected_group" ]]; then
+        pass "$pci_address remains in IOMMU group $expected_group"
+      else
+        fail "$pci_address moved from IOMMU group $expected_group to $actual_group"
+      fi
+    else
+      fail "$pci_address has no IOMMU group"
+    fi
+
+    if [[ -L $device_path/driver ]]; then
+      actual_driver="$(@basename@ "$(@readlink@ -f "$device_path/driver")")"
+    else
+      actual_driver=unbound
+    fi
+    if [[ $(current_profile) == "$vfio_profile" ]]; then
+      if [[ $actual_driver == vfio-pci ]]; then
+        pass "$pci_address is bound to vfio-pci"
+      else
+        fail "$pci_address is bound to $actual_driver, expected vfio-pci"
+      fi
+    else
+      printf 'INFO  %s uses host driver %s in the default profile\n' "$pci_address" "$actual_driver"
+    fi
+
+    expected_group_members["$expected_group:$pci_address"]=1
+    expected_groups["$expected_group"]=1
+  done <"$vfio_device_manifest"
+
+  for expected_group in "${!expected_groups[@]}"; do
+    group_path="/sys/kernel/iommu_groups/$expected_group/devices"
+    [[ -d $group_path ]] || continue
+    for device_path in "$group_path/"*; do
+      [[ -e $device_path ]] || continue
+      group_member=$(@basename@ "$device_path")
+      if [[ -z ${expected_group_members["$expected_group:$group_member"]+present} ]]; then
+        fail "undeclared PCI function $group_member is in selected IOMMU group $expected_group"
+      fi
+    done
+  done
+}
+
+doctor_host() {
+  local network_name bridge subnet _definition route_info existing_pool_path filesystem attributes
+
+  printf 'Boot profile: %s\n\n' "$(current_profile)"
+
+  if @systemctl@ is-active --quiet libvirtd.service; then
+    pass 'libvirtd is active'
+  else
+    fail 'libvirtd is not active'
+  fi
+
+  if [[ -c /dev/kvm ]]; then
+    pass '/dev/kvm exists for native-architecture acceleration'
+  else
+    fail '/dev/kvm is missing; enable CPU virtualization in firmware and load KVM'
+  fi
+
+  if @virsh@ --connect "$libvirt_uri" uri >/dev/null 2>&1; then
+    pass "libvirt accepts $libvirt_uri connections"
+  else
+    fail "cannot connect to $libvirt_uri"
+  fi
+
+  while IFS=$'\t' read -r network_name bridge subnet _definition; do
+    [[ -n $network_name ]] || continue
+    if @virsh@ --connect "$libvirt_uri" net-info "$network_name" 2>/dev/null |
+      @grep@ --quiet --extended-regexp '^Active:[[:space:]]+yes$'; then
+      pass "network $network_name is active on $bridge"
+    else
+      fail "network $network_name is missing or inactive"
+    fi
+    route_info="$(@ip@ route show "$subnet" 2>/dev/null)"
+    printf 'INFO  route for %s: %s\n' "$subnet" "${route_info:-unavailable}"
+  done <"$network_manifest"
+
+  if @virsh@ --connect "$libvirt_uri" pool-info "$pool_name" 2>/dev/null |
+    @grep@ --quiet --extended-regexp '^State:[[:space:]]+running$'; then
+    pass "storage pool $pool_name is running"
+    existing_pool_path="$(@virsh@ --connect "$libvirt_uri" pool-dumpxml --inactive "$pool_name" |
+      @xmllint@ --xpath 'string(/pool/target/path)' -)"
+    if [[ $existing_pool_path == "$pool_path" ]]; then
+      pass "storage pool targets $pool_path"
+    else
+      fail "storage pool targets $existing_pool_path, expected $pool_path"
+    fi
+  else
+    fail "storage pool $pool_name is missing or inactive"
+  fi
+
+  if [[ -d $pool_path ]]; then
+    filesystem="$(@findmnt@ --noheadings --output FSTYPE --target "$pool_path" 2>/dev/null)"
+    printf 'INFO  storage filesystem: %s\n' "${filesystem:-unknown}"
+    if ((storage_nocow == 1)); then
+      attributes="$(@lsattr@ -d "$pool_path" 2>/dev/null | @awk@ '{ print $1 }')"
+      if [[ $attributes == *C* ]]; then
+        pass 'storage directory has the NOCOW inheritance attribute'
+      else
+        fail 'storage.nocow is enabled but the storage directory lacks the NOCOW attribute'
+      fi
+    fi
+  else
+    fail "storage directory does not exist: $pool_path"
+  fi
+
+  if ((emulate_aarch64 == 1)); then
+    if [[ -x @qemuAarch64@ ]]; then
+      pass 'qemu-system-aarch64 is installed'
+      warn 'AArch64 on x86_64 uses TCG; use Apple Silicon for normal ARM development'
+    else
+      fail 'AArch64 emulation is enabled but qemu-system-aarch64 is missing'
+    fi
+  fi
+
+  if compgen -G '/sys/kernel/iommu_groups/*/devices/*' >/dev/null; then
+    pass 'the kernel exposes IOMMU groups'
+  elif ((iommu_enabled == 1 || vfio_enabled == 1)); then
+    fail 'IOMMU policy is enabled but the kernel exposes no groups'
+  else
+    warn 'the kernel exposes no IOMMU groups; this matters before PCI passthrough'
+  fi
+
+  if ((vfio_enabled == 1)); then
+    if [[ -e "/run/current-system/specialisation/$vfio_profile" ]] ||
+      [[ $(current_profile) == "$vfio_profile" ]]; then
+      pass "VFIO boot profile $vfio_profile is installed"
+    else
+      fail "VFIO is configured but profile $vfio_profile is not installed"
+    fi
+    check_vfio_devices
+  fi
+
+  if @ss@ --listening --tcp --numeric --process 2>/dev/null |
+    @grep@ --quiet --extended-regexp ':(16509|16514)[[:space:]]'; then
+    fail 'a libvirt TCP or TLS management port is listening'
+  else
+    pass 'libvirt management is not listening on TCP or TLS'
+  fi
+
+  if @ps@ -eo user=,comm= | @awk@ '$2 ~ /^qemu-system-/ && $1 == "root" { found = 1 } END { exit !found }'; then
+    fail 'at least one QEMU system process is running as root'
+  else
+    pass 'no QEMU system process is running as root'
+  fi
+
+  printf '\n%s\n' 'libvirt host validation'
+  if @virtHostValidate@ qemu; then
+    pass 'virt-host-validate accepted the QEMU host'
+  else
+    warn 'virt-host-validate reported at least one warning or failure above'
+  fi
+}
+
+doctor_guest() {
+  local autostart active_profile expected_autostart inhibitor_unit
+  printf '\nGuest: %s\n' "$guest_name"
+
+  if ! domain_exists "$guest_name"; then
+    fail "libvirt domain is not installed: $guest_name"
+    return
+  fi
+
+  autostart="$(@virsh@ --connect "$libvirt_uri" dominfo "$guest_name" |
+    @awk@ -F: '$1 ~ /^Autostart/ { sub(/^[[:space:]]+/, "", $2); print $2 }')"
+  expected_autostart=disable
+  while IFS=$'\t' read -r manifest_name _ssh _group _profile manifest_autostart _manifest_inhibit_sleep; do
+    if [[ $manifest_name == "$guest_name" && $manifest_autostart == 1 ]]; then
+      expected_autostart=enable
+      break
+    fi
+  done <"$guest_manifest"
+  if [[ $autostart == "$expected_autostart" ]]; then
+    pass "guest autostart is $autostart"
+  else
+    fail "guest autostart is ${autostart:-unknown}, expected $expected_autostart"
+  fi
+
+  if [[ $guest_inhibit_sleep == 1 ]]; then
+    inhibitor_unit="$(@systemdEscape@ --template=libvirt-workstation-sleep-inhibit@.service "$guest_name")"
+    if domain_active "$guest_name"; then
+      if @systemctl@ is-active --quiet "$inhibitor_unit"; then
+        pass "host sleep is inhibited while $guest_name is active"
+      else
+        fail "$guest_name is active without its host sleep inhibitor"
+      fi
+    elif @systemctl@ is-active --quiet "$inhibitor_unit"; then
+      fail "host sleep remains inhibited although $guest_name is inactive"
+    else
+      pass "host sleep inhibitor is released while $guest_name is inactive"
+    fi
+  fi
+
+  active_profile=$(current_profile)
+  if [[ $guest_required_profile == - || $guest_required_profile == "$active_profile" ]]; then
+    pass "boot profile $active_profile permits this guest"
+  else
+    warn "guest requires $guest_required_profile; current profile is $active_profile"
+  fi
+
+  @virsh@ --connect "$libvirt_uri" domstate "$guest_name" --reason
+  printf '\n%s\n' 'Block devices'
+  @virsh@ --connect "$libvirt_uri" domblklist "$guest_name" --details
+  printf '\n%s\n' 'Network interfaces'
+  @virsh@ --connect "$libvirt_uri" domiflist "$guest_name"
+}
+
+command=${1:-}
+case $command in
+list)
+  (($# == 1)) || usage
+  list_guests
+  ;;
+doctor)
+  (($# <= 2)) || usage
+  doctor_host
+  if (($# == 2)); then
+    lookup_guest "$2"
+    doctor_guest
+  fi
+  printf '\nSummary: %d failure(s), %d warning(s)\n' "$failures" "$warnings"
+  ((failures == 0))
+  ;;
+status)
+  (($# == 2)) || usage
+  lookup_guest "$2"
+  show_status
+  ;;
+start)
+  (($# == 2)) || usage
+  lookup_guest "$2"
+  start_guest
+  ;;
+stop)
+  (($# == 2)) || usage
+  lookup_guest "$2"
+  stop_guest
+  ;;
+ip)
+  (($# == 2)) || usage
+  lookup_guest "$2"
+  show_ip
+  ;;
+console)
+  (($# == 2)) || usage
+  lookup_guest "$2"
+  domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
+  exec @virsh@ --connect "$libvirt_uri" console "$guest_name"
+  ;;
+*)
+  usage
+  ;;
+esac

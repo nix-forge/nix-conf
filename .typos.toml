@@ -6,6 +6,9 @@ files.extend-exclude = [
   ".opencode/node_modules/**",
 ]
 
+[default.extend-identifiers]
+inh = "inh"
+
 [default.extend-words]
 ags = "ags"
 Calculater = "Calculater"

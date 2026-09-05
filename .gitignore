@@ -98,7 +98,7 @@ ipython_config.py
 #   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
-# uv.lock
+uv.lock
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
@@ -228,3 +228,8 @@ result/
 .pre-commit-config.yaml
 result
 .opencode/plans/
+/tmp/
+
+# Local architecture notes contain private workload and vendor details. The
+# reusable virtualization design belongs in tracked, vendor-neutral docs.
+docs/prop-fund-virtualization-strategy-research.md

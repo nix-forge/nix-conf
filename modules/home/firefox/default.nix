@@ -1,23 +1,5 @@
 {
-  imports = [
-    ./blocking.nix
-    ./extensions.nix
-    ./language.nix
-    ./policies.nix
-    ./search.nix
-    ./user-js.nix
-  ];
-
-  programs.firefox = {
-    enable = true;
-
-    # Set the language packs for firefox (be careful as unique configs can lead to fingerprinting)
-    languagePacks = [ "en-US" ];
-
-    profiles.default = {
-      id = 0;
-      isDefault = true;
-      name = "default";
-    };
-  };
+  # Compatibility selector. New configuration lives below browsers/ so the
+  # shared Gecko implementation sits next to its Firefox and Zen adapters.
+  imports = [ ../browsers/firefox ];
 }

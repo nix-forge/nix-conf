@@ -6,9 +6,13 @@
 }:
 let
   cfg = config.macos.dockItems;
-  moduleFormatVersion = 1;
+  moduleFormatVersion = 2;
 
   dockutilExe = lib.getExe cfg.package;
+  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" { } (
+    builtins.readFile ./dock_state.py
+  );
+  dockStateExe = lib.getExe dockStateHelper;
 
   absolutePathType = lib.types.strMatching "^/.*";
   appBundlePathType = lib.types.strMatching "^/.+\\.app$";
@@ -24,6 +28,7 @@ let
   hasManagedApps = builtins.any (item: item ? hmApp) cfg.persistentApps;
 
   activationDeps = [
+    "setDarwinDefaults"
     "writeBoundary"
   ]
   ++ lib.optionals hasManagedApps (
@@ -124,8 +129,7 @@ let
     let
       path = appPath item;
     in
-    validateApp item
-    + ''
+    ''
       run ${dockutilExe} \
         --add ${lib.escapeShellArg path} \
         --section apps \
@@ -150,8 +154,7 @@ let
     let
       inherit (item) folder;
     in
-    validateFolder folder
-    + ''
+    ''
       run ${dockutilExe} \
         --add ${lib.escapeShellArg folder.path} \
         --section others \
@@ -256,6 +259,7 @@ let
     builtins.toJSON {
       formatVersion = moduleFormatVersion;
       packagePath = cfg.package.outPath;
+      inherit (cfg) mode;
       appsDirectory = managedAppsDirectory;
       apps = resolvedPersistentApps;
       others = resolvedPersistentOthers;
@@ -275,6 +279,19 @@ in
       default = pkgs.dockutil;
       defaultText = lib.literalExpression "pkgs.dockutil";
       description = "dockutil package to use for Dock management.";
+    };
+
+    mode = lib.mkOption {
+      type = lib.types.enum [
+        "authoritative"
+        "initialize"
+      ];
+      default = "authoritative";
+      description = ''
+        Reconciliation policy. Authoritative repairs changes made outside Nix.
+        Initialize reapplies only when the configured layout changes and then
+        permits manual edits.
+      '';
     };
 
     persistentApps = lib.mkOption {
@@ -320,21 +337,44 @@ in
     ];
 
     home.activation.syncDockItems = lib.hm.dag.entryAfter activationDeps ''
-      dock_hash_path="${dockCacheDirectory}/hm-dock.hash"
-      old_hash=$(cat "$dock_hash_path" 2>/dev/null || echo "")
-      new_hash="${dockStateHash}"
+      dock_cache_directory="${dockCacheDirectory}/home-manager-macos"
+      dock_config_hash_path="$dock_cache_directory/dock-config.hash"
+      dock_state_hash_path="$dock_cache_directory/dock-state.hash"
+      old_config_hash=$(cat "$dock_config_hash_path" 2>/dev/null || true)
+      old_state_hash=$(cat "$dock_state_hash_path" 2>/dev/null || true)
+      new_config_hash="${dockStateHash}"
+      current_state_hash=""
+      needs_sync=""
 
-      # Always run if DRY_RUN is set to ensure we see the output,
-      # otherwise only run if the configuration hash has changed.
-      if [ "$old_hash" != "$new_hash" ] || [ -n "''${DRY_RUN:-}" ]; then
+      if [ ${lib.escapeShellArg cfg.mode} = authoritative ] && [ -z "''${DRY_RUN:-}" ]; then
+        current_state_hash="$(${dockStateExe})" || exit 1
+      fi
+
+      if [ "$old_config_hash" != "$new_config_hash" ]; then
+        needs_sync=1
+      elif [ ${lib.escapeShellArg cfg.mode} = authoritative ] && [ "$old_state_hash" != "$current_state_hash" ]; then
+        needs_sync=1
+      fi
+
+      if [ -n "$needs_sync" ] || [ -n "''${DRY_RUN:-}" ]; then
         verboseEcho "setting up Dock items..."
+
+        if [ -z "''${DRY_RUN:-}" ] && ! ${dockutilExe} --list >/dev/null; then
+          echo "error: dockutil cannot read this macOS Dock; refusing to remove any items" >&2
+          exit 1
+        fi
+
         ${validateTargets}
         ${renderCommandFns commandFns}
 
-        # Save the new hash only if it's not a dry run
         if [ -z "''${DRY_RUN:-}" ]; then
-          mkdir -p "$(dirname "$dock_hash_path")"
-          echo "$new_hash" > "$dock_hash_path"
+          current_state_hash="$(${dockStateExe})" || exit 1
+          install -d -m 0700 "$dock_cache_directory"
+          printf '%s\n' "$new_config_hash" > "$dock_config_hash_path.new"
+          printf '%s\n' "$current_state_hash" > "$dock_state_hash_path.new"
+          chmod 0600 "$dock_config_hash_path.new" "$dock_state_hash_path.new"
+          mv -f "$dock_config_hash_path.new" "$dock_config_hash_path"
+          mv -f "$dock_state_hash_path.new" "$dock_state_hash_path"
         fi
       else
         verboseEcho "Dock items unchanged, skipping..."

@@ -1,6 +1,6 @@
 {
   macos.ocrCapture = {
     enable = true;
-    keybinding = "cmd-shift-7";
+    shortcuts.copyRegion = "cmd-shift-7";
   };
 }

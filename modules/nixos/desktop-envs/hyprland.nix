@@ -1,6 +1,21 @@
-{ config, lib, ... }: {
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  hyprlandPackages = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
+in
+{
   programs.hyprland = {
     enable = true;
+
+    # Keep the compositor and portal on one upstream revision. Both link
+    # against the Hyprland flake's shared library inputs.
+    package = hyprlandPackages.hyprland;
+    portalPackage = hyprlandPackages.xdg-desktop-portal-hyprland;
 
     # Keep XWayland available for the remaining applications and games that
     # have not migrated to native Wayland. Native Wayland clients remain the

@@ -53,7 +53,6 @@ in
     determinate
     nix-settings
     registry
-    browser-policies
     cache
     nixSeal
     ./nix-seal.nix
@@ -93,11 +92,8 @@ in
     })
 
     firefox
-    firefox-scrolling-natural
     helium-browser
     zen-browser
-    zen-browser-scrolling-natural
-    zen-browser-defaultbrowser
     chrome
 
     vscode
@@ -109,7 +105,6 @@ in
 
     shells
     shells-tmux
-    shells-nushell-defaultshell
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
@@ -127,7 +122,7 @@ in
     {
       programs.linearmouse = {
         enable = true;
-        menuBarVisibility = "always";
+        menuBarVisibility = "never";
         menuBarBatteryDisplay = "off";
         showInDock = false;
         settings = {
@@ -169,6 +164,7 @@ in
     notion
     bitwarden
     darktable
+    wootility
 
     steam-darwin
     moonlight

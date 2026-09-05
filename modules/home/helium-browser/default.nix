@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.programs.helium;
-  inherit (config.programs.browserPolicy.chromium) extensionUpdateUrl heliumExtensions;
+  inherit (config.programs.browserSuite.chromium) extensionUpdateUrl heliumExtensions;
   extensionIds = builtins.attrValues heliumExtensions;
   isLinux = builtins.elem system [
     "x86_64-linux"
@@ -95,7 +95,11 @@ let
       });
 in
 {
-  imports = [ ./flags.nix ] ++ lib.optionals isLinux [ inputs.helium-browser.homeModules.default ];
+  imports = [
+    ../browsers/shared
+    ./flags.nix
+  ]
+  ++ lib.optionals isLinux [ inputs.helium-browser.homeModules.default ];
 }
 // lib.optionalAttrs isDarwin {
   options.programs.helium = {

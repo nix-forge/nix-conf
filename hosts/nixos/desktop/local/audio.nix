@@ -1,4 +1,9 @@
 _: {
+  # The current LibrePods Linux clients change Bluetooth profiles themselves
+  # and prefer SBC-XQ or SBC without considering AAC. Keep them out of the
+  # audio path until that behavior can be patched upstream or locally.
+  programs.librepods.enable = false;
+
   # This machine is both a desktop and a Sunshine host, so use one stable
   # 48 kHz graph rather than dynamically changing rates.  48 kHz is native to
   # the USB interface and to the common game, video, and streaming paths.
@@ -73,5 +78,44 @@ _: {
         };
       }
     ];
+
+    wireplumber.extraConfig."91-airpods-pro" = {
+      "wireplumber.settings" = {
+        # Opening the AirPods microphone switches ordinary Bluetooth audio to
+        # lower-quality HFP. Keep AAC playback stable and use the desktop's
+        # separate USB microphone; HFP remains available for manual selection.
+        "bluetooth.autoswitch-to-headset-profile" = false;
+      };
+
+      "monitor.bluez.properties" = {
+        # AirPods media controls depend on an AVRCP player being registered.
+        # WirePlumber supplies the player, so do not run mpris-proxy as well.
+        "bluez5.dummy-avrcp-player" = true;
+      };
+
+      "monitor.bluez.rules" = [
+        {
+          matches = [
+            {
+              # Scope the recovery policy to this paired AirPods Pro 2 card.
+              "device.name" = "bluez_card.6C_12_70_1A_3A_43";
+            }
+          ];
+          actions.update-props = {
+            # Attach the playback and microphone transports if BlueZ has only
+            # established the base Bluetooth link. The autoswitch setting
+            # above keeps A2DP selected unless HFP is chosen manually.
+            "bluez5.auto-connect" = [
+              "a2dp_sink"
+              "hfp_hf"
+            ];
+
+            # AirPods Pro 2 uses AAC for its best standard Bluetooth playback
+            # path. PipeWire defines mode 5 as its highest AAC VBR quality.
+            "bluez5.a2dp.aac.bitratemode" = 5;
+          };
+        }
+      ];
+    };
   };
 }

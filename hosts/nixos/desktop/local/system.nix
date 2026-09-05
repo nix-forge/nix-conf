@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -38,12 +39,18 @@
   programs.ssh.startAgent = false;
   environment.systemPackages = [ pkgs.seahorse ];
 
-  # The headless Sunshine session must boot directly into Hyprland in order to
-  # provide a capture target, then immediately locks with Hyprlock. Feed the
+  # The Sunshine session boots directly into Hyprland in order to provide a
+  # capture target, then immediately locks with Hyprlock. Feed the
   # one password entered at that lock screen to GNOME Keyring as well. That
   # unlocks the encrypted Login keyring before Helium starts using Secret
   # Service, without leaving an unlocked desktop at the physical console.
-  programs.hyprlock.enable = true;
+  # Use Hyprlock's current upstream flake. It includes the PAM termination
+  # deadlock fix that prevents a stale lock process from leaving Hyprland on
+  # its crashed-lockscreen fallback.
+  programs.hyprlock = {
+    enable = true;
+    package = inputs.hyprlock.packages.${pkgs.stdenv.hostPlatform.system}.hyprlock;
+  };
   # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
   # XDG environment and therefore cannot discover Home Manager's config at
   # boot. Give the host-owned unit the persistent user config explicitly.

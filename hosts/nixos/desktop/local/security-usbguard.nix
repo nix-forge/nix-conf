@@ -4,9 +4,11 @@
   services.usbguard = {
     # This immutable policy was generated on 2026-08-24 with:
     #   usbguard generate-policy -p -H
-    # on this desktop, then reviewed. Each permanent device is pinned to its
-    # full descriptor hash, parent topology, and physical port. Regenerate and
-    # review it after a motherboard/peripheral firmware change or hardware move;
+    # on this desktop, then reviewed. Fixed devices are pinned to their full
+    # descriptor hash, parent topology, and physical port. The Wooting and
+    # Pulsar rules intentionally omit topology so those exact reviewed devices
+    # work both directly and through the monitor KVM. Regenerate and review the
+    # policy after a motherboard/peripheral firmware change or hardware move;
     # do not add broad vendor-ID allow rules.
     #
     # The currently attached Samsung Flash Drive FIT (090c:1000) is deliberately

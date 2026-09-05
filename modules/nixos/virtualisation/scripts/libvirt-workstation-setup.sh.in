@@ -1,0 +1,96 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -euo pipefail
+
+export LC_ALL=C
+
+libvirt_uri=@libvirtUri@
+network_manifest=@networkManifest@
+guest_manifest=@guestManifest@
+pool_name=@poolName@
+pool_path=@poolPath@
+pool_definition=@poolDefinition@
+temporary_network_definition=
+
+cleanup() {
+  if [[ -n $temporary_network_definition ]]; then
+    @rm@ -f -- "$temporary_network_definition"
+  fi
+}
+trap cleanup EXIT
+
+while IFS=$'\t' read -r network_name _bridge _subnet network_definition; do
+  [[ -n $network_name ]] || continue
+
+  definition_to_apply=$network_definition
+  if @virsh@ --connect "$libvirt_uri" net-info "$network_name" >/dev/null 2>&1; then
+    existing_uuid="$(@virsh@ --connect "$libvirt_uri" net-uuid "$network_name")"
+    if [[ ! $existing_uuid =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+      printf 'Network %s returned invalid UUID %s. Refusing to redefine it.\n' \
+        "$network_name" "$existing_uuid" >&2
+      exit 1
+    fi
+
+    desired_uuid="$(@xmllint@ --xpath 'string(/network/uuid)' "$network_definition")"
+    if [[ -n $desired_uuid && $desired_uuid != "$existing_uuid" ]]; then
+      printf 'Network %s already has UUID %s, but its definition requests %s. Refusing to replace its identity.\n' \
+        "$network_name" "$existing_uuid" "$desired_uuid" >&2
+      exit 1
+    fi
+
+    if [[ -z $desired_uuid ]]; then
+      temporary_network_definition="$(@mktemp@ "${TMPDIR:-/tmp}/libvirt-workstation-network.XXXXXX.xml")"
+      LIBVIRT_NETWORK_UUID="$existing_uuid" @perl@ -0pe \
+        's{(<network\b[^>]*>\s*<name>[^<]+</name>)}{$1 . "\n  <uuid>" . $ENV{LIBVIRT_NETWORK_UUID} . "</uuid>"}e or die "network name element not found\n"' \
+        "$network_definition" >"$temporary_network_definition"
+      definition_to_apply=$temporary_network_definition
+    fi
+  fi
+
+  # net-define changes only the persistent definition. An already active
+  # network keeps running until the operator deliberately restarts it.
+  @virsh@ --connect "$libvirt_uri" net-define "$definition_to_apply" --validate >/dev/null
+  if [[ -n $temporary_network_definition ]]; then
+    @rm@ -f -- "$temporary_network_definition"
+    temporary_network_definition=
+  fi
+  @virsh@ --connect "$libvirt_uri" net-autostart "$network_name" >/dev/null
+
+  if ! @virsh@ --connect "$libvirt_uri" net-info "$network_name" |
+    @grep@ --quiet --extended-regexp '^Active:[[:space:]]+yes$'; then
+    @virsh@ --connect "$libvirt_uri" net-start "$network_name" >/dev/null
+  fi
+done <"$network_manifest"
+
+if @virsh@ --connect "$libvirt_uri" pool-info "$pool_name" >/dev/null 2>&1; then
+  existing_pool_path="$(@virsh@ --connect "$libvirt_uri" pool-dumpxml --inactive "$pool_name" |
+    @xmllint@ --xpath 'string(/pool/target/path)' -)"
+  if [[ $existing_pool_path != "$pool_path" ]]; then
+    printf 'Storage pool %s already targets %s, expected %s. Refusing to replace state.\n' \
+      "$pool_name" "$existing_pool_path" "$pool_path" >&2
+    exit 1
+  fi
+else
+  @virsh@ --connect "$libvirt_uri" pool-define "$pool_definition" --validate >/dev/null
+fi
+
+@virsh@ --connect "$libvirt_uri" pool-autostart "$pool_name" >/dev/null
+if ! @virsh@ --connect "$libvirt_uri" pool-info "$pool_name" |
+  @grep@ --quiet --extended-regexp '^State:[[:space:]]+running$'; then
+  @virsh@ --connect "$libvirt_uri" pool-start "$pool_name" >/dev/null
+fi
+@virsh@ --connect "$libvirt_uri" pool-refresh "$pool_name" >/dev/null
+
+# Missing domains are expected before their one-time installation. Reconcile
+# only the narrow autostart bit here; domain hardware belongs to its defining
+# module.
+while IFS=$'\t' read -r guest_name _ssh_host _exclusive_group _required_profile guest_autostart _inhibit_sleep; do
+  [[ -n $guest_name ]] || continue
+  if @virsh@ --connect "$libvirt_uri" dominfo "$guest_name" >/dev/null 2>&1; then
+    if [[ $guest_autostart == 1 ]]; then
+      @virsh@ --connect "$libvirt_uri" autostart "$guest_name" >/dev/null
+    else
+      @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+    fi
+  fi
+done <"$guest_manifest"
