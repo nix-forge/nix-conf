@@ -1,1 +1,4 @@
-{ desktop.system.enable = true; }
+{
+  appearance.theme = "carbon-neon-oled";
+  desktop.system.enable = true;
+}

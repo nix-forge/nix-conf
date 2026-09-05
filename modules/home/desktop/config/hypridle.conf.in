@@ -3,9 +3,9 @@ general {
   # Wait for Hyprlock to confirm the lock before logind permits sleep.
   inhibit_sleep = 3
   before_sleep_cmd = loginctl lock-session
-  after_sleep_cmd = hyprctl dispatch dpms on
+  after_sleep_cmd = hyprctl eval 'hl.dpms({ action = "on" })'
   on_lock_cmd = @onLockCommand@
-  on_unlock_cmd = hyprctl dispatch dpms on
+  on_unlock_cmd = hyprctl eval 'hl.dpms({ action = "on" })'
 }
 
 listener {
@@ -15,8 +15,8 @@ listener {
 
 listener {
   timeout = @displayOffAfterSeconds@
-  on-timeout = hyprctl dispatch dpms off
-  on-resume = hyprctl dispatch dpms on
+  on-timeout = hyprctl eval 'hl.dpms({ action = "off" })'
+  on-resume = hyprctl eval 'hl.dpms({ action = "on" })'
 }
 
 listener {

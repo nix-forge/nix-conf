@@ -4,9 +4,9 @@
   services = {
     xserver.enable = true;
     desktopManager.gnome.enable = true;
-    # The workstation has no attached display.  Greetd starts the dedicated
-    # Hyprland session defined in headless-remote-play.nix instead of leaving
-    # a graphical GDM login screen that Sunshine cannot capture.
+    # Greetd starts the Hyprland session defined in headless-remote-play.nix
+    # instead of leaving a separate GDM login screen that Sunshine cannot
+    # capture.
     displayManager.gdm.enable = lib.mkForce false;
   };
 

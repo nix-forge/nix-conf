@@ -13,28 +13,9 @@ let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
   awkExe = lib.getExe pkgs.gawk;
   spicetifyPackage = pkgs.spicetify-cli;
-  spotifyPackage = if isDarwin then self.packages.${system}.spotify-spotx else pkgs.spotify;
-  spotifyEntitlements = if isDarwin then spotifyPackage.passthru.entitlements else null;
+  spotifyPackage = self.packages.${system}.spotify-spotx;
   spotifyDarwinInstallDir = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   spotifyDarwinApp = "${spotifyDarwinInstallDir}/Spotify.app";
-  spotifyRepair =
-    if isDarwin then
-      pkgs.replaceVarsWith {
-        name = "repair-spotify-darwin-app.sh";
-        src = ./scripts/repair-spotify-darwin-app.sh;
-        replacements = {
-          chmod = "/bin/chmod";
-          xattr = "/usr/bin/xattr";
-          codesign = "/usr/bin/codesign";
-          lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
-          spotifyApp = lib.escapeShellArg spotifyDarwinApp;
-          # Keep this store-valued replacement unescaped so `replaceVarsWith`
-          # retains Nix's dependency context for the generated script.
-          inherit spotifyEntitlements;
-        };
-      }
-    else
-      null;
   spotifyQuality = pkgs.replaceVarsWith {
     name = "configure-spotify-quality.sh";
     src = ./scripts/configure-spotify-quality.sh;
@@ -129,32 +110,33 @@ in
 {
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
 
-  # The patched application and its Spicetify configuration are produced in a
-  # sandboxed build. The final macOS bundle envelope can only be signed after
-  # Home Manager copies the mutable app out of the store; darwin.sigtool does
-  # not support that host-only `codesign --deep` operation in the sandbox.
-  home.activation.repairSpotifyDarwinAppSignature = lib.mkIf isDarwin (
-    lib.hm.dag.entryAfter [ "copyApps" ] ''
-      source ${spotifyRepair}
-    ''
-  );
+  home.activation = {
+    # spotify-spotx recursively signs the finished SpotX and Spicetify bundle
+    # in its sandboxed build. Register the copied path without mutating it.
+    registerSpotifyDarwinApp = lib.mkIf isDarwin (
+      lib.hm.dag.entryAfter [ "copyApps" ] ''
+        spotifyApp=${lib.escapeShellArg spotifyDarwinApp}
+        if [[ -d "$spotifyApp" ]]; then
+          run /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+            -f "$spotifyApp"
+        fi
+      ''
+    );
 
-  # Spotify's account-specific prefs live beneath a runtime-created profile
-  # directory. macOS also keeps startup policy in a parent `prefs` file, so
-  # these are intentionally managed at activation rather than copied once.
-  home.activation.configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    source ${spotifyQuality}
-  '';
+    # Spotify's account-specific prefs live beneath a runtime-created profile
+    # directory. macOS also keeps startup policy in a parent `prefs` file.
+    configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      source ${spotifyQuality}
+    '';
 
-  # The macOS client has already registered its StartUpHelper as a background
-  # login item. Spotify's preference above prevents it being registered again.
-  # Keep launchd's user-level policy disabled as well, which controls the
-  # registration that exists before this generation is activated.
-  home.activation.disableSpotifyDarwinAutostart = lib.mkIf isDarwin (
-    lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ''
-      run /bin/launchctl disable "gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper"
-    ''
-  );
+    # Spotify's preference above prevents StartUpHelper from being registered
+    # again. Keep launchd's existing user-level registration disabled too.
+    disableSpotifyDarwinAutostart = lib.mkIf isDarwin (
+      lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ''
+        run /bin/launchctl disable "gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper"
+      ''
+    );
+  };
 
   # Linux desktop sessions discover autostart applications through XDG. A
   # same-name user entry with `Hidden=true` overrides a vendor entry even if
@@ -171,6 +153,7 @@ in
     enable = true;
     inherit spotifyPackage;
     inherit spicetifyPackage;
+    experimentalFeatures = false;
 
     # Use the maintained native port for the selected shared palette.
     theme = lib.mkForce theme.theme;
@@ -178,7 +161,6 @@ in
     customColorScheme = lib.mkIf isCarbonNeon carbonNeonScheme;
 
     enabledExtensions = with spicePkgs.extensions; [
-      adblock
       volumePercentage
       shuffle
       copyLyrics

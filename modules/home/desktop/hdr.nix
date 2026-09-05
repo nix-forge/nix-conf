@@ -39,11 +39,14 @@ in
 
     colorManagement = lib.mkOption {
       type = lib.types.enum [
+        "auto"
+        "srgb"
+        "wide"
         "hdr"
         "hdredid"
       ];
-      default = "hdr";
-      description = "Hyprland's experimental PQ HDR color-management preset. Choose hdredid only when the monitor's EDID HDR metadata is known to be correct.";
+      default = "auto";
+      description = "Normal desktop color-management preset. Auto selects sRGB at 8 bpc and wide gamut at 10 bpc; the HDR presets force a PQ desktop.";
     };
 
     sdrBrightness = lib.mkOption {
@@ -58,10 +61,26 @@ in
       description = "SDR saturation correction while the monitor is in HDR mode.";
     };
 
-    fullscreenPassthrough = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Allow color-managed HDR fullscreen clients to use Hyprland's experimental HDR passthrough path.";
+    autoHdr = lib.mkOption {
+      type = lib.types.enum [
+        0
+        1
+        2
+      ];
+      default = 1;
+      description = "Hyprland fullscreen HDR switching: 0 disables it, 1 uses BT.2020 primaries, and 2 uses EDID primaries.";
+    };
+
+    vrr = lib.mkOption {
+      type = lib.types.enum [
+        (-1)
+        0
+        1
+        2
+        3
+      ];
+      default = 2;
+      description = "Per-output VRR policy. Mode 2 limits VRR to fullscreen windows, avoiding refresh-rate flicker during ordinary OLED desktop use without depending on client content-type hints.";
     };
   };
 
@@ -85,10 +104,14 @@ in
       }
     ];
 
-    # Hyprland treats HDR output and color management as experimental. This
-    # is deliberately an explicit physical-output profile rather than a
-    # session-wide switch, so remote streaming stays SDR and stable.
-    wayland.windowManager.hyprland.settings.monitor = lib.mkAfter [
+    # Keep the ordinary desktop in Hyprland's recommended 10-bit automatic
+    # color mode. Fullscreen clients that declare HDR content temporarily
+    # switch the output to PQ, while VRR stays off for ordinary desktop work
+    # where OLED brightness fluctuations are most distracting.
+    # The display-scaling module emits the geometry rule first. Hyprland's Lua
+    # API replaces an earlier rule with the same output selector, so keep this
+    # complete color-aware rule last.
+    wayland.windowManager.hyprland.settings.monitor = lib.mkOrder 1600 [
       {
         inherit (cfg) output;
         inherit (cfg) mode;
@@ -96,16 +119,14 @@ in
         inherit (cfg) scale;
         bitdepth = 10;
         cm = cfg.colorManagement;
-        supports_wide_color = 1;
-        supports_hdr = 1;
+        inherit (cfg) vrr;
         sdrbrightness = cfg.sdrBrightness;
         sdrsaturation = cfg.sdrSaturation;
       }
     ];
 
-    wayland.windowManager.hyprland.settings.config.render = {
-      cm_auto_hdr = 1;
-      cm_fs_passthrough = if cfg.fullscreenPassthrough then 1 else 0;
-    };
+    # Hyprland removed cm_fs_passthrough in 0.55. Automatic HDR now owns the
+    # fullscreen transition and passthrough decision.
+    wayland.windowManager.hyprland.settings.config.render.cm_auto_hdr = cfg.autoHdr;
   };
 }

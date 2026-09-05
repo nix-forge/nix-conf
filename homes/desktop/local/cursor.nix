@@ -6,7 +6,7 @@
   ...
 }:
 let
-  cursorTheme = "Bibata-Modern-Ice";
+  cursorTheme = "Bibata-Modern-Classic";
   cursorSize = config.wayland.windowManager.hyprland.displayScaling.cursor.resolvedSize;
   personalPackages = inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system};
   # The Hyprcursor package is supplied by nixpkgs-personal. Keep evaluation
@@ -15,9 +15,8 @@ let
   cursorPackage = personalPackages.bibata-cursors-hyprcursor or pkgs.bibata-cursors;
 in
 {
-  # Bibata Modern Ice is a white, rounded Material-style pointer with a dark
-  # outline.  It stays legible over the dark desktop and busy game UIs, while
-  # the packaged theme provides native XCursor assets at this exact size.
+  # Bibata Modern Classic is the dark, rounded Material-style pointer. The
+  # packaged theme provides native Hyprcursor and XCursor assets.
   # Use the personal package built from the official Bibata source. It provides
   # native Hyprcursor assets and an XCursor fallback without an imperative
   # download or a legacy-only theme conversion at activation time.
