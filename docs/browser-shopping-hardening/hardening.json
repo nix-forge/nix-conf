@@ -1,0 +1,395 @@
+{
+  "documentType": "codex-security.hardening-analysis",
+  "schemaVersion": "1.0",
+  "analysisId": "hardening_20260902_browser_shopping",
+  "sourceEvidence": {
+    "kind": "document_collection",
+    "label": "Browser shopping research and current Nix browser configuration",
+    "collectionSha256": "5dbfb5e2e1c0c5ea6432b55583bd7af979830a99224ae779fa54e1016ff2c5df",
+    "artifactCount": 5,
+    "sourceDrift": "present",
+    "targetRevision": "9d39e12d9a394c6459e98f3b58d08f8069723710"
+  },
+  "assessment": {
+    "outcome": "opportunities_identified",
+    "summary": "Separate cashback-compatible browsing from the protected daily browser and avoid the optional Rakuten extension."
+  },
+  "constraints": {
+    "profile": "balanced",
+    "changeHorizons": ["incremental", "medium_term"],
+    "nonNegotiables": [
+      "uBlock Origin remains enabled in daily browsing",
+      "Rakuten cannot observe daily tabs or profile data",
+      "Browser security checks remain enabled during checkout"
+    ],
+    "assumptions": [
+      "Zen remains the preferred daily browser",
+      "No measured performance or memory budget was supplied",
+      "Cashback attribution requires cookies during the transaction"
+    ]
+  },
+  "opportunities": [
+    {
+      "opportunityId": "isolate-cashback-tracking",
+      "title": "Isolate cashback tracking from daily browsing",
+      "summary": "Put the Rakuten-compatible transaction flow in a browser context that cannot observe or weaken daily browsing.",
+      "diagnosis": "Containers isolate site data but not extensions, while the current Nix extension policy applies to every profile in each browser application.",
+      "evidence": [
+        {
+          "claimType": "observed",
+          "sourceKind": "document",
+          "evidenceId": "E001",
+          "path": "docs/browser-shopping-profile-research.md",
+          "claim": "Rakuten supports a website click-through without its extension, while its extension collects broad browsing and shopping data."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "source",
+          "evidenceId": "E002",
+          "path": "modules/home/browsers/shared/extensions.nix",
+          "claim": "The current shared extension configuration requires uBlock Origin in both Firefox and Zen."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "source",
+          "evidenceId": "E003",
+          "path": "modules/home/browsers/firefox/default.nix",
+          "claim": "Firefox extension installation is compiled into an application-wide enterprise policy."
+        },
+        {
+          "claimType": "inferred",
+          "sourceKind": "document",
+          "evidenceId": "E001",
+          "path": "docs/browser-shopping-profile-research.md",
+          "claim": "A container cannot prevent a broadly permissioned extension in the same profile from observing ordinary tabs."
+        }
+      ],
+      "desiredInvariants": [
+        "Rakuten code cannot observe daily tabs, URLs, searches, or carts.",
+        "uBlock Origin remains enabled without exceptions in daily browsing.",
+        "Only the short transaction context accepts affiliate tracking.",
+        "The shopping context retains Safe Browsing, certificate validation, HTTPS-Only Mode, and an extension allowlist."
+      ],
+      "proposalPath": "proposals/isolate-cashback-tracking.md",
+      "options": [
+        {
+          "optionId": "daily-browser-exceptions",
+          "title": "Daily-browser exceptions",
+          "kind": "baseline",
+          "summary": "Use a shopping container and temporary content-blocking exceptions in the daily profile.",
+          "diagramPaths": {
+            "before": "diagrams/isolate-cashback-tracking-before.mmd",
+            "after": "diagrams/isolate-cashback-tracking-daily-browser-exceptions-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "mitigates",
+              "tacticalFixRequired": true,
+              "rationale": "Website click-through avoids the Rakuten extension, but the daily profile still needs filtering exceptions."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "unaffected",
+              "tacticalFixRequired": true,
+              "rationale": "Shared required uBlock Origin still needs transaction exceptions."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "unaffected",
+              "tacticalFixRequired": false,
+              "rationale": "The application-wide Firefox policy does not change."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The daily profile accepts affiliate tracking during exceptions and cannot contain profile-wide extension permissions.",
+              "validationPlan": "Inspect uBlock trusted sites and extension permissions before and after a test trip."
+            },
+            {
+              "dimension": "performance",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "Container tabs run in the existing browser and add no planned process.",
+              "validationPlan": "Compare page-load behavior in an ordinary tab and Shopping container."
+            },
+            {
+              "dimension": "memory",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "No additional browser instance is required.",
+              "validationPlan": "Measure browser resident memory with equivalent tab sets."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "regresses",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "A hostname exception may miss an affiliate redirect and lose attribution.",
+              "validationPlan": "Run a low-value purchase and confirm Rakuten records the trip."
+            },
+            {
+              "dimension": "operability",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The user must manage repeated exceptions and remember to restore them.",
+              "validationPlan": "Record the number of manual state changes in a complete purchase."
+            },
+            {
+              "dimension": "migration",
+              "direction": "neutral",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The option needs container setup but no extension-policy redesign.",
+              "validationPlan": "Confirm current profiles can create and persist the Shopping container."
+            }
+          ],
+          "residualRisks": [
+            "Tracking exceptions affect the daily profile.",
+            "An installed Rakuten extension would retain profile-wide access."
+          ],
+          "implementationReadiness": {
+            "affectedComponents": ["Firefox or Zen container configuration"],
+            "workPackages": [
+              "Create a Shopping container and document the exception workflow."
+            ],
+            "acceptanceCriteria": [
+              "A test purchase records cashback and daily filtering is restored afterward."
+            ],
+            "migrationNotes": [],
+            "rollback": "Remove container assignments and uBlock trusted-site entries."
+          }
+        },
+        {
+          "optionId": "separate-profile",
+          "title": "Separate Firefox profile",
+          "kind": "isolation",
+          "summary": "Use a distinct Firefox Shopping profile and make extension ownership profile-specific.",
+          "diagramPaths": {
+            "before": "diagrams/isolate-cashback-tracking-before.mmd",
+            "after": "diagrams/isolate-cashback-tracking-separate-profile-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "Firefox profiles isolate add-ons and browsing data, and the website flow avoids Rakuten's extension."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "unknown",
+              "tacticalFixRequired": true,
+              "rationale": "Required application-wide uBlock Origin must move to profile-specific ownership."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "unknown",
+              "tacticalFixRequired": true,
+              "rationale": "The application-wide policy must permit rather than automatically install profile-specific extensions."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "Firefox separates profile data and add-ons, keeping shopping state out of the daily profile.",
+              "validationPlan": "Inspect both profiles' add-ons, storage, and history after a transaction."
+            },
+            {
+              "dimension": "performance",
+              "direction": "regresses",
+              "confidence": "low",
+              "basis": "hypothetical",
+              "assessment": "Concurrent profiles may create another browser instance and renderer set.",
+              "validationPlan": "Measure launch time and page responsiveness with both profiles running."
+            },
+            {
+              "dimension": "memory",
+              "direction": "regresses",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "Concurrent profiles retain separate browser and site state.",
+              "validationPlan": "Compare idle resident memory for one and two Firefox profiles."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "improves",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "The shopping profile can omit uBlock Origin and follow Rakuten's supported Firefox path.",
+              "validationPlan": "Verify policy state and complete a low-value eligible purchase."
+            },
+            {
+              "dimension": "operability",
+              "direction": "regresses",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "Nix permission and browser installation state may have different owners.",
+              "validationPlan": "Exercise install, update, disable, removal, and rebuild flows for each profile."
+            },
+            {
+              "dimension": "migration",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The current browser-wide extension compiler cannot express distinct automatic profile installs.",
+              "validationPlan": "Add contract tests for effective extension membership in both profiles before rollout."
+            }
+          ],
+          "residualRisks": [
+            "Both profiles share the Firefox application and operating-system account.",
+            "A mixed Nix and browser-owned extension model can drift."
+          ],
+          "implementationReadiness": {
+            "affectedComponents": [
+              "lib/browser/extensions.nix",
+              "modules/home/browsers/firefox/default.nix",
+              "modules/home/browsers/firefox/shopping.nix",
+              "homes/shared/local/browsers/extensions.nix"
+            ],
+            "workPackages": [
+              "Add a Shopping profile and allow browser-managed daily extensions without installing them into every profile."
+            ],
+            "acceptanceCriteria": [
+              "Personal remains the default, Shopping starts with only Bitwarden, and no separate launcher is installed."
+            ],
+            "migrationNotes": [
+              "Nix owns the allowlist while Firefox owns installation and updates in each profile."
+            ],
+            "rollback": "Remove the Shopping profile declaration and restore application-wide extension installation."
+          }
+        },
+        {
+          "optionId": "dedicated-browser",
+          "title": "Dedicated shopping browser",
+          "kind": "isolation",
+          "summary": "Keep Zen protected for daily research and use a supported browser only for the final purchase flow.",
+          "diagramPaths": {
+            "before": "diagrams/isolate-cashback-tracking-before.mmd",
+            "after": "diagrams/isolate-cashback-tracking-dedicated-browser-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "The website flow removes the Rakuten extension and the browser boundary separates transaction state."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "uBlock Origin can move from shared membership to the Zen daily-browser group."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "addresses",
+              "tacticalFixRequired": false,
+              "rationale": "Firefox's application-wide policy becomes appropriate when Firefox has one shopping role."
+            },
+            {
+              "evidenceId": "E004",
+              "effect": "addresses",
+              "tacticalFixRequired": false,
+              "rationale": "Zen's separate application policy retains daily hardening."
+            },
+            {
+              "evidenceId": "E005",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "Personal extension groups can encode browser roles without moving personal data into reusable modules."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "Application-separated profiles and policies keep shopping trackers and blocker exceptions out of Zen.",
+              "validationPlan": "Inspect extension, storage, history, and policy state in both applications after a purchase."
+            },
+            {
+              "dimension": "performance",
+              "direction": "regresses",
+              "confidence": "low",
+              "basis": "hypothetical",
+              "assessment": "Running Zen and the shopping browser concurrently adds another application process tree.",
+              "validationPlan": "Measure launch time and checkout responsiveness with Zen open and closed."
+            },
+            {
+              "dimension": "memory",
+              "direction": "regresses",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "A second browser retains its own parent and renderer processes.",
+              "validationPlan": "Record idle and checkout resident memory for Zen alone and both applications."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "A supported blocker-free browser follows Rakuten's documented compatibility path without repeated toggles.",
+              "validationPlan": "Complete a low-value eligible purchase and confirm the shopping trip and cashback."
+            },
+            {
+              "dimension": "operability",
+              "direction": "improves",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "A distinct launcher makes the boundary visible and turns cleanup into one explicit action.",
+              "validationPlan": "Count user actions and verify ordinary links continue to open in Zen."
+            },
+            {
+              "dimension": "migration",
+              "direction": "regresses",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "Firefox settings and extension membership must change if it becomes shopping-only.",
+              "validationPlan": "Evaluate the browser contract and test rollback to the current extension grouping."
+            }
+          ],
+          "residualRisks": [
+            "Rakuten and merchants still see transaction data, IP address, and device characteristics.",
+            "The shopping browser is not a sandbox against compromised native code.",
+            "Firefox cannot remain a fully equivalent daily-browser fallback under this role split."
+          ],
+          "implementationReadiness": {
+            "affectedComponents": [
+              "homes/shared/local/browsers/extensions.nix",
+              "modules/home/browsers/firefox/default.nix",
+              "homes/macbook-pro-m4/local/browsers/default.nix",
+              "flake/deploy.nix"
+            ],
+            "workPackages": [
+              "Add a visible shopping launcher, split extensions by browser role, configure transaction-safe settings, and add a confirmed reset action."
+            ],
+            "acceptanceCriteria": [
+              "Zen retains uBlock Origin, Firefox contains only checkout-safe extensions, ordinary links open in Zen, and a test trip records cashback."
+            ],
+            "migrationNotes": [
+              "Do not delete existing Firefox profile data automatically."
+            ],
+            "rollback": "Restore shared extension membership and remove shopping-only settings and launcher."
+          }
+        }
+      ],
+      "recommendedOptionId": "separate-profile",
+      "recommendation": "Keep Personal and Shopping profiles inside Firefox, use Rakuten.com without its extension, and leave Zen as the default browser."
+    }
+  ],
+  "openQuestions": [
+    "Does a low-value transaction work with Standard tracking protection and no Rakuten extension?"
+  ]
+}
