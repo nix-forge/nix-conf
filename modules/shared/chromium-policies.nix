@@ -46,6 +46,7 @@ let
         DnsOverHttpsMode = cfg.dnsOverHttpsMode;
       };
       heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
+      bitwardenExtensionId = "nngceckbapebfimnlniiiahkandclblb";
       heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
 
       extensionIds = builtins.attrValues heliumExtensions;
@@ -138,11 +139,6 @@ let
           autoUpdate = true;
           advancedUserEnabled = true;
           dynamicFilteringEnabled = true;
-        };
-
-        advancedSettings = toUblockPairList {
-          autoUpdateDelayAfterLaunch = 37;
-          updateAssetBypassBrowserCache = true;
         };
 
         toOverwrite = {
@@ -401,18 +397,10 @@ let
 
         customFilterLists = mkOption {
           type = types.listOf types.str;
-          default = [
-            "https://raw.githubusercontent.com/yokoffing/filterlists/main/privacy_essentials.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.mini.txt"
-            "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/LegitimateURLShortener.txt"
-            "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/ClearURLs%20for%20uBo/clear_urls_uboified.txt"
-            "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/spam-tlds-ublock.txt"
-            "https://raw.githubusercontent.com/gijsdev/ublock-hide-yt-shorts/master/list.txt"
-          ];
+          default = [ ];
           description = ''
-            Extra uBlock Origin filter lists used by Helium's managed extension
-            policy and exposed to an attached Home Manager profile via osConfig.
+            Extra uBlock Origin filter lists. The empty default keeps the
+            extension's maintained stock list selection.
           '';
         };
 
@@ -453,12 +441,19 @@ let
               inheritSharedPolicies = false;
               linuxManagedPaths = [ "opt/chrome/policies/managed/nixos-system.json" ];
               darwinBundleId = "com.google.Chrome";
-              policies =
-                chromiumSystemResolverPolicy
-                // lib.optionalAttrs (browserTheme != null) {
-                  ExtensionInstallForcelist = [ "${browserTheme.id};${extensionUpdateUrl}" ];
-                  ExtensionSettings = browserThemePolicy;
-                };
+              policies = chromiumSystemResolverPolicy // {
+                ExtensionInstallForcelist = [
+                  "${bitwardenExtensionId};${extensionUpdateUrl}"
+                ]
+                ++ lib.optionals (browserTheme != null) [ "${browserTheme.id};${extensionUpdateUrl}" ];
+                ExtensionSettings = {
+                  ${bitwardenExtensionId} = {
+                    installation_mode = "force_installed";
+                    update_url = extensionUpdateUrl;
+                  };
+                }
+                // browserThemePolicy;
+              };
             };
           };
         }

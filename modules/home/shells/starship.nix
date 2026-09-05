@@ -9,6 +9,8 @@
       scan_timeout = 30;
 
       format = lib.concatStrings [
+        "$username"
+        "$hostname"
         "$directory"
         "$character"
       ];
@@ -21,6 +23,22 @@
         success_symbol = "[❯](bold green)";
         error_symbol = "[❯](bold red)";
         vicmd_symbol = "[❮](bold yellow)";
+      };
+
+      # These stay hidden locally and make an SSH prompt unmistakable without
+      # spending space on the common case.
+      username = {
+        format = "[$user]($style)@";
+        show_always = false;
+        style_user = "bold yellow";
+        style_root = "bold red";
+      };
+
+      hostname = {
+        format = "[$hostname]($style) ";
+        ssh_only = true;
+        style = "bold yellow";
+        trim_at = ".";
       };
 
       directory = {

@@ -107,12 +107,22 @@ jobs:
           check_targets=(
             ".#checks.${TARGET_SYSTEM}.treefmt"
             ".#checks.${TARGET_SYSTEM}.python-quality"
+            ".#checks.${TARGET_SYSTEM}.browser-home-helpers"
+            ".#checks.${TARGET_SYSTEM}.macos-home-helpers"
+            ".#checks.${TARGET_SYSTEM}.macos-home-dry-run"
+            ".#checks.${TARGET_SYSTEM}.dev-vm-host-resolution"
             ".#checks.${TARGET_SYSTEM}.local-control-database-validation"
           )
           if [[ "$TARGET_SYSTEM" == "x86_64-linux" ]]; then
-            check_targets+=(".#checks.${TARGET_SYSTEM}.desktop-configuration-contract")
+            check_targets+=(
+              ".#checks.${TARGET_SYSTEM}.desktop-configuration-contract"
+              ".#checks.${TARGET_SYSTEM}.virtualisation-configuration-contract"
+              ".#checks.${TARGET_SYSTEM}.browser-configuration-contract"
+              ".#checks.${TARGET_SYSTEM}.azure-cli-configuration-contract"
+            )
           fi
-          nix build --keep-going --show-trace --print-build-logs --no-link "${check_targets[@]}"
+          nix build --keep-going --show-trace --print-build-logs --no-link \
+            --no-allow-import-from-derivation "${check_targets[@]}"
       - name: Evaluate deployable configurations
         shell: bash
         env:

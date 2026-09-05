@@ -10,6 +10,9 @@ let
   jsonFormat = pkgs.formats.json { };
   appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/LinearMouse.app";
   legacyConfigFile = "${config.home.homeDirectory}/Library/Application Support/linearmouse/linearmouse.json";
+  generatedConfig = jsonFormat.generate "linearmouse.json" cfg.settings;
+  stagedConfigDirectory = "${config.xdg.stateHome}/home-manager/linearmouse";
+  stagedConfigFile = "${stagedConfigDirectory}/linearmouse.json";
 in
 {
   options.programs.linearmouse = {
@@ -112,10 +115,28 @@ in
     # immutable, generation-specific Nix store path.
     targets.darwin.copyApps.enable = lib.mkDefault true;
 
+    # LinearMouse resolves the generated file's symlink and watches its parent
+    # directory. Keep the final target outside /nix/store so ordinary Nix store
+    # activity does not wake its configuration watcher.
     xdg.configFile."linearmouse/linearmouse.json".source =
-      jsonFormat.generate "linearmouse.json" cfg.settings;
+      config.lib.file.mkOutOfStoreSymlink stagedConfigFile;
 
     home.activation = {
+      installLinearMouseConfig = lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "linkGeneration" ] ''
+        if [[ ! -f ${lib.escapeShellArg stagedConfigFile} ]] \
+          || ! /usr/bin/cmp -s \
+            ${lib.escapeShellArg generatedConfig} \
+            ${lib.escapeShellArg stagedConfigFile}; then
+          run /bin/mkdir -p ${lib.escapeShellArg stagedConfigDirectory}
+          run /usr/bin/install -m 0600 \
+            ${lib.escapeShellArg generatedConfig} \
+            ${lib.escapeShellArg "${stagedConfigFile}.tmp"}
+          run /bin/mv -f \
+            ${lib.escapeShellArg "${stagedConfigFile}.tmp"} \
+            ${lib.escapeShellArg stagedConfigFile}
+        fi
+      '';
+
       warnAboutLegacyLinearMouseConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         if [ -e ${lib.escapeShellArg legacyConfigFile} ]; then
           echo "warning: ${legacyConfigFile} takes precedence over the Home Manager-managed LinearMouse configuration" >&2

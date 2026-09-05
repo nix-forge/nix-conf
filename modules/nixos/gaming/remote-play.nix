@@ -5,16 +5,15 @@ let
   sunshineUdpPorts = "47998, 47999, 48000, 48002, 48010";
 in
 {
-  # Sunshine is the host; Moonlight on the MacBook is the client.  The desktop
-  # host supplies a dedicated, headless Hyprland session and virtual output.
+  # Sunshine is the host; Moonlight on the MacBook is the client. The desktop
+  # captures the same physical Hyprland output used at the console.
   services.sunshine = {
     enable = true;
     autoStart = true;
     openFirewall = false;
 
-    # Hyprland's wlroots capture path supports virtual outputs, including an
-    # unplugged desktop.  This avoids giving the streaming process CAP_SYS_ADMIN
-    # solely for KMS capture.
+    # Hyprland's wlroots capture path can capture the physical output without
+    # giving the streaming process CAP_SYS_ADMIN solely for KMS capture.
     capSysAdmin = false;
 
     settings = {
@@ -26,7 +25,7 @@ in
       # chooses the AMD node first, which cannot create an NVENC session and
       # makes Sunshine abort the stream.  Keep capture and NVENC on the RTX
       # 4070's stable render node (PCI 01:00.0).
-      adapter_name = "/dev/dri/renderD129";
+      adapter_name = "/dev/dri/by-path/pci-0000:01:00.0-render";
 
       # Do not create WAN port mappings.  Moonlight discovers the host by the
       # configured desktop address, so Avahi remains disabled on this host.
@@ -50,8 +49,7 @@ in
   };
 
   # NixOS installs this user unit for every graphical account; it must never
-  # start in the greeter's manager.  The host-specific unit dependency creates
-  # the virtual output before Sunshine starts in ianmh's session.
+  # start in the greeter's manager.
   systemd.user.services.sunshine = {
     unitConfig.ConditionUser = "ianmh";
   };

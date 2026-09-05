@@ -1,4 +1,7 @@
-# The RTX 4070 is the only GPU that drives the headless Sunshine output.
+# The RTX 4070 drives the physical gaming monitor and supplies Sunshine's
+# NVENC device. Keep the compositor on the same GPU to avoid a cross-GPU copy.
 # AQ_DRM_DEVICES is intentionally host-local: multi-GPU ordering is a hardware
-# policy, not a reusable Hyprland default.
-export AQ_DRM_DEVICES=/dev/dri/card1
+# policy, not a reusable Hyprland default. The host udev policy gives the PCI
+# device a stable alias without colons: Aquamarine reserves colons as the
+# separator between multiple entries in AQ_DRM_DEVICES.
+export AQ_DRM_DEVICES=/dev/dri/desktop-nvidia-card

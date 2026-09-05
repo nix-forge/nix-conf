@@ -13,7 +13,7 @@ let
     config.desktop.clipboard.enable && config.desktop.clipboard.wipeOnLock
   ) "${lib.getExe pkgs.cliphist} wipe";
   onLockCommand = lib.concatStringsSep "; " (
-    lib.filter (command: command != "true") [
+    lib.filter (command: command != "" && command != "true") [
       wipeCommand
       cfg.onLockCommand
     ]

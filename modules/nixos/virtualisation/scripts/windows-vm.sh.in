@@ -1,0 +1,135 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -euo pipefail
+
+export LC_ALL=C
+
+guest_name=@guestName@
+configured_iso_sha256=@isoSha256@
+iso_path=@isoPath@
+iso_sha256_path=@isoSha256Path@
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  windows-vm setup
+  windows-vm stage-iso <path>
+  windows-vm authorize <public-key-file>
+  windows-vm credential
+  windows-vm plan
+  windows-vm verify-media
+  windows-vm install
+  windows-vm resume
+  windows-vm phase
+  windows-vm wait-baseline
+  windows-vm baseline
+  windows-vm provisioning-log
+  windows-vm provisioning-log-previous
+  windows-vm host-key
+  windows-vm finalize
+  windows-vm discard
+EOF
+  exit 64
+}
+
+die() {
+  printf 'error: %s\n' "$1" >&2
+  exit 1
+}
+
+run_privileged() {
+  exec @sudo@ --non-interactive -- @privilegedControl@ "$@" "$guest_name"
+}
+
+stage_iso() {
+  local source=$1 actual temporary checksum_temporary
+  [[ -f $source && ! -L $source ]] || die "ISO source must be a regular file, not a symlink: $source"
+
+  actual="$(@sha256sum@ "$source")"
+  actual=${actual%% *}
+  actual=${actual,,}
+  [[ $actual == "$configured_iso_sha256" ]] ||
+    die "ISO hash is $actual, expected the value declared in Nix: $configured_iso_sha256"
+
+  if [[ -e $iso_path ]]; then
+    local existing
+    [[ -f $iso_path && ! -L $iso_path ]] || die "destination exists but is not a regular file: $iso_path"
+    existing="$(@sha256sum@ "$iso_path")"
+    existing=${existing%% *}
+    if [[ ${existing,,} == "$configured_iso_sha256" ]]; then
+      printf 'The verified ISO is already staged at %s.\n' "$iso_path"
+      return
+    fi
+    die "a different ISO already exists at $iso_path; archive it explicitly before replacement"
+  fi
+
+  temporary="$(@mktemp@ "${iso_path}.new.XXXXXX")"
+  checksum_temporary="$(@mktemp@ "${iso_sha256_path}.new.XXXXXX")"
+  trap '@rm@ -f -- "$temporary" "$checksum_temporary"' EXIT
+  @install@ -m 0640 "$source" "$temporary"
+  printf '%s\n' "$configured_iso_sha256" >"$checksum_temporary"
+  @chmod@ 0640 "$checksum_temporary"
+  @mv@ -f -- "$temporary" "$iso_path"
+  @mv@ -f -- "$checksum_temporary" "$iso_sha256_path"
+  trap - EXIT
+  printf 'Staged and verified %s.\n' "$iso_path"
+}
+
+authorize_key() {
+  local key_file=$1
+  [[ -f $key_file && ! -L $key_file ]] || die "public key must be a regular file, not a symlink: $key_file"
+  @sshKeygen@ -l -f "$key_file" >/dev/null || die "public key file is invalid"
+  @cat@ "$key_file" | @sudo@ --non-interactive -- @privilegedControl@ authorize "$guest_name"
+}
+
+set_credential() {
+  local first second
+  [[ -t 0 && -t 1 ]] || die "credential entry requires an interactive terminal"
+  read -r -s -p 'Windows administrator password: ' first
+  printf '\n'
+  read -r -s -p 'Confirm password: ' second
+  printf '\n'
+  [[ $first == "$second" ]] || die "passwords do not match"
+  printf '%s\n' "$first" | @sudo@ --non-interactive -- @privilegedControl@ credential "$guest_name"
+  unset first second
+}
+
+discard_install() {
+  local confirmation
+  [[ -t 0 && -t 1 ]] || die "discard requires an interactive terminal"
+  printf 'This removes only the incomplete %s disk, NVRAM, and TPM state.\n' "$guest_name"
+  read -r -p 'Type DISCARD-INCOMPLETE-INSTALL to continue: ' confirmation
+  [[ $confirmation == DISCARD-INCOMPLETE-INSTALL ]] || die "confirmation did not match"
+  exec @sudo@ --non-interactive -- @privilegedControl@ discard "$guest_name" "$confirmation"
+}
+
+command=${1:-}
+case $command in
+setup)
+  (($# == 1)) || usage
+  exec @setupWizard@
+  ;;
+stage-iso)
+  (($# == 2)) || usage
+  stage_iso "$2"
+  ;;
+authorize)
+  (($# == 2)) || usage
+  authorize_key "$2"
+  ;;
+credential)
+  (($# == 1)) || usage
+  set_credential
+  ;;
+plan | verify-media | install | resume | phase | wait-baseline | baseline | provisioning-log | provisioning-log-previous | host-key | finalize)
+  (($# == 1)) || usage
+  run_privileged "$command"
+  ;;
+discard)
+  (($# == 1)) || usage
+  discard_install
+  ;;
+*)
+  usage
+  ;;
+esac

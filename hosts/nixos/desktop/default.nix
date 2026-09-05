@@ -1,4 +1,33 @@
-{ modules, inputs, ... }: {
+{ modules, inputs, ... }:
+let
+  zenNativeBuilderCopyFixOverlay =
+    _final: prev:
+    let
+      incompatibleCopy = "cp -P --no-preserve=mode,ownership --remove-destination";
+      compatibleCopy = "cp -P --remove-destination";
+    in
+    {
+      # The Determinate native builder's store mount rejects the permission
+      # update made by this GNU cp option combination. The Zen wrapper already
+      # runs chmod immediately after the copy, so dropping these options keeps
+      # the intended mode while making the wrapper portable across builders.
+      wrapFirefox =
+        browser: wrapperArgs:
+        let
+          wrapped = prev.wrapFirefox browser wrapperArgs;
+        in
+        if prev.lib.hasPrefix "zen-" (browser.pname or "") then
+          wrapped.overrideAttrs (old: {
+            buildCommand =
+              assert prev.lib.assertMsg (prev.lib.hasInfix incompatibleCopy old.buildCommand)
+                "Zen wrapper copy workaround no longer matches the upstream build command";
+              builtins.replaceStrings [ incompatibleCopy ] [ compatibleCopy ] old.buildCommand;
+          })
+        else
+          wrapped;
+    };
+in
+{
   system = "x86_64-linux";
   hostName = "desktop";
 
@@ -7,6 +36,10 @@
   };
 
   nixpkgsArgs = {
+    overlays = [
+      inputs.nixpkgs-personal.overlays.default
+      zenNativeBuilderCopyFixOverlay
+    ];
     config = {
       allowUnfree = true;
       allowUnfreePredicate = _: true;
@@ -76,6 +109,7 @@
     locale-timesync
     ssh
     virtualisation-docker
+    virtualisation-libvirt
     # Host-specific sealed system secrets must be imported explicitly: the
     # framework only auto-loads files under local/.
     ./nix-seal.nix
@@ -87,7 +121,9 @@
     config = "ianmh@desktop";
     user = {
       description = "Ian Holloway";
-      shell = inputs.nixpkgs.legacyPackages.x86_64-linux.nushell;
+      # OpenSSH evaluates remote commands with the account's login shell, so
+      # use Bash here as well as in interactive terminal sessions.
+      shell = inputs.nixpkgs.legacyPackages.x86_64-linux.bashInteractive;
     };
   };
 }

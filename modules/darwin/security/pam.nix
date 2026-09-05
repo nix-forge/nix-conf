@@ -1,13 +1,17 @@
 _: {
 
+  # Keep Apple's protection that disables biometric authorization while the
+  # screen is being recorded or remotely observed.
+  system.defaults.CustomUserPreferences."com.apple.security.authorization".ignoreArd = false;
+
   security.pam.services = {
     sudo_local = {
       enable = true;
 
-      # Sudo through Touch ID and Apple Watch
+      # Use Apple's native Touch ID module. Password remains the fallback.
       touchIdAuth = true;
-      watchIdAuth = true; # Allow Login with Apple Watch (need to manually enable in System Settings)
-      reattach = true; # This fixes Touch ID for sudo not working inside tmux and screen.
+      watchIdAuth = false;
+      reattach = false;
     };
   };
 }

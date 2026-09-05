@@ -120,15 +120,6 @@
               stages = [ "pre-push" ];
               after = [ "local-control-rust-clippy" ];
             };
-            swift-format = {
-              enable = true;
-              name = "swift-format";
-              entry = "${lib.getExe pkgs.swift-format} lint --strict";
-              language = "system";
-              extraPackages = [ pkgs.swift-format ];
-              files = "^modules/home/macos/.*\\.swift$";
-              after = [ "treefmt" ];
-            };
             end-of-file-fixer = {
               enable = true;
               after = [ "treefmt" ];

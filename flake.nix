@@ -20,6 +20,24 @@
         systems.follows = "systems";
       };
     };
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
+    };
+    hyprlock = {
+      url = "github:hyprwm/hyprlock";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+        hyprgraphics.follows = "hyprland/hyprgraphics";
+        hyprlang.follows = "hyprland/hyprlang";
+        hyprutils.follows = "hyprland/hyprutils";
+        hyprwayland-scanner.follows = "hyprland/hyprwayland-scanner";
+      };
+    };
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -73,6 +91,10 @@
         systems.follows = "systems";
       };
     };
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Tools
     stylix = {
@@ -115,15 +137,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Firefox UserJS
-    firefox-betterfox = {
-      url = "github:yokoffing/Betterfox";
-      flake = false;
-    };
-    firefox-ui-fix = {
-      url = "github:black7375/Firefox-UI-Fix";
-      flake = false;
-    };
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs = {
@@ -174,6 +187,10 @@
             release = {
               kind = "signer";
               public = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
+            };
+            delegated-create = {
+              kind = "authorizer";
+              public = "nix-seal-ed25519-v1:Izzr/Ats9t9oXkXLl7+WotqnPeGdRhQdiR/i7Xlym2k=";
             };
           };
           approvalPolicies.release = {
