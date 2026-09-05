@@ -121,7 +121,8 @@ jobs:
               ".#checks.${TARGET_SYSTEM}.azure-cli-configuration-contract"
             )
           fi
-          nix build --keep-going --show-trace --print-build-logs --no-link "${check_targets[@]}"
+          nix build --keep-going --show-trace --print-build-logs --no-link \
+            --no-allow-import-from-derivation "${check_targets[@]}"
       - name: Evaluate deployable configurations
         shell: bash
         env:

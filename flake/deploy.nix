@@ -492,9 +492,8 @@ in
         assert macbookHome.home.activation ? syncFinderFavorites;
         assert lib.hasInfix "finder-favorites apply" macbookHome.home.activation.syncFinderFavorites.data;
         assert
-          (builtins.fromJSON (
-            builtins.readFile macbookHome.xdg.configFile."finder-favorites/config.json".source
-          )).schemaVersion == 1;
+          (builtins.fromJSON macbookHome.xdg.configFile."finder-favorites/config.json".text).schemaVersion
+          == 1;
         assert macbookHome.macos.ocrCapture.engine == "native";
         assert
           macbookHome.macos.ocrCapture.package.outPath

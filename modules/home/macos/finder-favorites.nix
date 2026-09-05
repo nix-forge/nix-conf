@@ -54,7 +54,7 @@ let
     entries = normalizedEntries;
   };
 
-  configurationFile = pkgs.writeText "finder-favorites-config.json" (builtins.toJSON configuration);
+  configurationFile = config.xdg.configFile."finder-favorites/config.json".source;
   executable = lib.getExe cfg.package;
   inherit (cfg) stateDirectory;
   initializedMarker = "${stateDirectory}/initialized-v1";
@@ -177,7 +177,7 @@ in
 
     home.packages = [ cfg.package ];
 
-    xdg.configFile."finder-favorites/config.json".source = configurationFile;
+    xdg.configFile."finder-favorites/config.json".text = builtins.toJSON configuration;
 
     home.activation = lib.mkMerge [
       (lib.mkIf (cfg.mode == "initialize") {
