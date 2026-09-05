@@ -1,0 +1,79 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -u -o pipefail
+
+export LC_ALL=C
+
+guest_manifest=@guestManifest@
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  vm list
+  vm doctor [guest]
+  vm status <guest>
+  vm start <guest>
+  vm stop <guest>
+  vm ip <guest>
+  vm ssh <guest> [ssh arguments ...]
+  vm console <guest>
+  vm gui [guest]
+EOF
+  exit 64
+}
+
+lookup_ssh_host() {
+  local requested=$1
+  local name ssh_host _exclusive_group _required_profile _autostart _inhibit_sleep
+
+  while IFS=$'\t' read -r name ssh_host _exclusive_group _required_profile _autostart _inhibit_sleep; do
+    if [[ $name == "$requested" ]]; then
+      if [[ $ssh_host == - ]]; then
+        printf 'error: no pinned SSH alias is configured for %s\n' "$requested" >&2
+        exit 1
+      fi
+      printf '%s\n' "$ssh_host"
+      return 0
+    fi
+  done <"$guest_manifest"
+
+  printf 'error: guest is not allowlisted: %s\n' "$requested" >&2
+  exit 1
+}
+
+command=${1:-}
+case $command in
+list)
+  (($# == 1)) || usage
+  exec @sudo@ --non-interactive -- @privilegedControl@ list
+  ;;
+doctor)
+  (($# <= 2)) || usage
+  if (($# == 2)); then
+    exec @sudo@ --non-interactive -- @privilegedControl@ doctor "$2"
+  else
+    exec @sudo@ --non-interactive -- @privilegedControl@ doctor
+  fi
+  ;;
+status | start | stop | ip | console)
+  (($# == 2)) || usage
+  exec @sudo@ --non-interactive -- @privilegedControl@ "$command" "$2"
+  ;;
+ssh)
+  (($# >= 2)) || usage
+  ssh_host=$(lookup_ssh_host "$2")
+  shift 2
+  exec @ssh@ "$ssh_host" "$@"
+  ;;
+gui)
+  (($# <= 2)) || usage
+  if (($# == 2)); then
+    exec @virtManager@ --connect qemu:///system --show-domain-console "$2"
+  else
+    exec @virtManager@ --connect qemu:///system
+  fi
+  ;;
+*)
+  usage
+  ;;
+esac

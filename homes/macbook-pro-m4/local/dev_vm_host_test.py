@@ -345,6 +345,69 @@ class ResolverTests(unittest.TestCase):
         ):
             resolver.require_tcp_reachable("172.16.42.129", 22, 0.1)
 
+    def test_route_guard_accepts_the_host_only_source(self) -> None:
+        """A route selected through the VMware host address is accepted."""
+        probe = mock.MagicMock()
+        probe.__enter__.return_value = probe
+        probe.getsockname.return_value = ("172.16.42.1", 53124)
+        with mock.patch.object(resolver.socket, "socket", return_value=probe):
+            self.assertIsNone(
+                resolver.require_host_only_route(
+                    "172.16.42.129",
+                    22,
+                    "172.16.42.1",
+                    "172.16.42.0/24",
+                )
+            )
+        probe.connect.assert_called_once_with(("172.16.42.129", 22))
+
+    def test_route_guard_rejects_the_default_network_source(self) -> None:
+        """A valid lease cannot escape through the Mac's default network route."""
+        probe = mock.MagicMock()
+        probe.__enter__.return_value = probe
+        probe.getsockname.return_value = ("192.168.10.216", 53124)
+        with (
+            mock.patch.object(resolver.socket, "socket", return_value=probe),
+            self.assertRaisesRegex(
+                resolver.ResolutionError,
+                "does not use the configured host-only source address",
+            ),
+        ):
+            resolver.require_host_only_route(
+                "172.16.42.129",
+                22,
+                "172.16.42.1",
+                "172.16.42.0/24",
+            )
+
+    def test_cli_applies_the_route_guard_to_the_resolved_lease(self) -> None:
+        """The proxy-facing CLI checks the route before printing the address."""
+        with (
+            mock.patch.object(resolver, "resolve_host", return_value="172.16.42.129"),
+            mock.patch.object(resolver, "require_host_only_route") as route_guard,
+            mock.patch("sys.stdout", new_callable=mock.MagicMock) as stdout,
+        ):
+            result = resolver.main([
+                "--vmx",
+                str(self.vmx),
+                "--leases",
+                str(self.leases),
+                "--network",
+                "172.16.42.0/24",
+                "--require-route-source",
+                "172.16.42.1",
+                "--route-port",
+                "22",
+            ])
+        self.assertEqual(0, result)
+        route_guard.assert_called_once_with(
+            "172.16.42.129",
+            22,
+            "172.16.42.1",
+            "172.16.42.0/24",
+        )
+        stdout.write.assert_called_once_with("172.16.42.129\n")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,65 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2016,SC2239
+set -euo pipefail
+
+export LC_ALL=C
+unset LIBVIRT_DEFAULT_URI VIRSH_DEFAULT_CONNECT_URI
+
+guest_name=@guestName@
+guest_uuid=@guestUuid@
+disk_path=@diskPath@
+install_marker=@installMarker@
+libvirt_uri=@libvirtUri@
+runtime_definition=@runtimeDefinition@
+autostart=@autostart@
+
+die() {
+  printf 'error: %s\n' "$1" >&2
+  exit 1
+}
+
+domain_exists() {
+  @virsh@ --connect "$libvirt_uri" dominfo "$guest_name" >/dev/null 2>&1
+}
+
+domain_active() {
+  local domain_id
+  domain_id="$(@virsh@ --connect "$libvirt_uri" domid "$guest_name" 2>/dev/null)" || return 1
+  [[ $domain_id != - ]]
+}
+
+verify_identity() {
+  local existing_uuid existing_disk
+  existing_uuid="$(@virsh@ --connect "$libvirt_uri" domuuid "$guest_name")"
+  [[ $existing_uuid == "$guest_uuid" ]] ||
+    die "$guest_name has UUID $existing_uuid, expected $guest_uuid; refusing to claim it"
+
+  existing_disk="$(@virsh@ --connect "$libvirt_uri" domblklist "$guest_name" --inactive --details |
+    @awk@ '$2 == "disk" && $3 == "sda" { print $4; exit }')"
+  if [[ -n $existing_disk && $existing_disk != "$disk_path" ]]; then
+    die "$guest_name uses $existing_disk as its system disk, expected $disk_path"
+  fi
+}
+
+if domain_exists; then
+  verify_identity
+  if [[ -e $install_marker ]]; then
+    @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+    printf 'Leaving %s in its explicit installation state.\n' "$guest_name"
+  elif domain_active; then
+    printf 'Leaving active domain %s unchanged; stop it to apply the new persistent definition.\n' "$guest_name"
+  else
+    @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
+  fi
+else
+  [[ ! -e $install_marker ]] || die "installation marker exists but domain $guest_name is missing"
+  @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
+fi
+
+if [[ ! -e $install_marker ]]; then
+  if ((autostart == 1)); then
+    @virsh@ --connect "$libvirt_uri" autostart "$guest_name" >/dev/null
+  else
+    @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
+  fi
+fi

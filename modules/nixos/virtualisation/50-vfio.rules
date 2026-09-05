@@ -1,2 +1,0 @@
-# Supporting VFIO
-SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"

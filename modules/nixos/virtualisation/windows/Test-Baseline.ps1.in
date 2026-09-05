@@ -1,0 +1,266 @@
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$AdministratorName = '__ADMINISTRATOR_NAME__'
+$ActiveHoursEnd = __ACTIVE_HOURS_END__
+$ActiveHoursStart = __ACTIVE_HOURS_START__
+$BaselineProfile = '__BASELINE_PROFILE__'
+$ExpectedEditionId = '__EDITION_ID__'
+$HeadlessRuntime = __HEADLESS_RUNTIME__
+$ManagementGuestAddress = '__MANAGEMENT_GUEST_ADDRESS__'
+$RecipeFingerprint = '__RECIPE_FINGERPRINT__'
+$WindowsRelease = '__WINDOWS_RELEASE__'
+$DeclaredAppxPackages = @(
+__REMOVE_APPX_PACKAGES__
+)
+$ManagedRoot = Join-Path $env:ProgramData 'ManagedVm'
+$failures = [System.Collections.Generic.List[string]]::new()
+
+if ($RecipeFingerprint -notmatch '^[0-9a-f]{64}$') {
+    $failures.Add('The public recipe fingerprint is malformed')
+}
+
+function Test-RegistryDword {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter(Mandatory = $true)]
+        [int]$Expected
+    )
+
+    $item = Get-ItemProperty -LiteralPath $Path -ErrorAction SilentlyContinue
+    if (
+        $null -eq $item -or
+        $item.PSObject.Properties.Name -notcontains $Name -or
+        $item.$Name -ne $Expected
+    ) {
+        $failures.Add("Registry value $Path\$Name is not $Expected")
+    }
+}
+
+$currentVersion = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+if ($currentVersion.EditionID -ne $ExpectedEditionId) {
+    $failures.Add("Windows EditionID is $($currentVersion.EditionID), expected $ExpectedEditionId")
+}
+if ($currentVersion.DisplayVersion -ne $WindowsRelease) {
+    $failures.Add("Windows release is $($currentVersion.DisplayVersion), expected $WindowsRelease")
+}
+
+$windowsUpdatePolicy = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -ErrorAction SilentlyContinue
+if (
+    $null -eq $windowsUpdatePolicy -or
+    $windowsUpdatePolicy.ProductVersion -ne 'Windows 11' -or
+    $windowsUpdatePolicy.TargetReleaseVersion -ne 1 -or
+    $windowsUpdatePolicy.TargetReleaseVersionInfo -ne $WindowsRelease
+) {
+    $failures.Add("Windows Update is not pinned to Windows 11 $WindowsRelease")
+}
+
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'SetActiveHours' -Expected 1
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'ActiveHoursStart' -Expected $ActiveHoursStart
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'ActiveHoursEnd' -Expected $ActiveHoursEnd
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DODownloadMode' -Expected 0
+Test-RegistryDword -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Expected 1
+Test-RegistryDword -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Expected 0
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableAutomaticRestartSignOn' -Expected 1
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -Expected 1
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'SmartScreenEnabled' -Expected 1
+Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'SmartScreenPuaEnabled' -Expected 1
+Test-RegistryDword -Path 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent' -Name 'DisableThirdPartySuggestions' -Expected 1
+Test-RegistryDword -Path 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent' -Name 'DisableTailoredExperiencesWithDiagnosticData' -Expected 1
+
+if ($HeadlessRuntime) {
+    Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'BackgroundModeEnabled' -Expected 0
+    Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'StartupBoostEnabled' -Expected 0
+    Test-RegistryDword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'HideFirstRunExperience' -Expected 1
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'HideFileExt' -Expected 0
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -Expected 1
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowTaskViewButton' -Expected 0
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'TaskbarAnimations' -Expected 0
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Expected 0
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'EnableTransparency' -Expected 0
+    Test-RegistryDword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Expected 2
+}
+
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]::new($identity)
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    $failures.Add('The runtime account does not have an administrator token')
+}
+
+$enableLua = Get-ItemPropertyValue -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'EnableLUA'
+if ($enableLua -ne __ENABLE_LUA__) {
+    $failures.Add("EnableLUA is $enableLua")
+}
+
+$autologon = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -ErrorAction SilentlyContinue
+if (
+    $null -eq $autologon -or
+    $autologon.AutoAdminLogon -ne '1' -or
+    $autologon.DefaultUserName -ne $AdministratorName -or
+    $autologon.DefaultDomainName -ne $env:COMPUTERNAME -or
+    -not (Test-Path -LiteralPath (Join-Path $ManagedRoot 'autologon-configured-v1'))
+) {
+    $failures.Add('Permanent automatic logon is not configured for the runtime administrator')
+}
+if ($null -ne $autologon) {
+    if ($autologon.PSObject.Properties.Name -contains 'AutoLogonCount') {
+        $failures.Add('The finite unattended-setup autologon counter is still present')
+    }
+    if ($autologon.PSObject.Properties.Name -contains 'DefaultPassword') {
+        $failures.Add('A plaintext Winlogon DefaultPassword value is still present')
+    }
+}
+
+$transientCredential = Join-Path $ManagedRoot 'Provisioning\administrator-password.txt'
+if (Test-Path -LiteralPath $transientCredential) {
+    $failures.Add('The transient administrator credential still exists on the system disk')
+}
+
+$pantherRoot = Join-Path $env:SystemRoot 'Panther'
+if (Test-Path -LiteralPath $pantherRoot) {
+    $cachedAnswerFiles = @(
+        Get-ChildItem -LiteralPath $pantherRoot -Recurse -Force -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -in @('unattend.xml', 'autounattend.xml') }
+    )
+    if ($cachedAnswerFiles.Count -gt 0) {
+        $failures.Add('A cached unattended-setup answer file remains under Windows\Panther')
+    }
+}
+
+$stepLog = Join-Path $ManagedRoot 'provisioning-steps.jsonl'
+if (-not (Test-Path -LiteralPath $stepLog)) {
+    $failures.Add('The structured provisioning step log is missing')
+}
+else {
+    foreach ($line in @(Get-Content -LiteralPath $stepLog)) {
+        try {
+            $record = $line | ConvertFrom-Json
+            if (
+                -not $record.timestamp -or
+                -not $record.runId -or
+                -not $record.state -or
+                -not $record.step
+            ) {
+                throw 'required fields are missing'
+            }
+        }
+        catch {
+            $failures.Add('The structured provisioning step log contains an invalid record')
+            break
+        }
+    }
+}
+
+$virtioScsi = Get-CimInstance -ClassName Win32_SystemDriver -Filter "Name='vioscsi'" -ErrorAction SilentlyContinue
+if ($null -eq $virtioScsi -or $virtioScsi.StartMode -notin @('Boot', 'System') -or $virtioScsi.State -ne 'Running') {
+    $failures.Add('The VirtIO SCSI boot driver is not loaded and boot-start capable')
+}
+
+$managementAddress = Get-NetIPAddress -AddressFamily IPv4 -IPAddress $ManagementGuestAddress -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $managementAddress) {
+    $failures.Add("The management NIC does not own $ManagementGuestAddress")
+}
+else {
+    $managementInterface = Get-NetIPInterface -InterfaceIndex $managementAddress.InterfaceIndex -AddressFamily IPv4
+    if ($managementInterface.InterfaceMetric -lt 5000) {
+        $failures.Add('The isolated management NIC does not have the required low-priority metric')
+    }
+    $managementDefaultRoute = Get-NetRoute -InterfaceIndex $managementAddress.InterfaceIndex -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue
+    if ($null -ne $managementDefaultRoute) {
+        $failures.Add('The isolated management NIC has an unexpected default route')
+    }
+}
+
+foreach ($serviceName in @('qemu-ga', 'sshd')) {
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if (-not $service -or $service.StartType -ne 'Automatic' -or $service.Status -ne 'Running') {
+        $failures.Add("$serviceName is not running with automatic startup")
+    }
+}
+
+foreach ($serviceName in @('EventLog', 'MpsSvc', 'Schedule', 'SecurityHealthService', 'WinDefend', 'winmgmt', 'wuauserv')) {
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if (-not $service -or $service.StartType -eq 'Disabled') {
+        $failures.Add("Security or management service $serviceName is disabled or missing")
+    }
+}
+
+if (Get-Command Get-MpPreference -ErrorAction SilentlyContinue) {
+    $defenderPreference = Get-MpPreference
+    if ($defenderPreference.DisableRealtimeMonitoring) {
+        $failures.Add('Microsoft Defender real-time monitoring is disabled')
+    }
+}
+
+$explorerSecurity = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -ErrorAction SilentlyContinue
+if (
+    $null -ne $explorerSecurity -and
+    $explorerSecurity.PSObject.Properties.Name -contains 'SmartScreenEnabled' -and
+    $explorerSecurity.SmartScreenEnabled -eq 'Off'
+) {
+    $failures.Add('Microsoft Defender SmartScreen is disabled for Windows')
+}
+$edgeSecurity = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -ErrorAction SilentlyContinue
+if ($null -ne $edgeSecurity) {
+    foreach ($valueName in @('SmartScreenEnabled', 'SmartScreenPuaEnabled')) {
+        if ($edgeSecurity.PSObject.Properties.Name -contains $valueName -and $edgeSecurity.$valueName -eq 0) {
+            $failures.Add("Microsoft Defender SmartScreen policy $valueName is disabled for Edge")
+        }
+    }
+}
+
+$sshRule = Get-NetFirewallRule -DisplayName 'Managed VM SSH from host' -ErrorAction SilentlyContinue
+if (-not $sshRule -or $sshRule.Enabled -ne 'True' -or $sshRule.Action -ne 'Allow') {
+    $failures.Add('The host-restricted SSH firewall rule is not enabled')
+}
+
+$sshdConfig = Get-Content -LiteralPath (Join-Path $env:ProgramData 'ssh\sshd_config') -Raw
+if ($sshdConfig -notmatch '(?m)^PasswordAuthentication no$' -or $sshdConfig -notmatch '(?m)^KbdInteractiveAuthentication no$') {
+    $failures.Add('OpenSSH still permits password or keyboard-interactive authentication')
+}
+
+$pagefile = Get-CimInstance -ClassName Win32_ComputerSystem
+if (-not $pagefile.AutomaticManagedPagefile) {
+    $failures.Add('The page file is not system-managed')
+}
+
+if (Test-Path -LiteralPath "$env:SystemDrive\hiberfil.sys") {
+    $failures.Add('The hibernation file still exists')
+}
+
+foreach ($featureName in @(
+    'Microsoft-Hyper-V-All',
+    'VirtualMachinePlatform',
+    'Microsoft-Windows-Subsystem-Linux',
+    'Containers-DisposableClientVM',
+    'MicrosoftWindowsPowerShellV2Root',
+    'MicrosoftWindowsPowerShellV2',
+    'SMB1Protocol'
+)) {
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
+    if ($null -ne $feature -and $feature.State -in @('Enabled', 'EnablePending')) {
+        $failures.Add("Unused or legacy Windows feature $featureName is enabled")
+    }
+}
+
+$provisionedApps = @(Get-AppxProvisionedPackage -Online)
+foreach ($packageName in $DeclaredAppxPackages) {
+    if (@(Get-AppxPackage -AllUsers -Name $packageName -ErrorAction SilentlyContinue).Count -gt 0) {
+        $failures.Add("Declared Appx package $packageName remains installed")
+    }
+    if (@($provisionedApps | Where-Object DisplayName -EQ $packageName).Count -gt 0) {
+        $failures.Add("Declared Appx package $packageName remains provisioned")
+    }
+}
+
+if ($failures.Count -gt 0) {
+    throw ($failures -join '; ')
+}
+
+Write-Output "PASS: managed Windows VM baseline ($BaselineProfile)"

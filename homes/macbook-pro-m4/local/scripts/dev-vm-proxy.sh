@@ -7,10 +7,13 @@ if [ "$#" -ne 1 ] || [ "$1" != @sshPort@ ]; then
   exit 1
 fi
 
-# Keep address resolution and transport reachability separate. Python's socket
-# probe can report a spurious host-unreachable result on Darwin after a VMware
-# adapter reset even when the system TCP stack can connect. The Darwin system
-# netcat performs the real reachability check and becomes the SSH byte stream,
-# so there is no check/use gap here. Do not pass `-w`: it also times out idle
+# Resolve the lease only when the kernel selects the VMware host-only source.
+# An unexpired DHCP lease can outlive its interface; without this guard macOS
+# sends the private destination through its default route. Binding netcat to
+# the same source address keeps the transport fail-closed if the route changes
+# between resolution and connect. Do not pass `-w`: it also times out idle
 # reads in a healthy SSH tunnel.
-exec /usr/bin/nc "$(@devVmHost@)" "$1"
+vm_host="$(@devVmHost@ \
+  --require-route-source @hostOnlySourceAddress@ \
+  --route-port "$1")"
+exec /usr/bin/nc -4 -s @hostOnlySourceAddress@ "$vm_host" "$1"
