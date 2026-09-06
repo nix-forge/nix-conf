@@ -5,14 +5,18 @@ _: {
   programs.librepods.enable = false;
 
   # The user manager lingers so session services can run before a local login.
-  # Start RTKit before logins are permitted. Otherwise PipeWire can start too
-  # early, lose its realtime request, and keep running its data loops under
-  # ordinary scheduling until restarted.
+  # Order the user-manager template directly after RTKit: lingering managers
+  # do not wait for systemd-user-sessions.service. Otherwise PipeWire can
+  # start before the realtime broker is ready.
   # RTKit remains the privilege boundary; do not grant the whole audio group
   # unrestricted realtime priority or CAP_SYS_NICE.
   systemd.services.rtkit-daemon = {
     wantedBy = [ "multi-user.target" ];
     before = [ "systemd-user-sessions.service" ];
+  };
+  systemd.services."user@" = {
+    wants = [ "rtkit-daemon.service" ];
+    after = [ "rtkit-daemon.service" ];
   };
 
   # This machine is both a desktop and a Sunshine host, so use one stable

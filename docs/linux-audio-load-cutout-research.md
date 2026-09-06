@@ -122,14 +122,19 @@ upstream default is 1024 frames, or 21.33 ms at 48 kHz. [PipeWire documents the
 clock defaults and warns that rate changes interact with kernel and Bluetooth
 behavior](https://pipewire.pages.freedesktop.org/pipewire/page_man_pipewire_conf_5.html).
 
-### 2. Start RTKit before logins can start PipeWire
+### 2. Start RTKit before user managers can start PipeWire
 
 Confidence: high that RT priority was absent, medium that D-Bus activation
 ordering is the whole cause. Risk: low.
 
 Keep `security.rtkit.enable = true`. Add RTKit to `multi-user.target` and order
-it before `systemd-user-sessions.service`. Then the direct RTKit broker is
-already accepting calls before the Hyprland user session can launch PipeWire.
+it before `systemd-user-sessions.service`. Also add `Wants=rtkit-daemon.service`
+and `After=rtkit-daemon.service` to the `user@.service` template. Inspection of
+the running desktop's `user@1000.service` showed no ordering dependency on
+`systemd-user-sessions.service`, so the login gate alone does not cover its
+lingering user manager. The direct dependency starts the broker before that
+manager can launch PipeWire. Use `Wants` so a failed RTKit startup does not
+prevent the user manager from starting.
 Preserve PipeWire's existing direct-RTKit behavior. Verify the result after a
 cold boot, not only after restarting audio services.
 
@@ -245,6 +250,11 @@ systemd.services.rtkit-daemon = {
   wantedBy = [ "multi-user.target" ];
   before = [ "systemd-user-sessions.service" ];
 };
+
+systemd.services."user@" = {
+  wants = [ "rtkit-daemon.service" ];
+  after = [ "rtkit-daemon.service" ];
+};
 ```
 
 Preserve the per-user PipeWire mode. The evaluated desktop has
@@ -334,6 +344,7 @@ Finally, check boot ordering and the RTKit safety boundary:
 ```bash
 systemctl is-active rtkit-daemon.service
 systemctl show rtkit-daemon.service -p ActiveEnterTimestamp -p UnitFileState
+systemctl show "user@$(id -u).service" -p Wants -p After
 cat /proc/sys/kernel/sched_rt_period_us
 cat /proc/sys/kernel/sched_rt_runtime_us
 ```

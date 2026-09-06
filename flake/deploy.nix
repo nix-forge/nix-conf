@@ -983,6 +983,8 @@ in
         assert !lib.any (limit: limit.domain == "@audio") desktop.security.pam.loginLimits;
         assert lib.elem "multi-user.target" desktop.systemd.services.rtkit-daemon.wantedBy;
         assert lib.elem "systemd-user-sessions.service" desktop.systemd.services.rtkit-daemon.before;
+        assert lib.elem "rtkit-daemon.service" desktop.systemd.services."user@".wants;
+        assert lib.elem "rtkit-daemon.service" desktop.systemd.services."user@".after;
         assert
           desktop.services.pipewire.extraConfig.pipewire."90-desktop-audio"."context.properties"."default.clock.quantum"
           == 512;
