@@ -74,20 +74,17 @@ let
 
       # The normal fzf Bash loader is incompatible with ble.sh. Use the pinned
       # fzf scripts through ble.sh and defer their parse cost until the shell is
-      # idle. Atuin owns search in Emacs and vi-insert modes; vi-normal keeps
-      # its standard Ctrl-R redo binding.
+      # idle. Atuin owns Ctrl-R search in Emacs mode.
       _ble_contrib_fzf_base=${config.programs.fzf.package}/share/fzf
       ble-import -d integration/fzf-completion
       ble-import -d integration/fzf-key-bindings -C '
         # fzf installs Ctrl-R as a direct ble.sh widget. Replace it with an
         # editable Atuin widget so ble.sh exports and restores READLINE_LINE
         # and READLINE_POINT. enter_accept is disabled, so no accept-line
-        # macro chain is required. Preserve vi-normal Ctrl-R as redo.
+        # macro chain is required.
         if declare -F __atuin_history &>/dev/null; then
           ble-bind -m emacs -x C-r "__atuin_history --keymap-mode=emacs"
-          ble-bind -m vi_imap -x C-r "__atuin_history --keymap-mode=vim-insert"
         fi
-        ble-bind -m vi_nmap -f C-r vi_nmap/redo
       '
 
       # Keep the normal ble.sh completion menu on Tab. Shift-Tab opens the fzf
@@ -95,8 +92,6 @@ let
       ble-import -d integration/fzf-menu -C '
         bleopt integration_fzf_menu_enabled=
         ble-bind -m emacs -f S-TAB fzf-menu-complete
-        ble-bind -m vi_imap -f S-TAB fzf-menu-complete
-        ble-bind -m vi_nmap -f S-TAB fzf-menu-complete
       '
     ''
   );

@@ -58,7 +58,7 @@ in
 
   # ble.sh reads the Readline editing mode at startup and replaces Readline for
   # normal interactive use. These settings also give --norc and no-ble rescue
-  # shells the same predictable vi-oriented behavior.
+  # shells the same completion and display behavior.
   programs.readline = {
     enable = true;
     variables = {
@@ -67,9 +67,7 @@ in
       colored-stats = true;
       completion-ignore-case = true;
       completion-map-case = true;
-      editing-mode = "vi";
       enable-bracketed-paste = true;
-      keymap = "vi-insertion";
       mark-symlinked-directories = true;
       menu-complete-display-prefix = true;
       revert-all-at-newline = true;
