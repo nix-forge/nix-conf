@@ -244,7 +244,14 @@ in
         "cliphist.service"
       ]
       ++ lib.optional cfg.nightLight.enable "hyprsunset.service";
-      After = [ "graphical-session.target" ];
+      After = [
+        "graphical-session.target"
+        "pipewire.service"
+      ];
+      # Noctalia 5.0 does not reconnect after PipeWire replaces its socket.
+      # Restart the shell after a deliberate PipeWire restart so its device
+      # model is rebuilt from the new graph.
+      PartOf = [ "pipewire.service" ];
     };
 
     wayland.windowManager.hyprland.settings.bind = lib.mkAfter [

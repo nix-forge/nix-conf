@@ -552,6 +552,8 @@ in
         assert desktopHome.desktop.wallpaper.sources.initialFetches == 2;
         assert desktopHome.desktop.wallpaper.rotation.interval == "30min";
         assert builtins.hasAttr "noctalia" desktopHome.systemd.user.services;
+        assert lib.elem "pipewire.service" desktopHome.systemd.user.services.noctalia.Unit.After;
+        assert lib.elem "pipewire.service" desktopHome.systemd.user.services.noctalia.Unit.PartOf;
         assert !(builtins.hasAttr "swaync" desktopHome.systemd.user.services);
         assert !(builtins.hasAttr "swayosd" desktopHome.systemd.user.services);
         assert !(builtins.hasAttr "cliphist" desktopHome.systemd.user.services);
