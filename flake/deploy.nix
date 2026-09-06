@@ -552,6 +552,8 @@ in
         assert desktopHome.desktop.wallpaper.sources.initialFetches == 2;
         assert desktopHome.desktop.wallpaper.rotation.interval == "30min";
         assert builtins.hasAttr "noctalia" desktopHome.systemd.user.services;
+        assert lib.elem "pipewire.service" desktopHome.systemd.user.services.noctalia.Unit.After;
+        assert lib.elem "pipewire.service" desktopHome.systemd.user.services.noctalia.Unit.PartOf;
         assert !(builtins.hasAttr "swaync" desktopHome.systemd.user.services);
         assert !(builtins.hasAttr "swayosd" desktopHome.systemd.user.services);
         assert !(builtins.hasAttr "cliphist" desktopHome.systemd.user.services);
@@ -979,12 +981,34 @@ in
         assert desktop.security.rtkit.enable;
         assert !desktop.services.pulseaudio.enable;
         assert !lib.any (limit: limit.domain == "@audio") desktop.security.pam.loginLimits;
+        assert lib.elem "multi-user.target" desktop.systemd.services.rtkit-daemon.wantedBy;
+        assert lib.elem "systemd-user-sessions.service" desktop.systemd.services.rtkit-daemon.before;
+        assert lib.elem "rtkit-daemon.service" desktop.systemd.services."user@".wants;
+        assert lib.elem "rtkit-daemon.service" desktop.systemd.services."user@".after;
         assert
-          desktop.services.pipewire.extraConfig.pipewire."90-desktop-low-latency"."context.properties"."default.clock.quantum"
-          == 128;
+          desktop.services.pipewire.extraConfig.pipewire."90-desktop-audio"."context.properties"."default.clock.quantum"
+          == 512;
         assert
-          desktop.services.pipewire.extraConfig.pipewire-pulse."90-desktop-low-latency"."pulse.properties"."pulse.default.tlength"
-          == "256/48000";
+          desktop.services.pipewire.extraConfig.pipewire."90-desktop-audio"."context.properties"."default.clock.min-quantum"
+          == 256;
+        assert
+          desktop.services.pipewire.extraConfig.pipewire."90-desktop-audio"."context.properties"."default.clock.max-quantum"
+          == 2048;
+        assert !(desktop.services.pipewire.extraConfig.client ? "90-desktop-low-latency");
+        assert !(desktop.services.pipewire.extraConfig.pipewire-pulse ? "90-desktop-low-latency");
+        assert
+          desktop.services.pipewire.wireplumber.extraConfig."90-usb-audio-low-latency"."monitor.alsa.rules"
+          == [
+            {
+              matches = [
+                { "node.name" = "~alsa_output.usb-Generic_USB_Audio-00.*"; }
+                { "node.name" = "~alsa_input.usb-Generic_USB_Audio-00.*"; }
+              ];
+              actions.update-props = {
+                "audio.rate" = 48000;
+              };
+            }
+          ];
         assert desktop.hardware.i2c.enable;
         assert desktop.services.sunshine.enable;
         assert desktop.services.sunshine.autoStart;
