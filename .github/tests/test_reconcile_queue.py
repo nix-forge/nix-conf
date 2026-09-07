@@ -66,7 +66,10 @@ class ReconcileTests(unittest.TestCase):
         if "matching-refs" in path:
             return self.refs
         if "/runs?" in path:
-            return {"total_count": self.existing_runs}
+            return {
+                "total_count": self.existing_runs,
+                "workflow_runs": [{"event": "merge_group"}],
+            }
         if "/git/commits/" in path:
             return {"parents": [{"sha": "base"}]}
         if "/git/ref/" in path:
@@ -180,6 +183,170 @@ class ReconcileTests(unittest.TestCase):
         ):
             queue.main()
         self.assertEqual(dispatch.call_count, len(self.refs))
+
+
+class DispatchResultTests(unittest.TestCase):
+    """Report real dispatch jobs without promoting missing or stale evidence."""
+
+    def setUp(self) -> None:
+        """Create a successful dispatch and one native merge-group run."""
+        self.ref = "refs/heads/gh-readonly-queue/main/pr-7-base"
+        self.dispatch_run: dict[str, Any] = {
+            "id": 1,
+            "event": "workflow_dispatch",
+            "head_sha": "group",
+            "status": "completed",
+            "conclusion": "success",
+            "run_attempt": 1,
+            "queue_workflow": "ci.yml",
+        }
+        self.other: dict[str, Any] = {
+            **self.dispatch_run,
+            "id": 2,
+            "event": "merge_group",
+        }
+        self.jobs: list[dict[str, Any]] = [
+            {
+                "name": "Lint",
+                "head_sha": "group",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "https://github.com/job/1",
+            }
+        ]
+        self.statuses: list[dict[str, Any]] = []
+        self.writes: list[dict[str, Any]] = []
+        self.current = self.dispatch_run.copy()
+        self.current_sha = "group"
+
+    def api(self, path: str, method: str = "GET", data: object = None) -> Any:  # ruff: ignore[any-type]
+        """Serve run and job metadata and retain published status payloads.
+
+        Returns:
+            The requested fixture.
+
+        Raises:
+            AssertionError: An unexpected endpoint was requested.
+
+        """
+        if method == "POST":
+            if not isinstance(data, dict):
+                raise AssertionError(path)
+            self.writes.append(data)
+            return None
+        if path.endswith("/status") or "/status?" in path:
+            return {"statuses": self.statuses}
+        if "/jobs?" in path:
+            return {"jobs": self.jobs}
+        if "/actions/workflows/ci.yml/runs?" in path:
+            return {"workflow_runs": [self.current]}
+        if "/git/ref/" in path:
+            return {"object": {"sha": self.current_sha}}
+        raise AssertionError(path)
+
+    def report(self, runs: list[dict[str, Any]] | None = None) -> None:
+        """Run the adapter against the selected API fixtures."""
+        with patch.object(queue, "api", side_effect=self.api):
+            queue.publish_dispatch_results(
+                self.ref,
+                "group",
+                runs if runs is not None else [self.dispatch_run, self.other],
+            )
+
+    def test_success_links_the_exact_completed_job(self) -> None:
+        """Only the successful dispatch job becomes a linked commit status."""
+        self.report()
+        self.assertEqual(len(self.writes), 1)
+        self.assertEqual(self.writes[0]["context"], "Lint")
+        self.assertEqual(self.writes[0]["state"], "success")
+        self.assertEqual(self.writes[0]["target_url"], self.jobs[0]["html_url"])
+
+    def test_missing_workflow_cannot_report_success(self) -> None:
+        """An incomplete workflow set leaves validation pending."""
+        self.report([self.dispatch_run])
+        self.assertEqual(self.writes, [])
+
+    def test_pending_or_failed_workflow_cannot_report_success(self) -> None:
+        """Other required validation must finish successfully first."""
+        self.other["conclusion"] = "failure"
+        self.report()
+        self.assertEqual(self.writes, [])
+
+    def test_skipped_or_missing_jobs_never_become_success(self) -> None:
+        """A skipped or absent job provides no passing evidence."""
+        self.jobs[0]["conclusion"] = "skipped"
+        self.report()
+        self.jobs = []
+        self.report()
+        self.assertEqual(self.writes, [])
+
+    def test_job_from_another_commit_is_rejected(self) -> None:
+        """Only the inspected queue commit can supply job results."""
+        self.jobs[0]["head_sha"] = "different"
+        self.report()
+        self.assertEqual(self.writes, [])
+
+    def test_changed_queue_ref_is_not_updated(self) -> None:
+        """A changed ref cannot receive stale success statuses."""
+        self.current_sha = "replacement"
+        self.report()
+        self.assertEqual(self.writes, [])
+
+    def test_newer_attempt_invalidates_previous_success(self) -> None:
+        """A rerun cannot retain the adapter result of an earlier attempt."""
+        self.statuses = [
+            {
+                "context": "Lint",
+                "state": "success",
+                "target_url": self.jobs[0]["html_url"],
+                "description": "Mirrored queue job result",
+            }
+        ]
+        self.current["run_attempt"] = 2
+        self.current["status"] = "in_progress"
+        self.report()
+        self.assertEqual([item["state"] for item in self.writes], ["pending"])
+
+    def test_separate_newer_run_invalidates_previous_success(self) -> None:
+        """A separate newer dispatch cannot inherit an older run's pass."""
+        self.statuses = [
+            {
+                "context": "Lint",
+                "state": "success",
+                "target_url": self.jobs[0]["html_url"],
+                "description": "Mirrored queue job result",
+            }
+        ]
+        self.current["id"] = 3
+        self.report()
+        self.assertEqual([item["state"] for item in self.writes], ["pending"])
+
+    def test_existing_identical_result_is_not_republished(self) -> None:
+        """Repeated recovery calls reuse the same result."""
+        self.statuses = [
+            {
+                "context": "Lint",
+                "state": "success",
+                "target_url": self.jobs[0]["html_url"],
+                "description": "Mirrored queue job result",
+            }
+        ]
+        self.report()
+        self.assertEqual(self.writes, [])
+
+    def test_missing_job_invalidates_previous_success(self) -> None:
+        """A job absent from the latest attempt must not inherit a pass."""
+        self.statuses = [
+            {
+                "context": "Removed",
+                "state": "success",
+                "target_url": "https://github.com/job/old",
+                "description": "Mirrored queue job result",
+            }
+        ]
+        self.report()
+        self.assertEqual(self.writes[0]["context"], "Removed")
+        self.assertEqual(self.writes[0]["state"], "pending")
 
 
 if __name__ == "__main__":

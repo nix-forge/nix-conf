@@ -28,3 +28,11 @@ macOS jobs use the supported macos-26 image. nix-seal retains its legacy
 macos-14 matrix labels only as required-check identifiers; runs-on selects
 macos-26. This avoids leaving existing branch protections waiting for renamed
 checks during the runner migration. GitHub retires macos-14 on November 2, 2026.
+
+Dispatched checks can be absent from GitHub's merge-queue status summary even
+when their check suites succeeded. The trusted reconciler reports completed,
+successful dispatch jobs as same-name commit statuses, linked to the actual job.
+It waits for the full workflow set, verifies the latest attempt and live queue
+SHA, and never reports skipped or missing jobs as successful. A newer incomplete
+attempt invalidates earlier adapter statuses. Required contexts and the expected
+GitHub Actions app remain unchanged.
