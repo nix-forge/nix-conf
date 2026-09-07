@@ -40,6 +40,7 @@ while IFS=$'\t' read -r network_name _bridge _subnet network_definition; do
 
     if [[ -z $desired_uuid ]]; then
       temporary_network_definition="$(@mktemp@ "${TMPDIR:-/tmp}/libvirt-workstation-network.XXXXXX.xml")"
+      # shellcheck disable=SC2016 # Perl must receive its own $1 and $ENV literally.
       LIBVIRT_NETWORK_UUID="$existing_uuid" @perl@ -0pe \
         's{(<network\b[^>]*>\s*<name>[^<]+</name>)}{$1 . "\n  <uuid>" . $ENV{LIBVIRT_NETWORK_UUID} . "</uuid>"}e or die "network name element not found\n"' \
         "$network_definition" >"$temporary_network_definition"

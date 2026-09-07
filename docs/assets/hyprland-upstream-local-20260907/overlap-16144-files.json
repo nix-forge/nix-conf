@@ -1,0 +1,50 @@
+[
+  {
+    "sha": "dc2ab6809879b4b8b646aea7feb67c8d92add658",
+    "filename": "src/desktop/view/window/Window.cpp",
+    "status": "modified",
+    "additions": 55,
+    "deletions": 0,
+    "changes": 55,
+    "blob_url": "https://github.com/hyprwm/Hyprland/blob/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Fdesktop%2Fview%2Fwindow%2FWindow.cpp",
+    "raw_url": "https://github.com/hyprwm/Hyprland/raw/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Fdesktop%2Fview%2Fwindow%2FWindow.cpp",
+    "contents_url": "https://api.github.com/repos/hyprwm/Hyprland/contents/src%2Fdesktop%2Fview%2Fwindow%2FWindow.cpp?ref=889727abcc3b6557232ff7e932b355ff3f14a489",
+    "patch": "@@ -1105,6 +1105,61 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {\n     return nullptr;\n }\n \n+SP<CWLSurfaceResource> CWindow::getDirectScanoutResource() const {\n+    if (auto sol = getSolitaryResource())\n+        return sol;\n+\n+    if (m_wlSurface) {\n+        auto res = m_wlSurface->resource();\n+        if (!res || res->m_current.buffer)\n+            return nullptr;\n+\n+        SP<CWLSurfaceResource> targetSubsurface = nullptr;\n+\n+        // inspect root window subsurfaces\n+        for (auto& sub : res->m_subsurfaces) {\n+            if (sub.expired())\n+                continue;\n+            auto subsurf = sub.lock();\n+            if (!subsurf || subsurf->m_surface.expired())\n+                continue;\n+\n+            auto surf = subsurf->m_surface.lock();\n+            if (!surf)\n+                continue;\n+\n+            if (subsurf->m_zIndex < 0) {\n+                if (surf->m_current.buffer) {\n+                    if (targetSubsurface)\n+                        return nullptr; // multiple rendering subsurfaces active\n+                    targetSubsurface = surf;\n+                }\n+            } else if (surf->m_current.buffer || surf->m_mapped) {\n+                return nullptr;\n+            }\n+        }\n+\n+        // inspect nested subsurfaces attached directly to the surface\n+        if (targetSubsurface) {\n+            for (auto& sub : targetSubsurface->m_subsurfaces) {\n+                if (sub.expired())\n+                    continue;\n+                auto subsurf = sub.lock();\n+                if (!subsurf || subsurf->m_surface.expired())\n+                    continue;\n+\n+                auto surf = subsurf->m_surface.lock();\n+                if (surf && (surf->m_current.buffer || surf->m_mapped))\n+                    return nullptr; // Steam Overlay or Wayland cursor subsurface active\n+            }\n+        }\n+\n+        return targetSubsurface;\n+    }\n+\n+    return nullptr;\n+}\n+\n std::optional<Vector2D> CWindow::calculateExpression(const Math::SExpressionVec2& expr) {\n     return m_target->calculateExpression(expr);\n }"
+  },
+  {
+    "sha": "e770d687c8f392efbc366d91147c730f5aebe2cc",
+    "filename": "src/desktop/view/window/Window.hpp",
+    "status": "modified",
+    "additions": 1,
+    "deletions": 0,
+    "changes": 1,
+    "blob_url": "https://github.com/hyprwm/Hyprland/blob/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Fdesktop%2Fview%2Fwindow%2FWindow.hpp",
+    "raw_url": "https://github.com/hyprwm/Hyprland/raw/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Fdesktop%2Fview%2Fwindow%2FWindow.hpp",
+    "contents_url": "https://api.github.com/repos/hyprwm/Hyprland/contents/src%2Fdesktop%2Fview%2Fwindow%2FWindow.hpp?ref=889727abcc3b6557232ff7e932b355ff3f14a489",
+    "patch": "@@ -231,6 +231,7 @@ namespace Desktop::View {\n         bool                       isNotResponding();\n         bool                       priorityFocus();\n         SP<CWLSurfaceResource>     getSolitaryResource() const;\n+        SP<CWLSurfaceResource>     getDirectScanoutResource() const;\n         std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);\n         std::optional<Vector2D>    minSize();\n         std::optional<Vector2D>    maxSize();"
+  },
+  {
+    "sha": "d4b010fe6f55f151f36500cb897067853a87ffc3",
+    "filename": "src/output/Monitor.cpp",
+    "status": "modified",
+    "additions": 6,
+    "deletions": 4,
+    "changes": 10,
+    "blob_url": "https://github.com/hyprwm/Hyprland/blob/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Foutput%2FMonitor.cpp",
+    "raw_url": "https://github.com/hyprwm/Hyprland/raw/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Foutput%2FMonitor.cpp",
+    "contents_url": "https://api.github.com/repos/hyprwm/Hyprland/contents/src%2Foutput%2FMonitor.cpp?ref=889727abcc3b6557232ff7e932b355ff3f14a489",
+    "patch": "@@ -1900,7 +1900,9 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {\n         return reasons;\n     }\n \n-    if (!PCANDIDATE->presentation().opaque()) {\n+    const auto DSRESOURCE = PCANDIDATE->getDirectScanoutResource();\n+\n+    if (!PCANDIDATE->presentation().opaque() && !DSRESOURCE) {\n         reasons |= SC_OPAQUE;\n         if (!full)\n             return reasons;\n@@ -1957,7 +1959,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {\n     }\n \n     // check if it did not open any subsurfaces or shit\n-    if (!PCANDIDATE->getSolitaryResource())\n+    if (!PCANDIDATE->getDirectScanoutResource())\n         reasons |= SC_SURFACES;\n \n     return reasons;\n@@ -2109,7 +2111,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {\n             return reasons;\n     }\n \n-    const auto PSURFACE = PCANDIDATE->getSolitaryResource();\n+    const auto PSURFACE = PCANDIDATE->getDirectScanoutResource();\n     if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {\n         reasons |= DS_BLOCK_SURFACE;\n         return reasons;\n@@ -2153,7 +2155,7 @@ bool CMonitor::attemptDirectScanout() {\n         return false;\n \n     const auto PCANDIDATE = m_solitaryClient.lock();\n-    const auto PSURFACE   = PCANDIDATE->getSolitaryResource();\n+    const auto PSURFACE   = PCANDIDATE->getDirectScanoutResource();\n     auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;\n \n     // #TODO this entire bit needs figuring out, vrr goes down the drain without it"
+  },
+  {
+    "sha": "53739b315d77c9de7e7961b7e45c05295f3cd0b4",
+    "filename": "src/render/Renderer.cpp",
+    "status": "modified",
+    "additions": 1,
+    "deletions": 1,
+    "changes": 2,
+    "blob_url": "https://github.com/hyprwm/Hyprland/blob/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Frender%2FRenderer.cpp",
+    "raw_url": "https://github.com/hyprwm/Hyprland/raw/889727abcc3b6557232ff7e932b355ff3f14a489/src%2Frender%2FRenderer.cpp",
+    "contents_url": "https://api.github.com/repos/hyprwm/Hyprland/contents/src%2Frender%2FRenderer.cpp?ref=889727abcc3b6557232ff7e932b355ff3f14a489",
+    "patch": "@@ -2228,7 +2228,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {\n \n     bool renderCursor = true;\n \n-    if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))\n+    if (pMonitor->m_solitaryClient && pMonitor->m_solitaryClient->getSolitaryResource() && (!finalDamage.empty() || *PSOLDAMAGE))\n         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);\n     else if (!finalDamage.empty()) {\n         if (pMonitor->isMirror()) {"
+  }
+]

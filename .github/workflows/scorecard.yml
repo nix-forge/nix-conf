@@ -7,13 +7,17 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   analysis:
+    name: analysis
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
-      security-events: write
-      id-token: write
+      security-events: write # Upload analysis results to code scanning.
+      id-token: write # Authenticate publication to the OpenSSF Scorecard service.
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

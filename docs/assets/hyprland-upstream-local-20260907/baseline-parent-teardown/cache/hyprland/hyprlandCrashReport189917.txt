@@ -1,0 +1,316 @@
+--------------------------------------------
+   Hyprland Crash Report
+--------------------------------------------
+Calm down, it was a misinput! MISINPUT!
+
+Hyprland received signal 11(SEGV)
+Version: 34eb03bd8da01024596c367fba66485a8c9b8ca7
+Tag: 
+Date: Sun Sep 6 04:00:56 2026
+Flags:
+debug
+
+Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.
+Plugins:
+	hyprtestplugin (Vaxry) 1.0
+
+
+System info:
+	System name: Linux
+	Node name: desktop
+	Release: 7.2.0
+	Version: #1-NixOS SMP PREEMPT_DYNAMIC Sun Aug 16 21:32:26 UTC 2026
+
+GPU:
+	01:00.0 VGA compatible controller [0300]: NVIDIA Corporation AD104 [GeForce RTX 4070] [10de:2786] (rev a1) (prog-if 00 [VGA controller])
+11:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Raphael [1002:164e] (rev c3) (prog-if 00 [VGA controller])
+
+
+os-release:
+	ANSI_COLOR="0;38;2;126;186;228"
+	BUG_REPORT_URL="https://github.com/NixOS/nixpkgs/issues"
+	BUILD_ID="26.11.20260826.9fbb54b"
+	CPE_NAME="cpe:/o:nixos:nixos:26.11"
+	DEFAULT_HOSTNAME=nixos
+	DOCUMENTATION_URL="https://nixos.org/learn.html"
+	HOME_URL="https://nixos.org/"
+	ID=nixos
+	LOGO="nix-snowflake"
+	NAME=NixOS
+	PRETTY_NAME="NixOS 26.11 (Zokor)"
+	SUPPORT_URL="https://nixos.org/community.html"
+	VENDOR_NAME=NixOS
+	VENDOR_URL="https://nixos.org/"
+	VERSION="26.11 (Zokor)"
+	VERSION_CODENAME=zokor
+	VERSION_ID="26.11"
+
+Libraries:
+Hyprgraphics: built against 0.5.1, system has unknown
+Hyprutils: built against 0.14.1, system has unknown
+Hyprcursor: built against 0.1.13, system has unknown
+Hyprlang: built against 0.6.8, system has unknown
+Aquamarine: built against 0.15.0, system has unknown
+
+Backtrace:
+	#0 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_Z12getBacktracev+0x93) [0x5990325b4fe2]
+		getBacktrace()
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/helpers/MiscFunctions.cpp:604
+	#1 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN13CrashReporter18createAndSaveCrashEi+0x1165) [0x59903232d3ef]
+		CrashReporter::createAndSaveCrash(int)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/debug/crash/CrashReporter.cpp:185 (discriminator 1)
+	#2 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x2c5d801) [0x599032055801]
+		handleUnrecoverableSignal(int)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/Compositor.cpp:118
+	#3 | /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6(+0x421a0) [0x7a988aa421a0]
+		??
+		??:0
+	#4 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN7Desktop4View11CSubsurface4sizeEv+0xa1) [0x59903246b3ff]
+		Desktop::View::CSubsurface::size()
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/Subsurface.cpp:327 (discriminator 4)
+	#5 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN7Desktop4View11CSubsurface27recheckDamageForSubsurfacesEi+0x142) [0x599032468514]
+		Desktop::View::CSubsurface::recheckDamageForSubsurfaces(int)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/Subsurface.cpp:163 (discriminator 2)
+	#6 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN7Desktop4View11CSubsurface27recheckDamageForSubsurfacesEi+0x60c) [0x5990324689de]
+		Desktop::View::CSubsurface::recheckDamageForSubsurfaces(int)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/Subsurface.cpp:182 (discriminator 1)
+	#7 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN7Desktop4View7CWindow12commitWindowEb+0x1062) [0x5990324ce8a0]
+		Desktop::View::CWindow::commitWindow(bool)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/window/Window.cpp:1764 (discriminator 2)
+	#8 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30af410) [0x5990324a7410]
+		Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}::operator()(bool) const
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/window/Window.cpp:133
+	#9 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30e0de6) [0x5990324d8de6]
+		void std::__invoke_impl<void, Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}&, bool>(std::__invoke_other, Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}&, bool&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 3)
+	#10 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30ddce9) [0x5990324d5ce9]
+		std::enable_if<is_invocable_r_v<void, Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}&, bool>, void>::type std::__invoke_r<void, Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}&, bool>(Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}&, bool&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 2)
+	#11 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30dbb13) [0x5990324d3b13]
+		std::_Function_handler<void (bool), Desktop::View::CWindow::attachBackendListeners()::{lambda(bool)#1}>::_M_invoke(std::_Any_data const&, bool&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#12 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNKSt8functionIFvbEEclEb+0x58) [0x59903213d9b4]
+		std::function<void (bool)>::operator()(bool) const
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:581 (discriminator 2)
+	#13 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZZN9Hyprutils6Signal8CSignalTIJbEE9mkHandlerESt8functionIFvbEEENKUlPvE_clES6_+0x43) [0x5990324e3df1]
+		Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}::operator()(void*) const
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:99 (discriminator 1)
+	#14 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt13__invoke_implIvRZN9Hyprutils6Signal8CSignalTIJbEE9mkHandlerESt8functionIFvbEEEUlPvE_JS7_EET_St14__invoke_otherOT0_DpOT1_+0x3f) [0x5990324ee8dc]
+		void std::__invoke_impl<void, Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}&, void*>(std::__invoke_other, Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 3)
+	#15 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt10__invoke_rIvRZN9Hyprutils6Signal8CSignalTIJbEE9mkHandlerESt8functionIFvbEEEUlPvE_JS7_EENSt9enable_ifIX16is_invocable_r_vIT_T0_JDpT1_EEESB_E4typeEOSC_DpOSD_+0x3c) [0x5990324ed304]
+		std::enable_if<is_invocable_r_v<void, Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}&, void*>, void>::type std::__invoke_r<void, Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}&, void*>(Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 2)
+	#16 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNSt17_Function_handlerIFvPvEZN9Hyprutils6Signal8CSignalTIJbEE9mkHandlerESt8functionIFvbEEEUlS0_E_E9_M_invokeERKSt9_Any_dataOS0_+0x46) [0x5990324eb682]
+		std::_Function_handler<void (void*), Hyprutils::Signal::CSignalT<bool>::mkHandler(std::function<void (bool)>)::{lambda(void*)#1}>::_M_invoke(std::_Any_data const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#17 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal15CSignalListener12emitInternalEPv+0x29) [0x7a988d62f8d9]
+		??
+		??:0
+	#18 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal11CSignalBase12emitInternalEPv+0x1e4) [0x7a988d62fbe4]
+		??
+		??:0
+	#19 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN9Hyprutils6Signal8CSignalTIJbEE4emitEb+0x108) [0x5990324a1ed0]
+		Hyprutils::Signal::CSignalT<bool>::emit(bool)
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:42 (discriminator 3)
+	#20 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x309d12f) [0x59903249512f]
+		Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}::operator()() const
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/desktop/view/window/WaylandBackend.cpp:146
+	#21 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30a5b20) [0x59903249db20]
+		void std::__invoke_impl<void, Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}&>(std::__invoke_other, Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 2)
+	#22 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30a41f6) [0x59903249c1f6]
+		std::enable_if<is_invocable_r_v<void, Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}&>, void>::type std::__invoke_r<void, Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}&>(Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 1)
+	#23 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x30a2e6b) [0x59903249ae6b]
+		std::_Function_handler<void (), Desktop::View::CWaylandBackend::CWaylandBackend(Hyprutils::Memory::CSharedPointer<CXDGSurfaceResource>)::{lambda()#3}>::_M_invoke(std::_Any_data const&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#24 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNKSt8functionIFvvEEclEv+0x4d) [0x59903208ad81]
+		std::function<void ()>::operator()() const
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:581 (discriminator 1)
+	#25 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEENKUlPvE_clES6_+0x25) [0x5990320812f9]
+		Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}::operator()(void*) const
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:97
+	#26 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt13__invoke_implIvRZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlPvE_JS7_EET_St14__invoke_otherOT0_DpOT1_+0x3f) [0x599032098824]
+		void std::__invoke_impl<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>(std::__invoke_other, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 3)
+	#27 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt10__invoke_rIvRZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlPvE_JS7_EENSt9enable_ifIX16is_invocable_r_vIT_T0_JDpT1_EEESB_E4typeEOSC_DpOSD_+0x3c) [0x599032094a34]
+		std::enable_if<is_invocable_r_v<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>, void>::type std::__invoke_r<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>(Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 2)
+	#28 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNSt17_Function_handlerIFvPvEZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlS0_E_E9_M_invokeERKSt9_Any_dataOS0_+0x46) [0x599032091c43]
+		std::_Function_handler<void (void*), Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}>::_M_invoke(std::_Any_data const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#29 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal15CSignalListener12emitInternalEPv+0x29) [0x7a988d62f8d9]
+		??
+		??:0
+	#30 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal11CSignalBase12emitInternalEPv+0x1e4) [0x7a988d62fbe4]
+		??
+		??:0
+	#31 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN9Hyprutils6Signal8CSignalTIJEE4emitEv+0x89) [0x59903207469b]
+		Hyprutils::Signal::CSignalT<>::emit()
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:36
+	#32 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b0c91e) [0x599032f0491e]
+		CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}::operator()() const
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/XDGShell.cpp:574
+	#33 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b242ae) [0x599032f1c2ae]
+		void std::__invoke_impl<void, CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}&>(std::__invoke_other, CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 2)
+	#34 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b1eeaa) [0x599032f16eaa]
+		std::enable_if<is_invocable_r_v<void, CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}&>, void>::type std::__invoke_r<void, CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}&>(CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 1)
+	#35 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b186c8) [0x599032f106c8]
+		std::_Function_handler<void (), CXDGSurfaceResource::CXDGSurfaceResource(Hyprutils::Memory::CSharedPointer<CXdgSurface>, Hyprutils::Memory::CSharedPointer<CXDGWMBase>, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>)::{lambda()#2}>::_M_invoke(std::_Any_data const&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#36 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNKSt8functionIFvvEEclEv+0x4d) [0x59903208ad81]
+		std::function<void ()>::operator()() const
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:581 (discriminator 1)
+	#37 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEENKUlPvE_clES6_+0x25) [0x5990320812f9]
+		Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}::operator()(void*) const
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:97
+	#38 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt13__invoke_implIvRZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlPvE_JS7_EET_St14__invoke_otherOT0_DpOT1_+0x3f) [0x599032098824]
+		void std::__invoke_impl<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>(std::__invoke_other, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 3)
+	#39 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZSt10__invoke_rIvRZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlPvE_JS7_EENSt9enable_ifIX16is_invocable_r_vIT_T0_JDpT1_EEESB_E4typeEOSC_DpOSD_+0x3c) [0x599032094a34]
+		std::enable_if<is_invocable_r_v<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>, void>::type std::__invoke_r<void, Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*>(Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 2)
+	#40 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNSt17_Function_handlerIFvPvEZN9Hyprutils6Signal8CSignalTIJEE9mkHandlerESt8functionIFvvEEEUlS0_E_E9_M_invokeERKSt9_Any_dataOS0_+0x46) [0x599032091c43]
+		std::_Function_handler<void (void*), Hyprutils::Signal::CSignalT<>::mkHandler(std::function<void ()>)::{lambda(void*)#1}>::_M_invoke(std::_Any_data const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#41 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal15CSignalListener12emitInternalEPv+0x29) [0x7a988d62f8d9]
+		??
+		??:0
+	#42 | /nix/store/59arv2y9gksa9j9i6mbnnkisgka8wjwl-hyprutils-0.14.1+date=2026-08-16_6cf5041/lib/libhyprutils.so.13(_ZN9Hyprutils6Signal11CSignalBase12emitInternalEPv+0x1e4) [0x7a988d62fbe4]
+		??
+		??:0
+	#43 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN9Hyprutils6Signal8CSignalTIJEE4emitEv+0x89) [0x59903207469b]
+		Hyprutils::Signal::CSignalT<>::emit()
+		/nix/store/3n4mlip4kkv0dxhnb0psq54cd1cm1hgm-hyprutils-0.14.1+date=2026-08-16_6cf5041-dev/include/hyprutils/signal/Signal.hpp:36
+	#44 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b60bb6) [0x599032f58bb6]
+		CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}::operator()(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*) const
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:694 (discriminator 1)
+	#45 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b71573) [0x599032f69573]
+		void std::__invoke_impl<void, CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*>(std::__invoke_other, CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>&&, Hyprutils::Math::Vector2D const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 6)
+	#46 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b6e541) [0x599032f66541]
+		std::enable_if<is_invocable_r_v<void, CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*>, void>::type std::__invoke_r<void, CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*>(CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>&&, Hyprutils::Math::Vector2D const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 4)
+	#47 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b695bb) [0x599032f615bb]
+		std::_Function_handler<void (Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*), CWLSurfaceResource::commitState(SSurfaceState&)::{lambda(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)#1}>::_M_invoke(std::_Any_data const&, Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>&&, Hyprutils::Math::Vector2D const&, void*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#48 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNKSt8functionIFvN9Hyprutils6Memory14CSharedPointerI18CWLSurfaceResourceEERKNS0_4Math8Vector2DEPvEEclES4_S8_S9_+0x76) [0x599032f73506]
+		std::function<void (Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)>::operator()(Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*) const
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:581 (discriminator 4)
+	#49 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN18CWLSurfaceResource8bfHelperESt4spanIKN9Hyprutils6Memory14CSharedPointerIS_EELm18446744073709551615EESt8functionIFvS4_RKNS1_4Math8Vector2DEPvEESC_+0x79a) [0x599032f554c6]
+		CWLSurfaceResource::bfHelper(std::span<Hyprutils::Memory::CSharedPointer<CWLSurfaceResource> const, 18446744073709551615ul>, std::function<void (Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)>, void*)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:463 (discriminator 2)
+	#50 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN18CWLSurfaceResource12breadthfirstESt8functionIFvN9Hyprutils6Memory14CSharedPointerIS_EERKNS1_4Math8Vector2DEPvEES9_+0xdb) [0x599032f55d3f]
+		CWLSurfaceResource::breadthfirst(std::function<void (Hyprutils::Memory::CSharedPointer<CWLSurfaceResource>, Hyprutils::Math::Vector2D const&, void*)>, void*)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:494 (discriminator 4)
+	#51 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN18CWLSurfaceResource11commitStateER13SSurfaceState+0x507) [0x599032f5915d]
+		CWLSurfaceResource::commitState(SSurfaceState&)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:687
+	#52 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN18CSurfaceStateQueue10tryProcessEv+0x39d) [0x5990330177d7]
+		CSurfaceStateQueue::tryProcess()
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/types/SurfaceStateQueue.cpp:108 (discriminator 2)
+	#53 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN18CWLSurfaceResource13scheduleStateEN9Hyprutils6Memory12CWeakPointerI13SSurfaceStateEE+0x66d) [0x599032f58033]
+		CWLSurfaceResource::scheduleState(Hyprutils::Memory::CWeakPointer<SSurfaceState>)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:632
+	#54 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b58967) [0x599032f50967]
+		CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}::operator()(CWlSurface*) const
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/protocols/core/Compositor.cpp:214 (discriminator 2)
+	#55 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b70020) [0x599032f68020]
+		void std::__invoke_impl<void, CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}&, CWlSurface*>(std::__invoke_other, CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}&, CWlSurface*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:63 (discriminator 3)
+	#56 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b6b8d1) [0x599032f638d1]
+		std::enable_if<is_invocable_r_v<void, CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}&, CWlSurface*>, void>::type std::__invoke_r<void, CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}&, CWlSurface*>(CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}&, CWlSurface*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/invoke.h:113 (discriminator 2)
+	#57 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3b674ea) [0x599032f5f4ea]
+		std::_Function_handler<void (CWlSurface*), CWLSurfaceResource::CWLSurfaceResource(Hyprutils::Memory::CSharedPointer<CWlSurface>)::{lambda(CWlSurface*)#3}>::_M_invoke(std::_Any_data const&, CWlSurface*&&)
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:296
+	#58 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZNKSt8functionIFvP10CWlSurfaceEEclES1_+0x58) [0x59903335bac2]
+		std::function<void (CWlSurface*)>::operator()(CWlSurface*) const
+		/nix/store/3vwrw0n1f88n8637fnbn8gpmxzfmpwap-gcc-16.2.0/include/c++/16.2.0/bits/std_function.h:581 (discriminator 2)
+	#59 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(+0x3f5824c) [0x59903335024c]
+		_CWlSurfaceCommit(wl_client*, wl_resource*)
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/protocols/wayland.cpp:1851
+	#60 | /nix/store/wb232z007b8qynidq89lli8lb2c4q0r4-libffi-3.8.0/lib/libffi.so.8(+0xe052) [0x7a988ac63052]
+		??
+		??:0
+	#61 | /nix/store/wb232z007b8qynidq89lli8lb2c4q0r4-libffi-3.8.0/lib/libffi.so.8(+0xb25e) [0x7a988ac6025e]
+		??
+		??:0
+	#62 | /nix/store/wb232z007b8qynidq89lli8lb2c4q0r4-libffi-3.8.0/lib/libffi.so.8(ffi_call+0x165) [0x7a988ac617c5]
+		??
+		??:0
+	#63 | /nix/store/vjcwhp0milwa1jqy1inpjxrsh8hjrgwc-wayland-1.26.0/lib/libwayland-server.so.0(+0xfecc) [0x7a988da30ecc]
+		??
+		??:0
+	#64 | /nix/store/vjcwhp0milwa1jqy1inpjxrsh8hjrgwc-wayland-1.26.0/lib/libwayland-server.so.0(+0x9f27) [0x7a988da2af27]
+		??
+		??:0
+	#65 | /nix/store/vjcwhp0milwa1jqy1inpjxrsh8hjrgwc-wayland-1.26.0/lib/libwayland-server.so.0(wl_event_loop_dispatch+0x1c2) [0x7a988da2e612]
+		??
+		??:0
+	#66 | /nix/store/vjcwhp0milwa1jqy1inpjxrsh8hjrgwc-wayland-1.26.0/lib/libwayland-server.so.0(wl_display_run+0x25) [0x7a988da2b965]
+		??
+		??:0
+	#67 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN17CEventLoopManager9enterLoopEv+0x2d6) [0x59903284b054]
+		CEventLoopManager::enterLoop()
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/managers/eventLoop/EventLoopManager.cpp:137
+	#68 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_ZN11CCompositor15startCompositorEv+0x70f) [0x59903205fb79]
+		CCompositor::startCompositor()
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/Compositor.cpp:840 (discriminator 1)
+	#69 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(main+0x2345) [0x599032024ef9]
+		main
+		/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/src/main.cpp:297 (discriminator 1)
+	#70 | /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6(+0x2b285) [0x7a988aa2b285]
+		??
+		??:0
+	#71 | /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6(__libc_start_main+0x88) [0x7a988aa2b338]
+		??
+		??:0
+	#72 | /home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation/build/Hyprland(_start+0x25) [0x599032022925]
+		_start
+		??:?
+
+
+Log tail:
+ERR ]: [Config::CConfigWatcher::onInotifyEvent] CConfigWatcher: got an event for wd 10 which we don't have?!
+ERR ]: [Config::CConfigWatcher::onInotifyEvent] CConfigWatcher: got an event for wd 11 which we don't have?!
+ERR ]: [Config::CConfigWatcher::onInotifyEvent] CConfigWatcher: got an event for wd 12 which we don't have?!
+DEBUG ]: [IPC::Socket1::CUnixImpl::onServerEvent] [Socket1::Unix] accepted fd 56 from pid 1899167
+DEBUG ]: [IPC::Socket1::CUnixImpl::onServerEvent] [Socket1::Unix] accepted fd 56 from pid 1899167
+DEBUG ]: [void CXDGShellProtocol::bindManager] New xdg_wm_base at 59905a4a2ac0
+DEBUG ]: [uint32_t)>] New wl_surface with id 9 at 5990589cfa40
+DEBUG ]: [uint32_t, wl_resource*)>] New xdg_surface at 59905a484920
+DEBUG ]: [SP<CXDGWMBase>, SP<CWLSurfaceResource>)::<lambda] xdg_surface 59905a4a2ac0 gets a toplevel 59905a487110
+DEBUG ]: [Desktop::View::CWLSurface::init] CWLSurface 5990589b36d0 called init()
+DEBUG ]: [Desktop::View::CWindow::onUpdateMeta] Window 59905a5c1ce0 set title to surface scale transform test
+DEBUG ]: [Desktop::View::CWindow::onUpdateMeta] Window 59905a5c1ce0 set class to surface-scale-transform
+DEBUG ]: [Desktop::View::CWindow::commitWindow] Layout predicts size [Vector2D: x: 1920, y: 1080] for [Window 59905a5c1ce0: title: "surface scale transform test"]
+ERR ]: [CWLSurfaceResource::enter] Cannot enter surface 5990589cfa40 to HEADLESS-2, client hasn't bound the output
+DEBUG ]: [Desktop::CFocusState::rawSurfaceFocus] Set keyboard focus to surface 5990589cfa40, with [Window 59905a5c1ce0: title: "surface scale transform test"]
+ERR ]: [CWLSurfaceResource::enter] Cannot enter surface 5990589cfa40 to HEADLESS-2, client hasn't bound the output
+DEBUG ]: [Desktop::View::CWindow::mapWindow] Map request dispatched, monitor HEADLESS-2, window pos: [22.00000, 22.00000], window size: [1876.00000, 1036.00000]
+DEBUG ]: [IPC::Socket1::CUnixImpl::onServerEvent] [Socket1::Unix] accepted fd 67 from pid 1899167
+DEBUG ]: [uint32_t)>] New wl_surface with id 16 at 59905a5c14f0
+DEBUG ]: [uint32_t, wl_resource*, wl_resource*)>] New wl_subsurface with id 17 at 5990589b1b90
+DEBUG ]: [Desktop::View::CWLSurface::init] CWLSurface 5990589b1d00 called init()
+DEBUG ]: [uint32_t)>] New wl_surface with id 18 at 59905a5e0bf0
+DEBUG ]: [uint32_t, wl_resource*, wl_resource*)>] New wl_subsurface with id 19 at 5990589d9780
+DEBUG ]: [Desktop::View::CWLSurface::init] CWLSurface 59905a5a70f0 called init()
+DEBUG ]: [uint32_t)>] New wl_surface with id 20 at 59905a5bf9d0
+DEBUG ]: [uint32_t, wl_resource*, wl_resource*)>] New wl_subsurface with id 21 at 5990589bf140
+DEBUG ]: [Desktop::View::CWLSurface::init] CWLSurface 5990589d7800 called init()
+DEBUG ]: [bool Render::GL::CGLFramebuffer::internalAlloc] Framebuffer "Monitor HEADLESS-2 workbuffer" created, status 36053
+DEBUG ]: [bool Render::GL::CGLFramebuffer::internalAlloc] Framebuffer "Monitor HEADLESS-2 workbuffer" created, status 36053
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 0 (TFs 9 -> 9) for blurprepare.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 0 (TFs 9 -> 9) for blur1.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 0 (TFs 9 -> 9) for blur2.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 0 (TFs 9 -> 9) for blurfinish.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 16 (TFs 9 -> 9) for shadow.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 9 (TFs 9 -> 9) for surface.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 8 (TFs 9 -> 9) for quad.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 8 (TFs 9 -> 9) for surface.frag
+DEBUG ]: [Render::GL::CHyprOpenGLImpl::getShaderVariant] compiling feature set 8 (TFs 9 -> 9) for border.frag
+DEBUG ]: [Desktop::View::CWLSurface::destroy] CWLSurface 59905a5a70f0 called destroy()

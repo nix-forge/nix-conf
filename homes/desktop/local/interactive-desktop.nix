@@ -1,4 +1,10 @@
-{ lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   # Keep the workstation's interactive shell explicit. The generic modules
   # remain reusable in lightweight, recovery, and non-Hyprland profiles.
   desktop.enable = true;
@@ -7,7 +13,44 @@
   # brightness through DDC/CI, so Noctalia can use the ddcutil package and the
   # active-seat I2C access supplied by the NixOS hardware profile.
   desktop.noctalia = {
-    nightLight.enable = true;
+    dock = {
+      enable = true;
+      # Follow homes/macbook-pro-m4/local/dock.nix in the same order, using
+      # installed Linux counterparts for Finder, Messages, Calendar, Preview
+      # and Activity Monitor. Apple-only services do not get dead shortcuts.
+      pinned = [
+        "org.gnome.Nautilus"
+        "com.mitchellh.ghostty"
+        "code"
+        "chatgpt"
+        "zen-beta"
+        "signal"
+        "vesktop"
+        "spotify"
+        "org.gnome.Calendar"
+        "org.gnome.Papers"
+        "noctalia-settings"
+        "org.gnome.SystemMonitor"
+      ];
+    };
+    darkAppIcons.enable = true;
+    symbolicBarIcons = {
+      enable = true;
+      # ChatGPT sends a static app bitmap without a theme icon name. Limit the
+      # override to this known case so other tray pixmaps retain their badges.
+      trayOverrides.ChatGPT = "indicator-chatgpt";
+    };
+    nightLight = {
+      enable = true;
+      dayTemperature = 6500;
+      # Noctalia's blue gamma table reaches zero at 1900 K. See
+      # docs/night-light-sleep-evidence.md for the evidence and limitations.
+      nightTemperature = 1900;
+      # The one-hour fade finishes at 20:00, three hours before a 23:00
+      # bedtime. The existing morning fade finishes at 07:00.
+      sunset = "19:30";
+      sunrise = "06:30";
+    };
     brightness = {
       enable = true;
       enableDdcutil = true;
@@ -17,6 +60,19 @@
   desktop.applications.networkBackend = "iwd";
   desktop.applications.sessionLauncher = "uwsm app --";
   desktop.workflow.terminalCommand = "uwsm app -- ${lib.getExe pkgs.ghostty}";
+
+  xdg.dataFile."applications/noctalia-settings.desktop".source =
+    let
+      entry = pkgs.makeDesktopItem {
+        name = "noctalia-settings";
+        desktopName = "Desktop Settings";
+        exec = "${lib.getExe config.programs.noctalia.package} msg settings-open";
+        icon = "preferences-system";
+        categories = [ "Settings" ];
+        startupWMClass = "dev.noctalia.Noctalia";
+      };
+    in
+    "${entry}/share/applications/noctalia-settings.desktop";
 
   # Noctalia already shows the active network and opens iwgtk on demand. Hide
   # iwgtk's separate status-notifier autostart without removing the app.

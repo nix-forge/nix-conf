@@ -1,0 +1,140 @@
+{
+  "selection": {
+    "emoji:weight=regular:slant=roman": {
+      "file": "/nix/store/aqcjxx6j9yq175dar0x60qb1kdzvrm9z-noto-fonts-color-emoji-2.051/share/fonts/noto/NotoColorEmoji.ttf",
+      "family": "Noto Color Emoji",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 0
+    },
+    "monospace:weight=regular:slant=roman": {
+      "file": "/nix/store/s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400/share/fonts/opentype/NerdFonts/Monaspice/MonaspiceNeNerdFont-Regular.otf",
+      "family": "MonaspiceNe Nerd Font",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 0
+    },
+    "monospace:weight=bold:slant=roman": {
+      "file": "/nix/store/s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400/share/fonts/opentype/NerdFonts/Monaspice/MonaspiceNeNerdFont-Bold.otf",
+      "family": "MonaspiceNe Nerd Font",
+      "index": 0,
+      "weight": 200.0,
+      "slant": 0
+    },
+    "monospace:weight=regular:slant=italic": {
+      "file": "/nix/store/s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400/share/fonts/opentype/NerdFonts/Monaspice/MonaspiceNeNerdFont-Italic.otf",
+      "family": "MonaspiceNe Nerd Font",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 100
+    },
+    "monospace:weight=bold:slant=italic": {
+      "file": "/nix/store/s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400/share/fonts/opentype/NerdFonts/Monaspice/MonaspiceNeNerdFont-BoldItalic.otf",
+      "family": "MonaspiceNe Nerd Font",
+      "index": 0,
+      "weight": 200.0,
+      "slant": 100
+    },
+    "sans-serif:weight=regular:slant=roman": {
+      "file": "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1/share/fonts/truetype/Inter.ttc",
+      "family": "Inter",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 0
+    },
+    "sans-serif:weight=bold:slant=roman": {
+      "file": "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1/share/fonts/truetype/Inter.ttc",
+      "family": "Inter",
+      "index": 14,
+      "weight": 200.0,
+      "slant": 0
+    },
+    "sans-serif:weight=regular:slant=italic": {
+      "file": "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1/share/fonts/truetype/Inter.ttc",
+      "family": "Inter",
+      "index": 3,
+      "weight": 80.0,
+      "slant": 100
+    },
+    "sans-serif:weight=bold:slant=italic": {
+      "file": "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1/share/fonts/truetype/Inter.ttc",
+      "family": "Inter",
+      "index": 15,
+      "weight": 200.0,
+      "slant": 100
+    },
+    "serif:weight=regular:slant=roman": {
+      "file": "/nix/store/cmx5z0mwkcbixng4yv82i3rhp0jim4qc-literata-3.103/share/fonts/truetype/Literata-Regular.ttf",
+      "family": "Literata",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 0
+    },
+    "serif:weight=bold:slant=roman": {
+      "file": "/nix/store/cmx5z0mwkcbixng4yv82i3rhp0jim4qc-literata-3.103/share/fonts/truetype/Literata-Bold.ttf",
+      "family": "Literata",
+      "index": 0,
+      "weight": 200.0,
+      "slant": 0
+    },
+    "serif:weight=regular:slant=italic": {
+      "file": "/nix/store/cmx5z0mwkcbixng4yv82i3rhp0jim4qc-literata-3.103/share/fonts/truetype/Literata-Italic.ttf",
+      "family": "Literata",
+      "index": 0,
+      "weight": 80.0,
+      "slant": 100
+    },
+    "serif:weight=bold:slant=italic": {
+      "file": "/nix/store/cmx5z0mwkcbixng4yv82i3rhp0jim4qc-literata-3.103/share/fonts/truetype/Literata-BoldItalic.ttf",
+      "family": "Literata",
+      "index": 0,
+      "weight": 200.0,
+      "slant": 100
+    }
+  },
+  "cjk": [
+    {
+      "language": "ja",
+      "glyphs": [
+        [45132, 27873, 9808, 24227],
+        [45132, 27873, 9808, 24227],
+        [45132, 27873, 9808, 24227]
+      ]
+    },
+    {
+      "language": "zh-cn",
+      "glyphs": [
+        [45133, 27874, 9809, 58935],
+        [45133, 27874, 9809, 58935],
+        [45133, 27874, 9809, 58935]
+      ]
+    },
+    {
+      "language": "zh-tw",
+      "glyphs": [
+        [45134, 27874, 9810, 24228],
+        [45134, 27874, 9810, 24228],
+        [45134, 27874, 9810, 24228]
+      ]
+    },
+    {
+      "language": "ko",
+      "glyphs": [
+        [45132, 27873, 9808, 58935],
+        [45132, 27873, 9808, 58935],
+        [45132, 27873, 9808, 58935]
+      ]
+    }
+  ],
+  "failures": [],
+  "inventory": {
+    "uniqueFiles": 5199,
+    "fontBytes": 4563972034,
+    "postScriptNames": 9953
+  },
+  "elapsedSeconds": 2.517,
+  "duplicateIdentityCount": 1185,
+  "fontconfigCacheBytes": 23162984,
+  "validationProfile": "/nix/store/lh8n2d5qz7iw13wyi2pvw7ixp0fnffxm-home-manager-path",
+  "scope": "General user font collection from the successful desktop build, with upstream Fontconfig rules isolated from the active user profile; excludes system Apple document fonts."
+}

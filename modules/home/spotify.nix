@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
   awkExe = lib.getExe pkgs.gawk;
@@ -20,7 +20,7 @@ let
     name = "configure-spotify-quality.sh";
     src = ./scripts/configure-spotify-quality.sh;
     replacements = {
-      pgrep = "/usr/bin/pgrep";
+      pgrep = if isDarwin then "/usr/bin/pgrep" else lib.getExe' pkgs.procps "pgrep";
       mktemp = lib.getExe' pkgs.coreutils "mktemp";
       awk = awkExe;
       mv = lib.getExe' pkgs.coreutils "mv";
@@ -28,7 +28,7 @@ let
         if isDarwin then
           "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/prefs"} ${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"
         else
-          lib.escapeShellArg "${config.xdg.configHome}/spotify/prefs";
+          "${lib.escapeShellArg "${config.xdg.configHome}/spotify/prefs"} ${lib.escapeShellArg "${config.xdg.configHome}/spotify/Users"}/*-user/prefs";
     };
   };
   palette = config.appearance.palette;
@@ -141,7 +141,7 @@ in
   # Linux desktop sessions discover autostart applications through XDG. A
   # same-name user entry with `Hidden=true` overrides a vendor entry even if
   # Spotify or a package later supplies one.
-  xdg.configFile."autostart/spotify.desktop" = lib.mkIf (!isDarwin) {
+  xdg.configFile."autostart/spotify.desktop" = lib.mkIf isLinux {
     text = ''
       [Desktop Entry]
       Type=Application

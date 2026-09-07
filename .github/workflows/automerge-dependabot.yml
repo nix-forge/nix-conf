@@ -8,11 +8,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   enable:
+    name: enable
     if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'nix-forge/nix-conf' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
+      github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'nix-forge/nix-conf'
+      && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft
+      == false
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # Enable auto-merge for the pull request.
+      pull-requests: write # Create or update pull requests and enable auto-merge.
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

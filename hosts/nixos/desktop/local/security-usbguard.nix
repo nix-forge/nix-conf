@@ -10,6 +10,9 @@
     # work both directly and through the monitor KVM. Regenerate and review the
     # policy after a motherboard/peripheral firmware change or hardware move;
     # do not add broad vendor-ID allow rules.
+    # The Pulsar X2 V2 Mini has separate identities for its wireless receiver
+    # (3554:f508) and wired mode (3554:f507). The wired descriptor hash was
+    # reviewed from this desktop's USBGuard audit log on 2026-09-06.
     #
     # The currently attached Samsung Flash Drive FIT (090c:1000) is deliberately
     # absent. Removable mass storage is blocked by default. If it becomes a

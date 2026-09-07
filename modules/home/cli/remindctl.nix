@@ -1,13 +1,11 @@
 {
   self,
   system,
-  pkgs,
   lib,
   ...
 }:
-let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
-in
 {
-  home.packages = lib.mkIf isDarwin [ self.packages.${system}.remindctl ];
+  home.packages = lib.mkIf (self.packages.${system} ? remindctl) [
+    self.packages.${system}.remindctl
+  ];
 }

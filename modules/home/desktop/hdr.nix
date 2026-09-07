@@ -104,6 +104,12 @@ in
       }
     ];
 
+    # Source hints belong to the HDR compositor integration, not every Linux
+    # mpv installation. Leave SDR sessions and other backends at mpv defaults.
+    programs.mpv.config = lib.mkIf config.programs.mpv.enable {
+      "target-colorspace-hint-mode" = "source";
+    };
+
     # Keep the ordinary desktop in Hyprland's recommended 10-bit automatic
     # color mode. Fullscreen clients that declare HDR content temporarily
     # switch the output to PQ, while VRR stays off for ordinary desktop work

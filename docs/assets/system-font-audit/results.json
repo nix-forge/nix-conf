@@ -1,0 +1,42 @@
+{
+  "system_emoji_before": 3805,
+  "system_emoji_after": 3953,
+  "unicode_17_rgi_total": 3953,
+  "multilingual_before": [
+    {
+      "different_pixels": 704,
+      "language": "Telugu",
+      "reference_ink": 421
+    },
+    {
+      "different_pixels": 568,
+      "language": "Khmer",
+      "reference_ink": 346
+    },
+    {
+      "different_pixels": 644,
+      "language": "Myanmar",
+      "reference_ink": 325
+    }
+  ],
+  "multilingual_after": [
+    {
+      "different_pixels": 0,
+      "language": "Telugu",
+      "reference_ink": 421
+    },
+    {
+      "different_pixels": 0,
+      "language": "Khmer",
+      "reference_ink": 346
+    },
+    {
+      "different_pixels": 0,
+      "language": "Myanmar",
+      "reference_ink": 325
+    }
+  ],
+  "built_system": "/nix/store/pym7azqil3whqdjmsxd1j6i1ixasm116-nixos-system-desktop-26.11.20260826.9fbb54b",
+  "active_system": "/nix/store/zaw2s7kckiayl7n9kd51mxpvdv2xgam7-nixos-system-desktop-26.11.20260826.9fbb54b",
+  "activation_pending": true
+}

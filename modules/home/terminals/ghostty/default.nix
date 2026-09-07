@@ -1,15 +1,60 @@
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+  ghostty = config.programs.ghostty.package;
+  # Remove this backport when the pinned release includes upstream #11644.
+  fixBashPrompt = config.programs.bash.enable && lib.getVersion ghostty == "1.3.1";
+  bashIntegration =
+    pkgs.runCommandLocal "ghostty-bash-integration"
+      {
+        nativeBuildInputs = [
+          pkgs.patch
+          config.programs.bash.package
+        ];
+      }
+      ''
+        mkdir -p "$out"
+        cp -r ${ghostty.shell_integration}/bash "$out/bash"
+        chmod -R u+w "$out"
+        patch --directory "$out" -p3 < ${./patches/bash-ble-prompt.patch}
+        bash -n "$out/bash/ghostty.bash"
+      '';
 in
 {
+  # Load the patched copy through Home Manager. Automatic injection would
+  # reload the app's original hook after .bashrc and undo the fix. Keeping the
+  # copy outside Ghostty.app preserves its macOS code signature.
+  programs.bash.initExtra = lib.mkIf fixBashPrompt (
+    lib.mkOrder 101 ''
+      if [[ -n "''${GHOSTTY_RESOURCES_DIR-}" ]]; then
+        builtin source -- "${bashIntegration}/bash/ghostty.bash"
+      fi
+    ''
+  );
+
   programs.ghostty = {
     enable = true;
     package = lib.mkIf isDarwin pkgs.ghostty-bin;
+    enableBashIntegration = lib.mkIf fixBashPrompt (lib.mkForce false);
 
     # DOCS: https://ghostty.org/docs/config/reference
     settings = {
-      shell-integration = "detect";
+      # Let Ghostty choose text/emoji presentation and the platform fallback,
+      # including Apple Color Emoji on macOS. An explicit Noto emoji family
+      # also shrinks nom's one-cell text stopwatch on Linux.
+      font-family = lib.mkForce [ config.stylix.fonts.monospace.name ];
+
+      # Stylix uses base02 for selections, which is nearly black in Carbon
+      # Neon. Use the accent with dark text to make selected ranges visible.
+      selection-background = config.appearance.palette.accent;
+      selection-foreground = config.appearance.palette.surface;
+
+      shell-integration = if fixBashPrompt then "none" else "detect";
       # Hosts that need Ghostty's terminfo declare it themselves (notably the
       # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a
       # spurious failure even when the remote system already has the entry.

@@ -187,6 +187,11 @@ in
           "editor.fontLigatures" =
             "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'ss10'";
           "terminal.integrated.fontLigatures.enabled" = true;
+          # Iosevka's text stopwatch fits a terminal cell. Chromium otherwise
+          # falls back to a wide color glyph that xterm squeezes horizontally.
+          # Keep emoji presentation and overlapping-glyph protection intact.
+          # Iosevka Charon Mono is included in our shared Google Fonts package.
+          "terminal.integrated.fontFamily" = "'${config.stylix.fonts.monospace.name}', 'Iosevka Charon Mono'";
           "editor.fontVariations" = true;
 
           # popups are really annoying

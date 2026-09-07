@@ -1,0 +1,412 @@
+{
+  "visiblePaths": 9320,
+  "distinctFiles": 5218,
+  "fontBytes": 4599502919,
+  "packages": [
+    {
+      "package": "47ianb7527fim5amwl9k40v2ck0wb0aj-google-fonts-0-unstable-2026-03-13",
+      "files": 3845,
+      "bytes": 2351529032
+    },
+    {
+      "package": "vypcbjrblyw90m5g63y6zh8fwq13mx4x-noto-fonts-2026.08.01",
+      "files": 229,
+      "bytes": 51414364
+    },
+    {
+      "package": "s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400",
+      "files": 150,
+      "bytes": 406090092
+    },
+    {
+      "package": "k713n53zsxarqz50w7sr1lv2wxxkx05y-ttf-ms-win11-auto-10.0.26200.6584",
+      "files": 143,
+      "bytes": 361808722
+    },
+    {
+      "package": "aalvak28gm0zzzspcczw5yjx212jbccr-source-serif-4.005",
+      "files": 122,
+      "bytes": 30126608
+    },
+    {
+      "package": "qgi0zfsds1x52ax69iak1kziznav550l-nerd-fonts-jetbrains-mono-3.5.0+2.304",
+      "files": 96,
+      "bytes": 239465964
+    },
+    {
+      "package": "8h95zsvaz0f2p91xbkkg2fizcmwb2cvj-mplus-outline-fonts-github-unstable-2022-05-19",
+      "files": 92,
+      "bytes": 84358120
+    },
+    {
+      "package": "qfzw22cmji02rhysczyig48792wca08a-lexend-0.pre+date=2022-09-22",
+      "files": 80,
+      "bytes": 8989304
+    },
+    {
+      "package": "3z6bs83vx71005h5jqg99qfb75g4s2sc-font-misc-misc-1.1.3",
+      "files": 47,
+      "bytes": 2723953
+    },
+    {
+      "package": "lxg4nvdadv301i8by51vcb4f3h5g5nga-newcomputermodern-8.1.1",
+      "files": 41,
+      "bytes": 22731280
+    },
+    {
+      "package": "pcp37l3mznc566iinwmx10nppyjm30cs-nerd-fonts-caskaydia-cove-3.5.0+2407.24",
+      "files": 36,
+      "bytes": 102159272
+    },
+    {
+      "package": "k0s6chvkwcczk6wmmf38b0w5rdm32ij9-gyre-fonts-2.501",
+      "files": 33,
+      "bytes": 4818912
+    },
+    {
+      "package": "2248wdsdfc1mxzdyfcjcmkrhx72kvzqr-cm-unicode-0.7.0",
+      "files": 33,
+      "bytes": 7935732
+    },
+    {
+      "package": "4szpnz9ynzsv625s9w5gg8kd76wx1avv-source-sans-3.052",
+      "files": 32,
+      "bytes": 11048324
+    },
+    {
+      "package": "1vi8fs87sv965vhgyl5vbgqn9xkbibfm-corefonts-1",
+      "files": 30,
+      "bytes": 5619732
+    },
+    {
+      "package": "0lhf2h2fnjqvpzmk92s5axr2ybvs981s-dejavu-fonts-2.37",
+      "files": 21,
+      "bytes": 9480124
+    },
+    {
+      "package": "gj1xjh2cnpj2a1kh3cc5ydgjpv4psv2g-roboto-3.016",
+      "files": 20,
+      "bytes": 8139052
+    },
+    {
+      "package": "bcn1mjl7c187rxx4i5gvs9imd0ziasb2-work-sans-2.010",
+      "files": 20,
+      "bytes": 4541220
+    },
+    {
+      "package": "dh83scixykmcb9rs6myywamzjs9038dk-lato-2.0",
+      "files": 18,
+      "bytes": 11866656
+    },
+    {
+      "package": "np1vwq978hk9ykn44d0rmrnmkwvak4zk-nerd-fonts-fira-code-3.5.0+6.2",
+      "files": 18,
+      "bytes": 48983052
+    },
+    {
+      "package": "1d5vm6zl3mh992drn2nfwxsisw7zqp0y-open-sans-1.11",
+      "files": 13,
+      "bytes": 2870116
+    },
+    {
+      "package": "8r48nfm4db3dsbnlnjr9ishfi4j8rbbn-liberation-fonts-2.1.5",
+      "files": 12,
+      "bytes": 4340568
+    },
+    {
+      "package": "m1krv2mvh97plh2xz94g2qrm3xc2hgzl-freefont-ttf-20120503",
+      "files": 12,
+      "bytes": 10797540
+    },
+    {
+      "package": "y3ws2lwl36ni4151118i2sgv8pza8ydz-unifont-17.0.05",
+      "files": 9,
+      "bytes": 28180291
+    },
+    {
+      "package": "hkx3jkz2fzyk6b6ckpdi3cg27c60iqic-adwaita-fonts-50.0",
+      "files": 6,
+      "bytes": 7642292
+    },
+    {
+      "package": "cgmnjzywv0w3igghlqzkqxdjq3aqzgkc-xits-math-1.302",
+      "files": 6,
+      "bytes": 1453336
+    },
+    {
+      "package": "p2aaiallv2smm49dq6yydq9kpb25cxli-material-icons-4.0.0",
+      "files": 5,
+      "bytes": 1254476
+    },
+    {
+      "package": "kv0ma4r8w83cgn99zb8xp31hf78myc4g-ipafont-003.03",
+      "files": 4,
+      "bytes": 28563816
+    },
+    {
+      "package": "lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1",
+      "files": 3,
+      "bytes": 14962908
+    },
+    {
+      "package": "zd2hw3xc6398sj2ddl03b74ga0p7n6z5-font-awesome-7.2.0",
+      "files": 3,
+      "bytes": 717136
+    },
+    {
+      "package": "dllg6pqphyxipzwihzb6phmjlq4r0w4b-noto-fonts-cjk-sans-2.004",
+      "files": 2,
+      "bytes": 64590912
+    },
+    {
+      "package": "3bd2a4yq9bry1g0dcz7drww3nfi1adag-openmoji-17.0.0",
+      "files": 2,
+      "bytes": 45016436
+    },
+    {
+      "package": "cig3cnw6r1cxaid93nb9c2k1d2pfhc0j-hanazono-20170904",
+      "files": 2,
+      "bytes": 53500464
+    },
+    {
+      "package": "9v79pc2crsf00zr0njaqnfbkfq20jx85-ipaexfont-004.01",
+      "files": 2,
+      "bytes": 13935572
+    },
+    {
+      "package": "zqhby0xidpi0xsafsbl4l7dc72imqqq6-dejavu-fonts-minimal-2.37",
+      "files": 1,
+      "bytes": 759676
+    },
+    {
+      "package": "bq50mz4sjj9mqm036y2xdrapflfi74h8-source-han-serif-2.003",
+      "files": 1,
+      "bytes": 170495268
+    },
+    {
+      "package": "lqqgygdvdwc3mdq1sb8h3kh5i3328yy9-apple-asset-caneladeck-regular-10M11177",
+      "files": 1,
+      "bytes": 455952
+    },
+    {
+      "package": "fzz5lprkzmkzjj8fhsnrayj78dyw62cp-source-han-sans-2.005",
+      "files": 1,
+      "bytes": 117351964
+    },
+    {
+      "package": "fvpraqyd0sjinyr2k5pwlpf6r30n7qkx-apple-asset-brill-italic-10M11177",
+      "files": 1,
+      "bytes": 1921236
+    },
+    {
+      "package": "9wbsinrcbrppf5v7din5j7cksld5rwis-apple-asset-publicoheadline-roman-10M11177",
+      "files": 1,
+      "bytes": 1532116
+    },
+    {
+      "package": "dd2rni8kr5xlsjp8fpp4xz29mgfwvb7s-apple-asset-foundersgrotesk-regular-10M11177",
+      "files": 1,
+      "bytes": 572172
+    },
+    {
+      "package": "it01cj9aqvvh22a2sin15ac0y8v602m3-apple-asset-product-regular-10M13685",
+      "files": 1,
+      "bytes": 2386100
+    },
+    {
+      "package": "qz2r69n07jp25h3iic5wzdad4gv2v6lh-apple-asset-graphikcompact-regular-10M11177",
+      "files": 1,
+      "bytes": 656116
+    },
+    {
+      "package": "1l51v2vzypf330fnwcagxa9frjyfpr0q-apple-asset-graphik-regular-10M11177",
+      "files": 1,
+      "bytes": 772276
+    },
+    {
+      "package": "40pdaziz3whhcnrvwx91g55n44083rmr-material-design-icons-7.4.47",
+      "files": 1,
+      "bytes": 1307660
+    },
+    {
+      "package": "h56lvn01bzyv9r64w4jbkacj1wh88f74-firefox-emoji-1.7.9",
+      "files": 1,
+      "bytes": 1137116
+    },
+    {
+      "package": "1z4bippmb5qf0g89vmwzq673iiv73qby-apple-asset-foundersgroteskcond-reg-10M11177",
+      "files": 1,
+      "bytes": 174600
+    },
+    {
+      "package": "skpmhgg600pnz3hhva042hhxlxjfklx5-apple-asset-canela-regular-10M11177",
+      "files": 1,
+      "bytes": 302304
+    },
+    {
+      "package": "rqhxp3vms5zpywpvk3klcpr944s4as8p-kanji-stroke-order-font-4.005",
+      "files": 1,
+      "bytes": 18076964
+    },
+    {
+      "package": "gxs0n7s3ajv9ivm79ghv11p745qq1hc3-noto-fonts-cjk-serif-2.003",
+      "files": 1,
+      "bytes": 57488648
+    },
+    {
+      "package": "s65y648ks7j2fnm4cm9zv2hvg9syk7v4-apple-asset-proximanova-regular-10M11177",
+      "files": 1,
+      "bytes": 1603796
+    },
+    {
+      "package": "3n4nkpdp5pbyaqj7rjmqk0bskjs706y5-joypixels-9.0.0",
+      "files": 1,
+      "bytes": 14085976
+    },
+    {
+      "package": "lq9bfkm6gildvzyg6w6dr743mhayihfg-apple-asset-brill-roman-10M11177",
+      "files": 1,
+      "bytes": 1808248
+    },
+    {
+      "package": "jmb5lp13kbk4hqd17yqvc4j47690f99v-apple-asset-publicotext-roman-10M11177",
+      "files": 1,
+      "bytes": 813820
+    },
+    {
+      "package": "9yx5b7cvcqawk641g7h9f1g66q6kkz1s-mutant-standard-emoji-2024.06",
+      "files": 1,
+      "bytes": 1394728
+    },
+    {
+      "package": "90b8bhqpdjhskpnmzfm86laacq3cd81a-apple-asset-canelatext-regular-10M11177",
+      "files": 1,
+      "bytes": 685172
+    },
+    {
+      "package": "bwc2v4md4ah6fha5rfg6hfjbm19dnd4p-apple-asset-foundersgrotesktext-regular-10M11177",
+      "files": 1,
+      "bytes": 532552
+    },
+    {
+      "package": "ps0qclj2rargg08qmvwqxvfidv6jzpwl-apple-asset-domainedisplay-regular-10M11177",
+      "files": 1,
+      "bytes": 841940
+    },
+    {
+      "package": "k1hnlilmprhmrj1ayh0bjszb6shiyjhk-apple-asset-spotmono-regular-10M11177",
+      "files": 1,
+      "bytes": 434312
+    },
+    {
+      "package": "aqcjxx6j9yq175dar0x60qb1kdzvrm9z-noto-fonts-color-emoji-2.051",
+      "files": 1,
+      "bytes": 10673296
+    },
+    {
+      "package": "ycpsd4s5zl6sqf50pl4xqmyn6fkq7c4s-twitter-color-emoji-17.0.2",
+      "files": 1,
+      "bytes": 4035924
+    },
+    {
+      "package": "k8zpphzviifyk2mbdhxz152kixizx0fp-apple-color-emoji-26-20260722-484daf4e",
+      "files": 1,
+      "bytes": 116043320
+    },
+    {
+      "package": "sbkn034wwahqzvvgbaskcdalsl7m4dl6-font-cursor-misc-1.0.4",
+      "files": 1,
+      "bytes": 5225
+    },
+    {
+      "package": "1bx3knvnisrr8yfr7pi3qy1iipqxypqb-twemoji-color-font-15.1.0",
+      "files": 1,
+      "bytes": 15272736
+    },
+    {
+      "package": "bl4b7k3k0x0ln596nrm3n0zv3vky9kjw-emojione-legacy-2.2.7",
+      "files": 1,
+      "bytes": 4226328
+    }
+  ],
+  "duplicateIdentities": {
+    "MPLUS1-Regular": [
+      [
+        "/nix/store/47ianb7527fim5amwl9k40v2ck0wb0aj-google-fonts-0-unstable-2026-03-13/share/fonts/truetype/MPLUS1[wght].ttf",
+        "65602"
+      ],
+      [
+        "/nix/store/8h95zsvaz0f2p91xbkkg2fizcmwb2cvj-mplus-outline-fonts-github-unstable-2022-05-19/share/fonts/opentype/Mplus1-Regular.otf",
+        "65602"
+      ],
+      [
+        "/nix/store/8h95zsvaz0f2p91xbkkg2fizcmwb2cvj-mplus-outline-fonts-github-unstable-2022-05-19/share/fonts/truetype/Mplus1-Regular.ttf",
+        "65602"
+      ]
+    ],
+    "Roboto-Regular": [
+      [
+        "/nix/store/47ianb7527fim5amwl9k40v2ck0wb0aj-google-fonts-0-unstable-2026-03-13/share/fonts/truetype/Roboto[wdth,wght].ttf",
+        "197591"
+      ],
+      [
+        "/nix/store/gj1xjh2cnpj2a1kh3cc5ydgjpv4psv2g-roboto-3.016/share/fonts/truetype/Roboto-Regular.ttf",
+        "197657"
+      ]
+    ],
+    "ArialMT": [
+      [
+        "/nix/store/1vi8fs87sv965vhgyl5vbgqn9xkbibfm-corefonts-1/share/fonts/truetype/Arial.ttf",
+        "184812"
+      ],
+      [
+        "/nix/store/k713n53zsxarqz50w7sr1lv2wxxkx05y-ttf-ms-win11-auto-10.0.26200.6584/share/fonts/truetype/arial.ttf",
+        "460718"
+      ]
+    ],
+    "Inter-Regular": [
+      [
+        "/nix/store/47ianb7527fim5amwl9k40v2ck0wb0aj-google-fonts-0-unstable-2026-03-13/share/fonts/truetype/Inter[opsz,wght].ttf",
+        "262210"
+      ],
+      [
+        "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1/share/fonts/truetype/Inter.ttc",
+        "262210"
+      ]
+    ],
+    "Arial-BoldMT": [
+      [
+        "/nix/store/1vi8fs87sv965vhgyl5vbgqn9xkbibfm-corefonts-1/share/fonts/truetype/Arial_Bold.ttf",
+        "184812"
+      ],
+      [
+        "/nix/store/k713n53zsxarqz50w7sr1lv2wxxkx05y-ttf-ms-win11-auto-10.0.26200.6584/share/fonts/truetype/arialbd.ttf",
+        "460718"
+      ]
+    ],
+    "TimesNewRomanPSMT": [
+      [
+        "/nix/store/1vi8fs87sv965vhgyl5vbgqn9xkbibfm-corefonts-1/share/fonts/truetype/Times_New_Roman.ttf",
+        "184812"
+      ],
+      [
+        "/nix/store/k713n53zsxarqz50w7sr1lv2wxxkx05y-ttf-ms-win11-auto-10.0.26200.6584/share/fonts/truetype/times.ttf",
+        "462029"
+      ]
+    ]
+  },
+  "selections": {
+    "sans-serif": "Inter\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/truetype/Inter.ttc\t5\t1",
+    "serif": "Literata\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/truetype/Literata[opsz,wght].ttf\t5\t1",
+    "monospace": "MonaspiceNe Nerd Font,MonaspiceNe NF\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/NerdFonts/Monaspice/MonaspiceNeNerdFont-Regular.otf\t5\t1",
+    "emoji": "Noto Color Emoji\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/noto/NotoColorEmoji.ttf\t5\t1",
+    "sans-serif:lang=ja:charset=9aa8": "Noto Sans CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSansCJK-VF.otf.ttc\t5\t1",
+    "sans-serif:lang=zh-cn:charset=9aa8": "Noto Sans CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSansCJK-VF.otf.ttc\t5\t1",
+    "sans-serif:lang=zh-tw:charset=9aa8": "Noto Sans CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSansCJK-VF.otf.ttc\t5\t1",
+    "sans-serif:lang=ko:charset=9aa8": "Noto Sans CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSansCJK-VF.otf.ttc\t5\t1",
+    "serif:lang=ja:charset=9aa8": "Noto Serif CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSerifCJK-VF.otf.ttc\t5\t1",
+    "monospace:lang=ja:charset=9aa8": "Noto Sans Mono CJK SC\t/nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/share/fonts/opentype/noto-cjk/NotoSansMonoCJK-VF.otf.ttc\t5\t1"
+  },
+  "duplicateIdentityCount": 1211,
+  "note": "Distinct file paths resolve symlinks; sizes are file bytes, not closure sizes or RAM use. Duplicate identity count includes legitimate variable/static and container variants."
+}

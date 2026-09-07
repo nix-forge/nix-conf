@@ -1,0 +1,44 @@
+/* Keep hover and keyboard focus from competing with the selected window. */
+.window {
+    font-family: "@font@";
+    color: @base05@;
+}
+
+.monitor {
+    padding: 8px;
+    background: @base00@;
+    border: 1px solid @base03@;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+flowboxchild {
+    padding: 4px;
+}
+
+.client,
+.client:hover {
+    font-size: 14px;
+    font-weight: normal;
+    color: @base05@;
+    background: @base01@;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    box-shadow: none;
+    outline: none;
+}
+
+.client.active,
+.client.active:hover {
+    background: @base02@;
+    border-color: @base0D@;
+}
+
+.client label {
+    color: @base05@;
+    padding: 6px 4px 2px;
+}
+
+.client-image {
+    margin: 8px 0;
+}

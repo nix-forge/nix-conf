@@ -1,0 +1,15 @@
+{
+  "sans-serif": "Inter: Inter-Regular",
+  "serif": "Literata: Literata-Regular",
+  "monospace": "MonaspiceNe Nerd Font,MonaspiceNe NF: MonaspiceNeNF",
+  "emoji": "Noto Color Emoji: NotoColorEmoji",
+  "math": "XITS Math: XITSMath-Regular",
+  "system-ui": "Inter: Inter-Regular",
+  "sans-serif:lang=ja": "Inter: Inter-Regular",
+  "sans-serif:lang=zh-cn": "Inter: Inter-Regular",
+  "sans-serif:lang=zh-tw": "Inter: Inter-Regular",
+  "sans-serif:lang=ko": "Inter: Inter-Regular",
+  "sans-serif:lang=ar": "Inter: Inter-Regular",
+  "sans-serif:lang=hi": "Inter: Inter-Regular",
+  "Noto Color Emoji": "Noto Color Emoji: NotoColorEmoji"
+}

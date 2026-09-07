@@ -1,0 +1,85 @@
+diff --git a/src/desktop/view/Subsurface.cpp b/src/desktop/view/Subsurface.cpp
+index b70d3259d3c6..a9b81dec19a6 100644
+--- a/src/desktop/view/Subsurface.cpp
++++ b/src/desktop/view/Subsurface.cpp
+@@ -324,7 +324,7 @@ void CSubsurface::syncScaleTransform() const {
+ }
+ 
+ Vector2D CSubsurface::size() {
+-    return m_wlSurface->resource()->m_current.size;
++    return size(GEOMETRIC_CURRENT);
+ }
+ 
+ size_t CSubsurface::allChildrenCount() const {
+diff --git a/src/protocols/core/Compositor.cpp b/src/protocols/core/Compositor.cpp
+index 3d86d4da86bf..f4fa3d88ab31 100644
+--- a/src/protocols/core/Compositor.cpp
++++ b/src/protocols/core/Compositor.cpp
+@@ -712,10 +712,10 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
+     auto parent = m_self;
+     if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+         auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
+-        parent          = subsurface->t1Parent();
++        parent          = subsurface ? subsurface->t1Parent() : nullptr;
+     }
+     PHLMONITORREF monitor;
+-    if (parent->m_enteredOutputs.size() == 1)
++    if (parent && parent->m_enteredOutputs.size() == 1)
+         monitor = parent->m_enteredOutputs[0];
+     else if (m_hlSurface.valid() && WINDOW)
+         monitor = WINDOW->m_monitor;
+diff --git a/src/protocols/core/Subcompositor.cpp b/src/protocols/core/Subcompositor.cpp
+index b8907b40dfcc..6567d508755b 100644
+--- a/src/protocols/core/Subcompositor.cpp
++++ b/src/protocols/core/Subcompositor.cpp
+@@ -120,14 +120,15 @@ Vector2D CWLSubsurfaceResource::posRelativeToParent() {
+     Vector2D               pos  = m_position;
+     SP<CWLSurfaceResource> surf = m_parent.lock();
+ 
+-    // some apps might create cycles, which I believe _technically_ are not a protocol error
+-    // in some cases, notably firefox likes to do that, so we keep track of what
+-    // surfaces we've visited and if we hit a surface we've visited we bail out.
++    // Keep traversal bounded if a parent chain contains a cycle.
+     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
+ 
+-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
++    while (surf && surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
++           std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+         surfacesVisited.emplace_back(surf);
+-        auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
++        auto subsurface = sc<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
++        if (!subsurface)
++            break;
+         pos += subsurface->m_position;
+         surf = subsurface->m_parent.lock();
+     }
+@@ -142,10 +143,13 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
+     SP<CWLSurfaceResource>              surf = m_parent.lock();
+     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
+ 
+-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
++    while (surf && surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
++           std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+         surfacesVisited.emplace_back(surf);
+-        auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
+-        surf            = subsurface->m_parent.lock();
++        auto subsurface = sc<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
++        if (!subsurface)
++            return nullptr;
++        surf = subsurface->m_parent.lock();
+     }
+     return surf;
+ }
+@@ -181,7 +185,11 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
+ 
+         if (PARENT->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+             auto subsurface = sc<CSubsurfaceRole*>(PARENT->m_role.get())->m_subsurface.lock();
+-            t1Parent        = subsurface->t1Parent();
++            if (!subsurface) {
++                r->error(WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE, "Parent has no subsurface resource");
++                return;
++            }
++            t1Parent = subsurface->t1Parent();
+         } else
+             t1Parent = PARENT;
+ 

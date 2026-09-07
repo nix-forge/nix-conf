@@ -3,36 +3,8 @@ let
   themeNames = inputs: (themeDefinitions inputs).names;
   themeSchemes = inputs: (themeDefinitions inputs).schemes;
 
-  fontFallbacks = fonts: {
-    serif = [
-      fonts.serif.name
-      "Noto Serif CJK SC"
-      "Noto Serif CJK TC"
-      "Noto Serif CJK HK"
-      "Noto Serif CJK JP"
-      "Noto Serif CJK KR"
-      "Noto Color Emoji"
-    ];
-    sansSerif = [
-      fonts.sansSerif.name
-      "Noto Sans CJK SC"
-      "Noto Sans CJK TC"
-      "Noto Sans CJK HK"
-      "Noto Sans CJK JP"
-      "Noto Sans CJK KR"
-      "Noto Color Emoji"
-    ];
-    monospace = [
-      fonts.monospace.name
-      "Noto Sans Mono CJK SC"
-      "Noto Sans Mono CJK TC"
-      "Noto Sans Mono CJK HK"
-      "Noto Sans Mono CJK JP"
-      "Noto Sans Mono CJK KR"
-      "Noto Color Emoji"
-    ];
-    emoji = [ fonts.emoji.name ];
-  };
+  fontCatalog = import ./font-packages.nix { };
+  fontFallbacks = fontCatalog.fallbacks;
 
   # Applications often need roles that Base16 does not name directly. Keep
   # those roles in one place, so native integrations do not each grow their
@@ -128,27 +100,7 @@ let
 
       opacity.terminal = 0.9;
 
-      fonts = {
-        monospace = {
-          package = pkgs.nerd-fonts.monaspace;
-          name = "MonaspiceNe Nerd Font";
-        };
-
-        sansSerif = {
-          package = pkgs.inter;
-          name = "Inter";
-        };
-
-        serif = {
-          package = pkgs.google-fonts;
-          name = "Literata";
-        };
-
-        emoji = {
-          package = pkgs.noto-fonts-color-emoji;
-          name = "Noto Color Emoji";
-        };
-      };
+      fonts = fontCatalog.roles pkgs;
     };
   linuxShared = { pkgs, ... }: {
     cursor = {
@@ -174,7 +126,10 @@ in
       ...
     }:
     {
-      imports = [ inputs.stylix.nixosModules.default ];
+      imports = [
+        inputs.stylix.nixosModules.default
+        ../nixos/locale/font-selection.nix
+      ];
 
       options.appearance.theme = lib.mkOption {
         type = lib.types.enum (themeNames inputs);
@@ -236,7 +191,12 @@ in
 
       config.stylix = lib.mkMerge [
         (stylixShared { inherit config inputs pkgs; })
-        { homeManagerIntegration.autoImport = false; }
+        {
+          homeManagerIntegration.autoImport = false;
+          # Personal fonts, including roles, are installed natively by HM once.
+          # nix-darwin owns only the shared Apple document collection.
+          targets.font-packages.enable = false;
+        }
       ];
 
       config.appearance.palette = semanticPalette config;

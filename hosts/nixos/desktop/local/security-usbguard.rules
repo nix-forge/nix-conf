@@ -18,3 +18,4 @@ allow hash "lDfabLRo3dN1+Q5vkNjGx8UiBiDKFsDDBNgIGpTHOXQ=" parent-hash "W9IsebkP0
 allow hash "5qV38hE0ACWm79QYAOtGSKu9XWKXnOma2l8bhjeTCYU=" parent-hash "W9IsebkP0pg7VThs+fEitiTx/3tbu6hxA9OCYTEbJFQ=" via-port "5-2.6"
 allow hash "BertsznnITAaNuTIVmTDexmItla4SVzIu0GewGgZp1Y="
 allow hash "gPI7GdWoaX0fu8DRkks2RxbY/4Mcm7qeop13NChBHCs="
+allow hash "XgBTq8pVM6qfvawSNZmeXDW2es5VdsP1m3ZrCbTRHiA="

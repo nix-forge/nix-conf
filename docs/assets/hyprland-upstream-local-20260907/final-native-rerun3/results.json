@@ -1,0 +1,28 @@
+{
+  "source_revision": "34eb03bd8da01024596c367fba66485a8c9b8ca7",
+  "cases_passed": [
+    "subsurfaceAncestry",
+    "subsurfaceParentTeardown",
+    "subsurfaceOrphanAncestry",
+    "subsurfaceAncestorTeardown",
+    "subsurfaceCycle",
+    "subsurfaceChildFirst",
+    "subsurfaceDisconnect",
+    "subsurfaceOrphanFeedback",
+    "subsurfaceRoleTeardown"
+  ],
+  "case_summary": {
+    "passed": 9,
+    "failed": 0
+  },
+  "new_responsiveness_assertions_observed": true,
+  "hyprtester_summary_present": true,
+  "evidence_wrapper_status": 2,
+  "post_summary_crash_artifact": true,
+  "parent": {
+    "package": "cage-0.3.1",
+    "path": "/nix/store/nqdbn9l93b5nganbwv16bg8d14fx6vxg-cage-0.3.1/bin/cage",
+    "derivation": "/nix/store/bkax2ahva5qyzkjxl9wg6kjhv4nqzfbi-cage-0.3.1.drv",
+    "local_compatibility_change": "wlr_xdg_shell_create version cap 5 -> 6"
+  }
+}

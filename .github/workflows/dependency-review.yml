@@ -14,8 +14,12 @@ on:
         required: true
         type: string
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   dependency-review:
+    name: dependency-review
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -34,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
-      actions: write
+      actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify the trusted queue reconciler
         env:

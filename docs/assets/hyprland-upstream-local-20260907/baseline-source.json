@@ -1,0 +1,9 @@
+{
+  "revision": "34eb03bd8da01024596c367fba66485a8c9b8ca7",
+  "source_diff": "",
+  "sha256": {
+    "src/protocols/core/Subcompositor.cpp": "9ca266b3f78daddba774a6890a7e89d9480807de518311c5e30c06f67412e98c",
+    "src/protocols/core/Compositor.cpp": "196466619adf2bc6fb9c68363d4d11ee7a6e27af9c13e2bd6f79760abd06c9c4",
+    "src/desktop/view/Subsurface.cpp": "6f5fcc0a9bbc102a3a7e61ebe10ebdd18729536ff6d1e8dea205aef3d81de777"
+  }
+}

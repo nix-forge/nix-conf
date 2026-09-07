@@ -1,0 +1,40 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -45,7 +45,7 @@
+   -Wno-narrowing
+   -Wno-pointer-arith
+   $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fpermissive>
+-  -Wno-address-of-temporary)
++  $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Wno-address-of-temporary>)
+ 
+ # dependencies
+ message(STATUS "Checking deps...")
+--- a/hyprland-share-picker/main.cpp
++++ b/hyprland-share-picker/main.cpp
+@@ -155,7 +155,6 @@
+     const auto WINDOWS_SCROLL_AREA_CONTENTS_LAYOUT = WINDOWS_SCROLL_AREA_CONTENTS->layout();
+ 
+     // loop over them
+-    int windowIterator = 0;
+     for (auto& window : WINDOWLIST) {
+         QString       text = QString::fromStdString(window.clazz + ": " + window.name);
+ 
+@@ -180,7 +179,6 @@
+             return 0;
+         });
+ 
+-        windowIterator++;
+     }
+ 
+     QSpacerItem* WINDOWS_SPACER = new QSpacerItem(0, 10000, QSizePolicy::Expanding, QSizePolicy::Expanding);
+--- a/src/shared/ScreencopyShared.cpp
++++ b/src/shared/ScreencopyShared.cpp
+@@ -48,7 +48,7 @@
+ 
+     static auto* const* PALLOWTOKENBYDEFAULT =
+         (Hyprlang::INT* const*)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:allow_token_by_default")->getDataStaticPtr();
+-    static auto* const*      PCUSTOMPICKER = (Hyprlang::STRING* const)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:custom_picker_binary")->getDataStaticPtr();
++    static auto* const*      PCUSTOMPICKER = (Hyprlang::STRING*)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:custom_picker_binary")->getDataStaticPtr();
+ 
+     std::vector<std::string> args;
+     if (**PALLOWTOKENBYDEFAULT)

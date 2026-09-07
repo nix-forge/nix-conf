@@ -1,15 +1,13 @@
 #!@bash@
 set -euo pipefail
 
-umask 077
-output_directory='@outputDirectory@'
-@mkdir@ -p -- "$output_directory"
-timestamp="$(@date@ +%Y-%m-%d_%H-%M-%S)"
-output_file="$output_directory/$timestamp.png"
 if [ "$#" -gt 0 ] && [ "$1" = "full" ]; then
-  @grim@ "$output_file"
+  exec @grimblast@ copy screen
 else
-  @grim@ -g "$(@slurp@)" "$output_file"
+  # Supply no window rectangles, so clicks cannot select an entire window.
+  export SLURP_RECTS=''
+  # Slurp's default translucent white background flashes the whole display.
+  export SLURP_ARGS='-b 00000000 -B 00000000 -c ffffffff -w 2'
+  # Freeze before selection so moving content stays at the captured frame.
+  exec @grimblast@ --freeze copy area
 fi
-@wlCopy@ < "$output_file"
-printf '%s\n' "$output_file"

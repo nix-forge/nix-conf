@@ -1,0 +1,5 @@
+PASS: modifier release commits when the state-query command is unsupported
+PASS: compatibility release with key 42
+PASS: compatibility release with key 100
+PASS: compatibility release with key 15
+PASS: unsupported-query release respects Shift, both Alt sides, and held Tab

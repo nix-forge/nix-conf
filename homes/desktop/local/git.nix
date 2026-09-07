@@ -24,6 +24,9 @@ let
     [includeIf "hasconfig:remote.*.url:http://${website}/**"]
       path = "${emailPath}"
 
+    [includeIf "hasconfig:remote.*.url:git@${website}:*"]
+      path = "${emailPath}"
+
     [includeIf "hasconfig:remote.*.url:git@${website}:*/**"]
       path = "${emailPath}"
 
@@ -45,10 +48,10 @@ in
     maintenance = {
       enable = true;
       repositories = [
-        "${config.home.homeDirectory}/Developer/personal/nix-conf"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/nix-config-framework"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/nix-seal"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/pkgs"
+        "${config.home.homeDirectory}/Developer/nix-conf"
+        "${config.home.homeDirectory}/Developer/nix-conf/nix-config-framework"
+        "${config.home.homeDirectory}/Developer/nix-conf/nix-seal"
+        "${config.home.homeDirectory}/Developer/nix-conf/pkgs"
       ];
     };
 

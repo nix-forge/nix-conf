@@ -24,6 +24,9 @@ let
     [includeIf "hasconfig:remote.*.url:http://${website}/**"]
       path = "${emailPath}"
 
+    [includeIf "hasconfig:remote.*.url:git@${website}:*"]
+      path = "${emailPath}"
+
     [includeIf "hasconfig:remote.*.url:git@${website}:*/**"]
       path = "${emailPath}"
 

@@ -1,0 +1,3 @@
+PASS: held Alt keeps picker open; Escape cancels without late switching
+PASS: 200 timed chords selected the recent window and left no overlay
+PASS: expected warning count during fault injection
