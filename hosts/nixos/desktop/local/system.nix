@@ -10,6 +10,10 @@
   # only store paths signed by this explicit public key; unsigned or altered
   # substitutes still fail verification.
   nix.settings = {
+    # This 30 GiB interactive desktop exhausted RAM during concurrent builds.
+    # The shared auto/0 settings allow 16 builds, each using all 16 CPUs.
+    max-jobs = lib.mkForce 2;
+    cores = lib.mkForce 4;
     extra-substituters = [ "https://noctalia.cachix.org" ];
     extra-trusted-public-keys = [
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
