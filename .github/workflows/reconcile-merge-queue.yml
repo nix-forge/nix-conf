@@ -1,0 +1,35 @@
+name: Reconcile merge queue
+on: # zizmor: ignore[dangerous-triggers] Reads API metadata and runs only the default branch's script.
+  workflow_run:
+    workflows: ["CI Tests", "Dependency Review", "CodeQL", "Auto-merge Dependabot"]
+    types: [completed]
+  schedule:
+    - cron: "17,37,57 * * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: reconcile-merge-queue
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      checks: read
+      actions: write
+      contents: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Reconcile passing automation pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUEUE_WORKFLOWS: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
+        run: python3 .github/scripts/reconcile-queue.py

@@ -1,8 +1,6 @@
 name: CI Tests
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
@@ -61,6 +59,8 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - uses: DeterminateSystems/determinate-nix-action@527f17dd63d2d60d3e5552934bc84b9a33a14d11 # v3.22.2
+      - name: Test merge queue reconciliation
+        run: python3 -m unittest discover -s .github/tests
       - name: Materialize partition sources
         run: |
           nix store add-path flake/dev
