@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from typing import Any
 
 REPOSITORY = os.environ["GH_REPO"]
@@ -133,6 +134,28 @@ def admit(pr: dict[str, Any]) -> None:
     print(f"PR #{number}: admitted {sha}")
 
 
+def wait_for_source_run(run_id: str) -> None:
+    """Wait briefly for the dispatch callback's own workflow to finish.
+
+    Raises:
+        ValueError: The supplied run ID is not an ASCII integer.
+        TimeoutError: GitHub did not finish the source run within one minute.
+
+    """
+    if not run_id:
+        return
+    if not run_id.isascii() or not run_id.isdecimal():
+        message = "Source run ID must be an ASCII integer"
+        raise ValueError(message)
+    for _ in range(12):
+        run = api(f"repos/{REPOSITORY}/actions/runs/{run_id}")
+        if run["status"] == "completed":
+            return
+        time.sleep(5)
+    message = f"Source run {run_id} did not complete; scheduled recovery can retry"
+    raise TimeoutError(message)
+
+
 def main() -> None:
     """Reconcile open automation PRs, then start missing queue validation.
 
@@ -140,6 +163,8 @@ def main() -> None:
         subprocess.CalledProcessError: An API error other than a deleted ref occurred.
 
     """
+    wait_for_source_run(os.environ.get("SOURCE_RUN_ID", ""))
+
     # Pagination is bounded by GitHub's repository PR limit, not a waiting loop.
     page = 1
     while True:
@@ -270,7 +295,7 @@ def latest_dispatch_jobs(
             return None
     if any(job["head_sha"] != sha or job["status"] != "completed" for job in jobs):
         return None
-    return jobs
+    return [job for job in jobs if job["name"] != "Queue completion callback"]
 
 
 def invalidate_results(

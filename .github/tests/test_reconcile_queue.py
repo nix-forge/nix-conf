@@ -2,11 +2,13 @@
 
 # unittest keeps these runner checks free of third-party dependencies.
 # subprocess is used only for a fake CompletedProcess and mocked runner.
-# ruff: file-ignore[pytest-unittest-assertion, suspicious-subprocess-import]
+# ruff: file-ignore[pytest-unittest-assertion, pytest-unittest-raises-assertion, suspicious-subprocess-import]
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -253,6 +255,12 @@ class DispatchResultTests(unittest.TestCase):
                 runs if runs is not None else [self.dispatch_run, self.other],
             )
 
+    def test_callback_is_not_a_validation_status(self) -> None:
+        """Shared callback names must not repeatedly overwrite a commit status."""
+        self.jobs.append({**self.jobs[0], "name": "Queue completion callback"})
+        self.report()
+        self.assertEqual([write["context"] for write in self.writes], ["Lint"])
+
     def test_success_links_the_exact_completed_job(self) -> None:
         """Only the successful dispatch job becomes a linked commit status."""
         self.report()
@@ -347,6 +355,72 @@ class DispatchResultTests(unittest.TestCase):
         self.report()
         self.assertEqual(self.writes[0]["context"], "Removed")
         self.assertEqual(self.writes[0]["state"], "pending")
+
+
+class CompletionTests(unittest.TestCase):
+    """Verify the callback cannot race its unfinished source workflow."""
+
+    def test_all_validation_workflows_notify_after_their_jobs(self) -> None:
+        """Every configured validator must explicitly report bot dispatch completion."""
+        workflows = Path(__file__).parents[1] / "workflows"
+        reconciler = (workflows / "reconcile-merge-queue.yml").read_text()
+        configured = re.search(r"QUEUE_WORKFLOWS: '(.+)'", reconciler)
+        if configured is None:
+            self.fail("Missing queue workflow configuration")
+        self.assertIn("SOURCE_RUN_ID: ${{ inputs.source_run_id }}", reconciler)
+        for name in json.loads(configured[1]):
+            content = (workflows / name).read_text()
+            jobs, callback = content.split("  queue-completion:")
+            job_names = set(
+                re.findall(r"^  ([\w-]+):", jobs.split("\njobs:\n", 1)[1], re.MULTILINE)
+            )
+            needs = re.search(r"needs: \[([^]]+)\]", callback)
+            if needs is None:
+                self.fail("Missing callback dependencies")
+            self.assertEqual(job_names, set(re.findall(r"[\w-]+", needs[1])), name)
+            self.assertIn(
+                "always() && github.event_name == 'workflow_dispatch'", callback
+            )
+            self.assertIn(
+                "startsWith(github.ref, 'refs/heads/gh-readonly-queue/main/')", callback
+            )
+            self.assertIn(
+                "gh workflow run reconcile-merge-queue.yml --ref main", callback
+            )
+            self.assertIn('source_run_id="$GITHUB_RUN_ID"', callback)
+            self.assertNotIn("actions/checkout", callback)
+
+    def test_waits_for_source_completion(self) -> None:
+        """A callback dispatch can arrive before GitHub finishes its source."""
+        with (
+            patch.object(
+                queue,
+                "api",
+                side_effect=[{"status": "in_progress"}, {"status": "completed"}],
+            ) as api,
+            patch.object(queue.time, "sleep") as sleep,
+        ):
+            queue.wait_for_source_run("123")
+        self.assertEqual(api.call_count, 2)
+        sleep.assert_called_once_with(5)
+
+    def test_wait_is_bounded(self) -> None:
+        """A stuck source must not occupy a polling runner indefinitely."""
+        with (
+            patch.object(queue, "api", return_value={"status": "in_progress"}) as api,
+            patch.object(queue.time, "sleep"),
+            self.assertRaises(TimeoutError),
+        ):
+            queue.wait_for_source_run("123")
+        self.assertEqual(api.call_count, 12)
+
+    def test_rejects_invalid_run_id(self) -> None:
+        """Dispatch input cannot change the GitHub API path."""
+        with patch.object(queue, "api") as api:
+            with self.assertRaises(ValueError):
+                queue.wait_for_source_run("../other")
+            queue.wait_for_source_run("")
+        api.assert_not_called()
 
 
 if __name__ == "__main__":

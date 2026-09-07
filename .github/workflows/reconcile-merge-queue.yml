@@ -6,6 +6,11 @@ on: # zizmor: ignore[dangerous-triggers] Reads API metadata and runs only the de
   schedule:
     - cron: "17,37,57 * * * *"
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Queue validation run whose completion triggered reconciliation.
+        type: string
+        required: false
 permissions: {}
 concurrency:
   group: reconcile-merge-queue
@@ -29,6 +34,7 @@ jobs:
       - name: Reconcile passing automation pull requests
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           GH_REPO: ${{ github.repository }}
           QUEUE_WORKFLOWS: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
         run: python3 .github/scripts/reconcile-queue.py
