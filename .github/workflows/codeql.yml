@@ -26,3 +26,26 @@ jobs:
         with:
           languages: python
       - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+  queue-completion:
+    continue-on-error: true
+    name: Queue completion callback
+    if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/main/')
+    needs: [analyze]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      actions: write
+    steps:
+      - name: Notify the trusted queue reconciler
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for attempt in 1 2 3; do
+            if gh workflow run reconcile-merge-queue.yml --ref main -f source_run_id="$GITHUB_RUN_ID"; then
+              exit 0
+            fi
+            echo "::warning::Queue completion notification attempt $attempt failed"
+            sleep 5
+          done
+          exit 1
