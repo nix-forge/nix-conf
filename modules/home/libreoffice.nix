@@ -242,6 +242,11 @@ let
   ];
 in
 {
+  # This module manages an existing, writable LibreOffice profile on Linux and
+  # Darwin. The upstream module now declares the same option namespace but
+  # writes a complete registry file, which conflicts with our profile patcher.
+  disabledModules = [ "programs/libreoffice.nix" ];
+
   options.programs.libreoffice = {
     enable = lib.mkEnableOption "LibreOffice office suite";
 
