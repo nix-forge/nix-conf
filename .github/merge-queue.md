@@ -23,3 +23,8 @@ groups; it does not repeat the same full build after a successful queued merge.
 CodeQL retains its main-branch scan, and documentation retains its publish job.
 
 Run regression tests with `python3 -m unittest discover -s .github/tests`.
+
+macOS jobs use the supported macos-26 image. nix-seal retains its legacy
+macos-14 matrix labels only as required-check identifiers; runs-on selects
+macos-26. This avoids leaving existing branch protections waiting for renamed
+checks during the runner migration. GitHub retires macos-14 on November 2, 2026.
