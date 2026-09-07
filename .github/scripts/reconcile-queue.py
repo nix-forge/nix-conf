@@ -139,7 +139,6 @@ def wait_for_source_run(run_id: str) -> None:
 
     Raises:
         ValueError: The supplied run ID is not an ASCII integer.
-        TimeoutError: GitHub did not finish the source run within one minute.
 
     """
     if not run_id:
@@ -152,8 +151,7 @@ def wait_for_source_run(run_id: str) -> None:
         if run["status"] == "completed":
             return
         time.sleep(5)
-    message = f"Source run {run_id} did not complete; scheduled recovery can retry"
-    raise TimeoutError(message)
+    print(f"Source run {run_id} is still running; reconcile other ready entries")
 
 
 def main() -> None:

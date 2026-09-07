@@ -256,8 +256,12 @@ class DispatchResultTests(unittest.TestCase):
             )
 
     def test_callback_is_not_a_validation_status(self) -> None:
-        """Shared callback names must not repeatedly overwrite a commit status."""
-        self.jobs.append({**self.jobs[0], "name": "Queue completion callback"})
+        """A failed notification must not invalidate successful validation jobs."""
+        self.jobs.append({
+            **self.jobs[0],
+            "name": "Queue completion callback",
+            "conclusion": "failure",
+        })
         self.report()
         self.assertEqual([write["context"] for write in self.writes], ["Lint"])
 
@@ -389,6 +393,8 @@ class CompletionTests(unittest.TestCase):
             )
             self.assertIn('source_run_id="$GITHUB_RUN_ID"', callback)
             self.assertNotIn("actions/checkout", callback)
+            self.assertIn("continue-on-error: true", callback)
+            self.assertIn("for attempt in 1 2 3", callback)
 
     def test_waits_for_source_completion(self) -> None:
         """A callback dispatch can arrive before GitHub finishes its source."""
@@ -409,7 +415,6 @@ class CompletionTests(unittest.TestCase):
         with (
             patch.object(queue, "api", return_value={"status": "in_progress"}) as api,
             patch.object(queue.time, "sleep"),
-            self.assertRaises(TimeoutError),
         ):
             queue.wait_for_source_run("123")
         self.assertEqual(api.call_count, 12)
