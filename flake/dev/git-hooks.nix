@@ -93,7 +93,7 @@
               after = [ "treefmt" ];
             };
             local-control-rust-clippy = {
-              enable = true;
+              enable = pkgs.stdenv.hostPlatform.isDarwin;
               name = "local-control Clippy";
               # Cargo invoked outside the development shell cannot find
               # Darwin's libiconv. Keep the hook in the same toolchain and
@@ -110,7 +110,7 @@
               after = [ "local-control-rustfmt" ];
             };
             local-control-rust-test = {
-              enable = true;
+              enable = pkgs.stdenv.hostPlatform.isDarwin;
               name = "local-control Rust tests";
               entry = "nix develop --command cargo test --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets";
               language = "system";
