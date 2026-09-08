@@ -44,7 +44,6 @@ candidate="$(jq -r '
 [ -n "$candidate" ]
 
 id="$(echo "$candidate" | base64 -d | jq -r '.id')"
-title="$(echo "$candidate" | base64 -d | jq -r '.title')"
 media_url="$(echo "$candidate" | base64 -d | jq -r '.url')"
 download_file="$temporary_directory/image"
 curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 180 \

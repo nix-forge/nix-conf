@@ -1,0 +1,2 @@
+PASS: delayed open from before Escape does not reopen or commit
+PASS: next quick chord after Escape still commits

@@ -1,0 +1,20 @@
+{
+  "before": {
+    "width": 13,
+    "height": 27,
+    "ratio": 0.481,
+    "pass": false
+  },
+  "after": {
+    "width": 16,
+    "height": 19,
+    "ratio": 0.842,
+    "pass": true
+  },
+  "unchanged_pixel_rows": [
+    "color emoji",
+    "digits and letters",
+    "box drawing and Nerd Font symbols"
+  ],
+  "darwin": "configuration evaluated; native rendering untested"
+}

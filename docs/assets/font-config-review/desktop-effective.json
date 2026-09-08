@@ -1,0 +1,222 @@
+{
+  "defaultPackages": true,
+  "fontDir": {
+    "decompressFonts": true,
+    "enable": false
+  },
+  "homeFontConfig": {
+    "defaultFonts": {
+      "emoji": ["Noto Color Emoji"],
+      "monospace": [
+        "MonaspiceNe Nerd Font",
+        "Noto Sans Mono CJK SC",
+        "Noto Sans Mono CJK TC",
+        "Noto Sans Mono CJK HK",
+        "Noto Sans Mono CJK JP",
+        "Noto Sans Mono CJK KR",
+        "Noto Color Emoji"
+      ],
+      "sansSerif": [
+        "Inter",
+        "Noto Sans CJK SC",
+        "Noto Sans CJK TC",
+        "Noto Sans CJK HK",
+        "Noto Sans CJK JP",
+        "Noto Sans CJK KR",
+        "Noto Color Emoji"
+      ],
+      "serif": [
+        "Literata",
+        "Noto Serif CJK SC",
+        "Noto Serif CJK TC",
+        "Noto Serif CJK HK",
+        "Noto Serif CJK JP",
+        "Noto Serif CJK KR",
+        "Noto Color Emoji"
+      ]
+    },
+    "enable": true
+  },
+  "systemDeclarations": [
+    "/nix/store/4cw5pc479s4a45iklmahriydm5gssp1s-source/modules/font-packages/nixos.nix",
+    "/nix/store/m8kyqcyzkpaxqm8s6yj0i4i5vzm18r9i-source/hosts/nixos/desktop/local/fonts.nix",
+    "/nix/store/n332bd6fn092y2kdibbyydrsdnca3173-source/nixos/modules/services/desktop-managers/gnome.nix",
+    "/nix/store/n332bd6fn092y2kdibbyydrsdnca3173-source/nixos/modules/services/x11/xserver.nix",
+    "/nix/store/n332bd6fn092y2kdibbyydrsdnca3173-source/nixos/modules/config/fonts/packages.nix"
+  ],
+  "systemFontConfig": {
+    "allowBitmaps": true,
+    "antialias": true,
+    "defaultFonts": {
+      "emoji": ["Noto Color Emoji"],
+      "monospace": [
+        "MonaspiceNe Nerd Font",
+        "Noto Sans Mono CJK SC",
+        "Noto Sans Mono CJK TC",
+        "Noto Sans Mono CJK HK",
+        "Noto Sans Mono CJK JP",
+        "Noto Sans Mono CJK KR",
+        "Noto Color Emoji"
+      ],
+      "sansSerif": [
+        "Inter",
+        "Noto Sans CJK SC",
+        "Noto Sans CJK TC",
+        "Noto Sans CJK HK",
+        "Noto Sans CJK JP",
+        "Noto Sans CJK KR",
+        "Noto Color Emoji"
+      ],
+      "serif": [
+        "Literata",
+        "Noto Serif CJK SC",
+        "Noto Serif CJK TC",
+        "Noto Serif CJK HK",
+        "Noto Serif CJK JP",
+        "Noto Serif CJK KR",
+        "Noto Color Emoji"
+      ]
+    },
+    "enable": true,
+    "hinting": {
+      "autohint": false,
+      "enable": true,
+      "style": "slight"
+    },
+    "subpixel": {
+      "lcdfilter": "default",
+      "rgba": "none"
+    },
+    "useEmbeddedBitmaps": true
+  },
+  "systemFonts": [
+    {
+      "name": "nerd-fonts-monaspace-3.5.0+1.400",
+      "path": "/nix/store/s9iijpi2gxk92kv3fd5s4fp32m7ii46y-nerd-fonts-monaspace-3.5.0+1.400"
+    },
+    {
+      "name": "google-fonts-0-unstable-2026-03-13",
+      "path": "/nix/store/47ianb7527fim5amwl9k40v2ck0wb0aj-google-fonts-0-unstable-2026-03-13"
+    },
+    {
+      "name": "inter-4.1",
+      "path": "/nix/store/lv208v066glmjfi5mdxfjmiwlcv82pv9-inter-4.1"
+    },
+    {
+      "name": "noto-fonts-color-emoji-2.051",
+      "path": "/nix/store/aqcjxx6j9yq175dar0x60qb1kdzvrm9z-noto-fonts-color-emoji-2.051"
+    },
+    {
+      "name": "apple-asset-brill-italic-10M11177",
+      "path": "/nix/store/fvpraqyd0sjinyr2k5pwlpf6r30n7qkx-apple-asset-brill-italic-10M11177"
+    },
+    {
+      "name": "apple-asset-brill-roman-10M11177",
+      "path": "/nix/store/lq9bfkm6gildvzyg6w6dr743mhayihfg-apple-asset-brill-roman-10M11177"
+    },
+    {
+      "name": "apple-asset-canela-regular-10M11177",
+      "path": "/nix/store/skpmhgg600pnz3hhva042hhxlxjfklx5-apple-asset-canela-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-caneladeck-regular-10M11177",
+      "path": "/nix/store/lqqgygdvdwc3mdq1sb8h3kh5i3328yy9-apple-asset-caneladeck-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-canelatext-regular-10M11177",
+      "path": "/nix/store/90b8bhqpdjhskpnmzfm86laacq3cd81a-apple-asset-canelatext-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-domainedisplay-regular-10M11177",
+      "path": "/nix/store/ps0qclj2rargg08qmvwqxvfidv6jzpwl-apple-asset-domainedisplay-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-foundersgrotesk-regular-10M11177",
+      "path": "/nix/store/dd2rni8kr5xlsjp8fpp4xz29mgfwvb7s-apple-asset-foundersgrotesk-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-foundersgroteskcond-reg-10M11177",
+      "path": "/nix/store/1z4bippmb5qf0g89vmwzq673iiv73qby-apple-asset-foundersgroteskcond-reg-10M11177"
+    },
+    {
+      "name": "apple-asset-foundersgrotesktext-regular-10M11177",
+      "path": "/nix/store/bwc2v4md4ah6fha5rfg6hfjbm19dnd4p-apple-asset-foundersgrotesktext-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-graphik-regular-10M11177",
+      "path": "/nix/store/1l51v2vzypf330fnwcagxa9frjyfpr0q-apple-asset-graphik-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-graphikcompact-regular-10M11177",
+      "path": "/nix/store/qz2r69n07jp25h3iic5wzdad4gv2v6lh-apple-asset-graphikcompact-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-product-regular-10M13685",
+      "path": "/nix/store/iy01cj9aqvvh22a2sin15ac0y8v602m3-apple-asset-produkt-regular-10M13685"
+    },
+    {
+      "name": "apple-asset-proximanova-regular-10M11177",
+      "path": "/nix/store/s65y648ks7j2fnm4cm9zv2hvg9syk7v4-apple-asset-proximanova-regular-10M11177"
+    },
+    {
+      "name": "apple-asset-publicoheadline-roman-10M11177",
+      "path": "/nix/store/9wbsinrcbrppf5v7din5j7cksld5rwis-apple-asset-publicoheadline-roman-10M11177"
+    },
+    {
+      "name": "apple-asset-publicotext-roman-10M11177",
+      "path": "/nix/store/jmb5lp13kbk4hqd17yqvc4j47690f99v-apple-asset-publicotext-roman-10M11177"
+    },
+    {
+      "name": "apple-asset-spotmono-regular-10M11177",
+      "path": "/nix/store/k1hnlilmprhmrj1ayh0bjszb6shiyjhk-apple-asset-spotmono-regular-10M11177"
+    },
+    {
+      "name": "adwaita-fonts-50.0",
+      "path": "/nix/store/hkx3jkz2fzyk6b6ckpdi3cg27c60iqic-adwaita-fonts-50.0"
+    },
+    {
+      "name": "font-cursor-misc-1.0.4",
+      "path": "/nix/store/sbkn034wwahqzvvgbaskcdalsl7m4dl6-font-cursor-misc-1.0.4"
+    },
+    {
+      "name": "font-misc-misc-1.1.3",
+      "path": "/nix/store/3z6bs83vx71005h5jqg99qfb75g4s2sc-font-misc-misc-1.1.3"
+    },
+    {
+      "name": "font-alias-1.0.6",
+      "path": "/nix/store/j7580cg8nvc2c13g89qdlxzfh4cch9k4-font-alias-1.0.6"
+    },
+    {
+      "name": "dejavu-fonts-2.37",
+      "path": "/nix/store/0lhf2h2fnjqvpzmk92s5axr2ybvs981s-dejavu-fonts-2.37"
+    },
+    {
+      "name": "freefont-ttf-20120503",
+      "path": "/nix/store/m1krv2mvh97plh2xz94g2qrm3xc2hgzl-freefont-ttf-20120503"
+    },
+    {
+      "name": "gyre-fonts-2.501",
+      "path": "/nix/store/k0s6chvkwcczk6wmmf38b0w5rdm32ij9-gyre-fonts-2.501"
+    },
+    {
+      "name": "liberation-fonts-2.1.5",
+      "path": "/nix/store/8r48nfm4db3dsbnlnjr9ishfi4j8rbbn-liberation-fonts-2.1.5"
+    },
+    {
+      "name": "unifont-17.0.05",
+      "path": "/nix/store/y3ws2lwl36ni4151118i2sgv8pza8ydz-unifont-17.0.05"
+    },
+    {
+      "name": "noto-fonts-cjk-sans-2.004",
+      "path": "/nix/store/dllg6pqphyxipzwihzb6phmjlq4r0w4b-noto-fonts-cjk-sans-2.004"
+    },
+    {
+      "name": "noto-fonts-cjk-serif-2.003",
+      "path": "/nix/store/gxs0n7s3ajv9ivm79ghv11p745qq1hc3-noto-fonts-cjk-serif-2.003"
+    },
+    {
+      "name": "noto-fonts-color-emoji-2.051",
+      "path": "/nix/store/aqcjxx6j9yq175dar0x60qb1kdzvrm9z-noto-fonts-color-emoji-2.051"
+    }
+  ]
+}

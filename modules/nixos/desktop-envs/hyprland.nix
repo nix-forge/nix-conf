@@ -14,8 +14,16 @@ in
 
     # Keep the compositor and portal on one upstream revision. Both link
     # against the Hyprland flake's shared library inputs.
-    package = hyprlandPackages.hyprland;
-    portalPackage = hyprlandPackages.xdg-desktop-portal-hyprland;
+    # A client can destroy a subsurface's parent before the subsurface itself.
+    # Guard the expired parent during teardown, including browser disconnects.
+    package = hyprlandPackages.hyprland.overrideAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ./patches/hyprland-subsurface-parent-lifetime.patch ];
+    });
+    # Keep GCC diagnostics enabled; fix the upstream unused counter and cast,
+    # and apply the Clang-only diagnostic flag only when compiling with Clang.
+    portalPackage = hyprlandPackages.xdg-desktop-portal-hyprland.overrideAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ./patches/hyprland-portal-compiler-warnings.patch ];
+    });
 
     # Keep XWayland available for the remaining applications and games that
     # have not migrated to native Wayland. Native Wayland clients remain the

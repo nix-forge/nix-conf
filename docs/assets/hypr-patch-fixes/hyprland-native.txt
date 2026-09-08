@@ -1,0 +1,57 @@
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+linux_dmabuf_feedback.tranche_formats: Index given to us by the compositor is too large to fit in the format table
+Loaded plugin
+Cleaning up
+Running test subsurfaceAncestry
+OK: client->command("nested"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@212
+OK: getFromSocket("/eval hl.plugin.test.expect_subsurface_ancestry(0)"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@213
+Test passed: subsurfaceAncestry
+Cleaning up
+Running test subsurfaceParentTeardown
+OK: client->command("nested"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@222
+OK: client->command("orphan-parent"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@223
+OK: client->command("orphan-destroy"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@224
+Test passed: subsurfaceParentTeardown
+Cleaning up
+Running test subsurfaceOrphanAncestry
+OK: client->command("nested"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@233
+OK: client->command("orphan-parent"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@234
+OK: getFromSocket("/eval hl.plugin.test.expect_subsurface_ancestry(1)"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@235
+OK: client->command("orphan-destroy"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@236
+Test passed: subsurfaceOrphanAncestry
+Cleaning up
+Running test subsurfaceAncestorTeardown
+OK: client->command("nested"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@245
+OK: client->command("orphan-ancestor"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@246
+OK: getFromSocket("/eval hl.plugin.test.expect_subsurface_ancestry(2)"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@247
+OK: client->command("orphan-destroy"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@248
+Test passed: subsurfaceAncestorTeardown
+Cleaning up
+Running test subsurfaceCycle
+error in client communication (pid 954909)
+wl_subcompositor#4: error 1: Bad parent, t1 parent == surf
+OK: client->command("cycle"). Got ok. Source: hyprtester/src/tests/clients/surface-scale-transform.cpp@257
+Test passed: subsurfaceCycle
+dispatching exit
+
+Summary:
+	PASSED: 5/5
+	FAILED: 0/5
+Test evidence: /tmp/hyprtest.aYYlJt
+Runtime: /tmp/ht.ymstjG

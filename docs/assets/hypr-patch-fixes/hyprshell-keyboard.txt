@@ -1,0 +1,27 @@
+PASS: delayed open commits the recent window and leaves no overlay
+PASS: 30 concurrent open/release pairs focused the recent window and left no overlay
+PASS: Alt release commits while Tab remains held
+PASS: releasing Tab afterward preserves the selected window
+PASS: right Alt release commits while Tab remains held
+PASS: reverse selection commits while Shift and Tab remain held
+PASS: releasing the final Alt commits with Tab still held
+PASS: recent window on Alt release
+PASS: second tap returns to original window
+PASS: hold Alt and Tab twice cycles forward
+PASS: reverse entry, Shift released first
+PASS: reverse entry commits with Shift still held
+PASS: reverse direction while switcher is open
+PASS: Escape cancels
+PASS: quick tap 1
+PASS: quick tap 2
+PASS: quick tap 3
+PASS: quick tap 4
+PASS: quick tap 5
+PASS: quick tap 6
+PASS: quick tap 7
+PASS: quick tap 8
+PASS: quick tap 9
+PASS: quick tap 10
+PASS: held Alt keeps picker open; Escape cancels without late switching
+PASS: 200 timed chords left no stuck overlay
+PASS: expected warning count during fault injection

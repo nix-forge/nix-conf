@@ -7,8 +7,8 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin isAarch64;
-  supportsRemindctl = isDarwin && isAarch64;
+  supportsRemindctl = self.packages.${system} ? remindctl;
+  supportsDesktop = self.packages.${system} ? openai-codex-desktop;
   remindctl = self.packages.${system}.remindctl;
   mattpocockSkills = self.packages.${system}.mattpocock-skills;
   pstackSkills = self.packages.${system}.pstack-skills;
@@ -60,9 +60,9 @@ in
   # Codex Desktop owns most of this TOML file, including project trust and
   # session preferences.  Update only its native appearance keys instead of
   # replacing the file with a Home Manager-generated configuration.
-  home.activation.configureCodexDesktopAppearance = lib.mkIf supportsRemindctl (
+  home.activation.configureCodexDesktopAppearance = lib.mkIf supportsDesktop (
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      source ${codexDesktopAppearance}
+      run ${lib.getExe pkgs.bash} ${codexDesktopAppearance}
     ''
   );
 

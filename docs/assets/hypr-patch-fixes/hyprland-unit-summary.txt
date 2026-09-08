@@ -1,0 +1,8 @@
+[----------] 14 tests from WorkspaceQueryCore (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 422 tests from 43 test suites ran. (543 ms total)
+[  PASSED  ] 422 tests.
+libgcov profiling error:/home/ianmh/Developer/upstream/Hyprland/build/CMakeFiles/hyprland_lib.dir/src/protocols/core/Subcompositor.cpp.gcda:overwriting an existing profile data with a different checksum
+libgcov profiling error:/home/ianmh/Developer/upstream/Hyprland/build/CMakeFiles/hyprland_lib.dir/src/protocols/core/Compositor.cpp.gcda:overwriting an existing profile data with a different checksum
+libgcov profiling error:/home/ianmh/Developer/upstream/Hyprland/build/CMakeFiles/hyprland_lib.dir/src/desktop/view/Subsurface.cpp.gcda:overwriting an existing profile data with a different checksum

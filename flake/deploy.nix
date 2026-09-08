@@ -606,7 +606,7 @@ in
         assert desktopHome.desktop.applications.sessionLauncher == "uwsm app --";
         assert hasHomePackage "obs-studio";
         assert hasHomePackage "satty";
-        assert hasHomePackage "noctalia";
+        assert hasHomePackage (lib.getName desktopHome.programs.noctalia.package);
         assert !(hasHomePackage "cliphist");
         assert !(hasHomePackage "desktop-swayosd-focused");
         assert hasHomePackage "desktop-wallpaper-next";
@@ -676,8 +676,8 @@ in
         assert desktopHdrMonitor != null;
         assert desktopHdrMonitor.mode == "3840x2160@240";
         assert desktopHdrMonitor.scale == 1.5;
-        assert desktopHdrMonitor.cm == "auto";
-        assert desktopHdrMonitor.vrr == 2;
+        assert desktopHdrMonitor.cm == "srgb";
+        assert desktopHdrMonitor.vrr == 0;
         # Capability detection should come from the monitor EDID. Forced
         # support would hide a cable, link-mode, or driver problem.
         assert !(desktopHdrMonitor ? supports_wide_color);
@@ -898,6 +898,7 @@ in
         assert desktop.services.usbguard.implicitPolicyTarget == "block";
         assert lib.elem ''allow hash "BertsznnITAaNuTIVmTDexmItla4SVzIu0GewGgZp1Y="'' desktopUsbguardRules;
         assert lib.elem ''allow hash "gPI7GdWoaX0fu8DRkks2RxbY/4Mcm7qeop13NChBHCs="'' desktopUsbguardRules;
+        assert lib.elem ''allow hash "XgBTq8pVM6qfvawSNZmeXDW2es5VdsP1m3ZrCbTRHiA="'' desktopUsbguardRules;
         assert lib.elem
           ''allow hash "W9IsebkP0pg7VThs+fEitiTx/3tbu6hxA9OCYTEbJFQ=" parent-hash "ZSIwGrd3P5OijFEKFFRXtBKibyl6VwegRhsvNUTUBeo=" via-port "5-2"''
           desktopUsbguardRules;
@@ -1031,11 +1032,23 @@ in
           == [ "${lib.getExe desktop.programs.steam.package} steam://open/bigpicture" ];
         assert !(builtins.hasAttr "prep-cmd" steamBigPicture);
         assert desktop.programs.hyprland.enable;
+        # Local crash fixes change the output hash while retaining the pinned
+        # compositor source and matching portal ABI.
         assert
-          desktop.programs.hyprland.package.outPath == inputs.hyprland.packages.x86_64-linux.hyprland.outPath;
+          desktop.programs.hyprland.package.src.outPath
+          == inputs.hyprland.packages.x86_64-linux.hyprland.src.outPath;
+        assert lib.elem
+          (toString ../modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch)
+          (map toString desktop.programs.hyprland.package.patches);
         assert
-          desktop.programs.hyprland.portalPackage.outPath
-          == inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.outPath;
+          desktop.programs.hyprland.portalPackage.outPath == (
+            (inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.overrideAttrs (old: {
+              patches = (old.patches or [ ]) ++ [
+                ../modules/nixos/desktop-envs/patches/hyprland-portal-compiler-warnings.patch
+              ];
+            })).override
+            { hyprland = desktop.programs.hyprland.package; }
+          ).outPath;
         assert desktop.programs.hyprland.withUWSM;
         assert desktop.programs.uwsm.enable;
         assert desktop.programs.hyprland.xwayland.enable;

@@ -1,0 +1,26 @@
+{
+  "colored": 3733,
+  "failures": [
+    {
+      "code": "2640 FE0F",
+      "expected": 48,
+      "visible": 0,
+      "width": 48
+    },
+    {
+      "code": "2642 FE0F",
+      "expected": 48,
+      "visible": 0,
+      "width": 48
+    },
+    {
+      "code": "2695 FE0F",
+      "expected": 48,
+      "visible": 0,
+      "width": 48
+    }
+  ],
+  "localFontLoaded": true,
+  "total": 3953,
+  "downloadedColorBitmaps": false
+}

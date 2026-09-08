@@ -1,0 +1,5 @@
+this derivation will be built:
+  /nix/store/2m879zlr5vagb4adp4yj6k207gwczwm3-hyprland-0.56.0+date=2026-09-04_ee04096.drv
+building '/nix/store/2m879zlr5vagb4adp4yj6k207gwczwm3-hyprland-0.56.0+date=2026-09-04_ee04096.drv'...
+/nix/store/fzfarshbn17kc8x35kl2wpwdraw3ggid-hyprland-0.56.0+date=2026-09-04_ee04096-man
+/nix/store/y04i0kmsd4cdq4y6k9bp4kyv7g9aili8-hyprland-0.56.0+date=2026-09-04_ee04096

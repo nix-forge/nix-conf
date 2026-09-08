@@ -3,6 +3,16 @@
   perSystem =
     { config, pkgs, ... }:
     let
+      checkPython = pkgs.python3.withPackages (
+        ps: with ps; [
+          fonttools
+          lxml
+          pillow
+          selenium
+          uharfbuzz
+          websocket-client
+        ]
+      );
       pythonCompileAll = pkgs.replaceVarsWith {
         name = "python-compileall";
         src = ./scripts/python-compileall.sh;
@@ -10,12 +20,14 @@
         replacements = {
           bash = lib.getExe pkgs.bash;
           python = lib.getExe pkgs.python3;
+          mktemp = lib.getExe' pkgs.coreutils "mktemp";
+          rm = lib.getExe' pkgs.coreutils "rm";
         };
       };
     in
     {
       pre-commit = {
-        check.enable = pkgs.stdenv.hostPlatform.isDarwin;
+        check.enable = true;
         settings = {
           # A path flake includes a linked worktree's `.git` pointer.  The check
           # creates its own isolated repository, so carrying that pointer into
@@ -28,6 +40,8 @@
             treefmt = {
               enable = true;
               name = "treefmt";
+              # treefmt schedules its formatters; avoid many concurrent wrappers.
+              require_serial = true;
               pass_filenames = true;
               entry = "${lib.getExe config.treefmt.build.wrapper} --no-cache";
             };
@@ -41,10 +55,9 @@
             };
             ruff = {
               enable = true;
-              # Point at the repository configuration explicitly and keep this
-              # validation read-only. Automatic Ruff fixes belong in an explicit
-              # developer command, not a Nix-backed verification derivation.
-              entry = "${lib.getExe pkgs.ruff} check --no-fix --config pyproject.toml .";
+              # Run at the repository root and respect nested project configs.
+              # Validation must not apply automatic fixes.
+              entry = "${lib.getExe pkgs.ruff} check --no-fix .";
               always_run = true;
               pass_filenames = false;
               after = [ "treefmt" ];
@@ -52,7 +65,7 @@
             ruff-format = {
               enable = true;
               name = "ruff format";
-              entry = "${lib.getExe pkgs.ruff} format --check --config pyproject.toml .";
+              entry = "${lib.getExe pkgs.ruff} format --check .";
               language = "system";
               always_run = true;
               pass_filenames = false;
@@ -64,7 +77,7 @@
               package = pkgs.ty;
               # `--project .` forces discovery of this repository's [tool.ty]
               # table rather than relying on the caller's current environment.
-              entry = "${lib.getExe pkgs.ty} check --project . --python ${lib.getExe pkgs.python3}";
+              entry = "${lib.getExe pkgs.ty} check --project . --python ${lib.getExe checkPython}";
               language = "system";
               always_run = true;
               pass_filenames = false;
@@ -123,18 +136,29 @@
             end-of-file-fixer = {
               enable = true;
               after = [ "treefmt" ];
-              excludes = [ "^secrets/.*\\.age$" ];
+              excludes = [
+                "^secrets/.*\\.age$"
+                "^docs/assets/hyprland-upstream-local-20260907/"
+              ];
             };
             trim-trailing-whitespace = {
               enable = true;
               after = [ "treefmt" ];
-              excludes = [ "^secrets/.*\\.age$" ];
+              # Unified diff context includes significant trailing spaces.
+              excludes = [
+                "^secrets/.*\\.age$"
+                "^docs/assets/hyprland-upstream-local-20260907/"
+                "\\.patch$"
+              ];
             };
             mixed-line-endings = {
               enable = true;
               args = [ "--fix=lf" ];
               after = [ "treefmt" ];
-              excludes = [ "^secrets/.*\\.age$" ];
+              excludes = [
+                "^secrets/.*\\.age$"
+                "^docs/assets/hyprland-upstream-local-20260907/"
+              ];
             };
 
             check-merge-conflicts.enable = true;
@@ -143,13 +167,16 @@
             detect-private-keys.enable = true;
 
             check-case-conflicts.enable = true;
-            check-added-large-files.enable = true;
+            check-added-large-files = {
+              enable = true;
+              # The before screenshot is 1.1 MB and documents the rendering defect.
+              excludes = [ "^docs/assets/zen-webfonts/before\\.png$" ];
+            };
             check-executables-have-shebangs.enable = true;
             check-shebang-scripts-are-executable = {
               enable = true;
               # Rust inner attributes start with `#![` and are not script shebangs.
               excludes = [
-                "^nix-seal/.*\\.rs$"
                 "^homes/macbook-pro-m4/support/local-control/secure-files-rs/.*\\.rs$"
                 # Each submodule owns and verifies its own hook configuration.
                 "^nix-seal/"
@@ -163,7 +190,7 @@
               enable = true;
               excludes = [
                 "^secrets/.*\\.age$"
-                "^\\.gitmodules$"
+                "^docs/assets/hyprland-upstream-local-20260907/"
                 "^nix-config-framework/"
                 "^nix-seal/"
                 "^pkgs/"
@@ -171,14 +198,12 @@
             };
             typos = {
               enable = true;
-              settings.configPath = ".typos.toml";
+              # The upstream hook's generated empty [default] table overrides configPath.
+              entry = "${lib.getExe pkgs.typos} --config .typos.toml --force-exclude";
             };
             zizmor = {
               enable = true;
-              args = [
-                "--persona=pedantic"
-                "--min-severity=medium"
-              ];
+              args = [ "--persona=pedantic" ];
             };
             gitleaks = {
               enable = true;
@@ -198,7 +223,9 @@
             nix-flake-check = {
               enable = true;
               name = "nix flake check (local system)";
-              entry = "${lib.getExe pkgs.nix} flake check";
+              # Use the Nix installation that supplies the daemon and its settings.
+              # Injecting nixpkgs' CLI rejects Determinate's schemas/settings.
+              entry = "nix flake check";
               always_run = true;
               pass_filenames = false;
               stages = [ "pre-push" ];

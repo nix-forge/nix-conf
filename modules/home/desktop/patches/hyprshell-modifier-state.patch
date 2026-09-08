@@ -1,0 +1,708 @@
+diff --git a/crates/core-lib/src/binds/structs.rs b/crates/core-lib/src/binds/structs.rs
+index 6f120795d203..183574a39f03 100644
+--- a/crates/core-lib/src/binds/structs.rs
++++ b/crates/core-lib/src/binds/structs.rs
+@@ -4,5 +4,6 @@ pub struct ExecBind {
+     pub key: Box<str>,
+     pub exec: String,
+     pub release: bool,
++    pub timestamped: bool,
+     pub desc: String,
+ }
+diff --git a/crates/core-lib/src/transfer/structs.rs b/crates/core-lib/src/transfer/structs.rs
+index 77efc1076515..d2ed664b3d98 100644
+--- a/crates/core-lib/src/transfer/structs.rs
++++ b/crates/core-lib/src/transfer/structs.rs
+@@ -15,6 +15,9 @@ pub enum ExternalTransferType {
+ #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+ pub struct OpenSwitch {
+     pub reverse: bool,
++    /// Compositor keyboard event time, before the IPC process is scheduled.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub event_time: Option<u32>,
+ }
+ 
+ #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+diff --git a/crates/exec-lib/src/binds.rs b/crates/exec-lib/src/binds.rs
+index 9bc3d6722853..7ad2a724c973 100644
+--- a/crates/exec-lib/src/binds.rs
++++ b/crates/exec-lib/src/binds.rs
+@@ -85,12 +85,28 @@ pub fn apply_exec_bind_lua(bind: &ExecBind) -> anyhow::Result<()> {
+         })
+         .collect();
+ 
++    // The event bus runs before key bindings. Capture the original keyboard
++    // timestamp here, not in the independently scheduled IPC subprocess.
++    if bind.timestamped {
++        hyprland::EvalRaw::new(
++            r#"
++            if not _G.__hyprshell_key_time then
++                _G.__hyprshell_key_time = { time = 0 }
++                hl.on("input.keyboard.key", function(_, time, _)
++                    _G.__hyprshell_key_time.time = time
++                end)
++            end
++        "#,
++        )
++        .eval()?;
++    }
+     let binding = Binding {
+         mods: binds,
+         key: bind.key.to_string(),
+         flags: if bind.release {
+             vec![
+                 Flag::Release,
++                Flag::IgnoreMods,
+                 Flag::Transparent,
+                 Flag::AutoConsuming,
+                 Flag::Description(bind.desc.clone()),
+@@ -102,7 +118,14 @@ pub fn apply_exec_bind_lua(bind: &ExecBind) -> anyhow::Result<()> {
+                 Flag::Description(bind.desc.clone()),
+             ]
+         },
+-        dispatcher: Dispatch::ExecCmd(bind.exec.clone(), None),
++        dispatcher: if bind.timestamped {
++            Dispatch::Unimplemented(format!(
++                "function() hl.exec_cmd({} .. ' --event-time ' .. tostring(_G.__hyprshell_key_time.time)) end",
++                hyprland::format_string(&bind.exec),
++            ))
++        } else {
++            Dispatch::ExecCmd(bind.exec.clone(), None)
++        },
+     };
+     trace!("binding exec: {binding:?}");
+     binding.unbind()?;
+@@ -129,7 +152,7 @@ pub fn apply_exec_bind_legacy(bind: &ExecBind) -> anyhow::Result<()> {
+         mods: mods.as_slice(),
+         key: binds::Key::Key(&bind.key),
+         flags: if bind.release {
+-            &[binds::Flag::r, binds::Flag::t]
++            &[binds::Flag::r, binds::Flag::t, binds::Flag::i]
+         } else {
+             &[binds::Flag::e]
+         },
+diff --git a/crates/exec-lib/src/switch.rs b/crates/exec-lib/src/switch.rs
+index 4a62c99425cd..7914689d2673 100644
+--- a/crates/exec-lib/src/switch.rs
++++ b/crates/exec-lib/src/switch.rs
+@@ -255,3 +255,8 @@ fn deactivate_special_workspace_if_needed_legacy(name: &str) -> anyhow::Result<(
+     )))?;
+     Ok(())
+ }
++
++/// Check both physical sides of the switcher's modifier through Hyprland IPC.
++pub async fn switch_modifier_pressed(left: &str, right: &str) -> anyhow::Result<Option<bool>> {
++    Ok(hyprland::ctl::modifier_is_down(left, right).await?)
++}
+diff --git a/crates/windows-lib/src/keybinds.rs b/crates/windows-lib/src/keybinds.rs
+index ed7e602761fc..b58065c9e711 100644
+--- a/crates/windows-lib/src/keybinds.rs
++++ b/crates/windows-lib/src/keybinds.rs
+@@ -11,6 +11,7 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+             key: overview.key.clone(),
+             exec: generate_transfer_socat(&ExternalTransferType::OpenOverview),
+             release: false,
++            timestamped: false,
+             desc: format!(
+                 "Open Overview with {} + {}",
+                 overview.modifier, overview.key
+@@ -23,8 +24,10 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+             key: switch.key.clone(),
+             exec: generate_transfer_socat(&ExternalTransferType::OpenSwitch(OpenSwitch {
+                 reverse: false,
++                event_time: None,
+             })),
+             release: false,
++            timestamped: true,
+             desc: format!("Open Switch with {} + {}", switch.modifier, switch.key),
+         });
+         binds.push(ExecBind {
+@@ -32,8 +35,10 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+             key: Box::from("grave"),
+             exec: generate_transfer_socat(&ExternalTransferType::OpenSwitch(OpenSwitch {
+                 reverse: true,
++                event_time: None,
+             })),
+             release: false,
++            timestamped: true,
+             desc: format!("Open Switch (reverse) with {} + `", switch.modifier),
+         });
+         binds.push(ExecBind {
+@@ -41,8 +46,10 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+             key: switch.key.clone(),
+             exec: generate_transfer_socat(&ExternalTransferType::OpenSwitch(OpenSwitch {
+                 reverse: true,
++                event_time: None,
+             })),
+             release: false,
++            timestamped: true,
+             desc: format!(
+                 "Open Switch (reverse) with {} + shift + {}",
+                 switch.modifier, switch.key
+@@ -55,6 +62,7 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+                 switch: true,
+             })),
+             release: true,
++            timestamped: false,
+             desc: format!(
+                 "Close Switch (reverse) with {} + {}_l",
+                 switch.modifier, switch.modifier,
+@@ -67,29 +75,12 @@ pub fn generate_open_keybinds(windows: &Windows) -> Vec<ExecBind> {
+                 switch: true,
+             })),
+             release: true,
++            timestamped: false,
+             desc: format!(
+                 "Close Switch (reverse) with {} + {}_r",
+                 switch.modifier, switch.modifier,
+             ),
+         });
+-        binds.push(ExecBind {
+-            mods: vec!["SHIFT"],
+-            key: Box::from("Shift_L"),
+-            exec: generate_transfer_socat(&ExternalTransferType::CloseSwitch(CloseSwitch {
+-                switch: true,
+-            })),
+-            release: true,
+-            desc: "Close Switch (reverse) with shift + shift_l".to_string(),
+-        });
+-        binds.push(ExecBind {
+-            mods: vec!["SHIFT"],
+-            key: Box::from("Shift_R"),
+-            exec: generate_transfer_socat(&ExternalTransferType::CloseSwitch(CloseSwitch {
+-                switch: true,
+-            })),
+-            release: true,
+-            desc: "Close Switch (reverse) with shift + shift_r".to_string(),
+-        });
+     }
+ 
+     binds
+diff --git a/crates/windows-lib/src/switch/root.rs b/crates/windows-lib/src/switch/root.rs
+--- a/crates/windows-lib/src/switch/root.rs
++++ b/crates/windows-lib/src/switch/root.rs
+@@ -3,7 +3,7 @@
+ use crate::shared::{Workspaces, WorkspacesInit, WorkspacesInput};
+ use crate::switch::clients::{Clients, ClientsInit};
+ use core_lib::{Active, ByFirst, Direction, HyprlandData, SWITCH_NAMESPACE};
+-use exec_lib::switch::{switch_client, switch_workspace};
++use exec_lib::switch::{switch_client, switch_modifier_pressed, switch_workspace};
+ use gtk4_layer_shell::{KeyboardMode, Layer, LayerShell};
+ use regex::Regex;
+ use relm4::adw::glib::ControlFlow;
+@@ -13,8 +13,12 @@
+ use relm4::gtk::gdk::Key;
+ use relm4::gtk::{EventControllerKey, Orientation, SelectionMode};
+ use relm4::prelude::*;
+-use std::time::Duration;
++use std::time::{Duration, Instant};
+ use tracing::{debug, error, trace};
++
++const MODIFIER_QUERY_TIMEOUT: Duration = Duration::from_millis(150);
++const MODIFIER_CHECK_INTERVAL: Duration = Duration::from_millis(80);
++const CANCELLATION_WINDOW: Duration = Duration::from_secs(5);
+ 
+ const KILL_TIMEOUT: Duration = Duration::from_millis(200);
+ 
+@@ -23,6 +27,13 @@
+     general: config_lib::WindowsGeneral,
+     switch: config_lib::Switch,
+     open: bool,
++    modifier_check: Option<glib::SourceId>,
++    modifier_request: Option<glib::JoinHandle<()>>,
++    modifier_request_id: u64,
++    modifier_error_reported: bool,
++    modifier_query_supported: bool,
++    modifier_release_pending: bool,
++    cancelled_at: Option<(u32, Instant)>,
+     data: SwitchData,
+     // gtk
+     window: gtk::ApplicationWindow,
+@@ -39,9 +50,13 @@
+ pub enum SwitchRootInput {
+     SetSwitch(config_lib::Switch),
+     SetGeneral(config_lib::WindowsGeneral),
+-    OpenSwitch(Direction),
++    OpenSwitch(Direction, Option<u32>),
+     Switch(Direction),
+     CloseSwitch(bool),
++    CheckModifier,
++    ModifierState(u64, Result<Option<bool>, String>),
++    LegacyModifierRelease(u64),
++    CancelSwitch(u32),
+     CloseCurrentItem,
+     ReloadSwitch,
+ }
+@@ -114,6 +129,13 @@
+             general: init.general,
+             switch: init.switch,
+             open: false,
++            modifier_check: None,
++            modifier_request: None,
++            modifier_request_id: 0,
++            modifier_error_reported: false,
++            modifier_query_supported: true,
++            modifier_release_pending: false,
++            cancelled_at: None,
+             window: root.clone(),
+             controller: None,
+             remove_html: Regex::new(r"<[^>]*>").expect("invalid regex"),
+@@ -143,34 +165,105 @@
+             SwitchRootInput::SetSwitch(switch) => {
+                 self.switch = switch;
+                 self.setup_keyboard_controller(&sender);
++                self.request_modifier_check(&sender, true);
+             }
+             SwitchRootInput::SetGeneral(general) => {
+                 self.general = general;
+                 self.setup_keyboard_controller(&sender);
+             }
+-            SwitchRootInput::OpenSwitch(direction) => {
++            SwitchRootInput::OpenSwitch(direction, event_time) => {
++                if event_is_cancelled(event_time, self.cancelled_at, Instant::now()) {
++                    return;
++                }
++                self.modifier_release_pending = false;
+                 if self.open {
+-                    sender
+-                        .input_sender()
+-                        .emit(SwitchRootInput::Switch(direction));
++                    self.navigate(direction);
+                 } else {
+                     self.open = true;
+                     self.open_switch(direction);
++                    self.start_modifier_check(&sender);
++                }
++                // IPC opens and releases may arrive out of order. Always
++                // request a fresh snapshot without blocking GTK dispatch.
++                self.request_modifier_check(&sender, true);
++            }
++            SwitchRootInput::CheckModifier => {
++                self.request_modifier_check(&sender, false);
++            }
++            SwitchRootInput::ModifierState(request_id, result) => {
++                // Cancellation can race with a result already in the queue.
++                // It must not close a later selection or clear its request.
++                if request_id != self.modifier_request_id || !self.open {
++                    return;
++                }
++                self.modifier_request.take();
++                match result {
++                    Ok(Some(pressed)) => {
++                        self.modifier_error_reported = false;
++                        if !pressed {
++                            self.open = false;
++                            self.close_switch(true);
++                        }
++                    }
++                    Ok(None) => {
++                        // Legacy compositors do not implement the Lua query.
++                        // Keep actual release events usable and stop probing.
++                        self.modifier_query_supported = false;
++                        self.stop_modifier_check();
++                        self.request_modifier_check(&sender, false);
++                    }
++                    Err(error) => {
++                        if !self.modifier_error_reported {
++                            tracing::warn!("Could not read switch modifier state: {error}");
++                            self.modifier_error_reported = true;
++                        }
++                    }
+                 }
+             }
+             SwitchRootInput::Switch(direction) => {
+                 if self.open {
++                    self.modifier_release_pending = false;
+                     self.navigate(direction);
++                    self.request_modifier_check(&sender, true);
+                 } else {
+                     trace!("not open");
+                 }
+             }
+-            SwitchRootInput::CloseSwitch(do_switch) => {
++            SwitchRootInput::CloseSwitch(false) => {
++                self.cancel_switch((glib::monotonic_time() / 1000) as u32);
++            }
++            SwitchRootInput::CancelSwitch(event_time) => self.cancel_switch(event_time),
++            SwitchRootInput::CloseSwitch(true) => {
+                 if self.open {
++                    self.modifier_release_pending = true;
++                    self.request_modifier_check(&sender, true);
++                }
++            }
++            SwitchRootInput::LegacyModifierRelease(request_id) => {
++                if request_id != self.modifier_request_id
++                    || !self.open
++                    || !self.modifier_release_pending
++                {
++                    return;
++                }
++                // Run after Wayland modifier updates, so releasing one side
++                // does not commit while the other side remains held.
++                let mask = match self.switch.modifier {
++                    config_lib::Modifier::Alt => gtk::gdk::ModifierType::ALT_MASK,
++                    config_lib::Modifier::Ctrl => gtk::gdk::ModifierType::CONTROL_MASK,
++                    config_lib::Modifier::Super => gtk::gdk::ModifierType::SUPER_MASK,
++                    config_lib::Modifier::None => gtk::gdk::ModifierType::empty(),
++                };
++                let held = self.window.is_active()
++                    && WidgetExt::display(&self.window)
++                        .default_seat()
++                        .and_then(|seat| seat.keyboard())
++                        .is_some_and(|keyboard| {
++                            !mask.is_empty() && keyboard.modifier_state().contains(mask)
++                        });
++                if !held {
+                     self.open = false;
+-                    self.close_switch(do_switch);
+-                } else {
+-                    trace!("not open");
++                    self.close_switch(true);
+                 }
+             }
+             SwitchRootInput::CloseCurrentItem => {
+@@ -192,20 +285,114 @@
+     }
+ }
+ 
++impl Drop for SwitchRoot {
++    fn drop(&mut self) {
++        self.stop_modifier_check();
++    }
++}
++
+ impl SwitchRoot {
++    fn cancel_switch(&mut self, event_time: u32) {
++        self.cancelled_at = Some((event_time, Instant::now()));
++        self.open = false;
++        self.close_switch(false);
++    }
++
++    fn start_modifier_check(&mut self, sender: &ComponentSender<Self>) {
++        self.stop_modifier_check();
++        if !self.modifier_query_supported {
++            return;
++        }
++        let sender = sender.input_sender().clone();
++        // A release between the initial key-state query and Wayland keyboard
++        // focus can miss both the compositor binding and the GTK controller.
++        // Reconcile while open so that losing an event cannot strand the UI.
++        self.modifier_check = Some(glib::timeout_add_local(
++            MODIFIER_CHECK_INTERVAL,
++            move || {
++                sender.emit(SwitchRootInput::CheckModifier);
++                ControlFlow::Continue
++            },
++        ));
++    }
++
++    fn stop_modifier_check(&mut self) {
++        if let Some(source) = self.modifier_check.take() {
++            source.remove();
++        }
++        self.cancel_modifier_request();
++    }
++
++    fn cancel_modifier_request(&mut self) {
++        self.modifier_request_id = self.modifier_request_id.wrapping_add(1);
++        if let Some(request) = self.modifier_request.take() {
++            // Destroying the task drops the future, closing its IPC socket.
++            request.abort();
++        }
++    }
++
++    fn request_modifier_check(&mut self, sender: &ComponentSender<Self>, refresh: bool) {
++        if !self.open || (self.modifier_request.is_some() && !refresh) {
++            return;
++        }
++        if !self.modifier_query_supported {
++            if self.modifier_release_pending {
++                let request_id = self.modifier_request_id;
++                let sender = sender.input_sender().clone();
++                glib::idle_add_local_once(move || {
++                    sender.emit(SwitchRootInput::LegacyModifierRelease(request_id))
++                });
++            }
++            return;
++        }
++        // Timer ticks share one in-flight request. Keyboard input supersedes
++        // an older snapshot by cancelling it before starting its replacement.
++        self.cancel_modifier_request();
++        let request_id = self.modifier_request_id;
++        let left = self.switch.modifier.to_keysym_l();
++        let right = self.switch.modifier.to_keysym_r();
++        let sender = sender.input_sender().clone();
++        self.modifier_request = Some(glib::spawn_future_local(async move {
++            let result = match glib::future_with_timeout(
++                MODIFIER_QUERY_TIMEOUT,
++                switch_modifier_pressed(left, right),
++            )
++            .await
++            {
++                Ok(result) => result.map_err(|error| error.to_string()),
++                Err(_) => Err("modifier query timed out after 150 ms".to_string()),
++            };
++            sender.emit(SwitchRootInput::ModifierState(request_id, result));
++        }));
++    }
++
+     fn setup_keyboard_controller(&mut self, sender: &ComponentSender<Self>) {
+         // TODO add a check in config check so these always succeed
+         if let Some(k) = Key::from_name(self.switch.key.to_string()) {
+             if let Some(kk) = Key::from_name(self.switch.kill_key.to_string()) {
+                 let key_controller = EventControllerKey::new();
+                 let sender_2 = sender.clone();
+-                key_controller.connect_key_pressed(move |_, key, _, _| {
++                key_controller.connect_key_pressed(move |controller, key, _, _| {
+                     trace!("Key pressed: {:?}", key);
+-                    handle_key(key, k, kk, &sender_2.clone())
++                    handle_key(key, k, kk, controller.current_event_time(), &sender_2)
++                });
++                // Once the overlay owns keyboard focus, handle modifier
++                // release directly. Hyprland's release bind may not fire when
++                // Tab is still held, although Wayland delivers the release.
++                let modifier_left = Key::from_name(self.switch.modifier.to_keysym_l());
++                let modifier_right = Key::from_name(self.switch.modifier.to_keysym_r());
++                let release_sender = sender.clone();
++                key_controller.connect_key_released(move |_, key, _, _| {
++                    if Some(key) == modifier_left || Some(key) == modifier_right {
++                        release_sender
++                            .input_sender()
++                            .emit(SwitchRootInput::CloseSwitch(true));
++                    }
+                 });
+                 if let Some(controller) = self.controller.take() {
+                     self.window.remove_controller(&controller);
+                 }
++                self.controller = Some(key_controller.clone().upcast());
+                 self.window.add_controller(key_controller);
+             } else {
+                 error!("Invalid kill key name: {}", self.switch.kill_key);
+@@ -415,6 +602,7 @@
+     }
+ 
+     fn close_switch(&mut self, do_switch: bool) {
++        self.stop_modifier_check();
+         trace!("Hiding window {:?}", self.window.id());
+         self.window.set_visible(false);
+ 
+@@ -574,13 +762,14 @@
+     key: Key,
+     s_key: Key,
+     kill_key: Key,
++    event_time: u32,
+     event_sender: &ComponentSender<SwitchRoot>,
+ ) -> glib::Propagation {
+     match key {
+         Key::Escape => {
+             event_sender
+                 .input_sender()
+-                .emit(SwitchRootInput::CloseSwitch(false));
++                .emit(SwitchRootInput::CancelSwitch(event_time));
+             glib::Propagation::Stop
+         }
+         k if k == s_key || k == Key::l || k == Key::Right => {
+@@ -635,3 +824,67 @@
+         }
+     }
+ }
++
++// Wayland timestamps wrap at u32::MAX. Signed subtraction orders only events
++// less than half that range apart, so an old cancellation must expire using a
++// monotonic clock. Five seconds covers delayed local IPC across many 150 ms
++// modifier-query deadlines; it is not a guarantee for arbitrarily delayed opens.
++fn event_is_cancelled(
++    event: Option<u32>,
++    cancelled_at: Option<(u32, Instant)>,
++    now: Instant,
++) -> bool {
++    event
++        .zip(cancelled_at)
++        .is_some_and(|(event, (cancelled, recorded))| {
++            now.duration_since(recorded) <= CANCELLATION_WINDOW
++                && event.wrapping_sub(cancelled) as i32 <= 0
++        })
++}
++
++#[cfg(test)]
++mod event_time_tests {
++    use super::{CANCELLATION_WINDOW, event_is_cancelled};
++    use std::time::{Duration, Instant};
++
++    #[test]
++    fn cancellation_rejects_old_events_but_accepts_the_next_chord() {
++        let recorded = Instant::now();
++        let now = recorded + Duration::from_millis(300);
++        let cancelled = Some((100, recorded));
++        assert!(event_is_cancelled(Some(99), cancelled, now));
++        assert!(event_is_cancelled(Some(100), cancelled, now));
++        assert!(!event_is_cancelled(Some(101), cancelled, now));
++        assert!(!event_is_cancelled(None, cancelled, now));
++        assert!(!event_is_cancelled(Some(99), None, now));
++    }
++
++    #[test]
++    fn cancellation_handles_timestamp_wraparound() {
++        let now = Instant::now();
++        assert!(event_is_cancelled(Some(u32::MAX - 2), Some((2, now)), now));
++        assert!(!event_is_cancelled(Some(2), Some((u32::MAX - 2, now)), now));
++    }
++
++    #[test]
++    fn cancellation_expires_after_the_local_ipc_window() {
++        let recorded = Instant::now();
++        let cancelled = Some((100, recorded));
++        let deadline = recorded + CANCELLATION_WINDOW;
++        assert!(event_is_cancelled(Some(99), cancelled, deadline));
++        assert!(!event_is_cancelled(
++            Some(99),
++            cancelled,
++            deadline + Duration::from_nanos(1),
++        ));
++    }
++
++    #[test]
++    fn cancellation_does_not_swallow_chords_after_half_a_timestamp_cycle() {
++        let recorded = Instant::now();
++        let elapsed_ms = 1_u32 << 31;
++        let now = recorded + Duration::from_millis(u64::from(elapsed_ms));
++        let event = 100_u32.wrapping_add(elapsed_ms);
++        assert!(!event_is_cancelled(Some(event), Some((100, recorded)), now));
++    }
++}
+diff --git a/dep-crates/hyprland-rs/src/ctl.rs b/dep-crates/hyprland-rs/src/ctl.rs
+index 77c670c5101f..624d315121ef 100644
+--- a/dep-crates/hyprland-rs/src/ctl.rs
++++ b/dep-crates/hyprland-rs/src/ctl.rs
+@@ -5,6 +5,25 @@ use crate::default_instance;
+ use crate::instance::Instance;
+ use crate::shared::*;
+ 
++/// Read both modifier keys in one nonblocking compositor request.
++#[cfg(any(feature = "async-lite", feature = "tokio"))]
++pub async fn modifier_is_down(left: &str, right: &str) -> crate::Result<Option<bool>> {
++    let response = default_instance()?
++        .write_to_socket_async(command!(
++            Empty,
++            "repl if type(hl.is_key_down) ~= \"function\" then return \"unsupported\" end; return hl.is_key_down({:?}) or hl.is_key_down({:?})",
++            left,
++            right
++        ))
++        .await?;
++    match response.trim() {
++        "true" => Ok(Some(true)),
++        "false" => Ok(Some(false)),
++        "unsupported" | "unknown request" => Ok(None),
++        _ => Err(crate::error::HyprError::NotOkDispatch(response)),
++    }
++}
++
+ /// Reload hyprland config
+ pub mod reload {
+     use super::*;
+diff --git a/dep-crates/hyprland-rs/src/lib.rs b/dep-crates/hyprland-rs/src/lib.rs
+index 5ff6ddab84ac..3f9e71aa91b8 100644
+--- a/dep-crates/hyprland-rs/src/lib.rs
++++ b/dep-crates/hyprland-rs/src/lib.rs
+@@ -69,7 +69,7 @@ mod lua;
+ pub mod window_rule;
+ 
+ #[cfg(feature = "lua")]
+-pub use lua::EvalRaw;
++pub use lua::{EvalRaw, format_string};
+ 
+ /// The prelude module, this is to import all traits
+ pub mod prelude {
+diff --git a/dep-crates/hyprland-rs/src/lua.rs b/dep-crates/hyprland-rs/src/lua.rs
+index 9a03d183f2ad..49fd03de59ad 100644
+--- a/dep-crates/hyprland-rs/src/lua.rs
++++ b/dep-crates/hyprland-rs/src/lua.rs
+@@ -4,6 +4,7 @@ use crate::instance::Instance;
+ use crate::{command, default_instance};
+ use std::fmt::Display;
+ 
++/// Format a Lua string literal, escaping quotes and control characters.
+ pub fn format_string<T: Display>(value: &T) -> String {
+     // return format!("\"{}\"", value.to_string().escape_default());
+     let mut f = String::with_capacity(value.to_string().len() + 2);
+diff --git a/src/cli.rs b/src/cli.rs
+index 534f982454b9..b887b68b40a5 100644
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -78,6 +78,9 @@ pub enum Command {
+     Socat {
+         /// JSON to send to the socket
+         json: String,
++        /// Timestamp supplied by the compositor before spawning this process.
++        #[arg(long)]
++        event_time: Option<u32>,
+     },
+ 
+     /// Generate completions for shells
+diff --git a/src/main.rs b/src/main.rs
+index 33679f20ddfb..878899ec7fed 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -224,7 +224,16 @@ fn main() -> anyhow::Result<()> {
+                 }
+             }
+         }
+-        cli::Command::Socat { json } => {
++        cli::Command::Socat { json, event_time } => {
++            let json = if let Some(time) = event_time {
++                let mut transfer = core_lib::transfer::receive_from_buffer(json.into_bytes())?;
++                if let core_lib::transfer::ExternalTransferType::OpenSwitch(open) = &mut transfer {
++                    open.event_time = Some(time);
++                }
++                core_lib::binds::generate_transfer(&transfer)
++            } else {
++                json
++            };
+             #[cfg(debug_assertions)]
+             core_lib::notify(&json, std::time::Duration::from_secs(2));
+             core_lib::transfer::send_raw_to_socket(&json)
+diff --git a/src/root.rs b/src/root.rs
+index c38eac955757..c50188bf5bba 100644
+--- a/src/root.rs
++++ b/src/root.rs
+@@ -34,7 +34,7 @@ pub struct Root {
+ 
+ #[derive(Debug)]
+ pub enum RootInput {
+-    OpenSwitch(core_lib::Direction),
++    OpenSwitch(core_lib::Direction, Option<u32>),
+     CloseSwitch(bool),
+     OpenOverview,
+     SetConfig(Box<config_lib::Config>),
+@@ -101,10 +101,10 @@ impl SimpleComponent for Root {
+ 
+     fn update(&mut self, message: Self::Input, sender: ComponentSender<Self>) {
+         match message {
+-            RootInput::OpenSwitch(dir) => {
++            RootInput::OpenSwitch(dir, event_time) => {
+                 trace!("Opening switch, dir: {:?}", dir);
+                 if let Some(switch) = &self.switch_root {
+-                    switch.emit(SwitchRootInput::OpenSwitch(dir));
++                    switch.emit(SwitchRootInput::OpenSwitch(dir, event_time));
+                 }
+             }
+             RootInput::CloseSwitch(do_switch) => {
+@@ -148,13 +148,14 @@ fn handle_external(msg: ExternalTransferType, sender: &ComponentSender<Root>) {
+             gtk::gio::spawn_blocking(util::reload_desktop_data);
+         }
+         ExternalTransferType::OpenSwitch(cfg) => {
+-            sender
+-                .input_sender()
+-                .emit(RootInput::OpenSwitch(if cfg.reverse {
++            sender.input_sender().emit(RootInput::OpenSwitch(
++                if cfg.reverse {
+                     core_lib::Direction::Left
+                 } else {
+                     core_lib::Direction::Right
+-                }));
++                },
++                cfg.event_time,
++            ));
+         }
+         ExternalTransferType::CloseSwitch(cfg) => {
+             sender

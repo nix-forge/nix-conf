@@ -1,142 +1,76 @@
 let
-  fontPackages =
+  catalog = import ./font-packages.nix { };
+  selected =
     {
+      config,
       pkgs,
       self,
       system,
       ...
     }:
-    with pkgs;
     let
-      # google-fonts now includes the same variable M+ font files as the
-      # standalone M+ collection. Remove only those duplicates so both
-      # collections can safely be composed by buildEnv.
-      mplusOutlineFonts = mplus-outline-fonts.githubRelease.overrideAttrs (old: {
-        postInstall = (old.postInstall or "") + ''
-          rm -f \
-            "$out/share/fonts/truetype/MPLUS1Code[wght].ttf" \
-            "$out/share/fonts/truetype/MPLUS1[wght].ttf" \
-            "$out/share/fonts/truetype/MPLUS2[wght].ttf" \
-            "$out/share/fonts/truetype/MPLUSCodeLatin[wdth,wght].ttf"
-        '';
-      });
+      personal = self.packages.${system};
     in
-    [
-      # icon fonts
-      material-design-icons
-      font-awesome
-
-      # Noto Fonts
-      noto-fonts
-      noto-fonts-cjk-sans
-      noto-fonts-cjk-serif
-      noto-fonts-lgc-plus
-
-      # Adobe Fonts
-      source-sans
-      source-serif
-      source-han-sans
-      source-han-serif
-
-      # Google Fonts
-      google-fonts
-
-      # Base fonts
-      corefonts
-      liberation_ttf
-      dejavu_fonts
-      open-sans
-      freefont_ttf
-      gyre-fonts
-      unifont
-      roboto
-      b612
-      material-icons
-      material-design-icons
-      work-sans
-      source-sans
-      inter
-      lato
-      lexend
-
-      # Emoji fonts
-      noto-fonts-color-emoji
-      twemoji-color-font
-      twitter-color-emoji
-      openmoji-color
-      (joypixels.override { acceptLicense = true; })
-
-      # Microsoft Fonts
-      self.packages.${system}.ttf-ms-win11-auto
-
-      # Nerdfonts
-      nerd-fonts.fira-code
-      nerd-fonts.jetbrains-mono
-      nerd-fonts.caskaydia-cove
-      nerd-fonts.monaspace
-
-      # Japanese fonts
-      ipafont
-      ipaexfont
-      hanazono
-      mplusOutlineFonts
-      kanji-stroke-order-font
-
-      # OpenType Math stacks
-      xits-math
-      newcomputermodern
-      gyre-fonts
-      cm_unicode
-    ];
+    catalog.select pkgs personal config.typography;
 in
 {
   nixos =
     {
-      lib,
       config,
       pkgs,
       self,
       system,
       ...
     }:
-    let
-      packages = fontPackages { inherit pkgs self system; };
-    in
     {
-      fonts = lib.mkMerge [
-        { fontconfig.enable = true; }
-        (lib.mkIf config.fonts.fontconfig.enable { inherit packages; })
+      imports = [
+        ./font-options.nix
+        ../nixos/locale/font-selection.nix
       ];
+      fonts.fontconfig.enable = true;
+      fonts.packages = selected {
+        inherit
+          config
+          pkgs
+          self
+          system
+          ;
+      };
     };
-
-  darwin =
-    {
-      pkgs,
-      self,
-      system,
-      ...
-    }:
-    let
-      packages = fontPackages { inherit pkgs self system; };
-    in
-    {
-      fonts = { inherit packages; };
-    };
-
+  darwin = { self, system, ... }: {
+    # Native user fonts are owned by Home Manager. Only document fonts shared
+    # across accounts are copied into /Library/Fonts/Nix Fonts.
+    fonts.packages = catalog.appleDocumentFonts self.packages.${system};
+  };
   homeManager =
     {
-      lib,
       config,
+      lib,
       pkgs,
       self,
       system,
       ...
     }:
-    let
-      packages = fontPackages { inherit pkgs self system; };
-    in
     {
-      fonts.fontconfig.enable = true;
-      home = lib.mkIf config.fonts.fontconfig.enable { inherit packages; };
+      imports = [ ./font-options.nix ];
+      fonts.fontconfig.enable = lib.mkDefault true;
+      fonts.fontconfig.configFile.current-emoji = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+        enable = true;
+        priority = 60;
+        text = ''
+          <?xml version="1.0"?>
+          <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+          <fontconfig>${builtins.readFile ./font-selection.conf}</fontconfig>
+        '';
+      };
+      # HM builds the Linux profile cache and copies Darwin fonts natively.
+      home.packages = selected {
+        inherit
+          config
+          pkgs
+          self
+          system
+          ;
+      };
     };
 }

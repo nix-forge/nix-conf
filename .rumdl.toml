@@ -1,2 +1,3 @@
 [global]
-disable = ["MD013", "MD038", "MD041", "MD076"]
+# Prose wrapping is an editorial choice; commands and URLs must remain intact.
+disable = ["MD013"]

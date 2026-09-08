@@ -1,0 +1,48 @@
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 4
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+PASS: compositor survived every selected subsurface lifecycle scenario
+Test output: /tmp/nix-shell.pit8XO/tmp.O707HSbSJh
+Runtime output: /tmp/hc.xEDMam
