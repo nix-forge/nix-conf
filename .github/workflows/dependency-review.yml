@@ -22,7 +22,7 @@ jobs:
     name: dependency-review
     permissions:
       contents: read
-    uses: nix-forge/ci/.github/workflows/dependency-review.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+    uses: nix-forge/ci/.github/workflows/dependency-review.yml@679f99ac3b2c8e25d2b2049c1b21541c51dc71ee # 679f99ac3b2c8e25d2b2049c1b21541c51dc71ee
     with:
       base-ref: ${{ inputs.base_ref }}
       head-ref: ${{ inputs.head_ref }}
