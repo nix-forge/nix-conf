@@ -1,6 +1,7 @@
 name: CI Tests
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
@@ -77,6 +78,7 @@ jobs:
         run: nix develop --command gitleaks git --redact --no-banner
   flake:
     name: Flake checks (${{ matrix.system }})
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
     # This job includes integration checks and the full cold Linux package set.
     timeout-minutes: 150
@@ -234,7 +236,7 @@ jobs:
   tests:
     name: Repository tests
     needs: [flake]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
