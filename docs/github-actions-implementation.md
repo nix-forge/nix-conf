@@ -23,6 +23,11 @@ and reuse maintained upstream actions for installation, scanning and caching.
   `adabd33cf2727ce7a5d4378e8d24af9417537196`, fixes initial queue-validation
   dispatch when the newly admitted queue ref is not yet available. The workflow
   hardening task is rolling this release into consumers.
+- [Immutable v1.0.4](https://github.com/nix-forge/ci/releases/tag/v1.0.4), commit
+  `03eb849e788bd71ac08afab6a1135a6ff6514f3c`, also reports verified failed
+  validation jobs back to the queue as failures. This prevents failed entries
+  from waiting until timeout. It is the target release for the final consumer
+  and starter-template updates.
 
 Both new repositories require pull requests and their successful `validate` check
 on main, including for administrators. They prohibit force pushes and branch
@@ -72,10 +77,17 @@ and failed-run diagnosis.
 - Dependency review fails on newly introduced vulnerabilities at low severity
   or higher. A parallel workflow audit caught the initial shared release's
   unintended high-severity threshold. Version 1.0.2 corrects it. The package PR
-  and organization template use the fixed source; the remaining consumer updates
-  are progressing through their protected checks and queues.
+  and organization template use the fixed source. The framework, VPN, nix-seal
+  and nix-conf corrections have merged; the combined package PR has passed the
+  corrected gate and is completing queue validation.
 - Reusable workflows request explicit permissions and do not inherit all secrets.
   PR build jobs receive no new privileged credential.
+- The prepared PR #48 update removes duplicate execution of a downloaded
+  `remindctl` binary from the privileged package updater. It retains archive
+  layout, arm64 Mach-O and hash validation. The package's existing native
+  install check still verifies the executable version under read-only CI.
+  Five regression tests pass; they catch execution in the original updater.
+  The package derivation remains unchanged.
 - The existing GITHUB_TOKEN queue fallback remains. Moving admission to a GitHub
   App needs an installed App and a private key, followed by proof that its
   admission triggers native merge-group checks. No App credential is configured
@@ -155,6 +167,15 @@ separate comparison found all 86 package/platform derivation paths unchanged by
 the NUR metadata and notice fixes relative to PR #46's head. Evidence and the
 reproducible fixture harness are saved under the migration `evidence` directory.
 
+All native PR builds passed on revision
+`300901c62bb172ab4f647293ef666fb9f294ef26` in
+[run 34178813800](https://github.com/nix-forge/nixpkgs-personal/actions/runs/34178813800).
+The x86 job took approximately 87 minutes, ARM Linux 54 minutes and macOS 49
+minutes. The x86 log places about 51 minutes in the Mutant Standard build and
+26 minutes in Noctalia. The Windows source download was not the dominant cost in
+this run. Logs also confirm that unchanged packages skipped rebuilding. These
+are observations from one cold build, not a controlled before/after benchmark.
+
 The expanded local package collection also receives source-provenance fixes for
 precompiled fonts and its equivalent NUR integration. It passed all 86 supported
 package/platform evaluations for both locked and current unstable Nixpkgs. The
@@ -174,6 +195,8 @@ YAML lint and Ruff locally and in
 [GitHub CI](https://github.com/nix-forge/ci/actions/runs/34173354615).
 The subsequent queue-liveness repair increased the suite to 30 tests and passed
 PR and queue validation in [CI PR #3](https://github.com/nix-forge/ci/pull/3).
+Failure reporting increased the suite to 35 tests and passed the same checks in
+[CI PR #4](https://github.com/nix-forge/ci/pull/4).
 Each consumer passed its local workflow hooks; applicable native pre-push checks
 also passed. GitHub runs the full existing native matrices on the PR and again in
 the merge queue. NUR additionally runs its own restricted-evaluator matrix.
