@@ -27,7 +27,7 @@ jobs:
       statuses: write # Report verified queue job results.
     steps:
       - name: Reconcile verified automation
-        uses: nix-forge/ci/actions/reconcile-queue@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/reconcile-queue@03eb849e788bd71ac08afab6a1135a6ff6514f3c # v1.0.4
         with:
           workflows: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
           source-run-id: ${{ inputs.source_run_id }}
