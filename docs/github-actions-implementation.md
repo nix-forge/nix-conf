@@ -19,11 +19,17 @@ and reuse maintained upstream actions for installation, scanning and caching.
   [immutable v1.0.2](https://github.com/nix-forge/ci/releases/tag/v1.0.2).
   It retains the original low-severity vulnerability gate. The organization
   template also uses this corrected release. Dependabot proposes later updates.
+- [Immutable v1.0.3](https://github.com/nix-forge/ci/releases/tag/v1.0.3), commit
+  `adabd33cf2727ce7a5d4378e8d24af9417537196`, fixes initial queue-validation
+  dispatch when the newly admitted queue ref is not yet available. The workflow
+  hardening task is rolling this release into consumers.
 
 Both new repositories require pull requests and their successful `validate` check
 on main, including for administrators. They prohibit force pushes and branch
 deletion, require linear history, enforce action SHA pinning and default to a
 read-only workflow token. Repository settings were verified through GitHub's API.
+Both repositories also have native merge queues with validation required and no
+bypass actors.
 
 ## Consumer rollout
 
@@ -137,13 +143,14 @@ addresses the observed macOS DNS failure without changing sources or hashes.
 
 The package CI now compares base and current Nix derivation paths before rebuilding
 selected packages. Identical recipes skip recompilation. Failed base evaluation
-rebuilds selected packages; an absent or zero base input selects packages
-conservatively. A nonempty unavailable base currently fails the earlier Git
-comparison. A separate CI follow-up will repair that case. Explicit font and
-application contracts remain active. Six fixture scenarios used real Nix
-evaluation and recorded build commands to verify unchanged metadata, changed
-runtime, new package, empty base input, failed base evaluation and
-unchanged-package contract behavior. All passed. A
+falls back to building. Explicit font and application contracts remain active.
+Six initial fixture scenarios used real Nix evaluation and recorded build commands.
+A follow-up review caught an unavailable nonempty base SHA failing at `git diff`
+before that fallback. [PR #48](https://github.com/nix-forge/nixpkgs-personal/pull/48)
+extracts the selection script and rebuilds all current packages when history or
+the diff is unavailable. Ten regression scenarios pass locally, including the
+missing-history cases and fatal current-package evaluation errors. The original
+script fails the new missing-base and diff-failure tests. A
 separate comparison found all 86 package/platform derivation paths unchanged by
 the NUR metadata and notice fixes relative to PR #46's head. Evidence and the
 reproducible fixture harness are saved under the migration `evidence` directory.
@@ -165,6 +172,8 @@ PRs; their PRs follow completion of the initial package and root integration.
 The shared library passed its queue regression tests, actionlint, pedantic Zizmor,
 YAML lint and Ruff locally and in
 [GitHub CI](https://github.com/nix-forge/ci/actions/runs/34173354615).
+The subsequent queue-liveness repair increased the suite to 30 tests and passed
+PR and queue validation in [CI PR #3](https://github.com/nix-forge/ci/pull/3).
 Each consumer passed its local workflow hooks; applicable native pre-push checks
 also passed. GitHub runs the full existing native matrices on the PR and again in
 the merge queue. NUR additionally runs its own restricted-evaluator matrix.
