@@ -70,6 +70,7 @@ let
   desktopHome = desktop.home-manager.users.ianmh;
   macbook = self.darwinConfigurations.macbook-pro-m4.config;
   macbookHome = macbook.home-manager.users.ianmh;
+  macbookPkgs = self.darwinConfigurations.macbook-pro-m4.pkgs;
   desktopSpotify = desktopHome.programs.spicetify.spotifyPackage;
   macbookSpotify = macbookHome.programs.spicetify.spotifyPackage;
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
@@ -485,9 +486,12 @@ in
         assert macbookHome.macos.finderFavorites.mode == "reconcile";
         assert macbookHome.macos.finderFavorites.allowDeprecatedBackend;
         assert macbookHome.macos.finderFavorites.placement == "bottom";
+        # The host overlay may use different bootstrap tools from standalone
+        # exports. Verify host selection and the shared package source separately.
+        assert macbookHome.macos.finderFavorites.package.outPath == macbookPkgs.finder-favorites.outPath;
         assert
-          macbookHome.macos.finderFavorites.package.outPath
-          == inputs.nixpkgs-personal.packages.aarch64-darwin.finder-favorites.outPath;
+          toString macbookHome.macos.finderFavorites.package.src
+          == toString inputs.nixpkgs-personal.packages.aarch64-darwin.finder-favorites.src;
         assert hasMacbookHomePackage "finder-favorites";
         assert macbookHome.home.activation ? syncFinderFavorites;
         assert lib.hasInfix "finder-favorites apply" macbookHome.home.activation.syncFinderFavorites.data;
@@ -495,9 +499,10 @@ in
           (builtins.fromJSON macbookHome.xdg.configFile."finder-favorites/config.json".text).schemaVersion
           == 1;
         assert macbookHome.macos.ocrCapture.engine == "native";
+        assert macbookHome.macos.ocrCapture.package.outPath == macbookPkgs.ocr-capture.outPath;
         assert
-          macbookHome.macos.ocrCapture.package.outPath
-          == inputs.nixpkgs-personal.packages.aarch64-darwin.ocr-capture.outPath;
+          toString macbookHome.macos.ocrCapture.package.src
+          == toString inputs.nixpkgs-personal.packages.aarch64-darwin.ocr-capture.src;
         assert hasMacbookHomePackage "ocr-capture";
         assert lib.hasInfix "OCR Capture.app" macbookHome.macos.ocrCapture.applicationPath;
         assert macbookHome.macos.ocrCapture.shortcuts.copyRegion == "cmd-shift-7";
