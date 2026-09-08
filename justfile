@@ -172,3 +172,8 @@ update-packages *args: prepare-pkgs-branch
 [group('Maintenance')]
 update-package package *args: prepare-pkgs-branch
     nix develop {{ flake }}/pkgs -c python {{ flake }}/pkgs/scripts/update-packages.py --package {{ package }} {{ args }}
+
+# Validate the full font collection; pass a browser executable for rendering tests
+[group('Maintenance')]
+fonts-check output="/tmp/font-check" browser="":
+    nix run {{ flake }}#font-check -- {{ quote(output) }} {{ if browser == "" { "" } else { quote(browser) } }}

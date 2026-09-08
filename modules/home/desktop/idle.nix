@@ -41,6 +41,16 @@ in
       description = "Idle time before DPMS turns off the outputs.";
     };
 
+    lockedDisplayOffAfterSeconds = lib.mkOption {
+      type = lib.types.ints.between 10 300;
+      default = 30;
+      description = ''
+        Input idle time before turning off outputs while Hyprlock is running,
+        even when applications inhibit idle. Already-idle sessions retry the
+        lock check every five seconds. Input wakes the display for unlocking.
+      '';
+    };
+
     suspendAfterSeconds = lib.mkOption {
       type = lib.types.ints.between 60 14400;
       default = 900;
@@ -82,6 +92,7 @@ in
       replacements = {
         lockAfterSeconds = toString cfg.lockAfterSeconds;
         displayOffAfterSeconds = toString cfg.displayOffAfterSeconds;
+        lockedDisplayOffAfterSeconds = toString cfg.lockedDisplayOffAfterSeconds;
         suspendAfterSeconds = toString cfg.suspendAfterSeconds;
         onLockCommand = if onLockCommand == "" then "true" else onLockCommand;
       };

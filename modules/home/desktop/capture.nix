@@ -8,6 +8,13 @@ let
   cfg = config.desktop.capture;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   picturesDirectory = config.xdg.userDirs.pictures;
+  # Grimblast always passes -o to Slurp, making monitors clickable even when
+  # SLURP_RECTS is empty. Region capture must require a custom selection.
+  grimblastRegion = pkgs.grimblast.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace grimblast --replace-fail 'slurp -o ' 'slurp '
+    '';
+  });
   screenshot = pkgs.replaceVarsWith {
     name = "desktop-screenshot";
     src = ./scripts/screenshot.sh.in;
@@ -15,12 +22,7 @@ let
     isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      outputDirectory = "${picturesDirectory}/Screenshots";
-      mkdir = lib.getExe' pkgs.coreutils "mkdir";
-      date = lib.getExe' pkgs.coreutils "date";
-      grim = lib.getExe pkgs.grim;
-      slurp = lib.getExe pkgs.slurp;
-      wlCopy = lib.getExe' pkgs.wl-clipboard "wl-copy";
+      grimblast = lib.getExe grimblastRegion;
     };
   };
   annotate = pkgs.replaceVarsWith {
@@ -74,13 +76,22 @@ in
 
     # OBS uses the desktop portal and PipeWire source picker. No compositor
     # plugin is installed, so capture remains outside Hyprland's process.
+    wayland.windowManager.hyprland.settings.layer_rule =
+      lib.mkIf config.wayland.windowManager.hyprland.enable
+        [
+          {
+            match.namespace = "^(hyprpicker|selection)$";
+            no_anim = true;
+          }
+        ];
+
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable
         (
           lib.mkAfter [
             (hyprBind "PRINT" (lib.getExe' screenshot "desktop-screenshot"))
             (hyprBind "SUPER + PRINT" "${lib.getExe' screenshot "desktop-screenshot"} full")
-            (hyprBind "SUPER + SHIFT + PRINT" (lib.getExe' annotate "desktop-screenshot-annotate"))
+            (hyprBind "SUPER + SHIFT + PRINT" (lib.getExe' screenshot "desktop-screenshot"))
           ]
         );
   };

@@ -22,8 +22,9 @@ in
     ignores = [
       "*~"
       "*.swp"
+      # Shared checkouts and archives can carry Finder metadata onto Linux.
+      ".DS_Store"
     ]
-    ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ ".DS_Store" ]
     ++ lib.optionals config.programs.direnv.enable [ ".direnv/" ];
 
     settings = {

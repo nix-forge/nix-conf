@@ -1,6 +1,7 @@
 name: CI Tests
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
       base_sha:
@@ -25,7 +26,7 @@ jobs:
         with:
           persist-credentials: false
       - run: |
-          if git grep -nEi 'secret[c]tl|secret[I]ndex|config[.]age[.]secrets|inputs[.]agenix' -- . ':(exclude).gitleaks.toml'; then
+          if git grep -nEi 'secret[c]tl|secret[I]ndex|config[.]age[.]secrets|inputs[.]agenix' -- . ':(exclude).gitleaksignore'; then
             echo 'removed secret-manager symbols or agenix runtime references found' >&2
             exit 1
           fi
@@ -68,12 +69,19 @@ jobs:
         run: python3 -m unittest discover -s .github/tests
       - name: Run prek hooks
         run: nix develop --command prek run --all-files
+      - name: Run submodule hooks
+        run: |
+          for project in nix-config-framework nix-seal pkgs; do
+            (cd "$project" && nix develop --command bash -c 'prek run --all-files && gitleaks git --redact --no-banner')
+          done
       - name: Scan repository for leaked secrets
-        run: nix develop --command gitleaks detect --source . --redact --no-banner
+        run: nix develop --command gitleaks git --redact --no-banner
   flake:
     name: Flake checks (${{ matrix.system }})
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    # This job includes integration checks and the full cold Linux package set.
+    timeout-minutes: 150
     permissions:
       contents: read
     strategy:
@@ -111,6 +119,10 @@ jobs:
           check_targets=(
             ".#checks.${TARGET_SYSTEM}.treefmt"
             ".#checks.${TARGET_SYSTEM}.python-quality"
+            ".#checks.${TARGET_SYSTEM}.hyprland-runner"
+            ".#checks.${TARGET_SYSTEM}.gitleaks-policy"
+            ".#checks.${TARGET_SYSTEM}.font-selection"
+            ".#checks.${TARGET_SYSTEM}.font-ownership"
             ".#checks.${TARGET_SYSTEM}.browser-home-helpers"
             ".#checks.${TARGET_SYSTEM}.macos-home-helpers"
             ".#checks.${TARGET_SYSTEM}.macos-home-dry-run"
@@ -119,14 +131,31 @@ jobs:
           )
           if [[ "$TARGET_SYSTEM" == "x86_64-linux" ]]; then
             check_targets+=(
+              ".#checks.${TARGET_SYSTEM}.font-native"
+              ".#checks.${TARGET_SYSTEM}.font-browser"
               ".#checks.${TARGET_SYSTEM}.desktop-configuration-contract"
               ".#checks.${TARGET_SYSTEM}.virtualisation-configuration-contract"
               ".#checks.${TARGET_SYSTEM}.browser-configuration-contract"
               ".#checks.${TARGET_SYSTEM}.azure-cli-configuration-contract"
             )
           fi
-          nix build --keep-going --show-trace --print-build-logs --no-link \
-            --no-allow-import-from-derivation "${check_targets[@]}"
+          # Release the evaluator heap between targets. Build-job limits alone
+          # do not bound evaluation memory for the desktop configuration.
+          check_status=0
+          for check_target in "${check_targets[@]}"; do
+            if ! nix build --max-jobs 1 --cores 2 --option eval-cores 1 \
+              --show-trace --print-build-logs --no-link \
+              --no-allow-import-from-derivation "$check_target"; then
+              check_status=1
+            fi
+          done
+          exit "$check_status"
+      - name: Check native Core Text selection and shaping
+        if: matrix.system == 'aarch64-darwin'
+        shell: bash
+        run: |
+          selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
+          xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
       - name: Evaluate deployable configurations
         shell: bash
         env:
@@ -147,7 +176,8 @@ jobs:
         shell: bash
         env:
           TARGET_SYSTEM: ${{ matrix.system }}
-          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
+            }}
         run: |
           set -euo pipefail
           build_log="${RUNNER_TEMP}/nix-build-${TARGET_SYSTEM}.log"
@@ -184,7 +214,7 @@ jobs:
             # between goals so the native matrix still covers every output.
             build_status=0
             for build_attr in "${build_attrs[@]}"; do
-              if ! nix build --keep-going --show-trace --print-build-logs --no-link \
+              if ! nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
                 "${build_attr}" >>"${build_log}" 2>&1; then
                 build_status=1
               fi
@@ -192,7 +222,8 @@ jobs:
             done
           else
             set +e
-            nix build --keep-going --show-trace --print-build-logs --no-link "${build_attrs[@]}" >"${build_log}" 2>&1
+            nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
+              "${build_attrs[@]}" >"${build_log}" 2>&1
             build_status=$?
             set -e
           fi
@@ -213,7 +244,7 @@ jobs:
   tests:
     name: Repository tests
     needs: [flake]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
@@ -230,7 +261,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
-      actions: write # Dispatch trusted queue validation.
+      actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
         uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0

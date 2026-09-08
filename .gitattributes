@@ -4,3 +4,8 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.lock text eol=lf
+# Unified diff context markers and final context lines contain significant spaces.
+*.patch whitespace=-blank-at-eol,-blank-at-eof
+
+# Captured upstream evidence retains its original bytes.
+/docs/assets/hyprland-upstream-local-20260907/** -text whitespace=-blank-at-eol,-blank-at-eof

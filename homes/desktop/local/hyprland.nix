@@ -111,9 +111,11 @@ in
     mode = "3840x2160@240";
     position = "0x0";
     scale = 1.5;
-    colorManagement = "auto";
+    # Match the monitor's SDR sRGB mode; fullscreen HDR switches separately.
+    colorManagement = "srgb";
     autoHdr = 1;
-    vrr = 2;
+    # Disable adaptive sync because it causes flickering in some games.
+    vrr = 0;
   };
 
   # Keep the authentication surface declarative so Home Manager renders the

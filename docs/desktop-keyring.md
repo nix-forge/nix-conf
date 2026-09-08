@@ -35,7 +35,6 @@ After deploying this configuration:
    is known, select **Login**, choose **Change Password**, and set it to the
    current account password. Reboot afterward so the new password is supplied
    to the keyring by the first Hyprlock authentication.
-
 3. If the former password is unknown, first save a private encrypted-data
   backup:
 

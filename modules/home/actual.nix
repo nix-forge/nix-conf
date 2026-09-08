@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   cfg = config.services.actual;
   configDir = "${config.xdg.configHome}/actual";
@@ -117,8 +117,8 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = isDarwin;
-        message = "services.actual is currently implemented as a Darwin Home Manager launchd agent.";
+        assertion = isDarwin || isLinux;
+        message = "services.actual supports Linux and Darwin Home Manager hosts.";
       }
       {
         assertion = cfg.allowNonLoopback || builtins.elem cfg.hostname loopbackHosts;
@@ -126,22 +126,38 @@ in
       }
     ];
 
-    home.packages = [
-      cfg.package
-      actualOpen
-    ];
+    home = {
+      packages = [
+        cfg.package
+        actualOpen
+      ];
 
-    home.activation.actualSetup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      source ${actualSetup}
-    '';
+      activation.actualSetup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        run ${lib.getExe pkgs.bash} ${actualSetup}
+      '';
 
-    home.activation.actualOpen = lib.mkIf cfg.openOnActivation (
-      lib.hm.dag.entryAfter [ "actualSetup" ] ''
-        ${actualOpen}/bin/actual-open >/dev/null 2>&1 || true
-      ''
-    );
+      activation.actualOpen = lib.mkIf cfg.openOnActivation (
+        lib.hm.dag.entryAfter [ "actualSetup" ] ''
+          run ${actualOpen}/bin/actual-open >/dev/null 2>&1 || true
+        ''
+      );
 
-    launchd.agents.actual = {
+    };
+
+    systemd.user.services.actual = lib.mkIf isLinux {
+      Unit.Description = "Actual Budget local server";
+      Service = {
+        ExecStartPre = "${lib.getExe pkgs.bash} ${actualSetup}";
+        ExecStart = "${cfg.package}/bin/actual-server --config ${lib.escapeShellArg configFile}";
+        Environment = [ "NODE_ENV=production" ];
+        Restart = "on-failure";
+        RestartSec = 5;
+        UMask = "0077";
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
+
+    launchd.agents.actual = lib.mkIf isDarwin {
       enable = true;
       domain = lib.mkDefault "user";
       config = {

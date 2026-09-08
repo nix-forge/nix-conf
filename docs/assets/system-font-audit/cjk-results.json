@@ -1,0 +1,77 @@
+[
+  {
+    "family": "sans-serif",
+    "lang": "ja",
+    "different_pixels": 0
+  },
+  {
+    "family": "sans-serif",
+    "lang": "ko",
+    "different_pixels": 0
+  },
+  {
+    "family": "sans-serif",
+    "lang": "zh-CN",
+    "different_pixels": 0
+  },
+  {
+    "family": "sans-serif",
+    "lang": "zh-TW",
+    "different_pixels": 0
+  },
+  {
+    "family": "sans-serif",
+    "lang": "zh-HK",
+    "different_pixels": 0
+  },
+  {
+    "family": "serif",
+    "lang": "ja",
+    "different_pixels": 0
+  },
+  {
+    "family": "serif",
+    "lang": "ko",
+    "different_pixels": 0
+  },
+  {
+    "family": "serif",
+    "lang": "zh-CN",
+    "different_pixels": 0
+  },
+  {
+    "family": "serif",
+    "lang": "zh-TW",
+    "different_pixels": 0
+  },
+  {
+    "family": "serif",
+    "lang": "zh-HK",
+    "different_pixels": 0
+  },
+  {
+    "family": "monospace",
+    "lang": "ja",
+    "different_pixels": 0
+  },
+  {
+    "family": "monospace",
+    "lang": "ko",
+    "different_pixels": 0
+  },
+  {
+    "family": "monospace",
+    "lang": "zh-CN",
+    "different_pixels": 0
+  },
+  {
+    "family": "monospace",
+    "lang": "zh-TW",
+    "different_pixels": 0
+  },
+  {
+    "family": "monospace",
+    "lang": "zh-HK",
+    "different_pixels": 0
+  }
+]

@@ -25,3 +25,20 @@ indent_size = unset
 
 [Makefile]
 indent_style = tab
+
+[.gitmodules]
+indent_style = tab
+
+[docs/assets/**/*.txt]
+# Captured tool output retains its original tabs and column alignment.
+indent_style = unset
+indent_size = unset
+
+[docs/assets/hyprland-upstream-local-20260907/**]
+# Captured evidence must retain the original content and checksums.
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = false

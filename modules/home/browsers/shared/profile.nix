@@ -1,4 +1,4 @@
-{ lib, ... }: {
+{ lib, pkgs, ... }: {
   options.programs.browserSuite.shared.profile = {
     commonSettings = lib.mkOption {
       type = lib.types.attrs;
@@ -17,6 +17,9 @@
         "security.OCSP.require" = false;
         "browser.xul.error_pages.expert_bad_cert" = false;
         "full-screen-api.warning.timeout" = 3000;
+
+        # Keep downloaded color-bitmap tables behind the default sanitizer policy.
+        "gfx.downloadable_fonts.keep_color_bitmaps" = false;
 
         # Useful Gecko features that the previous preset stack disabled.
         "browser.profiles.enabled" = true;
@@ -39,6 +42,12 @@
         "pdfjs.enableScripting" = false;
         "findbar.highlightAll" = true;
         "network.IDN_show_punycode" = true;
+      }
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        # The default limit of three stops before several script fonts in our
+        # multilingual Fontconfig stack. Preserve the working desktop value
+        # for fresh Zen and Firefox profiles as well.
+        "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127;
       };
     };
 

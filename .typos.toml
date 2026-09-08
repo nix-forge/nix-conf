@@ -1,22 +1,30 @@
 files.extend-exclude = [
+  # Captured upstream text is evidence, not editable repository prose.
+  "docs/assets/hyprland-upstream-local-20260907/**",
   "flake.lock",
   "**/Cargo.lock",
-  "secrets/**",
+  "secrets/**/*.age",
   ".git/**",
   ".opencode/node_modules/**",
 ]
 
+[default]
+# Diff index lines contain object hashes, not natural-language words.
+extend-ignore-re = ['(?m)^index [0-9a-f]+\.\.[0-9a-f]+(?: [0-7]+)?$']
+
 [default.extend-identifiers]
+ANC = "ANC"         # Active noise cancellation.
+TharLon = "TharLon" # Upstream Burmese font family.
+ANDed = "ANDed"     # Boolean conjunction in nix-seal authorization documentation.
 inh = "inh"
+relm4 = "relm4"     # Rust UI crate referenced by the Hyprshell patch.
 
 [default.extend-words]
+produkt = "produkt" # Apple's font family and package identifier.
+Produkt = "Produkt" # Apple-distributed font family and its PostScript identifiers.
+constan = "constan" # Upstream Microsoft font filename, constan.ttf.
 ags = "ags"
-Calculater = "Calculater"
-Certificacion = "Certificacion"
-CROS = "CROS"
-HDA = "HDA"
 extens = "extens"
 imput = "imput"
-nd = "nd"
 wdth = "wdth"
 WRONLY = "WRONLY"

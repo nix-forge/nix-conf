@@ -61,8 +61,16 @@ in
 
     keyboardShortcuts = [
       {
-        id = "zen-compact-mode-toggle";
+        id = "zen-copy-url";
         key = "c";
+        modifiers = {
+          control = true;
+          alt = true;
+        };
+      }
+      {
+        id = "zen-compact-mode-toggle";
+        key = "m";
         modifiers = {
           control = true;
           alt = true;

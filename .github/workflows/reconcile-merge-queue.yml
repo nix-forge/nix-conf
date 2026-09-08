@@ -17,18 +17,18 @@ concurrency:
   cancel-in-progress: false
 jobs:
   reconcile:
+    name: Reconcile merge queue
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      checks: read # Read validation evidence for the queued commit.
-      actions: write # Dispatch trusted queue validation.
-      contents: write # Update trusted repository automation.
-      pull-requests: write # Update pull request metadata.
-      statuses: write # Report verified queue job results.
+      checks: read # Read validation job results for the queued commit.
+      actions: write # Dispatch missing queue validation and inspect workflow runs.
+      contents: write # Admit eligible pull requests to the merge queue.
+      pull-requests: write # Read and enqueue eligible pull requests.
+      statuses: write # Publish verified validation results on the queue commit.
     steps:
       - name: Reconcile verified automation
         uses: nix-forge/ci/actions/reconcile-queue@03eb849e788bd71ac08afab6a1135a6ff6514f3c # v1.0.4
         with:
           workflows: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
           source-run-id: ${{ inputs.source_run_id }}
-    name: reconcile

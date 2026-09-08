@@ -17,9 +17,11 @@ popup_borders = true
 card_borders = false
 popup_shadows = true
 corner_radius_scale = 1.0
-time_format = "{:%H:%M}"
-date_format = "%A, %B %-d"
-offline_mode = true
+time_format = "{:%-I:%M %p}"
+date_format = "%a %b %-d"
+# MPRIS players such as Spotify supply HTTPS cover URLs. Offline mode blocks
+# those downloads too, leaving the media widget and panel without album art.
+offline_mode = false
 external_ip_enabled = false
 telemetry_enabled = false
 setup_wizard_enabled = false
@@ -108,6 +110,17 @@ start = ["launcher", "workspaces", "active_window"]
 center = ["clock"]
 end = ["media", "notifications", "tray", "network", "bluetooth", "volume", "nightlight", "privacy", "control-center"]
 
+[widget.clock]
+# macOS-style US date and time; names and AM/PM follow LC_TIME.
+format = "{:%a %b %-d  %-I:%M %p}"
+tooltip_format = "{:%A, %B %-d, %Y}"
+
+[widget.network]
+show_label = false
+
+[widget.privacy]
+hide_inactive = true
+
 [control_center]
 sidebar = "compact"
 sidebar_section = "compact"
@@ -115,6 +128,10 @@ width = 680
 show_shortcut_labels = true
 show_session_button = true
 hidden_tabs = ["weather", "screen-time"]
+
+[control_center.calendar]
+event_date_format = "%a %b %-d"
+event_time_format = "%-I:%M %p"
 
 [[control_center.shortcuts]]
 type = "wifi"
@@ -166,6 +183,8 @@ nightlight = true
 dnd = true
 lock_keys = false
 keyboard_layout = true
+# Noctalia generates these track-change popups independently of Spotify.
+media = false
 privacy = true
 
 [system.monitor]

@@ -60,6 +60,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
+        flake-schemas.follows = "flake-schemas";
         home-manager.follows = "home-manager";
         nix-darwin.follows = "nix-darwin";
       };
@@ -70,6 +71,7 @@
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
         flake-parts.follows = "flake-parts";
+        flake-schemas.follows = "flake-schemas";
         home-manager.follows = "home-manager";
         nix-darwin.follows = "nix-darwin";
       };

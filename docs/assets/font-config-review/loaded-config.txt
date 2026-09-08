@@ -1,0 +1,90 @@
++ /etc/fonts/conf.d/00-nixos-cache.conf: No description
++ /etc/fonts/conf.d/10-hinting-slight.conf: Set hintslight to hintstyle
++ /etc/fonts/conf.d/10-nixos-rendering.conf: No description
++ /etc/fonts/conf.d/10-scale-bitmap-fonts.conf: Bitmap scaling
++ /etc/fonts/conf.d/10-sub-pixel-none.conf: Disable sub-pixel rendering
++ /etc/fonts/conf.d/10-yes-antialias.conf: Enable antialiasing
++ /etc/fonts/conf.d/11-lcdfilter-default.conf: Use lcddefault as default for LCD filter
++ /etc/fonts/conf.d/20-unhint-small-vera.conf: Disable hinting for Bitstream Vera fonts when the size is less than 8ppem
++ /etc/fonts/conf.d/30-metric-aliases.conf: Set substitutions for similar/metric-compatible families
++ /etc/fonts/conf.d/40-nonlatin.conf: Set substitutions for non-Latin fonts
++ /etc/fonts/conf.d/45-generic.conf: Set substitutions for emoji/math fonts
++ /etc/fonts/conf.d/45-latin.conf: Set substitutions for Latin fonts
++ /etc/fonts/conf.d/48-guessfamily.conf: Guess a generic-family for substitution
++ /etc/fonts/conf.d/48-spacing.conf: Add mono to the family when spacing is 100
++ /etc/fonts/conf.d/49-sansserif.conf: Add sans-serif to the family when no generic name
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-andale-mono.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-arial-black.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-arial.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-calibri.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-cambria.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-comic-sans-ms.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-courier-new.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-georgia.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-impact.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-times-new-roman.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-trebuchet.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-verdana.conf: No description
++ /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-webdings.conf: No description
++ /home/ianmh/.config/fontconfig/conf.d/10-hm-fonts.conf: Add fonts in the Nix user profile
++ /home/ianmh/.config/fontconfig/conf.d/52-hm-default-fonts.conf: Set default fonts
++ /home/ianmh/.config/fontconfig/conf.d/60-hm-current-emoji.conf: No description
++ /etc/fonts/conf.d/50-user.conf: Load per-user customization files
++ /etc/fonts/local.conf: No description
++ /etc/fonts/conf.d/51-local.conf: Load local customization file
++ /etc/fonts/conf.d/52-nixos-default-fonts.conf: No description
++ /etc/fonts/conf.d/53-nixos-reject-type1.conf: No description
++ /etc/fonts/conf.d/53-no-bitmaps.conf: No description
++ /etc/fonts/conf.d/53-user-aliases.conf: No description
++ /etc/fonts/conf.d/60-generic.conf: Set preferable fonts for emoji/math fonts
++ /etc/fonts/conf.d/60-latin.conf: Set preferable fonts for Latin
++ /etc/fonts/conf.d/65-fonts-persian.conf: No description
++ /etc/fonts/conf.d/65-nonlatin.conf: Set preferable fonts for non-Latin
++ /etc/fonts/conf.d/69-unifont.conf: No description
++ /etc/fonts/conf.d/80-delicious.conf: No description
++ /etc/fonts/conf.d/90-synthetic.conf: No description
++ /etc/fonts/fonts.conf: Default configuration file
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/05-reset-dirs-sample.conf: Re-define fonts dirs sample
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/09-autohint-if-no-hinting.conf: Enable autohinter if font doesn't have any hinting
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-autohint.conf: Enable autohinter
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-hinting-full.conf: Set hintfull to hintstyle
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-hinting-medium.conf: Set hintmedium to hintstyle
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-hinting-none.conf: Set hintnone to hintstyle
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-hinting-slight.conf: Set hintslight to hintstyle
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-no-antialias.conf: Disable antialiasing
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-scale-bitmap-fonts.conf: Bitmap scaling
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-sub-pixel-bgr.conf: Enable sub-pixel rendering with the BGR stripes layout
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-sub-pixel-none.conf: Disable sub-pixel rendering
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-sub-pixel-rgb.conf: Enable sub-pixel rendering with the RGB stripes layout
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-sub-pixel-vbgr.conf: Enable sub-pixel rendering with the vertical BGR stripes layout
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-sub-pixel-vrgb.conf: Enable sub-pixel rendering with the vertical RGB stripes layout
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-unhinted.conf: Disable hinting
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/10-yes-antialias.conf: Enable antialiasing
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/11-lcdfilter-default.conf: Use lcddefault as default for LCD filter
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/11-lcdfilter-legacy.conf: Use lcdlegacy as default for LCD filter
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/11-lcdfilter-light.conf: Use lcdlight as default for LCD filter
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/11-lcdfilter-none.conf: Use lcdnone as default for LCD filter
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/20-unhint-small-vera.conf: Disable hinting for Bitstream Vera fonts when the size is less than 8ppem
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/25-unhint-nonlatin.conf: Disable hinting for CJK fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/30-metric-aliases.conf: Set substitutions for similar/metric-compatible families
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/35-lang-normalize.conf: No description
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/40-nonlatin.conf: Set substitutions for non-Latin fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/45-generic.conf: Set substitutions for emoji/math fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/45-latin.conf: Set substitutions for Latin fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/48-guessfamily.conf: Guess a generic-family for substitution
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/48-spacing.conf: Add mono to the family when spacing is 100
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/49-sansserif.conf: Add sans-serif to the family when no generic name
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/50-user.conf: Load per-user customization files
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/51-local.conf: Load local customization file
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/60-generic.conf: Set preferable fonts for emoji/math fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/60-latin.conf: Set preferable fonts for Latin
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/65-fonts-persian.conf: No description
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/65-khmer.conf: No description
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/65-nonlatin.conf: Set preferable fonts for non-Latin
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/69-unifont.conf: No description
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/70-no-bitmaps-and-emoji.conf: Reject bitmap fonts, including bitmap emoji fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/70-no-bitmaps-except-emoji.conf: Reject bitmap fonts except bitmap emoji fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/70-no-bitmaps.conf: Reject bitmap fonts except bitmap emoji fonts (deprecated; use 70-no-bitmaps-except-emoji.conf)
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/70-yes-bitmaps.conf: Accept bitmap fonts
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/80-delicious.conf: No description
+- /nix/store/qdbcjg7j3rxr1bvh1qhldk5aqjz7vlx6-fontconfig-2.18.2/share/fontconfig/conf.avail/90-synthetic.conf: No description

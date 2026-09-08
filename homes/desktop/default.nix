@@ -19,6 +19,8 @@
   };
 
   modules = with modules; [
+    # Full design library remains a user choice, independent of font roles.
+    { typography.designLibrary = "full"; }
     # Compatibility value for this Home Manager installation; do not raise it
     # merely to follow the current Nixpkgs/Home Manager release.
     { home.stateVersion = "25.05"; }
@@ -32,6 +34,7 @@
     ./nix-seal.nix
 
     fonts
+    ../../modules/home/desktop/optional-emoji-fonts.nix
     dev
     xdg-portal
 
@@ -97,6 +100,8 @@
     spotify
     bitwarden
     darktable
+    prismlauncher
 
   ];
+
 }

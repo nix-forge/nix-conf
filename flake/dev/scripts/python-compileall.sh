@@ -2,5 +2,7 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-export PYTHONPYCACHEPREFIX="${TMPDIR:?}/python-pycache"
-exec @python@ -m compileall -q homes modules scripts pkgs
+cache="$(@mktemp@ -d)"
+trap '@rm@ -rf -- "$cache"' EXIT
+export PYTHONPYCACHEPREFIX="$cache"
+@python@ -m compileall -q homes modules scripts tests pkgs

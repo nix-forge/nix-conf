@@ -1,0 +1,32 @@
+From b1ad24e24f3c04d854ed2c516fd0b947cf800420 Mon Sep 17 00:00:00 2001
+From: Jon Parise <jon@indelible.org>
+Date: Wed, 18 Mar 2026 15:09:09 -0400
+Subject: [PATCH] bash: emit 133;P (instead of 133;A) under ble.sh
+
+ble.sh performs its own cursor positioning so we get multiple newlines
+with 133;A's fresh-line behavior. ble.sh is a large enough project to
+justify this additional, unambiguous conditional.
+
+See: akinomyoga/ble.sh#684
+See: wezterm/wezterm#5072
+---
+ src/shell-integration/bash/ghostty.bash | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/src/shell-integration/bash/ghostty.bash b/src/shell-integration/bash/ghostty.bash
+index 667d7c86b7..ec421daab4 100644
+--- a/src/shell-integration/bash/ghostty.bash
++++ b/src/shell-integration/bash/ghostty.bash
+@@ -235,2 +235,10 @@ function __ghostty_precmd() {
+-  # Fresh line and start of prompt.
+-  builtin printf "\e]133;A;redraw=last;cl=line;aid=%s\a" "$BASHPID"
++  # Fresh line and start of prompt. When ble.sh is active, emit 133;P instead
++  # of 133;A because ble.sh maintains its own cursor position tracking. 133;A's
++  # cursor movement (CR+LF when not at column 0) is invisible to ble.sh and
++  # desyncs its position state, causing display artifacts like duplicate
++  # prompts. See: https://github.com/akinomyoga/ble.sh/issues/684
++  if [[ -n "${BLE_VERSION-}" ]]; then
++    builtin printf "\e]133;P;k=i\a"
++  else
++    builtin printf "\e]133;A;redraw=last;cl=line;aid=%s\a" "$BASHPID"
++  fi

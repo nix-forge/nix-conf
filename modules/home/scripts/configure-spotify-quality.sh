@@ -1,6 +1,6 @@
 # shellcheck shell=sh
 if @pgrep@ -x Spotify >/dev/null 2>&1 || @pgrep@ -x spotify >/dev/null 2>&1; then
-  echo "Skipping Spotify quality settings because Spotify is running."
+  echo "Skipping Spotify preferences because Spotify is running."
 else
   update_pref() {
     prefs="$1"
@@ -25,6 +25,8 @@ else
   # shellcheck disable=SC2043 # Nix substitutes a quoted path plus an unquoted glob here.
   for prefs in @spotifyPreferences@; do
     [ -f "$prefs" ] || continue
+    # Disable "Show desktop notifications when the song changes".
+    update_pref "$prefs" ui.track_notifications_enabled false
     # Spotify reports this account/device as Standard-capable, whose highest
     # streaming tier is High (3); Lossless (5) is unavailable.
     update_pref "$prefs" audio.play_bitrate_enumeration 3

@@ -1,0 +1,4 @@
+PASS: Escape responds during stalled IPC and cancels the request/timer
+PASS: stalled requests time out and retry with only one in flight
+PASS: switching recovers when compositor replies resume
+PASS: expected warning count during fault injection

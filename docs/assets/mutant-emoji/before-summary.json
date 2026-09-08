@@ -1,0 +1,66 @@
+{
+  "total": 7829,
+  "failed": 1268,
+  "examples": [
+    {
+      "actual": 60,
+      "encoding": "1f21a-fe0f",
+      "text": "\ud83c\ude1a\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f22f-fe0f",
+      "text": "\ud83c\ude2f\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f30d-fe0f",
+      "text": "\ud83c\udf0d\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f30e-fe0f",
+      "text": "\ud83c\udf0e\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f30f-fe0f",
+      "text": "\ud83c\udf0f\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f315-fe0f",
+      "text": "\ud83c\udf15\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f31c-fe0f",
+      "text": "\ud83c\udf1c\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f378-fe0f",
+      "text": "\ud83c\udf78\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f3a4-fe0f",
+      "text": "\ud83c\udfa4\ufe0f",
+      "width": 56.25
+    },
+    {
+      "actual": 60,
+      "encoding": "1f3ae-fe0f",
+      "text": "\ud83c\udfae\ufe0f",
+      "width": 56.25
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+building '/nix/store/hykiffm2ph9q1jalazcrd05q5r8259h7-hyprland-0.56.0+date=2026-09-04_ee04096-env.drv'...
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 3
+Mapped root, parent, child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 4
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Preferred color description ready for orphaned child
+Destroyed intermediate parent; unmapping child
+roundtrip after child teardown: 5
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+Mapped root, parent, child
+PASS: compositor survived every selected subsurface lifecycle scenario
+Test output: /tmp/nix-shell.b066iV/tmp.iRg28OrMQz
+Runtime output: /tmp/hc.mLThJr

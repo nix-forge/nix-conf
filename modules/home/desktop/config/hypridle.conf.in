@@ -3,9 +3,9 @@ general {
   # Wait for Hyprlock to confirm the lock before logind permits sleep.
   inhibit_sleep = 3
   before_sleep_cmd = loginctl lock-session
-  after_sleep_cmd = hyprctl eval 'hl.dpms({ action = "on" })'
+  after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
   on_lock_cmd = @onLockCommand@
-  on_unlock_cmd = hyprctl eval 'hl.dpms({ action = "on" })'
+  on_unlock_cmd = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
 }
 
 listener {
@@ -15,8 +15,20 @@ listener {
 
 listener {
   timeout = @displayOffAfterSeconds@
-  on-timeout = hyprctl eval 'hl.dpms({ action = "off" })'
-  on-resume = hyprctl eval 'hl.dpms({ action = "on" })'
+  on-timeout = hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })'
+  on-resume = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
+}
+
+# Protect the OLED after manual locking and after waking an abandoned lock
+# screen. Only this locked-session rule bypasses application inhibitors.
+# Retry because the short idle timeout can expire before Hyprlock starts.
+listener {
+  timeout = @lockedDisplayOffAfterSeconds@
+  ignore_inhibit = true
+  condition_cmd = pgrep -u "$(id -u)" -x hyprlock > /dev/null
+  condition_retry = 5
+  on-timeout = hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })'
+  on-resume = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
 }
 
 listener {

@@ -13,4 +13,13 @@
     Enabled = false;
     Locked = true;
   };
+
+  # Gecko 154's HDR compositor exposes rounded tile cutouts in Hyprland.
+  # Forcing Zen onto the AMD iGPU also makes ordinary pages render black
+  # through the NVIDIA output. Keep the normal GPU path and explicitly reset
+  # both preferences, including profiles that previously enabled the trial.
+  programs.zen-browser.profiles.default.settings = {
+    "gfx.color_management.hdr" = false;
+    "gfx.color_management.hdr.force_enabled" = false;
+  };
 }
