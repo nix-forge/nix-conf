@@ -133,10 +133,17 @@
 
       # Detect a canary even inside paths with narrowly scoped exceptions.
       checks.gitleaks-policy =
-        pkgs.runCommand "gitleaks-policy" { nativeBuildInputs = [ pkgs.gitleaks ]; }
+        pkgs.runCommand "gitleaks-policy"
+          {
+            nativeBuildInputs = [
+              pkgs.gitleaks
+              pkgs.git
+            ];
+          }
           ''
             set -euo pipefail
-            bash ${../../tests/privacy/check-publication-policy.sh} ${../../.gitleaks.toml}
+            bash ${../../tests/privacy/check-publication-policy.sh} ${../../.gitleaks.toml} \
+              ${../../.gitleaks-history.toml} ${../../.github/scripts/scan-publication.sh}
             fixture="$TMPDIR/fixture"
             mkdir -p "$fixture"
             scan_fixture() {

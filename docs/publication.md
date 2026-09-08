@@ -32,6 +32,13 @@ providers, and hardware identifiers in docs. They supplement credential scanning
 they cannot decide whether a personal story belongs in public. Keep exceptions
 narrow and source-backed.
 
+CI scans the complete committed tree with those publication and credential rules.
+It also scans Git history for credentials using `.gitleaks-history.toml`, which
+extends the same policy and excludes only the four publication metadata rules.
+Old home paths and hardware identifiers can remain in published history after
+current-tree cleanup; this separation preserves credential detection without
+requiring a history rewrite. Canary tests cover both scan scopes.
+
 Set a repository-local public identity when making a new checkout:
 
 ```sh

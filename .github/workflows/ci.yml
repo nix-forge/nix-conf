@@ -75,7 +75,7 @@ jobs:
             (cd "$project" && nix develop --command bash -c 'prek run --all-files && gitleaks git --redact --no-banner')
           done
       - name: Scan repository for leaked secrets
-        run: nix develop --command gitleaks git --redact --no-banner
+        run: nix develop --command bash .github/scripts/scan-publication.sh
   flake:
     name: Flake checks (${{ matrix.system }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft

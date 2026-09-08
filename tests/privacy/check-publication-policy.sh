@@ -2,6 +2,8 @@
 set -euo pipefail
 
 policy=$(realpath "$1")
+history_policy=$(realpath "$2")
+scan_script=$(realpath "$3")
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/docs" "$fixture/hosts"
@@ -53,3 +55,41 @@ EOF
   gitleaks dir . --config "$policy" --redact --no-banner
 )
 printf 'Publication policy checks passed.\n'
+
+# Real Git history distinguishes removed metadata from removed credentials.
+repository="$fixture/repository"
+mkdir -p "$repository/docs"
+cp "$policy" "$repository/.gitleaks.toml"
+cp "$history_policy" "$repository/.gitleaks-history.toml"
+(
+  cd "$repository"
+  git init -q
+  git config user.name "Publication policy test"
+  git config user.email "test@example.org"
+  printf 'Source: /home/%s/notes\n' publication-canary-operator >docs/note.md
+  git add .
+  git commit -qm 'Historical metadata'
+  printf 'Portable documentation\n' >docs/note.md
+  git add .
+  git commit -qm 'Remove historical metadata'
+  bash "$scan_script"
+
+  printf 'Source: /home/%s/notes\n' publication-canary-operator >docs/note.md
+  git add .
+  git commit -qm 'Current metadata must fail'
+  if bash "$scan_script" >"$fixture/current-scan.log" 2>&1; then
+    echo 'Current publication metadata escaped the committed-tree scan' >&2
+    exit 1
+  fi
+  printf 'Portable documentation\n' >docs/note.md
+  printf 'password="%s"\n' "$canary" >credential.txt
+  git add .
+  git commit -qm 'Historical credential canary'
+  git rm -q credential.txt
+  git commit -qm 'Remove credential canary'
+  if bash "$scan_script" >"$fixture/history-scan.log" 2>&1; then
+    echo 'Removed credential escaped the historical scan' >&2
+    exit 1
+  fi
+)
+printf 'Publication history and committed-tree checks passed.\n'
