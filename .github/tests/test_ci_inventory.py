@@ -26,10 +26,12 @@ class CIInventoryTests(unittest.TestCase):
                             };
                             self = {
                                 deploy = {};
+                                lintChecks.x86_64-linux = { new-portable-check = null; };
                                 checks = {
                                     x86_64-linux = {
                                         ordinary = null;
                                         newly-added = null;
+                                        new-portable-check = null;
                                         host-only = null;
                                         new-deployment-check = null;
                                     };

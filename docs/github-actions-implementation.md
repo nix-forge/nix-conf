@@ -352,3 +352,12 @@ derivation. Foreign configurations produce a skipped-platform report. The check
 report discards the system derivation's string context so evaluating a host does
 not turn the CI check into a full system build. Host additions and removals update
 these checks automatically; runner support remains explicit deployment policy.
+
+Portable pre-commit and treefmt checks belong to `lintChecks`. The required Linux
+lint job builds that output once. Native `ciChecks` exclude the lint owner's
+inventory as well as deployment-only checks. The full `checks` output retains
+every check for local validation. This avoids rebuilding portable lint tools on
+each native runner while preserving platform-specific runtime and Swift checks.
+
+The lint group is reserved for portable tooling. Platform-dependent tests belong
+in native checks or a required native job, so moving lint does not hide them.

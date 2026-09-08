@@ -192,7 +192,12 @@ in
     # Full deployment checks build the desktop closure and belong on that host.
     # Derive exclusions from their owner so new ordinary checks still enter CI.
     ciChecks = lib.mapAttrs (
-      system: checks: removeAttrs checks (builtins.attrNames (deploymentChecksBySystem.${system} or { }))
+      system: checks:
+      removeAttrs checks (
+        builtins.attrNames (
+          (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
+        )
+      )
     ) self.checks;
 
     checks.x86_64-linux = deploymentChecksBySystem.x86_64-linux // {
