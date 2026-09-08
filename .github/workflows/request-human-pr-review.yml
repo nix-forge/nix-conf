@@ -9,17 +9,6 @@ concurrency:
 jobs:
   request-review:
     name: request-review
-    if: >-
-      github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.login != 'IanHollow'
-      && github.event.pull_request.draft == false && github.repository == 'nix-forge/nix-conf'
     permissions:
-      pull-requests: write # Request maintainer review.
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Request maintainer review
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-        run: gh pr edit "$PR_NUMBER" --repo "$REPOSITORY" --add-reviewer IanHollow
+      pull-requests: write # Update pull request metadata.
+    uses: nix-forge/ci/.github/workflows/request-review.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0

@@ -4,7 +4,7 @@ on: # zizmor: ignore[dangerous-triggers] Reads API metadata and runs only the de
     workflows: ["CI Tests", "Dependency Review", "CodeQL", "Auto-merge Dependabot"]
     types: [completed]
   schedule:
-    - cron: "17,37,57 * * * *"
+    - cron: 17,37,57 * * * *
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -27,15 +27,8 @@ jobs:
       pull-requests: write # Read and enqueue eligible pull requests.
       statuses: write # Publish verified validation results on the queue commit.
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Reconcile verified automation
+        uses: nix-forge/ci/actions/reconcile-queue@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
         with:
-          ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
-          sparse-checkout: .github/scripts
-      - name: Reconcile passing automation pull requests
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          GH_REPO: ${{ github.repository }}
-          QUEUE_WORKFLOWS: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
-        run: python3 .github/scripts/reconcile-queue.py
+          workflows: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
+          source-run-id: ${{ inputs.source_run_id }}

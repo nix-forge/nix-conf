@@ -27,8 +27,6 @@ jobs:
           fi
   flake-lock:
     name: Flake lock health (${{ matrix.lockfile }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
     permissions:
       contents: read
     strategy:
@@ -37,16 +35,9 @@ jobs:
         lockfile:
           - flake.lock
           - flake/dev/flake.lock
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: DeterminateSystems/flake-checker-action@de924abd783455e8429c858962b9e43062d19da1 # v13
-        with:
-          flake-lock-path: ${{ matrix.lockfile }}
-          ignore-missing-flake-lock: false
-          fail-mode: true
-          send-statistics: false
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+    with:
+      lockfile: ${{ matrix.lockfile }}
   lint:
     name: Repository hooks
     runs-on: ubuntu-24.04
@@ -59,9 +50,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           submodules: recursive
-      - uses: DeterminateSystems/determinate-nix-action@021c8a1bd3570eb21f5c20a054812b0c4d9ca614 # v3.22.3
-      - name: Test merge queue reconciliation
-        run: python3 -m unittest discover -s .github/tests
+      - name: Set up Nix
+        uses: nix-forge/ci/actions/setup-nix@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        with:
+          cache: 'false'
+          cache-scope: ci-lint
       - name: Materialize partition sources
         run: |
           nix store add-path flake/dev
@@ -100,7 +93,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           submodules: recursive
-      - uses: DeterminateSystems/determinate-nix-action@021c8a1bd3570eb21f5c20a054812b0c4d9ca614 # v3.22.3
+      - name: Set up Nix
+        uses: nix-forge/ci/actions/setup-nix@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        with:
+          cache: 'false'
+          cache-scope: ci-flake
       - name: Materialize partition sources
         run: |
           nix store add-path flake/dev
@@ -255,16 +252,5 @@ jobs:
     permissions:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
-      - name: Notify the trusted queue reconciler
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          for attempt in 1 2 3; do
-            if gh workflow run reconcile-merge-queue.yml --ref main -f source_run_id="$GITHUB_RUN_ID"; then
-              exit 0
-            fi
-            echo "::warning::Queue completion notification attempt $attempt failed"
-            sleep 5
-          done
-          exit 1
+      - name: Notify trusted queue reconciler
+        uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
