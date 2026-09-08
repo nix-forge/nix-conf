@@ -1,13 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
-in
-{
+{ config, ... }: {
   programs.nushell = {
     enable = true;
 
@@ -79,17 +70,19 @@ in
       };
     };
 
-    extraConfig = lib.mkIf isDarwin ''
+    # These are terminal control sequences on both platforms. Ghostty's macOS
+    # Option/Delete bindings send the same Ctrl-W and Ctrl-U bytes.
+    extraConfig = ''
       $env.config.keybindings ++= [
         {
-          name: macos_option_delete_word
+          name: delete_previous_word
           modifier: control
           keycode: char_w
           mode: [emacs vi_insert]
           event: { edit: backspaceword }
         }
         {
-          name: macos_cmd_delete_to_line_start
+          name: delete_to_line_start
           modifier: control
           keycode: char_u
           mode: [emacs vi_insert]

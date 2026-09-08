@@ -1,0 +1,642 @@
+[
+  {
+    "id": "g0-0",
+    "painted_pixels": 92
+  },
+  {
+    "id": "g0-1",
+    "painted_pixels": 49
+  },
+  {
+    "id": "g0-2",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g0-3",
+    "painted_pixels": 84
+  },
+  {
+    "id": "g0-4",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g0-5",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g0-6",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g0-7",
+    "painted_pixels": 62
+  },
+  {
+    "id": "g0-8",
+    "painted_pixels": 104
+  },
+  {
+    "id": "g0-9",
+    "painted_pixels": 99
+  },
+  {
+    "id": "g1-0",
+    "painted_pixels": 92
+  },
+  {
+    "id": "g1-1",
+    "painted_pixels": 49
+  },
+  {
+    "id": "g1-2",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g1-3",
+    "painted_pixels": 84
+  },
+  {
+    "id": "g1-4",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g1-5",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g1-6",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g1-7",
+    "painted_pixels": 62
+  },
+  {
+    "id": "g1-8",
+    "painted_pixels": 104
+  },
+  {
+    "id": "g1-9",
+    "painted_pixels": 99
+  },
+  {
+    "id": "g2-0",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g2-1",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g2-2",
+    "painted_pixels": 84
+  },
+  {
+    "id": "g2-3",
+    "painted_pixels": 90
+  },
+  {
+    "id": "g2-4",
+    "painted_pixels": 92
+  },
+  {
+    "id": "g2-5",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g2-6",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g2-7",
+    "painted_pixels": 61
+  },
+  {
+    "id": "g2-8",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g2-9",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g3-0",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g3-1",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g3-2",
+    "painted_pixels": 84
+  },
+  {
+    "id": "g3-3",
+    "painted_pixels": 90
+  },
+  {
+    "id": "g3-4",
+    "painted_pixels": 92
+  },
+  {
+    "id": "g3-5",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g3-6",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g3-7",
+    "painted_pixels": 61
+  },
+  {
+    "id": "g3-8",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g3-9",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g4-0",
+    "painted_pixels": 98
+  },
+  {
+    "id": "g4-1",
+    "painted_pixels": 61
+  },
+  {
+    "id": "g4-2",
+    "painted_pixels": 82
+  },
+  {
+    "id": "g4-3",
+    "painted_pixels": 83
+  },
+  {
+    "id": "g4-4",
+    "painted_pixels": 96
+  },
+  {
+    "id": "g4-5",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g4-6",
+    "painted_pixels": 109
+  },
+  {
+    "id": "g4-7",
+    "painted_pixels": 63
+  },
+  {
+    "id": "g4-8",
+    "painted_pixels": 109
+  },
+  {
+    "id": "g4-9",
+    "painted_pixels": 105
+  },
+  {
+    "id": "g5-0",
+    "painted_pixels": 96
+  },
+  {
+    "id": "g5-1",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g5-2",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g5-3",
+    "painted_pixels": 88
+  },
+  {
+    "id": "g5-4",
+    "painted_pixels": 96
+  },
+  {
+    "id": "g5-5",
+    "painted_pixels": 90
+  },
+  {
+    "id": "g5-6",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g5-7",
+    "painted_pixels": 63
+  },
+  {
+    "id": "g5-8",
+    "painted_pixels": 108
+  },
+  {
+    "id": "g5-9",
+    "painted_pixels": 107
+  },
+  {
+    "id": "g6-0",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g6-1",
+    "painted_pixels": 53
+  },
+  {
+    "id": "g6-2",
+    "painted_pixels": 67
+  },
+  {
+    "id": "g6-3",
+    "painted_pixels": 67
+  },
+  {
+    "id": "g6-4",
+    "painted_pixels": 71
+  },
+  {
+    "id": "g6-5",
+    "painted_pixels": 69
+  },
+  {
+    "id": "g6-6",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g6-7",
+    "painted_pixels": 55
+  },
+  {
+    "id": "g6-8",
+    "painted_pixels": 87
+  },
+  {
+    "id": "g6-9",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g7-0",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g7-1",
+    "painted_pixels": 53
+  },
+  {
+    "id": "g7-2",
+    "painted_pixels": 67
+  },
+  {
+    "id": "g7-3",
+    "painted_pixels": 67
+  },
+  {
+    "id": "g7-4",
+    "painted_pixels": 71
+  },
+  {
+    "id": "g7-5",
+    "painted_pixels": 69
+  },
+  {
+    "id": "g7-6",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g7-7",
+    "painted_pixels": 55
+  },
+  {
+    "id": "g7-8",
+    "painted_pixels": 87
+  },
+  {
+    "id": "g7-9",
+    "painted_pixels": 86
+  },
+  {
+    "id": "g8-0",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g8-1",
+    "painted_pixels": 59
+  },
+  {
+    "id": "g8-2",
+    "painted_pixels": 72
+  },
+  {
+    "id": "g8-3",
+    "painted_pixels": 73
+  },
+  {
+    "id": "g8-4",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g8-5",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g8-6",
+    "painted_pixels": 88
+  },
+  {
+    "id": "g8-7",
+    "painted_pixels": 63
+  },
+  {
+    "id": "g8-8",
+    "painted_pixels": 100
+  },
+  {
+    "id": "g8-9",
+    "painted_pixels": 88
+  },
+  {
+    "id": "g9-0",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g9-1",
+    "painted_pixels": 59
+  },
+  {
+    "id": "g9-2",
+    "painted_pixels": 72
+  },
+  {
+    "id": "g9-3",
+    "painted_pixels": 73
+  },
+  {
+    "id": "g9-4",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g9-5",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g9-6",
+    "painted_pixels": 88
+  },
+  {
+    "id": "g9-7",
+    "painted_pixels": 63
+  },
+  {
+    "id": "g9-8",
+    "painted_pixels": 100
+  },
+  {
+    "id": "g9-9",
+    "painted_pixels": 88
+  },
+  {
+    "id": "g10-0",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g10-1",
+    "painted_pixels": 59
+  },
+  {
+    "id": "g10-2",
+    "painted_pixels": 77
+  },
+  {
+    "id": "g10-3",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g10-4",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g10-5",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g10-6",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g10-7",
+    "painted_pixels": 61
+  },
+  {
+    "id": "g10-8",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g10-9",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g11-0",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g11-1",
+    "painted_pixels": 59
+  },
+  {
+    "id": "g11-2",
+    "painted_pixels": 77
+  },
+  {
+    "id": "g11-3",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g11-4",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g11-5",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g11-6",
+    "painted_pixels": 94
+  },
+  {
+    "id": "g11-7",
+    "painted_pixels": 61
+  },
+  {
+    "id": "g11-8",
+    "painted_pixels": 102
+  },
+  {
+    "id": "g11-9",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g12-0",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g12-1",
+    "painted_pixels": 52
+  },
+  {
+    "id": "g12-2",
+    "painted_pixels": 74
+  },
+  {
+    "id": "g12-3",
+    "painted_pixels": 76
+  },
+  {
+    "id": "g12-4",
+    "painted_pixels": 73
+  },
+  {
+    "id": "g12-5",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g12-6",
+    "painted_pixels": 89
+  },
+  {
+    "id": "g12-7",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g12-8",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g12-9",
+    "painted_pixels": 89
+  },
+  {
+    "id": "g13-0",
+    "painted_pixels": 91
+  },
+  {
+    "id": "g13-1",
+    "painted_pixels": 52
+  },
+  {
+    "id": "g13-2",
+    "painted_pixels": 74
+  },
+  {
+    "id": "g13-3",
+    "painted_pixels": 76
+  },
+  {
+    "id": "g13-4",
+    "painted_pixels": 73
+  },
+  {
+    "id": "g13-5",
+    "painted_pixels": 80
+  },
+  {
+    "id": "g13-6",
+    "painted_pixels": 89
+  },
+  {
+    "id": "g13-7",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g13-8",
+    "painted_pixels": 93
+  },
+  {
+    "id": "g13-9",
+    "painted_pixels": 89
+  },
+  {
+    "id": "g14-0",
+    "painted_pixels": 112
+  },
+  {
+    "id": "g14-1",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g14-2",
+    "painted_pixels": 76
+  },
+  {
+    "id": "g14-3",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g14-4",
+    "painted_pixels": 87
+  },
+  {
+    "id": "g14-5",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g14-6",
+    "painted_pixels": 95
+  },
+  {
+    "id": "g14-7",
+    "painted_pixels": 62
+  },
+  {
+    "id": "g14-8",
+    "painted_pixels": 99
+  },
+  {
+    "id": "g14-9",
+    "painted_pixels": 92
+  },
+  {
+    "id": "g15-0",
+    "painted_pixels": 112
+  },
+  {
+    "id": "g15-1",
+    "painted_pixels": 60
+  },
+  {
+    "id": "g15-2",
+    "painted_pixels": 76
+  },
+  {
+    "id": "g15-3",
+    "painted_pixels": 79
+  },
+  {
+    "id": "g15-4",
+    "painted_pixels": 87
+  },
+  {
+    "id": "g15-5",
+    "painted_pixels": 81
+  },
+  {
+    "id": "g15-6",
+    "painted_pixels": 95
+  },
+  {
+    "id": "g15-7",
+    "painted_pixels": 62
+  },
+  {
+    "id": "g15-8",
+    "painted_pixels": 99
+  },
+  {
+    "id": "g15-9",
+    "painted_pixels": 92
+  }
+]

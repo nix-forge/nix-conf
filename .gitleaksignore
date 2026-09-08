@@ -1,0 +1,15 @@
+# Historical false positives only; current files and future commits remain scanned.
+# Boolean argument in the removed CLI, not a credential.
+2e10b6a9c8bbe38839d29877c4436ba29ad0319a:scripts/secretctl.py:generic-api-key:607
+# Public DNSCrypt resolver-list verification key.
+0cb369e5d79bfb07c6f70fa7fcdaa7816f0a68e1:nixosModules/networking/dnscrypt-proxy.nix:generic-api-key:108
+# Public DNSCrypt resolver-list verification key.
+0cb369e5d79bfb07c6f70fa7fcdaa7816f0a68e1:nixosModules/networking/dnscrypt-proxy.nix:generic-api-key:116
+# Public DNSCrypt resolver-list verification key.
+c89338df5ebaceafee8f31a473f48f8ba5e9820a:_nixOSModules/networking/dnscrypt-proxy.nix:generic-api-key:109
+# Public DNSCrypt resolver-list verification key.
+c89338df5ebaceafee8f31a473f48f8ba5e9820a:_nixOSModules/networking/dnscrypt-proxy.nix:generic-api-key:117
+# Public DNSCrypt resolver-list verification key.
+208ec38999ee46e14ddb5a07ee551ceec0505691:_nixOSModules/hardware/networking/dnscrypt-proxy.nix:generic-api-key:107
+# Public DNSCrypt resolver-list verification key.
+208ec38999ee46e14ddb5a07ee551ceec0505691:_nixOSModules/hardware/networking/dnscrypt-proxy.nix:generic-api-key:115

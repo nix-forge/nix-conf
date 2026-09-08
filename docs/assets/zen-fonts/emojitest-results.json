@@ -1,0 +1,130 @@
+{
+  "emoji_test_revision": "ccd4ff0437bb9d519846c0cfd1bf9ab06a18a018",
+  "browser": "Zen 1.21.15b on NixOS Wayland",
+  "rows": [
+    {
+      "kind": "web",
+      "family": "GOOG-font_face",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "web",
+      "family": "E1CB-font_face",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "web",
+      "family": "JYPX-font_face",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "web",
+      "family": "MSFT-font_face",
+      "loaded": true,
+      "color_pixels": 4375
+    },
+    {
+      "kind": "web",
+      "family": "FXMZ-font_face",
+      "loaded": true,
+      "color_pixels": 3079
+    },
+    {
+      "kind": "web",
+      "family": "MTSD-font_face",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "web",
+      "family": "E1SV-font_face",
+      "loaded": true,
+      "color_pixels": 4205
+    },
+    {
+      "kind": "web",
+      "family": "TWTR-font_face",
+      "loaded": true,
+      "color_pixels": 4787
+    },
+    {
+      "kind": "local",
+      "family": "Apple Color Emoji",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "local",
+      "family": "EmojiOne",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "local",
+      "family": "Firefox Emoji",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "local",
+      "family": "JoyPixels",
+      "loaded": true,
+      "color_pixels": 5432
+    },
+    {
+      "kind": "local",
+      "family": "Mutant Standard Emoji",
+      "loaded": false,
+      "color_pixels": 0
+    },
+    {
+      "kind": "local",
+      "family": "Noto Color Emoji",
+      "loaded": true,
+      "color_pixels": 5550
+    },
+    {
+      "kind": "local",
+      "family": "OpenMoji",
+      "loaded": false,
+      "color_pixels": 3087
+    },
+    {
+      "kind": "local",
+      "family": "Segoe UI Emoji",
+      "loaded": true,
+      "color_pixels": 4056
+    },
+    {
+      "kind": "local",
+      "family": "Twitter Color Emoji",
+      "loaded": true,
+      "color_pixels": 4780
+    }
+  ],
+  "notes": [
+    "OpenMoji family renders in color; local() lookup rejects the alias because it expects a face name.",
+    "Color presence alone is insufficient for all Unicode emoji; black/white symbols can be intentionally achromatic."
+  ],
+  "unicode_version": "17.0",
+  "unicode_file_sha256": "1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda",
+  "unicode_rgi_count": 3953,
+  "blank_or_split_count": 0,
+  "noto_2051_single_glyph_shaping_passes": 3953,
+  "font_console": [
+    "[JavaScript Warning: \"downloadable font: maxp: Bad maxZones: 0 (font-family: \"SYMBOLA-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/Symbola.ttf\"]",
+    "[JavaScript Error: \"downloadable font: no supported glyph data table(s) present (font-family: \"GOOG-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/NotoColorEmoji.ttf\"]",
+    "[JavaScript Error: \"downloadable font: rejected by sanitizer (font-family: \"GOOG-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/NotoColorEmoji.ttf\"]",
+    "[JavaScript Error: \"downloadable font: no supported glyph data table(s) present (font-family: \"E1CB-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/emojione-android.ttf\"]",
+    "[JavaScript Error: \"downloadable font: rejected by sanitizer (font-family: \"E1CB-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/emojione-android.ttf\"]",
+    "[JavaScript Error: \"downloadable font: no supported glyph data table(s) present (font-family: \"JYPX-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/JoyPixels.ttf\"]",
+    "[JavaScript Error: \"downloadable font: rejected by sanitizer (font-family: \"JYPX-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/JoyPixels.ttf\"]",
+    "[JavaScript Warning: \"downloadable font: maxp: Bad maxZones: 0 (font-family: \"MTSD-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/MutantStandardEmoji-sbixOT.ttf\"]",
+    "[JavaScript Warning: \"downloadable font: OS/2: usUpperOpticalPointSize is lower than 2: 0 (font-family: \"MTSD-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/MutantStandardEmoji-sbixOT.ttf\"]",
+    "[JavaScript Error: \"downloadable font: post: missing required table (font-family: \"MTSD-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/MutantStandardEmoji-sbixOT.ttf\"]",
+    "[JavaScript Error: \"downloadable font: rejected by sanitizer (font-family: \"MTSD-font_face\" style:normal weight:400 stretch:100 src index:0) source: http://127.0.0.1:8766/fonts/MutantStandardEmoji-sbixOT.ttf\"]"
+  ]
+}

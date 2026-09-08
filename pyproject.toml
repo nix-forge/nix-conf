@@ -1,6 +1,8 @@
 [tool.ruff]
-exclude = ["nix-seal"]
-fix = true
+# The framework has no Ruff project; its own CI owns its Python helpers.
+# Do not impose this configuration across that Git repository boundary.
+extend-exclude = ["nix-config-framework"]
+fix = false
 preview = true
 
 [tool.ruff.lint]
@@ -56,16 +58,8 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
-"pkgs/pkgs/by-name/op/openai-codex-desktop/test_update.py" = [
-  "private-member-access",            # Tests exercise the updater's internal parsers without network requests.
-  "pytest-unittest-assertion",        # Package checks use the standard-library unittest runner in the Nix sandbox.
-  "pytest-unittest-raises-assertion", # Keep the updater checks free of a pytest runtime dependency.
-]
-"pkgs/pkgs/by-name/wo/wootility/update.py" = [
-  "suspicious-subprocess-import",         # Invokes the discovered Nix executable to prefetch a validated release URL.
-  "subprocess-without-shell-equals-true", # Uses fixed nix arguments and an HTTPS URL with no shell.
-  "suspicious-url-open-usage",            # Validates Wooting discovery URLs and the version-bound download endpoint.
-]
+# Keep this runner regression usable with the standard-library test runner.
+"tests/hyprland/test_upstream_local_runner.py" = ["pytest-unittest-assertion"]
 "modules/nixos/virtualisation/scripts/windows-vm-render-seed.py" = [
   "hardcoded-password-string",         # The flagged value is a public placeholder token, not a credential.
   "suspicious-xml-element-tree-usage", # The immutable template is trusted and all variable text is escaped first.
@@ -87,94 +81,26 @@ strict = true
   "subprocess-without-shell-equals-true", # The test invokes a generated fixture path without a shell.
   "suspicious-subprocess-import",         # The subprocess is the script under test.
 ]
-"pkgs/pkgs/by-name/bi/bitwarden-desktop/update.py" = [
-  "complex-structure",                    # Release parsing validates several independent fields in one linear pass.
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
-  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a path-validated HTTPS asset URL.
-  "suspicious-url-open-usage",            # URL opening is limited to GitHub's fixed HTTPS release API.
-]
 "homes/macbook-pro-m4/local/dev_vm_host_test.py" = [
   # This Nix check deliberately uses only the Python standard library so it
   # can validate the runtime resolver without adding pytest to the closure.
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
 ]
-"pkgs/pkgs/by-name/cl/claude-desktop/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and feed URL.
-  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS release feed URLs.
-]
-"pkgs/pkgs/by-name/li/libreoffice/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call an absolute nix executable selected from PATH.
-  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a host-validated HTTPS download URL.
-  "suspicious-url-open-usage",            # URL opening is limited to the Document Foundation's validated HTTPS release URLs.
-]
-"pkgs/pkgs/by-name/li/linearmouse/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
-  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a GitHub path-validated HTTPS asset URL.
-  "suspicious-url-open-usage",            # URL opening is limited to GitHub's validated HTTPS release API and asset URLs.
-]
-"pkgs/pkgs/by-name/mi/microsoft-teams/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and validated CDN URL.
-  "suspicious-url-open-usage",            # URL opening is limited to the validated HTTPS Teams production config.
-]
-"pkgs/pkgs/by-name/op/openai-codex-desktop/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and appcast URL.
-  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS appcast URLs.
-  "suspicious-xml-etree-import",          # xml.etree is sufficient for a trusted upstream Sparkle appcast.
-  "suspicious-xml-element-tree-usage",    # The appcast is a fixed upstream document parsed without entity expansion.
-]
-"pkgs/pkgs/by-name/re/remindctl/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix and validate the release binary.
-  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix and validated binary invocations.
-  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS GitHub release URLs.
-]
-"pkgs/pkgs/by-name/sp/spotify-spotx/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix and git for upstream discovery.
-  "subprocess-without-shell-equals-true", # Command args are constrained to fixed nix/git invocations and validated refs.
-  "suspicious-url-open-usage",            # URL opening is limited to validated HTTPS Spotify and GitHub release URLs.
-]
-"pkgs/pkgs/by-name/st/steam/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix/curl/unzip.
-  "subprocess-without-shell-equals-true", # Command args are constrained to fixed local binaries and a validated URL.
-  "suspicious-url-open-usage",            # URL fetching is limited to validated HTTPS Steam endpoints.
-]
-"pkgs/pkgs/by-name/t3/t3-code/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
-  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a release path-validated HTTPS asset URL.
-  "suspicious-url-open-usage",            # URL opening is limited to GitHub's validated HTTPS release API and asset URLs.
-]
-"pkgs/pkgs/by-name/tt/ttf-ms-win11-auto/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and URL.
-  "suspicious-url-open-usage",            # URL opening is limited to HTTPS and user-overridable by design.
-]
-"pkgs/pkgs/by-name/vo/vorssaint/update.py" = [
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call the discovered nix executable.
-  "subprocess-without-shell-equals-true", # Command args are fixed nix prefetch arguments and a revision-bound GitHub archive URL.
-  "suspicious-url-open-usage",            # URL opening is limited to fixed GitHub API endpoints and revision-bound HTTPS URLs.
-]
-"pkgs/scripts/agent-skills-updater.py" = [
-  "invalid-module-name",                  # The hyphenated filename is executed as a script, not imported as a Python module.
-  "suspicious-subprocess-import",         # Uses subprocess intentionally to call nix store prefetch-file.
-  "subprocess-without-shell-equals-true", # Command args are constrained to a fixed nix invocation and GitHub archive URL.
-  "start-process-with-partial-path",      # nix is provided by the user environment for this local updater.
-  "suspicious-url-open-usage",            # URL opening is limited to fixed HTTPS GitHub API endpoints.
-  "print",                                # This command-line updater reports its status and diffs on stdout.
-]
-"pkgs/scripts/update-packages.py" = [
-  "invalid-module-name",                  # The hyphenated filename is executed as a script, not imported as a Python module.
-  "suspicious-subprocess-import",         # Runs only a discovered local package updater through sys.executable.
-  "subprocess-without-shell-equals-true", # Command args are an interpreter, an in-repository updater path, and user-supplied child args without a shell.
-]
 "scripts/update-packages.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally in a local CLI orchestrator.
   "subprocess-without-shell-equals-true", # Command args are constrained to local script paths and CLI flags.
 ]
 
+[tool.ty.analysis]
+# uharfbuzz re-exports a Cython extension without .pyi files. Keep only this
+# native module opaque; font shaping is exercised by the native font checks.
+replace-imports-with-any = ["uharfbuzz"]
+# lxml.etree is also a compiled extension without shipped Python type stubs.
+allowed-unresolved-imports = ["lxml.etree"]
+
 [tool.ty.environment]
+extra-paths = ["tests/fonts"]
 # Pin the target independently of a developer's active virtual environment so
 # editor, pre-commit, and pure Nix checks analyse the same Python language and
 # standard-library surface.

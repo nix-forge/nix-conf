@@ -1,0 +1,10 @@
+{
+  "before": {
+    "stopwatch_ink_width": 15,
+    "stopwatch_ink_height": 19
+  },
+  "after": {
+    "stopwatch_ink_width": 31,
+    "stopwatch_ink_height": 36
+  }
+}

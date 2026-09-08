@@ -1,0 +1,4 @@
+this derivation will be built:
+  /nix/store/2qmv3pk97n8myqnsvwbs8syg56apm3rw-hyprshell-4.10.8.drv
+building '/nix/store/2qmv3pk97n8myqnsvwbs8syg56apm3rw-hyprshell-4.10.8.drv'...
+/nix/store/88ls7080w1y642hqj0r3lqi7zs1ydavw-hyprshell-4.10.8

@@ -1,0 +1,92 @@
+[
+  {
+    "family": "Noto Sans CJK SC",
+    "language": "en",
+    "text": "骨直令漢",
+    "glyphs": [45133, 27874, 9809, 58935]
+  },
+  {
+    "family": "Noto Sans CJK SC",
+    "language": "ja",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 24227]
+  },
+  {
+    "family": "Noto Sans CJK SC",
+    "language": "zh-cn",
+    "text": "骨直令漢",
+    "glyphs": [45133, 27874, 9809, 58935]
+  },
+  {
+    "family": "Noto Sans CJK SC",
+    "language": "zh-tw",
+    "text": "骨直令漢",
+    "glyphs": [45134, 27874, 9810, 24228]
+  },
+  {
+    "family": "Noto Sans CJK SC",
+    "language": "ko",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 58935]
+  },
+  {
+    "family": "Noto Sans CJK JP",
+    "language": "en",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 24227]
+  },
+  {
+    "family": "Noto Sans CJK JP",
+    "language": "ja",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 24227]
+  },
+  {
+    "family": "Noto Sans CJK JP",
+    "language": "zh-cn",
+    "text": "骨直令漢",
+    "glyphs": [45133, 27874, 9809, 58935]
+  },
+  {
+    "family": "Noto Sans CJK JP",
+    "language": "zh-tw",
+    "text": "骨直令漢",
+    "glyphs": [45134, 27874, 9810, 24228]
+  },
+  {
+    "family": "Noto Sans CJK JP",
+    "language": "ko",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 58935]
+  },
+  {
+    "family": "Noto Sans CJK TC",
+    "language": "en",
+    "text": "骨直令漢",
+    "glyphs": [45134, 27874, 9810, 24228]
+  },
+  {
+    "family": "Noto Sans CJK TC",
+    "language": "ja",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 24227]
+  },
+  {
+    "family": "Noto Sans CJK TC",
+    "language": "zh-cn",
+    "text": "骨直令漢",
+    "glyphs": [45133, 27874, 9809, 58935]
+  },
+  {
+    "family": "Noto Sans CJK TC",
+    "language": "zh-tw",
+    "text": "骨直令漢",
+    "glyphs": [45134, 27874, 9810, 24228]
+  },
+  {
+    "family": "Noto Sans CJK TC",
+    "language": "ko",
+    "text": "骨直令漢",
+    "glyphs": [45132, 27873, 9808, 58935]
+  }
+]

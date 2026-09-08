@@ -1,0 +1,247 @@
+[
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "GOOG-font_face",
+    "kind": "web",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9370],
+      [[136, 132, 133], 95],
+      [[255, 192, 203], 65],
+      [[129, 129, 129], 58],
+      [[130, 129, 129], 50],
+      [[250, 189, 200], 42]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "E1CB-font_face",
+    "kind": "web",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9370],
+      [[136, 132, 133], 95],
+      [[255, 192, 203], 65],
+      [[129, 129, 129], 58],
+      [[130, 129, 129], 50],
+      [[250, 189, 200], 42]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "JYPX-font_face",
+    "kind": "web",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9370],
+      [[136, 132, 133], 95],
+      [[255, 192, 203], 65],
+      [[129, 129, 129], 58],
+      [[130, 129, 129], 50],
+      [[250, 189, 200], 42]
+    ]
+  },
+  {
+    "family": "MSFT-font_face",
+    "kind": "web",
+    "loaded": true,
+    "color_pixels": 4375,
+    "top_colors": [
+      [[128, 128, 128], 3087],
+      [[255, 200, 61], 2141],
+      [[0, 0, 0], 424],
+      [[240, 58, 23], 285],
+      [[127, 127, 127], 66],
+      [[255, 255, 255], 64]
+    ]
+  },
+  {
+    "family": "FXMZ-font_face",
+    "kind": "web",
+    "loaded": true,
+    "color_pixels": 3079,
+    "top_colors": [
+      [[128, 128, 128], 5861],
+      [[255, 212, 105], 956],
+      [[255, 212, 106], 292],
+      [[255, 161, 224], 270],
+      [[255, 71, 62], 173],
+      [[43, 59, 71], 123]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "MTSD-font_face",
+    "kind": "web",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9370],
+      [[136, 132, 133], 95],
+      [[255, 192, 203], 65],
+      [[129, 129, 129], 58],
+      [[130, 129, 129], 50],
+      [[250, 189, 200], 42]
+    ]
+  },
+  {
+    "family": "E1SV-font_face",
+    "kind": "web",
+    "loaded": true,
+    "color_pixels": 4205,
+    "top_colors": [
+      [[128, 128, 128], 6151],
+      [[255, 221, 103], 1975],
+      [[244, 103, 103], 243],
+      [[102, 78, 39], 176],
+      [[255, 255, 255], 76],
+      [[101, 177, 239], 37]
+    ]
+  },
+  {
+    "family": "TWTR-font_face",
+    "kind": "web",
+    "loaded": true,
+    "color_pixels": 4787,
+    "top_colors": [
+      [[128, 128, 128], 4735],
+      [[255, 204, 77], 2498],
+      [[102, 69, 0], 274],
+      [[170, 142, 214], 239],
+      [[231, 90, 112], 112],
+      [[93, 173, 236], 88]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "Apple Color Emoji",
+    "kind": "local",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9380],
+      [[136, 132, 133], 93],
+      [[255, 192, 203], 72],
+      [[129, 129, 129], 66],
+      [[130, 129, 129], 54],
+      [[250, 189, 200], 53]
+    ]
+  },
+  {
+    "family": "EmojiOne",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 4213,
+    "top_colors": [
+      [[128, 128, 128], 6156],
+      [[255, 221, 103], 1979],
+      [[244, 103, 103], 242],
+      [[102, 78, 39], 179],
+      [[255, 255, 255], 78],
+      [[101, 177, 239], 33]
+    ]
+  },
+  {
+    "family": "Firefox Emoji",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 3079,
+    "top_colors": [
+      [[128, 128, 128], 5859],
+      [[255, 212, 105], 956],
+      [[255, 212, 106], 292],
+      [[255, 161, 224], 270],
+      [[255, 71, 62], 173],
+      [[43, 59, 71], 123]
+    ]
+  },
+  {
+    "family": "JoyPixels",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 5432,
+    "top_colors": [
+      [[128, 128, 128], 3726],
+      [[255, 228, 0], 157],
+      [[255, 238, 0], 154],
+      [[255, 235, 0], 154],
+      [[255, 232, 0], 142],
+      [[26, 22, 38], 142]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "Mutant Standard Emoji",
+    "kind": "local",
+    "loaded": false,
+    "color_pixels": 0,
+    "top_colors": [
+      [[128, 128, 128], 9380],
+      [[136, 132, 133], 93],
+      [[255, 192, 203], 72],
+      [[129, 129, 129], 66],
+      [[130, 129, 129], 54],
+      [[250, 189, 200], 53]
+    ]
+  },
+  {
+    "family": "Noto Color Emoji",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 5550,
+    "top_colors": [
+      [[128, 128, 128], 4182],
+      [[253, 224, 48], 294],
+      [[66, 43, 13], 116],
+      [[248, 200, 44], 100],
+      [[247, 195, 43], 79],
+      [[247, 197, 43], 78]
+    ]
+  },
+  {
+    "error": "NetworkError: A network error occurred.",
+    "family": "OpenMoji",
+    "kind": "local",
+    "loaded": false,
+    "color_pixels": 3087,
+    "top_colors": [
+      [[128, 128, 128], 7595],
+      [[252, 234, 43], 1385],
+      [[234, 90, 71], 161],
+      [[248, 230, 42], 23],
+      [[250, 232, 42], 23],
+      [[216, 201, 36], 22]
+    ]
+  },
+  {
+    "family": "Segoe UI Emoji",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 4056,
+    "top_colors": [
+      [[128, 128, 128], 4354],
+      [[255, 255, 255], 31],
+      [[213, 154, 219], 31],
+      [[212, 154, 219], 19],
+      [[175, 5, 150], 18],
+      [[254, 181, 65], 14]
+    ]
+  },
+  {
+    "family": "Twitter Color Emoji",
+    "kind": "local",
+    "loaded": true,
+    "color_pixels": 4780,
+    "top_colors": [
+      [[128, 128, 128], 4717],
+      [[255, 204, 77], 2382],
+      [[102, 69, 0], 239],
+      [[170, 141, 216], 231],
+      [[221, 46, 68], 98],
+      [[93, 173, 236], 88]
+    ]
+  }
+]

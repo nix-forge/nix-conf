@@ -1,0 +1,20 @@
+{
+  "fallback": "Noto Color Emoji",
+  "fallbackVersion": "Version 2.051;GOOG;noto-emoji:20250818:e92753bfa55fd449e427d4d325f9c8c40408c74e",
+  "fallbackSha256": "3a44421dc3ce672f80fa0d4fdf7da5b583494ab4517178747f5fa6f287db5c1d",
+  "installedSha256": "04f3a8c1207247bb6361832a9abf34516228bf22ea42949418f376005174f367",
+  "repairs": {
+    "uni2640": {
+      "code": "2640 FE0F",
+      "donor": "female"
+    },
+    "uni2642": {
+      "code": "2642 FE0F",
+      "donor": "male"
+    },
+    "u2695": {
+      "code": "2695 FE0F",
+      "donor": "uni2695"
+    }
+  }
+}

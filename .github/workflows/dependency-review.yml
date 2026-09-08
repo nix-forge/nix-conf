@@ -14,6 +14,9 @@ on:
         required: true
         type: string
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   dependency-review:
     name: dependency-review
@@ -35,6 +38,3 @@ jobs:
     steps:
       - name: Notify trusted queue reconciler
         uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true

@@ -1,6 +1,8 @@
 { inputs, lib, ... }: {
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem.treefmt = {
+    # Preserve captured upstream source, logs, and checksums byte for byte.
+    settings.global.excludes = [ "docs/assets/hyprland-upstream-local-20260907/**" ];
     # Keep path-flake checks hermetic in linked worktrees.  treefmt creates a
     # fresh Git repository for its diff check and must not inherit the
     # worktree's external `.git` pointer.
@@ -8,6 +10,7 @@
     programs = {
       # YAML and GitHub Actions
       yamlfmt = {
+        settings.formatter.max_line_length = 100;
         enable = true;
         priority = 100;
       };
@@ -21,10 +24,15 @@
         settings = {
           extends = "default";
           rules = {
+            # Repository YAML uses one document per file.
             document-start = "disable";
+            # yamlfmt emits one space before inline comments.
+            comments.min-spaces-from-content = 1;
+            # GitHub Actions uses the YAML 1.2 key `on`.
+            truthy.check-keys = false;
             line-length = {
               max = 160;
-              level = "warning";
+              level = "error";
             };
           };
         };

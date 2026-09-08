@@ -1,5 +1,6 @@
 #!@bash@
 # shellcheck shell=bash disable=SC2016,SC2239
+# Nix replaces the shebang and @awk@; Awk must receive its $ fields literally.
 set -u -o pipefail
 
 export LC_ALL=C

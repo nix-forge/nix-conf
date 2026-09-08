@@ -1,0 +1,35 @@
+{
+  "removed_lists": [
+    "https://raw.githubusercontent.com/yokoffing/filterlists/main/block_third_party_fonts.txt"
+  ],
+  "added_lists": [],
+  "dynamic_rules_unchanged": true,
+  "blocked_webfonts": [
+    {
+      "family": "Google Sans Flex",
+      "ligature": true,
+      "loaded": false,
+      "width": 333.20001220703125
+    },
+    {
+      "family": "Google Symbols",
+      "ligature": false,
+      "loaded": false,
+      "width": 300.5333251953125
+    }
+  ],
+  "fixed_webfonts": [
+    {
+      "family": "Google Sans Flex",
+      "ligature": true,
+      "loaded": true,
+      "width": 337.5
+    },
+    {
+      "family": "Google Symbols",
+      "ligature": true,
+      "loaded": true,
+      "width": 64
+    }
+  ]
+}

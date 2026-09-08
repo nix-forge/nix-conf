@@ -954,6 +954,9 @@
         "flake-parts": [
           "flake-parts"
         ],
+        "flake-schemas": [
+          "flake-schemas"
+        ],
         "home-manager": [
           "home-manager"
         ],
@@ -999,6 +1002,9 @@
         "cctv": "cctv",
         "flake-parts": [
           "flake-parts"
+        ],
+        "flake-schemas": [
+          "flake-schemas"
         ],
         "home-manager": [
           "home-manager"

@@ -2,6 +2,16 @@
   perSystem =
     { pkgs, ... }:
     let
+      checkPython = pkgs.python3.withPackages (
+        ps: with ps; [
+          fonttools
+          lxml
+          pillow
+          selenium
+          uharfbuzz
+          websocket-client
+        ]
+      );
       localControlLibrary =
         import ../../homes/macbook-pro-m4/support/local-control/runtime-helpers.nix
           { };
@@ -47,17 +57,25 @@
           '';
     in
     {
-      # This is intentionally separate from the Darwin-only pre-commit check.
-      # `nix flake check --no-build` evaluates checks but does not execute
-      # them, and the previous Python coverage therefore depended on running a
-      # platform-specific hook. Copy the exact flake source to a writable
-      # directory: Ruff needs a cache directory and compileall writes bytecode,
-      # while a Nix source path is immutable.
+      # Keep Python quality available as a standalone check on every platform.
+      # `nix flake check --no-build` evaluates checks but does not execute them.
+      # Copy the exact source to a writable directory; caches and bytecode must
+      # not modify the immutable Nix source path.
+      checks.hyprland-runner =
+        pkgs.runCommand "hyprland-runner-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
+          ''
+            mkdir -p tests/hyprland
+            cp ${../../tests/hyprland/run-upstream-local.py} tests/hyprland/run-upstream-local.py
+            cp ${../../tests/hyprland/test_upstream_local_runner.py} tests/hyprland/test_upstream_local_runner.py
+            python3 tests/hyprland/test_upstream_local_runner.py
+            touch "$out"
+          '';
+
       checks.python-quality =
         pkgs.runCommand "python-quality"
           {
             nativeBuildInputs = [
-              pkgs.python3
+              checkPython
               pkgs.ruff
               pkgs.ty
             ];
@@ -74,22 +92,94 @@
             export RUFF_CACHE_DIR="$TMPDIR/ruff-cache"
             export PYTHONPYCACHEPREFIX="$TMPDIR/python-pycache"
 
-            # Do not let Ruff's project-level `fix = true` mutate a check.
-            # Passing the configuration path makes its use unambiguous even
-            # when this check is invoked from an arbitrary Nix build directory.
-            ruff check --no-fix --config pyproject.toml .
-            ruff format --check --config pyproject.toml .
+            # Use each project's checked-in Ruff configuration, including the
+            # submodules. Explicit --config would override their own rules.
+            ruff check --no-fix .
+            ruff format --check .
 
             # `--project .` makes ty discover [tool.ty] in this exact copied
             # pyproject.toml. Use Nix Python rather than an impure developer
             # virtualenv so the result is reproducible on every system.
-            ty check --project . --python ${pkgs.python3}/bin/python3
+            ty check --project . --python ${checkPython}/bin/python3
 
             # Cover every Python-bearing top-level source tree, including the
             # MacBook local-control resolver and its unittest fixture. Bytecode
             # is redirected outside the source tree above.
-            python3 -m compileall -q homes modules scripts pkgs
+            python3 -m compileall -q homes modules scripts tests pkgs
 
+            touch "$out"
+          '';
+
+      # Detect a canary even inside paths with narrowly scoped exceptions.
+      checks.gitleaks-policy =
+        pkgs.runCommand "gitleaks-policy" { nativeBuildInputs = [ pkgs.gitleaks ]; }
+          ''
+            set -euo pipefail
+            fixture="$TMPDIR/fixture"
+            mkdir -p "$fixture"
+            scan_fixture() {
+              # Match the repository-relative paths produced by Git scans.
+              (
+                cd "$fixture"
+                gitleaks dir . "$@"
+              )
+            }
+            for policy in ${../../.gitleaks.toml} ${../../pkgs/.gitleaks.toml} ${../../nix-seal/.gitleaks.toml}; do
+              for filename in ordinary.txt .nix-seal/public.nix nix-seal.lock.json \
+                pkgs/by-name/sp/spotify-spotx/source.nix crates/nix-seal-cli/src/main.rs; do
+                mkdir -p "$fixture/$(dirname "$filename")"
+                # Exercise a provider token and the generic rule used by the
+                # public-hash exceptions. Neither fixture is an operational key.
+                for prefix in ghp_ ""; do
+                  printf 'password = "%s%s"\n' "$prefix" 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hI6' > "$fixture/$filename"
+                  status=0
+                  scan_fixture --config "$policy" --redact --no-banner > "$TMPDIR/scan.log" 2>&1 || status=$?
+                  if [ "$status" -ne 1 ]; then
+                    printf 'Expected credential detection for %s under %s, got exit %s\n' "$filename" "$policy" "$status" >&2
+                    cat "$TMPDIR/scan.log" >&2
+                    exit 1
+                  fi
+                done
+                rm "$fixture/$filename"
+              done
+            done
+
+            # The public download exception covers only the complete URL
+            # assignment. Another JWT on that line must remain detectable.
+            jwt_header=$(printf '{"alg":"HS256","typ":"JWT"}' | base64 | tr -d '=\n')
+            jwt_payload=$(printf '{"sub":"checker-policy-canary"}' | base64 | tr -d '=\n')
+            jwt_signature=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hI6
+            jwt="$jwt_header.$jwt_payload.$jwt_signature$jwt_signature"
+            for policy in ${../../.gitleaks.toml} ${../../pkgs/.gitleaks.toml}; do
+              filename="$fixture/pkgs/by-name/sp/spotify-spotx/source.nix"
+              printf 'url = "https://upgrade.scdn.co/upgrade/client/osx-arm64/spotify-autoupdate-1.2.3.tbz?fauth=%s";\n' "$jwt" > "$filename"
+              scan_fixture --config "$policy" --redact --no-banner
+              sed -i "s/;$/; token=\"$jwt\"/" "$filename"
+              status=0
+              scan_fixture --config "$policy" --redact --no-banner > "$TMPDIR/scan.log" 2>&1 || status=$?
+              if [ "$status" -ne 1 ]; then
+                echo "A download-URL exception hid another JWT on the same line" >&2
+                cat "$TMPDIR/scan.log" >&2
+                exit 1
+              fi
+              rm "$filename"
+            done
+
+            # A permitted test value must not exempt another credential on the
+            # same source line. Keep this separate from the single-token probes.
+            allowed_canary=$(printf cli-activation-canary | base64)
+            printf 'password=%s\n' "$allowed_canary" > "$fixture/crates/nix-seal-cli/src/main.rs"
+            scan_fixture --config ${../../nix-seal/.gitleaks.toml} --redact --no-banner
+            printf 'password=%s; password="%s"\n' "$allowed_canary" \
+              'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hI6' > "$fixture/crates/nix-seal-cli/src/main.rs"
+            status=0
+            scan_fixture --config ${../../nix-seal/.gitleaks.toml} \
+              --redact --no-banner > "$TMPDIR/scan.log" 2>&1 || status=$?
+            if [ "$status" -ne 1 ]; then
+              echo "A test-value exception hid another credential on the same line" >&2
+              cat "$TMPDIR/scan.log" >&2
+              exit 1
+            fi
             touch "$out"
           '';
 

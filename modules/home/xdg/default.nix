@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   inherit (config.home) homeDirectory;
 in
 {
@@ -29,7 +29,7 @@ in
           # macOS tools and the Dock expose source work through Developer.
           DEVELOPER = "${homeDirectory}/Developer";
         }
-        // lib.optionalAttrs (!isDarwin) {
+        // lib.optionalAttrs isLinux {
           # xdg-user-dirs 0.20 standardizes this general project location.
           PROJECTS = "${homeDirectory}/Projects";
         }

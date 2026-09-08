@@ -2,6 +2,8 @@
   config,
   lib,
   pkgs,
+  self,
+  system,
   ...
 }:
 let
@@ -9,7 +11,34 @@ let
   colors = config.lib.stylix.colors.withHashtag;
   isOled = config.appearance.theme == "carbon-neon-oled";
   noctalia = lib.getExe config.programs.noctalia.package;
+  darkAppIcons = self.packages.${system}.noctalia-dark-app-icons;
+  syncAppIcons = pkgs.writeShellApplication {
+    name = "noctalia-sync-app-icons";
+    runtimeInputs = [ pkgs.glib ];
+    text = ''
+      mode="''${NOCTALIA_THEME_MODE:-}"
+      if [[ -z "$mode" ]]; then
+        mode="$(${noctalia} msg theme-mode-get)"
+      fi
+      case "$mode" in
+        dark) theme=${lib.escapeShellArg darkAppIcons.iconThemeName} ;;
+        light) theme=${lib.escapeShellArg config.stylix.icons.light} ;;
+        *) echo "Unknown Noctalia theme mode: $mode" >&2; exit 1 ;;
+      esac
+      gsettings set org.gnome.desktop.interface icon-theme "$theme"
+    '';
+  };
   featureSettings = {
+    widget = lib.optionalAttrs cfg.symbolicBarIcons.enable {
+      active_window.symbolic_icons = true;
+      taskbar.symbolic_icons = true;
+      tray.icon_overrides = cfg.symbolicBarIcons.trayOverrides;
+    };
+    hooks = lib.optionalAttrs cfg.darkAppIcons.enable {
+      started = [ (lib.getExe syncAppIcons) ];
+      theme_mode_changed = [ (lib.getExe syncAppIcons) ];
+    };
+
     nightlight = lib.optionalAttrs cfg.nightLight.enable {
       enabled = true;
       force = false;
@@ -38,6 +67,12 @@ let
       enabled = true;
       position = "bottom";
       icon_size = 42;
+      # Keep artwork at full opacity and size regardless of window focus.
+      # Running dots and hover magnification provide the state feedback.
+      active_opacity = 1.0;
+      inactive_opacity = 1.0;
+      active_scale = 1.0;
+      inactive_scale = 1.0;
       main_axis_padding = 12;
       cross_axis_padding = 6;
       item_spacing = 4;
@@ -46,13 +81,16 @@ let
       margin_edge = 10;
       shadow = false;
       show_running = true;
-      smart_auto_hide = true;
+      auto_hide = true;
+      smart_auto_hide = false;
       reserve_space = false;
       layer = "overlay";
-      magnification = false;
+      magnification = true;
       show_dots = true;
       show_instance_count = true;
-      active_monitor_only = true;
+      # Include open applications even when their windows are on another
+      # workspace or output, as in the macOS Dock.
+      active_monitor_only = false;
       inherit (cfg.dock) pinned;
     };
   };
@@ -66,8 +104,25 @@ in
 {
   options.desktop.noctalia = {
     enable = lib.mkEnableOption ''
-      Noctalia as the single owner of the desktop's visible shell surfaces
+      Noctalia as the desktop shell, with Hyprshell for recent-window switching
     '';
+
+    darkAppIcons.enable = lib.mkEnableOption ''
+      dark ChatGPT, Zen and VS Code artwork that follows Noctalia's appearance,
+      with the normal icon theme in light mode
+    '';
+
+    symbolicBarIcons = {
+      enable = lib.mkEnableOption "themed symbolic application icons in the menu bar";
+      trayOverrides = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = { };
+        description = ''
+          Explicit icon-theme names for stable tray identities whose applications
+          supply static bitmaps. Attention images and overlays remain intact.
+        '';
+      };
+    };
 
     nightLight = {
       enable = lib.mkEnableOption "Noctalia's local, scheduled night light";
@@ -117,7 +172,7 @@ in
     };
 
     dock = {
-      enable = lib.mkEnableOption "a compact, smart-auto-hidden Noctalia dock";
+      enable = lib.mkEnableOption "a compact Noctalia dock that reveals on pointer hover";
 
       pinned = lib.mkOption {
         type = lib.types.listOf lib.types.str;
@@ -153,6 +208,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    home.packages = lib.optional cfg.darkAppIcons.enable darkAppIcons;
     assertions = [
       {
         assertion = config.wayland.windowManager.hyprland.enable;
@@ -182,8 +238,50 @@ in
     };
 
     programs.fuzzel.enable = lib.mkForce false;
+
+    # Noctalia's picker orders windows by workspace and position. Alt+Tab
+    # needs a stable most-recently-used list and modifier-release handling.
+    # Hyprshell installs its own Lua bindings, including Shift+Tab and Escape.
+    services.hyprshell = {
+      enable = true;
+      package = pkgs.hyprshell.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./patches/hyprshell-modifier-state.patch ];
+        cargoTestFlags = [
+          "--package"
+          "hyprshell-windows-lib"
+          "event_time_tests"
+        ];
+      });
+      settings = {
+        version = 4;
+        windows = {
+          scale = 2.0;
+          items_per_row = 5;
+          overview = null;
+          switch = {
+            modifier = "alt";
+            key = "Tab";
+            filter_by = [ ];
+            switch_workspaces = false;
+          };
+        };
+      };
+      style = pkgs.replaceVars ./config/hyprshell.css.in {
+        inherit (colors)
+          base00
+          base01
+          base02
+          base03
+          base05
+          base0D
+          ;
+        font = config.stylix.fonts.sansSerif.name;
+      };
+    };
+
     programs.noctalia = {
       enable = true;
+      package = self.packages.${system}.noctalia-personal;
       systemd.enable = true;
       settings = pkgs.replaceVarsWith {
         name = "noctalia-stylix-config";
@@ -227,9 +325,14 @@ in
     # The store links make plugin revisions part of the Home Manager closure.
     # This intentionally supports local reviewed code only, not Noctalia's
     # mutable plugin catalog or a background git updater.
-    xdg.dataFile = lib.mapAttrs' (
-      name: source: lib.nameValuePair "noctalia/plugins/${name}" { inherit source; }
-    ) cfg.plugins;
+    xdg.dataFile =
+      lib.mapAttrs' (
+        name: source: lib.nameValuePair "noctalia/plugins/${name}" { inherit source; }
+      ) cfg.plugins
+      // lib.optionalAttrs cfg.darkAppIcons.enable {
+        "icons/${darkAppIcons.iconThemeName}".source =
+          "${darkAppIcons}/share/icons/${darkAppIcons.iconThemeName}";
+      };
 
     # Make the service transition exclusive even before a logout. Home Manager
     # removes the old units on activation; these conflicts also stop a stale
@@ -260,7 +363,6 @@ in
       (hyprBind "SUPER + V" "${noctalia} msg panel-toggle clipboard")
       (hyprBind "SUPER + S" "${noctalia} msg panel-toggle control-center")
       (hyprBind "SUPER + COMMA" "${noctalia} msg settings-toggle")
-      (hyprBind "ALT + TAB" "${noctalia} msg window-switcher")
       (hyprBind "XF86AudioRaiseVolume" "${noctalia} msg volume-up")
       (hyprBind "XF86AudioLowerVolume" "${noctalia} msg volume-down")
       (hyprBind "XF86AudioMute" "${noctalia} msg volume-mute")
@@ -268,6 +370,9 @@ in
       (hyprBind "XF86MonBrightnessUp" "${noctalia} msg brightness-up")
       (hyprBind "XF86MonBrightnessDown" "${noctalia} msg brightness-down")
       (hyprBind "XF86AudioPlay" "${noctalia} msg media toggle")
+      # AirPods can repeat Pause when AVRCP audio activity and the selected
+      # player's state differ. Treat either stem event as a playback toggle.
+      (hyprBind "XF86AudioPause" "${noctalia} msg media toggle")
       (hyprBind "XF86AudioNext" "${noctalia} msg media next")
       (hyprBind "XF86AudioPrev" "${noctalia} msg media previous")
     ];
