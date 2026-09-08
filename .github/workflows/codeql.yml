@@ -10,14 +10,14 @@ on:
 permissions: {}
 concurrency:
   group: codeql-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   analyze:
     name: analyze
     permissions:
       contents: read
       security-events: write # Upload code scanning results.
-    uses: nix-forge/ci/.github/workflows/codeql.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+    uses: nix-forge/ci/.github/workflows/codeql.yml@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
     with:
       languages: python
   queue-completion:
@@ -31,4 +31,4 @@ jobs:
       actions: write # Dispatch trusted queue validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/queue-completion@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0

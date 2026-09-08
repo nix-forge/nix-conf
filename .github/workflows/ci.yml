@@ -12,7 +12,7 @@ on:
     types: [checks_requested]
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
   legacy-secret-manager-symbols:
@@ -40,7 +40,7 @@ jobs:
         lockfile:
           - flake.lock
           - flake/dev/flake.lock
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -56,26 +56,28 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/setup-nix@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
         with:
           cache: 'false'
           cache-scope: ci-lint
-      - name: Materialize partition sources
-        run: |
-          nix store add-path flake/dev
-          nix store add-path nix-seal/flake/dev
-          nix store add-path pkgs/flake/dev
+      - name: Check shared workflow contracts
+        uses: nix-forge/ci/actions/validate-workflows@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+      - name: Run repository hooks and publication checks
+        uses: nix-forge/ci/actions/repository-checks@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        with:
+          dev-shell: ci
+          partitions: |
+            flake/dev
+            nix-seal/flake/dev
+            pkgs/flake/dev
+          publication-script: .github/scripts/scan-publication.sh
       - name: Test native package selection
         run: python3 -m unittest discover -s .github/tests
-      - name: Run prek hooks
-        run: nix develop --command prek run --all-files
       - name: Run submodule hooks
         run: |
           for project in nix-config-framework nix-seal pkgs; do
             (cd "$project" && nix develop --command bash -c 'prek run --all-files && gitleaks git --redact --no-banner')
           done
-      - name: Scan repository for leaked secrets
-        run: nix develop --command bash .github/scripts/scan-publication.sh
   flake:
     name: Flake checks (${{ matrix.system }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -101,7 +103,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/setup-nix@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
         with:
           cache: 'false'
           cache-scope: ci-flake
@@ -265,4 +267,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/queue-completion@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
