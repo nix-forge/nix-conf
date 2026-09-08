@@ -40,3 +40,13 @@ It waits for the full workflow set, verifies the latest attempt and live queue
 SHA, and never reports skipped or missing jobs as successful. A newer incomplete
 attempt invalidates earlier adapter statuses. Required contexts and the expected
 GitHub Actions app remain unchanged.
+
+## Discovered lockfile checks
+
+The lockfile matrix discovers tracked nested flakes. Require the stable
+`Flake lock health` aggregate, which waits for the entire matrix and fails when
+any matrix result is failed, cancelled or skipped. New lockfiles therefore become
+required automatically, and removing a partition does not leave a required check
+named after a deleted file. Existing per-lockfile requirements migrate to this
+aggregate only after it passes PR and native merge-group validation. Other
+required checks and their GitHub Actions app binding remain unchanged.

@@ -15,6 +15,20 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  discover:
+    name: Discover CI inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      lockfiles: ${{ steps.inventory.outputs.lockfiles }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: inventory
+        uses: nix-forge/ci/actions/discover-lockfiles@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -30,17 +44,28 @@ jobs:
             echo 'removed secret-manager symbols or agenix runtime references found' >&2
             exit 1
           fi
+  lock-health:
+    name: Flake lock health
+    needs: [flake-lock]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require every discovered lockfile to pass
+        env:
+          LOCK_RESULT: ${{ needs.flake-lock.result }}
+        run: test "$LOCK_RESULT" = success
   flake-lock:
+    needs: [discover]
     name: Flake lock health (${{ matrix.lockfile }})
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        lockfile:
-          - flake.lock
-          - flake/dev/flake.lock
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -56,28 +81,24 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        uses: nix-forge/ci/actions/setup-nix@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        uses: nix-forge/ci/actions/validate-workflows@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        uses: nix-forge/ci/actions/repository-checks@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
         with:
           dev-shell: ci
-          partitions: |
-            flake/dev
-            nix-seal/flake/dev
-            pkgs/flake/dev
           publication-script: .github/scripts/scan-publication.sh
       - name: Test native package selection
         run: python3 -m unittest discover -s .github/tests
       - name: Run submodule hooks
         run: |
-          for project in nix-config-framework nix-seal pkgs; do
-            (cd "$project" && nix develop --command bash -c 'prek run --all-files && gitleaks git --redact --no-banner')
-          done
+          git submodule foreach --recursive '
+            nix develop --command bash -c "prek run --all-files && gitleaks git --redact --no-banner"
+          '
   flake:
     name: Flake checks (${{ matrix.system }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -103,56 +124,15 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        uses: nix-forge/ci/actions/setup-nix@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
         with:
           cache: 'false'
           cache-scope: ci-flake
-      - name: Materialize partition sources
-        run: |
-          nix store add-path flake/dev
-          nix store add-path nix-seal/flake/dev
-          nix store add-path pkgs/flake/dev
-      - name: Run flake checks
-        shell: bash
-        env:
-          TARGET_SYSTEM: ${{ matrix.system }}
-        run: |
-          set -euo pipefail
-          check_targets=(
-            ".#checks.${TARGET_SYSTEM}.treefmt"
-            ".#checks.${TARGET_SYSTEM}.python-quality"
-            ".#checks.${TARGET_SYSTEM}.hyprland-runner"
-            ".#checks.${TARGET_SYSTEM}.secret-templates"
-            ".#checks.${TARGET_SYSTEM}.gitleaks-policy"
-            ".#checks.${TARGET_SYSTEM}.font-selection"
-            ".#checks.${TARGET_SYSTEM}.font-ownership"
-            ".#checks.${TARGET_SYSTEM}.browser-home-helpers"
-            ".#checks.${TARGET_SYSTEM}.macos-home-helpers"
-            ".#checks.${TARGET_SYSTEM}.macos-home-dry-run"
-            ".#checks.${TARGET_SYSTEM}.dev-vm-host-resolution"
-            ".#checks.${TARGET_SYSTEM}.local-control-database-validation"
-          )
-          if [[ "$TARGET_SYSTEM" == "x86_64-linux" ]]; then
-            check_targets+=(
-              ".#checks.${TARGET_SYSTEM}.font-native"
-              ".#checks.${TARGET_SYSTEM}.font-browser"
-              ".#checks.${TARGET_SYSTEM}.desktop-configuration-contract"
-              ".#checks.${TARGET_SYSTEM}.virtualisation-configuration-contract"
-              ".#checks.${TARGET_SYSTEM}.browser-configuration-contract"
-              ".#checks.${TARGET_SYSTEM}.azure-cli-configuration-contract"
-            )
-          fi
-          # Release the evaluator heap between targets. Build-job limits alone
-          # do not bound evaluation memory for the desktop configuration.
-          check_status=0
-          for check_target in "${check_targets[@]}"; do
-            if ! nix build --max-jobs 1 --cores 2 --option eval-cores 1 \
-              --show-trace --print-build-logs --no-link \
-              --no-allow-import-from-derivation "$check_target"; then
-              check_status=1
-            fi
-          done
-          exit "$check_status"
+      - name: Build every declared native CI check
+        uses: nix-forge/ci/actions/flake-checks@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        with:
+          system: ${{ matrix.system }}
+          checks-output: ciChecks
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash
@@ -260,11 +240,11 @@ jobs:
     continue-on-error: true
     name: Queue completion callback
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/main/')
-    needs: [legacy-secret-manager-symbols, flake-lock, lint, flake, tests]
+    needs: [lock-health, discover, legacy-secret-manager-symbols, flake-lock, lint, flake, tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+        uses: nix-forge/ci/actions/queue-completion@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
