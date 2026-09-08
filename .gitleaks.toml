@@ -41,6 +41,23 @@ regexTarget = "match"
 paths = ['''(^|/)scripts/secret[c]tl\.py$''']
 regexes = ['''^secret_id, allow_derived=True$''']
 
+[[allowlists]]
+description = "Reviewed publication metadata in six immutable historical commits; credential rules remain active."
+targetRules = [
+  "docs-personal-home-path",
+  "docs-personal-email",
+  "hardware-disk-identity",
+  "docs-hardware-address",
+]
+commits = [
+  "081cb5b2b22ecc2866a56067d6d955a8ea8851a2",
+  "1cbf37ba4f39f73ea66c25aade57fd284d20e1b0",
+  "22c22b8c700e1c741e5c9cdab58885419f77c62e",
+  "62f4b52ccfbce77c2777f84ff7a6c5eeac4d0ef1",
+  "63519d7c5a78d2ce90002a6efda523d171760339",
+  "9ccc72b575df780dda48d4160b028e7f0f1fc1f2",
+]
+
 [[rules]]
 id = "docs-personal-home-path"
 description = "Use portable home-directory placeholders in public documentation."

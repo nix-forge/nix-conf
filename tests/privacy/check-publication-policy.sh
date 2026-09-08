@@ -2,8 +2,7 @@
 set -euo pipefail
 
 policy=$(realpath "$1")
-history_policy=$(realpath "$2")
-scan_script=$(realpath "$3")
+scan_script=$(realpath "$2")
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/docs" "$fixture/hosts"
@@ -56,11 +55,10 @@ EOF
 )
 printf 'Publication policy checks passed.\n'
 
-# Real Git history distinguishes removed metadata from removed credentials.
+# Real Git history verifies immutable metadata exceptions preserve credentials.
 repository="$fixture/repository"
 mkdir -p "$repository/docs"
 cp "$policy" "$repository/.gitleaks.toml"
-cp "$history_policy" "$repository/.gitleaks-history.toml"
 (
   cd "$repository"
   git init -q
@@ -69,26 +67,42 @@ cp "$history_policy" "$repository/.gitleaks-history.toml"
   printf 'Source: /home/%s/notes\n' publication-canary-operator >docs/note.md
   git add .
   git commit -qm 'Historical metadata'
+  historical_metadata=$(git rev-parse HEAD)
   printf 'Portable documentation\n' >docs/note.md
   git add .
   git commit -qm 'Remove historical metadata'
+  if bash "$scan_script" >"$fixture/unreviewed-scan.log" 2>&1; then
+    echo 'Unreviewed historical metadata escaped the scan' >&2
+    exit 1
+  fi
+
+  allow_metadata_commit() {
+    printf '\n[[allowlists]]\ntargetRules = ["docs-personal-home-path"]\ncommits = ["%s"]\n' "$1" >>.gitleaks.toml
+    git add .gitleaks.toml
+    git commit -qm 'Review immutable historical metadata'
+  }
+  allow_metadata_commit "$historical_metadata"
   bash "$scan_script"
 
   printf 'Source: /home/%s/notes\n' publication-canary-operator >docs/note.md
   git add .
   git commit -qm 'Current metadata must fail'
+  # Exempt this historical commit so only the full current-tree scan detects it.
+  allow_metadata_commit "$(git rev-parse HEAD)"
   if bash "$scan_script" >"$fixture/current-scan.log" 2>&1; then
-    echo 'Current publication metadata escaped the committed-tree scan' >&2
+    echo 'Unchanged current metadata escaped the committed-tree scan' >&2
     exit 1
   fi
   printf 'Portable documentation\n' >docs/note.md
   printf 'password="%s"\n' "$canary" >credential.txt
   git add .
   git commit -qm 'Historical credential canary'
+  historical_credential=$(git rev-parse HEAD)
   git rm -q credential.txt
   git commit -qm 'Remove credential canary'
+  allow_metadata_commit "$historical_credential"
   if bash "$scan_script" >"$fixture/history-scan.log" 2>&1; then
-    echo 'Removed credential escaped the historical scan' >&2
+    echo 'Metadata exception hid a removed credential' >&2
     exit 1
   fi
 )

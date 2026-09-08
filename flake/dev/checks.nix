@@ -143,7 +143,7 @@
           ''
             set -euo pipefail
             bash ${../../tests/privacy/check-publication-policy.sh} ${../../.gitleaks.toml} \
-              ${../../.gitleaks-history.toml} ${../../.github/scripts/scan-publication.sh}
+              ${../../.github/scripts/scan-publication.sh}
             fixture="$TMPDIR/fixture"
             mkdir -p "$fixture"
             scan_fixture() {
