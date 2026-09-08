@@ -8,18 +8,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   enable:
-    if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'nix-forge/nix-conf' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
+    name: enable
     permissions:
-      contents: write
-      pull-requests: write
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Enable squash auto-merge after CI
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --auto --squash
+      contents: write # Update trusted repository automation.
+      pull-requests: write # Update pull request metadata.
+    uses: nix-forge/ci/.github/workflows/automerge.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
