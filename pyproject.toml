@@ -56,6 +56,13 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+".github/tests/test_native_selection.py" = [
+  # Exercise real Git and Nix commands in disposable repositories using stdlib tests.
+  "pytest-unittest-assertion",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
 "pkgs/pkgs/by-name/op/openai-codex-desktop/test_update.py" = [
   "private-member-access",            # Tests exercise the updater's internal parsers without network requests.
   "pytest-unittest-assertion",        # Package checks use the standard-library unittest runner in the Nix sandbox.
