@@ -1,4 +1,4 @@
-{ lib, ... }: {
+{ config, lib, ... }: {
   # The application firewall remains permissive for signed Apple services so
   # HomeKit, AirPlay, and Continuity continue to work.  Explicit blocks below
   # prevent general-purpose command-line tools from becoming LAN listeners.
@@ -25,8 +25,16 @@
       fi
     done
 
-    # This legacy public SMB share was writable by guests. It is not needed
-    # for HomeKit/AirPlay and must not be recreated by later activations.
-    /usr/sbin/sharing -r "Ian Holloway’s Public Folder" >/dev/null 2>&1 || true
+    # Find this user's legacy Public directory by path, independent of the
+    # account's display name or the share's localized label.
+    public_directory=${lib.escapeShellArg "${config.users.users.${config.system.primaryUser}.home}/Public"}
+    /usr/bin/dscl . -list /SharePoints 2>/dev/null |
+      while IFS= read -r share_name; do
+        share_path=$(/usr/bin/dscl . -read "/SharePoints/$share_name" directory_path 2>/dev/null) || continue
+        share_path=$(printf '%s\n' "$share_path" | /usr/bin/sed 's/^directory_path: *//')
+        if [ "$share_path" = "$public_directory" ]; then
+          /usr/sbin/sharing -r "$share_name" >/dev/null 2>&1 || true
+        fi
+      done || true
   '';
 }

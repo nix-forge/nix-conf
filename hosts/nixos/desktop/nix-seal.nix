@@ -1,4 +1,4 @@
-_: {
+{ lib, ... }: {
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
@@ -14,11 +14,20 @@ _: {
     # The root Nix daemon and the desktop profile intentionally consume the
     # same canonical token set, each delivered in a separately encrypted
     # target artifact and materialized under its own runtime root.
-    secrets."nix-access-tokens" = {
-      source = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
-      owner = "root";
-      group = "root";
-      mode = "0400";
-    };
+    inherit
+      (import ../../../secrets/templates.nix {
+        inherit lib;
+        repositoryRoot = ../../../.;
+        scope = "ianhollow/hosts/nixos/desktop";
+        secrets."nix-access-tokens" = {
+          source = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
+          owner = "root";
+          group = "root";
+          mode = "0400";
+        };
+      })
+      secrets
+      templates
+      ;
   };
 }

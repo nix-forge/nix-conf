@@ -4,7 +4,7 @@ Port and validate the tested downstream fix in `H3rmt/hyprshell` so switch mode 
 
 ## Starting evidence and scope
 
-Read these files in `/home/ianmh/Developer/nix-conf`:
+Read these files in `~/Developer/nix-conf`:
 
 - `modules/home/desktop/patches/hyprshell-modifier-state.patch`
 - `docs/alt-tab-research.md`

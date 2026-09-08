@@ -2,9 +2,9 @@
 
 This is a local engineering record for understanding and reviewing the code. It is not an upstream submission draft.
 
-The isolated worktree is `/home/ianmh/Developer/upstream/Hyprland-subsurface-local-validation`, on local branch `codex/subsurface-local-validation`. A fresh fetch resolved upstream main to `34eb03bd8da01024596c367fba66485a8c9b8ca7`. The production source in the baseline build is unmodified at that revision. The added hyprtester tests run against that baseline before the production fix is applied.
+The isolated worktree is `~/Developer/upstream/Hyprland-subsurface-local-validation`, on local branch `codex/subsurface-local-validation`. A fresh fetch resolved upstream main to `34eb03bd8da01024596c367fba66485a8c9b8ca7`. The production source in the baseline build is unmodified at that revision. The added hyprtester tests run against that baseline before the production fix is applied.
 
-The original dirty checkout and the earlier `Hyprland-subsurface-parent-lifetime` worktree were inspected and preserved. Their diffs are saved in [the evidence directory](assets/hyprland-upstream-local-20260907). The companion test patch supplied in the configuration repository was applied first. The earlier worktree's expanded tests were then reviewed and reused, including its color protocol generation in CMake. Historical downstream build results are separate from the fresh results recorded here.
+The original dirty checkout and the earlier `Hyprland-subsurface-parent-lifetime` worktree were inspected and preserved. Their diffs remain in the local, ignored evidence directory described by [the public evidence index](assets/hyprland-upstream-local-20260907/README.md). The companion test patch supplied in the configuration repository was applied first. The earlier worktree's expanded tests were then reviewed and reused, including its color protocol generation in CMake. Historical downstream build results are separate from the fresh results recorded here.
 
 ## Fresh baseline evidence
 
@@ -74,6 +74,6 @@ A submission-readiness refresh on September 6 fetched `origin/main` again. It re
 
 The current [AI policy](https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md), [PR guidelines](https://wiki.hypr.land/Contributing-and-Debugging/PR-Guidelines/), [issue guidelines](https://wiki.hypr.land/Contributing-and-Debugging/Issue-Guidelines/), test documentation, template, repository instructions, and organization code of conduct were reread. The relevant requirements remain as described in the task. Local implementation and tests are permitted. Human review, understanding, AI disclosure, vouch eligibility, and human-written communication are required before an upstream submission. Major AI-policy violations can lead to permanent bans. The contradictory registration instruction in AGENTS does not authorize any external write in this task.
 
-The locally authenticated GitHub account is `IanHollow`. It has no Hyprland PR history and no matching public vouch discussion in `hyprwm/.github`; public data therefore does not establish vouch eligibility. The wiki directs contributors to request a vouch in that repository's discussions before opening a PR. That request is developer-facing communication and must be made by the human.
+Public data did not establish contributor vouch eligibility at the time of review. The wiki directs contributors to request a vouch in that repository's discussions before opening a PR. That request is developer-facing communication and must be made by the human.
 
 No upstream communication or push is part of this work. The installed desktop configuration and active compositor are outside the test environment.

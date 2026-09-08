@@ -57,7 +57,7 @@ Capture a test tape first, using an absolute archive root with at least 20 GiB
 free:
 
 ```sh
-minidv-capture tape-test-001 /home/ianmh/MiniDV
+minidv-capture tape-test-001 ~/MiniDV
 ```
 
 The resulting layout is:
@@ -120,7 +120,7 @@ diagnostics; do not add `iommu=pt`, `iommu.passthrough=1`, or `amd_iommu=off`.
 Run verification again whenever a master is copied or before transcoding:
 
 ```sh
-minidv-verify /home/ianmh/MiniDV/tape-test-001
+minidv-verify ~/MiniDV/tape-test-001
 ```
 
 It verifies non-empty raw DV, expected DV video and audio streams, format
@@ -138,7 +138,7 @@ reaches its end, press `Ctrl-C` once. The raw file and sidecars are retained,
 but remain marked incomplete until you explicitly assert that the tape did end:
 
 ```sh
-minidv-finalize --confirm-tape-ended /home/ianmh/MiniDV/tape-test-001
+minidv-finalize --confirm-tape-ended ~/MiniDV/tape-test-001
 ```
 
 This command refuses an active capture or existing master, does not modify any
@@ -151,7 +151,7 @@ directory, then verify its manifest from that copy:
 
 ```sh
 rsync -a --protect-args --info=progress2 \
-  /home/ianmh/MiniDV/tape-test-001/ /media/backup/MiniDV/tape-test-001/
+  ~/MiniDV/tape-test-001/ /media/backup/MiniDV/tape-test-001/
 (cd /media/backup/MiniDV/tape-test-001/master && sha256sum --check tape-test-001.dv.sha256)
 ```
 
@@ -163,7 +163,7 @@ practical.
 After the master passes verification, create a distinct viewing copy:
 
 ```sh
-minidv-transcode /home/ianmh/MiniDV/tape-test-001
+minidv-transcode ~/MiniDV/tape-test-001
 ```
 
 It probes the actual video standard, field order, and display aspect ratio,
@@ -204,7 +204,7 @@ For a larger, high-quality viewing derivative, first create a separate
 intermediate run:
 
 ```sh
-minidv-upscale /home/ianmh/MiniDV/tape-test-001
+minidv-upscale ~/MiniDV/tape-test-001
 ```
 
 This is a deterministic, non-AI workflow: FFmpeg applies field-rate `bwdif`
@@ -220,8 +220,8 @@ After reviewing representative intermediates for natural faces, moving edges,
 and scene cuts, transcode that explicit run to compact Apple-compatible MP4s:
 
 ```sh
-minidv-transcode /home/ianmh/MiniDV/tape-test-001 \
-  --upscale-run /home/ianmh/MiniDV/tape-test-001/derivatives/upscaled/clips/<UTC>
+minidv-transcode ~/MiniDV/tape-test-001 \
+  --upscale-run ~/MiniDV/tape-test-001/derivatives/upscaled/clips/<UTC>
 ```
 
 The second command does **not** deinterlace or enlarge again. It produces

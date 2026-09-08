@@ -1,5 +1,9 @@
 # Codex Desktop remote SSH and Nushell
 
+Account names in command examples and captured transcripts are redacted as
+`<USER>`. Replace that placeholder with the configured account name before
+running a command.
+
 Research date: 2026-09-02
 
 ## Conclusion
@@ -14,11 +18,11 @@ Set the desktop account's login shell to `pkgs.bashInteractive`. In this repo th
 right declaration is the user record in `hosts/nixos/desktop/default.nix`:
 
 ```nix
-homes.ianmh.user.shell =
+homes.user.user.shell =
   inputs.nixpkgs.legacyPackages.x86_64-linux.bashInteractive;
 ```
 
-The framework copies that record into `users.users.ianmh`. A user-specific
+The framework copies that record into `users.users.<USER>`. A user-specific
 change is preferable to changing `users.defaultUserShell`, since no other
 account needs to move.
 
@@ -139,10 +143,10 @@ authentication, or whether `codex` is already installed.
 After the user-shell declaration, evaluation succeeded without building:
 
 ```text
-$ nix eval --raw .#nixosConfigurations.desktop.config.users.users.ianmh.shell.name
+$ nix eval --raw .#nixosConfigurations.desktop.config.users.users.<USER>.shell.name
 bash-interactive-5.3p15
 
-$ nix eval --raw .#nixosConfigurations.desktop.config.users.users.ianmh.shell.shellPath
+$ nix eval --raw .#nixosConfigurations.desktop.config.users.users.<USER>.shell.shellPath
 /bin/bash
 ```
 
@@ -151,11 +155,11 @@ Bash-only policy with evaluation only:
 
 ```sh
 nix eval --json \
-  .#nixosConfigurations.desktop.config.home-manager.users.ianmh.programs.bash.enable
+  .#nixosConfigurations.desktop.config.home-manager.users.<USER>.programs.bash.enable
 nix eval --json \
-  .#nixosConfigurations.desktop.config.home-manager.users.ianmh.programs.nushell.enable
+  .#nixosConfigurations.desktop.config.home-manager.users.<USER>.programs.nushell.enable
 nix eval --raw \
-  .#nixosConfigurations.desktop.config.home-manager.users.ianmh.home.sessionVariables.SHELL
+  .#nixosConfigurations.desktop.config.home-manager.users.<USER>.home.sessionVariables.SHELL
 ```
 
 The expected results are `true`, `false`, and a Bash path ending in
@@ -175,7 +179,7 @@ No build or deployment was run during this research.
 After deployment, verify the boundary before reconnecting it in the app:
 
 ```sh
-ssh desktop 'getent passwd ianmh | cut -d: -f7'
+ssh desktop 'getent passwd user | cut -d: -f7'
 ssh desktop 'printf "%s\n" REMOTE_COMMAND_OK'
 ssh desktop 'command -v codex && codex --version'
 ```

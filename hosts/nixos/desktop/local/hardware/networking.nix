@@ -16,12 +16,18 @@ in
       extraInputRules = ''
         ip saddr { ${privateIPv4} } tcp dport 22 accept comment "allow SSH from private IPv4 networks"
         ip6 saddr fc00::/7 tcp dport 22 accept comment "allow SSH from IPv6 ULA networks"
+        iifname { "en*", "eth*", "wl*" } ip saddr { ${privateIPv4} } udp sport 5353 udp dport 5353 accept comment "allow LAN mDNS replies for MacBook lookup"
+        iifname { "en*", "eth*", "wl*" } ip6 saddr fe80::/10 udp sport 5353 udp dport 5353 accept comment "allow link-local mDNS replies for MacBook lookup"
       '';
     };
 
   };
 
   services.avahi.enable = lib.mkForce false;
+
+  # Resolve the MacBook's Bonjour name without advertising desktop services.
+  # Only the physical uplinks below participate; guest bridges stay disabled.
+  services.resolved.settings.Resolve.MulticastDNS = lib.mkForce "resolve";
 
   # This is a multi-homed client, not a router. Router Advertisements remain
   # enabled for IPv6 connectivity, but ICMP redirects are unnecessary and can
@@ -51,6 +57,7 @@ in
         # because the optional Ethernet port is unplugged.
         linkConfig.RequiredForOnline = "no";
         networkConfig = {
+          MulticastDNS = "resolve";
           # UniFi supplies IPv4 through DHCP and IPv6 through router
           # advertisements.  Keep DHCPv6 disabled so a router advertisement
           # cannot start a second address-acquisition path unexpectedly.
@@ -93,6 +100,7 @@ in
         # block the rest of boot while IWD is associating.
         linkConfig.RequiredForOnline = "no";
         networkConfig = {
+          MulticastDNS = "resolve";
           DHCP = "ipv4";
           IgnoreCarrierLoss = "3s";
           IPv6AcceptRA = true;

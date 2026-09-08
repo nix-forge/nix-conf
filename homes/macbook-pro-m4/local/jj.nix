@@ -5,8 +5,12 @@
   ...
 }:
 let
+  runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
+  templatedIdentity =
+    builtins.hasAttr "git-user-name" config.nixSeal.secrets
+    && builtins.hasAttr "git-user-email" config.nixSeal.secrets;
   secretId = "git-allowedsigners";
-  hasAllowedSigners = lib.hasAttrByPath [ "nixSeal" "secrets" secretId ] config;
+  hasAllowedSigners = builtins.hasAttr secretId runtimeFiles;
   identityConfig = "${config.xdg.configHome}/jj/conf.d/90-local-identity.toml";
 in
 {
@@ -18,9 +22,7 @@ in
       backends.ssh = {
         program = lib.getExe' pkgs.openssh "ssh-keygen";
       }
-      // lib.optionalAttrs hasAllowedSigners {
-        allowed-signers = config.nixSeal.secrets.${secretId}.path;
-      };
+      // lib.optionalAttrs hasAllowedSigners { allowed-signers = runtimeFiles.${secretId}.path; };
     };
 
     # Batch interactive SSH signatures when a change is pushed instead of
@@ -28,24 +30,32 @@ in
     git.sign-on-push = true;
   };
 
+  nixSeal.templates = lib.optionalAttrs templatedIdentity {
+    jujutsu-identity = {
+      source = ../../shared/support/jujutsu-identity.toml.template;
+      placeholders = {
+        name.secret = "git-user-name";
+        email.secret = "git-user-email";
+      };
+    };
+  };
+
   # Reuse the protected Git identity includes without placing identity values
   # in the Nix store. jj reads conf.d after Home Manager's generated config.
-  home.activation.jujutsuLocalIdentity = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    identity_file=${lib.escapeShellArg identityConfig}
-    identity_dir="$(dirname "$identity_file")"
-    identity_name="$(${lib.getExe' pkgs.git "git"} config --global --get user.name || true)"
-    identity_email="$(${lib.getExe' pkgs.git "git"} config --global --get user.email || true)"
-
-    if [ -z "$identity_name" ] || [ -z "$identity_email" ]; then
-      rm -f "$identity_file"
+  home.activation.jujutsuLocalIdentity =
+    if templatedIdentity then
+      lib.hm.dag.entryAfter [ "nixSeal" "writeBoundary" ] ''
+        identity_file=${lib.escapeShellArg identityConfig}
+        identity_dir="$(dirname "$identity_file")"
+        umask 077
+        mkdir -p "$identity_dir"
+        chmod 700 "$identity_dir"
+        ${lib.getExe' pkgs.coreutils "ln"} -sfnT -- ${lib.escapeShellArg config.nixSeal.templates.jujutsu-identity.path} "$identity_file"
+      ''
     else
-      umask 077
-      mkdir -p "$identity_dir"
-      chmod 700 "$identity_dir"
-      ${lib.getExe pkgs.jq} -nr --arg name "$identity_name" --arg email "$identity_email" \
-        '["[user]", "name = \($name | @json)", "email = \($email | @json)", ""] | join("\n")' \
-        > "$identity_file"
-      chmod 600 "$identity_file"
-    fi
-  '';
+      lib.hm.dag.entryAfter [ "nixSeal" "writeBoundary" ] ''
+        ${lib.getExe pkgs.python3} ${../../../modules/home/dev/scripts/write-jujutsu-identity.py} \
+          --git ${lib.getExe' pkgs.git "git"} \
+          ${lib.escapeShellArg identityConfig}
+      '';
 }

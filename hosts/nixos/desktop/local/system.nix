@@ -10,6 +10,10 @@
   # only store paths signed by this explicit public key; unsigned or altered
   # substitutes still fail verification.
   nix.settings = {
+    # This 30 GiB interactive desktop exhausted RAM during concurrent builds.
+    # The shared auto/0 settings allow 16 builds, each using all 16 CPUs.
+    max-jobs = lib.mkForce 2;
+    cores = lib.mkForce 4;
     extra-substituters = [ "https://noctalia.cachix.org" ];
     extra-trusted-public-keys = [
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
@@ -125,7 +129,7 @@
     isNormalUser = true;
     uid = 1000;
     linger = true;
-    description = "Ian Holloway";
+    description = "IanHollow";
     # wheel is required for administration. GPU devices are granted through
     # logind/udev ACLs to the active graphical session; `uinput` is the narrow
     # additional permission Sunshine needs for virtual controller, keyboard,
@@ -139,8 +143,8 @@
       "uinput"
     ];
     openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf ianmh@Ians-MacBook-Pro.local"
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII0S5mEDZaqHcYsDLQLWqqG6wrz9IJOH5R9OhNHgk9Rw bh@Holloway-Mac-mini.local"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf deployment-client"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII0S5mEDZaqHcYsDLQLWqqG6wrz9IJOH5R9OhNHgk9Rw authorized-client"
     ];
   };
 
@@ -154,7 +158,7 @@
   # `restrict` removes interactive forwarding/agent/TTY capabilities from
   # this deployment-only root login; normal administration uses `ianmh`.
   users.users.root.openssh.authorizedKeys.keys = [
-    "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf ianmh@Ians-MacBook-Pro.local"
+    "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf deployment-client"
   ];
 
   # `nh` is the local interface for building and activating this host.  Keep

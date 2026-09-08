@@ -61,6 +61,15 @@
   desktop.applications.sessionLauncher = "uwsm app --";
   desktop.workflow.terminalCommand = "uwsm app -- ${lib.getExe pkgs.ghostty}";
 
+  # ChatGPT's Chromium runtime moves the app and its task processes into
+  # app-org.chromium.Chromium-<pid>.scope. With the default OOMPolicy=stop,
+  # one killed Nix evaluator also terminates the GUI and every other task.
+  # Chromium uses the same scope prefix, so this applies to its scopes too.
+  xdg.configFile."systemd/user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf".text = ''
+    [Scope]
+    OOMPolicy=continue
+  '';
+
   xdg.dataFile."applications/noctalia-settings.desktop".source =
     let
       entry = pkgs.makeDesktopItem {

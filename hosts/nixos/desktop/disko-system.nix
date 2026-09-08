@@ -2,6 +2,8 @@
   # Import this module into the desktop configuration only from the offline
   # installer, after `disko.nix` has formatted the SSD. It must not be added to
   # the deployed host before migration: the live root is not /dev/mapper/cryptroot.
+  # Set `_module.args.systemDisk` in the private installer copy. The shared
+  # layout has no default physical disk identifier.
   imports = [
     inputs.disko.nixosModules.disko
     ./disko.nix

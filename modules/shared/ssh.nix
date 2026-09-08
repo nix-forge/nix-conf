@@ -113,9 +113,8 @@
       '';
     };
 
-  # nix-darwin has no declarative sshd module. macOS Remote Login remains an
-  # explicit host decision, while each attached Home Manager profile gets the
-  # portable client policy above. Deliberately avoid replacing Apple's ssh
-  # binary so UseKeychain continues to work.
+  # macOS Remote Login is configured by each host through services.openssh.
+  # Attached Home Manager profiles receive the portable client policy above.
+  # Keep Apple's ssh binary so UseKeychain continues to work.
   darwin = _: { };
 }

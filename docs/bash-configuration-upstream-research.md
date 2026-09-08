@@ -1,5 +1,9 @@
 # Bash configuration upstream research
 
+Account names in command examples and captured transcripts are redacted as
+`<USER>`. Replace that placeholder with the configured account name before
+running a command.
+
 Research date: 2026-09-01
 
 ## Implementation status
@@ -368,10 +372,10 @@ existing one:
 
 ```bash
 nix eval --raw \
-  .#darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh.programs.bash.initExtra
+  .#darwinConfigurations.macbook-pro-m4.config.home-manager.users.<USER>.programs.bash.initExtra
 
 nix eval --raw \
-  .#nixosConfigurations.desktop.config.home-manager.users.ianmh.programs.bash.initExtra
+  .#nixosConfigurations.desktop.config.home-manager.users.<USER>.programs.bash.initExtra
 
 exec bash
 ```
