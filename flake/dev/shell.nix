@@ -5,6 +5,16 @@
       inherit (config.pre-commit.settings) enabledPackages package shellHook;
     in
     {
+      # Hook validation needs the configured tools, not the interactive shell's
+      # built seal CLI. Native secret-template checks exercise that binary.
+      devShells.ci = pkgs.mkShellNoCC {
+        inherit shellHook;
+        packages = enabledPackages ++ [
+          package
+          pkgs.git
+          pkgs.gitleaks
+        ];
+      };
       devShells.default = pkgs.mkShellNoCC {
         inherit shellHook;
         LIBRARY_PATH = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin "${pkgs.libiconv}/lib";

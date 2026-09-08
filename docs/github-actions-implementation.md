@@ -319,3 +319,9 @@ for the security boundaries, migration contract and cache experiment. Broad stor
 caching remains disabled because the measured pilot did not establish a useful
 end-to-end improvement. Package builds retain derivation-based selection and
 conservative fallback when base evaluation is unavailable.
+
+Repository hooks use the focused `ci` development shell through the shared
+action's `dev-shell` input. This shell contains the configured hook tools and
+scanners without depending on the built seal CLI. The default interactive shell
+still includes that CLI, and native secret-template checks still build and test
+it. This removes a product build from lint without changing integration coverage.
