@@ -16,16 +16,13 @@ on:
 permissions: {}
 jobs:
   dependency-review:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    name: dependency-review
     permissions:
       contents: read
-    steps:
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          base-ref: ${{ inputs.base_ref }}
-          head-ref: ${{ inputs.head_ref }}
-          fail-on-severity: high
+    uses: nix-forge/ci/.github/workflows/dependency-review.yml@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+    with:
+      base-ref: ${{ inputs.base_ref }}
+      head-ref: ${{ inputs.head_ref }}
   queue-completion:
     continue-on-error: true
     name: Queue completion callback
@@ -34,18 +31,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
-      actions: write
+      actions: write # Dispatch trusted queue validation.
     steps:
-      - name: Notify the trusted queue reconciler
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          for attempt in 1 2 3; do
-            if gh workflow run reconcile-merge-queue.yml --ref main -f source_run_id="$GITHUB_RUN_ID"; then
-              exit 0
-            fi
-            echo "::warning::Queue completion notification attempt $attempt failed"
-            sleep 5
-          done
-          exit 1
+      - name: Notify trusted queue reconciler
+        uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
