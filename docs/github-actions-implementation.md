@@ -194,8 +194,14 @@ to both source revisions. A negative test rejects a mismatched lockfile hash.
 All final PR checks passed at `787122f5d294dfdc998a8fd014718fc1f9aa6ade`,
 including the three native build jobs. An already-running Dependabot lockfile
 update, #49, was allowed to finish and merge before the protection cutover.
-PR #48 is now in the protected queue against that updated main. Its fresh
-`merge_group` validation remains pending.
+PR #48 merged at `2ff7ef7da57c97c782d6f9b16dd24d01ce89dff3` after all 19 required checks passed
+against that updated main. The final [native CI and NUR run](https://github.com/nix-forge/nixpkgs-personal/actions/runs/34192447944),
+[CodeQL run](https://github.com/nix-forge/nixpkgs-personal/actions/runs/34192447939)
+and [dependency review](https://github.com/nix-forge/nixpkgs-personal/actions/runs/34192447953)
+all passed through genuine `merge_group` events. The queue NUR artifacts record
+locked Nixpkgs `801bef6abd86b91e51083066b83fb354a11fc640` and unstable
+`dc5d91f840324650bac8c379428c7037a416959a`, with 86 supported evaluations and
+13 restricted-index entries for each.
 
 The expanded local package collection also receives source-provenance fixes for
 precompiled fonts and its equivalent NUR integration. It passed all 86 supported
@@ -247,3 +253,23 @@ The clean checkouts avoid committing or overwriting existing work in
 `~/Developer/nix-conf` and its dirty submodules. Incorporate the merged
 remote CI changes when reconciling that work; its local branch and submodule
 pointers have not been forcibly reset or advanced.
+
+## Root native build selection
+
+The root CI compares every Linux package derivation against the PR or queue base,
+including the historical submodule revisions. Documentation-only changes therefore
+keep integration checks while avoiding unchanged package builds. Missing history
+or an unusable base selects every current output; a current evaluation failure
+fails the job. An empty selection exits explicitly without requesting a default
+Nix build. Darwin retains its representative native builds and Core Text checks.
+
+Older queue dispatchers omit the root's optional base input. On the exact event
+SHA under GitHub's reserved main queue ref, the selector uses the candidate's first
+parent. This supports both squash candidates and merge commits. Ordinary manual
+dispatches without a base build all outputs.
+
+Nineteen real Git/Nix regression tests cover package changes, errors, submodules
+and dispatch forms. A documentation-only comparison in this repository selected
+none of its 28 Linux outputs. A replay against PR #48's actual squash candidate
+also selected no unchanged package recipes. These comparisons establish selection
+behavior; native checks still validate changed outputs on the hosted runners.
