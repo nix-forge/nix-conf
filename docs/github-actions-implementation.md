@@ -56,11 +56,18 @@ All five initial migrations have merged after PR and protected queue validation.
 
 Required-check names are migrated only after observing the replacement checks
 succeed on the actual PR revision. Existing check coverage and GitHub Actions app
-identity are preserved. The package repository now requires locked and unstable
-NUR checks, explicit Python and Swift analysis, Swift quality, both sanitizers
-and both compiler audits. It has 19 required checks, all bound to GitHub Actions.
-Its requirements were updated while the queue was empty, after the five newly
-required Swift jobs passed on the final PR revision. Merges use the existing native merge queue and its checks.
+identity are preserved. The initial package rollout required 19 checks, including
+locked and unstable NUR checks, explicit Python and Swift analysis, Swift quality,
+both sanitizers and both compiler audits.
+
+On 2026-09-08, [package PR #50](https://github.com/nix-forge/nixpkgs-personal/pull/50)
+passed all 22 planned required checks at
+`4c4feccae8707f564d0961587fa98934cf4da754` before the requirements changed.
+The queue was empty and the existing protection matched its saved
+configuration. The update retained 16 contexts and replaced the three old Swift
+quality and sanitizer names with six package-specific names. API readback verified
+exactly 22 required contexts, all bound to GitHub Actions, with the existing
+strictness setting preserved. Merges use the native queue and its checks.
 No administrator bypass is used. The shared CI and organization repositories also
 require their native merge queues. Their CI workflows emit `validate` for
 `merge_group` events.
@@ -273,3 +280,21 @@ and dispatch forms. A documentation-only comparison in this repository selected
 none of its 28 Linux outputs. A replay against PR #48's actual squash candidate
 also selected no unchanged package recipes. These comparisons establish selection
 behavior; native checks still validate changed outputs on the hosted runners.
+
+The repair merged in [root PR #193](https://github.com/nix-forge/nix-conf/pull/193)
+at `0649afd5e2c34293fc278be63f128052e85a8b3f` after all three platform checks and
+protected merge-group validation passed.
+
+## Swift quality shells
+
+The package quality matrix uses focused Nix shells. OCR Capture keeps its existing
+two-tool shell. Finder Favorites reuses the 16 tools declared by its quality hook,
+so the hook and CI share one tool list. Xcode and the runner supply the native
+compiler and Nix commands. All quality commands, sanitizers and compiler audits
+remain enabled.
+
+The earlier full development shell had 84 tool entries. Both quality jobs were
+still constructing that environment when the run was superseded, before either
+quality script started. With the focused shells, hosted OCR quality passed in
+3 minutes 42 seconds and Finder quality in 4 minutes 53 seconds. These are
+observations from separate runners, not a controlled benchmark.
