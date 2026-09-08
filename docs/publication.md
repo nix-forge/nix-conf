@@ -1,5 +1,8 @@
 # Publishing documentation
 
+For skill-generated research, drafts, handoffs, and wizards, follow the
+[artifact workflow](agents/research.md) as well as this policy.
+
 Write research notes for a public reader. Keep the technical question, findings,
 source links, reproduction steps, and limitations. Use repository-relative links
 and `$HOME`, `<USER>`, or `<HOSTNAME>` for local examples. Resolve these placeholders
@@ -36,7 +39,6 @@ git config --local user.name IanHollow
 git config --local user.email 72767437+IanHollow@users.noreply.github.com
 ```
 
-Encrypting a Git configuration or
-adding a mailmap does not remove author and committer identities already embedded
+Encrypting a Git configuration or adding a mailmap does not remove author and committer identities already embedded
 in old commits. Rewriting published history requires coordinating affected branches,
 open pull requests, and other clones before a force push.

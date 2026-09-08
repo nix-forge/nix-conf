@@ -45,6 +45,7 @@ activemq-data/
 # Local scratch work
 .opencode/plans/
 /tmp/
+/.scratch/
 
 # Private workload and vendor details belong outside the shared repository.
 docs/prop-fund-virtualization-strategy-research.md
