@@ -238,6 +238,22 @@ class TemplateMigrationTests(unittest.TestCase):
                 data=json.dumps(values).encode(),
             )
             output = root / "rendered"
+            for field, value in values.items():
+                self.assertEqual(
+                    cli(
+                        "secret",
+                        "reveal",
+                        "--plan",
+                        policy,
+                        "--repository-root",
+                        root,
+                        "--identity",
+                        key,
+                        "--secret",
+                        field,
+                    ),
+                    value.encode(),
+                )
             cli(
                 "template",
                 "render",
