@@ -345,3 +345,10 @@ It derives the host-only exclusions from deploy-rs's own check inventory because
 those checks build the complete desktop closure. Full `checks` retain deployment
 validation for the desktop host. New ordinary checks enter CI without editing
 workflow lists; new deploy-rs checks remain under the same build-placement policy.
+
+Configuration evaluation checks follow `nixosConfigurations` and
+`darwinConfigurations`. Each native configuration must instantiate its system
+derivation. Foreign configurations produce a skipped-platform report. The check
+report discards the system derivation's string context so evaluating a host does
+not turn the CI check into a full system build. Host additions and removals update
+these checks automatically; runner support remains explicit deployment policy.
