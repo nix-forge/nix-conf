@@ -18,7 +18,7 @@ The reviewed policy permits local implementation, tests, and explanations for th
 
 ## Evidence and workspace
 
-Read these files in `/home/ianmh/Developer/nix-conf`:
+Read these files in `~/Developer/nix-conf`:
 
 - `modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch`
 - `docs/hyprland-subsurface-crash.md`
@@ -33,7 +33,7 @@ The downstream base is `ee0409623e2d6a683374b39a32e0ac3d087841aa`. During window
 
 Use `docs/hyprshell-hyprland-local-fixes.md` for the current validated changes and recorded downstream results. The earlier patch review is historical. Five native hyprtester cases cover deep ancestry, direct-parent teardown, orphan ancestry, higher-ancestor teardown, and cycles. The native test diff is a companion patch because the normal Nix package filters hyprtester out of its source. Apply both artifacts to a full upstream tree. The standalone C client also covers orphan color feedback and child-first destruction. Record fresh results against the exact upstream revision you use, separately from the historical evidence.
 
-Current upstream `main` was `34eb03bd8da01024596c367fba66485a8c9b8ca7` on September 6, 2026, and still contained the relevant walks. Refresh `main` before working. There is already a dirty checkout at `/home/ianmh/Developer/upstream/Hyprland` containing subsurface and integration-test work. Inspect its status and origin before creating a clean isolated worktree on a `codex/` branch. Preserve that work and every pending configuration-repository change. Review useful existing work rather than silently overwriting it or treating it as a clean upstream baseline.
+Current upstream `main` was `34eb03bd8da01024596c367fba66485a8c9b8ca7` on September 6, 2026, and still contained the relevant walks. Refresh `main` before working. There is already a dirty checkout at `~/Developer/upstream/Hyprland` containing subsurface and integration-test work. Inspect its status and origin before creating a clean isolated worktree on a `codex/` branch. Preserve that work and every pending configuration-repository change. Review useful existing work rather than silently overwriting it or treating it as a clean upstream baseline.
 
 Build only the isolated compositor and affected tests for this task. Leave the installed desktop configuration and running desktop session unchanged. Serialize memory-intensive builds and tests with the shared `/tmp/nix-conf-heavy-work.lock`, and limit Nix builds to `--max-jobs 1 --cores 2`. A full desktop build is outside this task; the configuration repository requires any future `nixosConfigurations.desktop` build to run on host `desktop`, using `just desktop-build` from another host.
 

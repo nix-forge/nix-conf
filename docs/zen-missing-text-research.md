@@ -45,7 +45,7 @@ nix shell --impure --expr '
   let pkgs = (builtins.getFlake (toString ./.)).inputs.nixpkgs.legacyPackages.x86_64-linux;
   in [ pkgs.geckodriver (pkgs.python3.withPackages (p: [ p.selenium p.pillow ])) ]
 ' --command python3 tests/browsers/check_font_rendering.py \
-  --browser /etc/profiles/per-user/ianmh/bin/zen-beta \
+  --browser /etc/profiles/per-user/user/bin/zen-beta \
   --output /tmp/zen-font-check
 ```
 

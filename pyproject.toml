@@ -65,8 +65,23 @@ strict = true
   "subprocess-without-shell-equals-true",
   "start-process-with-partial-path",
 ]
+# Synthetic migration and rollback tests run with only the standard library.
+"tests/secrets/test_secret_templates.py" = [
+  "pytest-unittest-assertion",
+  "pytest-unittest-raises-assertion",
+]
 # Keep this runner regression usable with the standard-library test runner.
 "tests/hyprland/test_upstream_local_runner.py" = ["pytest-unittest-assertion"]
+
+"tests/secrets/test_template_migration.py" = [
+  # Exercise the installed CLI with disposable keys using the stdlib runner.
+  "pytest-unittest-assertion",
+  "pytest-unittest-raises-assertion",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
+
 "modules/nixos/virtualisation/scripts/windows-vm-render-seed.py" = [
   "hardcoded-password-string",         # The flagged value is a public placeholder token, not a credential.
   "suspicious-xml-element-tree-usage", # The immutable template is trusted and all variable text is escaped first.

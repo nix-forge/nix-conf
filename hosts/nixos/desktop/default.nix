@@ -120,7 +120,7 @@ in
     # use the complete desktop environment for the installed workstation.
     config = "ianmh@desktop";
     user = {
-      description = "Ian Holloway";
+      description = "IanHollow";
       # OpenSSH evaluates remote commands with the account's login shell, so
       # use Bash here as well as in interactive terminal sessions.
       shell = inputs.nixpkgs.legacyPackages.x86_64-linux.bashInteractive;

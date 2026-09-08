@@ -46,7 +46,7 @@ After activation on a Mac, inspect the native font collection and restart an iso
 
 The shared Google Fonts override now removes both conflicting emoji files at installation time. Shared fonts, Stylix, and the legacy NixOS font module all use that override. The upstream package's custom `installPhase` does not invoke `postInstall`, so the removal is appended to `installPhase` itself. The Linux rejection rules remain useful for older profiles.
 
-The MacBook Home Manager configuration now imports the optional font module. On Darwin it adds the existing `firefox-emoji` and `emojione-legacy` personal packages to `home.packages`. Evaluation confirms that Home Manager copies the resulting font collection into `/Users/ianmh/Library/Fonts/HomeManager`, with obsolete managed copies deleted during activation. Linux keeps its existing XDG installation and targeted cache refresh.
+The MacBook Home Manager configuration now imports the optional font module. On Darwin it adds the existing `firefox-emoji` and `emojione-legacy` personal packages to `home.packages`. Evaluation confirms that Home Manager copies the resulting font collection into `~/Library/Fonts/HomeManager`, with obsolete managed copies deleted during activation. Linux keeps its existing XDG installation and targeted cache refresh.
 
 Ghostty now specifies only `MonaspiceNe Nerd Font` on both systems. This lets Ghostty use its platform emoji fallback. The browser's Fontconfig substitution-limit adjustment remains Linux-only; evaluation confirms that neither Darwin Zen profile receives that preference or an explicit emoji-family override.
 
@@ -57,4 +57,4 @@ Completed on the Linux desktop:
 - Evaluated both platforms' effective font settings. Every configured Google Fonts entry in each system and Home Manager uses its platform's same filtered package. Both Ghostty configurations contain only the chosen monospace family. The Darwin home package list includes both optional emoji fonts.
 - Checked Nix formatting and patch whitespace.
 
-The configured `Ian-MBP.local` hostname did not resolve from the desktop. No Darwin activation, native font log inspection, or Mac rendering test was performed. Apply the configuration on the Mac with `just darwin-switch macbook-pro-m4`, then verify the native rendering cases above. The older Fontconfig-only repair did not establish Darwin correctness, and these configuration checks do not claim that every macOS application supports SVG-in-OpenType.
+The configured `<MACBOOK-HOSTNAME>` hostname did not resolve from the desktop. No Darwin activation, native font log inspection, or Mac rendering test was performed. Apply the configuration on the Mac with `just darwin-switch macbook-pro-m4`, then verify the native rendering cases above. The older Fontconfig-only repair did not establish Darwin correctness, and these configuration checks do not claim that every macOS application supports SVG-in-OpenType.

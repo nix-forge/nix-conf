@@ -71,8 +71,8 @@ The payload should bind every authority decision:
   "capabilityId": "base64url-256-bit-random-nonce",
   "issuerKeyId": "ed25519:...",
   "bootstrapPlanHash": "blake3-hex",
-  "secretId": "ianhollow/users/ianmh/smithsonian-open-access-api-key",
-  "source": "secrets/ianhollow/users/ianmh/smithsonian-open-access-api-key.age",
+  "secretId": "ianhollow/users/user/smithsonian-open-access-api-key",
+  "source": "secrets/ianhollow/users/user/smithsonian-open-access-api-key.age",
   "recipientSetHash": "blake3-hex",
   "plaintextSha256": "sha256-hex",
   "maxPlaintextBytes": 65536,
@@ -135,8 +135,8 @@ For the current desktop module, the ergonomics become:
 ```nix
 nixSeal.secrets.smithsonian-open-access-api-key = {
   pending = true;
-  owner = "ianmh";
-  group = "ianmh";
+  owner = "user";
+  group = "user";
   mode = "0400";
 };
 ```
@@ -150,7 +150,7 @@ The best interactive flow is deliberately short:
 
 ```console
 nix-seal secret delegate prepare --bootstrap-plan "$BOOTSTRAP_PLAN" \
-  --secret ianhollow/users/ianmh/smithsonian-open-access-api-key --read-from-tty \
+  --secret ianhollow/users/user/smithsonian-open-access-api-key --read-from-tty \
   > request.json
 nix-seal secret delegate issue --request request.json \
   --authorizer-key "$AUTHORING_KEY" > capability.json

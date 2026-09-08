@@ -35,7 +35,7 @@ the macOS VM.
 
 The repository already avoids the rootful NixOS daemon. It enables rootless
 Docker, exports `DOCKER_HOST`, enables user lingering, limits the global Docker
-unit to `ianmh`, uses the `local` log driver, and enables live restore. The
+unit to `user`, uses the `local` log driver, and enables live restore. The
 problems are lifecycle and macOS path ownership.
 
 `virtualisation.docker.rootless` declares a user service wanted by

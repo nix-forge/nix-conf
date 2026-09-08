@@ -19,7 +19,11 @@ let
   # running desktop configuration or touching any disk during checks.
   desktopDisko = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
-    specialArgs.inputs = inputs;
+    specialArgs = {
+      inherit inputs;
+      # Evaluation fixture only. Installer callers must supply a verified disk.
+      systemDisk = "/dev/disk/by-id/contract-fixture";
+    };
     modules = [
       ../modules/nixos/hardware/storage.nix
       ../hosts/nixos/desktop/local/hardware/filesystems.nix
@@ -70,6 +74,7 @@ let
   desktopHome = desktop.home-manager.users.ianmh;
   macbook = self.darwinConfigurations.macbook-pro-m4.config;
   macbookHome = macbook.home-manager.users.ianmh;
+  macbookPkgs = self.darwinConfigurations.macbook-pro-m4.pkgs;
   desktopSpotify = desktopHome.programs.spicetify.spotifyPackage;
   macbookSpotify = macbookHome.programs.spicetify.spotifyPackage;
   hasHomePackage = name: lib.any (package: lib.getName package == name) desktopHome.home.packages;
@@ -485,9 +490,12 @@ in
         assert macbookHome.macos.finderFavorites.mode == "reconcile";
         assert macbookHome.macos.finderFavorites.allowDeprecatedBackend;
         assert macbookHome.macos.finderFavorites.placement == "bottom";
+        # The host overlay may use different bootstrap tools from standalone
+        # exports. Verify host selection and the shared package source separately.
+        assert macbookHome.macos.finderFavorites.package.outPath == macbookPkgs.finder-favorites.outPath;
         assert
-          macbookHome.macos.finderFavorites.package.outPath
-          == inputs.nixpkgs-personal.packages.aarch64-darwin.finder-favorites.outPath;
+          toString macbookHome.macos.finderFavorites.package.src
+          == toString inputs.nixpkgs-personal.packages.aarch64-darwin.finder-favorites.src;
         assert hasMacbookHomePackage "finder-favorites";
         assert macbookHome.home.activation ? syncFinderFavorites;
         assert lib.hasInfix "finder-favorites apply" macbookHome.home.activation.syncFinderFavorites.data;
@@ -495,9 +503,10 @@ in
           (builtins.fromJSON macbookHome.xdg.configFile."finder-favorites/config.json".text).schemaVersion
           == 1;
         assert macbookHome.macos.ocrCapture.engine == "native";
+        assert macbookHome.macos.ocrCapture.package.outPath == macbookPkgs.ocr-capture.outPath;
         assert
-          macbookHome.macos.ocrCapture.package.outPath
-          == inputs.nixpkgs-personal.packages.aarch64-darwin.ocr-capture.outPath;
+          toString macbookHome.macos.ocrCapture.package.src
+          == toString inputs.nixpkgs-personal.packages.aarch64-darwin.ocr-capture.src;
         assert hasMacbookHomePackage "ocr-capture";
         assert lib.hasInfix "OCR Capture.app" macbookHome.macos.ocrCapture.applicationPath;
         assert macbookHome.macos.ocrCapture.shortcuts.copyRegion == "cmd-shift-7";
@@ -771,7 +780,10 @@ in
         assert !desktop.services.unbound.enable;
         assert desktop.services.resolved.settings.Resolve.DNSStubListener == true;
         assert desktop.services.resolved.settings.Resolve.LLMNR == false;
-        assert desktop.services.resolved.settings.Resolve.MulticastDNS == false;
+        assert desktop.services.resolved.settings.Resolve.MulticastDNS == "resolve";
+        assert desktop.systemd.network.networks."30-wired-networks".networkConfig.MulticastDNS == "resolve";
+        assert
+          desktop.systemd.network.networks."30-wireless-networks".networkConfig.MulticastDNS == "resolve";
         assert desktop.services.resolved.settings.Resolve.ReadEtcHosts == true;
         assert desktop.services.resolved.settings.Resolve.ResolveUnicastSingleLabel == false;
         assert desktop.services.resolved.settings.Resolve.CacheFromLocalhost == false;
@@ -1146,19 +1158,35 @@ in
         assert desktopHome.programs.ssh.settings."*".data.StrictHostKeyChecking == "accept-new";
         assert desktopHome.programs.ssh.settings."*".data.UpdateHostKeys == "yes";
         assert desktopHome.programs.ssh.settings."*".data.ControlPath == "/home/ianmh/.ssh/cm/%C";
+        assert desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.HostName == "Ian-MBP.local";
+        assert desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.HostKeyAlias == "macbook";
+        assert
+          desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.StrictHostKeyChecking == "yes";
+        assert desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.User == "ianmh";
+        assert
+          desktop.programs.ssh.knownHosts.macbook.publicKey == macbook.nixSeal.identities.target.public;
+        assert macbook.services.openssh.enable;
+        assert lib.elem
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq ianmh@desktop"
+          macbook.users.users.ianmh.openssh.authorizedKeys.keys;
         assert macbookHome.programs.ssh.enable;
         assert macbookHome.programs.ssh.settings."*".data.AddKeysToAgent == "yes";
         assert macbookHome.programs.ssh.settings."*".data.UseKeychain == "yes";
         assert macbookHome.programs.ssh.settings."*".data.ControlPath == "/Users/ianmh/.ssh/cm/%C";
         assert desktopHome.nixSeal.enable;
-        assert builtins.hasAttr "nix-access-tokens" desktopHome.nixSeal.secrets;
+        assert builtins.hasAttr "nix-access-tokens" (
+          desktopHome.nixSeal.secrets // desktopHome.nixSeal.templates
+        );
         assert desktop.nixSeal.enable;
         assert desktop.nixSeal.linux.volatileRuntime.enable;
         assert desktop.users.groups ? ianmh;
         assert lib.elem "ianmh" desktop.users.users.ianmh.extraGroups;
-        assert
-          desktop.nixSeal.secrets."nix-access-tokens".source
-          == "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
+        assert import ../secrets/nix-token-policy.nix {
+          inherit lib;
+          nixSeal = desktop.nixSeal;
+          owner = "root";
+          group = "root";
+        };
         assert desktop.fileSystems."/run/nix-seal".fsType == "tmpfs";
         assert lib.elem "noswap" desktop.fileSystems."/run/nix-seal".options;
         assert lib.hasInfix "nix-seal-runtime-activation"
@@ -1460,6 +1488,7 @@ in
           '';
 
       desktop-disko-layout-contract =
+        assert desktopDisko.config.disko.devices.disk.system.device == "/dev/disk/by-id/contract-fixture";
         assert desktopDisko.config.hardware.storage.encryptedRoot.enable;
         assert
           desktopDisko.config.boot.initrd.luks.devices.cryptroot.device

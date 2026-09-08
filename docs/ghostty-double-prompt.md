@@ -1,5 +1,9 @@
 # Ghostty 1.3.1 duplicate Bash prompt
 
+Account names in command examples and captured transcripts are redacted as
+`<USER>`. Replace that placeholder with the configured account name before
+running a command.
+
 Opening Ghostty with ble.sh produces two prompts before any keyboard input.
 Ghostty's `OSC 133;A` marker can move the cursor to a new line without updating
 ble.sh's cursor tracking. A minimal Bash prompt reproduces it without Starship,
@@ -29,7 +33,7 @@ Build only the generated Bash configuration on the desktop, then test it:
 
 ```bash
 bashrc=$(nix build --no-link --print-out-paths \
-  'path:.#nixosConfigurations.desktop.config.home-manager.users.ianmh.home.file.".bashrc".source')
+  'path:.#nixosConfigurations.desktop.config.home-manager.users.<USER>.home.file.".bashrc".source')
 python3 tests/terminals/check_ghostty_prompt.py \
   --bashrc "$bashrc" --shell-integration none \
   --starship-config "$HOME/.config/starship.toml"

@@ -1,5 +1,9 @@
 # Hyprland OLED idle display policy
 
+Account names in command examples and captured transcripts are redacted as
+`<USER>`. Replace that placeholder with the configured account name before
+running a command.
+
 Research date: 2026-09-06
 
 Use Hypridle to turn the outputs off through DPMS while Hyprlock keeps the session locked. An animated screensaver adds rendering and leaves the panel displaying content. Display standby also permits the PG32UCWM's automatic pixel cleaning. ASUS documents prolonged static images as a burn-in risk and says cleaning runs in standby after sufficient use. Leave the monitor connected to power and retain its built-in OLED care settings. This reduces static exposure; it is not a guarantee against panel wear. [ASUS PG32UCWM product and OLED care documentation](https://rog.asus.com/monitors/27-to-31-5-inches/rog-swift-oled-pg32ucwm/)
@@ -30,7 +34,7 @@ A process check is a practical gate, not proof that the compositor has accepted 
 Completed on `desktop`:
 
 - Reproduced the original configured wake command's nil-function error. The service journal also showed the same failure at the display-off timeout.
-- Built `nixosConfigurations.desktop.config.home-manager.users.ianmh.xdg.configFile."hypr/hypridle.conf".source` and evaluated the user's Home Manager assertions, with no failed assertions.
+- Built `nixosConfigurations.desktop.config.home-manager.users.<USER>.xdg.configFile."hypr/hypridle.conf".source` and evaluated the user's Home Manager assertions, with no failed assertions.
 - Executed both unique DPMS commands from the generated configuration. Batched each dispatch with a monitor query and asserted that `DP-4` reported `dpmsStatus = false` for disable and `true` for enable. Batching avoids input waking the monitor between the command and the query. Always restored DPMS on afterward.
 - Checked Nix formatting and whitespace in the changed files.
 - Pointed the live Hypridle configuration symlink at the newly built file and restarted the existing service while Hyprlock was absent. Hypridle loaded four listeners, including the condition and inhibitor override, and remained active with zero restarts. The rendered file has a GC root at `~/.local/state/nix/gcroots/hypridle-config`; the previous Home Manager link target is recorded beside it in `hypridle-config.previous-target`. A normal rebuild will install the same policy through Home Manager.

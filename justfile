@@ -129,6 +129,11 @@ home-switch configuration *args:
 secret *args:
     nix run path:{{ flake }}#nix-seal -- {{ args }}
 
+# Review config-to-field migration; add --execute only for ciphertext authoring.
+[group('Secrets')]
+secret-template-migrate *args:
+    nix shell path:{{ flake }}#nix-seal --command python3 {{ flake }}/scripts/migrate-secret-templates.py {{ args }}
+
 # ─── Maintenance ──────────────────────────────────────────────────────
 
 # Format all Nix files

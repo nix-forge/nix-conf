@@ -77,7 +77,7 @@ just fonts-check /tmp/font-check
 Include the installed browser to test actual Zen rendering:
 
 ```sh
-just fonts-check /tmp/font-check /etc/profiles/per-user/ianmh/bin/zen-beta
+just fonts-check /tmp/font-check /etc/profiles/per-user/user/bin/zen-beta
 ```
 
 The equivalent flake app is `nix run .#font-check -- OUTPUT [BROWSER]`. Browser

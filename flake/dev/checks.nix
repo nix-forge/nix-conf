@@ -61,6 +61,27 @@
       # `nix flake check --no-build` evaluates checks but does not execute them.
       # Copy the exact source to a writable directory; caches and bytecode must
       # not modify the immutable Nix source path.
+      checks.secret-templates =
+        assert import ../../tests/secrets/template-policy.nix { inherit (pkgs) lib; };
+        pkgs.runCommand "secret-template-tests"
+          {
+            nativeBuildInputs = [
+              pkgs.python3
+              pkgs.git
+              inputs.nix-seal.packages.${pkgs.stdenv.hostPlatform.system}.default
+            ];
+          }
+          ''
+            mkdir -p scripts modules/home/dev/scripts tests/secrets secrets
+            cp ${../../scripts/migrate-secret-templates.py} scripts/migrate-secret-templates.py
+            cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
+            cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
+            cp ${../../tests/secrets/test_template_migration.py} tests/secrets/test_template_migration.py
+            cp ${../../secrets/templates.json} secrets/templates.json
+            python3 -m unittest discover -s tests/secrets -p 'test_*.py' -v
+            touch "$out"
+          '';
+
       checks.hyprland-runner =
         pkgs.runCommand "hyprland-runner-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
           ''
@@ -112,9 +133,17 @@
 
       # Detect a canary even inside paths with narrowly scoped exceptions.
       checks.gitleaks-policy =
-        pkgs.runCommand "gitleaks-policy" { nativeBuildInputs = [ pkgs.gitleaks ]; }
+        pkgs.runCommand "gitleaks-policy"
+          {
+            nativeBuildInputs = [
+              pkgs.gitleaks
+              pkgs.git
+            ];
+          }
           ''
             set -euo pipefail
+            bash ${../../tests/privacy/check-publication-policy.sh} ${../../.gitleaks.toml} \
+              ${../../.github/scripts/scan-publication.sh}
             fixture="$TMPDIR/fixture"
             mkdir -p "$fixture"
             scan_fixture() {

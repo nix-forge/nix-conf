@@ -45,6 +45,7 @@ activemq-data/
 # Local scratch work
 .opencode/plans/
 /tmp/
+/.scratch/
 
 # Private workload and vendor details belong outside the shared repository.
 docs/prop-fund-virtualization-strategy-research.md
@@ -56,3 +57,5 @@ docs/assets/hyprland-upstream-local-*/**/cache/
 # Raw research captures stay local; only the reviewed evidence index is public.
 /docs/assets/hyprland-upstream-local-20260907/*
 !/docs/assets/hyprland-upstream-local-20260907/README.md
+/docs/private/
+/docs/assets/private/

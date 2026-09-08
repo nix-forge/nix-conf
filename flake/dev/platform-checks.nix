@@ -78,7 +78,9 @@ let
         inherit system;
         config.allowUnfree = true;
       };
-      packages = import ../../pkgs/pkgs { inherit pkgs; };
+      # Exercise the same platform-filtered public set supplied to real homes.
+      # The raw registry intentionally exposes unsupported packages for metadata.
+      packages = inputs.nixpkgs-personal.packages.${system};
       home = inputs.home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         extraSpecialArgs = {

@@ -45,7 +45,7 @@ enabled unless visual inspection of the chosen font shows a problem.
 
 The currently installed ChatGPT Desktop app (Codex view; build
 `26.818.61809`) stores its active appearance state in
-`/Users/ianmh/.config/codex/config.toml`. Its bundled implementation validates
+`~/.config/codex/config.toml`. Its bundled implementation validates
 these Desktop keys:
 
 ```toml
@@ -80,7 +80,7 @@ The same `ChromeTheme` shape exists for
 colors, supports only the stated numeric ranges, and has separate UI and code
 font values (plus internal face metadata when chosen through the UI). This was
 verified from the signed, locally installed application resource at
-`/Users/ianmh/Applications/Home Manager Apps/ChatGPT.app/Contents/Resources/app.asar`.
+`~/Applications/Home Manager Apps/ChatGPT.app/Contents/Resources/app.asar`.
 It is useful implementation evidence, not a promised public configuration API.
 
 The current config already contains a dark Chrome-theme block, confirming that

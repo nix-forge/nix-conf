@@ -1,8 +1,9 @@
-{ config, lib, ... }:
+{ config, ... }:
 let
+  runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   includeCornell =
-    if lib.hasAttrByPath [ "nixSeal" "secrets" "cornell-net-id-ssh-config" ] config then
-      { Include = config.nixSeal.secrets."cornell-net-id-ssh-config".path; }
+    if builtins.hasAttr "cornell-net-id-ssh-config" runtimeFiles then
+      { Include = runtimeFiles."cornell-net-id-ssh-config".path; }
     else
       { };
   libvirtGuest = address: {
