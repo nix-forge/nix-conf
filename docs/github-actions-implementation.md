@@ -12,25 +12,17 @@ and reuse maintained upstream actions for installation, scanning and caching.
   completion callbacks. Platform builds remain in each consumer repository.
 - [nix-forge/.github](https://github.com/nix-forge/.github) provides organization
   workflow templates and the public profile. CI validates the templates.
-- Reusable calls use full commit SHAs. The original runtime is
-  `a75d21dababfd55145e2df1db81f3d2d865bec59` (v1.0.1). The corrected dependency
-  review workflow is
-  `679f99ac3b2c8e25d2b2049c1b21541c51dc71ee`, published as
-  [immutable v1.0.2](https://github.com/nix-forge/ci/releases/tag/v1.0.2).
-  It retains the original low-severity vulnerability gate. The organization
-  template also uses this corrected release. Dependabot proposes later updates.
-- [Immutable v1.0.3](https://github.com/nix-forge/ci/releases/tag/v1.0.3), commit
-  `adabd33cf2727ce7a5d4378e8d24af9417537196`, fixes initial queue-validation
-  dispatch when the newly admitted queue ref is not yet available. The workflow
-  hardening task is rolling this release into consumers.
-- [Immutable v1.0.4](https://github.com/nix-forge/ci/releases/tag/v1.0.4), commit
-  `03eb849e788bd71ac08afab6a1135a6ff6514f3c`, also reports verified failed
-  validation jobs back to the queue as failures. This prevents failed entries
-  from waiting until timeout. It is the target release for the final consumer
-  and starter-template updates.
+- Reusable calls use full commit SHAs. The latest library release is
+  [immutable v1.0.4](https://github.com/nix-forge/ci/releases/tag/v1.0.4), commit
+  `03eb849e788bd71ac08afab6a1135a6ff6514f3c`. It includes the low-severity
+  dependency gate, initial queue-ref readiness and failed-validation reporting.
+  Templates and package hardening PR #48 use this release. Earlier
+  consumer policy corrections use immutable v1.0.2 where only dependency review
+  changed; unchanged calls retain their tested pins. Dependabot proposes updates.
 
 Both new repositories require pull requests and their successful `validate` check
-on main, including for administrators. They prohibit force pushes and branch
+on main, including for administrators. The shared CI repository also requires
+`CodeQL / analyze`, which scans its Python automation and GitHub Actions files. They prohibit force pushes and branch
 deletion, require linear history, enforce action SHA pinning and default to a
 read-only workflow token. Repository settings were verified through GitHub's API.
 Both repositories also have native merge queues with validation required and no
@@ -49,6 +41,8 @@ it does not count new files in the shared repository as a reduction in total cod
 | nixpkgs-personal | [Combined PR #46](https://github.com/nix-forge/nixpkgs-personal/pull/46) |
 | nix-seal | [PR #80](https://github.com/nix-forge/nix-seal/pull/80) |
 | nix-conf | [PR #189](https://github.com/nix-forge/nix-conf/pull/189) |
+
+All five initial migrations have merged after PR and protected queue validation.
 
 Required-check names are migrated only after observing the replacement checks
 succeed on the actual PR revision. Existing check coverage and GitHub Actions app
@@ -78,11 +72,11 @@ and failed-run diagnosis.
   or higher. A parallel workflow audit caught the initial shared release's
   unintended high-severity threshold. Version 1.0.2 corrects it. The package PR
   and organization template use the fixed source. The framework, VPN, nix-seal
-  and nix-conf corrections have merged; the combined package PR has passed the
-  corrected gate and is completing queue validation.
+  and nix-conf corrections have merged. The combined package PR also passed the
+  corrected gate and merged after protected queue validation.
 - Reusable workflows request explicit permissions and do not inherit all secrets.
   PR build jobs receive no new privileged credential.
-- The prepared PR #48 update removes duplicate execution of a downloaded
+- PR #48 removes duplicate execution of a downloaded
   `remindctl` binary from the privileged package updater. It retains archive
   layout, arm64 Mach-O and hash validation. The package's existing native
   install check still verifies the executable version under read-only CI.
@@ -145,7 +139,10 @@ push. The overlapping #47 was closed. The obsolete failed run was canceled.
 The combined PR preserves font contracts, evaluation restrictions and build
 limits; adds font provenance; corrects Firefox Emoji's Apache 2.0 Nixpkgs license
 identifier; and retains Noctalia's vendored MIT notice. Both NUR inputs pass all
-86 evaluations on this tree. PR #46 is the authoritative integration branch.
+86 evaluations on this tree. PR #46 merged at
+`327a24558aec56486e2e82d8ee494a983f133bd2`. Its protected queue run
+[34184084383](https://github.com/nix-forge/nixpkgs-personal/actions/runs/34184084383)
+also passed all three native builds and both NUR checks.
 
 The combined package CI also retries recognized transient source-fetch failures
 up to twice on the same runner, retaining already built derivations. It preserves
@@ -176,6 +173,13 @@ minutes. The x86 log places about 51 minutes in the Mutant Standard build and
 this run. Logs also confirm that unchanged packages skipped rebuilding. These
 are observations from one cold build, not a controlled before/after benchmark.
 
+PR #48 also records the evaluated checkout, immutable Nixpkgs source revision
+and NAR hash in NUR artifacts. It verifies the lockfile hash, bounds source
+resolution and prefetch commands, and clears ambient Nix search paths during
+restricted evaluation. Readable job summaries list the platform totals and link
+to both source revisions. A negative test rejects a mismatched lockfile hash.
+Fresh PR and merge-queue validation of this follow-up remain pending.
+
 The expanded local package collection also receives source-provenance fixes for
 precompiled fonts and its equivalent NUR integration. It passed all 86 supported
 package/platform evaluations for both locked and current unstable Nixpkgs. The
@@ -184,9 +188,10 @@ all 27 native x86_64-linux package outputs; Darwin build coverage remains the
 responsibility of native CI.
 
 See [NUR readiness](../pkgs/docs/nur-readiness.md) for exact results, metadata work
-and the publication boundary. The package reorganization and other newer configuration changes are committed
-in a separate follow-up review. They were not included in the clean migration
-PRs; their PRs follow completion of the initial package and root integration.
+and the publication boundary. The package reorganization and newer configuration
+changes are committed in a separate follow-up review. They remain separate from
+these clean migration PRs; the font and Noctalia changes already reviewed in #46
+are included.
 
 ## Validation and local placement
 
@@ -197,6 +202,14 @@ The subsequent queue-liveness repair increased the suite to 30 tests and passed
 PR and queue validation in [CI PR #3](https://github.com/nix-forge/ci/pull/3).
 Failure reporting increased the suite to 35 tests and passed the same checks in
 [CI PR #4](https://github.com/nix-forge/ci/pull/4).
+The shared repository now calls its own CodeQL workflow on the reviewed commit.
+[CI PR #5](https://github.com/nix-forge/ci/pull/5) passed the Python and Actions scan
+and is completing protected queue validation. GitHub reported no open CodeQL
+alerts at this check. The local workflow syntax follows
+[GitHub's same-commit reuse rules](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#calling-a-reusable-workflow);
+a documented Zizmor exception retains `./` until the pinned actionlint supports `$/`.
+This changes the library's own validation and requires no consumer runtime update.
+
 Each consumer passed its local workflow hooks; applicable native pre-push checks
 also passed. GitHub runs the full existing native matrices on the PR and again in
 the merge queue. NUR additionally runs its own restricted-evaluator matrix.
