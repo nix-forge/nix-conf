@@ -431,7 +431,7 @@ let
       privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
       ssh = getExe pkgs.openssh;
       sudo = getExe pkgs.sudo;
-      virtManager = getExe pkgs.virt-manager;
+      virtManager = getExe config.programs.virt-manager.package;
     };
   };
 
@@ -838,7 +838,20 @@ in
         spiceUSBRedirection.enable = cfg.usbRedirection.enable;
       };
 
-      programs.virt-manager.enable = true;
+      programs.virt-manager = {
+        enable = true;
+        package = lib.mkDefault (
+          pkgs.virt-manager.override {
+            gtksourceview4 = pkgs.gtksourceview4.overrideAttrs (old: {
+              # Xvfb resets when the last GTK test client disconnects, racing
+              # the next client. Remove this once upstream keeps it alive.
+              checkPhase =
+                assert lib.hasInfix "xvfb-run -s '" old.checkPhase;
+                lib.replaceStrings [ "xvfb-run -s '" ] [ "xvfb-run -s '-noreset " ] old.checkPhase;
+            });
+          }
+        );
+      };
 
       # Libvirt owns forwarding and NAT. The host firewall allows only the
       # network's DHCP/DNS service, optional diagnostics, and ports named by
