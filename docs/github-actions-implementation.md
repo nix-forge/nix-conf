@@ -4,6 +4,16 @@ Implemented 2026-09-07, America/Los_Angeles. The design follows
 [the research](github-actions-strategy-research.md): own the organization policy
 and reuse maintained upstream actions for installation, scanning and caching.
 
+```mermaid
+flowchart LR
+  templates["nix-forge/.github templates"] --> repos["Five consumer repositories"]
+  repos --> shared["nix-forge/ci shared workflows"]
+  repos --> native["Repository-specific native builds"]
+  shared --> upstream["Maintained upstream actions"]
+  shared --> policy["Review, dependency and queue policy"]
+  native --> setup["Shared Nix setup action"]
+```
+
 ## Published shared repositories
 
 - [nix-forge/ci](https://github.com/nix-forge/ci) contains reusable lockfile, CodeQL,
@@ -47,8 +57,10 @@ All five initial migrations have merged after PR and protected queue validation.
 Required-check names are migrated only after observing the replacement checks
 succeed on the actual PR revision. Existing check coverage and GitHub Actions app
 identity are preserved. The package repository now requires locked and unstable
-NUR checks, plus explicit Python and Swift analysis checks. Its requirements were
-updated while the queue was empty. Merges use the existing native merge queue and its checks.
+NUR checks, explicit Python and Swift analysis, Swift quality, both sanitizers
+and both compiler audits. It has 19 required checks, all bound to GitHub Actions.
+Its requirements were updated while the queue was empty, after the five newly
+required Swift jobs passed on the final PR revision. Merges use the existing native merge queue and its checks.
 No administrator bypass is used. The shared CI and organization repositories also
 require their native merge queues. Their CI workflows emit `validate` for
 `merge_group` events.
@@ -81,7 +93,8 @@ and failed-run diagnosis.
   layout, arm64 Mach-O and hash validation. The package's existing native
   install check still verifies the executable version under read-only CI.
   Five regression tests pass; they catch execution in the original updater.
-  The package derivation remains unchanged.
+  The package derivation remains unchanged. The final PR's native macOS log
+  confirms the grouped `remindctl` check skipped rebuilding that unchanged recipe.
 - The existing GITHUB_TOKEN queue fallback remains. Moving admission to a GitHub
   App needs an installed App and a private key, followed by proof that its
   admission triggers native merge-group checks. No App credential is configured
@@ -178,7 +191,11 @@ and NAR hash in NUR artifacts. It verifies the lockfile hash, bounds source
 resolution and prefetch commands, and clears ambient Nix search paths during
 restricted evaluation. Readable job summaries list the platform totals and link
 to both source revisions. A negative test rejects a mismatched lockfile hash.
-Fresh PR and merge-queue validation of this follow-up remain pending.
+All final PR checks passed at `787122f5d294dfdc998a8fd014718fc1f9aa6ade`,
+including the three native build jobs. An already-running Dependabot lockfile
+update, #49, was allowed to finish and merge before the protection cutover.
+PR #48 is now in the protected queue against that updated main. Its fresh
+`merge_group` validation remains pending.
 
 The expanded local package collection also receives source-provenance fixes for
 precompiled fonts and its equivalent NUR integration. It passed all 86 supported
@@ -204,7 +221,8 @@ Failure reporting increased the suite to 35 tests and passed the same checks in
 [CI PR #4](https://github.com/nix-forge/ci/pull/4).
 The shared repository now calls its own CodeQL workflow on the reviewed commit.
 [CI PR #5](https://github.com/nix-forge/ci/pull/5) passed the Python and Actions scan
-and merged after protected queue validation. GitHub reported no open CodeQL
+and protected queue validation, then merged at
+`d68141e994ce12bd9f9ad915ff208e3652322bdb`. GitHub reported no open CodeQL
 alerts at this check. The local workflow syntax follows
 [GitHub's same-commit reuse rules](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#calling-a-reusable-workflow);
 a documented Zizmor exception retains `./` until the pinned actionlint supports `$/`.
