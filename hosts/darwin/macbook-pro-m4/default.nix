@@ -28,6 +28,7 @@
     nixSeal
     ./nix-seal.nix
     ./local/firewall.nix
+    ./local/ssh.nix
 
     security
     macos

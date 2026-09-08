@@ -1,8 +1,9 @@
-{ config, lib, ... }:
+{ config, ... }:
 let
+  runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
   includeCornell =
-    if lib.hasAttrByPath [ "nixSeal" "secrets" "cornell-net-id-ssh-config" ] config then
-      { Include = config.nixSeal.secrets."cornell-net-id-ssh-config".path; }
+    if builtins.hasAttr "cornell-net-id-ssh-config" runtimeFiles then
+      { Include = runtimeFiles."cornell-net-id-ssh-config".path; }
     else
       { };
 in
@@ -12,6 +13,17 @@ in
   programs.ssh.settings."*".AddKeysToAgent = "yes";
 
   programs.ssh.settings = {
+    "macbook macbook-pro-m4" = {
+      HostName = "Ian-MBP.local";
+      HostKeyAlias = "macbook";
+      User = "ianmh";
+      IdentitiesOnly = true;
+      IdentityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+      StrictHostKeyChecking = "yes";
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+    };
+
     # Servers
     "ugclinux" = {
       HostName = "ugclinux.cs.cornell.edu";

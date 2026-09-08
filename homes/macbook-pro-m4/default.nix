@@ -87,7 +87,8 @@ in
     ({ config, ... }: {
       services.localControl = {
         enable = true;
-        environmentFile = config.nixSeal.secrets."service-runtime-environment".path;
+        environmentFile =
+          (config.nixSeal.secrets // config.nixSeal.templates)."service-runtime-environment".path;
       };
       # Retain the host-only VM diagnostics and SSH helpers that accompany the
       # control host.

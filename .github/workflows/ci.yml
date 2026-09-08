@@ -116,6 +116,7 @@ jobs:
             ".#checks.${TARGET_SYSTEM}.treefmt"
             ".#checks.${TARGET_SYSTEM}.python-quality"
             ".#checks.${TARGET_SYSTEM}.hyprland-runner"
+            ".#checks.${TARGET_SYSTEM}.secret-templates"
             ".#checks.${TARGET_SYSTEM}.gitleaks-policy"
             ".#checks.${TARGET_SYSTEM}.font-selection"
             ".#checks.${TARGET_SYSTEM}.font-ownership"

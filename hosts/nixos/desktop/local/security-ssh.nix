@@ -1,4 +1,11 @@
 {
+  # This is the MacBook host key already used by its nix-seal identity.
+  # Keep a stable alias so a DHCP address change cannot bypass key checking.
+  programs.ssh.knownHosts.macbook = {
+    hostNames = [ "macbook" ];
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
+  };
+
   # This physical desktop is administered from trusted private networks only.
   # Keep its reachability adjacent to other host-local operational choices;
   # shared policy must not assume a port, account list, or deployment scheme.

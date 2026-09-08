@@ -61,6 +61,25 @@
       # `nix flake check --no-build` evaluates checks but does not execute them.
       # Copy the exact source to a writable directory; caches and bytecode must
       # not modify the immutable Nix source path.
+      checks.secret-templates =
+        assert import ../../tests/secrets/template-policy.nix { inherit (pkgs) lib; };
+        pkgs.runCommand "secret-template-tests"
+          {
+            nativeBuildInputs = [
+              pkgs.python3
+              pkgs.git
+            ];
+          }
+          ''
+            mkdir -p scripts modules/home/dev/scripts tests/secrets secrets
+            cp ${../../scripts/migrate-secret-templates.py} scripts/migrate-secret-templates.py
+            cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
+            cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
+            cp ${../../secrets/templates.json} secrets/templates.json
+            python3 tests/secrets/test_secret_templates.py
+            touch "$out"
+          '';
+
       checks.hyprland-runner =
         pkgs.runCommand "hyprland-runner-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
           ''

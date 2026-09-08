@@ -58,6 +58,11 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+# Synthetic migration and rollback tests run with only the standard library.
+"tests/secrets/test_secret_templates.py" = [
+  "pytest-unittest-assertion",
+  "pytest-unittest-raises-assertion",
+]
 # Keep this runner regression usable with the standard-library test runner.
 "tests/hyprland/test_upstream_local_runner.py" = ["pytest-unittest-assertion"]
 "modules/nixos/virtualisation/scripts/windows-vm-render-seed.py" = [

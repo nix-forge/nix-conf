@@ -47,7 +47,8 @@ in
     }:
     let
       nixAccessTokensId = "nix-access-tokens";
-      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
+      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
       settings = sharedSettings // {
         # Restrict daemon access to administrators without assuming a
         # particular account name. Root is trusted by Nix by default.
@@ -77,7 +78,7 @@ in
         channel.enable = lib.mkDefault false;
         inherit settings;
         extraOptions = lib.mkIf hasNixAccessTokens ''
-          !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
+          !include ${runtimeFiles.${nixAccessTokensId}.path}
         '';
       };
     };
@@ -109,7 +110,8 @@ in
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
       nixAccessTokensId = "nix-access-tokens";
-      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
+      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
     in
     lib.mkMerge [
       (lib.mkIf (!usingDeterminateNix) {
@@ -119,7 +121,7 @@ in
           channel.enable = lib.mkDefault false;
           inherit settings;
           extraOptions = lib.mkIf hasNixAccessTokens ''
-            !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
+            !include ${runtimeFiles.${nixAccessTokensId}.path}
           '';
         };
       })
@@ -127,7 +129,7 @@ in
         determinateNix.customSettings = determinateSettings;
         environment.etc."nix/nix.custom.conf".text = lib.mkIf hasNixAccessTokens (
           lib.mkAfter ''
-            !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
+            !include ${runtimeFiles.${nixAccessTokensId}.path}
           ''
         );
       })
@@ -142,7 +144,8 @@ in
     }:
     let
       nixAccessTokensId = "nix-access-tokens";
-      hasNixAccessTokens = lib.hasAttrByPath [ "nixSeal" "secrets" nixAccessTokensId ] config;
+      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
     in
     {
       nix = {
@@ -152,7 +155,7 @@ in
         # daemon access or trusted-user privileges.
         settings = lib.mkIf (config.nix.package != null) sharedSettings;
         extraOptions = lib.mkIf (config.nix.package != null && hasNixAccessTokens) ''
-          !include ${config.nixSeal.secrets.${nixAccessTokensId}.path}
+          !include ${runtimeFiles.${nixAccessTokensId}.path}
         '';
       };
     };
