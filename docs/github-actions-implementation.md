@@ -204,7 +204,7 @@ Failure reporting increased the suite to 35 tests and passed the same checks in
 [CI PR #4](https://github.com/nix-forge/ci/pull/4).
 The shared repository now calls its own CodeQL workflow on the reviewed commit.
 [CI PR #5](https://github.com/nix-forge/ci/pull/5) passed the Python and Actions scan
-and is completing protected queue validation. GitHub reported no open CodeQL
+and merged after protected queue validation. GitHub reported no open CodeQL
 alerts at this check. The local workflow syntax follows
 [GitHub's same-commit reuse rules](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#calling-a-reusable-workflow);
 a documented Zizmor exception retains `./` until the pinned actionlint supports `$/`.
