@@ -59,6 +59,7 @@ printf 'Publication policy checks passed.\n'
 repository="$fixture/repository"
 mkdir -p "$repository/docs"
 cp "$policy" "$repository/.gitleaks.toml"
+chmod u+w "$repository/.gitleaks.toml"
 (
   cd "$repository"
   git init -q
