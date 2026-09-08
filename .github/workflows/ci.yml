@@ -1,6 +1,7 @@
 name: CI Tests
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
@@ -77,8 +78,10 @@ jobs:
         run: nix develop --command gitleaks git --redact --no-banner
   flake:
     name: Flake checks (${{ matrix.system }})
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    # This job includes integration checks and the full cold Linux package set.
+    timeout-minutes: 150
     permissions:
       contents: read
     strategy:
@@ -203,7 +206,7 @@ jobs:
             # between goals so the native matrix still covers every output.
             build_status=0
             for build_attr in "${build_attrs[@]}"; do
-              if ! nix build --keep-going --show-trace --print-build-logs --no-link \
+              if ! nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
                 "${build_attr}" >>"${build_log}" 2>&1; then
                 build_status=1
               fi
@@ -211,7 +214,8 @@ jobs:
             done
           else
             set +e
-            nix build --keep-going --show-trace --print-build-logs --no-link "${build_attrs[@]}" >"${build_log}" 2>&1
+            nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
+              "${build_attrs[@]}" >"${build_log}" 2>&1
             build_status=$?
             set -e
           fi
@@ -232,7 +236,7 @@ jobs:
   tests:
     name: Repository tests
     needs: [flake]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
