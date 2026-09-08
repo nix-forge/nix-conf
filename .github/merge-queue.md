@@ -2,7 +2,10 @@
 
 Passing Dependabot PRs enter the protected main merge queue after workflow
 completion. The package updater is also eligible in nixpkgs-personal.
-The reconciler reads API metadata and executes only its default branch script.
+The reconciler reads API metadata and executes its pinned shared action.
+It owns automatic admission; no separate auto-merge workflow is needed.
+Changes under `.github/`, `actions/`, `scripts/` and `workflow-templates/`
+require maintainer admission, including files renamed out of those paths.
 Forks, drafts, failing checks, missing checks, changed heads and GitHub review
 requirements cannot be bypassed by queue admission.
 
@@ -22,7 +25,8 @@ Required checks and merge queue rules remain enforced. CI runs on PRs and merge
 groups; it does not repeat the same full build after a successful queued merge.
 CodeQL retains its main-branch scan, and documentation retains its publish job.
 
-Run regression tests with `python3 -m unittest discover -s .github/tests`.
+Shared queue regression tests live in [nix-forge/ci](https://github.com/nix-forge/ci).
+Run repository-specific selection tests separately when present.
 
 macOS jobs use the supported macos-26 image. nix-seal retains its legacy
 macos-14 matrix labels only as required-check identifiers; runs-on selects
