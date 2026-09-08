@@ -55,7 +55,7 @@ Each repository was copied from its current tracked and nonignored untracked
 files, including staged and unstaged work. Submodules were scanned separately.
 Snapshots, file hashes, original diffs, command lines, logs, and SARIF output
 are retained in
-`/home/ianmh/.cache/nix-forge-codeql/20260907`.
+`~/.cache/nix-forge-codeql/20260907`.
 
 | Repository | Local scans | Open GitHub CodeQL alerts | Remaining local results |
 | --- | --- | ---: | ---: |
@@ -152,9 +152,9 @@ high confidence. No GitHub alert state was changed.
 Successful focused checks:
 
 ```sh
-python3 /home/ianmh/Developer/vpn-confinement/tests/eval/test_doctor.py
-nix build /home/ianmh/Developer/vpn-confinement#checks.x86_64-linux.diagnostics --no-link
-python3 /home/ianmh/.cache/nix-forge-codeql/20260907/test_runner_lock.py
+python3 ~/Developer/vpn-confinement/tests/eval/test_doctor.py
+nix build ~/Developer/vpn-confinement#checks.x86_64-linux.diagnostics --no-link
+python3 ~/.cache/nix-forge-codeql/20260907/test_runner_lock.py
 ```
 
 Changed Python files compile. Independent review found no concrete bypass or

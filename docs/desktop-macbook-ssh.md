@@ -1,9 +1,9 @@
 # SSH from desktop to MacBook
 
 The desktop configuration now provides `ssh macbook` and `ssh macbook-pro-m4`.
-Both select `ianmh@Ian-MBP.local` and the desktop's existing
+Both select `<USER>@<MACBOOK-HOSTNAME>` and the desktop's existing
 `~/.ssh/id_ed25519` key. The MacBook configuration enables Apple's SSH server
-and authorizes that desktop public key for `ianmh`.
+and authorizes that desktop public key for `user`.
 
 The desktop pins the MacBook's existing Ed25519 host key under the stable
 `macbook` alias. This is the same public key already declared for the MacBook's
@@ -29,9 +29,15 @@ ssh macbook
 ```
 
 The desktop uses resolve-only mDNS on its physical wired and wireless links to
-find `Ian-MBP.local`. It accepts mDNS replies from private IPv4 or link-local
+find `<MACBOOK-HOSTNAME>`. It accepts mDNS replies from private IPv4 or link-local
 IPv6 peers on those interfaces. Avahi and LLMNR remain disabled. This requires
 both machines to share a network that permits Bonjour traffic.
+
+UniFi Site Manager could not be inspected because the app's browser runtime
+was missing its required `browser-service.mjs` file. No DHCP reservations or
+other UniFi settings were changed. The Bonjour configuration therefore remains
+the address-discovery method; a reserved LAN address can replace `HostName`
+later without changing the host-key pin.
 
 If the network blocks Bonjour, use the MacBook's current LAN address while
 retaining the pinned host key and client settings:
@@ -40,7 +46,7 @@ retaining the pinned host key and client settings:
 ssh -o HostName=MACBOOK_LAN_IP macbook
 ```
 
-The MacBook accepts public-key authentication for `ianmh`. Root login and
+The MacBook accepts public-key authentication for `user`. Root login and
 password authentication are disabled. Normal user SSH and interactive `sudo`
 provide the starting point for a later deploy-rs configuration. This change
 does not grant passwordless sudo or configure a deploy-rs node for the MacBook.

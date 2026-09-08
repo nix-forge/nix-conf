@@ -26,9 +26,9 @@
 + /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-trebuchet.conf: No description
 + /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-verdana.conf: No description
 + /nix/store/f53bsnn3dngf3k47rk2z2zjpslfdl1w4-home-manager-path/etc/fonts/conf.d/30-webdings.conf: No description
-+ /home/ianmh/.config/fontconfig/conf.d/10-hm-fonts.conf: Add fonts in the Nix user profile
-+ /home/ianmh/.config/fontconfig/conf.d/52-hm-default-fonts.conf: Set default fonts
-+ /home/ianmh/.config/fontconfig/conf.d/60-hm-current-emoji.conf: No description
++ ~/.config/fontconfig/conf.d/10-hm-fonts.conf: Add fonts in the Nix user profile
++ ~/.config/fontconfig/conf.d/52-hm-default-fonts.conf: Set default fonts
++ ~/.config/fontconfig/conf.d/60-hm-current-emoji.conf: No description
 + /etc/fonts/conf.d/50-user.conf: Load per-user customization files
 + /etc/fonts/local.conf: No description
 + /etc/fonts/conf.d/51-local.conf: Load local customization file

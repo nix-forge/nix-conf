@@ -1,8 +1,0 @@
-59177602ffd75d81e8995e0456057e2d086a01c8 log: update logging macro to include callsite (#16111)
-af0d014cb26f536d8cb7cab2b9d5784f69767c8a desktop: refactor views, major cleanups (#15779)
-3ead44907652060feddb19f15baf7b9f8a95faa7 proto/wayland: dont check cursor buffer scale (#15674)
-7803e68638c1bebce57cf9ea8da51fd9a1e19edd compositor: double buffered states needs their own bit (#15645)
-6484f437429fb68542095d1dd980f3e9a7c5c6e1 compositor: merge ready states in the surface queue (#15504)
-f7a711625ea553fe503f41ea8b65c0c6f468ef50 protocols: a few protocol error touchups (#15474)
-9d3bc3b0ce0dbec643e0ad91f82ed804ddc8cc5c fifo: minor feedback fixes (#14765)
-abc2ecf1d4006e8e33216a0234e1ca2c771edc62 presentation: ensure feedbacks arent silently dropped (#15473)

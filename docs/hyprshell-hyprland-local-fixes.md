@@ -24,7 +24,7 @@ Both parent walks use a strong reference to the current ancestor and check expir
 
 Preferred-color lookup checks the nullable parent and uses the existing monitor/window/compositor fallback. A stale subsurface role in `get_subsurface` produces a protocol error. The expanded rendered-orphan test also found an unchecked surface resource in `CSubsurface::size()`. That overload now delegates to the existing geometric overload, which returns the last known size after resource destruction.
 
-The [native regression patch](../tests/hyprland/subsurface-ancestry-tests.patch) contains five hyprtester cases. It is separate because the ordinary Nix package source excludes hyprtester. Apply both patches when porting to a full upstream tree. The existing dirty upstream checkout at `/home/ianmh/Developer/upstream/Hyprland` was extended after snapshotting its diff, rather than reset. Its touched base files match the pinned Nix source exactly.
+The [native regression patch](../tests/hyprland/subsurface-ancestry-tests.patch) contains five hyprtester cases. It is separate because the ordinary Nix package source excludes hyprtester. Apply both patches when porting to a full upstream tree. The existing dirty upstream checkout at `~/Developer/upstream/Hyprland` was extended after snapshotting its diff, rather than reset. Its touched base files match the pinned Nix source exactly.
 
 ## Validation
 

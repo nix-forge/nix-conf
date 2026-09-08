@@ -68,6 +68,7 @@
             nativeBuildInputs = [
               pkgs.python3
               pkgs.git
+              inputs.nix-seal.packages.${pkgs.stdenv.hostPlatform.system}.default
             ];
           }
           ''
@@ -75,8 +76,9 @@
             cp ${../../scripts/migrate-secret-templates.py} scripts/migrate-secret-templates.py
             cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
             cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
+            cp ${../../tests/secrets/test_template_migration.py} tests/secrets/test_template_migration.py
             cp ${../../secrets/templates.json} secrets/templates.json
-            python3 tests/secrets/test_secret_templates.py
+            python3 -m unittest discover -s tests/secrets -p 'test_*.py' -v
             touch "$out"
           '';
 
@@ -134,6 +136,7 @@
         pkgs.runCommand "gitleaks-policy" { nativeBuildInputs = [ pkgs.gitleaks ]; }
           ''
             set -euo pipefail
+            bash ${../../tests/privacy/check-publication-policy.sh} ${../../.gitleaks.toml}
             fixture="$TMPDIR/fixture"
             mkdir -p "$fixture"
             scan_fixture() {

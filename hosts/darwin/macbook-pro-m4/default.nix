@@ -43,7 +43,7 @@
   homes.ianmh = {
     config = "ianmh@macbook-pro-m4";
     user = {
-      description = "Ian Holloway";
+      description = "IanHollow";
       shell = inputs.nixpkgs.legacyPackages.aarch64-darwin.bashInteractive;
     };
   };

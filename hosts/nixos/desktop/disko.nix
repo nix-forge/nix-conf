@@ -1,10 +1,9 @@
-{ lib, ... }:
+{
+  lib,
+  systemDisk ? throw "Supply systemDisk from a private installer configuration after verifying the target disk.",
+  ...
+}:
 let
-  # This identity was read from the desktop itself. It identifies the ADATA
-  # Linux system SSD by model and serial rather than mutable nvme0/nvme1 names.
-  # It is deliberately host-local: do not reuse this file for another machine.
-  systemDisk = "/dev/disk/by-id/nvme-ADATA_SX8200PNP_2N1429QJEQR7";
-
   btrfsMountOptions = [
     # zstd:1 is a balanced desktop setting: modest CPU use, good metadata and
     # text compression, and Btrfs skips incompressible game/archive data.
@@ -26,7 +25,11 @@ in
   # Disko intentionally does not support preserving a Windows dual boot here.
   disko.devices.disk.system = {
     type = "disk";
-    device = systemDisk;
+    device =
+      if lib.hasPrefix "/dev/disk/by-id/" systemDisk && !lib.hasInfix "REPLACE" systemDisk then
+        systemDisk
+      else
+        throw "systemDisk must be a verified /dev/disk/by-id path from private installer configuration.";
     content = {
       type = "gpt";
       partitions = {

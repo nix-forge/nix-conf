@@ -2,7 +2,6 @@
 # This lets ciphertext authoring precede provisioning without breaking evaluation.
 {
   lib,
-  pkgs,
   repositoryRoot,
   scope,
   secrets,
@@ -30,7 +29,8 @@ let
       "serviceCredentials"
     ]
     // {
-      source = pkgs.writeText "${name}.template" entry.content;
+      # Public text only. Avoid a platform-specific derivation during plan evaluation.
+      source = builtins.toFile "${name}.template" entry.content;
       placeholders = lib.mapAttrs (_: secret: {
         inherit secret;
         encoding = "utf8";

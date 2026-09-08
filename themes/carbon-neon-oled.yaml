@@ -1,6 +1,6 @@
 system: "base16"
 name: "Carbon Neon OLED"
-author: "Ian Holloway"
+author: "IanHollow"
 variant: "dark"
 palette:
   base00: "#000000"

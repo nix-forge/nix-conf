@@ -47,7 +47,7 @@ in
     }:
     let
       nixAccessTokensId = "nix-access-tokens";
-      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
       hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
       settings = sharedSettings // {
         # Restrict daemon access to administrators without assuming a
@@ -110,7 +110,7 @@ in
       };
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
       nixAccessTokensId = "nix-access-tokens";
-      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
       hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
     in
     lib.mkMerge [
@@ -144,7 +144,7 @@ in
     }:
     let
       nixAccessTokensId = "nix-access-tokens";
-      runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+      runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
       hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
     in
     {

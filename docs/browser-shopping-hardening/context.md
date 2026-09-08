@@ -2,7 +2,7 @@
 
 Analysis date: 2026-09-02
 
-Source root: `/Users/ianmh/Developer/personal/nix-conf`
+Source root: `~/Developer/personal/nix-conf`
 
 Target revision: `9d39e12d9a394c6459e98f3b58d08f8069723710`
 

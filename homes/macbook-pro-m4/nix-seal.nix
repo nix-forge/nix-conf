@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, ... }:
 let
   runtime = {
     owner = "ianmh";
@@ -22,7 +22,7 @@ in
     # Whole-file declarations remain as rollback inputs until field authoring succeeds.
     inherit
       (import ../../secrets/templates.nix {
-        inherit lib pkgs;
+        inherit lib;
         repositoryRoot = ../../.;
         scope = "ianhollow/users/ianmh";
         secrets =

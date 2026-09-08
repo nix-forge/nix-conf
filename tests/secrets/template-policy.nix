@@ -4,7 +4,6 @@ let
     repositoryRoot:
     import ../../secrets/templates.nix {
       inherit lib repositoryRoot;
-      pkgs.writeText = _: content: content;
       scope = "ianhollow/hosts/nixos/desktop";
       secrets."nix-access-tokens" = {
         source = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";

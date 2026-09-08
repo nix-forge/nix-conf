@@ -1,10 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-{
+{ config, lib, ... }: {
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
@@ -19,7 +13,7 @@
     };
     inherit
       (import ../../../secrets/templates.nix {
-        inherit lib pkgs;
+        inherit lib;
         repositoryRoot = ../../../.;
         scope = "ianhollow/hosts/darwin/macbook-pro-m4";
         secrets."nix-access-tokens" = {

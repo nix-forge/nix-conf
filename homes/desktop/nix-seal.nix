@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, ... }:
 let
   homeDirectory = config.home.homeDirectory;
   runtime = {
@@ -30,7 +25,7 @@ in
     # Whole-file declarations remain as rollback inputs until field authoring succeeds.
     inherit
       (import ../../secrets/templates.nix {
-        inherit lib pkgs;
+        inherit lib;
         repositoryRoot = ../../.;
         scope = "ianhollow/users/ianmh";
         secrets =

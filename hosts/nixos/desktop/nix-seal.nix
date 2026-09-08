@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }: {
+{ lib, ... }: {
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
@@ -16,7 +16,7 @@
     # target artifact and materialized under its own runtime root.
     inherit
       (import ../../../secrets/templates.nix {
-        inherit lib pkgs;
+        inherit lib;
         repositoryRoot = ../../../.;
         scope = "ianhollow/hosts/nixos/desktop";
         secrets."nix-access-tokens" = {

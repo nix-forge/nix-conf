@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+  runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   includeCornell =
     if builtins.hasAttr "cornell-net-id-ssh-config" runtimeFiles then
       { Include = runtimeFiles."cornell-net-id-ssh-config".path; }

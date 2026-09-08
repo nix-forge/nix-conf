@@ -15,9 +15,10 @@ formats the whole target disk; this is a migration, not an in-place conversion.
 | Subvolumes | `@root`, `@var`, `@log`, `@home`, `@nix`, `@snapshots`, `@swap` | Targeted snapshots/rollback without making logs, package store, or home data part of root rollback |
 | Swap | 8 GiB Btrfs swapfile inside LUKS, priority `-1` | Encrypted overflow behind zram (priority `5`); hibernation remains disabled |
 
-The layout uses the actual Linux SSD's stable model-and-serial path,
-`/dev/disk/by-id/nvme-ADATA_SX8200PNP_2N1429QJEQR7`, rather than `/dev/nvme1n1`.
-It leaves the Samsung Windows/games NVMe completely untouched.
+The layout requires an explicit `systemDisk` argument containing the verified
+Linux SSD's stable by-id path. There is no default disk. Keep that value in
+private local storage and confirm it at the physical installer console.
+Select the Linux drive, preserving the separate Windows/games drive.
 
 ## Critical Windows constraint
 
@@ -62,7 +63,8 @@ Resolve the Windows constraint above and verify the target from the installer
 before destroying anything:
 
 ```sh
-readlink -f /dev/disk/by-id/nvme-ADATA_SX8200PNP_2N1429QJEQR7
+read -r -p 'Verified Linux system disk by-id path: ' system_disk
+readlink -f -- "$system_disk"
 lsblk -o NAME,PATH,SERIAL,SIZE,FSTYPE,MOUNTPOINTS
 ```
 
@@ -76,7 +78,8 @@ run the destructive operation only after the checks above pass:
 
 ```sh
 sudo nix run github:nix-community/disko/ff8702b4de27f72b4c78573dfb89ec74e36abdf1 \
-  -- --mode destroy,format,mount hosts/nixos/desktop/disko.nix
+  -- --argstr systemDisk "$system_disk" \
+  --mode destroy,format,mount hosts/nixos/desktop/disko.nix
 ```
 
 Disko will request a new LUKS passphrase interactively. Use a long unique
@@ -98,6 +101,11 @@ modules = with modules; [
 It imports the pinned Disko NixOS module and disables the legacy plaintext
 root/swap declarations. Do not add it to the live configuration before
 formatting. Keep it in the installed configuration after migration.
+
+In that private installer copy, also set `_module.args.systemDisk` to the same
+verified by-id path. Keep the machine-specific override out of this public
+repository. Both the standalone Disko invocation and the installed module need
+an explicit disk selection; neither should guess a device from NVMe numbering.
 
 ### 6. Prove passphrase and recovery-key boot
 

@@ -7,7 +7,7 @@ let
     gitconfig-userEmail-Cornell = "gitconfig-useremail-cornell";
     gitconfig-userEmail-GitHub = "gitconfig-useremail-github";
   };
-  runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+  runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   hasSecret = name: builtins.hasAttr secretIds.${name} runtimeFiles;
   secretPath = name: if hasSecret name then runtimeFiles.${secretIds.${name}}.path else null;
   gitEmailConfigPath = "${config.xdg.configHome}/git/.gitconfig-email";

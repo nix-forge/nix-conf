@@ -7,3 +7,9 @@ From another host, use `just desktop-build` for a build with dry activation or
 `just desktop-deploy` to build and activate. Evaluation-only commands may run
 anywhere. The native Linux builder remains available for isolated Linux
 packages and checks, not the desktop system closure.
+
+## Public documentation
+
+Before adding or updating docs, research notes, screenshots, or captured output,
+read `docs/publication.md`. Publish portable technical explanations and reviewed
+evidence; keep personal context and raw captures in private local storage.

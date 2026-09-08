@@ -5,7 +5,7 @@
   ...
 }:
 let
-  runtimeFiles = config.nixSeal.secrets // config.nixSeal.templates;
+  runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   templatedIdentity =
     builtins.hasAttr "git-user-name" config.nixSeal.secrets
     && builtins.hasAttr "git-user-email" config.nixSeal.secrets;
@@ -32,11 +32,7 @@ in
 
   nixSeal.templates = lib.optionalAttrs templatedIdentity {
     jujutsu-identity = {
-      source = pkgs.writeText "jujutsu-identity.toml.template" ''
-        [user]
-        name = "{{nix-seal:name}}"
-        email = "{{nix-seal:email}}"
-      '';
+      source = ../../shared/support/jujutsu-identity.toml.template;
       placeholders = {
         name.secret = "git-user-name";
         email.secret = "git-user-email";

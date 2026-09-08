@@ -11,7 +11,7 @@ The inspected kernel journal contained no NVIDIA Xid or GPU reset at that time.
 
 ## Evidence
 
-- Desktop crash report: `/home/ianmh/.cache/hyprland/hyprlandCrashReport2247.txt`.
+- Desktop crash report: `~/.cache/hyprland/hyprlandCrashReport2247.txt`.
 - Original executable: Hyprland revision
   `ee0409623e2d6a683374b39a32e0ac3d087841aa`.
 - The original stack was `wl_client_destroy` →

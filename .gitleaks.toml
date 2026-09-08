@@ -20,3 +20,50 @@ condition = "AND"
 regexTarget = "match"
 paths = ['''(^|/)(nix-seal\.lock\.json|\.nix-seal/public\.nix)$''']
 regexes = ['''cacheKey[" ]*[:=]\s*"[0-9a-f]{64}"''']
+
+[[allowlists]]
+description = "Historical resolver lists use these reviewed public minisign verification keys."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''(^|/)(_nixOSModules|nixosModules)/(hardware/)?networking/dnscrypt-proxy\.nix$''',
+]
+regexes = [
+  '''^minisign_key = "RWQf6LRCGA9i53mlYecO4IsT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3"$''',
+]
+
+[[allowlists]]
+description = "The historical secret helper's allow_derived flag is a boolean argument."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = ['''(^|/)scripts/secret[c]tl\.py$''']
+regexes = ['''^secret_id, allow_derived=True$''']
+
+[[rules]]
+id = "docs-personal-home-path"
+description = "Use portable home-directory placeholders in public documentation."
+path = '''(^|/)docs/'''
+regex = '''(?:^|[\s"'`=:(])/(?:Users|home)/[A-Za-z0-9][A-Za-z0-9._-]*/'''
+[[rules.allowlists]]
+description = "Explicitly fictional users in portable examples."
+regexTarget = "match"
+regexes = ['''/(?:Users|home)/(?:example|user|check-user)/''']
+
+[[rules]]
+id = "docs-personal-email"
+description = "Use public noreply addresses or example.org in documentation."
+path = '''(^|/)docs/'''
+regex = '''(?i)[a-z0-9._%+-]+@(?:gmail\.com|googlemail\.com|icloud\.com|me\.com|hotmail\.com|outlook\.com|proton\.me|protonmail\.com)\b'''
+
+[[rules]]
+id = "hardware-disk-identity"
+description = "Supply physical disk identifiers through private installer configuration."
+regex = '''/dev/disk/by-id/(?:nvme|ata|scsi|wwn|usb)-[A-Za-z0-9_.:-]+'''
+
+[[rules]]
+id = "docs-hardware-address"
+description = "Use a placeholder for hardware addresses in public documentation."
+path = '''(^|/)docs/'''
+regex = '''(?i)\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b'''

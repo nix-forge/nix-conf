@@ -19,7 +19,11 @@ let
   # running desktop configuration or touching any disk during checks.
   desktopDisko = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
-    specialArgs.inputs = inputs;
+    specialArgs = {
+      inherit inputs;
+      # Evaluation fixture only. Installer callers must supply a verified disk.
+      systemDisk = "/dev/disk/by-id/contract-fixture";
+    };
     modules = [
       ../modules/nixos/hardware/storage.nix
       ../hosts/nixos/desktop/local/hardware/filesystems.nix
@@ -1484,6 +1488,7 @@ in
           '';
 
       desktop-disko-layout-contract =
+        assert desktopDisko.config.disko.devices.disk.system.device == "/dev/disk/by-id/contract-fixture";
         assert desktopDisko.config.hardware.storage.encryptedRoot.enable;
         assert
           desktopDisko.config.boot.initrd.luks.devices.cryptroot.device
