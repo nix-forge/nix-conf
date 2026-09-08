@@ -298,3 +298,24 @@ still constructing that environment when the run was superseded, before either
 quality script started. With the focused shells, hosted OCR quality passed in
 3 minutes 42 seconds and Finder quality in 4 minutes 53 seconds. These are
 observations from separate runners, not a controlled benchmark.
+
+## Shared CI version 2
+
+The September 8, 2026 consolidation keeps common policy in
+[nix-forge/ci](https://github.com/nix-forge/ci) and onboarding templates in
+[nix-forge/.github](https://github.com/nix-forge/.github). Existing repository
+check names and native build definitions remain stable. Shared composite actions
+now validate workflow contracts and run repository hooks and publication checks.
+The root retains its stricter publication script and submodule checks.
+
+The queue reconciler owns automatic admission. The separate auto-merge wrapper
+has been removed; automation paths and rename source paths require maintainer
+admission. Required workflows still run for native merge groups and explicit
+queue dispatches. Superseded PR runs can be cancelled without cancelling active
+queue validation. All shared references use one tested immutable release.
+
+See the [shared design, research and measurements](https://github.com/nix-forge/ci/blob/main/docs/architecture.md)
+for the security boundaries, migration contract and cache experiment. Broad store
+caching remains disabled because the measured pilot did not establish a useful
+end-to-end improvement. Package builds retain derivation-based selection and
+conservative fallback when base evaluation is unavailable.

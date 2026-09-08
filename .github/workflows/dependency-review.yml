@@ -16,13 +16,13 @@ on:
 permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   dependency-review:
     name: dependency-review
     permissions:
       contents: read
-    uses: nix-forge/ci/.github/workflows/dependency-review.yml@679f99ac3b2c8e25d2b2049c1b21541c51dc71ee # v1.0.2
+    uses: nix-forge/ci/.github/workflows/dependency-review.yml@7903659c4b16378411a3ea79dd73cec5c82708cc # v2.0.0
     with:
       base-ref: ${{ inputs.base_ref }}
       head-ref: ${{ inputs.head_ref }}
@@ -37,4 +37,4 @@ jobs:
       actions: write # Dispatch trusted queue validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@a75d21dababfd55145e2df1db81f3d2d865bec59 # v1.0.0
+        uses: nix-forge/ci/actions/queue-completion@7903659c4b16378411a3ea79dd73cec5c82708cc # v2.0.0
