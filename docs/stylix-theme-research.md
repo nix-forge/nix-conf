@@ -125,7 +125,7 @@ universal native-port coverage.
 
 The shared Stylix module currently uses the Tinted scheme input directly, so
 switching colours only requires changing the filename in
-`modules/shared/stylix.nix`. Keep `polarity = "dark"` for the five dark
+`modules/shared/stylix/default.nix`. Keep `polarity = "dark"` for the five dark
 recommendations above. Start with Catppuccin Mocha, rebuild, then check the
 applications that matter most here: Firefox or Zen Browser, the terminal,
 Hyprland and Waybar, VS Code or the chosen editor, and Spotify. Add native

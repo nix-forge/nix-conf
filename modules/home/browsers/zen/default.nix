@@ -2,11 +2,12 @@
   config,
   inputs,
   lib,
-  myLib,
   pkgs,
   ...
 }:
 let
+  mkExtensionPolicies = import ../shared/extension-policies.nix { inherit lib; };
+  mkUblockPolicy = import ../shared/ublock-policy.nix { inherit lib; };
   inherit (config.programs.browserSuite)
     blocking
     geckoPolicies
@@ -31,10 +32,10 @@ let
     "Profiles/${defaultProfile.path}"
   ];
   extensionPolicies = {
-    ExtensionSettings = myLib.browser.extensions.mkPolicies extensions;
+    ExtensionSettings = mkExtensionPolicies extensions;
   };
   ublockPolicies = lib.optionalAttrs (extensions ? ublockOrigin) {
-    "3rdparty".Extensions.${extensions.ublockOrigin.id} = myLib.browser.ublock.mkPolicy {
+    "3rdparty".Extensions.${extensions.ublockOrigin.id} = mkUblockPolicy {
       inherit (blocking) customFilterLists;
       inherit (ublock) defaultFilterLists settings;
     };

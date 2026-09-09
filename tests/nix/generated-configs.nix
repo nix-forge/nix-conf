@@ -67,6 +67,7 @@ let
     {
       desktop.osd.enable = true;
       xdg.configHome = configHome;
+      xdg.configFile."swayosd/style.css".text = "window { color: white; }";
     }
   ];
   openerHome = homeFor [

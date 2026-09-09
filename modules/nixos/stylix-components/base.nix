@@ -5,7 +5,7 @@
   ...
 }:
 let
-  themeDefinitions = import ../../../themes { inherit inputs; };
+  themeDefinitions = import ../../shared/stylix/schemes.nix { inherit inputs; };
 in
 {
   imports = [ inputs.stylix.nixosModules.stylix ];

@@ -1,4 +1,10 @@
-{ inputs, myLib, ... }: {
+{
+  inputs,
+  myLib,
+  self,
+  ...
+}:
+{
   perSystem =
     { pkgs, ... }:
     let
@@ -29,6 +35,13 @@
           inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.finder-favorites
         else
           null;
+      # Test the sources produced by the real Nix declarations, including
+      # public-value substitution. No source-template inventory is maintained.
+      secretTemplateSources =
+        self.nixosConfigurations.desktop.config.home-manager.users.ianmh.nixSeal.templates
+        // {
+          inherit (self.nixosConfigurations.desktop.config.nixSeal.templates) flakehub-netrc;
+        };
       localControlProxyConfig = pkgs.replaceVarsWith {
         name = "local-control-proxy-check.conf";
         src = ../../homes/macbook-pro-m4/local/local-control/config/proxy.Caddyfile.in;
@@ -71,15 +84,22 @@
             ];
           }
           ''
-            mkdir -p scripts modules/home/dev/scripts tests/secrets secrets
-            cp ${../../scripts/migrate-secret-templates.py} scripts/migrate-secret-templates.py
+            mkdir -p modules/home/dev/scripts tests/secrets
             cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
             cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
-            cp ${../../tests/secrets/test_template_migration.py} tests/secrets/test_template_migration.py
-            mkdir -p homes/shared/local/config hosts/shared homes/macbook-pro-m4/local
-            cp -R ${../../homes/shared/local/config/secret-templates} homes/shared/local/config/secret-templates
-            cp -R ${../../hosts/shared/secret-templates} hosts/shared/secret-templates
-            cp -R ${../../homes/macbook-pro-m4/local/secret-templates} homes/macbook-pro-m4/local/secret-templates
+            cp ${../../tests/secrets/test_public_templates.py} tests/secrets/test_public_templates.py
+            mkdir -p compiled-templates homes/macbook-pro-m4/local
+            ${pkgs.lib.concatStringsSep "\n" (
+              pkgs.lib.mapAttrsToList (
+                name: template:
+                pkgs.lib.escapeShellArgs [
+                  "cp"
+                  (toString template.renderedSource)
+                  "compiled-templates/${name}.template"
+                ]
+              ) secretTemplateSources
+            )}
+            cp -R ${../../homes/macbook-pro-m4/local/nix-seal} homes/macbook-pro-m4/local/nix-seal
             python3 -m unittest discover -s tests/secrets -p 'test_*.py' -v
             touch "$out"
           '';

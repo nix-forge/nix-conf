@@ -7,106 +7,47 @@
 }:
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
-  palette = config.appearance.palette;
   vscode = lib.getExe config.programs.vscode.package;
   direnvBashInit = pkgs.runCommandLocal "vscode-direnv-bash-init" { } ''
     ${lib.getExe config.programs.direnv.package} hook bash > "$out"
     ${lib.getExe config.programs.bash.package} -n "$out"
   '';
-  carbonNeonThemeSource = pkgs.linkFarm "carbon-neon-vscode-theme-source" {
-    "package.json" = ./themes/carbon-neon/package.json;
-    "themes/carbon-neon-color-theme.json" =
-      (pkgs.formats.json { }).generate "carbon-neon-color-theme.json"
-        (import ./themes/carbon-neon/themes/carbon-neon-color-theme.nix { inherit palette; });
-    "themes/carbon-neon-oled-color-theme.json" =
-      (pkgs.formats.json { }).generate "carbon-neon-oled-color-theme.json"
-        (import ./themes/carbon-neon/themes/carbon-neon-oled-color-theme.nix { inherit palette; });
-  };
-  carbonNeonTheme = pkgs.vscode-utils.buildVscodeExtension {
-    pname = "carbon-neon-theme";
-    version = "0.1.0";
-    src = carbonNeonThemeSource;
-    sourceRoot = "carbon-neon-vscode-theme-source";
-    vscodeExtPublisher = "ianhollow";
-    vscodeExtName = "carbon-neon-theme";
-    vscodeExtUniqueId = "ianhollow.carbon-neon-theme";
-  };
-  theme =
-    if config.appearance.theme == "catppuccin-mocha" then
-      {
-        extensionIds = [
-          "catppuccin.catppuccin-vsc"
-          "catppuccin.catppuccin-vsc-icons"
-          "pkief.material-product-icons"
-        ];
-        colorTheme = "Catppuccin Mocha";
-        iconTheme = "catppuccin-mocha";
-        productIconTheme = "material-product-icons";
-        localExtensions = [ ];
-      }
-    else if config.appearance.theme == "gruvbox-dark-medium" then
-      {
-        extensionIds = [
-          "tomphilbin.gruvbox-themes"
-          "pkief.material-icon-theme"
-          "pkief.material-product-icons"
-        ];
-        colorTheme = "Gruvbox Dark (Medium)";
-        iconTheme = "material-icon-theme";
-        productIconTheme = "material-product-icons";
-        localExtensions = [ ];
-      }
-    else
-      {
-        extensionIds = [
-          "pkief.material-icon-theme"
-          "pkief.material-product-icons"
-        ];
-        colorTheme =
-          if config.appearance.theme == "carbon-neon-oled" then "Carbon Neon OLED" else "Carbon Neon";
-        iconTheme = "material-icon-theme";
-        productIconTheme = "material-product-icons";
-        localExtensions = [ carbonNeonTheme ];
-      };
 in
 {
   programs.vscode.profiles.default = {
-    extensions =
-      theme.localExtensions
-      ++ extensions.forVscode (
-        theme.extensionIds
-        ++ [
-          ## Intelligence ##
-          "usernamehw.errorlens"
-          "christian-kohler.path-intellisense"
-          "streetsidesoftware.code-spell-checker"
+    extensions = extensions.forVscode (
+      [
+        ## Intelligence ##
+        "usernamehw.errorlens"
+        "christian-kohler.path-intellisense"
+        "streetsidesoftware.code-spell-checker"
 
-          ## Version Control ##
-          "github.vscode-github-actions"
-          "mhutchie.git-graph"
+        ## Version Control ##
+        "github.vscode-github-actions"
+        "mhutchie.git-graph"
 
-          ## Collaboration Features
-          "ms-vsliveshare.vsliveshare"
+        ## Collaboration Features
+        "ms-vsliveshare.vsliveshare"
 
-          ## Editor Extension ##
-          "sleistner.vscode-fileutils"
-          "aaron-bond.better-comments"
-          "kevinkyang.auto-comment-blocks"
+        ## Editor Extension ##
+        "sleistner.vscode-fileutils"
+        "aaron-bond.better-comments"
+        "kevinkyang.auto-comment-blocks"
 
-          ## Base Language Support ##
-          "redhat.vscode-yaml"
-          "tamasfe.even-better-toml"
-          "mechatroner.rainbow-csv"
-          "janisdd.vscode-edit-csv"
-          "tomoki1207.pdf"
-          "nefrob.vscode-just-syntax"
+        ## Base Language Support ##
+        "redhat.vscode-yaml"
+        "tamasfe.even-better-toml"
+        "mechatroner.rainbow-csv"
+        "janisdd.vscode-edit-csv"
+        "tomoki1207.pdf"
+        "nefrob.vscode-just-syntax"
 
-          # Extra
-          "ms-vscode-remote.remote-ssh"
-        ]
-        # Direnv integration
-        ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
-      );
+        # Extra
+        "ms-vscode-remote.remote-ssh"
+      ]
+      # Direnv integration
+      ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
+    );
 
     userSettings =
       let
@@ -114,27 +55,8 @@ in
       in
       lib.mkMerge [
         {
-          ## Appearances ##
-          "editor.cursorSmoothCaretAnimation" = "explicit";
-          "editor.cursorStyle" = "block";
-          "editor.cursorBlinking" = "smooth";
-          "editor.fontLigatures" =
-            "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'ss10'";
-          "terminal.integrated.fontLigatures.enabled" = true;
-          # Iosevka's text stopwatch fits a terminal cell. Chromium otherwise
-          # falls back to a wide color glyph that xterm squeezes horizontally.
-          # Keep emoji presentation and overlapping-glyph protection intact.
-          # Iosevka Charon Mono is included in our shared Google Fonts package.
-          "terminal.integrated.fontFamily" = "'${config.stylix.fonts.monospace.name}', 'Iosevka Charon Mono'";
-          "editor.fontVariations" = true;
-
           # popups are really annoying
           "editor.hover.delay" = 700;
-
-          # Keep VS Code's native theme and icon port aligned with Stylix.
-          "workbench.colorTheme" = lib.mkForce theme.colorTheme;
-          "workbench.iconTheme" = theme.iconTheme;
-          "workbench.productIconTheme" = lib.mkIf (theme.productIconTheme != null) theme.productIconTheme;
 
           # title
           "window.titleSeparator" = " - ";
@@ -162,9 +84,6 @@ in
           "terminal.integrated.cursorStyle" = "line";
           # fix fuzzy text in integrated terminal
           "terminal.integrated.gpuAcceleration" = "on";
-          # Preserve the selected theme's terminal palette instead of forcing
-          # VS Code to brighten it for contrast heuristics.
-          "terminal.integrated.minimumContrastRatio" = 1;
           # Add editor inline suggestions
           "editor.inlineSuggest.enabled" = true;
 

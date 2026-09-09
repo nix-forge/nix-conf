@@ -1,13 +1,11 @@
 {
   config,
-  lib,
   pkgs,
   osConfig ? null,
   ...
 }:
 let
   cursor = config.stylix.cursor;
-  colors = config.lib.stylix.colors;
   hyprlockPackage = if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock;
   monitor = "desc:ASUSTek COMPUTER INC PG32UCWM";
 in
@@ -57,29 +55,9 @@ in
       xwayland.force_zero_scaling = true;
 
       general = {
-        border_size = 1;
-        gaps_in = 8;
-        gaps_out = 16;
-        "col.active_border" = lib.mkForce "rgb(${colors.base0D})";
-        "col.inactive_border" = lib.mkForce "rgb(${colors.base02})";
         resize_on_border = true;
       };
 
-      decoration = {
-        rounding = 16;
-        rounding_power = 2;
-        active_opacity = 1.0;
-        inactive_opacity = 1.0;
-        shadow = {
-          enabled = true;
-          range = 12;
-          render_power = 3;
-        };
-        blur = {
-          enabled = false;
-        };
-      };
-      animations.enabled = true;
       input = {
         follow_mouse = 2;
         float_switch_override_focus = 0;
@@ -130,23 +108,8 @@ in
         immediate_render = true;
       };
 
-      background = {
-        monitor = "";
-        color = lib.mkForce "rgb(${colors.base00})";
-      };
-
       "input-field" = {
         monitor = "";
-        size = "420, 64";
-        rounding = 14;
-        outline_thickness = 2;
-        dots_size = 0.2;
-        dots_spacing = 0.2;
-        dots_center = true;
-        outer_color = lib.mkForce "rgb(${colors.base0D})";
-        inner_color = lib.mkForce "rgb(${colors.base01})";
-        font_color = lib.mkForce "rgb(${colors.base05})";
-        font_family = config.stylix.fonts.sansSerif.name;
         fade_on_empty = false;
         placeholder_text = "<i>Unlock desktop</i>";
         hide_input = true;

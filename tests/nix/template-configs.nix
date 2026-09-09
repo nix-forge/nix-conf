@@ -34,6 +34,8 @@ let
         self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-personal = pkgs.noctalia;
       };
       modules = [
+        inputs.stylix.homeModules.default
+        (import ../../modules/shared/stylix/home.nix).homeManager
         ../../modules/home/desktop/bar.nix
         ../../modules/home/desktop/notifications.nix
         ../../modules/home/desktop/clipboard.nix
@@ -45,16 +47,25 @@ let
         ../../modules/home/desktop/night-light.nix
         ../../modules/home/desktop/noctalia.nix
         {
-          options.stylix = lib.mkOption { type = lib.types.attrsOf lib.types.anything; };
+
           options.appearance.theme = lib.mkOption { type = lib.types.str; };
           config = {
-            home.username = "tester";
-            home.homeDirectory = "/home/tester";
-            home.stateVersion = "26.05";
-            stylix.fonts.sansSerif.name = font;
-            stylix.icons.dark = "test-icons";
+            home = {
+              username = "tester";
+              homeDirectory = "/home/tester";
+              stateVersion = "26.05";
+            };
+            stylix = {
+              enable = true;
+              autoEnable = false;
+              base16Scheme = lib.mapAttrs (_: _: "123456") colors;
+              targets = lib.genAttrs [ "noctalia" "hyprshell" "ironbar" "swaync" "swayosd" "walker" ] (_: {
+                enable = true;
+              });
+              fonts.sansSerif.name = font;
+              icons.dark = "test-icons";
+            };
             appearance.theme = "carbon-neon-oled";
-            lib.stylix.colors.withHashtag = colors;
             xdg.userDirs.enable = true;
           };
         }
@@ -72,22 +83,26 @@ let
   ];
   desktop = homeFor [
     {
-      desktop.idle.enable = true;
-      desktop.idle.onLockCommand = "printf 'locked'";
-      desktop.clipboard.enable = true;
-      desktop.clipboard.maxItems = 42;
-      desktop.clipboard.wipeOnLock = false;
-      desktop.notifications.enable = true;
-      desktop.osd.enable = true;
-      desktop.bar.enable = true;
-      desktop.walker.enable = true;
-      desktop.wallpaper = {
-        enable = true;
-        mode = "static";
-        fitMode = "contain";
-        outputs = {
-          "DP-1" = "/home/tester/first wallpaper.png";
-          "DP-2" = "/home/tester/second wallpaper.png";
+      desktop = {
+        idle.enable = true;
+        idle.onLockCommand = "printf 'locked'";
+        clipboard = {
+          enable = true;
+          maxItems = 42;
+          wipeOnLock = false;
+        };
+        notifications.enable = true;
+        osd.enable = true;
+        bar.enable = true;
+        walker.enable = true;
+        wallpaper = {
+          enable = true;
+          mode = "static";
+          fitMode = "contain";
+          outputs = {
+            "DP-1" = "/home/tester/first wallpaper.png";
+            "DP-2" = "/home/tester/second wallpaper.png";
+          };
         };
       };
     }
@@ -112,6 +127,7 @@ let
   };
 in
 {
+  walker-config = desktop.config.xdg.configFile."walker/config.toml".source;
   template-configs =
     pkgs.runCommand "template-config-regressions"
       {

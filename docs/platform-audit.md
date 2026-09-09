@@ -190,7 +190,7 @@ their uses are grouped by file.
 | `modules/shared/chromium-policies.nix` | 201, 460, 461 | Keep common policy values with native MIME/LaunchServices and JSON/plist adapters. |
 | `modules/shared/determinate.nix` | 90, 95 | Keep Apple Silicon support assertion and native daemon/build workarounds. |
 | `modules/shared/fonts.nix` | 162 | Changed. Decouple font packages from Fontconfig enablement; retain Linux emoji scan policy. |
-| `modules/shared/stylix.nix` | 257, 284 | Keep Linux cursors/icons separate. Share palette/fonts and Fontconfig settings for applications that use that backend. |
+| `modules/shared/stylix/default.nix` | 257, 284 | Keep Linux cursors/icons separate. Share palette/fonts and Fontconfig settings for applications that use that backend. |
 | `nix-config-framework/flake/dev/git-hooks.nix` | 6 | Changed. Share general checks; retain guards on native compilation and macOS app tools. |
 | `nix-seal/flake/dev/git-hooks.nix` | 21 | Changed. Share general checks; retain guards on native compilation and macOS app tools. |
 | `nix-seal/flake/dev/shell.nix` | 15, 16, 58 | Keep Darwin libiconv linkage and native Swift analysis tools; common development packages are shared. |

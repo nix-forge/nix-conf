@@ -1,3 +1,0 @@
-[user]
-name = "{{nix-seal:name}}"
-email = "{{nix-seal:email}}"

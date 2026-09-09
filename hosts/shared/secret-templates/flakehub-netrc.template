@@ -1,4 +1,0 @@
-machine flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
-machine api.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
-machine edge.cache.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
-machine cache.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}

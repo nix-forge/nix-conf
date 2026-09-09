@@ -27,7 +27,10 @@ to another task.
 - Select reusable features in the target's `default.nix`. Put target-specific
   settings and configuration assets in its `local/` tree. That tree auto-imports
   Nix files, so each Nix file must be a module. Export target-specific helper
-  functions through the module's `lib` option; keep reusable helpers in `lib/`.
+  functions through the module's `lib` option. Reserve `lib/` for helpers used
+  across many locations or with a clear reuse case across future modules. Keep
+  feature-specific functions in the caller's `let`, or in a nearby file when
+  several modules in that feature need them.
   Place reusable configuration beside its owning module and inactive experiments
   in scratch storage.
 - Place reusable system, user, or cross-platform behavior in the matching tree

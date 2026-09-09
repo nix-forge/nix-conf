@@ -1,14 +1,21 @@
 { pkgs, myLib }:
 let
-  walker = myLib.desktop.mkWalkerConfig {
-    inherit pkgs;
-    settings.theme = "stylix";
-  };
+  localControlLibrary =
+    (pkgs.lib.evalModules {
+      modules = [
+        ../../homes/macbook-pro-m4/local/local-control/config-helpers.nix
+        {
+          options.lib = pkgs.lib.mkOption {
+            type = pkgs.lib.types.attrsOf pkgs.lib.types.anything;
+            default = { };
+          };
+        }
+      ];
+    }).config.lib.localControl;
   cssChecker = myLib.desktop.mkGtkCssChecker { inherit pkgs; };
   writePowerShell = myLib.writers.writePowerShell { inherit pkgs; };
-  caddyChecker = myLib.local-control.mkLocalControlConfigChecker { inherit pkgs; };
-  localControl = myLib.local-control.mkLocalControlConfigs {
-    template = ../../homes/macbook-pro-m4/local/local-control/config/proxy.Caddyfile.in;
+  caddyChecker = localControlLibrary.mkLocalControlConfigChecker { inherit pkgs; };
+  localControl = localControlLibrary.mkLocalControlConfigs {
     inherit pkgs;
     cfg = {
       bindAddress = "127.0.0.1";
@@ -21,7 +28,6 @@ let
   };
 in
 {
-  walker-config = walker;
   gtk-css-parser = pkgs.runCommand "gtk-css-parser" { } ''
     printf '%s\n' '* { color: #123456; }' > valid.css
     ${cssChecker}/bin/check-gtk-css valid.css
