@@ -32,10 +32,11 @@ logging open call only at report-lock acquisition. It suppresses `EEXIST` there
 and retains diagnostics for other failures. Exclusive creation, lock ownership,
 busy return values, report contents, and crash reporting remain unchanged.
 
-The selection in [packages.nix](../overlays/packages.nix) patches the existing
-Sentry dependency inside Determinate's component scope. It preserves that
-dependency's curl customization. Other Sentry consumers and Darwin's native
-Crashpad database are unaffected.
+The selection in [packages.nix](../overlays/packages.nix) takes both Nix and its
+Sentry dependency directly from `inputs.determinate.inputs.nix.packages`.
+It patches Sentry inside that Determinate Nix package's component scope and
+exports the result as `pkgs.nix`, preserving the dependency's curl customization.
+Other Sentry consumers and Darwin's native Crashpad database are unaffected.
 
 The [Determinate configuration module](../modules/shared/determinate.nix) selects
 the overlaid package for `nix.package`. The upstream NixOS module otherwise
