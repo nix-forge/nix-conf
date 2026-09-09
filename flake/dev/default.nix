@@ -1,6 +1,7 @@
 {
   imports = [
     ./checks.nix
+    ./configurations.nix
     ./fonts.nix
     ./formatter.nix
     ./git-hooks.nix

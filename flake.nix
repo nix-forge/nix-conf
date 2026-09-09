@@ -214,6 +214,7 @@
         inputs.nix-seal.flakeModules.default
         inputs.nix-seal.flakeModules.nix-config-framework
         ./flake/partitions.nix
+        ./flake/lint-checks.nix
         ./flake/deploy.nix
         ./flake/schemas.nix
       ];

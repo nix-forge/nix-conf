@@ -325,3 +325,39 @@ action's `dev-shell` input. This shell contains the configured hook tools and
 scanners without depending on the built seal CLI. The default interactive shell
 still includes that CLI, and native secret-template checks still build and test
 it. This removes a product build from lint without changing integration coverage.
+
+## Discovered CI inputs
+
+Root native CI builds the current `checks.<system>` output instead of a second
+list of check names. New checks are included automatically; deleted checks are
+not requested. Separate Nix processes retain the evaluator memory bound and
+report all failing checks before failing the job. Platform applicability belongs
+in the flake that defines the check.
+
+Partition materialization follows tracked nested flakes, including initialized
+submodules. Submodule hooks follow the checked-out submodule inventory. The
+lockfile matrix uses tracked flakes in the owning repository and reports through
+the stable aggregate described in [merge queue operations](../.github/merge-queue.md).
+Explicit supported runners and deployment policy remain deliberate configuration.
+
+The root flake's `ciChecks` output contains ordinary checks for each system.
+It derives the host-only exclusions from deploy-rs's own check inventory because
+those checks build the complete desktop closure. Full `checks` retain deployment
+validation for the desktop host. New ordinary checks enter CI without editing
+workflow lists; new deploy-rs checks remain under the same build-placement policy.
+
+Configuration evaluation checks follow `nixosConfigurations` and
+`darwinConfigurations`. Each native configuration must instantiate its system
+derivation. Foreign configurations produce a skipped-platform report. The check
+report discards the system derivation's string context so evaluating a host does
+not turn the CI check into a full system build. Host additions and removals update
+these checks automatically; runner support remains explicit deployment policy.
+
+Portable pre-commit and treefmt checks belong to `lintChecks`. The required Linux
+lint job builds that output once. Native `ciChecks` exclude the lint owner's
+inventory as well as deployment-only checks. The full `checks` output retains
+every check for local validation. This avoids rebuilding portable lint tools on
+each native runner while preserving platform-specific runtime and Swift checks.
+
+The lint group is reserved for portable tooling. Platform-dependent tests belong
+in native checks or a required native job, so moving lint does not hide them.
