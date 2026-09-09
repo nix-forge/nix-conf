@@ -55,17 +55,22 @@ Encrypting a Git configuration or adding a mailmap does not remove author and co
 in old commits. Rewriting published history requires coordinating affected branches,
 open pull requests, and other clones before a force push.
 
-Both home profiles default Git and Jujutsu to the public noreply address. Git's
-global hooks inspect author and committer identities, the staged snapshot,
-commit messages, and newly published history. The push check includes historical
-blobs and annotated tags, so deleting a private address in the latest commit is
-insufficient. Blocked addresses come from the encrypted policy described in
-[the secret-management guide](secrets.md).
+Both home profiles select the same protected GitHub noreply identity for Git and
+Jujutsu, including in repositories without a remote. Two configured Git checks
+use the encrypted policy described in [the secret-management guide](secrets.md):
 
-The global hooks forward to existing repository hooks. `just hooks` preserves
-this arrangement when installing prek. An unrelated repository's installer may
-set its own `core.hooksPath` and bypass the global guard; check the effective
-setting after installing other hook managers. These are local protections:
-`--no-verify`, alternate Git clients, GitHub API calls, and browser edits do not
-necessarily run them. Review pull request bodies and other web content before
-publishing. Each machine needs the home configuration and its signed secrets.
+- `email-privacy-commit` runs at `commit-msg` to catch private identities, staged
+  content, and commit messages early.
+- `email-privacy-push` runs at `pre-push` to inspect outgoing history, including
+  deleted file content, commit metadata, reference names, and annotated tags.
+
+Git 2.55 or newer runs these configured checks alongside ordinary repository
+hooks. They do not replace `core.hooksPath` or require changes to hook installers.
+Git runs the ordinary filesystem hook last, so a later hook can modify a message
+or staged content after the early check; the outgoing-history check catches that
+before publication. See [Git's hook documentation](https://git-scm.com/docs/git-hook).
+
+These are local safeguards. `--no-verify`, disabled configured hooks, alternate
+Git clients, GitHub API calls, and browser edits can bypass them. Review pull
+request bodies and other web content before publishing. Each machine needs the
+home configuration and its signed secrets.

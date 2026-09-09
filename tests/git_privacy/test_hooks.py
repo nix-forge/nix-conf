@@ -23,7 +23,7 @@ class HookTests(unittest.TestCase):
     """Check commit and publication behavior without contacting a real server."""
 
     def setUp(self) -> None:
-        """Create an isolated identity, policy, hooks directory, and destination."""
+        """Create an isolated identity, policy, configured checks, and destination."""
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -47,49 +47,47 @@ class HookTests(unittest.TestCase):
             "GIT_CONFIG_GLOBAL": str(self.root / "gitconfig"),
             "GIT_TERMINAL_PROMPT": "0",
         })
-        self.git("init", "--initial-branch=main")
-        self.git("init", "--bare", str(self.remote))
-        self.git("config", "--global", "user.name", "Fixture")
-        self.git("config", "--global", "user.email", PUBLIC)
-        self.git("config", "--global", "user.useConfigOnly", "true")
-        self.git("config", "--global", "commit.gpgSign", "false")
-        settings = self.root / "included-settings"
-        self.git(
-            "config", "--file", str(settings), "privacy.policyFile", str(self.policy)
-        )
-        self.git("config", "--global", "include.path", str(settings))
+        self._git("init", "--initial-branch=main")
+        self._git("init", "--bare", str(self.remote))
+        self._git("config", "--global", "user.name", "Fixture")
+        self._git("config", "--global", "user.email", PUBLIC)
+        self._git("config", "--global", "user.useConfigOnly", "true")
+        self._git("config", "--global", "commit.gpgSign", "false")
         self.fake_gh = self.root / "gh"
         self.fake_gh.write_text(
             "#!/bin/sh\nprintf '{\"private\":true}\\n'\n", encoding="utf-8"
         )
         self.fake_gh.chmod(0o700)
-        self.hooks = self.root / "hooks"
-        self.hooks.mkdir()
-        for hook in [
-            "pre-commit",
-            "commit-msg",
-            "pre-push",
-            "post-commit",
-            "reference-transaction",
-        ]:
-            entry = self.hooks / hook
-            entry.write_text(
-                "#!/bin/sh\nexec "
-                + shlex.join([
+        for event in ["commit-msg", "pre-push"]:
+            variable = (
+                "PRIVACY_COMMIT_COMMAND"
+                if event == "commit-msg"
+                else "PRIVACY_PUSH_COMMAND"
+            )
+            if variable in os.environ:
+                command = shlex.split(os.environ[variable])
+                command[command.index("--policy-file") + 1] = str(self.policy)
+                command[command.index("--gh") + 1] = str(self.fake_gh)
+            else:
+                command = [
                     sys.executable,
                     str(SCRIPT),
+                    "--policy-file",
+                    str(self.policy),
                     "--gh",
                     str(self.fake_gh),
-                    hook,
-                ])
-                + ' "$@"\n',
-                encoding="utf-8",
+                    event,
+                ]
+            self._git("config", "--global", "hook.privacy-" + event + ".event", event)
+            self._git(
+                "config",
+                "--global",
+                "hook.privacy-" + event + ".command",
+                shlex.join(command),
             )
-            entry.chmod(0o700)
-        self.git("config", "--global", "core.hooksPath", str(self.hooks))
-        self.git("remote", "add", "origin", str(self.remote))
+        self._git("remote", "add", "origin", str(self.remote))
 
-    def git(
+    def _git(
         self,
         *args: str,
         check: bool = True,
@@ -114,22 +112,22 @@ class HookTests(unittest.TestCase):
             self.fail(result.stderr.decode())
         return result
 
-    def stage(self, text: str) -> None:
+    def _stage(self, text: str) -> None:
         """Stage a file with the supplied content."""
         (self.repo / "content.txt").write_text(text, encoding="utf-8")
-        self.git("add", "content.txt")
+        self._git("add", "content.txt")
 
-    def commit(self, message: str = "fixture", *, bypass: bool = False) -> None:
+    def _commit(self, message: str = "fixture", *, bypass: bool = False) -> None:
         """Create a commit, optionally simulating an unprotected client."""
-        self.git(
-            *(["-c", "core.hooksPath=/dev/null"] if bypass else []),
+        self._git(
             "commit",
+            *(["--no-verify"] if bypass else []),
             "--allow-empty",
             "-m",
             message,
         )
 
-    def blocked(self, result: subprocess.CompletedProcess[bytes]) -> None:
+    def _blocked(self, result: subprocess.CompletedProcess[bytes]) -> None:
         """Assert rejection without exposing the matching private value."""
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn(PRIVATE.encode(), result.stdout + result.stderr)
@@ -137,26 +135,26 @@ class HookTests(unittest.TestCase):
 
     def test_new_repository_without_remote_uses_public_identity(self) -> None:
         """A first commit needs no remote to select the public address."""
-        self.git("remote", "remove", "origin")
-        self.commit()
+        self._git("remote", "remove", "origin")
+        self._commit()
         self.assertEqual(
-            self.git("log", "-1", "--format=%ae%n%ce").stdout.decode().splitlines(),
+            self._git("log", "-1", "--format=%ae%n%ce").stdout.decode().splitlines(),
             [PUBLIC, PUBLIC],
         )
 
     def test_init_and_clone_with_global_hooks_already_installed(self) -> None:
         """Initialization must work before the new repository has a HEAD file."""
-        self.git("init", str(self.root / "new-repository"))
-        self.git("init", "--bare", str(self.root / "new-bare.git"))
-        self.commit()
-        self.git("clone", str(self.repo), str(self.root / "clone"))
+        self._git("init", str(self.root / "new-repository"))
+        self._git("init", "--bare", str(self.root / "new-bare.git"))
+        self._commit()
+        self._git("clone", str(self.repo), str(self.root / "clone"))
 
     def test_author_and_committer_environment_overrides(self) -> None:
         """Explicit private identity overrides cannot bypass the hook."""
         for variable in ["GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"]:
             with self.subTest(variable=variable):
-                self.blocked(
-                    self.git(
+                self._blocked(
+                    self._git(
                         "commit",
                         "--allow-empty",
                         "-m",
@@ -177,13 +175,13 @@ class HookTests(unittest.TestCase):
             "x" * (1024 * 1024 - 5) + PRIVATE,
             "fallback@example.invalid",
         ]:
-            self.stage(value)
-            self.blocked(self.git("commit", "-m", "fixture", check=False))
+            self._stage(value)
+            self._blocked(self._git("commit", "-m", "fixture", check=False))
 
     def test_commit_message_and_local_hook_mutation(self) -> None:
-        """Check trailers and the message after an existing hook edits it."""
-        self.blocked(
-            self.git(
+        """Check trailers immediately and catch later hook mutations before publishing."""
+        self._blocked(
+            self._git(
                 "commit",
                 "--allow-empty",
                 "-m",
@@ -197,41 +195,48 @@ class HookTests(unittest.TestCase):
             encoding="utf-8",
         )
         local.chmod(0o700)
-        self.blocked(self.git("commit", "--allow-empty", "-m", "clean", check=False))
+        self._commit("clean")
+        self._blocked(self._git("push", "origin", "main", check=False))
 
     def test_plaintext_filename(self) -> None:
         """File names are published data, too."""
         (self.repo / PRIVATE).touch()
-        self.git("add", PRIVATE)
-        self.blocked(self.git("commit", "-m", "fixture", check=False))
+        self._git("add", PRIVATE)
+        self._blocked(self._git("commit", "-m", "fixture", check=False))
 
     def test_deleted_historical_blob_is_blocked_on_push(self) -> None:
         """A clean latest tree cannot conceal an outgoing historical leak."""
-        self.stage(PRIVATE)
-        self.commit(bypass=True)
-        self.git("rm", "content.txt")
-        self.commit()
-        self.blocked(self.git("push", "origin", "main", check=False))
+        self._stage(PRIVATE)
+        self._commit(bypass=True)
+        self._git("rm", "content.txt")
+        self._commit()
+        self._blocked(self._git("push", "origin", "main", check=False))
         self.assertEqual(
-            self.git("--git-dir", str(self.remote), "show-ref", check=False).returncode,
+            self._git(
+                "--git-dir", str(self.remote), "show-ref", check=False
+            ).returncode,
             1,
         )
 
-    def test_ancestor_identity_and_tag_message(self) -> None:
-        """Scan all outgoing metadata, including annotated tags."""
-        self.git(
-            "-c",
-            "core.hooksPath=/dev/null",
+    def test_ancestor_identity(self) -> None:
+        """Scan all outgoing metadata, including an ancestor author."""
+        self._git(
             "commit",
+            "--no-verify",
             "--allow-empty",
             "-m",
             "old",
             extra_env={"GIT_AUTHOR_EMAIL": PRIVATE},
         )
-        self.commit()
-        self.blocked(self.git("push", "origin", "main", check=False))
-        self.git("tag", "-a", "test-tag", "-m", PRIVATE)
-        self.blocked(self.git("push", "origin", "test-tag", check=False))
+        self._commit()
+        self._blocked(self._git("push", "origin", "main", check=False))
+
+    def test_tag_message_on_clean_history(self) -> None:
+        """A tag message is rejected independently of any private ancestor."""
+        self._commit()
+        self._git("push", "origin", "main")
+        self._git("tag", "-a", "test-tag", "-m", PRIVATE)
+        self._blocked(self._git("push", "origin", "test-tag", check=False))
 
     def test_clean_push_preserves_legacy_stdin_and_post_commit_hook(self) -> None:
         """Existing repository hooks receive their original arguments and input."""
@@ -244,9 +249,9 @@ class HookTests(unittest.TestCase):
         post = self.repo / ".git/hooks/post-commit"
         post.write_text("#!/bin/sh\ntouch post-marker\n", encoding="utf-8")
         post.chmod(0o700)
-        self.stage("safe")
-        self.commit()
-        self.git("push", "origin", "main")
+        self._stage("safe")
+        self._commit()
+        self._git("push", "origin", "main")
         self.assertTrue((self.repo / "post-marker").exists())
         self.assertEqual(
             (self.repo / "push-remote").read_text(encoding="utf-8"), "origin"
@@ -255,29 +260,29 @@ class HookTests(unittest.TestCase):
 
     def test_remote_existing_history_and_stale_tracking_refs(self) -> None:
         """Already published history is excluded only while the server has it."""
-        self.stage(PRIVATE)
-        self.commit(bypass=True)
-        bad = self.git("rev-parse", "HEAD").stdout.decode().strip()
-        self.git("-c", "core.hooksPath=/dev/null", "push", "origin", "main")
-        self.stage("safe")
-        self.commit()
-        self.git("push", "origin", "main")
-        self.git("--git-dir", str(self.remote), "update-ref", "-d", "refs/heads/main")
-        self.git("update-ref", "refs/remotes/origin/stale", bad)
-        self.blocked(self.git("push", "origin", "main", check=False))
+        self._stage(PRIVATE)
+        self._commit(bypass=True)
+        bad = self._git("rev-parse", "HEAD").stdout.decode().strip()
+        self._git("push", "--no-verify", "origin", "main")
+        self._stage("safe")
+        self._commit()
+        self._git("push", "origin", "main")
+        self._git("--git-dir", str(self.remote), "update-ref", "-d", "refs/heads/main")
+        self._git("update-ref", "refs/remotes/origin/stale", bad)
+        self._blocked(self._git("push", "origin", "main", check=False))
 
     def test_private_repository_exception_and_visibility_failure(self) -> None:
         """Allow explicit private content, while always blocking private metadata."""
-        self.git(
+        self._git(
             "remote",
             "set-url",
             "origin",
             "git@github.com:test-owner/private-project.git",
         )
-        self.stage(PRIVATE)
-        self.commit()
-        self.blocked(
-            self.git(
+        self._stage(PRIVATE)
+        self._commit()
+        self._blocked(
+            self._git(
                 "commit",
                 "--allow-empty",
                 "-m",
@@ -289,35 +294,125 @@ class HookTests(unittest.TestCase):
         self.fake_gh.write_text(
             "#!/bin/sh\nprintf '{\"private\":false}\\n'\n", encoding="utf-8"
         )
-        self.blocked(self.git("commit", "--allow-empty", "-m", "fixture", check=False))
+        self._commit()
         self.fake_gh.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
-        self.blocked(self.git("commit", "--allow-empty", "-m", "fixture", check=False))
-        self.git("remote", "set-url", "origin", str(self.remote))
-        self.blocked(self.git("push", "origin", "main", check=False))
+        self._commit()
+        self._git("remote", "set-url", "origin", str(self.remote))
+        self._blocked(self._git("push", "origin", "main", check=False))
 
-    def test_missing_policy_and_recursive_hook_fail_closed(self) -> None:
-        """Missing secrets and accidental wrapper loops cannot silently disable checks."""
+    def test_private_publication_requires_live_private_visibility(self) -> None:
+        """Only a confirmed private destination may receive exempt file content."""
+        self._stage(PRIVATE)
+        self._commit(bypass=True)
+        oid = self._git("rev-parse", "HEAD").stdout.strip()
+        command = shlex.split(
+            self._git(
+                "config", "--global", "hook.privacy-pre-push.command"
+            ).stdout.decode()
+        )
+        # Keep real object plumbing but route remote discovery to the local fixture.
+        fake_git = self.root / "git-wrapper"
+        fake_git.write_text(
+            '#!/bin/sh\nif test "$1" = ls-remote; then\n'
+            "  exec git ls-remote --refs "
+            + shlex.quote(str(self.remote))
+            + "\n"
+            + 'fi\nexec git "$@"\n',
+            encoding="utf-8",
+        )
+        fake_git.chmod(0o700)
+        if "--git" in command:
+            command[command.index("--git") + 1] = str(fake_git)
+        else:
+            command[-1:-1] = ["--git", str(fake_git)]
+        for response, permitted in [
+            ("printf '{\"private\":true}\\n'", True),
+            ("printf '{\"private\":false}\\n'", False),
+            ("exit 1", False),
+        ]:
+            with self.subTest(response=response):
+                self.fake_gh.write_text(
+                    "#!/bin/sh\n" + response + "\n", encoding="utf-8"
+                )
+                result = subprocess.run(
+                    [
+                        *command,
+                        "origin",
+                        "git@github.com:test-owner/private-project.git",
+                    ],
+                    cwd=self.repo,
+                    env=self.env,
+                    capture_output=True,
+                    check=False,
+                    input=b"refs/heads/main "
+                    + oid
+                    + b" refs/heads/main "
+                    + ZERO.encode()
+                    + b"\n",
+                )
+                if permitted:
+                    self.assertEqual(result.returncode, 0, result.stderr.decode())
+                else:
+                    self._blocked(result)
+
+    def test_missing_policy_fails_closed(self) -> None:
+        """Missing secrets cannot silently disable checks."""
         self.policy.unlink()
-        self.blocked(self.git("commit", "--allow-empty", "-m", "fixture", check=False))
-        local = self.repo / ".git/hooks/pre-commit"
-        local.symlink_to(self.hooks / "pre-commit")
-        result = self.git("commit", "--allow-empty", "-m", "fixture", check=False)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(b"Recursive", result.stderr)
+        self._blocked(
+            self._git("commit", "--allow-empty", "-m", "fixture", check=False)
+        )
+
+    def test_custom_hook_directory_does_not_disable_privacy(self) -> None:
+        """A repository hook manager cannot displace configured privacy checks."""
+        custom = self.root / "custom-hooks"
+        custom.mkdir()
+        self._git("config", "--local", "core.hooksPath", str(custom))
+        self._stage(PRIVATE)
+        self._blocked(self._git("commit", "-m", "fixture", check=False))
+        self._commit(bypass=True)
+        self._blocked(self._git("push", "origin", "main", check=False))
+
+    def test_nested_checkout_hooks_keep_working(self) -> None:
+        """An ordinary hook can invoke another repository's checkout hook."""
+        self._commit()
+        child = self.root / "child"
+        self._git("clone", str(self.repo), str(child))
+        nested = child / ".git/hooks/post-checkout"
+        nested.write_text("#!/bin/sh\ntouch nested-marker\n", encoding="utf-8")
+        nested.chmod(0o700)
+        parent = self.repo / ".git/hooks/post-checkout"
+        parent.write_text(
+            "#!/bin/sh\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE\ngit -C "
+            + shlex.quote(str(child))
+            + " checkout main\n",
+            encoding="utf-8",
+        )
+        parent.chmod(0o700)
+        self._git("checkout", "main")
+        self.assertTrue((child / "nested-marker").exists())
+
+    def test_replacement_refs_cannot_hide_original_private_objects(self) -> None:
+        """Publication examines the original data despite a clean local replacement."""
+        self._commit()
+        clean = self._git("rev-parse", "HEAD").stdout.decode().strip()
+        self._commit(PRIVATE, bypass=True)
+        original = self._git("rev-parse", "HEAD").stdout.decode().strip()
+        self._git("replace", original, clean)
+        self._blocked(self._git("push", "origin", "main", check=False))
 
     def test_blob_tag_and_large_clean_content(self) -> None:
         """Git tags may point directly to blobs; those still require inspection."""
-        self.stage("x" * (2 * 1024 * 1024))
-        self.commit()
-        self.git("push", "origin", "main")
+        self._stage("x" * (2 * 1024 * 1024))
+        self._commit()
+        self._git("push", "origin", "main")
         blob = (
             self
-            .git("hash-object", "-w", "--stdin", data=PRIVATE.encode())
+            ._git("hash-object", "-w", "--stdin", data=PRIVATE.encode())
             .stdout.decode()
             .strip()
         )
-        self.git("tag", "blob-tag", blob)
-        self.blocked(self.git("push", "origin", "blob-tag", check=False))
+        self._git("tag", "blob-tag", blob)
+        self._blocked(self._git("push", "origin", "blob-tag", check=False))
 
 
 if __name__ == "__main__":

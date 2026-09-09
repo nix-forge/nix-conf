@@ -1,4 +1,4 @@
-"""Reject private email before Git records or publishes it; preserve local hooks."""
+"""Check commit content and outgoing Git history for configured private emails."""
 
 # Diagnostics are fixed, redacted strings used directly by this CLI.
 # ruff: file-ignore[raise-vanilla-args, raw-string-in-exception]
@@ -39,7 +39,7 @@ def run(command: list[str], data: bytes | None = None) -> bytes:
 class Guard:
     """Check immutable Git objects using a protected, machine-local policy."""
 
-    def __init__(self, git: str, gh: str) -> None:
+    def __init__(self, git: str, gh: str, policy_file: Path) -> None:
         """Load addresses from the owner-only runtime policy.
 
         Raises:
@@ -48,20 +48,6 @@ class Guard:
         """
         self.git = git
         self.gh = gh
-        policy_path = (
-            run([
-                git,
-                "config",
-                "--global",
-                "--includes",
-                "--path",
-                "--get",
-                "privacy.policyFile",
-            ])
-            .decode()
-            .strip()
-        )
-        policy_file = Path(policy_path)
         if policy_file.stat().st_mode & 0o077:
             raise PrivacyError(
                 "Private email policy must be readable only by its owner."
@@ -98,7 +84,7 @@ class Guard:
             )
 
     def private_content(self, destination: str | None = None) -> bool:
-        """Allow a named private repository only after verifying GitHub visibility.
+        """Allow local private content; verify destination visibility before publishing.
 
         Returns:
             Whether every destination matches an explicitly allowed private repository.
@@ -124,6 +110,8 @@ class Guard:
             )
             if not match or match[1] not in self.private_repositories:
                 return False
+            if destination is None:
+                continue  # Local work needs no network; publication is checked below.
             repository = json.loads(
                 run([self.gh, "api", "--hostname", "github.com", "repos/" + match[1]])
             )
@@ -240,67 +228,29 @@ class Guard:
         self.objects(tips + objects, allow_content=self.private_content(destination))
 
 
-def main() -> int:  # ruff: ignore[complex-structure] - Dispatch covers Git initialization and forwarding repository hooks.
-    """Run the guard and preserve the repository's hook behavior.
+def main() -> int:
+    """Check a commit or outgoing objects using Git's native hook composition.
 
     Returns:
-        Zero on success, or the repository hook's failure status.
-
-    Raises:
-        PrivacyError: A hook loop or unsafe operation is detected.
+        Zero when the private email check permits the operation.
 
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--git", default="git")
     parser.add_argument("--gh", default="gh")
-    parser.add_argument("hook")
+    parser.add_argument("--policy-file", required=True, type=Path)
+    parser.add_argument("hook", choices=("commit-msg", "pre-push"))
     parser.add_argument("arguments", nargs="*")
     args = parser.parse_args()
-    data = sys.stdin.buffer.read() if args.hook == "pre-push" else None
-    active_hooks = os.environ.get("GIT_PRIVACY_ACTIVE_HOOKS", "").split(":")
-    if args.hook in active_hooks:
-        raise PrivacyError("Recursive Git hook configuration; check your local hooks.")
-    try:
-        common = Path(run([args.git, "rev-parse", "--git-common-dir"]).decode().strip())
-    except PrivacyError:
-        # git init invokes reference-transaction before HEAD exists, when
-        # rev-parse cannot yet recognize the repository. No commit is published.
-        if args.hook == "reference-transaction":
-            return 0
-        raise
-    local_hook = common / "hooks" / args.hook
-
-    def delegate() -> int:
-        if local_hook.is_file() and os.access(local_hook, os.X_OK):
-            environment = dict(os.environ)
-            environment["GIT_PRIVACY_ACTIVE_HOOKS"] = ":".join([
-                *active_hooks,
-                args.hook,
-            ])
-            return subprocess.run(
-                [str(local_hook.resolve()), *args.arguments],
-                input=data,
-                env=environment,
-                check=False,
-            ).returncode
-        return 0
-
-    # Check the final index and message after repository hooks modify them.
-    # Before a push, reject private data before running other push integrations.
-    if args.hook != "pre-push":
-        status = delegate()
-        if status:
-            return status
-    if args.hook in {"pre-commit", "pre-merge-commit", "commit-msg", "pre-push"}:
-        guard = Guard(args.git, args.gh)
-        if args.hook in {"pre-commit", "pre-merge-commit"}:
-            guard.before_commit()
-        elif args.hook == "commit-msg":
-            guard.before_commit()
-            guard.inspect(Path(args.arguments[0]).read_bytes())
-        else:
-            guard.before_push(args.arguments[1], data or b"")
-    return delegate() if args.hook == "pre-push" else 0
+    # Replacement refs affect local views, but pushes publish original objects.
+    os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
+    guard = Guard(args.git, args.gh, args.policy_file)
+    if args.hook == "commit-msg":
+        guard.before_commit()
+        guard.inspect(Path(args.arguments[0]).read_bytes())
+    else:
+        guard.before_push(args.arguments[1], sys.stdin.buffer.read())
+    return 0
 
 
 if __name__ == "__main__":
