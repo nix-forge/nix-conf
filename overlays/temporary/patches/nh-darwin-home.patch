@@ -1,0 +1,44 @@
+Backport of https://github.com/nix-community/nh/commit/e81531794af1425b5b0025fd71fa8c37f1ae5ab9
+with a regression test for the environment used by elevated Darwin commands.
+
+diff --git a/crates/nh-core/src/command.rs b/crates/nh-core/src/command.rs
+--- a/crates/nh-core/src/command.rs
++++ b/crates/nh-core/src/command.rs
+@@ -543,12 +543,12 @@ impl Command {
+         .insert("HOME".to_string(), EnvAction::Set(home));
+     }
+ 
+-    // INFO: Setting HOME to "" for macos
++    // INFO: Set HOME to proper root-owned directory for macos
+     // ref: https://github.com/NixOS/nix/blob/d5d7ca01b3dcf48f43819012c580cfb57cb08e47/src/libutil/unix/users.cc#L52
+     if self.elevate.is_some() && cfg!(target_os = "macos") {
+       self
+         .env_vars
+-        .insert("HOME".to_string(), EnvAction::Set(String::new()));
++        .insert("HOME".to_string(), EnvAction::Set("/var/root".to_string()));
+     }
+ 
+     // Preserve all variables in PRESERVE_ENV if present
+@@ -1216,6 +1216,22 @@ mod tests {
+ 
+   #[test]
+   #[serial]
++  #[cfg(target_os = "macos")]
++  fn test_elevated_darwin_home_is_absolute() {
++    let _home_guard = EnvGuard::new("HOME", "/test/home");
++    let cmd = Command::new("nix")
++      .elevate(Some(ElevationStrategy::Force("sudo")))
++      .with_required_env();
++
++    let Some(EnvAction::Set(home)) = cmd.env_vars.get("HOME") else {
++      panic!("elevated Darwin commands must set HOME");
++    };
++    assert!(std::path::Path::new(home).is_absolute());
++    assert_eq!(home, "/var/root");
++  }
++
++  #[test]
++  #[serial]
+   fn test_with_required_env_missing_home_user() {
+     // Test behavior when HOME/USER are not set
+     unsafe {
