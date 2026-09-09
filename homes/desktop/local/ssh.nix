@@ -6,6 +6,11 @@ let
       { Include = runtimeFiles."cornell-net-id-ssh-config".path; }
     else
       { };
+  gitIdentity = {
+    User = "git";
+    IdentitiesOnly = true;
+    IdentityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+  };
 in
 {
   # The desktop uses its GNOME Keyring-backed SSH agent. Agent integration is
@@ -61,18 +66,14 @@ in
     // includeCornell;
 
     # Git
-    "github.coecis.cornell.edu" = {
+    "github.com gist.github.com ssh.github.com" = gitIdentity;
+
+    "github.coecis.cornell.edu" = gitIdentity // {
       HostName = "github.coecis.cornell.edu";
-      User = "git";
-      IdentitiesOnly = true;
-      IdentityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     };
 
-    "gitlab.cs.cornell.edu" = {
+    "gitlab.cs.cornell.edu" = gitIdentity // {
       HostName = "gitlab.cs.cornell.edu";
-      User = "git";
-      IdentitiesOnly = true;
-      IdentityFile = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     };
   };
 }
