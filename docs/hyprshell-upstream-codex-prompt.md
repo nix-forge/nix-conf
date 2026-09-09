@@ -6,7 +6,7 @@ Port and validate the tested downstream fix in `H3rmt/hyprshell` so switch mode 
 
 Read these files in `~/Developer/nix-conf`:
 
-- `modules/home/desktop/patches/hyprshell-modifier-state.patch`
+- `overlays/temporary/patches/hyprshell-modifier-state.patch`
 - `docs/alt-tab-research.md`
 - `docs/hyprshell-upstream-research.md`
 - `docs/hyprshell-hyprland-patch-review.md`

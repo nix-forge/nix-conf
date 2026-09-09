@@ -1,4 +1,0 @@
-cacheSize=@cacheSize@
-cacheTTLSeconds=@cacheTTLSeconds@
-maxCheckThreads=@maxCheckThreads@
-maxWorkQueueSize=@maxWorkQueueSize@

@@ -1,13 +1,19 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  desktopLib = myLib.desktop;
   cfg = config.desktop.bar;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   colors = config.lib.stylix.colors.withHashtag;
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = { };
+  };
 in
 {
   options.desktop.bar = {
@@ -34,18 +40,19 @@ in
     home.packages = [ pkgs.ironbar ];
 
     xdg.configFile = {
-      "ironbar/config.toml".source = pkgs.replaceVarsWith {
-        name = "ironbar-config";
-        src = ./config/ironbar-config.toml.in;
-        replacements = {
+      "ironbar/config.toml".source = (pkgs.formats.toml { }).generate "ironbar-config.toml" (
+        desktopLib.mkIronbarConfig {
           iconTheme = config.stylix.icons.dark;
           inherit (cfg) networkCommand;
-        };
-      };
+        }
+      );
 
       "ironbar/style.css".source = pkgs.replaceVarsWith {
         name = "ironbar-style";
         src = ./config/ironbar-style.css.in;
+        postCheck = ''
+          ${desktopLib.mkGtkCssChecker { inherit pkgs; }}/bin/check-gtk-css "$target"
+        '';
         replacements = {
           font = builtins.toJSON config.stylix.fonts.sansSerif.name;
           inherit (colors)
@@ -76,7 +83,13 @@ in
         Wants = [ "swaync.service" ];
       };
       Service = {
-        ExecStart = "${lib.getExe pkgs.ironbar} --config ${config.xdg.configHome}/ironbar/config.toml --theme ${config.xdg.configHome}/ironbar/style.css";
+        ExecStart = systemdUtils.escapeSystemdExecArgs [
+          (lib.getExe pkgs.ironbar)
+          "--config"
+          "${config.xdg.configHome}/ironbar/config.toml"
+          "--theme"
+          "${config.xdg.configHome}/ironbar/style.css"
+        ];
         Restart = "on-failure";
         RestartSec = 2;
       };

@@ -20,7 +20,7 @@ The reviewed policy permits local implementation, tests, and explanations for th
 
 Read these files in `~/Developer/nix-conf`:
 
-- `modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch`
+- `overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch`
 - `docs/hyprland-subsurface-crash.md`
 - `docs/hyprland-upstream-research.md`
 - `docs/hyprshell-hyprland-patch-review.md`

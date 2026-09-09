@@ -99,7 +99,7 @@ The [derivation](../pkgs/pkgs/by-name/tt/ttf-ms-win11-auto/package.nix) uses 7-Z
 
 Reuse its separation between source discovery and pinned builds. For Apple catalog fonts, replace the multi-gigabyte ISO with individual ZIP assets. For developer fonts, replace it with a DMG, while accepting the weaker historical availability. Only the missing OS-bundled set calls for investigating a full-installer extraction approach comparable to the Windows package.
 
-The shared [font configuration](../modules/shared/fonts.nix) installs the Windows package on both Linux and Darwin. The old [NixOS font module](../modules/nixos/locale/fonts.nix) has a commented `apple-fonts` entry, but this research found no corresponding local Apple package implementation. The shared configuration also installs nixpkgs `corefonts`; that is a separate legacy Microsoft distribution, marked `unfreeRedistributable`, rather than the modern Windows ISO package. [Pinned corefonts package](https://github.com/NixOS/nixpkgs/blob/4382ed2b7a6839d4280a9b386db49cbc5907414d/pkgs/by-name/co/corefonts/package.nix).
+The shared [font configuration](../modules/shared/fonts/default.nix) installs the Windows package on both Linux and Darwin. The old [NixOS font module](../modules/nixos/locale/fonts.nix) has a commented `apple-fonts` entry, but this research found no corresponding local Apple package implementation. The shared configuration also installs nixpkgs `corefonts`; that is a separate legacy Microsoft distribution, marked `unfreeRedistributable`, rather than the modern Windows ISO package. [Pinned corefonts package](https://github.com/NixOS/nixpkgs/blob/4382ed2b7a6839d4280a9b386db49cbc5907414d/pkgs/by-name/co/corefonts/package.nix).
 
 ## Nixpkgs integration and recommendation
 
@@ -179,7 +179,7 @@ and New York developer packages remain available separately for their specified
 uses and are not enabled for ordinary desktop typography.
 
 The shared `appleDocumentFonts` list lives in
-`modules/shared/font-packages.nix`. The desktop's local system-font module
+`modules/shared/fonts/packages.nix`. The desktop's local system-font module
 installs it, while the shared Darwin font module installs the same list on the
 MacBook. Home Manager does not install these assets a second time. This follows
 the hosts' existing module structure without importing the entire shared font

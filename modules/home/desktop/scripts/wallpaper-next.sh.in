@@ -2,7 +2,9 @@
 set -euo pipefail
 export PATH="@runtimePath@"
 
-source_directory='@wallpaperDirectory@'
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+source_directory=@wallpaperDirectory@
 [ -d "$source_directory" ] || exit 0
 candidate="$(find "$source_directory" -maxdepth 1 -type f \
   \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jpeg' \
@@ -14,7 +16,9 @@ candidate="$(find "$source_directory" -maxdepth 1 -type f \
 # session unhealthy while the user is still curating images.
 [ -n "$candidate" ] || exit 0
 
-state_directory='@stateDirectory@'
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+state_directory=@stateDirectory@
 mkdir -p -- "$state_directory"
 chmod 700 -- "$state_directory"
 printf '%s\n' "$candidate" > "$state_directory/current"

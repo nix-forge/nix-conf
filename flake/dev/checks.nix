@@ -1,4 +1,4 @@
-{ inputs, ... }: {
+{ inputs, myLib, ... }: {
   perSystem =
     { pkgs, ... }:
     let
@@ -8,13 +8,14 @@
           lxml
           pillow
           selenium
+          tomlkit
           uharfbuzz
           websocket-client
         ]
       );
       localControlLibrary =
-        import ../../homes/macbook-pro-m4/support/local-control/runtime-helpers.nix
-          { };
+        (import ../../homes/macbook-pro-m4/local/local-control/runtime-helpers.nix { inherit myLib; })
+        .lib.localControl;
       secureFileSystem = localControlLibrary.mkSecureFileSystem pkgs;
       environmentSnapshot = localControlLibrary.mkEnvironmentSnapshot pkgs;
       sourceTreeSnapshot = localControlLibrary.mkSourceTreeSnapshot pkgs;
@@ -22,9 +23,7 @@
       preparationProof = localControlLibrary.mkPreparationProof pkgs;
       preparationGate = localControlLibrary.mkPreparationGate pkgs;
       privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
-      localControlSecureFilesRust =
-        import ../../homes/macbook-pro-m4/support/local-control/secure-files-rs/package.nix
-          { inherit pkgs; };
+      localControlSecureFilesRust = localControlLibrary.mkSecureFileSystem pkgs;
       finderFavoritesSwift =
         if pkgs.stdenv.hostPlatform.isDarwin then
           inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.finder-favorites
@@ -32,7 +31,7 @@
           null;
       localControlProxyConfig = pkgs.replaceVarsWith {
         name = "local-control-proxy-check.conf";
-        src = ../../homes/macbook-pro-m4/support/local-control/config/proxy.Caddyfile.in;
+        src = ../../homes/macbook-pro-m4/local/local-control/config/proxy.Caddyfile.in;
         replacements = {
           bindAddresses = "127.0.0.1";
           privateHostname = "agent-control.service.internal";
@@ -77,7 +76,10 @@
             cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
             cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
             cp ${../../tests/secrets/test_template_migration.py} tests/secrets/test_template_migration.py
-            cp ${../../secrets/templates.json} secrets/templates.json
+            mkdir -p homes/shared/local/config hosts/shared homes/macbook-pro-m4/local
+            cp -R ${../../homes/shared/local/config/secret-templates} homes/shared/local/config/secret-templates
+            cp -R ${../../hosts/shared/secret-templates} hosts/shared/secret-templates
+            cp -R ${../../homes/macbook-pro-m4/local/secret-templates} homes/macbook-pro-m4/local/secret-templates
             python3 -m unittest discover -s tests/secrets -p 'test_*.py' -v
             touch "$out"
           '';
@@ -1023,8 +1025,10 @@
             activationHome = "/private/tmp/local-control-activation-${builtins.hashString "sha256" (builtins.readFile ../../homes/macbook-pro-m4/local/local-control.nix)}";
             homeConfiguration = inputs.home-manager.lib.homeManagerConfiguration {
               inherit pkgs;
+              extraSpecialArgs = { inherit myLib; };
               modules = [
                 ../../homes/macbook-pro-m4/local/local-control.nix
+                ../../homes/macbook-pro-m4/local/local-control/runtime-helpers.nix
                 {
                   home.username = "check-user";
                   home.homeDirectory = activationHome;

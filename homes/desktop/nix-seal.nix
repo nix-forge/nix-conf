@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  myLib,
+  ...
+}:
 let
   homeDirectory = config.home.homeDirectory;
   runtime = {
@@ -11,6 +16,8 @@ in
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
+    secretDirectory = "homes/shared/secrets";
+    sharedSecretDirectory = "modules/shared/secrets";
     identityFile = "${homeDirectory}/.ssh/id_ed25519";
     artifactCacheRoot = "${homeDirectory}/.cache/nix-seal/v1";
     repositoryRoot = ../../.;
@@ -22,10 +29,10 @@ in
     };
     # Optional source credentials must not make unrelated desktop deployments
     # fail when their encrypted artifact has not been provisioned yet.
-    # Whole-file declarations remain as rollback inputs until field authoring succeeds.
+    # Config names select public templates backed by the encrypted fields.
     inherit
-      (import ../../secrets/templates.nix {
-        inherit lib;
+      (myLib.secrets.mkTemplates {
+        inventoryFiles = [ ../shared/local/config/secret-templates/inventory.json ];
         repositoryRoot = ../../.;
         scope = "ianhollow/users/ianmh";
         secrets =

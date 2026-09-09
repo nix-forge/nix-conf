@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -66,10 +67,9 @@
       RemainAfterExit = true;
       UMask = "0077";
     };
-    serviceConfig.ExecStart = pkgs.replaceVarsWith {
+    serviceConfig.ExecStart = myLib.writers.writeBashTemplate { inherit pkgs; } {
       name = "materialize-iwd-trusted-profile";
       src = ./scripts/materialize-iwd-trusted-profile.sh;
-      isExecutable = true;
       replacements = {
         bash = "${pkgs.bash}/bin/bash";
         install = "${pkgs.coreutils}/bin/install";

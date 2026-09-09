@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
   cfg = config.services.localControl;
@@ -15,40 +17,24 @@ let
   logDir = "${stateDir}/logs";
   inherit (cfg) environmentFile;
 
-  # These helpers are implementation details of the MacBook control host, not
-  # reusable repository library API. They live next to this profile while this
-  # file remains the automatically imported Home Manager module.
-  localControlLibrary = import ../support/local-control/runtime-helpers.nix { };
+  localControlLibrary = config.lib.localControl;
   databaseClusterValidator = localControlLibrary.mkDatabaseClusterValidator pkgs;
   privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
   secureFileSystem = localControlLibrary.mkSecureFileSystem pkgs;
 
-  proxyConfig = pkgs.replaceVarsWith {
-    name = "local-control-proxy.conf";
-    src = ../support/local-control/config/proxy.Caddyfile.in;
-    replacements = {
-      bindAddresses =
-        if cfg.bindAddress == "127.0.0.1" then cfg.bindAddress else "127.0.0.1 ${cfg.bindAddress}";
-      inherit (cfg) dashboardDirectory privateHostname;
-      inherit (cfg) webPort apiPort proxyPort;
-    };
-  };
-
-  serverCertificateExtensions = pkgs.replaceVarsWith {
-    name = "local-control-server-extensions";
-    src = ../support/local-control/config/server-extensions.conf.in;
-    replacements = { inherit (cfg) privateHostname bindAddress; };
-  };
-
-  clientCertificateExtensions = pkgs.replaceVarsWith {
-    name = "local-control-client-extensions";
-    src = ../support/local-control/config/client-extensions.conf;
-    replacements = { };
-  };
+  inherit
+    (myLib.local-control.mkLocalControlConfigs {
+      inherit pkgs cfg;
+      template = ./local-control/config/proxy.Caddyfile.in;
+    })
+    proxyConfig
+    serverCertificateExtensions
+    clientCertificateExtensions
+    ;
 
   localControlState = pkgs.replaceVarsWith {
     name = "local-control-initialize-state.sh";
-    src = ../support/local-control/scripts/initialize-state.sh;
+    src = ./local-control/scripts/initialize-state.sh;
     replacements = {
       privatePathGuard = lib.getExe' privatePathGuard "local-control-private-path";
       secureFileSystem = lib.getExe' secureFileSystem "local-control-secure-files";
@@ -59,11 +45,10 @@ let
     };
   };
 
-  database = pkgs.replaceVarsWith {
+  database = writeBashTemplate {
     name = "local-control-database";
-    src = ../support/local-control/scripts/database.sh;
+    src = ./local-control/scripts/database.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       privatePathGuard = lib.getExe' privatePathGuard "local-control-private-path";
@@ -76,11 +61,10 @@ let
     };
   };
 
-  proxy = pkgs.replaceVarsWith {
+  proxy = writeBashTemplate {
     name = "local-control-proxy";
-    src = ../support/local-control/scripts/proxy.sh;
+    src = ./local-control/scripts/proxy.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       secureFileSystem = lib.getExe' secureFileSystem "local-control-secure-files";
@@ -91,11 +75,10 @@ let
     };
   };
 
-  status = pkgs.replaceVarsWith {
+  status = writeBashTemplate {
     name = "local-control-status";
-    src = ../support/local-control/scripts/status.sh;
+    src = ./local-control/scripts/status.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       pgIsReady = lib.getExe' pkgs.postgresql_18 "pg_isready";
@@ -108,11 +91,10 @@ let
     };
   };
 
-  restart = pkgs.replaceVarsWith {
+  restart = writeBashTemplate {
     name = "local-control-restart";
-    src = ../support/local-control/scripts/restart.sh;
+    src = ./local-control/scripts/restart.sh;
     dir = "bin";
-    isExecutable = true;
     replacements.bash = lib.getExe pkgs.bash;
   };
 in

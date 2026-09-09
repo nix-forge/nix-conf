@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-exec @python@ @resolver@ \
+exec @resolver@ \
   --vmx @vmxFile@ \
   --leases @leaseFile@ \
   --lease-owner-uid 0 \

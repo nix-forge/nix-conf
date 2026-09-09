@@ -1,4 +1,4 @@
-{ modules, ... }: {
+{ modules, inputs, ... }: {
   system = "x86_64-linux";
   username = "ianmh";
   homeDirectory = "/home/ianmh";
@@ -12,6 +12,7 @@
   };
 
   nixpkgsArgs = {
+    overlays = [ (import ../../overlays { inherit inputs; }) ];
     config = {
       allowUnfree = true;
       allowUnfreePredicate = _: true;
@@ -29,6 +30,7 @@
     determinate
     nix-settings
     registry
+    cache
     xdg
     nixSeal
     ./nix-seal.nix

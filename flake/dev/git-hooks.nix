@@ -1,4 +1,10 @@
-{ inputs, lib, ... }: {
+{
+  inputs,
+  lib,
+  myLib,
+  ...
+}:
+{
   imports = [ inputs.git-hooks-nix.flakeModule ];
   perSystem =
     { config, pkgs, ... }:
@@ -9,14 +15,14 @@
           lxml
           pillow
           selenium
+          tomlkit
           uharfbuzz
           websocket-client
         ]
       );
-      pythonCompileAll = pkgs.replaceVarsWith {
+      pythonCompileAll = myLib.writers.writeBashTemplate { inherit pkgs; } {
         name = "python-compileall";
         src = ./scripts/python-compileall.sh;
-        isExecutable = true;
         replacements = {
           bash = lib.getExe pkgs.bash;
           python = lib.getExe pkgs.python3;
@@ -95,13 +101,13 @@
             local-control-rustfmt = {
               enable = true;
               name = "local-control rustfmt";
-              entry = "cargo fmt --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all -- --check";
+              entry = "cargo fmt --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all -- --check";
               language = "system";
               extraPackages = [
                 pkgs.cargo
                 pkgs.rustfmt
               ];
-              files = "^homes/macbook-pro-m4/support/local-control/secure-files-rs/.*\\.(rs|toml)$";
+              files = "^homes/macbook-pro-m4/local/local-control/secure-files-rs/.*\\.(rs|toml)$";
               pass_filenames = false;
               after = [ "treefmt" ];
             };
@@ -111,7 +117,7 @@
               # Cargo invoked outside the development shell cannot find
               # Darwin's libiconv. Keep the hook in the same toolchain and
               # linker environment developers use for local Rust checks.
-              entry = "nix develop --command cargo clippy --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets -- -D warnings";
+              entry = "nix develop --command cargo clippy --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all-targets -- -D warnings";
               language = "system";
               extraPackages = [
                 pkgs.cargo
@@ -125,7 +131,7 @@
             local-control-rust-test = {
               enable = pkgs.stdenv.hostPlatform.isDarwin;
               name = "local-control Rust tests";
-              entry = "nix develop --command cargo test --manifest-path homes/macbook-pro-m4/support/local-control/secure-files-rs/Cargo.toml --all-targets";
+              entry = "nix develop --command cargo test --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all-targets";
               language = "system";
               extraPackages = [ pkgs.cargo ];
               always_run = true;
@@ -137,7 +143,7 @@
               enable = true;
               after = [ "treefmt" ];
               excludes = [
-                "^secrets/.*\\.age$"
+                "\\.age$"
                 "^docs/assets/hyprland-upstream-local-20260907/"
               ];
             };
@@ -146,7 +152,7 @@
               after = [ "treefmt" ];
               # Unified diff context includes significant trailing spaces.
               excludes = [
-                "^secrets/.*\\.age$"
+                "\\.age$"
                 "^docs/assets/hyprland-upstream-local-20260907/"
                 "\\.patch$"
               ];
@@ -156,7 +162,7 @@
               args = [ "--fix=lf" ];
               after = [ "treefmt" ];
               excludes = [
-                "^secrets/.*\\.age$"
+                "\\.age$"
                 "^docs/assets/hyprland-upstream-local-20260907/"
               ];
             };
@@ -177,7 +183,7 @@
               enable = true;
               # Rust inner attributes start with `#![` and are not script shebangs.
               excludes = [
-                "^homes/macbook-pro-m4/support/local-control/secure-files-rs/.*\\.rs$"
+                "^homes/macbook-pro-m4/local/local-control/secure-files-rs/.*\\.rs$"
                 # Each submodule owns and verifies its own hook configuration.
                 "^nix-seal/"
                 "^nix-config-framework/"
@@ -189,7 +195,7 @@
             editorconfig-checker = {
               enable = true;
               excludes = [
-                "^secrets/.*\\.age$"
+                "\\.age$"
                 "^docs/assets/hyprland-upstream-local-20260907/"
                 "^nix-config-framework/"
                 "^nix-seal/"

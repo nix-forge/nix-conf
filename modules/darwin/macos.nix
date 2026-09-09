@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  options,
+  ...
+}:
 let
   cfg = config.macos.preferences;
   inherit (lib)
@@ -324,13 +329,13 @@ in
     };
 
     customUserPreferences = mkOption {
-      type = types.attrs;
+      type = options.system.defaults.CustomUserPreferences.type;
       default = { };
       description = "Extra per-user defaults for settings without typed nix-darwin options.";
     };
 
     customSystemPreferences = mkOption {
-      type = types.attrs;
+      type = options.system.defaults.CustomSystemPreferences.type;
       default = { };
       description = "Extra machine defaults for settings without typed nix-darwin options.";
     };

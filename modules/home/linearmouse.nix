@@ -10,7 +10,25 @@ let
   jsonFormat = pkgs.formats.json { };
   appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/LinearMouse.app";
   legacyConfigFile = "${config.home.homeDirectory}/Library/Application Support/linearmouse/linearmouse.json";
-  generatedConfig = jsonFormat.generate "linearmouse.json" cfg.settings;
+  renderedConfig = jsonFormat.generate "linearmouse.json" cfg.settings;
+  generatedConfig =
+    pkgs.runCommand "checked-linearmouse.json"
+      {
+        nativeBuildInputs = [
+          pkgs.check-jsonschema
+          pkgs.jq
+        ];
+      }
+      ''
+        # All references must be bundled in the pinned schema, including overrides.
+        jq -e '[.. | objects | (."$ref"?, ."$dynamicRef"?, ."$recursiveRef"?) | select(. != null)]
+          | all(type == "string" and startswith("#"))' ${lib.escapeShellArg cfg.settingsSchema} >/dev/null || {
+          echo 'LinearMouse settingsSchema must be self-contained; external references are not supported.' >&2
+          exit 1
+        }
+        check-jsonschema --schemafile ${lib.escapeShellArg cfg.settingsSchema} ${renderedConfig}
+        cp ${renderedConfig} "$out"
+      '';
   stagedConfigDirectory = "${config.xdg.stateHome}/home-manager/linearmouse";
   stagedConfigFile = "${stagedConfigDirectory}/linearmouse.json";
 in
@@ -36,6 +54,34 @@ in
         {file}`~/Library/Application Support/linearmouse/linearmouse.json`
         takes precedence and must be removed or migrated manually.
       '';
+    };
+
+    settingsSchema = lib.mkOption {
+      type = lib.types.path;
+      default =
+        if
+          cfg.package ? configurationSchema
+          && (cfg.package.configurationSchemaVersion or null) == lib.getVersion cfg.package
+        then
+          cfg.package.configurationSchema
+        else
+          throw "programs.linearmouse: the selected package must provide a matching configurationSchema or settingsSchema must be set explicitly";
+      defaultText = lib.literalExpression "config.programs.linearmouse.package.configurationSchema";
+      description = ''
+        Pinned, self-contained JSON Schema for the selected LinearMouse version.
+        The nixpkgs-personal package supplies the matching schema. Override this
+        explicitly when selecting another package without matching schema metadata.
+        Generated settings must validate against this schema before installation.
+        External schema references are rejected so validation remains offline.
+      '';
+    };
+
+    settingsFile = lib.mkOption {
+      type = lib.types.path;
+      readOnly = true;
+      internal = true;
+      default = generatedConfig;
+      description = "Generated LinearMouse configuration after schema validation.";
     };
 
     startAtLogin = lib.mkOption {
@@ -125,11 +171,11 @@ in
       installLinearMouseConfig = lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "linkGeneration" ] ''
         if [[ ! -f ${lib.escapeShellArg stagedConfigFile} ]] \
           || ! /usr/bin/cmp -s \
-            ${lib.escapeShellArg generatedConfig} \
+            ${lib.escapeShellArg cfg.settingsFile} \
             ${lib.escapeShellArg stagedConfigFile}; then
           run /bin/mkdir -p ${lib.escapeShellArg stagedConfigDirectory}
           run /usr/bin/install -m 0600 \
-            ${lib.escapeShellArg generatedConfig} \
+            ${lib.escapeShellArg cfg.settingsFile} \
             ${lib.escapeShellArg "${stagedConfigFile}.tmp"}
           run /bin/mv -f \
             ${lib.escapeShellArg "${stagedConfigFile}.tmp"} \

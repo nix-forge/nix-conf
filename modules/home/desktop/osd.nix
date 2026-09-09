@@ -1,19 +1,21 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  desktopLib = myLib.desktop;
   cfg = config.desktop.osd;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   colors = config.lib.stylix.colors.withHashtag;
   client = lib.getExe' pkgs.swayosd "swayosd-client";
-  focusedClient = pkgs.replaceVarsWith {
+  focusedClient = writeBashTemplate {
     name = "desktop-swayosd-focused";
     src = ./scripts/swayosd-focused.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       hyprctl = lib.getExe' pkgs.hyprland "hyprctl";
@@ -61,15 +63,23 @@ in
     ];
 
     xdg.configFile = {
-      "swayosd/config.toml".source = pkgs.replaceVarsWith {
-        name = "swayosd-config";
-        src = ./config/swayosd.toml.in;
-        replacements.stylePath = "${config.xdg.configHome}/swayosd/style.css";
+      "swayosd/config.toml".source = (pkgs.formats.toml { }).generate "swayosd-config.toml" {
+        server = {
+          style = "${config.xdg.configHome}/swayosd/style.css";
+          min_brightness = 5;
+          show_percentage = true;
+          max_volume = 100;
+          keyboard_backlight = false;
+          top_margin = 0.85;
+        };
       };
 
       "swayosd/style.css".source = pkgs.replaceVarsWith {
         name = "swayosd-style";
         src = ./config/swayosd-style.css.in;
+        postCheck = ''
+          ${desktopLib.mkGtkCssChecker { inherit pkgs; }}/bin/check-gtk-css "$target"
+        '';
         replacements = {
           font = builtins.toJSON config.stylix.fonts.sansSerif.name;
           inherit (colors)

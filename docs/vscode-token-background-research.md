@@ -26,7 +26,7 @@ Source: [Semantic Highlight Guide — Theming](https://code.visualstudio.com/api
 
 ## Carbon impact
 
-The Carbon templates currently set token-rule backgrounds in two places:
+The pre-fix Carbon templates set token-rule backgrounds in two places:
 
 1. The unscoped default rule in `carbon-neon-color-theme.json`.
 2. The OLED override in `carbon-neon-oled-color-theme.json`.
@@ -69,3 +69,7 @@ Do not suppress the warning or substitute semantic-token backgrounds. Remove
 the two unsupported declarations and retain Carbon's existing Stylix-derived
 editor, selection, and diff workbench colors. This is the most reliable
 solution across VS Code renderers and future releases.
+
+The later [full schema audit](vscode-theme-schema-research.md) confirms that
+the generated themes no longer contain these unsupported backgrounds and also
+removes the redundant unscoped foreground rule.

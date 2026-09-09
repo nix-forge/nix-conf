@@ -1,20 +1,21 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   self,
   system,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   mkTool = command: extensions: { inherit command extensions; };
 
-  ruffFixAndFormat = pkgs.replaceVarsWith {
+  ruffFixAndFormat = writeBashTemplate {
     name = "opencode-ruff-fix-and-format";
     src = ./scripts/opencode-ruff-fix-and-format.sh;
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       ruff = lib.getExe pkgs.ruff;
@@ -173,10 +174,9 @@ let
     "openai-yeet"
   ];
 
-  opencodeNotifierDarwinFallback = pkgs.replaceVarsWith {
+  opencodeNotifierDarwinFallback = writeBashTemplate {
     name = "opencode-notifier-darwin-fallback";
     src = ./scripts/opencode-notifier-darwin-fallback.sh;
-    isExecutable = true;
     replacements.bash = lib.getExe pkgs.bash;
   };
 in

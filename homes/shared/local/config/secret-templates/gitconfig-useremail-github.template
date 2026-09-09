@@ -1,0 +1,2 @@
+[user]
+    email = "{{nix-seal:git-user-email-github}}"

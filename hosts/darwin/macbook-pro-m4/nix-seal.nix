@@ -1,7 +1,15 @@
-{ config, lib, ... }: {
+{
+  config,
+  lib,
+  myLib,
+  ...
+}:
+{
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
+    secretDirectory = "hosts/shared/secrets/macbook-pro-m4";
+    sharedSecretDirectory = "modules/shared/secrets";
     identityFile = "/etc/ssh/ssh_host_ed25519_key";
     artifactCacheRoot = "/var/lib/nix-seal/cache/v1";
     repositoryRoot = ../../../.;
@@ -12,8 +20,8 @@
       };
     };
     inherit
-      (import ../../../secrets/templates.nix {
-        inherit lib;
+      (myLib.secrets.mkTemplates {
+        inventoryFiles = [ ../../shared/secret-templates/inventory.json ];
         repositoryRoot = ../../../.;
         scope = "ianhollow/hosts/darwin/macbook-pro-m4";
         secrets."nix-access-tokens" = {
@@ -21,9 +29,8 @@
           group = "wheel";
           mode = "0400";
         };
-        # This is a netrc fragment containing the FlakeHub machine entries. It is
-        # encrypted in the repository and materialized only in nix-seal's runtime
-        # storage, never in the Nix store.
+        # Public machine entries reuse one shared encrypted login and password.
+        # The complete netrc is rendered only in private runtime storage.
         secrets."flakehub-netrc" = {
           owner = "root";
           group = "wheel";
@@ -35,17 +42,10 @@
       ;
   };
 
-  # The nix-seal service phase creates the private netrc before this runs.
-  # Hand the token to Nixd through stdin so its supported login mechanism
-  # maintains the generated netrc used by both Nix and the native builder.
+  # The activation phase materializes the private token before this runs.
+  # Nixd owns its generated netrc for Nix and the native builder.
   system.activationScripts.postActivation.text = lib.mkOrder 2000 ''
-    flakehubNetrc=${(config.nixSeal.secrets // config.nixSeal.templates)."flakehub-netrc".path}
-    flakehubToken=$(
-      /usr/bin/awk '$1 == "machine" && $2 == "flakehub.com" && $5 == "password" { print $6; exit }' \
-        "$flakehubNetrc"
-    )
-    test -n "$flakehubToken"
-    printf '%s\n' "$flakehubToken" | /usr/local/bin/determinate-nixd auth login token --token-file /dev/stdin
-    unset flakehubToken
+    /usr/local/bin/determinate-nixd auth login token \
+      --token-file ${lib.escapeShellArg config.nixSeal.secrets."flakehub-password".path}
   '';
 }

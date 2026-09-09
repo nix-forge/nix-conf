@@ -23,7 +23,7 @@ done <@extensionIdsFile@
       if @curl@ --fail --location --retry 0 --connect-timeout 3 --max-time 8 --silent --show-error \
         --output "$temporary_dir/extension.crx" \
         "$extension_update_url?response=redirect&acceptformat=crx2,crx3&prodversion=9999.0.0.0&x=id%3D${extension_id}%26installsource%3Dondemand%26uc" &&
-        @python@ @crxToZip@ "$temporary_dir/extension.crx" "$temporary_dir/extension.zip" &&
+        @crxToZip@ "$temporary_dir/extension.crx" "$temporary_dir/extension.zip" &&
         @unzip@ -q "$temporary_dir/extension.zip" -d "$temporary_dir/unpacked" &&
         [ -f "$temporary_dir/unpacked/manifest.json" ]; then
         @rm@ -rf "$extension_dir.next" "$extension_dir"

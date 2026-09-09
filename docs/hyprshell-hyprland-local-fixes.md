@@ -4,7 +4,7 @@ Implementation follow-up to the September 6, 2026 [patch review](hyprshell-hyprl
 
 ## Hyprshell
 
-The [downstream patch](../modules/home/desktop/patches/hyprshell-modifier-state.patch) targets v4.10.8, `61ddaa30563c1f091ca5fbe5d7203c19f42b519c`.
+The [downstream patch](../overlays/temporary/patches/hyprshell-modifier-state.patch) targets v4.10.8, `61ddaa30563c1f091ca5fbe5d7203c19f42b519c`.
 
 A Lua binding now captures the compositor's keyboard timestamp before spawning the independent IPC process. Escape records its GTK keyboard-event timestamp. The open handler discards older timestamped opens, including ones delivered after cancellation. Comparison handles the 32-bit timestamp wrap. The cancellation marker expires after five seconds measured with a monotonic clock, so a long-lived daemon cannot mistake a new chord for an old event after half the timestamp cycle (24.9 days). The window covers delayed local delivery across many 150 ms modifier-query deadlines; it does not cover arbitrarily delayed opens. Untagged explicit IPC commands continue to mean new requests. A legitimate new quick chord after Escape still opens and commits when its modifier has already been released.
 
@@ -18,7 +18,7 @@ The local desktop uses Lua and Hyprland 0.56. Compatibility tests simulate an un
 
 ## Hyprland
 
-The [production patch](../modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch) targets the pinned Nix source `ee0409623e2d6a683374b39a32e0ac3d087841aa`.
+The [production patch](../overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch) targets the pinned Nix source `ee0409623e2d6a683374b39a32e0ac3d087841aa`.
 
 Both parent walks use a strong reference to the current ancestor and check expired surface/subsurface references. They read the current ancestor's role rather than repeatedly using the original parent. A live three-level chain accumulates offsets 10 + 20 + 30 once each and resolves the top-level surface. If ancestry disappears, position lookup retains the reachable partial offset, and top-level lookup returns null. Existing cycle rejection remains.
 

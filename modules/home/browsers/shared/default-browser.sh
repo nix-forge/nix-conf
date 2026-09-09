@@ -2,9 +2,13 @@
 # shellcheck shell=bash
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
-readonly APP_PATH='@appPath@'
-readonly APP_LABEL='@appLabel@'
-readonly HANDLER='@handler@'
+# These substitutions are shell-escaped literals supplied by Nix.
+# shellcheck disable=SC2016
+readonly APP_PATH=@appPath@
+# shellcheck disable=SC2016
+readonly APP_LABEL=@appLabel@
+# shellcheck disable=SC2016
+readonly HANDLER=@handler@
 readonly LSREGISTER_EXE='@lsregisterExe@'
 readonly PLISTBUDDY_EXE='@plistBuddyExe@'
 readonly AWK_EXE='@awkExe@'

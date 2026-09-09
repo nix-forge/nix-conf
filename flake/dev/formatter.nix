@@ -2,7 +2,10 @@
   imports = [ inputs.treefmt-nix.flakeModule ];
   perSystem.treefmt = {
     # Preserve captured upstream source, logs, and checksums byte for byte.
-    settings.global.excludes = [ "docs/assets/hyprland-upstream-local-20260907/**" ];
+    settings.global.excludes = [
+      "docs/assets/hyprland-upstream-local-20260907/**"
+      "**/*.age"
+    ];
     # Keep path-flake checks hermetic in linked worktrees.  treefmt creates a
     # fresh Git repository for its diff check and must not inherit the
     # worktree's external `.git` pointer.

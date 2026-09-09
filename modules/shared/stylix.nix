@@ -3,7 +3,7 @@ let
   themeNames = inputs: (themeDefinitions inputs).names;
   themeSchemes = inputs: (themeDefinitions inputs).schemes;
 
-  fontCatalog = import ./font-packages.nix { };
+  fontCatalog = import ./fonts/packages.nix { };
   fontFallbacks = fontCatalog.fallbacks;
 
   # Applications often need roles that Base16 does not name directly. Keep
@@ -126,10 +126,7 @@ in
       ...
     }:
     {
-      imports = [
-        inputs.stylix.nixosModules.default
-        ../nixos/locale/font-selection.nix
-      ];
+      imports = [ inputs.stylix.nixosModules.default ];
 
       options.appearance.theme = lib.mkOption {
         type = lib.types.enum (themeNames inputs);
