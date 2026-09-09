@@ -1191,6 +1191,18 @@ in
         assert desktopHome.programs.ssh.settings."*".data.StrictHostKeyChecking == "accept-new";
         assert desktopHome.programs.ssh.settings."*".data.UpdateHostKeys == "yes";
         assert desktopHome.programs.ssh.settings."*".data.ControlPath == "/home/ianmh/.ssh/cm/%C";
+        assert
+          desktopHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.HostName
+          == "ssh.github.com";
+        assert
+          desktopHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.Port == 443;
+        assert
+          desktopHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.User == "git";
+        assert
+          desktopHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.IdentitiesOnly;
+        assert
+          desktopHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.IdentityFile
+          == [ "/home/ianmh/.ssh/id_ed25519" ];
         assert desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.HostName == "Ian-MBP.local";
         assert desktopHome.programs.ssh.settings."macbook macbook-pro-m4".data.HostKeyAlias == "macbook";
         assert
@@ -1206,6 +1218,20 @@ in
         assert macbookHome.programs.ssh.settings."*".data.AddKeysToAgent == "yes";
         assert macbookHome.programs.ssh.settings."*".data.UseKeychain == "yes";
         assert macbookHome.programs.ssh.settings."*".data.ControlPath == "/Users/ianmh/.ssh/cm/%C";
+        assert
+          macbookHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.HostName
+          == "ssh.github.com";
+        assert
+          macbookHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.Port == 443;
+        assert
+          macbookHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.User == "git";
+        assert
+          macbookHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.IdentitiesOnly;
+        assert
+          macbookHome.programs.ssh.settings."github.com gist.github.com ssh.github.com".data.IdentityFile
+          == "/Users/ianmh/.ssh/id_ed25519";
+        assert macbookHome.programs.ssh.settings."gitlab.com codeberg.org".data.User == "git";
+        assert macbookHome.programs.ssh.settings."gitlab.com codeberg.org".data.IdentitiesOnly;
         assert desktopHome.nixSeal.enable;
         assert builtins.hasAttr "nix-access-tokens" (
           desktopHome.nixSeal.secrets // desktopHome.nixSeal.templates
