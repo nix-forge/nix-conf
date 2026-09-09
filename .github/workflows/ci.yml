@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/discover-lockfiles@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -81,19 +81,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/setup-nix@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/validate-workflows@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/repository-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/flake-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -129,12 +129,12 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/setup-nix@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           cache: 'false'
           cache-scope: ci-flake
       - name: Build every declared native CI check
-        uses: nix-forge/ci/actions/flake-checks@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/flake-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
@@ -229,7 +229,8 @@ jobs:
   queue-completion:
     continue-on-error: true
     name: Queue completion callback
-    if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/main/')
+    if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
+      github.event.repository.default_branch))
     needs: [lock-health, discover, legacy-secret-manager-symbols, flake-lock, lint, flake, tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -237,4 +238,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/queue-completion@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
