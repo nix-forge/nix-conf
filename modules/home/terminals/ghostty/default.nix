@@ -44,16 +44,6 @@ in
 
     # DOCS: https://ghostty.org/docs/config/reference
     settings = {
-      # Let Ghostty choose text/emoji presentation and the platform fallback,
-      # including Apple Color Emoji on macOS. An explicit Noto emoji family
-      # also shrinks nom's one-cell text stopwatch on Linux.
-      font-family = lib.mkForce [ config.stylix.fonts.monospace.name ];
-
-      # Stylix uses base02 for selections, which is nearly black in Carbon
-      # Neon. Use the accent with dark text to make selected ranges visible.
-      selection-background = config.appearance.palette.accent;
-      selection-foreground = config.appearance.palette.surface;
-
       shell-integration = if fixBashPrompt then "none" else "detect";
       # Hosts that need Ghostty's terminfo declare it themselves (notably the
       # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a

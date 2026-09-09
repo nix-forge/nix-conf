@@ -36,7 +36,7 @@ in
 
   nixSeal.templates = lib.optionalAttrs templatedIdentity {
     jujutsu-identity = {
-      source = ../../shared/local/config/jujutsu-identity.toml.template;
+      source = ../../shared/templates/jujutsu-identity.toml.template;
       placeholders = {
         name.secret = "git-user-name";
         email.secret = "git-user-email";

@@ -19,3 +19,4 @@ allow hash "5qV38hE0ACWm79QYAOtGSKu9XWKXnOma2l8bhjeTCYU=" parent-hash "W9IsebkP0
 allow hash "BertsznnITAaNuTIVmTDexmItla4SVzIu0GewGgZp1Y="
 allow hash "gPI7GdWoaX0fu8DRkks2RxbY/4Mcm7qeop13NChBHCs="
 allow hash "XgBTq8pVM6qfvawSNZmeXDW2es5VdsP1m3ZrCbTRHiA="
+allow hash "r5i/h+zMNo/lHaW06hbmmOpClJItEvVADf4njyW8WSo="

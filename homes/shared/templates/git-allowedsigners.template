@@ -1,0 +1,3 @@
+{{nix-seal:git-user-email}} namespaces="git" {{public:signing-key}}
+{{nix-seal:git-user-email-github}} namespaces="git" {{public:signing-key}}
+{{nix-seal:git-user-email-cornell}} namespaces="git" {{public:signing-key}}

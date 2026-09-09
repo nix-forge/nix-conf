@@ -28,7 +28,7 @@ express. Merely adding a `$schema` URL does not enforce a build check.
 | [Finder Favorites](../modules/home/macos/finder-favorites.nix) | Keep typed Nix options and JSON output; consider a versioned exported schema for external consumers. | `schemaVersion = 1` already identifies the application's format. A machine-readable schema would supplement native parsing, path checks and reconciliation tests. |
 | [Actual](../modules/home/actual.nix) | Keep current structured JSON generation. Add an authoritative schema only if the selected app provides one. | Replacing `writeText` plus `toJSON` solely for spelling gives little benefit; schema checking is a separate improvement. |
 | [Noctalia](../modules/home/desktop/noctalia.nix) | Pass Nix values to the Home Manager module for both baseline settings and its custom palette. | The initial review missed its `.toml.in` and `.json.in` baseline templates. The module already handles serialization and native configuration validation. |
-| [Base16 palettes](../themes/default.nix) | Keep portable YAML unless Nix becomes their intended authoring interface. | These are small, static data sources. The pinned Stylix option also accepts an attribute set, so a future Nix migration can pass values directly instead of generating YAML only to read it back. |
+| [Base16 palettes](../modules/shared/stylix/schemes.nix) | Keep portable YAML unless Nix becomes their intended authoring interface. | These are small, static data sources. The pinned Stylix option also accepts an attribute set, so a future Nix migration can pass values directly instead of generating YAML only to read it back. |
 | Root and subproject `pyproject.toml`, Cargo manifests, package manifests and lockfiles | Keep native source files. | Their own tools and non-Nix contributors need them as inputs. Nix can read and validate them. Generating them introduces a second authoring/build dependency with little benefit here. |
 | `pkgs/by-name/*` source manifests, catalogs and license evidence | Keep updater-owned JSON and add versioned validation where useful. | The independent package updaters already own these data files. Moving them into Nix would complicate those workflows. |
 | GitHub workflows, action metadata, Dependabot files | Keep committed YAML and shared CI validation. | GitHub must see these files before any Nix job can run. A Nix generator is possible only if its outputs remain committed and CI checks for drift; the existing shared-CI approach is simpler. |
@@ -250,9 +250,9 @@ including the `.github` repository's GitHub tree.
 
 | Former template | Current source and generator |
 | --- | --- |
-| `noctalia.toml.in` | [Baseline settings](../lib/desktop/noctalia.nix), passed to `programs.noctalia.settings`; Home Manager generates TOML and validates it with the selected Noctalia package. |
-| `noctalia-carbon-neon.json.in` | [Palette values](../lib/desktop/noctalia-carbon-neon.nix), passed to `programs.noctalia.customPalettes.Stylix`; Home Manager generates JSON. |
-| `ironbar-config.toml.in` | [Ironbar values](../lib/desktop/ironbar-config.nix), rendered by `pkgs.formats.toml` in the existing module. |
+| `noctalia.toml.in` | [Baseline settings](../modules/home/desktop/noctalia.nix), passed to `programs.noctalia.settings`; Home Manager generates TOML and validates it with the selected Noctalia package. |
+| `noctalia-carbon-neon.json.in` | [Palette values](../modules/shared/stylix/targets/noctalia/palette.nix), passed to `programs.noctalia.customPalettes.Stylix`; Home Manager generates JSON. |
+| `ironbar-config.toml.in` | [Ironbar values](../modules/home/desktop/bar.nix), rendered by `pkgs.formats.toml` in the existing module. |
 | `swaync-config.json.in` | [Notification values](../modules/home/desktop/notifications.nix), rendered by `pkgs.formats.json`. |
 | `hypridle.conf.in` | [Idle module](../modules/home/desktop/idle.nix), using `lib.hm.generators.toHyprconf` with ordered listener blocks. |
 | `hyprpaper.conf.in` and `hyprpaper-wallpaper-entry.conf.in` | [Wallpaper module](../modules/home/desktop/wallpaper.nix), using the same generator with repeated monitor blocks. |
@@ -262,17 +262,13 @@ including the `.github` repository's GitHub tree.
 | `server-extensions.conf.in` | [Local-control module](../homes/macbook-pro-m4/local/local-control.nix), using `lib.generators.toINIWithGlobalSection` for OpenSSL certificate extensions. |
 | `walker-config.toml.in` | Initially renamed to literal TOML. The writer follow-up below replaces it with [Nix settings](../modules/home/desktop/walker.nix), TOML generation without a locally maintained schema. |
 
-Static desktop settings live in their owning modules under `modules/home/desktop`. Parameterized configuration
-builders and validators live under `lib/desktop`, exporting named functions through
-the repository library loader. The PowerShell writer lives under `lib/writers`,
-and the local-control configuration builder under `lib/local-control`. Their
-callers and checks use the library exports. The framework recursively imports
-`.nix` files beneath selected feature directories without a `default.nix` boundary;
-placing data functions inside `modules/home/desktop/config` would make it call
-those functions as Home Manager modules. Noctalia also disables Stylix's
-generic Noctalia target, because this module already maps Stylix colors and owns
-the palette, opacity and layout. This avoids conflicting definitions after the
-settings become a mergeable Nix attribute set.
+Desktop settings and layouts live in their owning modules under
+`modules/home/desktop`. Reusable writers and validators export functions through
+`lib/desktop` and `lib/writers`. The local-control configuration builder and
+validator live beside that profile's module and export helpers through Home
+Manager's `lib.localControl` option. Its artifact checks evaluate those same
+helper modules. Every Nix file under a target's `local/` tree is a module, so
+recursive imports do not interpret configuration data as module definitions.
 
 The retained files are intentional source templates:
 

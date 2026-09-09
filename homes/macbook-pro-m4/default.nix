@@ -1,4 +1,10 @@
-{ modules, inputs, ... }: {
+{
+  modules,
+  inputs,
+  lib,
+  ...
+}:
+{
   system = "aarch64-darwin";
   username = "ianmh";
   homeDirectory = "/Users/ianmh";
@@ -9,7 +15,7 @@
   standalone = false;
 
   secrets = {
-    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
+    publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
   nixpkgsArgs = {
@@ -62,8 +68,7 @@
     ({ config, ... }: {
       services.localControl = {
         enable = true;
-        environmentFile =
-          (config.nixSeal.secrets // config.nixSeal.templates)."service-runtime-environment".path;
+        environmentFile = config.nixSeal.secrets.service-private-settings.path;
       };
       # Retain the host-only VM diagnostics and SSH helpers that accompany the
       # control host.

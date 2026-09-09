@@ -143,6 +143,7 @@ let
             stateVersion = "26.05";
           };
           xdg.configHome = configHome;
+          xdg.configFile."ironbar/style.css".text = "* { color: black; }";
           services.actual = {
             enable = true;
             package = recorder "actual-server";
@@ -150,7 +151,7 @@ let
           };
           desktop.bar = {
             enable = true;
-            inherit networkCommand;
+            inherit networkCommand iconTheme;
           };
           programs.libreoffice = {
             enable = true;

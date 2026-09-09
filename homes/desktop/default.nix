@@ -1,4 +1,10 @@
-{ modules, inputs, ... }: {
+{
+  lib,
+  modules,
+  inputs,
+  ...
+}:
+{
   system = "x86_64-linux";
   username = "ianmh";
   homeDirectory = "/home/ianmh";
@@ -8,7 +14,7 @@
   standalone = false;
 
   secrets = {
-    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
+    publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
   nixpkgsArgs = {

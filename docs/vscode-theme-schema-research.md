@@ -130,7 +130,7 @@ The pre-audit Carbon rules exposed these concrete review targets:
 
 These are observations of the repository's pre-audit templates, not claims
 that every grammar emits those classifications. Compare the resulting rules in
-the [shared theme](../modules/home/vscode/themes/carbon-neon/themes/carbon-neon-color-theme.nix).
+the [shared theme](../modules/shared/stylix/targets/vscode/carbon-neon/themes/carbon-neon-color-theme.nix).
 The official [Dark+ theme](https://github.com/microsoft/vscode/blob/1.136.1/extensions/theme-defaults/themes/dark_plus.json)
 provides useful examples of established class, namespace, escape, constant,
 regex, and language-specific scopes. Adapt only the relevant selectors. Avoid

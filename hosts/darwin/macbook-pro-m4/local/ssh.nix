@@ -1,4 +1,4 @@
-{
+{ lib, ... }: {
   # Use Apple's launchd-managed server, with the desktop's existing user key.
   services.openssh = {
     enable = true;
@@ -20,6 +20,6 @@
   };
 
   users.users.ianmh.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq ianmh@desktop"
+    "${lib.removeSuffix "\n" (builtins.readFile ../../../../homes/desktop/local/nix-seal/identity.pub)} ianmh@desktop"
   ];
 }

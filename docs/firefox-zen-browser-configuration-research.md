@@ -290,14 +290,14 @@ homes/macbook-pro-m4/local/browsers/
 homes/desktop/local/browsers/
   default.nix
 
-homes/shared/local/browsers/
+homes/shared/browsers/
   common.nix
   extensions.nix
   search.nix
   zen.nix
 ```
 
-`lib/browser/` contains only the extension-policy and uBlock serialization functions. All browser settings and policy data live with the browser modules. The shared Home Manager modules expose their common data through internal, read-only `programs.browserSuite.shared` options. They do not inject module arguments. The Firefox and Zen modules attach that configuration to each program and contain only genuine browser differences. Personal declarations live below `homes/*/local/browsers/`; the two machines import their shared personal choices from `homes/shared/local/browsers/`.
+`lib/browser/` contains only the extension-policy and uBlock serialization functions. All browser settings and policy data live with the browser modules. The shared Home Manager modules expose their common data through internal, read-only `programs.browserSuite.shared` options. They do not inject module arguments. The Firefox and Zen modules attach that configuration to each program and contain only genuine browser differences. Personal declarations live below `homes/*/local/browsers/`; the two machines import their shared personal choices from `homes/shared/browsers/`.
 
 Examples of personal/local configuration:
 

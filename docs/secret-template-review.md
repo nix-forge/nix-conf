@@ -5,7 +5,7 @@ and shared FlakeHub authentication are deployed and verified on Linux and macOS.
 Private key locations, network details, and deployment captures remain outside
 this repository.
 
-## Current representation
+## Migrated representation
 
 The repository contains 14 canonical `.age` files: nine newly encrypted scalar
 fields, one newly encrypted service-settings bundle, and four existing raw
@@ -21,10 +21,10 @@ credentials. Ten configuration inputs now use public templates.
 | Service environment | One encrypted bundle of fifteen assignments, including private variable names. The template uses a single neutral placeholder. Comments are omitted. |
 | Wi-Fi, Hugging Face, and Smithsonian credentials | Four existing scalar ciphertexts retained. |
 
-The adapter requires the replacement fields and fails evaluation if a required
-ciphertext is absent. Historical `original` paths in the inventory identify
-migration inputs. Each of the four evaluated plans contains zero retired
-whole-configuration secret declarations.
+At migration time, the adapter required replacement ciphertexts and the inventory
+recorded their original inputs. Each of the four reviewed plans contained zero
+retired whole-configuration secret declarations. The native declarations and
+pending-creation behavior have since replaced that adapter.
 
 The service assignments share one owner, access policy, consumer, and restart
 action. Their bundle replaces fifteen numbered files. Two shared FlakeHub
@@ -102,12 +102,14 @@ remain uncommitted.
 Boot-time activation after a restart has not been exercised. These results
 cover builds and completed live system and user activation.
 
-## Template source layout
+## Earlier template source layout
 
 Public template text now lives in `.template` files under shared home and host
-folders, with the service template in the MacBook's local configuration. Each
-target explicitly selects its inventories. The generic loader lives in
-`lib/secrets/templates.nix`; the central `secrets/templates.json` is retired.
+folders, with the service template in the MacBook's local configuration.
+Targets declare encrypted fields and templates through native nix-seal options.
+The inventories remain migration records; normal configuration no longer needs
+a nix-conf template helper. The central
+`secrets/templates.json` is retired.
 See the [template locations](secrets.md#config-templates).
 
 All ten templates and field bindings match the previous inventory exactly.
@@ -117,7 +119,7 @@ The Nix secret-template check and all 16 Python tests pass, including a local
 inventory authoring regression. This source reorganization requires no new
 ciphertext, signed artifacts, or activation.
 
-## Configurable ciphertext storage
+## Earlier configurable ciphertext storage
 
 nix-seal now provides target-level `secretDirectory` and
 `sharedSecretDirectory` options. Scoped declarations can opt into the latter
@@ -125,7 +127,7 @@ with `shared = true`; explicit sources retain precedence. Upstream defaults
 continue to use `secrets/`. The directory options reject unsafe relative paths
 and leave canonical IDs and access policies unchanged.
 
-This repository's 14 ciphertexts now live under `homes/shared/secrets`,
+The earlier migration placed this repository's 14 ciphertexts under `homes/shared/secrets`,
 `hosts/shared/secrets`, and `modules/shared/secrets`. The root `secrets/`
 directory is removed. File hashes match before and after relocation. Each of
 the four full plans differs from the deployed plan only in source paths;
@@ -142,3 +144,42 @@ The 17 Python tests and Nix template-policy check pass. Module checks cover
 default and custom paths, sharing across a host and home, explicit overrides,
 stable IDs and runtime paths, target-specific consumers, and unsafe directory
 rejection. Rust formatting, Clippy, workspace tests, and cargo-vet also pass.
+
+## Current ownership-based layout
+
+Shared home modules and assets now live directly under `homes/shared`, without
+an intermediate `local` directory. Shared Nix modules own the common secret and
+template declarations. Target-only ciphertext lives in each target's
+`local/secrets`, while shared ciphertext remains at its actual sharing scope.
+All four targets reuse one public Nix-token template in `modules/shared/templates`.
+See the current [storage layout](secrets.md#config-templates).
+
+Comparison of all four targets preserves IDs, recipients, runtime paths,
+permissions, phases, service actions, bindings, and public template bytes.
+Every relocated ciphertext retains its original SHA-256 hash. Source paths
+change, so the signed artifacts described in the earlier migration do not cover
+this layout. Fresh plans and artifacts are required before deployment. This
+reorganization has not created credentials, signed artifacts, or activated a host.
+
+## Template inventory retirement
+
+The three JSON inventories and the completed migration command are removed.
+They were historical migration inputs and had no role in native evaluation or
+activation. Nix declarations and public template files now fully describe the
+maintained configuration. Existing migration verification above remains
+historical evidence; its parser tests were retired with the one-time helper.
+
+Current checks render the actual public templates with disposable age keys and
+synthetic fields, then parse Git, Jujutsu, and netrc output and verify private
+file permissions. Jujutsu rollback tests and Nix token-policy checks remain.
+Standalone nix-seal checks cover inferred bindings, undeclared references,
+missing ciphertext, and phase validation without a maintained JSON inventory.
+
+## Direct service environment
+
+The service now consumes the decrypted `service-private-settings.age` bundle
+directly. Its former single-placeholder template and duplicate output are
+removed. The secret retains its source, identity, ownership, `0600` mode,
+services phase, and proxy restart action. The service's environment path and
+launchd path condition follow the raw secret path. This change has not been
+deployed; the next deployment must update the consumer and nix-seal plan together.

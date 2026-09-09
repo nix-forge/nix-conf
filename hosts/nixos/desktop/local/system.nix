@@ -5,9 +5,6 @@
   pkgs,
   ...
 }:
-let
-  userId = toString config.users.users.ianmh.uid;
-in
 {
   nix.settings = {
     # This 30 GiB interactive desktop exhausted RAM during concurrent builds.
@@ -24,15 +21,6 @@ in
     CPUWeight = 50;
     # A failed builder must not cause systemd to stop all daemon connections.
     OOMPolicy = "continue";
-  };
-
-  # Boot activation runs outside a login session. nix-seal must reach the
-  # lingering user's manager when refreshing service credentials, even before
-  # UWSM has populated that manager's graphical-session environment.
-  systemd.services.home-manager-ianmh = {
-    wants = [ "user@${userId}.service" ];
-    after = [ "user@${userId}.service" ];
-    environment.XDG_RUNTIME_DIR = "/run/user/${userId}";
   };
 
   # This is an existing installation. Keep its original compatibility version;
@@ -158,7 +146,7 @@ in
       "uinput"
     ];
     openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf deployment-client"
+      "${lib.removeSuffix "\n" (builtins.readFile ../../../../homes/macbook-pro-m4/local/nix-seal/identity.pub)} deployment-client"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII0S5mEDZaqHcYsDLQLWqqG6wrz9IJOH5R9OhNHgk9Rw authorized-client"
     ];
   };
@@ -173,7 +161,7 @@ in
   # `restrict` removes interactive forwarding/agent/TTY capabilities from
   # this deployment-only root login; normal administration uses `ianmh`.
   users.users.root.openssh.authorizedKeys.keys = [
-    "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf deployment-client"
+    "restrict ${lib.removeSuffix "\n" (builtins.readFile ../../../../homes/macbook-pro-m4/local/nix-seal/identity.pub)} deployment-client"
   ];
 
   # `nh` is the local interface for building and activating this host.  Keep

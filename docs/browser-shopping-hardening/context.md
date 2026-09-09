@@ -16,6 +16,6 @@ The collection digest is the SHA-256 of the ordered SHA-256 manifest below: `5db
 | `E002` | `modules/home/browsers/shared/extensions.nix` | `50a5495dc4515d5e2ec40873be2a700bc697e938f1f4c6ec2d484d4ebdeeda77` | Shared extension schema and forced uBlock Origin declaration |
 | `E003` | `modules/home/browsers/firefox/default.nix` | `2be2aa9e44b1b6faae6b3af56785ae1681f00b9d2012bb868a2929cd19876144` | Firefox application-wide extension policy adapter |
 | `E004` | `modules/home/browsers/zen/default.nix` | `cab7af3255c4b1804111c38d87a25c44b1059ee6184f6f40cb48f89f604ffead` | Zen application-wide extension policy adapter |
-| `E005` | `homes/shared/local/browsers/extensions.nix` | `bc24b4208604adcfe5d396618dc4b0512c1726095fbba1582d575559c8b2fe6c` | Current personal shared and Firefox-only extension membership |
+| `E005` | `homes/shared/browsers/extensions.nix` | `bc24b4208604adcfe5d396618dc4b0512c1726095fbba1582d575559c8b2fe6c` | Current personal shared and Firefox-only extension membership |
 
 The external evidence is linked and summarized in `E001`. It includes current first-party documentation from Rakuten, Mozilla, Apple, Bitwarden, uBlock Origin, and the pinned Home Manager source.
