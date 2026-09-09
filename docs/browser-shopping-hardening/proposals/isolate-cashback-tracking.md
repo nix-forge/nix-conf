@@ -22,7 +22,7 @@ I inspected the current browser adapters and personal extension configuration, t
 | `E002` | [Shared extension schema](../../../modules/home/browsers/shared/extensions.nix) | uBlock Origin is currently required in both managed browsers. |
 | `E003` | [Firefox adapter](../../../modules/home/browsers/firefox/default.nix) | Firefox receives one application-wide `ExtensionSettings` policy built from shared and Firefox-specific entries. |
 | `E004` | [Zen adapter](../../../modules/home/browsers/zen/default.nix) | Zen has its own application policy and can retain the protected daily-browser extension set. |
-| `E005` | [Personal extension membership](../../../homes/shared/local/browsers/extensions.nix) | Personal extension choices already live outside reusable modules and can be regrouped by browser. |
+| `E005` | [Personal extension membership](../../../homes/shared/browsers/extensions.nix) | Personal extension choices already live outside reusable modules and can be regrouped by browser. |
 
 ## Current Design And Failure Mode
 

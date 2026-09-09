@@ -252,10 +252,10 @@
           ],
           "implementationReadiness": {
             "affectedComponents": [
-              "lib/browser/extensions.nix",
+              "modules/home/browsers/shared/extension-policies.nix",
               "modules/home/browsers/firefox/default.nix",
               "modules/home/browsers/firefox/shopping.nix",
-              "homes/shared/local/browsers/extensions.nix"
+              "homes/shared/browsers/extensions.nix"
             ],
             "workPackages": [
               "Add a Shopping profile and allow browser-managed daily extensions without installing them into every profile."
@@ -367,7 +367,7 @@
           ],
           "implementationReadiness": {
             "affectedComponents": [
-              "homes/shared/local/browsers/extensions.nix",
+              "homes/shared/browsers/extensions.nix",
               "modules/home/browsers/firefox/default.nix",
               "homes/macbook-pro-m4/local/browsers/default.nix",
               "flake/deploy.nix"

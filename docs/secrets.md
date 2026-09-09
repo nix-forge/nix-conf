@@ -2,7 +2,7 @@
 
 This repository uses the pinned `nix-seal` submodule for secret policy,
 administrator-to-target rekeying, signed artifacts, and runtime activation. The
-canonical ciphertext lives under shared home, host, and module directories;
+canonical ciphertext lives under shared or target-local home, host, and module directories;
 target artifacts live only
 in the ignored `.nix-seal/` workspace or an exported ciphertext cache.
 
@@ -10,9 +10,9 @@ in the ignored `.nix-seal/` workspace or an exported ciphertext cache.
 
 The flake-level `flake.nixSeal.administrators.ianhollow` catalog contains the
 public administrator, recovery, and release identities and the default release
-approval policy. Each NixOS, nix-darwin, and Home Manager target selects it with
-`nixSeal.administrator = "ianhollow"`. Target modules declare local names such
-as `nixSeal.secrets."nix-access-tokens"`; nix-seal derives the canonical ID from
+approval policy. nix-seal automatically selects this sole catalog for each NixOS,
+nix-darwin, and Home Manager target. Target modules declare local names such
+as `nixSeal.secrets."hf-token"`; nix-seal derives the canonical ID from
 host or user metadata and default source paths from `nixSeal.secretDirectory`.
 The read-only
 `config.nixSeal.secrets.<local-name>.id` is available when a CLI or rekey
@@ -53,38 +53,84 @@ operation.
 
 ## Config templates
 
-Public `.template` files live with their owning home or host configuration:
+Small templates are defined inline in the Nix modules that configure them.
+The complete public format, ordinary settings, and secret markers are visible
+in one place. The template text contains no private values; the `.age` files
+remain the only canonical secret inputs.
 
-- [Shared home templates](../homes/shared/local/config/secret-templates/) contain
-  Git identity, allowed signers, the SSH login include, and the user Nix token
-  configuration. The desktop system reuses the user token template.
-- [Shared host templates](../hosts/shared/secret-templates/) contain FlakeHub
-  netrc and the macOS system Nix token configuration.
-- [MacBook local templates](../homes/macbook-pro-m4/local/secret-templates/)
-  contain the private service environment placeholder.
+Git identity, allowed signers, and the SSH include are in the shared home
+nix-seal module. FlakeHub and Nix token configuration are in the shared host or
+home declarations. Each local Jujutsu module owns its small identity template,
+and [the Wi-Fi module](../hosts/nixos/desktop/local/wifi-profile.nix) owns the
+complete IWD profile. Each output still renders as one protected file at activation.
 
-Each directory's `inventory.json` maps its template files to encrypted fields.
-The home and host `nix-seal.nix` configurations explicitly select these catalogs
-through `inventoryFiles`. [The adapter](../lib/secrets/templates.nix) loads the
-public files and selects encrypted fields for each reviewed entry. Missing fields fail
-evaluation; there is no fallback to whole-file ciphertext. Consumers use
-`nixSeal.templates.<name>.path` for configurations and secret paths for raw
-credentials. Template files inherit the original owner, group, mode, phase,
-and service actions. The inventories' `original` paths identify migration inputs
-for review; activation does not read those retired files.
+This repository needs no separate secret-template directories. nix-seal continues
+to support public template files for larger formats or reuse. When a separate
+file is useful, keep it beside its owning module and use the format suffix before
+`.template`, such as `app.toml.template`. Avoid splitting one output into public
+and secret-only fragments.
 
-Ciphertext storage follows configuration ownership:
+[Shared home declarations](../homes/shared/nix-seal.nix) and
+[shared host declarations](../hosts/shared/nix-seal.nix) own common configuration.
+Each target imports the appropriate module and declares its `publicKey` and local
+exceptions. Name lists replace `lib.genAttrs`; named entries carry individual
+options. Declarations enable nix-seal. The framework adapter supplies the repository
+root, and runtime identity paths use the platform's existing Ed25519 SSH key.
+Cache paths retain their platform defaults. Templates inherit their fields' common
+activation phase. These defaults preserve the evaluated target policies.
+Shared directories already express reuse and do not contain an
+extra `local/` directory.
 
-- `homes/shared/secrets/` holds private home settings and user-only credentials.
-- `hosts/shared/secrets/` holds FlakeHub credentials and host-specific subfolders.
-- `modules/shared/secrets/` holds the GitHub token used by homes and the desktop
-  system.
+The home and host `nix-seal.nix` modules declare encrypted fields and public
+templates directly. nix-seal resolves same-named placeholders without a JSON
+mapping. Explicit aliases and encodings remain available for application
+formats that need them. Consumers use `nixSeal.templates.<name>.path` for
+configurations and secret paths for raw credentials.
 
-Each target configures `secretDirectory` and `sharedSecretDirectory`. Individual
-inventory fields use explicit `source` paths, which override directory defaults.
-New scoped declarations can set `shared = true` to use the configured shared
-directory. Sharing ciphertext does not share runtime ownership or grant access
-to undeclared targets. nix-seal itself still defaults to the `secrets/` layout.
+The completed migration's JSON inventories and authoring command are retired.
+Native Nix declarations are the sole source of template bindings and policy.
+Inline templates can use `${config.nixSeal.placeholder.token}` for a declared
+secret named `token`; public files use `{{nix-seal:token}}`. Both forms resolve
+the same binding automatically. See the standalone
+[Nix authoring guide](../nix-seal/docs/nix-authoring.md) for setup and creation.
+Declared missing fields appear in the separate bootstrap plan, and dependent
+templates report their pending fields until ciphertext exists. Undeclared
+placeholders fail evaluation.
+
+Ciphertext storage follows the consumers' scope:
+
+| Scope | Ciphertext directory |
+| --- | --- |
+| Both homes | `homes/shared/secrets/` |
+| Both hosts | `hosts/shared/secrets/` |
+| Systems and homes | `modules/shared/secrets/` |
+| One home | `homes/<target>/local/secrets/` |
+| One host | `hosts/<platform>/<target>/local/secrets/` |
+
+The desktop-only API credential, local service settings, Wi-Fi credentials,
+and host-specific system token live with their targets. Shared directories
+contain files used by more than one target. Template definitions live in their
+owning Nix modules rather than a parallel directory hierarchy.
+
+Ciphertext directory options set defaults; explicit sources handle exceptions.
+No directory is scanned to infer secrets or permissions. Sharing ciphertext does
+not share runtime ownership or grant access to undeclared targets.
+
+These are nix-conf choices. nix-seal's [storage guide](../nix-seal/docs/storage-layout.md)
+documents its independent defaults and supports repositories with centralized
+or colocated files. Relocating ciphertext preserves encrypted bytes and runtime
+IDs but changes signed source metadata. Export fresh plans and provision target
+artifacts before deploying the reorganized configuration; preserve the previous
+cache generations for rollback.
+
+Each target owns its public SSH key in `<target>/local/nix-seal/identity.pub`.
+The target metadata and nix-seal declaration read that single file instead of
+repeating the key. Public keys do not live under `modules/shared`.
+The key in `homes/macbook-pro-m4/local/nix-seal/identity.pub` is also used for
+desktop SSH authorization. The shared
+allowed-signers template receives it through `publicValues.signing-key` and uses
+`{{public:signing-key}}` alongside its secret email markers. Both homes retain
+the same signing-key policy; their distinct target decryption keys remain distinct.
 
 Git and
 Jujutsu share private name/email values; the allowed-signers template reuses the
@@ -92,48 +138,25 @@ email fields and preserves its existing public key and `namespaces="git"`
 restriction. Once migrated, Jujutsu links its identity file to a private runtime
 template rather than copying values into persistent home storage.
 
-The authoring command reads canonical ciphertext through an authorized identity,
-validates the known application syntax, and sends extracted fields to one
-create-only `nix-seal secret batch` transaction. It does not print values, create
-plaintext temporary files, overwrite existing field ciphertext, or activate a
-configuration. Parser diagnostics are suppressed because they can contain input.
-Its temporary plans contain only public metadata; their zero source hashes are
-authoring placeholders and must never be used for provisioning or activation.
+For ordinary changes, edit the inline Nix template and rebuild. Use nix-seal's secret creation or editing commands to change private
+values. Template files contain public syntax and markers only. The generated
+plan JSON is an internal interchange format; users do not maintain a template
+inventory or write that plan by hand.
 
-```console
-just secret-template-migrate --identity /absolute/administrator-identity
-just secret-template-migrate --identity /absolute/administrator-identity --execute
-```
+Use `config.nixSeal.templates.<name>.path` wherever an application needs the
+rendered file. Evaluate fresh plans and provision matching signed artifacts
+before deploying policy or ciphertext changes. Template and consumer changes
+must be activated together. Keep existing signed caches and system generations
+until rollback is no longer needed.
 
-These authoring commands describe the one-time migration. The current
-inventory is already migrated, so repeating them will report that there are no
-unmigrated config secrets.
-
-Run authoring as the ordinary user on the machine holding the administrator identity.
-No sudo is needed when that user can read the key. The first command is a review;
-the second performs the same validation and commits the encrypted fields. Values
-requiring unfamiliar escaping or config syntax stop the entire migration before
-writing. The service environment retains each protected value's existing
-serialized quoting and omits comments. Service variable names are private
-metadata too. Their assignments share one consumer and access policy, so they
-are stored together in
-`service-private-settings.age`. The public service template contains one
-placeholder. Other configurations retain individual credential fields.
-
-After authoring, evaluate fresh plans and provision signed artifacts for all four
-targets, including unchanged raw secrets whose plan hashes also changed. Then
-build and deploy using the normal host-specific workflow. Switch consumers
-and runtime activation together: template paths contain a `templates/`
-component that old secret paths lack. A standalone runtime switch without the
-consumer changes can leave applications referencing missing files. Keep private
-encrypted rollback copies and existing signed caches until both machines
-activate successfully and rollback is no longer needed. A partial or interrupted
-run that left field ciphertext must be reviewed before retrying; the helper
-deliberately refuses to overwrite it.
-
-See the [migration review](secret-template-review.md) for current coverage and
-the [privileged-access research](secrets-privileged-access-research.md) for a
-single-authentication approach if root-owned inputs are later required.
+The service settings remain one encrypted bundle because they share a consumer
+and access policy, and their variable names are private metadata. The service
+reads `config.nixSeal.secrets.service-private-settings.path` directly as its
+environment file. No pass-through template or duplicate rendered copy is needed.
+Its `0600` permissions, services phase, and proxy restart action remain on the
+secret declaration. See the
+[migration review](secret-template-review.md) for historical verification and
+current layout notes.
 
 ## Shared FlakeHub authentication
 

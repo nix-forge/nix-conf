@@ -11,19 +11,6 @@ let
   cfg = config.programs.browserSuite;
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
-  browserTheme =
-    {
-      catppuccin-mocha = {
-        name = "catppuccinMocha";
-        id = "bkkmolkhemgaeaeggcmfbghljjjoofoh";
-      };
-      gruvbox-dark-medium = {
-        name = "gruvboxDarkMedium";
-        id = "ihennfdbghdiflogeancnalflhgmanop";
-      };
-    }
-    .${config.appearance.theme} or null;
-
   systemChromiumPolicies =
     if osConfig == null then null else lib.attrByPath [ "programs" "chromiumPolicies" ] null osConfig;
 
@@ -189,8 +176,7 @@ in
           bitwarden = "nngceckbapebfimnlniiiahkandclblb";
           karakeep = "kgcjekpmcjjogibpjebkhaanilehneje";
           refinedGitHub = "hlepfoohegkhhmjieoechaddaejaokhf";
-        }
-        // optionalAttrs (browserTheme != null) { ${browserTheme.name} = browserTheme.id; };
+        };
         description = "Named Chrome Web Store extension IDs used by Helium.";
       };
     };

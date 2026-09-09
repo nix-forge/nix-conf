@@ -88,7 +88,7 @@ strict = true
 # Keep this runner regression usable with the standard-library test runner.
 "tests/hyprland/test_upstream_local_runner.py" = ["pytest-unittest-assertion"]
 
-"tests/secrets/test_template_migration.py" = [
+"tests/secrets/test_public_templates.py" = [
   # Exercise the installed CLI with disposable keys using the stdlib runner.
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",

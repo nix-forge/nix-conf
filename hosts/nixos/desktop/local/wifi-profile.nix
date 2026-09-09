@@ -33,7 +33,16 @@
     };
 
     templates."iwd-trusted-profile" = {
-      source = ./iwd-trusted.psk.template;
+      # Keep connection behavior visible beside the secret bindings.
+      content = ''
+        SSID={{nix-seal:ssid}}
+        [Security]
+        Passphrase={{nix-seal:passphrase}}
+
+        [Settings]
+        AutoConnect=true
+        Hidden=false
+      '';
       placeholders.passphrase = {
         secret = "wifi-trusted-passphrase";
         encoding = "utf8";

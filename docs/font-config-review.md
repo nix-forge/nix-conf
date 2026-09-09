@@ -76,7 +76,7 @@ Apple system fonts to accomplish this.
 
 ### 2. Decouple the serif role from the full Google Fonts catalog
 
-`modules/shared/stylix.nix:142` uses the entire filtered Google Fonts package
+`modules/shared/stylix/default.nix:142` uses the entire filtered Google Fonts package
 for Literata. This makes a required desktop role depend on thousands of optional
 design fonts, even for a host that only wants the primary typography.
 

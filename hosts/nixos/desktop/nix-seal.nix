@@ -1,54 +1,17 @@
 {
   config,
+  lib,
   inputs,
-  myLib,
   pkgs,
   utils,
   ...
 }:
 {
+  imports = [ ../../shared/nix-seal.nix ];
   nixSeal = {
-    enable = true;
-    administrator = "ianhollow";
-    secretDirectory = "hosts/shared/secrets/desktop";
-    sharedSecretDirectory = "modules/shared/secrets";
-    identityFile = "/etc/ssh/ssh_host_ed25519_key";
-    artifactCacheRoot = "/var/lib/nix-seal/cache/v1";
-    repositoryRoot = ../../../.;
-    identities = {
-      target = {
-        kind = "target";
-        public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
-      };
-    };
-    # The root Nix daemon and the desktop profile intentionally consume the
-    # same canonical token set, each delivered in a separately encrypted
-    # target artifact and materialized under its own runtime root.
-    inherit
-      (myLib.secrets.mkTemplates {
-        inventoryFiles = [
-          ../../../homes/shared/local/config/secret-templates/inventory.json
-          ../../shared/secret-templates/inventory.json
-        ];
-        repositoryRoot = ../../../.;
-        scope = "ianhollow/hosts/nixos/desktop";
-        secrets."nix-access-tokens" = {
-          source = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
-          owner = "root";
-          group = "root";
-          mode = "0400";
-        };
-        secrets."flakehub-netrc" = {
-          # Both hosts reuse the same two canonical FlakeHub credentials.
-          source = "secrets/ianhollow/hosts/darwin/macbook-pro-m4/flakehub-netrc.age";
-          owner = "root";
-          group = "root";
-          mode = "0400";
-        };
-      })
-      secrets
-      templates
-      ;
+    secretDirectory = "hosts/nixos/desktop/local/secrets";
+    publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
+    secrets.nix-token-github-com.shared = true;
   };
 
   # Authentication is also available with a free account. Nixd owns its

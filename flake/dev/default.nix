@@ -10,6 +10,7 @@
     ./noogle-checks.nix
     ./platform-checks.nix
     ./shell.nix
+    ./theme-checks.nix
     ./temporary-fix-checks.nix
   ];
 }

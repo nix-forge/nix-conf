@@ -219,8 +219,8 @@ its own checks.
 ## Implication for this repository
 
 The existing integration lives in
-[`codex.nix`](../modules/home/dev/agentic-tui/codex.nix) and its
-[appearance updater](../modules/home/dev/agentic-tui/scripts/configure-codex-desktop-appearance.sh.in).
+[Codex theme target](../modules/shared/stylix/targets/codex-desktop/home.nix) and its
+[appearance updater](../modules/shared/stylix/targets/codex-desktop/configure-codex-desktop-appearance.sh.in).
 The package selection belongs to
 [`codex-app.nix`](../modules/home/dev/agentic-gui/codex-app.nix).
 

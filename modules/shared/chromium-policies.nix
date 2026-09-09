@@ -28,20 +28,6 @@ let
       inherit (cfg) extensionUpdateUrl;
       inherit (cfg) heliumExtensions;
       inherit (cfg) customFilterLists;
-      catppuccinMochaThemeId = "bkkmolkhemgaeaeggcmfbghljjjoofoh";
-      gruvboxDarkMediumThemeId = "ihennfdbghdiflogeancnalflhgmanop";
-      browserTheme =
-        {
-          catppuccin-mocha = {
-            name = "catppuccinMocha";
-            id = catppuccinMochaThemeId;
-          };
-          gruvbox-dark-medium = {
-            name = "gruvboxDarkMedium";
-            id = gruvboxDarkMediumThemeId;
-          };
-        }
-        .${config.appearance.theme} or null;
       chromiumSystemResolverPolicy = {
         DnsOverHttpsMode = cfg.dnsOverHttpsMode;
       };
@@ -138,13 +124,6 @@ let
 
       chromiumExtensionPolicies = {
         ${heliumUblockOriginId} = ublockOriginPolicy;
-      };
-
-      browserThemePolicy = lib.optionalAttrs (browserTheme != null) {
-        ${browserTheme.id} = {
-          installation_mode = "force_installed";
-          update_url = extensionUpdateUrl;
-        };
       };
 
       heliumPolicies = {
@@ -379,8 +358,7 @@ let
             bitwarden = "nngceckbapebfimnlniiiahkandclblb";
             karakeep = "kgcjekpmcjjogibpjebkhaanilehneje";
             refinedGitHub = "hlepfoohegkhhmjieoechaddaejaokhf";
-          }
-          // lib.optionalAttrs (browserTheme != null) { ${browserTheme.name} = browserTheme.id; };
+          };
           description = "Named Chrome Web Store extension IDs managed for Helium.";
         };
 
@@ -422,26 +400,19 @@ let
               extensionPolicies = chromiumExtensionPolicies;
             };
 
-            # Chrome can install the maintained Catppuccin and Gruvbox ports
-            # directly. Carbon Neon deliberately leaves Chrome's native dark
-            # UI unbranded instead of forcing an unrelated Web Store theme.
             targets.google-chrome = {
               enable = lib.mkDefault true;
               inheritSharedPolicies = false;
               linuxManagedPaths = [ "opt/chrome/policies/managed/nixos-system.json" ];
               darwinBundleId = "com.google.Chrome";
               policies = chromiumSystemResolverPolicy // {
-                ExtensionInstallForcelist = [
-                  "${bitwardenExtensionId};${extensionUpdateUrl}"
-                ]
-                ++ lib.optionals (browserTheme != null) [ "${browserTheme.id};${extensionUpdateUrl}" ];
+                ExtensionInstallForcelist = [ "${bitwardenExtensionId};${extensionUpdateUrl}" ];
                 ExtensionSettings = {
                   ${bitwardenExtensionId} = {
                     installation_mode = "force_installed";
                     update_url = extensionUpdateUrl;
                   };
-                }
-                // browserThemePolicy;
+                };
               };
             };
           };

@@ -29,7 +29,7 @@ The worktree already has most prerequisites in the right layers:
 
 The implemented manifest `path` is selected per platform: the Nixpkgs `libexec/desktop_proxy` on Linux and the proxy inside the final copied Bitwarden application on macOS. The JSON definitions live once in the shared browser module rather than being duplicated in each browser adapter.
 
-The reusable Bitwarden module exposes login startup as an option; the personal choice to enable it for both homes is kept in `homes/shared/local/browsers/bitwarden.nix`.
+The reusable Bitwarden module exposes login startup as an option; the personal choice to enable it for both homes is kept in `homes/shared/browsers/bitwarden.nix`.
 
 ## Support status
 

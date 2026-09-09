@@ -22,11 +22,7 @@ let
   privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
   secureFileSystem = localControlLibrary.mkSecureFileSystem pkgs;
 
-  inherit
-    (myLib.local-control.mkLocalControlConfigs {
-      inherit pkgs cfg;
-      template = ./local-control/config/proxy.Caddyfile.in;
-    })
+  inherit (localControlLibrary.mkLocalControlConfigs { inherit pkgs cfg; })
     proxyConfig
     serverCertificateExtensions
     clientCertificateExtensions
@@ -99,6 +95,8 @@ let
   };
 in
 {
+  imports = [ ./local-control/config-helpers.nix ];
+
   options.services.localControl = {
     enable = lib.mkEnableOption "immutable local control-plane infrastructure";
 

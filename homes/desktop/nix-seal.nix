@@ -1,73 +1,15 @@
-{
-  config,
-  lib,
-  myLib,
-  ...
-}:
-let
-  homeDirectory = config.home.homeDirectory;
-  runtime = {
-    owner = "ianmh";
-    group = "ianmh";
-    mode = "0400";
-  };
-in
-{
+{ lib, ... }: {
+  imports = [ ../shared/nix-seal.nix ];
   nixSeal = {
-    enable = true;
-    administrator = "ianhollow";
-    secretDirectory = "homes/shared/secrets";
-    sharedSecretDirectory = "modules/shared/secrets";
-    identityFile = "${homeDirectory}/.ssh/id_ed25519";
-    artifactCacheRoot = "${homeDirectory}/.cache/nix-seal/v1";
-    repositoryRoot = ../../.;
-    identities = {
-      target = {
-        kind = "target";
-        public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEolRZAKwwqDLSkgezpqNK4WYLjMsE1qp8f3k7nYMVgq";
-      };
+    publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
+    secrets.smithsonian-open-access-api-key = {
+      source = "homes/desktop/local/secrets/smithsonian-open-access-api-key.age";
+      serviceCredentials = [
+        {
+          unit = "desktop-wallpaper-fetch-smithsonian.service";
+          name = "smithsonian-open-access-api-key";
+        }
+      ];
     };
-    # Optional source credentials must not make unrelated desktop deployments
-    # fail when their encrypted artifact has not been provisioned yet.
-    # Config names select public templates backed by the encrypted fields.
-    inherit
-      (myLib.secrets.mkTemplates {
-        inventoryFiles = [ ../shared/local/config/secret-templates/inventory.json ];
-        repositoryRoot = ../../.;
-        scope = "ianhollow/users/ianmh";
-        secrets =
-          lib.genAttrs
-            (
-              [
-                "nix-access-tokens"
-                "cornell-net-id-ssh-config"
-                "git-allowedsigners"
-                "gitconfig-username"
-                "gitconfig-useremail"
-                "gitconfig-useremail-cornell"
-                "gitconfig-useremail-github"
-                "hf-token"
-              ]
-              ++ [ "smithsonian-open-access-api-key" ]
-            )
-            (
-              name:
-              runtime
-              // lib.optionalAttrs (name == "smithsonian-open-access-api-key") {
-                # When the secret is sealed, systemd exposes it only to this fetcher
-                # through CREDENTIALS_DIRECTORY. It is neither an environment variable
-                # nor a Nix-store input.
-                serviceCredentials = [
-                  {
-                    unit = "desktop-wallpaper-fetch-smithsonian.service";
-                    name = "smithsonian-open-access-api-key";
-                  }
-                ];
-              }
-            );
-      })
-      secrets
-      templates
-      ;
   };
 }

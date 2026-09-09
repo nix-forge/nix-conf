@@ -1,15 +1,12 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   ...
 }:
 let
-  desktopLib = myLib.desktop;
   cfg = config.desktop.notifications;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
-  colors = config.lib.stylix.colors.withHashtag;
   hyprBind = key: command: {
     _args = [
       key
@@ -70,28 +67,6 @@ in
         volume = {
           label = "Volume";
         };
-      };
-    };
-
-    xdg.configFile."swaync/style.css".source = pkgs.replaceVarsWith {
-      name = "swaync-desktop-style";
-      src = ./config/swaync-style.css.in;
-      postCheck = ''
-        ${desktopLib.mkGtkCssChecker { inherit pkgs; }}/bin/check-gtk-css "$target"
-      '';
-      replacements = {
-        font = builtins.toJSON config.stylix.fonts.sansSerif.name;
-        inherit (colors)
-          base00
-          base01
-          base02
-          base03
-          base04
-          base05
-          base08
-          base0B
-          base0D
-          ;
       };
     };
 

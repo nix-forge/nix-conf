@@ -39,6 +39,10 @@
       # ChatGPT sends a static app bitmap without a theme icon name. Limit the
       # override to this known case so other tray pixmaps retain their badges.
       trayOverrides.ChatGPT = "indicator-chatgpt";
+      # Bitwarden supplies a blue tray bitmap. Use Papirus's monochrome shield.
+      trayOverrides.Bitwarden = "bitwarden-tray";
+      # Use Discord's monochrome glyph for Vesktop's tray bitmap.
+      trayOverrides.Vesktop = "discord-tray";
     };
     nightLight = {
       enable = true;

@@ -235,7 +235,7 @@ content with a Nix writer would put it in the store.
 
 | Local code | Function to use | Benefit and constraint |
 | --- | --- | --- |
-| `lib/browser/ublock.nix:3`, `modules/shared/chromium-policies.nix:67` | `lib.mapAttrsToList` and `lib.boolToString` | Replace attribute-name enumeration followed by lookup; preserve Boolean string encoding and sorted output. |
+| `modules/home/browsers/shared/ublock-policy.nix:3`, `modules/shared/chromium-policies.nix:67` | `lib.mapAttrsToList` and `lib.boolToString` | Replace attribute-name enumeration followed by lookup; preserve Boolean string encoding and sorted output. |
 | `modules/shared/chromium-policies.nix:56`, `modules/home/browsers/shared/default.nix:86` | `lib.genAttrs` | Express extension-ID or MIME-name maps directly. Preserve `mkDefault` values and duplicate-name behavior. |
 | `modules/home/wm/hyprland/default.nix:47`, line 84 | `lib.mod`, `lib.min`, `lib.max` | Remove duplicate arithmetic helpers. Preserve positive-resolution constraints and nearest-scale tie behavior. |
 | `modules/home/desktop/wallpaper.nix:12`, `modules/home/shells/nushell/env.nix:5` | `lib.concatMapAttrsStringSep` | Simplify mapping followed by string joining. This does not fix or replace either target language's escaping. |

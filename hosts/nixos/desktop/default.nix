@@ -1,9 +1,15 @@
-{ modules, inputs, ... }: {
+{
+  lib,
+  modules,
+  inputs,
+  ...
+}:
+{
   system = "x86_64-linux";
   hostName = "desktop";
 
   secrets = {
-    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFwSeiaY3PpNjPDaFA9bDPeFaLU5HYi0PrJKEEYIt3Vs";
+    publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
   nixpkgsArgs = {
@@ -64,6 +70,7 @@
     hardware-storage
     hardware-tpm
     hardware-zram
+    yubikey
     gaming
 
     ## Desktop and services

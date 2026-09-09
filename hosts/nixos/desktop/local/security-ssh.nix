@@ -1,9 +1,11 @@
-{
+{ lib, ... }: {
   # This is the MacBook host key already used by its nix-seal identity.
   # Keep a stable alias so a DHCP address change cannot bypass key checking.
   programs.ssh.knownHosts.macbook = {
     hostNames = [ "macbook" ];
-    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJTE/d4MlNXECP5e/1Gi1u0so7wdoy1XtDotVE27P2rZ";
+    publicKey = lib.removeSuffix "\n" (
+      builtins.readFile ../../../../hosts/darwin/macbook-pro-m4/local/nix-seal/identity.pub
+    );
   };
 
   # This physical desktop is administered from trusted private networks only.

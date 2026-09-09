@@ -1,31 +1,32 @@
 { lib }:
 let
-  myLib = import ../../lib { inherit lib; };
-  apply =
-    repositoryRoot:
-    myLib.secrets.mkTemplates {
-      inherit repositoryRoot;
-      inventoryFiles = [ ../../homes/shared/local/config/secret-templates/inventory.json ];
-      scope = "ianhollow/hosts/nixos/desktop";
-      secrets."nix-access-tokens" = {
-        source = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
-        owner = "root";
-        group = "root";
-        mode = "0400";
+  checkNixTokenPolicy = import ../../flake/deploy/nix-token-policy.nix { inherit lib; };
+  after = {
+    secrets.nix-token-github-com = {
+      source = "modules/shared/secrets/nix-token-github-com.age";
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
+    templates.nix-access-tokens = {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+      placeholders.nix-token-github-com = {
+        secret = "nix-token-github-com";
+        encoding = "utf8";
       };
     };
-  before = apply ./fixtures/unmigrated;
-  after = apply ./fixtures/migrated;
+  };
   accepts =
     nixSeal:
-    myLib.secrets.checkNixTokenPolicy {
+    checkNixTokenPolicy {
       inherit nixSeal;
       owner = "root";
       group = "root";
     };
   field = "nix-token-github-com";
 in
-assert !(builtins.tryEval (builtins.deepSeq before true)).success;
 assert after.templates ? nix-access-tokens;
 assert !(after.secrets ? nix-access-tokens);
 assert after.secrets.${field}.owner == "root";

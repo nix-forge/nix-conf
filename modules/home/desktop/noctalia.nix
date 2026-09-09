@@ -1,46 +1,15 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   self,
   system,
   ...
 }:
 let
-  desktopLib = myLib.desktop;
   cfg = config.desktop.noctalia;
-  colors = config.lib.stylix.colors.withHashtag;
-  isOled = config.appearance.theme == "carbon-neon-oled";
   noctalia = lib.getExe config.programs.noctalia.package;
-  darkAppIcons = self.packages.${system}.noctalia-dark-app-icons;
-  syncAppIcons = pkgs.writeShellApplication {
-    name = "noctalia-sync-app-icons";
-    runtimeInputs = [ pkgs.glib ];
-    text = ''
-      mode="''${NOCTALIA_THEME_MODE:-}"
-      if [[ -z "$mode" ]]; then
-        mode="$(${noctalia} msg theme-mode-get)"
-      fi
-      case "$mode" in
-        dark) theme=${lib.escapeShellArg darkAppIcons.iconThemeName} ;;
-        light) theme=${lib.escapeShellArg config.stylix.icons.light} ;;
-        *) echo "Unknown Noctalia theme mode: $mode" >&2; exit 1 ;;
-      esac
-      gsettings set org.gnome.desktop.interface icon-theme "$theme"
-    '';
-  };
   featureSettings = {
-    widget = lib.optionalAttrs cfg.symbolicBarIcons.enable {
-      active_window.symbolic_icons = true;
-      taskbar.symbolic_icons = true;
-      tray.icon_overrides = cfg.symbolicBarIcons.trayOverrides;
-    };
-    hooks = lib.optionalAttrs cfg.darkAppIcons.enable {
-      started = [ (lib.getExe syncAppIcons) ];
-      theme_mode_changed = [ (lib.getExe syncAppIcons) ];
-    };
-
     nightlight = lib.optionalAttrs cfg.nightLight.enable {
       enabled = true;
       force = false;
@@ -68,20 +37,6 @@ let
     dock = lib.optionalAttrs cfg.dock.enable {
       enabled = true;
       position = "bottom";
-      icon_size = 42;
-      # Keep artwork at full opacity and size regardless of window focus.
-      # Running dots and hover magnification provide the state feedback.
-      active_opacity = 1.0;
-      inactive_opacity = 1.0;
-      active_scale = 1.0;
-      inactive_scale = 1.0;
-      main_axis_padding = 12;
-      cross_axis_padding = 6;
-      item_spacing = 4;
-      background_opacity = 0.96;
-      radius = 14;
-      margin_edge = 10;
-      shadow = false;
       show_running = true;
       auto_hide = true;
       smart_auto_hide = false;
@@ -210,7 +165,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = lib.optional cfg.darkAppIcons.enable darkAppIcons;
     assertions = [
       {
         assertion = config.wayland.windowManager.hyprland.enable;
@@ -261,39 +215,216 @@ in
           };
         };
       };
-      style = pkgs.replaceVarsWith {
-        src = ./config/hyprshell.css.in;
-        postCheck = ''
-          ${desktopLib.mkGtkCssChecker { inherit pkgs; }}/bin/check-gtk-css "$target"
-        '';
-        replacements = {
-          inherit (colors)
-            base00
-            base01
-            base02
-            base03
-            base05
-            base0D
-            ;
-          font = builtins.toJSON config.stylix.fonts.sansSerif.name;
-        };
-      };
     };
-
-    # This module derives its complete palette and settings from Stylix below.
-    # Disable the upstream adapter so it cannot also define palette or opacity.
-    stylix.targets.noctalia.enable = false;
 
     programs.noctalia = {
       enable = true;
       package = self.packages.${system}.noctalia-personal;
       systemd.enable = true;
-      settings = desktopLib.mkNoctaliaConfig {
-        font = config.stylix.fonts.sansSerif.name;
-        paletteName = "Stylix";
-        pureBlackDark = isOled;
+      settings = {
+        theme = {
+          templates = {
+            # Stylix owns application theming; avoid a second mutable configuration.
+            enable_builtin_templates = false;
+            enable_community_templates = false;
+          };
+        };
+        storage = {
+          key_source = "secret-service";
+        };
+        shell = {
+          time_format = "{:%-I:%M %p}";
+          date_format = "%a %b %-d";
+          # MPRIS album art uses HTTPS, which offline mode would block too.
+          offline_mode = false;
+          external_ip_enabled = false;
+          telemetry_enabled = false;
+          setup_wizard_enabled = false;
+          polkit_agent = false;
+          launch_apps_as_systemd_services = false;
+          launch_apps_custom_command = "uwsm app -- $CMD";
+          clipboard_enabled = true;
+          clipboard_keep_from_closed_apps = true;
+          clipboard_history_max_entries = 50;
+          clipboard_confirm_clear_history = true;
+          clipboard_auto_paste = "off";
+          screen_time_enabled = false;
+          shared_gl_context = true;
+          animation = {
+            enabled = true;
+            speed = 1.0;
+          };
+          panel = {
+            floating_layer = "overlay";
+            launcher_placement = "floating";
+            clipboard_placement = "floating";
+            control_center_placement = "attached";
+            session_placement = "attached";
+            launcher_position = "center";
+            clipboard_position = "center";
+            floating_offset = 8;
+          };
+          launcher = {
+            categories = true;
+            show_icons = true;
+            show_app_origin_indicator = true;
+            compact = false;
+            app_grid = false;
+            show_app_actions = true;
+            sort_by_usage = true;
+            fetch_exchange_rates = false;
+            provider_prefix = "/";
+            auto_paste = "off";
+            providers = {
+              calculator = {
+                prefix = "calc";
+                global = true;
+              };
+              emoji = {
+                prefix = "emoji";
+              };
+              session = {
+                prefix = "session";
+                global = false;
+              };
+              windows = {
+                prefix = "windows";
+              };
+            };
+          };
+        };
+        bar = {
+          order = [ "default" ];
+          default = {
+            position = "top";
+            enabled = true;
+            auto_hide = false;
+            smart_auto_hide = false;
+            reserve_space = true;
+            layer = "top";
+            start = [
+              "launcher"
+              "workspaces"
+              "active_window"
+            ];
+            center = [ "clock" ];
+            end = [
+              "media"
+              "notifications"
+              "tray"
+              "network"
+              "bluetooth"
+              "volume"
+              "nightlight"
+              "privacy"
+              "control-center"
+            ];
+          };
+        };
+        widget = {
+          clock = {
+            format = "{:%a %b %-d  %-I:%M %p}";
+            tooltip_format = "{:%A, %B %-d, %Y}";
+          };
+          network = {
+            show_label = false;
+          };
+          privacy = {
+            hide_inactive = true;
+          };
+        };
+        control_center = {
+          sidebar = "compact";
+          sidebar_section = "compact";
+          width = 680;
+          show_shortcut_labels = true;
+          show_session_button = true;
+          hidden_tabs = [
+            "weather"
+            "screen-time"
+          ];
+          calendar = {
+            event_date_format = "%a %b %-d";
+            event_time_format = "%-I:%M %p";
+          };
+          shortcuts = [
+            { type = "wifi"; }
+            { type = "bluetooth"; }
+            { type = "nightlight"; }
+            { type = "notification"; }
+            { type = "session"; }
+          ];
+        };
+        notification = {
+          enable_daemon = true;
+          show_app_name = true;
+          show_actions = true;
+          position = "top_right";
+          layer = "top";
+          background_opacity = 0.98;
+          border = true;
+          offset_x = 16;
+          offset_y = 12;
+          max_visible = 3;
+          history_retention_hours = 168;
+          collapse_on_dismiss = true;
+        };
+        osd = {
+          enabled = true;
+          position = "top_center";
+          background_opacity = 0.98;
+          border = true;
+          offset_x = 16;
+          offset_y = 52;
+          kinds = {
+            volume = true;
+            volume_output = true;
+            volume_input = true;
+            brightness = true;
+            wifi = true;
+            bluetooth = true;
+            power_profile = true;
+            caffeine = true;
+            nightlight = true;
+            dnd = true;
+            lock_keys = false;
+            keyboard_layout = true;
+            # Noctalia generates these track-change popups independently of Spotify.
+            media = false;
+            privacy = true;
+          };
+        };
+        system = {
+          monitor = {
+            enabled = true;
+            cpu_poll_seconds = 5.0;
+            gpu_poll_seconds = 10.0;
+            memory_poll_seconds = 5.0;
+            network_poll_seconds = 5.0;
+            disk_poll_seconds = 30.0;
+          };
+        };
+        dock = {
+          enabled = false;
+        };
+        wallpaper = {
+          # Awww remains the wallpaper renderer and source manager.
+          enabled = false;
+        };
+        desktop_widgets = {
+          enabled = false;
+        };
+        lockscreen = {
+          # Hyprlock remains the session-lock authority.
+          enabled = false;
+        };
+        lockscreen_widgets = {
+          enabled = false;
+        };
+        weather = {
+          enabled = false;
+        };
       };
-      customPalettes.Stylix = desktopLib.mkNoctaliaPalette { inherit colors; };
     };
 
     # Noctalia merges every TOML file in this directory. Keeping hardware and
@@ -306,14 +437,9 @@ in
     # The store links make plugin revisions part of the Home Manager closure.
     # This intentionally supports local reviewed code only, not Noctalia's
     # mutable plugin catalog or a background git updater.
-    xdg.dataFile =
-      lib.mapAttrs' (
-        name: source: lib.nameValuePair "noctalia/plugins/${name}" { inherit source; }
-      ) cfg.plugins
-      // lib.optionalAttrs cfg.darkAppIcons.enable {
-        "icons/${darkAppIcons.iconThemeName}".source =
-          "${darkAppIcons}/share/icons/${darkAppIcons.iconThemeName}";
-      };
+    xdg.dataFile = lib.mapAttrs' (
+      name: source: lib.nameValuePair "noctalia/plugins/${name}" { inherit source; }
+    ) cfg.plugins;
 
     # Make the service transition exclusive even before a logout. Home Manager
     # removes the old units on activation; these conflicts also stop a stale
