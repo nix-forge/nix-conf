@@ -54,3 +54,18 @@ git config --local user.email 72767437+IanHollow@users.noreply.github.com
 Encrypting a Git configuration or adding a mailmap does not remove author and committer identities already embedded
 in old commits. Rewriting published history requires coordinating affected branches,
 open pull requests, and other clones before a force push.
+
+Both home profiles default Git and Jujutsu to the public noreply address. Git's
+global hooks inspect author and committer identities, the staged snapshot,
+commit messages, and newly published history. The push check includes historical
+blobs and annotated tags, so deleting a private address in the latest commit is
+insufficient. Blocked addresses come from the encrypted policy described in
+[the secret-management guide](secrets.md).
+
+The global hooks forward to existing repository hooks. `just hooks` preserves
+this arrangement when installing prek. An unrelated repository's installer may
+set its own `core.hooksPath` and bypass the global guard; check the effective
+setting after installing other hook managers. These are local protections:
+`--no-verify`, alternate Git clients, GitHub API calls, and browser edits do not
+necessarily run them. Review pull request bodies and other web content before
+publishing. Each machine needs the home configuration and its signed secrets.

@@ -7,6 +7,7 @@
     ./formatter.nix
     ./generated-config-checks.nix
     ./git-hooks.nix
+    ./git-privacy-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
     ./shell.nix

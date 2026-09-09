@@ -132,11 +132,19 @@ allowed-signers template receives it through `publicValues.signing-key` and uses
 `{{public:signing-key}}` alongside its secret email markers. Both homes retain
 the same signing-key policy; their distinct target decryption keys remain distinct.
 
-Git and
-Jujutsu share private name/email values; the allowed-signers template reuses the
-email fields and preserves its existing public key and `namespaces="git"`
-restriction. Once migrated, Jujutsu links its identity file to a private runtime
-template rather than copying values into persistent home storage.
+Git defaults to the public GitHub noreply address, including before a remote is
+configured. Jujutsu uses the GitHub identity field in its protected runtime
+template. The private contact fallback remains encrypted and is not selected
+automatically by either tool. The allowed-signers template reuses the identity
+fields and preserves its public key and `namespaces="git"` restriction.
+
+The encrypted `git-privacy-policy` field contains a JSON object with
+`blockedEmails` and `privateContentRepositories` arrays. Store addresses and any
+private repository identifiers inside the ciphertext. The Git hooks consume its
+owner-readable runtime file. A listed repository may retain private file content
+only when GitHub's API confirms that its destination is private. Metadata remains
+subject to the address check. A missing policy or failed visibility check blocks
+the operation without printing private values.
 
 For ordinary changes, edit the inline Nix template and rebuild. Use nix-seal's secret creation or editing commands to change private
 values. Template files contain public syntax and markers only. The generated

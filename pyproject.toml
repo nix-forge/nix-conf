@@ -58,6 +58,17 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"modules/home/dev/scripts/git-privacy-hook.py" = [
+  # Invoke pinned Git/gh and executable repository hooks directly, without a shell.
+  "subprocess-without-shell-equals-true",
+]
+"tests/git_privacy/test_hooks.py" = [
+  # Real Git subprocesses run only in disposable fixtures with stdlib unittest.
+  "pytest-unittest-assertion",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
 "tests/nix/check-python-helpers.py" = [
   # Sandbox fixture assertions use literal protocol and configuration values.
   "assert",
