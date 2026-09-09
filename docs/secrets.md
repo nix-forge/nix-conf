@@ -53,24 +53,22 @@ operation.
 
 ## Config templates
 
-Use the intended file format before `.template`, for example
-`gitconfig-username.gitconfig.template`, `jujutsu-identity.toml.template`,
-and `nix-access-tokens.conf.template`. Conventional extensionless files, such as
-`git-allowedsigners`, retain that name followed by `.template`. Explicit template
-sources preserve existing logical names and runtime paths when source files are renamed.
+Small templates are defined inline in the Nix modules that configure them.
+The complete public format, ordinary settings, and secret markers are visible
+in one place. The template text contains no private values; the `.age` files
+remain the only canonical secret inputs.
 
-Public `.template` files live with the configurations that use them:
+Git identity, allowed signers, and the SSH include are in the shared home
+nix-seal module. FlakeHub and Nix token configuration are in the shared host or
+home declarations. Each local Jujutsu module owns its small identity template,
+and [the Wi-Fi module](../hosts/nixos/desktop/local/wifi-profile.nix) owns the
+complete IWD profile. Each output still renders as one protected file at activation.
 
-- [Shared home templates](../homes/shared/templates/) contain Git and Jujutsu
-  identity, allowed signers, and the SSH login include.
-- [Shared host templates](../hosts/shared/templates/) contain the FlakeHub netrc.
-- [Cross-platform templates](../modules/shared/templates/) contain one Nix-token
-  template used by all four targets, with each target's own secret binding.
-
-The small IWD profile is defined inline in
-[the Wi-Fi module](../hosts/nixos/desktop/local/wifi-profile.nix). Its connection
-settings and secret bindings are visible together when reading the Nix
-configuration. It still renders as one protected file at activation.
+This repository needs no separate secret-template directories. nix-seal continues
+to support public template files for larger formats or reuse. When a separate
+file is useful, keep it beside its owning module and use the format suffix before
+`.template`, such as `app.toml.template`. Avoid splitting one output into public
+and secret-only fragments.
 
 [Shared home declarations](../homes/shared/nix-seal.nix) and
 [shared host declarations](../hosts/shared/nix-seal.nix) own common configuration.
@@ -111,15 +109,12 @@ Ciphertext storage follows the consumers' scope:
 
 The desktop-only API credential, local service settings, Wi-Fi credentials,
 and host-specific system token live with their targets. Shared directories
-contain files used by more than one target. Public templates follow the same
-scope rules, using `templates/` as a sibling of `secrets/`.
+contain files used by more than one target. Template definitions live in their
+owning Nix modules rather than a parallel directory hierarchy.
 
-Directory options set defaults; explicit sources handle exceptions. Home
-modules select files with explicit sources when logical names differ from their
-format-bearing filenames. A new declaration such as `templates = [ "app.toml" ];`
-loads `templates/app.toml.template` using the default directory. No directory
-is scanned to infer secrets or permissions. Sharing ciphertext does not share
-runtime ownership or grant access to undeclared targets.
+Ciphertext directory options set defaults; explicit sources handle exceptions.
+No directory is scanned to infer secrets or permissions. Sharing ciphertext does
+not share runtime ownership or grant access to undeclared targets.
 
 These are nix-conf choices. nix-seal's [storage guide](../nix-seal/docs/storage-layout.md)
 documents its independent defaults and supports repositories with centralized
@@ -143,8 +138,7 @@ email fields and preserves its existing public key and `namespaces="git"`
 restriction. Once migrated, Jujutsu links its identity file to a private runtime
 template rather than copying values into persistent home storage.
 
-For ordinary changes, edit the public template file or inline Nix content and
-rebuild. Use nix-seal's secret creation or editing commands to change private
+For ordinary changes, edit the inline Nix template and rebuild. Use nix-seal's secret creation or editing commands to change private
 values. Template files contain public syntax and markers only. The generated
 plan JSON is an internal interchange format; users do not maintain a template
 inventory or write that plan by hand.

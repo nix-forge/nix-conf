@@ -2,7 +2,6 @@
   imports = [ ../../shared/nix-seal.nix ];
   nixSeal = {
     secretDirectory = "hosts/darwin/macbook-pro-m4/local/secrets";
-    templateDirectory = "hosts/darwin/macbook-pro-m4/local/templates";
     publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
     secrets.nix-token-github-com = { };
   };

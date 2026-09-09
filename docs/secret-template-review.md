@@ -145,13 +145,14 @@ default and custom paths, sharing across a host and home, explicit overrides,
 stable IDs and runtime paths, target-specific consumers, and unsafe directory
 rejection. Rust formatting, Clippy, workspace tests, and cargo-vet also pass.
 
-## Current ownership-based layout
+## Earlier ownership-based layout
 
 Shared home modules and assets now live directly under `homes/shared`, without
 an intermediate `local` directory. Shared Nix modules own the common secret and
 template declarations. Target-only ciphertext lives in each target's
 `local/secrets`, while shared ciphertext remains at its actual sharing scope.
-All four targets reuse one public Nix-token template in `modules/shared/templates`.
+At that stage, all four targets reused one public Nix-token template under
+`modules/shared/templates`. The inline layout below supersedes that directory.
 See the current [storage layout](secrets.md#config-templates).
 
 Comparison of all four targets preserves IDs, recipients, runtime paths,
@@ -183,3 +184,16 @@ removed. The secret retains its source, identity, ownership, `0600` mode,
 services phase, and proxy restart action. The service's environment path and
 launchd path condition follow the raw secret path. This change has not been
 deployed; the next deployment must update the consumer and nix-seal plan together.
+
+## Inline template definitions
+
+The remaining small public templates now live in the Nix modules that configure
+them. The old home, host, and cross-platform template directories are removed.
+Complete output formats remain visible beside their bindings and policy; there
+are no separate secret-only fragments. Public SSH key files remain owned by
+their local nix-seal configurations.
+
+The rendering check now obtains public sources directly from evaluated Nix
+modules, then tests them with disposable keys and synthetic fields. It no longer
+copies a maintained template directory. Logical names, rendered public contents,
+secret bindings, and runtime policy are preserved across all four targets.

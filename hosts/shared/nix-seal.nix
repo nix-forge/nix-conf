@@ -7,8 +7,15 @@
       flakehub-password.source = "hosts/shared/secrets/flakehub-password.age";
     };
     templates = {
-      flakehub-netrc = ./templates/flakehub.netrc.template;
-      nix-access-tokens = ../../modules/shared/templates/nix-access-tokens.conf.template;
+      flakehub-netrc = ''
+        machine flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
+        machine api.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
+        machine edge.cache.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
+        machine cache.flakehub.com login {{nix-seal:flakehub-login}} password {{nix-seal:flakehub-password}}
+      '';
+      nix-access-tokens = ''
+        access-tokens = github.com={{nix-seal:nix-token-github-com}}
+      '';
     };
   };
 }

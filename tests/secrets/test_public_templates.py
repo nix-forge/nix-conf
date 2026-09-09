@@ -100,15 +100,7 @@ class PublicTemplateTests(unittest.TestCase):
                 },
                 "templates": {},
             }
-            sources = [
-                source
-                for folder in (
-                    "homes/shared/templates",
-                    "hosts/shared/templates",
-                    "modules/shared/templates",
-                )
-                for source in sorted((ROOT / folder).glob("*.template"))
-            ]
+            sources = sorted((ROOT / "compiled-templates").glob("*.template"))
             self.assertTrue(sources)
             for source in sources:
                 names = re.findall(r"\{\{nix-seal:([a-z0-9_.-]+)}}", source.read_text())
@@ -197,9 +189,7 @@ class PublicTemplateTests(unittest.TestCase):
             ("gitconfig-useremail-github", "email"),
         ):
             expected = values["git-user-" + name.removeprefix("gitconfig-user")]
-            self.assertEqual(
-                tomllib.loads(rendered[name + ".gitconfig"])["user"][field], expected
-            )
+            self.assertEqual(tomllib.loads(rendered[name])["user"][field], expected)
             actual = (
                 subprocess
                 .run(
@@ -207,7 +197,7 @@ class PublicTemplateTests(unittest.TestCase):
                         "git",
                         "config",
                         "--file",
-                        str(root / (name + ".gitconfig")),
+                        str(root / name),
                         "--get",
                         f"user.{field}",
                     ],
@@ -220,18 +210,18 @@ class PublicTemplateTests(unittest.TestCase):
             )
             self.assertEqual(actual, expected)
         self.assertEqual(
-            tomllib.loads(rendered["jujutsu-identity.toml"])["user"],
+            tomllib.loads(rendered["jujutsu-identity"])["user"],
             {
                 "name": values["git-user-name"],
                 "email": values["git-user-email"],
             },
         )
-        self.assertEqual(rendered["cornell-net-id-ssh.conf"], "User fixture123\n")
+        self.assertEqual(rendered["cornell-net-id-ssh-config"], "User fixture123\n")
         self.assertEqual(
-            rendered["nix-access-tokens.conf"],
+            rendered["nix-access-tokens"],
             "access-tokens = github.com=fixture-token\n",
         )
-        machines = netrc.netrc(str(root / "flakehub.netrc")).hosts
+        machines = netrc.netrc(str(root / "flakehub-netrc")).hosts
         self.assertEqual(
             set(machines),
             {

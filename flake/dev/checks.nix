@@ -35,6 +35,13 @@
           inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.finder-favorites
         else
           null;
+      # Test the sources produced by the real Nix declarations, including
+      # public-value substitution. No source-template inventory is maintained.
+      secretTemplateSources =
+        self.nixosConfigurations.desktop.config.home-manager.users.ianmh.nixSeal.templates
+        // {
+          inherit (self.nixosConfigurations.desktop.config.nixSeal.templates) flakehub-netrc;
+        };
       localControlProxyConfig = pkgs.replaceVarsWith {
         name = "local-control-proxy-check.conf";
         src = ../../homes/macbook-pro-m4/local/local-control/config/proxy.Caddyfile.in;
@@ -81,13 +88,18 @@
             cp ${../../modules/home/dev/scripts/write-jujutsu-identity.py} modules/home/dev/scripts/write-jujutsu-identity.py
             cp ${../../tests/secrets/test_secret_templates.py} tests/secrets/test_secret_templates.py
             cp ${../../tests/secrets/test_public_templates.py} tests/secrets/test_public_templates.py
-            mkdir -p homes/shared hosts/shared homes/macbook-pro-m4/local modules/shared
-            cp -R ${../../modules/shared/templates} modules/shared/templates
-            cp -R ${../../homes/shared/templates} homes/shared/templates
-            chmod u+w homes/shared/templates/git-allowedsigners.template
-            cp ${self.nixosConfigurations.desktop.config.home-manager.users.ianmh.nixSeal.templates.git-allowedsigners.renderedSource} homes/shared/templates/git-allowedsigners.template
+            mkdir -p compiled-templates homes/macbook-pro-m4/local
+            ${pkgs.lib.concatStringsSep "\n" (
+              pkgs.lib.mapAttrsToList (
+                name: template:
+                pkgs.lib.escapeShellArgs [
+                  "cp"
+                  (toString template.renderedSource)
+                  "compiled-templates/${name}.template"
+                ]
+              ) secretTemplateSources
+            )}
             cp -R ${../../homes/macbook-pro-m4/local/nix-seal} homes/macbook-pro-m4/local/nix-seal
-            cp -R ${../../hosts/shared/templates} hosts/shared/templates
             python3 -m unittest discover -s tests/secrets -p 'test_*.py' -v
             touch "$out"
           '';
