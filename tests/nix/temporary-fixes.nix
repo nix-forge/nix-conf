@@ -36,12 +36,30 @@ let
   release = fixes.apply "prismlauncher-release" pkgs.prismlauncher-unwrapped;
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
+  nhAt =
+    version:
+    pkgs.nh-unwrapped.overrideAttrs {
+      inherit version;
+      __intentionallyOverridingVersion = true;
+    };
+  nhFixed = nhAt "4.4.3";
+  nhUpdated = import ../../overlays/temporary {
+    pkgs = pkgs // {
+      nh-unwrapped = nhFixed;
+    };
+    inputs = inputs // {
+      nixpkgs = inputs.nixpkgs // {
+        rev = "unreviewed";
+      };
+    };
+  };
   # Exercise the public selection interface and its module consumers.
   packages = {
     prism = (import ../../modules/home/prismlauncher.nix { pkgs = selected; }).home.packages;
     claude = (import ../../modules/home/dev/agentic-tui/claude.nix { pkgs = selected; }).home.packages;
     deploy = [ selected.deploy-rs ];
     determinate = [ selected.nix ];
+    nh = [ selected.nh ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     hyprshell = [ selected.hyprshell ];
@@ -100,6 +118,20 @@ assert
     selected.deploy-rs.drvPath
     == inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath;
 assert pkgs.stdenv.hostPlatform.isLinux || !(overlay selected pkgs ? hyprland);
+assert pkgs.stdenv.hostPlatform.isDarwin || selected.nh.drvPath == pkgs.nh.drvPath;
+# Later nh versions must bypass both the patch and this fix's revision review.
+assert (fixes.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath != (nhAt "4.4.2").drvPath;
+assert builtins.all
+  (version: (fixes.apply "nh-darwin-home" (nhAt version)).drvPath == (nhAt version).drvPath)
+  [
+    "4.4.3"
+    "4.5.0"
+    "5.0.0"
+  ];
+assert (changed.apply "nh-darwin-home" nhFixed).drvPath == nhFixed.drvPath;
+assert !(succeeds (changed.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath);
+assert !(succeeds changed.review.nh-darwin-home);
+assert succeeds nhUpdated.review.nh-darwin-home;
 # A fix that changes the output version still checks the incoming version.
 assert release.version == "11.1.0";
 assert
