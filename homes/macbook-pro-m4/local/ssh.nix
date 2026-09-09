@@ -23,6 +23,10 @@ let
     UpdateHostKeys = "no";
     ControlMaster = "no";
   };
+  gitIdentity = {
+    IdentitiesOnly = true;
+    IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+  };
 in
 {
   # UseKeychain is Apple's extension. Ignore it if a Nix-provided OpenSSH
@@ -109,10 +113,8 @@ in
       }
       // includeCornell;
 
-      "github.com gist.github.com gitlab.com codeberg.org" = {
-        IdentitiesOnly = true;
-        IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      };
+      "github.com gist.github.com ssh.github.com" = gitIdentity;
+      "gitlab.com codeberg.org" = gitIdentity;
     };
   };
 }

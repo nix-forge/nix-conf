@@ -47,7 +47,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: America/Los_Angeles
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 2
     rebase-strategy: auto
     labels:
       - dependencies
@@ -56,6 +56,9 @@ updates:
       prefix: build(deps)
       include: scope
     groups:
+      shared-ci:
+        patterns: ["nix-forge/ci"]
+        group-by: dependency-name
       github-actions-minor-and-patch:
         patterns:
           - "*"

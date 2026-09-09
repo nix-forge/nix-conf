@@ -72,9 +72,18 @@
             ConnectTimeout = "3";
           };
 
+          # GitHub's SSH endpoint on port 443 avoids networks that block or
+          # inspect outbound port 22. Keep the public aliases so existing Git
+          # remotes continue to work without URL rewrites.
+          "github.com gist.github.com ssh.github.com" = {
+            HostName = "ssh.github.com";
+            Port = 443;
+            User = "git";
+          };
+
           # These forges use a fixed SSH account. Identities belong in local
           # profile rules, so users can choose the key they want to present.
-          "github.com gist.github.com gitlab.com codeberg.org".User = "git";
+          "gitlab.com codeberg.org".User = "git";
 
           "*" = {
             ForwardAgent = false;
