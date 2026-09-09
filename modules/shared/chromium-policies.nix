@@ -53,28 +53,17 @@ let
 
       forceInstallForcelist = map (extensionId: "${extensionId};${extensionUpdateUrl}") extensionIds;
 
-      forceInstallExtensionSettings = builtins.listToAttrs (
-        map (extensionId: {
-          name = extensionId;
-          value = {
-            installation_mode = "force_installed";
-            update_url = extensionUpdateUrl;
-          };
-        }) extensionIds
-      );
+      forceInstallExtensionSettings = lib.genAttrs extensionIds (_: {
+        installation_mode = "force_installed";
+        update_url = extensionUpdateUrl;
+      });
 
       toUblockPairList =
         attrs:
-        map (
-          name:
-          let
-            value = attrs.${name};
-          in
-          [
-            name
-            (if builtins.isBool value then if value then "true" else "false" else toString value)
-          ]
-        ) (builtins.attrNames attrs);
+        lib.mapAttrsToList (name: value: [
+          name
+          (if builtins.isBool value then lib.boolToString value else toString value)
+        ]) attrs;
 
       ublockCustomRules = builtins.readFile ./ublock-dynamic-filtering.txt;
 
@@ -236,13 +225,13 @@ let
             };
 
             policies = mkOption {
-              type = types.attrs;
+              type = types.attrsOf (pkgs.formats.json { }).type;
               default = { };
               description = "Target-specific Chromium policy overrides.";
             };
 
             extensionPolicies = mkOption {
-              type = types.attrsOf types.attrs;
+              type = types.attrsOf (types.attrsOf (pkgs.formats.json { }).type);
               default = { };
               description = "Managed storage policies keyed by Chromium extension ID.";
             };
@@ -405,7 +394,7 @@ let
         };
 
         policies = mkOption {
-          type = types.attrs;
+          type = types.attrsOf (pkgs.formats.json { }).type;
           default = heliumPolicies;
           description = "Shared Chromium policies applied to every enabled target.";
         };

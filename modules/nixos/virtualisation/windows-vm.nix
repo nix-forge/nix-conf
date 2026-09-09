@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   workstation = config.virtualisation.libvirtWorkstation;
   cfg = workstation.windowsVm;
 
@@ -197,7 +199,14 @@ let
       answerTemplateSource
   );
 
-  bootstrapScript = pkgs.writeText "${cfg.name}-Bootstrap.ps1" (
+  writePowerShell = myLib.writers.writePowerShell {
+    inherit pkgs;
+    # These are private unattended provisioning steps. Offering WhatIf for
+    # individual helpers would imply a dry run while other steps still mutate.
+    excludeRules = [ "PSUseShouldProcessForStateChangingFunctions" ];
+  };
+
+  bootstrapScript = writePowerShell "${cfg.name}-Bootstrap.ps1" (
     builtins.replaceStrings
       [
         "__ACTIVE_HOURS_END__"
@@ -228,7 +237,7 @@ let
       bootstrapTemplateSource
   );
 
-  baselineTest = pkgs.writeText "${cfg.name}-Test-Baseline.ps1" (
+  baselineTest = writePowerShell "${cfg.name}-Test-Baseline.ps1" (
     builtins.replaceStrings
       [
         "__ADMINISTRATOR_NAME__"
@@ -264,13 +273,10 @@ let
     hash = "sha256-mkd2JOpkiKz70s78w5L6wII4OjqNscbYZ68bQQ9HMbc=";
   };
 
-  seedRenderer = pkgs.writeShellApplication {
-    name = "windows-vm-render-seed";
-    runtimeInputs = [ pkgs.python3 ];
-    text = ''
-      exec python3 ${./scripts/windows-vm-render-seed.py} "$@"
-    '';
-  };
+  seedRenderer = pkgs.writers.writePython3Bin "windows-vm-render-seed" {
+    # Ruff owns formatting; retain the writer's other Flake8 checks.
+    flakeIgnore = [ "E501" ];
+  } ./scripts/windows-vm-render-seed.py;
 
   runtimeDiskDevices = ''
     <disk type="file" device="disk">
@@ -439,10 +445,9 @@ let
   runtimeDefinition = validateDomain "${cfg.name}-runtime" runtimeDomainSource;
   installerDefinition = validateDomain "${cfg.name}-installer" installerDomainSource;
 
-  reconcileScript = pkgs.replaceVarsWith {
+  reconcileScript = writeBashTemplate {
     name = "libvirt-windows-vm-reconcile";
     src = ./scripts/libvirt-windows-vm-reconcile.sh.in;
-    isExecutable = true;
     replacements = {
       autostart = if cfg.autostart then "1" else "0";
       awk = getExe pkgs.gawk;
@@ -457,11 +462,10 @@ let
     };
   };
 
-  privilegedControl = pkgs.replaceVarsWith {
+  privilegedControl = writeBashTemplate {
     name = "libvirt-windows-vm-control";
     src = ./scripts/libvirt-windows-vm-control.sh.in;
     dir = "libexec";
-    isExecutable = true;
     replacements = {
       answerTemplate = escapeShellArg answerTemplate;
       autologonArchive = escapeShellArg autologonArchive;
@@ -530,11 +534,10 @@ let
     };
   };
 
-  setupWizard = pkgs.replaceVarsWith {
+  setupWizard = writeBashTemplate {
     name = "setup-windows-vm";
     src = ./scripts/setup-windows-vm.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       downloadPage = escapeShellArg cfg.installation.downloadPage;
       guestName = cfg.name;
@@ -547,11 +550,10 @@ let
     };
   };
 
-  windowsVmCli = pkgs.replaceVarsWith {
+  windowsVmCli = writeBashTemplate {
     name = "windows-vm";
     src = ./scripts/windows-vm.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = getExe pkgs.bash;
       cat = getExe' pkgs.coreutils "cat";

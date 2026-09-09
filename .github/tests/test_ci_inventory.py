@@ -17,6 +17,7 @@ class CIInventoryTests(unittest.TestCase):
                     let
                         lib = (builtins.getFlake ROOT).inputs.nixpkgs.lib;
                         fixture = import DEPLOY {
+                            myLib = {};
                             inputs = {
                                 nixpkgs = { inherit lib; };
                                 deploy-rs.lib.x86_64-linux.deployChecks = _: {

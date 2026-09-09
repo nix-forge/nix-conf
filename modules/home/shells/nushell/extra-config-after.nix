@@ -28,14 +28,12 @@ let
         [ config.home.username config.home.homeDirectory config.xdg.stateHome ]
     ))
     lib.unique
-    (lib.concatStringsSep "\n")
+    (lib.hm.nushell.toNushell { })
   ];
 in
 {
   programs.nushell.extraConfig = lib.mkAfter ''
-    let nix_paths = [
-      ${binPaths}
-    ]
+    let nix_paths = ${binPaths}
     $env.PATH = ($nix_paths | append ($env.PATH | split row (char esep) | where { |p| $p not-in $nix_paths }))
   '';
 }

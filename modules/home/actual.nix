@@ -1,11 +1,17 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = { };
+  };
 
   cfg = config.services.actual;
   configDir = "${config.xdg.configHome}/actual";
@@ -36,14 +42,13 @@ let
 
   generatedConfig = pkgs.writeText "actual-config.json" (builtins.toJSON actualConfig);
 
-  actualOpen = pkgs.replaceVarsWith {
+  actualOpen = writeBashTemplate {
     name = "actual-open";
     src = ./scripts/actual-open.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe pkgs.xdg-utils;
+      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe' pkgs.xdg-utils "xdg-open";
       url = lib.escapeShellArg localUrl;
     };
   };
@@ -148,7 +153,11 @@ in
       Unit.Description = "Actual Budget local server";
       Service = {
         ExecStartPre = "${lib.getExe pkgs.bash} ${actualSetup}";
-        ExecStart = "${cfg.package}/bin/actual-server --config ${lib.escapeShellArg configFile}";
+        ExecStart = systemdUtils.escapeSystemdExecArgs [
+          (lib.getExe' cfg.package "actual-server")
+          "--config"
+          configFile
+        ];
         Environment = [ "NODE_ENV=production" ];
         Restart = "on-failure";
         RestartSec = 5;

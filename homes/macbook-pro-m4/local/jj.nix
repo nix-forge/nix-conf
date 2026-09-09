@@ -5,6 +5,10 @@
   ...
 }:
 let
+  identityWriter = pkgs.writers.writePython3Bin "write-jujutsu-identity" {
+    # Security review comments intentionally exceed Flake8's line limit.
+    flakeIgnore = [ "E501" ];
+  } ../../../modules/home/dev/scripts/write-jujutsu-identity.py;
   runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   templatedIdentity =
     builtins.hasAttr "git-user-name" config.nixSeal.secrets
@@ -32,7 +36,7 @@ in
 
   nixSeal.templates = lib.optionalAttrs templatedIdentity {
     jujutsu-identity = {
-      source = ../../shared/support/jujutsu-identity.toml.template;
+      source = ../../shared/local/config/jujutsu-identity.toml.template;
       placeholders = {
         name.secret = "git-user-name";
         email.secret = "git-user-email";
@@ -54,7 +58,7 @@ in
       ''
     else
       lib.hm.dag.entryAfter [ "nixSeal" "writeBoundary" ] ''
-        ${lib.getExe pkgs.python3} ${../../../modules/home/dev/scripts/write-jujutsu-identity.py} \
+        ${lib.getExe identityWriter} \
           --git ${lib.getExe' pkgs.git "git"} \
           ${lib.escapeShellArg identityConfig}
       '';

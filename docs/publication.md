@@ -14,6 +14,11 @@ network names, account-specific anecdotes, and credential locations out of prose
 unless the detail is necessary and the owner explicitly chooses to publish it.
 Functional account and host names in deployment configuration remain authoritative.
 
+Private project names and business domains must stay out of public filenames,
+templates, fixtures, and prose. Use neutral identifiers. When an application
+requires a private identifier, encrypt it with the private value or settings bundle rather than exposing it
+in a template or filename.
+
 Store raw environment dumps, crash reports, upstream discussion exports, build
 trees, caches, and personal notes outside this repository. Existing local research
 captures under the ignored evidence directory remain available to their owner.

@@ -108,7 +108,7 @@ jobs:
     name: Flake checks (${{ matrix.system }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    # This job includes integration checks and the full cold Linux package set.
+    # This job includes integration checks and eligible cold Linux packages.
     timeout-minutes: 150
     permissions:
       contents: read
@@ -160,26 +160,26 @@ jobs:
               # complete closure within its disk quota. Configuration
               # evaluation above covers the deployable Darwin outputs; build
               # the representative public packages here instead.
-              build_attrs=(
-                '.#packages.aarch64-darwin.nix-seal'
-                '.#packages.aarch64-darwin.remindctl'
-              )
+              selected=$(bash .github/scripts/select-native-packages.sh nix-seal remindctl)
           else
             selected=$(bash .github/scripts/select-native-packages.sh)
-            selected_lines=$(jq -r '.[]' <<<"$selected")
-            if [[ -z $selected_lines ]]; then
-              echo 'All native package derivations are unchanged; integration checks passed above.'
-              exit 0
-            fi
-            mapfile -t build_attrs <<<"$selected_lines"
-            printf 'Building changed output: %s\n' "${build_attrs[@]}"
           fi
+          selected_lines=$(jq -r '.[]' <<<"$selected")
+          if [[ -z $selected_lines ]]; then
+            echo 'No eligible native package derivations changed; integration checks passed above.'
+            exit 0
+          fi
+          build_attrs=()
+          while IFS= read -r build_attr; do
+            build_attrs+=("$build_attr")
+          done <<<"$selected_lines"
+          printf 'Building changed output: %s\n' "${build_attrs[@]}"
 
           # Full host and Home Manager closures pull in the complete desktop
           # application set and exceed the merge queue's practical response
           # window. The evaluation step validates those configurations while
-          # native package builds materialize every changed Linux output and the
-          # representative Darwin outputs on every PR.
+          # native package builds materialize eligible changed Linux outputs and the
+          # eligible changed representative Darwin outputs.
 
           if [ "${TARGET_SYSTEM}" = "aarch64-darwin" ]; then
             # The hosted macOS runner has less free disk than the Linux runners.

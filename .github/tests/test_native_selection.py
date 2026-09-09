@@ -40,7 +40,7 @@ def _flake(root: Path, entries: str = DEFAULT_ENTRIES) -> None:
     )
 
 
-class NativeSelectionTests(unittest.TestCase):
+class NativeSelectionFixture(unittest.TestCase):
     """Exercise selection boundaries without building the fixture derivations."""
 
     def setUp(self) -> None:
@@ -50,6 +50,13 @@ class NativeSelectionTests(unittest.TestCase):
         self.parent = Path(temporary.name)
         self.root = self.parent / "repo"
         _initialize(self.root)
+        self.policy = self.root / "pkgs/.github/ci-policy.json"
+        self.policy.parent.mkdir(parents=True)
+        self.policy.write_text("{}")
+        for name in ("demo", "foreign"):
+            recipe = self.root / "pkgs/pkgs/by-name" / name[:2] / name / "package.nix"
+            recipe.parent.mkdir(parents=True)
+            recipe.write_text("{ }: { }\n")
         (self.root / "version.nix").write_text('"1"\n')
         _flake(self.root)
         self.base = _commit(self.root)
@@ -60,6 +67,7 @@ class NativeSelectionTests(unittest.TestCase):
         expected: list[str] | None,
         base: str | None = None,
         environment: dict[str, str] | None = None,
+        candidates: tuple[str, ...] = (),
     ) -> None:
         if _command(self.root, "git", "status", "--porcelain"):
             _commit(self.root)
@@ -76,7 +84,7 @@ class NativeSelectionTests(unittest.TestCase):
             | (environment or {})
         )
         result = subprocess.run(
-            ["bash", str(SCRIPT)],
+            ["bash", str(SCRIPT), *candidates],
             cwd=self.root,
             env=settings,
             text=True,
@@ -86,6 +94,7 @@ class NativeSelectionTests(unittest.TestCase):
         )
         if expected is None:
             self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(result.stdout.strip(), "")
         else:
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
@@ -114,6 +123,10 @@ class NativeSelectionTests(unittest.TestCase):
             "queue fixture",
         )
         _command(self.root, "git", "checkout", "-q", queue)
+
+
+class NativeSelectionTests(NativeSelectionFixture):
+    """Exercise native build selection and Git history fallbacks."""
 
     def test_documentation(self) -> None:
         """Skip every output when only prose changes."""
@@ -277,3 +290,47 @@ class NativeSelectionTests(unittest.TestCase):
                 "GITHUB_REF": QUEUE_REF,
             },
         )
+
+
+class HostedBuildPolicyTests(NativeSelectionFixture):
+    """Apply the package repository policy to hosted build candidates."""
+
+    def test_hosted_build_exclusion(self) -> None:
+        """Honor the package repository's exclusions even without base history."""
+        self.policy.write_text('{"demo": "Evaluation only: fixture restriction"}')
+        self._change_dependency()
+        self._select([], base=self.base)
+        self._select(["other"], base="")
+        self._select(["other"], base="a" * 40)
+
+    def test_other_platform_exclusion(self) -> None:
+        """A valid exclusion need not be exported on the current platform."""
+        self.policy.write_text('{"foreign": "Evaluation only: another platform"}')
+        self._select(["demo", "other"], base="")
+
+    def test_representative_packages(self) -> None:
+        """The smaller macOS build selection still honors shared exclusions."""
+        self._select(["demo"], base="", candidates=("demo",))
+        self.policy.write_text('{"demo": "Evaluation only: fixture restriction"}')
+        self._select([], base="", candidates=("demo",))
+
+    def test_unknown_representative(self) -> None:
+        """Reject a stale explicit selection rather than silently losing coverage."""
+        self._select(None, base="", candidates=("missing",))
+
+    def test_invalid_policy(self) -> None:
+        """Stop instead of building when the shared policy cannot be trusted."""
+        for value in (
+            None,
+            "{",
+            "[]",
+            '{"demo": " "}',
+            '{"demo": null}',
+            '{"demoo": "Evaluation only: typo"}',
+        ):
+            with self.subTest(policy=value):
+                if value is None:
+                    self.policy.unlink()
+                else:
+                    self.policy.write_text(value)
+                self._select(None, base="")

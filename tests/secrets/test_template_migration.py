@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import tomllib
 
@@ -28,6 +29,59 @@ RUNTIME = {
 
 class TemplateMigrationTests(unittest.TestCase):
     """Verify migration safety using disposable values and identities."""
+
+    def test_authoring_preserves_relocated_ciphertext_sources(self) -> None:
+        """Reviewing an old input cannot restore its retired storage directory."""
+        source = "secrets/fixture/gitconfig-username.age"
+        spec, _ = MIGRATION["_split_config"](
+            source, b"[user]\n name = Fixture\n", {}, PUBLIC_KEY
+        )
+        moved = {
+            **spec,
+            "fields": {"git-user-name": {"source": "homes/shared/name.age"}},
+        }
+        MIGRATION["_retain_field_sources"](spec, {source: moved})
+        self.assertEqual(spec["fields"], moved["fields"])
+        with self.assertRaises(MIGRATION["MigrationError"]):
+            MIGRATION["_retain_field_sources"](spec, {source: {**moved, "fields": {}}})
+
+    def test_local_inventory_updates_preserve_template_placement(self) -> None:
+        """Authoring updates the owning template without recreating a central file."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "homes/shared/templates"
+            folder.mkdir(parents=True)
+            source = "secrets/fixture/gitconfig-username.age"
+            spec, _ = MIGRATION["_split_config"](
+                source, b"[user]\n name = Fixture\n", {}, PUBLIC_KEY
+            )
+            template = folder / "name.template"
+            template.write_text(spec["content"])
+            catalog = folder / "inventory.json"
+            catalog.write_text(
+                json.dumps({
+                    source: {
+                        key: value for key, value in spec.items() if key != "content"
+                    }
+                    | {"template": template.name}
+                })
+            )
+            globals_ = MIGRATION["_read_inventory"].__globals__
+            with patch.dict(
+                globals_,
+                {"ROOT": root, "INVENTORY_FILES": (catalog.relative_to(root),)},
+            ):
+                self.assertEqual(MIGRATION["_read_inventory"](), {source: spec})
+                spec["content"] = "# Public configuration\n" + spec["content"]
+                MIGRATION["_write_inventory"]({source: spec})
+                self.assertEqual(template.read_text(), spec["content"])
+                self.assertEqual(MIGRATION["_read_inventory"](), {source: spec})
+                self.assertNotIn("content", json.loads(catalog.read_text())[source])
+                before = catalog.read_bytes(), template.read_bytes()
+                with self.assertRaises(MIGRATION["MigrationError"]):
+                    MIGRATION["_write_inventory"]({source: spec, "unassigned": spec})
+                self.assertEqual((catalog.read_bytes(), template.read_bytes()), before)
+                self.assertFalse((root / "secrets/templates.json").exists())
 
     @staticmethod
     def split(
@@ -111,6 +165,10 @@ class TemplateMigrationTests(unittest.TestCase):
                 "flakehub-netrc",
                 "machine flakehub.com login fixture-login password fixture-password\n",
             ),
+            (
+                "flakehub-netrc",
+                "machine edge.cache.flakehub.com login fixture-login password fixture-password\n",
+            ),
             ("service-runtime-environment", "API_TOKEN='fixture value'\nPORT=8788\n"),
         ]:
             spec, values = self.split(name, original)
@@ -119,6 +177,44 @@ class TemplateMigrationTests(unittest.TestCase):
             "service-runtime-environment", "# private-canary\nAPI_TOKEN=fixture-value\n"
         )
         self.assertNotIn("private-canary", json.dumps(spec))
+
+    def test_environment_names_and_values_are_private(self) -> None:
+        """Bundle assignments without exposing application-specific names."""
+        original = "PRIVATE_APP_PORT=8788\nPRIVATE_APP_TOKEN=private-canary\n"
+        spec, values = self.split("service-runtime-environment", original)
+        self.assertEqual(
+            values,
+            {"service-private-settings": original},
+        )
+        self.assertEqual(self.render(spec, values), original)
+        for private in ["PRIVATE_APP", "8788", "private-canary"]:
+            self.assertNotIn(private, json.dumps(spec))
+        with self.assertRaises(MIGRATION["MigrationError"]):
+            self.split(
+                "service-runtime-environment",
+                "PRIVATE_APP_PORT=8788\nPRIVATE_APP_PORT=8789\n",
+            )
+
+    def test_netrc_shares_credentials_and_rejects_mismatch(self) -> None:
+        """Reuse two fields while rejecting distinct credentials or duplicate hosts."""
+        first = "machine flakehub.com login fixture-login password fixture-password\n"
+        second = (
+            "machine api.flakehub.com login fixture-login password fixture-password\n"
+        )
+        spec, values = self.split("flakehub-netrc", first + second)
+        self.assertEqual(set(values), {"flakehub-login", "flakehub-password"})
+        self.assertEqual(self.render(spec, values), first + second)
+        self.assertEqual(
+            spec["fields"]["flakehub-login"]["source"],
+            "secrets/ianhollow/shared/flakehub-login.age",
+        )
+        for changed in [
+            second.replace("fixture-login", "another-login"),
+            second.replace("fixture-password", "another-password"),
+            first,
+        ]:
+            with self.assertRaises(MIGRATION["MigrationError"]):
+                self.split("flakehub-netrc", first + changed)
 
     def test_reject_ambiguous_and_injected_input(self) -> None:
         """Reject ambiguous and injected input."""
@@ -168,7 +264,8 @@ class TemplateMigrationTests(unittest.TestCase):
             cli("key", "generate", "--identity-out", key)
             recipient = cli("key", "inspect", "--identity", key).decode().strip()
             spec, values = self.split(
-                "nix-access-tokens", "access-tokens = github.com=fixture-value\n"
+                "service-runtime-environment",
+                "PRIVATE_APP_TOKEN='fixture value'\nPRIVATE_APP_PORT=8788\n",
             )
             template = root / "public.template"
             template.write_text(spec["content"])
@@ -269,11 +366,12 @@ class TemplateMigrationTests(unittest.TestCase):
                 output,
             )
             self.assertEqual(
-                output.read_text(), "access-tokens = github.com=fixture-value\n"
+                output.read_text(),
+                "PRIVATE_APP_TOKEN='fixture value'\nPRIVATE_APP_PORT=8788\n",
             )
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
             self.assertNotIn(
-                b"fixture-value", next((root / "secrets").glob("*.age")).read_bytes()
+                b"fixture value", next((root / "secrets").glob("*.age")).read_bytes()
             )
             with self.assertRaises(subprocess.CalledProcessError):
                 cli(

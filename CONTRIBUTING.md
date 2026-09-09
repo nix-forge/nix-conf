@@ -25,8 +25,11 @@ to another task.
 ## Configuration conventions
 
 - Select reusable features in the target's `default.nix`. Put target-specific
-  settings in its `local/` tree. That tree is auto-imported, so put helper code
-  under `support/` and inactive experiments in scratch storage.
+  settings and configuration assets in its `local/` tree. That tree auto-imports
+  Nix files, so each Nix file must be a module. Export target-specific helper
+  functions through the module's `lib` option; keep reusable helpers in `lib/`.
+  Place reusable configuration beside its owning module and inactive experiments
+  in scratch storage.
 - Place reusable system, user, or cross-platform behavior in the matching tree
   under `modules/`. Follow the [framework's selector and shared-module
   contracts](nix-config-framework/README.md#layout-and-selectors) before adding
@@ -34,6 +37,11 @@ to another task.
 - Give each setting one owner. Use explicit module options for real variations
   between targets. When overriding upstream behavior, explain the constraint
   and what would allow the override to be removed.
+- Before adding, changing, or retiring a package or module override, read and
+  follow the [override layout and lifecycle](overlays/README.md). This includes
+  source rewrites and `disabledModules` replacements that repair upstream behavior.
+  Temporary fixes require registry entries and review guards; reusable package
+  variants retain their owning repository.
 - Keep operational login names and hostnames accurate in configuration. Follow
   the [publication policy](docs/publication.md) when referring to them in prose.
 - Keep private keys and plaintext credentials outside the repository and Nix
@@ -67,6 +75,30 @@ activation and deployment as separate actions with the task's intended scope.
 For documentation-only changes, check Markdown, relative links, whitespace,
 ignore rules, and publication safety. A desktop system rebuild adds no evidence
 for such a change.
+
+## Hosted package builds
+
+Native package CI reads the hosted-build exclusions from
+`pkgs/.github/ci-policy.json`, the same local input used by the root flake.
+Keep this policy in the package repository instead of maintaining a second list.
+Missing or invalid policy stops selection; unavailable base history still applies
+the exclusions. Publish the package submodule's policy commit with the root
+gitlink update so CI receives both changes.
+The macOS job narrows candidates to its representative outputs before applying
+the same exclusions and derivation comparison as Linux.
+
+These exclusions govern CI package selection, not every Nix build. Personal host
+builds, remote builders, and `just fonts-check` can still build packages selected
+by the configuration. Their upstream terms remain applicable. The exclusions do
+not mean every private build is prohibited, or that private use is automatically
+permitted. See the [package licensing policy](pkgs/docs/package-licensing.md).
+
+Before adding a hosted integration check, review its dependencies as well as its
+named target: a check or system closure can pull in an excluded package indirectly.
+Current CI font-rendering checks use the core font selection; the full-collection
+font-check app is a separate local command. Full host closures remain evaluation
+only in hosted CI. Cache download configuration does not publish outputs; review
+permissions separately before adding cache uploads or release artifacts.
 
 ## Work records and review
 

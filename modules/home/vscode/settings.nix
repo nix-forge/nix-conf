@@ -13,81 +13,15 @@ let
     ${lib.getExe config.programs.direnv.package} hook bash > "$out"
     ${lib.getExe config.programs.bash.package} -n "$out"
   '';
-  themeReplacements = lib.genAttrs [
-    "surface"
-    "surfaceRaised"
-    "surfaceHover"
-    "surfaceChrome"
-    "outline"
-    "outlineSubtle"
-    "muted"
-    "text"
-    "textStrong"
-    "danger"
-    "warning"
-    "success"
-    "info"
-    "accent"
-    "special"
-    "cursor"
-    "lineNumber"
-    "scrollbar"
-    "syntaxFunction"
-    "diffAdded"
-    "diffRemoved"
-    "base06"
-    "base09"
-    "base0F"
-  ] (name: "#${palette.${name}}");
-  carbonNeonThemeSource =
-    let
-      themeFile =
-        name: source: tokens:
-        pkgs.replaceVarsWith {
-          inherit name;
-          src = source;
-          replacements = lib.getAttrs tokens themeReplacements;
-        };
-    in
-    pkgs.runCommandLocal "carbon-neon-vscode-theme-source" { } ''
-      mkdir -p "$out/themes"
-      cp ${./themes/carbon-neon/package.json} "$out/package.json"
-      cp ${
-        themeFile "carbon-neon-color-theme.json" ./themes/carbon-neon/themes/carbon-neon-color-theme.json [
-          "surface"
-          "surfaceRaised"
-          "surfaceHover"
-          "surfaceChrome"
-          "outline"
-          "outlineSubtle"
-          "muted"
-          "text"
-          "textStrong"
-          "danger"
-          "warning"
-          "success"
-          "info"
-          "accent"
-          "special"
-          "cursor"
-          "lineNumber"
-          "scrollbar"
-          "syntaxFunction"
-          "diffAdded"
-          "diffRemoved"
-          "base09"
-          "base0F"
-        ]
-      } "$out/themes/carbon-neon-color-theme.json"
-      cp ${
-        themeFile "carbon-neon-oled-color-theme.json"
-          ./themes/carbon-neon/themes/carbon-neon-oled-color-theme.json
-          [
-            "surface"
-            "surfaceChrome"
-          ]
-      } "$out/themes/carbon-neon-oled-color-theme.json"
-    '';
+  carbonNeonThemeSource = pkgs.linkFarm "carbon-neon-vscode-theme-source" {
+    "package.json" = ./themes/carbon-neon/package.json;
+    "themes/carbon-neon-color-theme.json" =
+      (pkgs.formats.json { }).generate "carbon-neon-color-theme.json"
+        (import ./themes/carbon-neon/themes/carbon-neon-color-theme.nix { inherit palette; });
+    "themes/carbon-neon-oled-color-theme.json" =
+      (pkgs.formats.json { }).generate "carbon-neon-oled-color-theme.json"
+        (import ./themes/carbon-neon/themes/carbon-neon-oled-color-theme.nix { inherit palette; });
+  };
   carbonNeonTheme = pkgs.vscode-utils.buildVscodeExtension {
     pname = "carbon-neon-theme";
     version = "0.1.0";
@@ -257,8 +191,9 @@ in
           "files.insertFinalNewline" = true;
           # trim whitespace trailing at the ends of lines on save
           "files.trimTrailingWhitespace" = true;
-          # enable semantic highlighting
-          "editor.semanticHighlighting.enabled" = true;
+          # Let each selected theme opt into semantic highlighting. Carbon opts in
+          # in its theme file, so lexical and semantic rules have the same owner.
+          "editor.semanticHighlighting.enabled" = "configuredByTheme";
 
           "[yaml]" = {
             "editor.tabSize" = 2;

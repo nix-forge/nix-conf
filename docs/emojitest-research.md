@@ -90,3 +90,12 @@ The rule is active at `~/.config/fontconfig/conf.d/60-hm-current-emoji.conf`. A 
 ## Optional-family follow-up, 2026-09-06
 
 The user subsequently authorized the remaining fonts where they require no rendering or security compromises. Authentic upstream Firefox Emoji and EmojiOne fonts are now installed as optional named families, with their licenses and attribution. The original test page now passes **7/9 local-family rows**; its web-font result remains **4/8**. No browser validation policy was relaxed. Apple and Mutant remain excluded. See the [installation, sources, and validation report](optional-emoji-fonts-research.md).
+
+## Filter retirement
+
+The shared fonts now live under `modules/shared/fonts/`. The
+[Google design package](../pkgs/pkgs/by-name/go/google-fonts-design/finish.py)
+removes both Noto emoji duplicates before installation and records them in
+`share/doc/google-fonts-design/excluded-providers.json`. The Fontconfig scan
+filter described above has been removed. The curated collection selects only
+Iosevka Charon Mono, and the `none` setting does not install Google Fonts.

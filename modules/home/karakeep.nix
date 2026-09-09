@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   cfg = config.services.karakeep;
@@ -72,15 +74,14 @@ let
   };
 
   dockerCompose = "${pkgs.docker-compose}/bin/docker-compose --project-directory ${configDir} -f ${composeFile}";
-  colimaForward = pkgs.replaceVarsWith {
+  colimaForward = writeBashTemplate {
     name = "karakeep-colima-forward";
     src = ./scripts/karakeep-colima-forward.sh;
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       localUrl = lib.escapeShellArg localUrl;
       username = config.home.username;
-      colimaHome = lib.escapeShellArg colimaHome;
+      sshConfig = lib.escapeShellArg "${colimaHome}/_lima/colima/ssh.config";
       curl = lib.getExe pkgs.curl;
       seq = lib.getExe' pkgs.coreutils "seq";
       sleep = lib.getExe' pkgs.coreutils "sleep";
@@ -98,15 +99,14 @@ let
     "NEXTAUTH_URL"
   ];
 
-  extensionSetup = pkgs.replaceVarsWith {
+  extensionSetup = writeBashTemplate {
     name = "karakeep-extension-setup";
     src = ./scripts/karakeep-extension-setup.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       inherit localUrl;
-      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe pkgs.xdg-utils;
+      openCommand = if isDarwin then "/usr/bin/open" else lib.getExe' pkgs.xdg-utils "xdg-open";
     };
   };
 in
@@ -171,10 +171,9 @@ in
     };
 
     home.activation.karakeepEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      ${pkgs.replaceVarsWith {
+      ${writeBashTemplate {
         name = "karakeep-env";
         src = ./scripts/karakeep-env.sh;
-        isExecutable = true;
         replacements = {
           bash = lib.getExe pkgs.bash;
           mkdir = lib.getExe' pkgs.coreutils "mkdir";
@@ -218,10 +217,9 @@ in
       config = {
         Label = "dev.user.karakeep";
         ProgramArguments = [
-          "${pkgs.replaceVarsWith {
+          "${writeBashTemplate {
             name = "karakeep-launchd";
             src = ./scripts/karakeep-launchd.sh;
-            isExecutable = true;
             replacements = {
               bash = lib.getExe pkgs.bash;
               homeDirectory = lib.escapeShellArg config.home.homeDirectory;

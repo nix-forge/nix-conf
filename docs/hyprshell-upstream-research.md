@@ -2,7 +2,7 @@
 
 Local implementation status is now recorded in [local fixes and validation](hyprshell-hyprland-local-fixes.md). The updated [implementation prompt](hyprshell-upstream-codex-prompt.md) uses those changes as the porting baseline. The upstream search findings below retain their original revision and date.
 
-Research date: 2026-09-06. Scope: `modules/home/desktop/patches/hyprshell-modifier-state.patch`. The repository is **H3rmt/hyprshell**, which is the package meant by "hypershell" in this task.
+Research date: 2026-09-06. Scope: `overlays/temporary/patches/hyprshell-modifier-state.patch`. The repository is **H3rmt/hyprshell**, which is the package meant by "hypershell" in this task.
 
 ## Recommendation
 

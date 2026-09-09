@@ -6,11 +6,11 @@ set -euo pipefail
 # fallback preserves useful feedback during compositor startup.
 monitor=""
 if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-  monitor="$(@hyprctl@ monitors -j 2>/dev/null | @jq@ -r '.[] | select(.focused == true) | .name' 2>/dev/null || true)"
+  monitor="$("@hyprctl@" monitors -j 2>/dev/null | "@jq@" -r '.[] | select(.focused == true) | .name' 2>/dev/null || true)"
 fi
 
 if [ -n "$monitor" ]; then
-  exec @swayosdClient@ --monitor "$monitor" "$@"
+  exec "@swayosdClient@" --monitor "$monitor" "$@"
 fi
 
-exec @swayosdClient@ "$@"
+exec "@swayosdClient@" "$@"

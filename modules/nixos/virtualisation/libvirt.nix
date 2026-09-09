@@ -1,11 +1,13 @@
 {
   config,
   lib,
+  myLib,
   options,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.virtualisation.libvirtWorkstation;
 
   inherit (lib)
@@ -327,10 +329,9 @@ let
     ) vfioDeviceNames
   );
 
-  workstationSetup = pkgs.replaceVarsWith {
+  workstationSetup = writeBashTemplate {
     name = "libvirt-workstation-setup";
     src = ./scripts/libvirt-workstation-setup.sh.in;
-    isExecutable = true;
     replacements = {
       bash = getExe pkgs.bash;
       grep = getExe pkgs.gnugrep;
@@ -348,10 +349,9 @@ let
     };
   };
 
-  profileGuard = pkgs.replaceVarsWith {
+  profileGuard = writeBashTemplate {
     name = "libvirt-workstation-profile-guard";
     src = ./scripts/libvirt-workstation-profile-guard.sh.in;
-    isExecutable = true;
     replacements = {
       bash = getExe pkgs.bash;
       basename = getExe' pkgs.coreutils "basename";
@@ -363,10 +363,9 @@ let
     };
   };
 
-  sleepInhibitorHook = pkgs.replaceVarsWith {
+  sleepInhibitorHook = writeBashTemplate {
     name = "libvirt-workstation-sleep-inhibitor-hook";
     src = ./scripts/libvirt-workstation-sleep-inhibitor-hook.sh.in;
-    isExecutable = true;
     replacements = {
       bash = getExe pkgs.bash;
       guestManifest = escapeShellArg guestManifest;
@@ -382,11 +381,10 @@ let
     exec ${getExe' pkgs.coreutils "sleep"} infinity
   '';
 
-  privilegedControl = pkgs.replaceVarsWith {
+  privilegedControl = writeBashTemplate {
     name = "libvirt-workstation-control";
     src = ./scripts/libvirt-workstation-control.sh.in;
     dir = "libexec";
-    isExecutable = true;
     replacements = {
       awk = getExe pkgs.gawk;
       bash = getExe pkgs.bash;
@@ -420,11 +418,10 @@ let
     };
   };
 
-  vmCli = pkgs.replaceVarsWith {
+  vmCli = writeBashTemplate {
     name = "vm";
     src = ./scripts/vm.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = getExe pkgs.bash;
       guestManifest = escapeShellArg guestManifest;
@@ -840,17 +837,7 @@ in
 
       programs.virt-manager = {
         enable = true;
-        package = lib.mkDefault (
-          pkgs.virt-manager.override {
-            gtksourceview4 = pkgs.gtksourceview4.overrideAttrs (old: {
-              # Xvfb resets when the last GTK test client disconnects, racing
-              # the next client. Remove this once upstream keeps it alive.
-              checkPhase =
-                assert lib.hasInfix "xvfb-run -s '" old.checkPhase;
-                lib.replaceStrings [ "xvfb-run -s '" ] [ "xvfb-run -s '-noreset " ] old.checkPhase;
-            });
-          }
-        );
+        package = lib.mkDefault pkgs.virt-manager;
       };
 
       # Libvirt owns forwarding and NAT. The host firewall allows only the

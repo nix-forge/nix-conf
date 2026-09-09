@@ -3,8 +3,13 @@ set -euo pipefail
 export PATH="@runtimePath@"
 umask 077
 
-cache_directory='@wallpaperDirectory@'
-state_directory='@stateDirectory@'
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+cache_directory=@wallpaperDirectory@
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+state_directory=@stateDirectory@
+keep_originals=@keepOriginals@
 source_archive_directory="$cache_directory/.originals"
 temporary_directory="$(mktemp -d)"
 trap 'rm -rf -- "$temporary_directory"' EXIT
@@ -112,7 +117,7 @@ checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
 destination="$cache_directory/nasa-svs-$page_id-$checksum.$extension"
 if [ ! -e "$destination" ]; then
   install -m 600 -- "$download_file" "$destination"
-  if [ "$converted" -eq 1 ] && [ '@keepOriginals@' -eq 1 ]; then
+  if [ "$converted" -eq 1 ] && [ "$keep_originals" -eq 1 ]; then
     install -m 600 -- "$original_file" "$source_archive_directory/nasa-svs-$page_id-$checksum.source.$original_extension"
   fi
   jq -n \

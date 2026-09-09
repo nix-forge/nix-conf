@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
   cfg = config.services.devVm;
@@ -14,35 +16,33 @@ let
   hostOnlyNetwork = "172.16.42.0/24";
   hostOnlySourceAddress = "172.16.42.1";
   sshPort = 22;
-  # Make the Python source an explicit store dependency of the generated
-  # wrapper rather than interpolating a context-free local path.
-  devVmResolver = builtins.path {
-    path = ./dev_vm_host.py;
-    name = "dev-vm-host.py";
-  };
+  devVmResolver = pkgs.writers.writePython3Bin "dev-vm-resolve-host" {
+    # Keep the project formatter's line lengths and leading binary operators.
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ./dev_vm_host.py;
 
   # Resolve the only present host-only adapter at runtime. The VMX remains
   # outside the Nix store and only its validated adapter identity is retained.
-  devVmHost = pkgs.replaceVarsWith {
+  devVmHost = writeBashTemplate {
     name = "dev-vm-host";
     src = ./scripts/dev-vm-host.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      python = lib.getExe pkgs.python3;
-      resolver = devVmResolver;
+      resolver = lib.getExe devVmResolver;
       vmxFile = lib.escapeShellArg cfg.vmxFile;
       leaseFile = lib.escapeShellArg cfg.leaseFile;
       hostOnlyNetwork = lib.escapeShellArg hostOnlyNetwork;
     };
   };
 
-  devVmProxy = pkgs.replaceVarsWith {
+  devVmProxy = writeBashTemplate {
     name = "dev-vm-proxy";
     src = ./scripts/dev-vm-proxy.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       devVmHost = lib.getExe' devVmHost "dev-vm-host";
@@ -51,11 +51,10 @@ let
     };
   };
 
-  devVmStatus = pkgs.replaceVarsWith {
+  devVmStatus = writeBashTemplate {
     name = "dev-vm-status";
     src = ./scripts/dev-vm-status.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       devVmHost = lib.getExe' devVmHost "dev-vm-host";

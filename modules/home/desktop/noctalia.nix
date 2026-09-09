@@ -1,12 +1,14 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   self,
   system,
   ...
 }:
 let
+  desktopLib = myLib.desktop;
   cfg = config.desktop.noctalia;
   colors = config.lib.stylix.colors.withHashtag;
   isOled = config.appearance.theme == "carbon-neon-oled";
@@ -244,14 +246,7 @@ in
     # Hyprshell installs its own Lua bindings, including Shift+Tab and Escape.
     services.hyprshell = {
       enable = true;
-      package = pkgs.hyprshell.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./patches/hyprshell-modifier-state.patch ];
-        cargoTestFlags = [
-          "--package"
-          "hyprshell-windows-lib"
-          "event_time_tests"
-        ];
-      });
+      package = pkgs.hyprshell;
       settings = {
         version = 4;
         windows = {
@@ -266,53 +261,39 @@ in
           };
         };
       };
-      style = pkgs.replaceVars ./config/hyprshell.css.in {
-        inherit (colors)
-          base00
-          base01
-          base02
-          base03
-          base05
-          base0D
-          ;
-        font = config.stylix.fonts.sansSerif.name;
-      };
-    };
-
-    programs.noctalia = {
-      enable = true;
-      package = self.packages.${system}.noctalia-personal;
-      systemd.enable = true;
-      settings = pkgs.replaceVarsWith {
-        name = "noctalia-stylix-config";
-        src = ./config/noctalia.toml.in;
-        replacements = {
-          font = config.stylix.fonts.sansSerif.name;
-          paletteName = "Stylix";
-          pureBlackDark = if isOled then "true" else "false";
-        };
-      };
-      customPalettes.Stylix = pkgs.replaceVarsWith {
-        name = "noctalia-stylix-palette";
-        src = ./config/noctalia-carbon-neon.json.in;
+      style = pkgs.replaceVarsWith {
+        src = ./config/hyprshell.css.in;
+        postCheck = ''
+          ${desktopLib.mkGtkCssChecker { inherit pkgs; }}/bin/check-gtk-css "$target"
+        '';
         replacements = {
           inherit (colors)
             base00
             base01
             base02
             base03
-            base04
             base05
-            base06
-            base08
-            base0A
-            base0B
-            base0C
             base0D
-            base0E
             ;
+          font = builtins.toJSON config.stylix.fonts.sansSerif.name;
         };
       };
+    };
+
+    # This module derives its complete palette and settings from Stylix below.
+    # Disable the upstream adapter so it cannot also define palette or opacity.
+    stylix.targets.noctalia.enable = false;
+
+    programs.noctalia = {
+      enable = true;
+      package = self.packages.${system}.noctalia-personal;
+      systemd.enable = true;
+      settings = desktopLib.mkNoctaliaConfig {
+        font = config.stylix.fonts.sansSerif.name;
+        paletteName = "Stylix";
+        pureBlackDark = isOled;
+      };
+      customPalettes.Stylix = desktopLib.mkNoctaliaPalette { inherit colors; };
     };
 
     # Noctalia merges every TOML file in this directory. Keeping hardware and

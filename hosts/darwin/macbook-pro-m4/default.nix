@@ -7,7 +7,7 @@
   };
 
   nixpkgsArgs = {
-    overlays = [ inputs.nixpkgs-personal.overlays.default ];
+    overlays = [ (import ../../../overlays { inherit inputs; }) ];
     config = {
       allowUnfree = true;
     };

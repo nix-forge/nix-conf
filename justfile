@@ -5,6 +5,11 @@ flake := justfile_directory()
 default:
     @just --list --justfile {{ justfile() }}
 
+# Build all generated-file checks for this platform, including rejection tests.
+[group('Checks')]
+generated-checks:
+    nix build --no-link --option allow-import-from-derivation false "path:{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).generated-artifacts"
+
 # ─── Flake ────────────────────────────────────────────────────────────
 
 # Update all flake inputs, or a single input if specified
@@ -51,6 +56,11 @@ check-eval:
 [group('Flake')]
 check-no-ifd:
     nix flake check --no-allow-import-from-derivation
+
+# Review temporary package fix guards on every supported platform
+[group('Flake')]
+temporary-fixes-check:
+    nix build --no-link "path:{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).temporary-package-fixes"
 
 # Show flake outputs
 [group('Flake')]

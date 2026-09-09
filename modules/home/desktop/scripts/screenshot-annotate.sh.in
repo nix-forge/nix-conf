@@ -2,7 +2,9 @@
 set -euo pipefail
 
 umask 077
-output_directory='@outputDirectory@'
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+output_directory=@outputDirectory@
 @mkdir@ -p -- "$output_directory"
 timestamp="$(@date@ +%Y-%m-%d_%H-%M-%S)"
 @grim@ -g "$(@slurp@)" -t ppm - | @satty@ --filename - --fullscreen \

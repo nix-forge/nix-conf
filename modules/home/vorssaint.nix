@@ -7,7 +7,9 @@
 let
   cfg = config.programs.vorssaint;
 
-  appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/Vorssaint.app";
+  appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${
+    cfg.package.appName or "Vorssaint"
+  }.app";
 in
 {
   options.programs.vorssaint = {

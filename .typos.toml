@@ -3,7 +3,7 @@ files.extend-exclude = [
   "docs/assets/hyprland-upstream-local-20260907/**",
   "flake.lock",
   "**/Cargo.lock",
-  "secrets/**/*.age",
+  "**/*.age",
   ".git/**",
   ".opencode/node_modules/**",
 ]

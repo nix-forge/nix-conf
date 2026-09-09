@@ -2,16 +2,10 @@
 let
   toPairList =
     attrs:
-    map (
-      name:
-      let
-        value = attrs.${name};
-      in
-      [
-        name
-        (if builtins.isBool value then lib.boolToString value else toString value)
-      ]
-    ) (builtins.attrNames attrs);
+    lib.mapAttrsToList (name: value: [
+      name
+      (if builtins.isBool value then lib.boolToString value else toString value)
+    ]) attrs;
 in
 {
   ublock.mkPolicy =

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that a child OOM does not stop ChatGPT's Chromium application scope.
+"""Check that a child OOM does not stop either ChatGPT application scope.
 
 Requires a systemd user manager and cgroup v2. Allocations are confined to a
 96 MiB scope with no swap; this never attempts to exhaust system memory.
@@ -90,7 +90,14 @@ def _main() -> int:
     if systemd_run is None or systemctl is None:
         sys.stderr.write("This test requires systemd-run and systemctl\n")
         return 1
-    unit = f"app-org.chromium.Chromium-oom-regression-{os.getpid()}.scope"
+    for prefix in ("app-org.chromium.Chromium-", "app-Hyprland-chatgpt-"):
+        if _check_scope(systemd_run, systemctl, prefix) != 0:
+            return 1
+    return 0
+
+
+def _check_scope(systemd_run: str, systemctl: str, prefix: str) -> int:
+    unit = f"{prefix}oom-regression-{os.getpid()}.scope"
     try:
         result = _run([
             systemd_run,

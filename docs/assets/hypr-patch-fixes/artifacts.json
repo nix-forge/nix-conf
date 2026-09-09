@@ -1,13 +1,13 @@
 {
   "hyprland": {
-    "patch": "modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch",
+    "patch": "overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch",
     "sha256": "9ba5f88727af8399391871c78ea23e17b15dda89d9094958d77dcf76ed654f12",
     "derivation": "/nix/store/2m879zlr5vagb4adp4yj6k207gwczwm3-hyprland-0.56.0+date=2026-09-04_ee04096.drv",
     "output": "/nix/store/y04i0kmsd4cdq4y6k9bp4kyv7g9aili8-hyprland-0.56.0+date=2026-09-04_ee04096",
     "native_test_patch_sha256": "a7a98f87a8b498794b3a31aead6877f10b2b45fdfef65d359d8bcf6dafb4781b"
   },
   "hyprshell": {
-    "patch": "modules/home/desktop/patches/hyprshell-modifier-state.patch",
+    "patch": "overlays/temporary/patches/hyprshell-modifier-state.patch",
     "sha256": "d6f61ef038751c38cb03588a0fcd2e65f409caa86a4216808b7396ee83125bf5",
     "derivation": "/nix/store/2qmv3pk97n8myqnsvwbs8syg56apm3rw-hyprshell-4.10.8.drv",
     "output": "/nix/store/88ls7080w1y642hqj0r3lqi7zs1ydavw-hyprshell-4.10.8"

@@ -45,31 +45,21 @@ let
   commandLinks =
     name: priority: commands:
     lib.setPrio priority (
-      pkgs.runCommandLocal name { } ''
-        install -d "$out/bin"
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (
-            command: path: "ln -s ${lib.escapeShellArg path} \"$out/bin/${command}\""
-          ) commands
-        )}
-      ''
+      pkgs.linkFarm name (lib.mapAttrs' (command: path: lib.nameValuePair "bin/${command}" path) commands)
     );
 
   commandWrappers =
     name: priority: commands:
     lib.setPrio priority (
-      pkgs.runCommandLocal name { } ''
-        install -d "$out/bin"
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (command: path: ''
-            printf '%s\n' \
-              '#!${lib.getExe pkgs.bash}' \
-              'exec ${path} "$@"' \
-              > "$out/bin/${command}"
-            chmod 0755 "$out/bin/${command}"
-          '') commands
-        )}
-      ''
+      pkgs.symlinkJoin {
+        inherit name;
+        paths = lib.mapAttrsToList (
+          command: path:
+          pkgs.writeShellScriptBin command ''
+            exec ${lib.escapeShellArg path} "$@"
+          ''
+        ) commands;
+      }
     );
 
   nativeCommands = {

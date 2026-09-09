@@ -1,4 +1,9 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  myLib,
+  pkgs,
+  ...
+}:
 let
   # Every external command used by the shell sources below resolves through
   # these functions.  The bodies contain absolute Nix-store executables, so
@@ -49,22 +54,19 @@ let
       script,
       replacements ? { },
     }:
-    (pkgs.replaceVarsWith {
+    myLib.writers.writeBashTemplate { inherit pkgs; } {
       inherit name;
       src = script;
       dir = "bin";
-      isExecutable = true;
+      # Runtime functions mirror external commands, which can legitimately
+      # receive no arguments. They must not inherit the script's arguments.
+      shellcheckFlags = [ "--exclude=SC2119,SC2120" ];
       replacements = {
         bash = lib.getExe pkgs.bash;
         inherit minidvRuntime;
       }
       // replacements;
-    }).overrideAttrs
-      (old: {
-        meta = (old.meta or { }) // {
-          mainProgram = name;
-        };
-      });
+    };
 
   minidvVerify = mkMiniDvApplication {
     name = "minidv-verify";

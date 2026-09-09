@@ -1,0 +1,21 @@
+# shellcheck shell=bash
+if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+  echo "Usage: desktop-wallpaper-add /path/to/image" >&2
+  exit 64
+fi
+
+: "${destination_directory:?wallpaper destination must be set by the wrapper}"
+
+source_file="$1"
+mime_type="$(file --brief --mime-type -- "$source_file")"
+case "$mime_type" in
+image/avif | image/bmp | image/gif | image/jpeg | image/jxl | image/png | image/tiff | image/webp) ;;
+*)
+  echo "Refusing non-image input (detected $mime_type)." >&2
+  exit 65
+  ;;
+esac
+
+mkdir -p -- "$destination_directory"
+chmod 700 -- "$destination_directory"
+install -m 600 -- "$source_file" "$destination_directory/$(basename -- "$source_file")"

@@ -5,7 +5,7 @@
   ...
 }:
 let
-  catalog = import ../../shared/font-packages.nix { };
+  catalog = import ../../shared/fonts/packages.nix { };
 in
 {
   stylix.fonts = lib.mkDefault (catalog.roles pkgs);

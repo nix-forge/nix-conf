@@ -61,11 +61,28 @@
   desktop.applications.sessionLauncher = "uwsm app --";
   desktop.workflow.terminalCommand = "uwsm app -- ${lib.getExe pkgs.ghostty}";
 
-  # ChatGPT's Chromium runtime moves the app and its task processes into
-  # app-org.chromium.Chromium-<pid>.scope. With the default OOMPolicy=stop,
-  # one killed Nix evaluator also terminates the GUI and every other task.
-  # Chromium uses the same scope prefix, so this applies to its scopes too.
+  # Bound Zen's main process and content children together. On this 30 GiB
+  # host, an unbounded browser exhausted RAM and swap and the global OOM
+  # killer selected unrelated desktop applications. Match UWSM's escaped
+  # executable name so the policy survives new application scope IDs.
+  # Keep surviving browser processes running if a content process hits the
+  # ceiling; this cannot preserve a process selected directly by the kernel.
+  xdg.configFile."systemd/user/app-Hyprland-zen\\x2dbeta-.scope.d/50-memory-budget.conf".text = ''
+    [Scope]
+    MemoryHigh=12G
+    MemoryMax=16G
+    MemorySwapMax=4G
+    OOMPolicy=continue
+  '';
+
+  # ChatGPT splits its processes between Chromium and UWSM scopes. Preserve
+  # surviving processes after an OOM victim in either group. Chromium uses
+  # the first prefix too, so it receives the same behavior.
   xdg.configFile."systemd/user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf".text = ''
+    [Scope]
+    OOMPolicy=continue
+  '';
+  xdg.configFile."systemd/user/app-Hyprland-chatgpt-.scope.d/50-oom-policy.conf".text = ''
     [Scope]
     OOMPolicy=continue
   '';

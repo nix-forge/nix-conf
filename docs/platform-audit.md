@@ -130,7 +130,7 @@ their uses are grouped by file.
 | `flake/dev/shell.nix` | 10, 11, 50 | Keep Darwin libiconv linkage and native Swift analysis tools; common development packages are shared. |
 | `homes/macbook-pro-m4/local/dev-vm.nix` | 8, 152 | Keep the Fusion/macOS host boundary and native test execution. Portable helper tests remain shared. |
 | `homes/macbook-pro-m4/local/local-control.nix` | 8, 187 | Keep the Fusion/macOS host boundary and native test execution. Portable helper tests remain shared. |
-| `homes/macbook-pro-m4/support/local-control/secure-files-rs/package.nix` | 16 | Keep the Fusion/macOS host boundary and native test execution. Portable helper tests remain shared. |
+| `homes/macbook-pro-m4/local/local-control/runtime-helpers.nix` | 16 | Keep the Fusion/macOS host boundary and native test execution. Portable helper tests remain shared. |
 | `modules/home/actual.nix` | 8, 46, 120 | Changed. Share server options/setup, with systemd on Linux and launchd on Darwin. |
 | `modules/home/bitwarden.nix` | 8, 33, 48, 50, 56 | Keep native app/proxy paths, manifest locations, and copyApps/launchd versus XDG startup adapters. |
 | `modules/home/browsers/firefox/default.nix` | 17, 50, 64 | Keep signed Darwin app selection and install-registry reconciliation; share profiles and policies. |

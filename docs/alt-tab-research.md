@@ -48,7 +48,7 @@ The initial Hyprshell integration did not fix all of the user's symptoms. Its de
 
 Every compositor binding launches a separate `hyprshell socat` process. These processes can deliver `CloseSwitch` before `OpenSwitch`. The original handler ignores a close when the picker is already closed, then handles the late open without checking whether the modifier is still pressed. A concurrent open/close reproduction left the overlay stuck in 16 of 30 runs. A deterministic reproduction that delivers close before open failed every time. [Pinned IPC process generation](https://github.com/H3rmt/hyprshell/blob/v4.10.8/crates/core-lib/src/binds/transfer.rs), [pinned switch state handling](https://github.com/H3rmt/hyprshell/blob/v4.10.8/crates/windows-lib/src/switch/root.rs).
 
-`modules/home/desktop/patches/hyprshell-modifier-state.patch` fixes the installed package in four places:
+`overlays/temporary/patches/hyprshell-modifier-state.patch` fixes the installed package in four places:
 
 - Read the left and right modifier state from Hyprland's `repl` IPC command and `hl.is_key_down`. `eval` only returns an acknowledgement and cannot supply this result.
 - If an open arrives after Alt was released, select the recent window and close immediately.

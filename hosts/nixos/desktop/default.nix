@@ -1,33 +1,4 @@
-{ modules, inputs, ... }:
-let
-  zenNativeBuilderCopyFixOverlay =
-    _final: prev:
-    let
-      incompatibleCopy = "cp -P --no-preserve=mode,ownership --remove-destination";
-      compatibleCopy = "cp -P --remove-destination";
-    in
-    {
-      # The Determinate native builder's store mount rejects the permission
-      # update made by this GNU cp option combination. The Zen wrapper already
-      # runs chmod immediately after the copy, so dropping these options keeps
-      # the intended mode while making the wrapper portable across builders.
-      wrapFirefox =
-        browser: wrapperArgs:
-        let
-          wrapped = prev.wrapFirefox browser wrapperArgs;
-        in
-        if prev.lib.hasPrefix "zen-" (browser.pname or "") then
-          wrapped.overrideAttrs (old: {
-            buildCommand =
-              assert prev.lib.assertMsg (prev.lib.hasInfix incompatibleCopy old.buildCommand)
-                "Zen wrapper copy workaround no longer matches the upstream build command";
-              builtins.replaceStrings [ incompatibleCopy ] [ compatibleCopy ] old.buildCommand;
-          })
-        else
-          wrapped;
-    };
-in
-{
+{ modules, inputs, ... }: {
   system = "x86_64-linux";
   hostName = "desktop";
 
@@ -36,10 +7,7 @@ in
   };
 
   nixpkgsArgs = {
-    overlays = [
-      inputs.nixpkgs-personal.overlays.default
-      zenNativeBuilderCopyFixOverlay
-    ];
+    overlays = [ (import ../../../overlays { inherit inputs; }) ];
     config = {
       allowUnfree = true;
       allowUnfreePredicate = _: true;

@@ -1,13 +1,19 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   self,
   system,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = { };
+  };
 
   cfg = config.programs.libreoffice;
   libreofficePackage =
@@ -200,35 +206,35 @@ let
 
   settingsJson = pkgs.writeText "libreoffice-managed-settings.json" (builtins.toJSON managedSettings);
 
-  settingsPatcherPython = pkgs.replaceVarsWith {
-    name = "libreoffice-apply-settings.py";
-    src = ./libreoffice-apply-settings.py;
-    replacements = { };
-  };
+  settingsPatcherPython = pkgs.writers.writePython3 "libreoffice-apply-settings.py" {
+    # Ruff owns line wrapping; retain the writer's other Flake8 checks.
+    flakeIgnore = [ "E501" ];
+  } ./libreoffice-apply-settings.py;
 
-  settingsPatcher = pkgs.replaceVarsWith {
+  settingsPatcher = writeBashTemplate {
     name = "libreoffice-apply-settings";
     src = ./libreoffice-apply-settings.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
-      profile = registryFile;
+      profile = lib.escapeShellArg registryFile;
       pgrepExe = if isDarwin then "/usr/bin/pgrep" else lib.getExe' pkgs.procps "pgrep";
       pythonExe = lib.getExe pkgs.python3;
       inherit settingsJson settingsPatcherPython;
     };
   };
 
-  languageToolConfig = pkgs.replaceVarsWith {
-    name = "languagetool-http-server.properties";
-    src = ./languagetool-http-server.properties.in;
-    replacements = {
-      cacheSize = toString cfg.languageTool.cacheSize;
-      cacheTTLSeconds = toString cfg.languageTool.cacheTTLSeconds;
-      maxCheckThreads = toString cfg.languageTool.maxCheckThreads;
-      maxWorkQueueSize = toString cfg.languageTool.maxWorkQueueSize;
-    };
-  };
+  languageToolConfig =
+    (pkgs.formats.javaProperties { }).generate "languagetool-http-server.properties"
+      (
+        lib.mapAttrs (_: toString) {
+          inherit (cfg.languageTool)
+            cacheSize
+            cacheTTLSeconds
+            maxCheckThreads
+            maxWorkQueueSize
+            ;
+        }
+      );
   languageToolStateDir = "${config.xdg.stateHome}/libreoffice/languagetool";
   languageToolLogDir = "${languageToolStateDir}/logs";
   languageToolCommand = [
@@ -378,7 +384,7 @@ in
         PartOf = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = lib.escapeShellArgs languageToolCommand;
+        ExecStart = systemdUtils.escapeSystemdExecArgs languageToolCommand;
         Restart = "on-failure";
         RestartSec = 5;
         NoNewPrivileges = true;

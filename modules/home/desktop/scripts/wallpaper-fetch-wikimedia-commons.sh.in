@@ -3,8 +3,12 @@ set -euo pipefail
 export PATH="@runtimePath@"
 umask 077
 
-cache_directory='@wallpaperDirectory@'
-state_directory='@stateDirectory@'
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+cache_directory=@wallpaperDirectory@
+# Configuration values are shell-escaped literals, including dollar signs.
+# shellcheck disable=SC2016
+state_directory=@stateDirectory@
 category=@category@
 user_agent=@userAgent@
 temporary_directory="$(mktemp -d)"
