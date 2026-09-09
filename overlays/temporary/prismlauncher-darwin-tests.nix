@@ -2,7 +2,7 @@ _: {
   reason = "The native watch integration test assumes a macOS capability denied by the sandbox.";
   upstream = "https://github.com/PrismLauncher/PrismLauncher";
   removal = "Upstream checks the native watch prerequisite before running the integration case.";
-  reviewedRevision = "0968519e14f7aa7d3e9b389682bd74d2b51c8ce8";
+  reviewedRevision = "c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

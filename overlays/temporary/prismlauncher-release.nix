@@ -2,7 +2,7 @@
   reason = "The selected Nixpkgs package predates the locally selected PrismLauncher 11.1.0 release.";
   upstream = "https://github.com/PrismLauncher/PrismLauncher/releases/tag/11.1.0";
   removal = "Nixpkgs provides PrismLauncher 11.1.0 or later.";
-  reviewedRevision = "0968519e14f7aa7d3e9b389682bd74d2b51c8ce8";
+  reviewedRevision = "c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0";
   inputPath = [ "nixpkgs" ];
   affectedVersions = {
     from = "11.0.3";
