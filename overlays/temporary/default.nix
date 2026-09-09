@@ -10,6 +10,7 @@ let
     claude-code-sandbox = ./claude-code-sandbox.nix;
     deploy-rs-darwin-tests = ./deploy-rs-darwin-tests.nix;
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
+    determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;

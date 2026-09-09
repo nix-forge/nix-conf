@@ -182,8 +182,9 @@
   };
 
   outputs =
-    inputs:
+    upstreamInputs:
     let
+      inputs = import ./overlays/inputs.nix { inputs = upstreamInputs; };
       myLib = import ./lib { inherit (inputs.nixpkgs) lib; };
       # Public repository trust anchors. Private age identities and signing
       # keys remain outside this repository and outside the Nix store.

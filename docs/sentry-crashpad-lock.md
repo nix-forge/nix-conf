@@ -32,16 +32,23 @@ logging open call only at report-lock acquisition. It suppresses `EEXIST` there
 and retains diagnostics for other failures. Exclusive creation, lock ownership,
 busy return values, report contents, and crash reporting remain unchanged.
 
-The selection in [packages.nix](../overlays/packages.nix) takes both Nix and its
-Sentry dependency directly from `inputs.determinate.inputs.nix.packages`.
-It patches Sentry inside that Determinate Nix package's component scope and
-exports the result as `pkgs.nix`, preserving the dependency's curl customization.
-Other Sentry consumers and Darwin's native Crashpad database are unaffected.
+The [module adapter](../overlays/temporary/determinate-sentry-module.nix) takes
+Nix and its Sentry dependency directly from Determinate's pinned Nix input.
+It patches Sentry inside that package's component scope, preserving the
+dependency's curl customization, and passes the repaired input to Determinate's
+upstream NixOS module factory.
 
-The [Determinate configuration module](../modules/shared/determinate.nix) selects
-the overlaid package for `nix.package`. The upstream NixOS module otherwise
-selects its flake input directly and bypasses the overlay. Evaluation checks
-verify that both the system package and Nixd's `--nix-bin` use the selection.
+The [input overrides](../overlays/inputs.nix) replace
+`inputs.determinate.nixosModules.default` with this adapter before configuration
+evaluation. The [Determinate configuration module](../modules/shared/determinate.nix)
+keeps its normal import and needs no edits when the patch is retired.
+Determinate's upstream module remains the sole owner of
+`nix.package` and Nixd's `--nix-bin`. The repair needs no `mkForce` assignment or
+global `pkgs.nix` replacement. Other Sentry consumers and Darwin's native
+Crashpad database are unaffected.
+
+Evaluation checks exercise the adapter with an ordinary package set, verify
+normal module priority, and check both the system package and daemon command.
 
 ## Validation and retirement
 
@@ -70,18 +77,19 @@ The lifecycle check exercises initial application, skipping an existing fix,
 and rejection of unfamiliar source.
 
 There is no guessed version cutoff and no live upstream lookup during Nix
-evaluation. The repository's revision guard still requires review when the
-Determinate input changes. To assess a new pin, build its unmodified dependency
-with the same behavioral test:
+evaluation. Revision guards require review when either the Determinate module
+input or its nested Nix input changes. To assess a new pin, build its unmodified
+dependency with the same behavioral test:
 
 ```console
 nix build --no-link --impure --expr '
   let f = builtins.getFlake ("path:" + toString ./.);
-  in f.nixosConfigurations.desktop.pkgs.nix.tests.crashpad-lock-upstream
+  in f.nixosConfigurations.desktop.config.nix.package.tests.crashpad-lock-upstream
 '
 ```
 
 This probe is expected to fail while the upstream bug remains. After an upstream
-fix passes it, retire the registry entry, package selection, patch, and obsolete
-checks together. Automatic skipping handles an identical backport; a differently
+fix passes it, remove the Determinate replacement in `overlays/inputs.nix` and
+retire both registry entries, the module adapter, patch, and obsolete checks
+together. Automatic skipping handles an identical backport; a differently
 implemented upstream fix requires review and successful behavioral validation.

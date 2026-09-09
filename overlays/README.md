@@ -7,6 +7,9 @@ Long-lived package selection and behavior live in [`permanent/`](permanent/).
 package set through `useGlobalPkgs`.
 [`packages.nix`](packages.nix) owns platform conditions, package sources, and
 the order in which fixes apply. It receives the incoming `prev` package set.
+[`inputs.nix`](inputs.nix) applies module replacements to flake inputs before
+configuration evaluation. Consumers keep their normal upstream module imports
+when these replacements are retired.
 
 Modules use ordinary package attributes:
 
@@ -57,7 +60,8 @@ dependency from nixpkgs-personal back into this configuration.
 
 The permanent Determinate overlay selects the Nix implementation. Its Darwin
 test workaround is a separate temporary fix. The Linux Sentry report-lock fix
-is confined to Determinate's dependency scope; its
+passes a repaired Nix input directly to Determinate's NixOS module factory,
+without changing the global package overlay or forcing `nix.package`. Its
 [investigation and regression checks](../docs/sentry-crashpad-lock.md) describe
 the source-aware skip and revision review needed for retirement.
 Region-only Grimblast behavior is
@@ -73,6 +77,8 @@ Module fixes use the same registry and revision guard as package fixes. Their
 imports that result, as the Neovim module does for `stylix-nvf`. Construct its
 registry with `{ inherit inputs lib; }` so import resolution does not depend on
 `config._module.args.pkgs`. Module fixes stay outside the Nixpkgs overlay in `packages.nix`; they need no package version range.
+When a fix replaces an exported upstream module, apply it in `inputs.nix` so
+the consuming configuration does not need patch-specific imports.
 
 ## Temporary fix lifecycle
 

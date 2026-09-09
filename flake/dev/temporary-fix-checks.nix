@@ -2,7 +2,7 @@
   perSystem =
     { pkgs, ... }:
     let
-      selected = pkgs.extend (import ../../overlays { inherit inputs; });
+      determinatePackage = import ../../tests/nix/determinate-module.nix { inherit pkgs inputs; };
       # Evaluation covers all supported platforms without building foreign
       # packages or moving the desktop closure to another builder.
       results = builtins.listToAttrs (
@@ -28,7 +28,9 @@
     {
       checks = {
         temporary-package-fixes =
-          assert desktop.nix.package.drvPath == self.nixosConfigurations.desktop.pkgs.nix.drvPath;
+          assert
+            desktop.nix.package.drvPath == builtins.head results.x86_64-linux.derivations.determinate-module;
+          assert self.nixosConfigurations.desktop.options.nix.package.highestPrio == 100;
           assert pkgs.lib.any (
             command:
             pkgs.lib.hasInfix "--nix-bin ${builtins.unsafeDiscardStringContext desktop.nix.package.outPath}/bin" command
@@ -40,7 +42,7 @@
           );
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-        sentry-crashpad-lock = selected.nix.tests.crashpad-lock;
+        sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
         sentry-crashpad-lock-lifecycle =
           pkgs.runCommand "sentry-crashpad-lock-lifecycle"
             {
@@ -52,7 +54,7 @@
             }
             ''
               python3 ${../../overlays/temporary/tests/crashpad-lock-lifecycle.py} \
-                ${selected.nix.tests.crashpad-lock.src} \
+                ${determinatePackage.tests.crashpad-lock.src} \
                 ${../../overlays/temporary/patches/apply-crashpad-lock.sh} \
                 ${../../overlays/temporary/patches/sentry-crashpad-lock.patch}
               touch "$out"

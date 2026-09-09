@@ -25,6 +25,14 @@ let
     };
   };
   moduleFixes = import ../../overlays/temporary { inherit lib inputs; };
+  changedDeterminateModule = import ../../overlays/temporary {
+    inherit lib;
+    inputs = inputs // {
+      determinate = inputs.determinate // {
+        rev = "unreviewed";
+      };
+    };
+  };
   changedDeterminate = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -56,6 +64,7 @@ let
     determinate = [ selected.nix ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+    determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
     hyprshell = [ selected.hyprshell ];
     virt-manager = [ selected.virt-manager ];
     grimblast = [ selected.grimblast-region ];
@@ -101,6 +110,11 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
 assert !(succeeds changedDeterminate.review);
+assert !(succeeds changedDeterminateModule.review);
+assert
+  !(succeeds (
+    changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
+  ));
 assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
@@ -114,13 +128,12 @@ assert
     selected.deploy-rs.drvPath
     == inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath;
 assert pkgs.stdenv.hostPlatform.isLinux || !(overlay selected pkgs ? hyprland);
-# The Crashpad generic database is used on Linux. Darwin retains its existing
-# Determinate package and sandbox-test policy without this dependency repair.
+# The Crashpad repair belongs to the NixOS module, not the package overlay.
+# Darwin retains its existing Determinate package and sandbox-test policy.
 assert
   if pkgs.stdenv.hostPlatform.isLinux then
     selected.nix.drvPath
-    != inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath
-    && selected.nix.tests ? crashpad-lock
+    == inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath
   else
     selected.nix.drvPath == (fixes.apply "determinate-darwin-tests"
       inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
