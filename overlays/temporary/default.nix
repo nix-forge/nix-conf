@@ -16,6 +16,7 @@ let
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     prismlauncher-release = ./prismlauncher-release.nix;
+    sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     stylix-nvf = ./stylix-nvf.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
   };

@@ -97,9 +97,11 @@ The desktop uses USBGuard with a default-block policy and existing
 device-specific rules. A subsequent insertion exposed a Yubico device with
 OTP, FIDO, and CCID interfaces. Sysfs reported it as unauthorized, and the
 USBGuard audit log confirmed the block. The host policy now includes its
-reviewed descriptor hash without a port restriction. The second key still
-needs a separately reviewed rule. USBGuard authorization is an additional
-requirement beyond the HID permissions and PC/SC service.
+reviewed descriptor hash without a port restriction. On 2026-09-09, the second
+key presented the same hash and was already authorized. It exposed no USB
+serial descriptor, so the rule matches identical descriptors rather than a
+unique physical key. No duplicate rule was needed. USBGuard authorization is
+an additional requirement beyond the HID permissions and PC/SC service.
 
 After temporary USBGuard authorization, `ykman info` identified a YubiKey 5C
 with firmware 5.8.0 and OTP, FIDO, and CCID enabled. `ykman fido info` read its
@@ -107,10 +109,22 @@ FIDO2 status successfully as the ordinary desktop user. This verifies USB HID
 access for the tested key. The CLI also reported PC/SC unavailable, so it did
 not verify smart-card communication.
 
-The support configuration was not activated during this research. The
-temporary USBGuard authorization does not replace activation of the declarative
-rule. Full system builds, the second key, macOS runtime, and browser
-registration and authentication remain untested.
+At the subsequent check on 2026-09-09, the running desktop had `ykman` installed
+and its PC/SC socket and service active. The second key also reported YubiKey
+5C firmware 5.8.0, and the ordinary desktop user could read its FIDO2 status.
+The initial PC/SC warning was absent, but OATH and PIV status queries failed.
+The PC/SC log reported USB access denied; the USB device node still belonged
+to `root:root`, while the daemon runs as `pcscd`. The installed CCID udev rule
+assigns the `pcscd` group on device-add events. Reconnecting the key after
+activation changed the device group to `pcscd`. Device information, FIDO2,
+OATH, and PIV status queries then all succeeded as the ordinary desktop user.
+After swapping back to the first key, the same four queries also succeeded
+with the device authorized and its group set to `pcscd`. Both keys therefore
+passed FIDO and smart-card communication checks under the active desktop
+configuration, and both reported firmware 5.8.0.
+The agent did not perform or observe the intervening system build and
+activation. macOS runtime and browser registration and authentication remain
+untested.
 
 For an initial inspection, connect one key at a time and run these read-only
 commands locally on each host:

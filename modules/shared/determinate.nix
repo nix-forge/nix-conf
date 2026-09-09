@@ -5,23 +5,37 @@ let
   };
 in
 {
-  nixos = { inputs, ... }: {
-    imports = [ inputs.determinate.nixosModules.default ];
+  nixos =
+    {
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
+    {
+      imports = [ inputs.determinate.nixosModules.default ];
 
-    # NixOS exposes the Determinate integration as `determinate`, whereas
-    # nix-darwin calls the corresponding option `determinateNix`.
-    determinate.enable = true;
+      # NixOS exposes the Determinate integration as `determinate`, whereas
+      # nix-darwin calls the corresponding option `determinateNix`.
+      determinate.enable = true;
 
-    nix = { inherit settings; };
+      nix = {
+        inherit settings;
+        # The upstream module selects its flake input directly. Use this
+        # repository's overlaid package for both the CLI and Nixd's --nix-bin.
+        # The priority override can go once upstream defaults to pkgs.nix or
+        # exposes a separate package option.
+        package = lib.mkForce pkgs.nix;
+      };
 
-    # Determinate Nixd is the Nix daemon on NixOS and owns garbage
-    # collection.  Keep its documented default explicit so host modules do
-    # not add a competing `nix.gc` or `nix-collect-garbage` schedule.
-    environment.etc."determinate/config.json".text = builtins.toJSON {
-      garbageCollector.strategy = "automatic";
+      # Determinate Nixd is the Nix daemon on NixOS and owns garbage
+      # collection.  Keep its documented default explicit so host modules do
+      # not add a competing `nix.gc` or `nix-collect-garbage` schedule.
+      environment.etc."determinate/config.json".text = builtins.toJSON {
+        garbageCollector.strategy = "automatic";
+      };
+
     };
-
-  };
 
   darwin =
     {

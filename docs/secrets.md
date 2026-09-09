@@ -51,6 +51,23 @@ just secret reveal --plan /path/to/plan.v2.json --secret <id> --identity /absolu
 underlying application credential and must be performed as a separate, explicit
 operation.
 
+Before switching a configuration whose secret policy or templates changed, use
+`just secret prepare --flake '.#nixosConfigurations.<HOSTNAME>'` with
+`--identity` and `--signing-key` paths. Replace `<HOSTNAME>` with the selected
+configuration name. Add `--administrator-host` when those keys are on another
+machine; the key paths then refer to files on that machine. Review the dry run
+and repeat with `--execute`, then run the normal switch. Preparation discovers
+both the host and embedded home plans, installs signed ciphertext into each
+owner's cache, and checks readiness. Private keys stay on the administrator
+machine. See the [preparation workflow](../nix-seal/README.md#prepare-a-configuration-before-switching)
+for complete commands and retries.
+
+NixOS checks readiness before stopping services, and Home Manager checks before
+writing its environment. An error includes the missing secret IDs and a command
+that selects the exact deployment description. `doctor` now exits nonzero when a
+valid plan lacks required artifacts; it distinguishes policy validity from
+readiness in its JSON output.
+
 ## Config templates
 
 Small templates are defined inline in the Nix modules that configure them.
@@ -138,7 +155,8 @@ email fields and preserves its existing public key and `namespaces="git"`
 restriction. Once migrated, Jujutsu links its identity file to a private runtime
 template rather than copying values into persistent home storage.
 
-For ordinary changes, edit the inline Nix template and rebuild. Use nix-seal's secret creation or editing commands to change private
+For ordinary changes, edit the inline Nix template, prepare its matching signed
+artifacts, and rebuild. Use nix-seal's secret creation or editing commands to change private
 values. Template files contain public syntax and markers only. The generated
 plan JSON is an internal interchange format; users do not maintain a template
 inventory or write that plan by hand.

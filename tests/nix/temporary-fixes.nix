@@ -25,6 +25,18 @@ let
     };
   };
   moduleFixes = import ../../overlays/temporary { inherit lib inputs; };
+  changedDeterminate = import ../../overlays/temporary {
+    inherit pkgs;
+    inputs = inputs // {
+      determinate = inputs.determinate // {
+        inputs = inputs.determinate.inputs // {
+          nix = inputs.determinate.inputs.nix // {
+            rev = "unreviewed";
+          };
+        };
+      };
+    };
+  };
   changedStylix = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -88,6 +100,8 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 # The registry checks disabled fixes without depending on lazy module consumers.
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
+assert !(succeeds changedDeterminate.review);
+assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
 # Platform decisions belong to the selection interface. Linux keeps the
@@ -100,6 +114,17 @@ assert
     selected.deploy-rs.drvPath
     == inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath;
 assert pkgs.stdenv.hostPlatform.isLinux || !(overlay selected pkgs ? hyprland);
+# The Crashpad generic database is used on Linux. Darwin retains its existing
+# Determinate package and sandbox-test policy without this dependency repair.
+assert
+  if pkgs.stdenv.hostPlatform.isLinux then
+    selected.nix.drvPath
+    != inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath
+    && selected.nix.tests ? crashpad-lock
+  else
+    selected.nix.drvPath == (fixes.apply "determinate-darwin-tests"
+      inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    ).drvPath;
 # A fix that changes the output version still checks the incoming version.
 assert release.version == "11.1.0";
 assert

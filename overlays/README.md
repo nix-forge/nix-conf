@@ -56,7 +56,11 @@ with its recipe and validate them in that repository. Do not introduce a
 dependency from nixpkgs-personal back into this configuration.
 
 The permanent Determinate overlay selects the Nix implementation. Its Darwin
-test workaround is a separate temporary fix. Region-only Grimblast behavior is
+test workaround is a separate temporary fix. The Linux Sentry report-lock fix
+is confined to Determinate's dependency scope; its
+[investigation and regression checks](../docs/sentry-crashpad-lock.md) describe
+the source-aware skip and revision review needed for retirement.
+Region-only Grimblast behavior is
 a permanent override. Module-specific Git options and browser flags stay with
 the module that owns those options.
 
