@@ -13,10 +13,12 @@
     # The Pulsar X2 V2 Mini has separate identities for its wireless receiver
     # (3554:f508) and wired mode (3554:f507). The wired descriptor hash was
     # reviewed from this desktop's USBGuard audit log on 2026-09-06.
-    # The YubiKey OTP+FIDO+CCID descriptor hash was reviewed from the
-    # USBGuard insertion event on 2026-09-08. It intentionally omits topology
-    # so this key can move between USB ports. Additional keys and changes to
-    # enabled USB interfaces require separately reviewed hashes.
+    # Both YubiKeys were configured with USB OTP disabled on 2026-09-09.
+    # Their FIDO+CCID descriptor hash was reviewed from USBGuard insertion
+    # events after that change. Both present the same hash and no USB serial,
+    # so this rule matches identical descriptors, not a unique physical key.
+    # It omits topology to permit moving between USB ports. Changes to enabled
+    # USB interfaces require another descriptor review.
     #
     # The currently attached Samsung Flash Drive FIT (090c:1000) is deliberately
     # absent. Removable mass storage is blocked by default. If it becomes a

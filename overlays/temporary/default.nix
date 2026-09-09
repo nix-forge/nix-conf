@@ -10,6 +10,7 @@ let
     claude-code-sandbox = ./claude-code-sandbox.nix;
     deploy-rs-darwin-tests = ./deploy-rs-darwin-tests.nix;
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
+    determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
@@ -17,6 +18,7 @@ let
     nh-darwin-home = ./nh-darwin-home.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     prismlauncher-release = ./prismlauncher-release.nix;
+    sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     stylix-nvf = ./stylix-nvf.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
   };

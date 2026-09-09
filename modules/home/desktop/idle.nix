@@ -100,6 +100,8 @@ in
         listener = [
           {
             timeout = cfg.lockAfterSeconds;
+            # Keep unattended sessions protected while applications prevent sleep.
+            ignore_inhibit = true;
             on-timeout = "loginctl lock-session";
           }
           {
@@ -108,7 +110,7 @@ in
             on-resume = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
           }
           {
-            # Only the locked-session rule bypasses application inhibitors.
+            # Turn off locked displays even while applications prevent sleep.
             # Retry if the short timeout expires before Hyprlock starts.
             timeout = cfg.lockedDisplayOffAfterSeconds;
             ignore_inhibit = true;

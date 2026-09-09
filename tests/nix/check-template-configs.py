@@ -73,7 +73,11 @@ assert idle == {
         }
     ],
     "listener": [
-        {"timeout": "300", "on-timeout": "loginctl lock-session"},
+        {
+            "timeout": "300",
+            "ignore_inhibit": "true",
+            "on-timeout": "loginctl lock-session",
+        },
         {"timeout": "330", "on-timeout": disable, "on-resume": enable},
         {
             "timeout": "30",

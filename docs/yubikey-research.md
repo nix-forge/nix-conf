@@ -69,6 +69,27 @@ hardware SSH keys and check which executable is on `PATH`. A version string
 alone does not establish this capability. Existing SSH policy is documented in
 [the SSH module research](ssh-module-research.md).
 
+### Disable keyboard OTP for FIDO and smart-card use
+
+The OTP interface presents a USB keyboard and types a credential when its
+configured slot is activated. The separate FIDO and CCID interfaces handle
+security-key authentication and smart-card applications. See Yubico's
+[interface documentation](https://docs.yubico.com/hardware/yubikey/yk-tech-manual/yk5-physical-attributes.html#understanding-the-usb-interfaces).
+
+For keys used for FIDO2/WebAuthn and CCID applications, disable USB OTP with
+`ykman config usb --disable OTP`. This device setting applies on Linux and
+macOS. It preserves FIDO U2F, FIDO2, OATH, PIV, OpenPGP, and YubiHSM Auth.
+It disables access to OTP-slot functions over USB, including challenge-response.
+Re-enable it with `ykman config usb --enable OTP` if those functions are needed.
+These commands change application availability rather than delete OTP slots.
+See the [Yubico configuration guide](https://docs.yubico.com/software/yubikey/tools/ykman/Config_Commands.html).
+
+Configure one connected key at a time, or select each explicitly with
+`ykman --device <SERIAL> config usb --disable OTP`. Keep serials in private
+local records. Changing interfaces changes the USB descriptors; review the new
+USBGuard hash and activate the corresponding host policy before relying on
+the key on a machine with default-block USB authorization.
+
 ### Password-manager and Apple Account use
 
 Bitwarden supports hardware keys through its
@@ -97,9 +118,11 @@ The desktop uses USBGuard with a default-block policy and existing
 device-specific rules. A subsequent insertion exposed a Yubico device with
 OTP, FIDO, and CCID interfaces. Sysfs reported it as unauthorized, and the
 USBGuard audit log confirmed the block. The host policy now includes its
-reviewed descriptor hash without a port restriction. The second key still
-needs a separately reviewed rule. USBGuard authorization is an additional
-requirement beyond the HID permissions and PC/SC service.
+reviewed descriptor hash without a port restriction. On 2026-09-09, the second
+key presented the same hash and was already authorized. It exposed no USB
+serial descriptor, so the rule matches identical descriptors rather than a
+unique physical key. No duplicate rule was needed. USBGuard authorization is
+an additional requirement beyond the HID permissions and PC/SC service.
 
 After temporary USBGuard authorization, `ykman info` identified a YubiKey 5C
 with firmware 5.8.0 and OTP, FIDO, and CCID enabled. `ykman fido info` read its
@@ -107,10 +130,37 @@ FIDO2 status successfully as the ordinary desktop user. This verifies USB HID
 access for the tested key. The CLI also reported PC/SC unavailable, so it did
 not verify smart-card communication.
 
-The support configuration was not activated during this research. The
-temporary USBGuard authorization does not replace activation of the declarative
-rule. Full system builds, the second key, macOS runtime, and browser
-registration and authentication remain untested.
+At the subsequent check on 2026-09-09, the running desktop had `ykman` installed
+and its PC/SC socket and service active. The second key also reported YubiKey
+5C firmware 5.8.0, and the ordinary desktop user could read its FIDO2 status.
+The initial PC/SC warning was absent, but OATH and PIV status queries failed.
+The PC/SC log reported USB access denied; the USB device node still belonged
+to `root:root`, while the daemon runs as `pcscd`. The installed CCID udev rule
+assigns the `pcscd` group on device-add events. Reconnecting the key after
+activation changed the device group to `pcscd`. Device information, FIDO2,
+OATH, and PIV status queries then all succeeded as the ordinary desktop user.
+After swapping back to the first key, the same four queries also succeeded
+with the device authorized and its group set to `pcscd`. Both keys therefore
+passed FIDO and smart-card communication checks under the active desktop
+configuration, and both reported firmware 5.8.0.
+The agent did not perform or observe the intervening system build and
+activation. macOS runtime and browser registration and authentication remain
+untested.
+
+Later on 2026-09-09, both connected keys were selected individually and their
+USB OTP application was disabled successfully. Both re-enumerated as FIDO+CCID
+devices with the same new descriptor hash and without the keyboard interface.
+The host policy now permits that reviewed hash in place of the original
+OTP+FIDO+CCID hash. After temporary authorization of the new hash, both keys
+passed application-list, FIDO2, OATH, and PIV status queries. Both retained
+FIDO U2F, FIDO2, OATH, PIV, OpenPGP, and YubiHSM Auth, with Yubico OTP disabled.
+Their USB device nodes were authorized and assigned to the `pcscd` group.
+Reconnecting a key later confirmed that the temporary approval does not survive
+removal: the old running policy blocked its new identity again. A full updated
+desktop system build completed successfully on the desktop host, and its
+generated USBGuard policy contains the new hash. The permanent updated policy
+still requires host activation. Physical-key settings were changed and verified
+on Linux; macOS behavior after the change remains untested.
 
 For an initial inspection, connect one key at a time and run these read-only
 commands locally on each host:
