@@ -3,6 +3,7 @@ let
   inherit (inputs.nixpkgs) lib;
   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
   desktop = self.nixosConfigurations.desktop.config;
+  deploymentChecksBySystem.x86_64-linux = inputs.deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
   desktopRtxDrmCardPath = "/dev/dri/desktop-nvidia-card";
   desktopRtxRenderPath = "/dev/dri/by-path/pci-0000:01:00.0-render";
   sunshineAppArmorTemplate = builtins.readFile ../hosts/nixos/desktop/local/apparmor/sunshine.profile;
@@ -188,7 +189,18 @@ in
       };
     };
 
-    checks.x86_64-linux = inputs.deploy-rs.lib.x86_64-linux.deployChecks self.deploy // {
+    # Full deployment checks build the desktop closure and belong on that host.
+    # Derive exclusions from their owner so new ordinary checks still enter CI.
+    ciChecks = lib.mapAttrs (
+      system: checks:
+      removeAttrs checks (
+        builtins.attrNames (
+          (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
+        )
+      )
+    ) self.checks;
+
+    checks.x86_64-linux = deploymentChecksBySystem.x86_64-linux // {
       zen-wrapper-copy-regression = desktopHome.programs.zen-browser.package;
 
       browser-configuration-contract =

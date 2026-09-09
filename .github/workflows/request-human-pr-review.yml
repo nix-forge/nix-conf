@@ -11,4 +11,4 @@ jobs:
     name: request-review
     permissions:
       pull-requests: write # Update pull request metadata.
-    uses: nix-forge/ci/.github/workflows/request-review.yml@91464483eff23ba8501bb0c62bd20c1acf216b22 # v2.1.0
+    uses: nix-forge/ci/.github/workflows/request-review.yml@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
