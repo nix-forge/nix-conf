@@ -14,6 +14,7 @@ let
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
+    nh-darwin-home = ./nh-darwin-home.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     prismlauncher-release = ./prismlauncher-release.nix;
     stylix-nvf = ./stylix-nvf.nix;
@@ -22,6 +23,7 @@ let
   fixes = lib.mapAttrs (name: file: (import file { inherit pkgs lib; }) // { inherit name; }) files;
   guard = import ./guard.nix { inherit lib; };
   revision = fix: (lib.getAttrFromPath fix.inputPath inputs).rev or "<unversioned input>";
+  appliesTo = fix: fix.appliesTo or (_: true);
 in
 {
   # Callers apply a fix to its incoming package or module input.
@@ -30,21 +32,27 @@ in
     let
       fix = fixes.${name};
     in
-    fix.apply (guard fix (revision fix) value);
+    if appliesTo fix value then fix.apply (guard fix (revision fix) value) else value;
 
-  # Force every revision guard in CI, including fixes for disabled features and
-  # other platforms. Package version guards are also checked at each call site.
+  # Force revision review even for disabled features and other platforms.
+  # Explicitly version-gated fixes retire their own guard with the patch.
   review = lib.mapAttrs (
     _: fix:
-    builtins.seq (guard (fix // { affectedVersions = null; }) (revision fix) { }) {
-      inherit (fix)
-        reason
-        upstream
-        removal
-        reviewedRevision
-        ;
-      affectedVersions = fix.affectedVersions or null;
-      inherit (fix) inputPath;
-    }
+    let
+      applicable = !(fix ? appliesTo) || pkgs == null || appliesTo fix pkgs.${fix.packageName};
+    in
+    builtins.seq
+      (if applicable then guard (fix // { affectedVersions = null; }) (revision fix) { } else null)
+      {
+        inherit (fix)
+          reason
+          upstream
+          removal
+          reviewedRevision
+          ;
+        affectedVersions = fix.affectedVersions or null;
+        inherit (fix) inputPath;
+        inherit applicable;
+      }
   ) fixes;
 }

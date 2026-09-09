@@ -15,6 +15,7 @@ in
 }
 // pkgs.lib.optionalAttrs isDarwin {
   actual-server = fixes.apply "actual-server-case" pkgs.actual-server;
+  nh = pkgs.nh.override { nh-unwrapped = fixes.apply "nh-darwin-home" pkgs.nh-unwrapped; };
 }
 // pkgs.lib.optionalAttrs isLinux {
   wrapFirefox = fixes.apply "zen-wrapper-copy" pkgs.wrapFirefox;

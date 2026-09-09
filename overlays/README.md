@@ -97,6 +97,20 @@ package before applying an override that might change its version. A package
 outside the interval fails evaluation with the fix name and removal condition.
 The fix is never silently applied outside its declared range.
 
+For a fix that should stop applying automatically after the affected versions,
+declare `packageName` and an `appliesTo` predicate instead. The registry tests
+the incoming package before applying the patch or its revision guard. Review
+checks use `pkgs.${packageName}` for the same decision. If a registry has no
+package set, revision review remains conservative. Other fixes keep their
+existing review behavior.
+
+The `nh-darwin-home` fix applies through `nh` 4.4.2 and is skipped for newer
+versions, including its own revision-review requirement. Upstream merged
+[PR #758](https://github.com/nix-community/nh/pull/758) after the affected source;
+the next release number is not yet announced. This cutoff assumes subsequent
+releases include that correction. The inactive patch files can be deleted
+during later maintenance; evaluation does not modify the checkout.
+
 The existing PrismLauncher release override is limited to `[11.0.3, 11.1.0)`.
 That is the currently supported incoming range for the already selected 11.1.0
 source, not a claim that every older PrismLauncher release is broken. Its Darwin
@@ -123,8 +137,8 @@ working fix. Record the specific issue or PR URL when one is established.
    Keep the regression reproduction or upstream test with the fix's evidence.
 4. Run `just temporary-fixes-check` after changing a fix or updating inputs.
    The flake check evaluates packages for all three supported platforms. It
-   forces revision review for every registered package and module fix, including
-   disabled features.
+   forces revision review for every applicable registered package and module
+   fix, including disabled features.
    Normal `nix flake check` and `just update-all` also evaluate this check.
 5. When a guard fails, inspect the new pinned source and test the package or module without
    the workaround on the affected platform. If fixed, remove the record, registration,
