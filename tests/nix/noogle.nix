@@ -431,6 +431,9 @@ in
       '';
   service-command-arguments = pkgs.testers.runNixOSTest {
     name = "home-service-command-arguments";
+    # QEMU can test argument handling through software emulation when KVM
+    # is unavailable, while retaining acceleration on capable builders.
+    requiredFeatures.kvm = false;
     nodes.machine = {
       system.stateVersion = "26.05";
       environment.etc."expected-arguments.json".text = builtins.toJSON {
