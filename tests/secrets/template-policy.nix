@@ -1,6 +1,6 @@
 { lib }:
 let
-  myLib = import ../../lib { inherit lib; };
+  checkNixTokenPolicy = import ../../flake/deploy/nix-token-policy.nix { inherit lib; };
   after = {
     secrets.nix-token-github-com = {
       source = "modules/shared/secrets/nix-token-github-com.age";
@@ -20,7 +20,7 @@ let
   };
   accepts =
     nixSeal:
-    myLib.secrets.checkNixTokenPolicy {
+    checkNixTokenPolicy {
       inherit nixSeal;
       owner = "root";
       group = "root";

@@ -266,15 +266,13 @@ Home Manager installs manifests in the platform-specific Mozilla native-messagin
 ## Implemented layout
 
 ```text
-lib/browser/
-  extensions.nix
-  ublock.nix
-
 modules/home/browsers/
   default.nix
   shared/
     default.nix
     default-browser.sh
+    extension-policies.nix
+    ublock-policy.nix
     extensions.nix
     profile.nix
     search.nix
@@ -297,7 +295,7 @@ homes/shared/browsers/
   zen.nix
 ```
 
-`lib/browser/` contains only the extension-policy and uBlock serialization functions. All browser settings and policy data live with the browser modules. The shared Home Manager modules expose their common data through internal, read-only `programs.browserSuite.shared` options. They do not inject module arguments. The Firefox and Zen modules attach that configuration to each program and contain only genuine browser differences. Personal declarations live below `homes/*/local/browsers/`; the two machines import their shared personal choices from `homes/shared/browsers/`.
+The extension-policy and uBlock serialization functions live beside their callers under `modules/home/browsers/shared/`. All browser settings and policy data live with the browser modules. The shared Home Manager modules expose their common data through internal, read-only `programs.browserSuite.shared` options. They do not inject module arguments. The Firefox and Zen modules attach that configuration to each program and contain only genuine browser differences. Personal declarations live below `homes/*/local/browsers/`; the two machines import their shared personal choices from `homes/shared/browsers/`.
 
 Examples of personal/local configuration:
 

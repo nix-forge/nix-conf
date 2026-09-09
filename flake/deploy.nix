@@ -6,6 +6,7 @@
 }:
 let
   inherit (inputs.nixpkgs) lib;
+  checkNixTokenPolicy = import ./deploy/nix-token-policy.nix { inherit lib; };
   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
   desktop = self.nixosConfigurations.desktop.config;
   deploymentChecksBySystem.x86_64-linux = inputs.deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
@@ -1213,7 +1214,7 @@ in
         assert desktop.nixSeal.linux.volatileRuntime.enable;
         assert desktop.users.groups ? ianmh;
         assert lib.elem "ianmh" desktop.users.users.ianmh.extraGroups;
-        assert myLib.secrets.checkNixTokenPolicy {
+        assert checkNixTokenPolicy {
           nixSeal = desktop.nixSeal;
           owner = "root";
           group = "root";

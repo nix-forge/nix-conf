@@ -1,12 +1,10 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   ...
 }:
 let
-  desktopLib = myLib.desktop;
   cfg = config.desktop.walker;
   defaultSettings = {
     force_keyboard_focus = true;
@@ -118,10 +116,9 @@ in
       }
     ];
     home.packages = [ pkgs.walker ];
-    xdg.configFile."walker/config.toml".source = desktopLib.mkWalkerConfig {
-      inherit pkgs;
-      inherit (cfg) settings;
-    };
+    xdg.configFile."walker/config.toml".source =
+      (pkgs.formats.toml { }).generate "walker-config.toml"
+        cfg.settings;
 
   };
 }

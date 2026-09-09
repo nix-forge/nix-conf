@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib }:
 let
   mkPolicy =
     {
@@ -36,6 +36,4 @@ let
       })
     ) extensions;
 in
-{
-  extensions = { inherit mkPolicies; };
-}
+mkPolicies

@@ -127,6 +127,7 @@ let
   };
 in
 {
+  walker-config = desktop.config.xdg.configFile."walker/config.toml".source;
   template-configs =
     pkgs.runCommand "template-config-regressions"
       {

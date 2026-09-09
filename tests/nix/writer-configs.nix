@@ -12,10 +12,6 @@ let
         }
       ];
     }).config.lib.localControl;
-  walker = myLib.desktop.mkWalkerConfig {
-    inherit pkgs;
-    settings.theme = "stylix";
-  };
   cssChecker = myLib.desktop.mkGtkCssChecker { inherit pkgs; };
   writePowerShell = myLib.writers.writePowerShell { inherit pkgs; };
   caddyChecker = localControlLibrary.mkLocalControlConfigChecker { inherit pkgs; };
@@ -32,7 +28,6 @@ let
   };
 in
 {
-  walker-config = walker;
   gtk-css-parser = pkgs.runCommand "gtk-css-parser" { } ''
     printf '%s\n' '* { color: #123456; }' > valid.css
     ${cssChecker}/bin/check-gtk-css valid.css

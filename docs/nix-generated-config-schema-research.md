@@ -357,7 +357,7 @@ and [Noogle Python writer reference](https://noogle.dev/f/pkgs/writers/writePyth
 ### Walker configuration without a local schema
 
 Walker settings live in [Nix](../modules/home/desktop/walker.nix).
-The [generator](../lib/desktop/walker-config.nix) uses `pkgs.formats.toml`.
+The [generator](../modules/home/desktop/walker.nix) uses `pkgs.formats.toml`.
 Walker 2.17.0 has no published JSON Schema; its configuration contract lives in
 its [Rust configuration types](https://github.com/abenz1267/walker/blob/v2.17.0/src/config.rs).
 The local subset schema and its fixed-version upgrade guard have been removed
@@ -559,7 +559,7 @@ literal segments separately from supported shell-style self references. It
 preserves both a conditional colon and a conditional colon plus existing value.
 For example, `head${VAR:+:$VAR}` becomes `head:prior` when `VAR` is `prior`,
 and `head` when it is empty. The custom renderer lives in
-[lib/shells/nushell.nix](../lib/shells/nushell.nix). Serialization follows
+[modules/home/shells/nushell/env.nix](../modules/home/shells/nushell/env.nix). Serialization follows
 [Home Manager's pinned implementation](https://github.com/nix-community/home-manager/blob/693e8ce0fb240a73c116a03cfd7b19269c87af88/modules/lib/nushell.nix).
 
 `nu-check --debug` parses the complete files and follows their `source` and `use`

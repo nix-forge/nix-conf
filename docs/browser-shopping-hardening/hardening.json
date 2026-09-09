@@ -252,7 +252,7 @@
           ],
           "implementationReadiness": {
             "affectedComponents": [
-              "lib/browser/extensions.nix",
+              "modules/home/browsers/shared/extension-policies.nix",
               "modules/home/browsers/firefox/default.nix",
               "modules/home/browsers/firefox/shopping.nix",
               "homes/shared/browsers/extensions.nix"

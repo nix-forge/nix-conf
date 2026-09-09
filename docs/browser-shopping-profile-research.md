@@ -89,7 +89,7 @@ The repository already has the right broad split. Zen is the default browser, Fi
 
 Two current policy choices prevent clean per-profile extension behavior:
 
-1. [`lib/browser/extensions.nix`](../lib/browser/extensions.nix) emits `"*" = { installation_mode = "blocked"; }` and automatically installs every declared Firefox extension.
+1. [`modules/home/browsers/shared/extension-policies.nix`](../modules/home/browsers/shared/extension-policies.nix) emits `"*" = { installation_mode = "blocked"; }` and automatically installs every declared Firefox extension.
 2. [`modules/home/browsers/firefox/default.nix`](../modules/home/browsers/firefox/default.nix) attaches `ExtensionSettings` at the application policy level, outside `profiles`. The policy therefore cannot express "install Rakuten only in the shopping profile." uBlock Origin is also `force_installed`, so a shopping profile cannot disable it normally.
 
 Mozilla provides an `allowed` installation mode. It permits a named extension without automatically installing it. Adding an `allowed` catalog mode would let Nix keep the deny-by-default extension allow-list while the user installs Rakuten only in the shopping profile. `normal_installed`, which the current code uses for non-required entries, automatically installs the extension and is the wrong mode for this case. [Mozilla ExtensionSettings reference](https://firefox-admin-docs.mozilla.org/reference/policies/extensionsettings/)
