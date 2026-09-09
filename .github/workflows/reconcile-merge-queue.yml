@@ -4,7 +4,7 @@ on: # zizmor: ignore[dangerous-triggers] Reads API metadata and runs only the de
     workflows: ["CI Tests", "Dependency Review", "CodeQL"]
     types: [completed]
   schedule:
-    - cron: 17,37,57 * * * *
+    - cron: 17 * * * *
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -18,6 +18,9 @@ concurrency:
 jobs:
   reconcile:
     name: Reconcile merge queue
+    # Completion callbacks handle dispatched queue runs; scans and pushes need no reconciliation.
+    if: >-
+      github.event_name != 'workflow_run' || contains(fromJSON('["pull_request", "merge_group"]'), github.event.workflow_run.event)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -28,7 +31,8 @@ jobs:
       statuses: write # Publish verified validation results on the queue commit.
     steps:
       - name: Reconcile verified automation
-        uses: nix-forge/ci/actions/reconcile-queue@2f7e422cb28527822d97fcb4327fb729480f82cf # v2.3.0
+        uses: nix-forge/ci/actions/reconcile-queue@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
         with:
           workflows: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
+          base-sha-workflows: '["ci.yml"]'
           source-run-id: ${{ inputs.source_run_id }}
