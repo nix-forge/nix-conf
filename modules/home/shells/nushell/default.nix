@@ -1,5 +1,6 @@
 {
   imports = [
+    ./checks.nix
     ./config-dir-fix.nix
     ./env.nix
     ./extra-config-after.nix

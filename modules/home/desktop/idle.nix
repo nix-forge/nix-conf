@@ -86,15 +86,42 @@ in
 
     home.packages = [ pkgs.hypridle ];
 
-    xdg.configFile."hypr/hypridle.conf".source = pkgs.replaceVarsWith {
-      name = "hypridle-config";
-      src = ./config/hypridle.conf.in;
-      replacements = {
-        lockAfterSeconds = toString cfg.lockAfterSeconds;
-        displayOffAfterSeconds = toString cfg.displayOffAfterSeconds;
-        lockedDisplayOffAfterSeconds = toString cfg.lockedDisplayOffAfterSeconds;
-        suspendAfterSeconds = toString cfg.suspendAfterSeconds;
-        onLockCommand = if onLockCommand == "" then "true" else onLockCommand;
+    xdg.configFile."hypr/hypridle.conf".text = lib.hm.generators.toHyprconf {
+      attrs = {
+        general = {
+          lock_cmd = "pidof hyprlock || hyprlock";
+          # Wait for Hyprlock to confirm the lock before logind permits sleep.
+          inhibit_sleep = 3;
+          before_sleep_cmd = "loginctl lock-session";
+          after_sleep_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
+          on_lock_cmd = if onLockCommand == "" then "true" else onLockCommand;
+          on_unlock_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
+        };
+        listener = [
+          {
+            timeout = cfg.lockAfterSeconds;
+            on-timeout = "loginctl lock-session";
+          }
+          {
+            timeout = cfg.displayOffAfterSeconds;
+            on-timeout = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'";
+            on-resume = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
+          }
+          {
+            # Only the locked-session rule bypasses application inhibitors.
+            # Retry if the short timeout expires before Hyprlock starts.
+            timeout = cfg.lockedDisplayOffAfterSeconds;
+            ignore_inhibit = true;
+            condition_cmd = ''pgrep -u "$(id -u)" -x hyprlock > /dev/null'';
+            condition_retry = 5;
+            on-timeout = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'";
+            on-resume = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
+          }
+          {
+            timeout = cfg.suspendAfterSeconds;
+            on-timeout = "systemctl suspend";
+          }
+        ];
       };
     };
 

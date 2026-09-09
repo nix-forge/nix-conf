@@ -1,6 +1,6 @@
 /* Keep hover and keyboard focus from competing with the selected window. */
 .window {
-    font-family: "@font@";
+    font-family: @font@;
     color: @base05@;
 }
 

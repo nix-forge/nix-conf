@@ -1,3 +1,8 @@
-{ config, ... }: {
-  home.file."${config.xdg.configHome}/electron-flags.conf".source = ./electron-flags.conf;
+{ config, lib, ... }: {
+  home.file."${config.xdg.configHome}/electron-flags.conf".text = lib.concatLines [
+    "--enable-features=UseOzonePlatform"
+    "--ozone-platform=wayland"
+    "--enable-features=WebRTCPipeWireCapturer"
+    "--enable-features=WaylandWindowDecorations"
+  ];
 }

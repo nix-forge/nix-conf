@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -94,5 +95,12 @@ in
     };
   };
 
-  xdg.configFile."mpv/scripts/anime-toggle.lua".source = ./mpv-anime-toggle.lua;
+  xdg.configFile."mpv/scripts/anime-toggle.lua".source =
+    myLib.writers.checkLuaFile { inherit pkgs; }
+      {
+        name = "mpv-anime-toggle.lua";
+        src = ./mpv-anime-toggle.lua;
+        lua = config.programs.mpv.finalPackage.unwrapped.lua;
+        readGlobals = [ "mp" ];
+      };
 }

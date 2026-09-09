@@ -7,7 +7,7 @@
       ...
     }:
     let
-      catalog = import ../../modules/shared/font-packages.nix { };
+      catalog = import ../../modules/shared/fonts/packages.nix { };
       roles = catalog.roles pkgs;
       python = pkgs.python3.withPackages (p: [
         p.fonttools

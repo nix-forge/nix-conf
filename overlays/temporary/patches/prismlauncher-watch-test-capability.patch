@@ -1,0 +1,23 @@
+--- a/tests/ResourceFolderModel_test.cpp
++++ b/tests/ResourceFolderModel_test.cpp
+@@ -33,6 +33,7 @@
+  *      limitations under the License.
+  */
+ 
++#include <QFileSystemWatcher>
+ #include <QTemporaryDir>
+ #include <QTest>
+ #include <QTimer>
+@@ -154,6 +155,12 @@
+         QString file_mod = QFINDTESTDATA("testdata/Resources/supercoolmod.jar");
+ 
+         QTemporaryDir tmp;
++        // The native watcher needs a host service unavailable in some sandboxes.
++        // Keep this integration test runnable when that service is available.
++        QFileSystemWatcher watcher;
++        if (!watcher.addPath(tmp.path()))
++            QSKIP("Native filesystem notifications are unavailable");
++
+         ResourceFolderModel model(QDir(tmp.path()), nullptr, false, false);
+ 
+         QCOMPARE(model.size(), 0);

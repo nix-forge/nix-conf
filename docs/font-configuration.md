@@ -6,8 +6,8 @@ not depend on that collection.
 
 ## Ownership and selection
 
-`modules/shared/font-packages.nix` owns the catalog, primary roles, fallback
-families and collection selection. `modules/shared/fonts.nix` adapts that catalog
+`modules/shared/fonts/packages.nix` owns the catalog, primary roles, fallback
+families and collection selection. `modules/shared/fonts/default.nix` adapts that catalog
 to NixOS, nix-darwin and Home Manager. The old NixOS entry points delegate to the
 same definitions. Package modifications live in nixpkgs-personal.
 
@@ -20,7 +20,10 @@ same definitions. Package modifications live in nixpkgs-personal.
 
 The Google design variant retains the full upstream collection except duplicate
 Inter, Literata and Noto emoji providers and the emoji compatibility test face.
-The dedicated packages supply those real families. The variant records every
+The dedicated packages supply those real families. The former Fontconfig rejection
+rule is unnecessary because the package removes those files before installation.
+The curated library selects only Iosevka Charon Mono, and the `none` setting
+installs no Google collection. The variant records every
 excluded file and retains upstream license notices. Static and variable styles
 elsewhere remain available; a shared PostScript name alone does not justify
 deleting a useful alternative. The existing corefonts/Windows and Roboto

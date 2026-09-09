@@ -1,4 +1,9 @@
-{ inputs, self, ... }:
+{
+  inputs,
+  self,
+  myLib,
+  ...
+}:
 let
   inherit (inputs.nixpkgs) lib;
   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
@@ -35,9 +40,11 @@ let
   # on the real desktop. This is configuration-only and never binds hardware.
   vfioTest = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
+    specialArgs = { inherit inputs myLib; };
     modules = [
       ../modules/nixos/virtualisation/libvirt.nix
       {
+        nixpkgs.overlays = [ (import ../overlays { inherit inputs; }) ];
         system.stateVersion = "26.05";
         fileSystems."/" = {
           device = "none";
@@ -410,6 +417,19 @@ in
         # Codex remote connections and other OpenSSH command clients send
         # POSIX-shell syntax to the account's password-database shell.
         assert desktop.users.users.ianmh.shell.shellPath == "/bin/bash";
+        assert lib.all
+          (
+            home:
+            let
+              nvf = home.programs.nvf.settings;
+            in
+            nvf.vim.statusline.lualine.setupOpts.options.theme == "base16"
+            && !(lib.any (lib.hasInfix "vim.statusline.lualine.theme") nvf.warnings)
+          )
+          [
+            desktopHome
+            macbookHome
+          ];
         assert desktopHome.programs.bash.enable;
         assert !desktopHome.programs.nushell.enable;
         assert desktopHome.home.sessionVariables.SHELL == lib.getExe pkgs.bashInteractive;
@@ -1061,14 +1081,14 @@ in
         assert
           desktop.programs.hyprland.package.src.outPath
           == inputs.hyprland.packages.x86_64-linux.hyprland.src.outPath;
-        assert lib.elem
-          (toString ../modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch)
-          (map toString desktop.programs.hyprland.package.patches);
+        assert lib.elem (toString ../overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch) (
+          map toString desktop.programs.hyprland.package.patches
+        );
         assert
           desktop.programs.hyprland.portalPackage.outPath == (
             (inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.overrideAttrs (old: {
               patches = (old.patches or [ ]) ++ [
-                ../modules/nixos/desktop-envs/patches/hyprland-portal-compiler-warnings.patch
+                ../overlays/temporary/patches/hyprland-portal-compiler-warnings.patch
               ];
             })).override
             { hyprland = desktop.programs.hyprland.package; }
@@ -1193,8 +1213,7 @@ in
         assert desktop.nixSeal.linux.volatileRuntime.enable;
         assert desktop.users.groups ? ianmh;
         assert lib.elem "ianmh" desktop.users.users.ianmh.extraGroups;
-        assert import ../secrets/nix-token-policy.nix {
-          inherit lib;
+        assert myLib.secrets.checkNixTokenPolicy {
           nixSeal = desktop.nixSeal;
           owner = "root";
           group = "root";

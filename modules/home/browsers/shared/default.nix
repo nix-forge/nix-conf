@@ -1,11 +1,13 @@
 {
   config,
   lib,
+  myLib,
   osConfig ? null,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.programs.browserSuite;
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
@@ -66,18 +68,19 @@ let
   ++ lib.optionals config.targets.darwin.copyApps.enable [ "copyApps" ]
   ++ lib.optionals (!config.targets.darwin.copyApps.enable) [ "linkGeneration" ];
 
-  defaultBrowserHelper = pkgs.replaceVarsWith {
+  defaultBrowserHelper = writeBashTemplate {
     name = "hm-set-default-browser";
     src = ./default-browser.sh;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       awkExe = lib.getExe pkgs.gawk;
       defaultBrowserExe = lib.getExe pkgs.defaultbrowser;
-      appPath = darwinAppPath;
-      appLabel = if selectedBrowser == null then "browser" else selectedBrowser.appName;
-      handler = if selectedBrowser == null then "none" else selectedBrowser.handler;
+      appPath = lib.escapeShellArg darwinAppPath;
+      appLabel = lib.escapeShellArg (
+        if selectedBrowser == null then "browser" else selectedBrowser.appName
+      );
+      handler = lib.escapeShellArg (if selectedBrowser == null then "none" else selectedBrowser.handler);
       lsregisterExe = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
       plistBuddyExe = "/usr/libexec/PlistBuddy";
     };
@@ -87,19 +90,13 @@ let
     if selectedBrowser == null then
       { }
     else
-      builtins.listToAttrs (
-        map
-          (mime: {
-            name = mime;
-            value = lib.mkDefault selectedBrowser.desktopFile;
-          })
-          [
-            "application/xhtml+xml"
-            "text/html"
-            "x-scheme-handler/http"
-            "x-scheme-handler/https"
-          ]
-      );
+      lib.genAttrs [
+        "application/xhtml+xml"
+        "text/html"
+        "x-scheme-handler/http"
+        "x-scheme-handler/https"
+      ] (_: lib.mkDefault selectedBrowser.desktopFile);
+
 in
 {
   imports = [
@@ -136,13 +133,13 @@ in
     };
 
     systemResolverPolicy = mkOption {
-      type = types.attrs;
+      type = types.attrsOf (pkgs.formats.json { }).type;
       default = { };
       description = "Firefox DNS policy supplied only when the host owns DNS resolution.";
     };
 
     geckoPolicies = mkOption {
-      type = types.attrs;
+      type = types.attrsOf (pkgs.formats.json { }).type;
       default = {
         DisableAppUpdate = true;
         DisableFirefoxStudies = true;

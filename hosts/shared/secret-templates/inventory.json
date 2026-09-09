@@ -1,0 +1,30 @@
+{
+  "secrets/ianhollow/hosts/darwin/macbook-pro-m4/flakehub-netrc.age": {
+    "fields": {
+      "flakehub-login": {
+        "source": "hosts/shared/secrets/flakehub-login.age"
+      },
+      "flakehub-password": {
+        "source": "hosts/shared/secrets/flakehub-password.age"
+      }
+    },
+    "original": "secrets/ianhollow/hosts/darwin/macbook-pro-m4/flakehub-netrc.age",
+    "placeholders": {
+      "flakehub-login": "flakehub-login",
+      "flakehub-password": "flakehub-password"
+    },
+    "template": "flakehub-netrc.template"
+  },
+  "secrets/ianhollow/hosts/darwin/macbook-pro-m4/nix-access-tokens.age": {
+    "fields": {
+      "nix-token-github-com": {
+        "source": "hosts/shared/secrets/macbook-pro-m4/nix-token-github-com.age"
+      }
+    },
+    "original": "secrets/ianhollow/hosts/darwin/macbook-pro-m4/nix-access-tokens.age",
+    "placeholders": {
+      "nix-token-github-com": "nix-token-github-com"
+    },
+    "template": "nix-access-tokens.template"
+  }
+}

@@ -7,9 +7,9 @@ configuration contains only generic service logic and immutable tool identities.
 
 The Home Manager module is local to the MacBook profile at
 `homes/macbook-pro-m4/local/local-control.nix`. Its implementation-only helper
-functions and C source live beside that profile under
-`homes/macbook-pro-m4/support/local-control/`; they are deliberately not part
-of the repository-wide `lib` API.
+functions, Rust source, scripts, and config assets live under
+`homes/macbook-pro-m4/local/local-control/`. The runtime helper module exports
+its functions through Home Manager's `config.lib.localControl`.
 
 Runtime state is stored under `~/.local/state/local-control` with owner-only
 permissions. The environment file is

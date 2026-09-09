@@ -14,10 +14,18 @@ let
   };
   inherit (cpuPkgs) darktable;
 
-  infoPlist = pkgs.replaceVarsWith {
-    name = "darktable-Info.plist";
-    src = ./darktable-Info.plist.in;
-    replacements.version = darktable.version;
+  infoPlist = (pkgs.formats.plist { }).generate "darktable-Info.plist" {
+    CFBundleDevelopmentRegion = "en";
+    CFBundleDisplayName = "darktable";
+    CFBundleExecutable = "darktable";
+    CFBundleIconFile = "darktable.png";
+    CFBundleIdentifier = "org.darktable.darktable";
+    CFBundleName = "darktable";
+    CFBundlePackageType = "APPL";
+    CFBundleShortVersionString = darktable.version;
+    CFBundleVersion = darktable.version;
+    LSMinimumSystemVersion = "11.0";
+    NSHighResolutionCapable = true;
   };
 
   darktableApp = pkgs.runCommand "darktable-app-${darktable.version}" { } ''

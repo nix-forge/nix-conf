@@ -9,9 +9,7 @@ let
   moduleFormatVersion = 2;
 
   dockutilExe = lib.getExe cfg.package;
-  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" { } (
-    builtins.readFile ./dock_state.py
-  );
+  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" { } ./dock_state.py;
   dockStateExe = lib.getExe dockStateHelper;
 
   absolutePathType = lib.types.strMatching "^/.*";

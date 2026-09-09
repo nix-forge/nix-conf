@@ -1,4 +1,9 @@
-{ inputs, lib, ... }:
+{
+  inputs,
+  lib,
+  myLib,
+  ...
+}:
 let
   systems = [
     "x86_64-linux"
@@ -12,8 +17,12 @@ let
         inherit system;
         config.allowUnfree = true;
       };
-      inherit extraSpecialArgs;
+      extraSpecialArgs = {
+        inherit myLib;
+      }
+      // extraSpecialArgs;
       modules = [
+        (import ../../modules/shared/nix-settings.nix).homeManager
         ../../modules/home/actual.nix
         ../../modules/home/dev/containers.nix
         ../../modules/home/dev/git.nix
@@ -46,6 +55,8 @@ let
       packageNames = map lib.getName home.home.packages;
     in
     assert lib.all (a: a.assertion) home.assertions;
+    assert home.nix.settings.sandbox == true;
+    assert home.nix.settings.sandbox-fallback == false;
     assert (home.systemd.user.services ? actual) == linux;
     assert (home.launchd.agents ? actual) == !linux;
     assert !(disabled.systemd.user.services ? actual);
@@ -90,7 +101,7 @@ let
         modules = [
           ../../modules/home/cli/remindctl.nix
           ../../modules/home/microsoft-teams.nix
-          (import ../../modules/shared/fonts.nix).homeManager
+          (import ../../modules/shared/fonts).homeManager
           {
             fonts.fontconfig.enable = lib.mkForce false;
             home = {
@@ -112,6 +123,10 @@ in
     checks.platform-contracts =
       assert lib.all checkSystem systems;
       assert lib.all checkPackages systems;
+      assert inputs.self.nixosConfigurations.desktop.config.nix.settings.sandbox == true;
+      assert
+        inputs.self.darwinConfigurations.macbook-pro-m4.config.determinateNix.customSettings.sandbox
+        == true;
       let
         desktop = inputs.self.nixosConfigurations.desktop.config.home-manager.users.ianmh;
         macbook = inputs.self.darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh;

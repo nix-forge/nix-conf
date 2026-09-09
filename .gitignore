@@ -48,7 +48,6 @@ activemq-data/
 /.scratch/
 
 # Private workload and vendor details belong outside the shared repository.
-docs/prop-fund-virtualization-strategy-research.md
 
 # Local compositor executables and disposable test caches.
 docs/assets/hyprland-upstream-local-*/baseline-bin/

@@ -1,0 +1,5381 @@
+{
+  "reviewed": "2026-09-08",
+  "release": "1.136.1",
+  "revision": "a44adf7f53e00964ab890f9f8758a334f1fc15bc",
+  "compatibilityRelease": "1.133.0",
+  "theme": "Carbon Neon OLED",
+  "source": "https://github.com/microsoft/vscode/tree/a44adf7f53e00964ab890f9f8758a334f1fc15bc/src/vs/platform/theme",
+  "scope": "All colors registered by the stable desktop workbench and its bundled extensions. Values are resolved after the Carbon fixes. Unset means no CSS value was emitted; it does not mean a missing required theme entry. Runtime widget checks cover the cases documented in the research note, not every row.",
+  "counts": {
+    "registered": 978,
+    "configured": 202,
+    "inherited": 654,
+    "unset": 122,
+    "addedSinceCompatibilityRelease": 30,
+    "requiresTransparency": 59,
+    "deprecated": 8
+  },
+  "columns": [
+    "identifier",
+    "resolvedValue",
+    "origin",
+    "addedSinceCompatibilityRelease",
+    "requiresTransparency",
+    "deprecated"
+  ],
+  "colors": [
+    [
+      "actionBar.toggledBackground",
+      "rgba(128, 203, 196, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "activeSessionView.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "activeSessionView.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["activityBar.activeBackground", null, "unset", false, false, false],
+    ["activityBar.activeBorder", "#80cbc4", "configured", false, false, false],
+    ["activityBar.activeFocusBorder", null, "unset", false, false, false],
+    ["activityBar.background", "#000000", "configured", false, false, false],
+    ["activityBar.border", null, "unset", false, false, false],
+    ["activityBar.dropBorder", "#d9d9d9", "inherited", false, false, false],
+    ["activityBar.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "activityBar.inactiveForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityBarBadge.background",
+      "#80cbc4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityBarBadge.foreground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["activityBarTop.activeBackground", null, "unset", false, false, false],
+    [
+      "activityBarTop.activeBorder",
+      "rgba(128, 203, 196, 0.7)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["activityBarTop.background", "#0c0d0e", "configured", false, false, false],
+    ["activityBarTop.dropBorder", "#d9d9d9", "inherited", false, false, false],
+    ["activityBarTop.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "activityBarTop.inactiveForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityErrorBadge.background",
+      "#f14c4c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityErrorBadge.foreground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityWarningBadge.background",
+      "#b27c00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "activityWarningBadge.foreground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentFeedbackEditorWidget.background",
+      "#18191a",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentFeedbackEditorWidget.border",
+      "rgba(217, 217, 217, 0.35)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentFeedbackInputWidget.border",
+      "#5e6066",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentSessionReadIndicator.foreground",
+      "rgba(217, 217, 217, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentSessionSelectedBadge.border",
+      "rgba(255, 255, 255, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentSessionSelectedUnfocusedBadge.border",
+      "rgba(217, 217, 217, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentStatusIndicator.background",
+      "rgba(255, 255, 255, 0.05)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["agents.background", "#000000", "inherited", false, false, false],
+    ["agentsBadge.background", "#80cbc4", "inherited", false, false, false],
+    ["agentsBadge.foreground", "#000000", "inherited", false, false, false],
+    [
+      "agentsBottomPanel.border",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "agentsCard.border",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    ["agentsChatInput.background", "#161718", "inherited", false, false, false],
+    ["agentsChatInput.border", "#5e6066", "inherited", false, false, false],
+    [
+      "agentsChatInput.focusBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["agentsChatInput.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "agentsChatInput.placeholderForeground",
+      "rgba(217, 217, 217, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["agentsGradient.tintColor", "#80cbc4", "inherited", false, false, false],
+    [
+      "agentsNewSessionButton.background",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsNewSessionButton.border",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsNewSessionButton.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsNewSessionButton.hoverBackground",
+      "rgba(90, 93, 94, 0.31)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["agentsPanel.background", "#000000", "inherited", false, false, false],
+    [
+      "agentsPanel.border",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["agentsPanel.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "agentsUnreadBadge.background",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsUnreadBadge.foreground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsUpdateButton.downloadedBackground",
+      "rgba(128, 203, 196, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsUpdateButton.downloadingBackground",
+      "rgba(128, 203, 196, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsVoice.speakingBackground",
+      "rgba(163, 113, 247, 0.08)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "agentsVoice.speakingForeground",
+      "#a371f7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["badge.background", "#80cbc4", "configured", false, false, false],
+    ["badge.foreground", "#000000", "configured", false, false, false],
+    ["banner.background", "#161718", "configured", false, false, false],
+    ["banner.foreground", "#d9d9d9", "configured", false, false, false],
+    ["banner.iconForeground", "#80cbc4", "configured", false, false, false],
+    [
+      "breadcrumb.activeSelectionForeground",
+      "#efefef",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["breadcrumb.background", "#000000", "inherited", false, false, false],
+    ["breadcrumb.focusForeground", "#efefef", "inherited", false, false, false],
+    [
+      "breadcrumb.foreground",
+      "rgba(217, 217, 217, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "breadcrumbPicker.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["browser.border", "#252526", "inherited", false, false, false],
+    ["button.background", "#80cbc4", "configured", false, false, false],
+    ["button.border", null, "unset", false, false, false],
+    ["button.foreground", "#000000", "configured", false, false, false],
+    ["button.hoverBackground", "#a3c679", "configured", false, false, false],
+    [
+      "button.secondaryBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "button.secondaryBorder",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "button.secondaryForeground",
+      "#d9d9d9",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "button.secondaryHoverBackground",
+      "#383838",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "button.separator",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "chart.axis",
+      "rgba(191, 191, 191, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "chart.guide",
+      "rgba(191, 191, 191, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["chart.line", "#236b8e", "inherited", false, false, false],
+    ["charts.blue", "#6ebad7", "inherited", false, false, false],
+    ["charts.foreground", "#d9d9d9", "inherited", false, false, false],
+    ["charts.green", "#89d185", "inherited", false, false, false],
+    [
+      "charts.lines",
+      "rgba(217, 217, 217, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "charts.orange",
+      "rgba(213, 176, 95, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["charts.purple", "#b180d7", "inherited", false, false, false],
+    ["charts.red", "#d36768", "inherited", false, false, false],
+    ["charts.yellow", "#d5b05f", "inherited", false, false, false],
+    ["chat.avatarBackground", "#1f1f1f", "inherited", false, false, false],
+    ["chat.avatarForeground", "#d9d9d9", "inherited", false, false, false],
+    ["chat.checkpointSeparator", "#585858", "inherited", false, false, false],
+    [
+      "chat.dictationActiveMicGlow",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["chat.editedFileForeground", "#e2c08d", "inherited", false, false, false],
+    [
+      "chat.findMatchBackground",
+      "rgba(213, 176, 95, 0.3)",
+      "inherited",
+      true,
+      true,
+      false
+    ],
+    [
+      "chat.findMatchHighlightBackground",
+      "rgba(213, 176, 95, 0.15)",
+      "inherited",
+      true,
+      true,
+      false
+    ],
+    [
+      "chat.inputWorkingBorderColor1",
+      "#80cbc4",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "chat.inputWorkingBorderColor2",
+      "#30766f",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "chat.inputWorkingBorderColor3",
+      "#f6fbfb",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["chat.linesAddedForeground", "#54b054", "inherited", false, true, false],
+    ["chat.linesRemovedForeground", "#fc6a6a", "inherited", false, true, false],
+    [
+      "chat.requestBackground",
+      "rgba(0, 0, 0, 0.62)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "chat.requestBorder",
+      "rgba(255, 255, 255, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "chat.requestBubbleBackground",
+      "rgba(128, 203, 196, 0.07)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "chat.requestBubbleHoverBackground",
+      "rgba(128, 203, 196, 0.15)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "chat.requestCodeBorder",
+      "rgba(0, 73, 114, 0.72)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "chat.slashCommandBackground",
+      "rgba(38, 71, 120, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "chat.slashCommandForeground",
+      "#85b6ff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["chat.thinkingShimmer", "#ffffff", "inherited", false, true, false],
+    ["chat.voiceGlowBaseColor", "#80cbc4", "inherited", false, true, false],
+    ["chat.voiceListeningGlow", null, "unset", false, true, false],
+    ["chat.voiceSpeakingGlow", null, "unset", false, true, false],
+    ["checkbox.background", "#161718", "inherited", false, false, false],
+    ["checkbox.border", "#5e6066", "inherited", false, false, false],
+    [
+      "checkbox.disabled.background",
+      "#5d5e5f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "checkbox.disabled.foreground",
+      "#a8a8a8",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["checkbox.foreground", "#f0f0f0", "inherited", false, false, false],
+    ["checkbox.selectBackground", "#161718", "inherited", false, false, false],
+    ["checkbox.selectBorder", "#c5c5c5", "inherited", false, false, false],
+    [
+      "commandCenter.activeBackground",
+      "rgba(255, 255, 255, 0.08)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.activeBorder",
+      "rgba(217, 217, 217, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.activeForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.background",
+      "rgba(255, 255, 255, 0.05)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.border",
+      "rgba(217, 217, 217, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.debuggingBackground",
+      "rgba(161, 120, 196, 0.26)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["commandCenter.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "commandCenter.inactiveBorder",
+      "rgba(122, 122, 128, 0.25)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commandCenter.inactiveForeground",
+      "#7a7a80",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commentsView.resolvedIcon",
+      "rgba(204, 204, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "commentsView.unresolvedIcon",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["contrastActiveBorder", null, "unset", false, false, false],
+    ["contrastBorder", null, "unset", false, false, false],
+    [
+      "debugConsole.errorForeground",
+      "#d36768",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugConsole.infoForeground",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugConsole.sourceForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugConsole.warningForeground",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugConsoleInputIcon.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugExceptionWidget.background",
+      "#420b0d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugExceptionWidget.border",
+      "#a31515",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.breakpointCurrentStackframeForeground",
+      "#ffcc00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.breakpointDisabledForeground",
+      "#848484",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.breakpointForeground",
+      "#e51400",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.breakpointStackframeForeground",
+      "#89d185",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.breakpointUnverifiedForeground",
+      "#848484",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.continueForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.disconnectForeground",
+      "#f48771",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugIcon.pauseForeground", "#75beff", "inherited", false, false, false],
+    [
+      "debugIcon.restartForeground",
+      "#89d185",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugIcon.startForeground", "#89d185", "inherited", false, false, false],
+    [
+      "debugIcon.stepBackForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.stepIntoForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.stepOutForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugIcon.stepOverForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugIcon.stopForeground", "#f48771", "inherited", false, false, false],
+    [
+      "debugTokenExpression.boolean",
+      "#4e94ce",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugTokenExpression.error", "#f48771", "inherited", false, false, false],
+    ["debugTokenExpression.name", "#c586c0", "inherited", false, false, false],
+    [
+      "debugTokenExpression.number",
+      "#b5cea8",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugTokenExpression.string",
+      "#ce9178",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugTokenExpression.type", "#4a90e2", "inherited", false, false, false],
+    [
+      "debugTokenExpression.value",
+      "rgba(204, 204, 204, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["debugToolBar.background", "#333333", "inherited", false, false, false],
+    ["debugToolBar.border", null, "unset", false, false, false],
+    [
+      "debugView.exceptionLabelBackground",
+      "#6c2022",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugView.exceptionLabelForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugView.stateLabelBackground",
+      "rgba(136, 136, 136, 0.27)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugView.stateLabelForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "debugView.valueChangedHighlight",
+      "#569cd6",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "descriptionForeground",
+      "rgba(217, 217, 217, 0.7)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["diffEditor.border", "#242526", "configured", false, false, false],
+    ["diffEditor.diagonalFill", "#161718", "configured", false, false, false],
+    [
+      "diffEditor.insertedLineBackground",
+      "rgba(120, 200, 111, 0.15)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    [
+      "diffEditor.insertedTextBackground",
+      "rgba(120, 200, 111, 0.2)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["diffEditor.insertedTextBorder", null, "unset", false, false, false],
+    [
+      "diffEditor.move.border",
+      "rgba(139, 139, 139, 0.61)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditor.moveActive.border",
+      "#ffa500",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditor.removedLineBackground",
+      "rgba(217, 128, 134, 0.15)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    [
+      "diffEditor.removedTextBackground",
+      "rgba(217, 128, 134, 0.2)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["diffEditor.removedTextBorder", null, "unset", false, false, false],
+    [
+      "diffEditor.unchangedCodeBackground",
+      "rgba(116, 116, 116, 0.16)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditor.unchangedRegionBackground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditor.unchangedRegionForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditor.unchangedRegionShadow",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditorGutter.insertedLineBackground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditorGutter.removedLineBackground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditorOverview.insertedForeground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "diffEditorOverview.removedForeground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "disabledForeground",
+      "rgba(204, 204, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["dropdown.background", "#161718", "configured", false, false, false],
+    ["dropdown.border", "#5e6066", "configured", false, false, false],
+    ["dropdown.foreground", "#f0f0f0", "inherited", false, false, false],
+    ["dropdown.listBackground", null, "unset", false, false, false],
+    ["editor.background", "#000000", "configured", false, false, false],
+    ["editor.border", "#151515", "inherited", true, false, false],
+    ["editor.compositionBorder", "#ffffff", "inherited", false, false, false],
+    [
+      "editor.findMatchBackground",
+      "rgba(213, 176, 95, 0.25)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editor.findMatchBorder", "#d5b05f", "configured", false, false, false],
+    ["editor.findMatchForeground", null, "unset", false, false, false],
+    [
+      "editor.findMatchHighlightBackground",
+      "rgba(213, 176, 95, 0.15)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["editor.findMatchHighlightBorder", null, "unset", false, false, false],
+    ["editor.findMatchHighlightForeground", null, "unset", false, true, false],
+    [
+      "editor.findRangeHighlightBackground",
+      "rgba(213, 176, 95, 0.08)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["editor.findRangeHighlightBorder", null, "unset", false, true, false],
+    [
+      "editor.focusedStackFrameHighlightBackground",
+      "rgba(122, 189, 122, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.foldBackground",
+      "rgba(128, 203, 196, 0.07)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editor.foldPlaceholderForeground",
+      "#808080",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editor.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "editor.hoverHighlightBackground",
+      "rgba(38, 79, 120, 0.25)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editor.inactiveLineHighlightBackground",
+      "#101213",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.inactiveSelectionBackground",
+      "rgba(128, 203, 196, 0.15)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    [
+      "editor.inlineValuesBackground",
+      "rgba(255, 200, 0, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.inlineValuesForeground",
+      "rgba(255, 255, 255, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.lineHighlightBackground",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editor.lineHighlightBorder", "#282828", "inherited", false, false, false],
+    [
+      "editor.linkedEditingBackground",
+      "rgba(255, 0, 0, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.placeholder.foreground",
+      "rgba(255, 255, 255, 0.34)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.rangeHighlightBackground",
+      "rgba(255, 255, 255, 0.04)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.rangeHighlightBorder", null, "unset", false, false, false],
+    [
+      "editor.selectionBackground",
+      "rgba(128, 203, 196, 0.25)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editor.selectionForeground", null, "unset", false, false, false],
+    [
+      "editor.selectionHighlightBackground",
+      "rgba(67, 164, 155, 0.15)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.selectionHighlightBorder", null, "unset", false, false, false],
+    [
+      "editor.snippetFinalTabstopHighlightBackground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.snippetFinalTabstopHighlightBorder",
+      "#525252",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.snippetTabstopHighlightBackground",
+      "rgba(124, 124, 124, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.snippetTabstopHighlightBorder",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.stackFrameHighlightBackground",
+      "rgba(255, 255, 0, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editor.symbolHighlightBackground",
+      "rgba(213, 176, 95, 0.15)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.symbolHighlightBorder", null, "unset", false, false, false],
+    [
+      "editor.wordHighlightBackground",
+      "rgba(87, 87, 87, 0.72)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.wordHighlightBorder", null, "unset", false, false, false],
+    [
+      "editor.wordHighlightStrongBackground",
+      "rgba(0, 73, 114, 0.72)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.wordHighlightStrongBorder", null, "unset", false, false, false],
+    [
+      "editor.wordHighlightTextBackground",
+      "rgba(87, 87, 87, 0.72)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editor.wordHighlightTextBorder", null, "unset", false, false, false],
+    [
+      "editorActionList.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorActionList.focusBackground",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorActionList.focusForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorActionList.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorActiveLineNumber.foreground",
+      "#c6c6c6",
+      "inherited",
+      false,
+      false,
+      true
+    ],
+    [
+      "editorBracketHighlight.foreground1",
+      "#ffd700",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.foreground2",
+      "#da70d6",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.foreground3",
+      "#179fff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.foreground4",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.foreground5",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.foreground6",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketHighlight.unexpectedBracket.foreground",
+      "rgba(255, 18, 18, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketMatch.background",
+      "rgba(128, 203, 196, 0.15)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editorBracketMatch.border", "#80cbc4", "configured", false, false, false],
+    ["editorBracketMatch.foreground", null, "unset", false, false, false],
+    [
+      "editorBracketPairGuide.activeBackground1",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.activeBackground2",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.activeBackground3",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.activeBackground4",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.activeBackground5",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.activeBackground6",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background1",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background2",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background3",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background4",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background5",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorBracketPairGuide.background6",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorCodeLens.foreground", "#999999", "inherited", false, false, false],
+    [
+      "editorCommentsWidget.rangeActiveBackground",
+      "rgba(128, 203, 196, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorCommentsWidget.rangeBackground",
+      "rgba(128, 203, 196, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorCommentsWidget.replyInputBackground",
+      "#252526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorCommentsWidget.resolvedBorder",
+      "rgba(204, 204, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorCommentsWidget.unresolvedBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorCursor.background", null, "unset", false, false, false],
+    ["editorCursor.foreground", "#ffcc00", "configured", false, false, false],
+    ["editorError.background", null, "unset", false, true, false],
+    ["editorError.border", null, "unset", false, false, false],
+    ["editorError.foreground", "#d36768", "configured", false, false, false],
+    ["editorGhostText.background", null, "unset", false, false, false],
+    ["editorGhostText.border", null, "unset", false, false, false],
+    [
+      "editorGhostText.foreground",
+      "rgba(255, 255, 255, 0.34)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorGroup.border", "#383838", "configured", false, false, false],
+    [
+      "editorGroup.dropBackground",
+      "rgba(83, 89, 93, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGroup.dropIntoPromptBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorGroup.dropIntoPromptBorder", null, "unset", false, false, false],
+    [
+      "editorGroup.dropIntoPromptForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorGroup.emptyBackground", null, "unset", false, false, false],
+    ["editorGroup.focusedEmptyBorder", null, "unset", false, false, false],
+    ["editorGroupHeader.border", null, "unset", false, false, false],
+    [
+      "editorGroupHeader.noTabsBackground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGroupHeader.tabsBackground",
+      "#0c0d0e",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGroupHeader.tabsBorder",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.addedBackground",
+      "rgba(120, 200, 111, 0.6)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.addedSecondaryBackground",
+      "rgba(50, 113, 43, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorGutter.background", "#000000", "configured", false, false, false],
+    [
+      "editorGutter.commentDraftGlyphForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.commentGlyphForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.commentRangeForeground",
+      "#6ebad7",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.commentUnresolvedGlyphForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.deletedBackground",
+      "rgba(217, 128, 134, 0.6)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.deletedSecondaryBackground",
+      "rgba(159, 48, 55, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.foldingControlForeground",
+      "#c5c5c5",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.itemBackground",
+      "#242526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.itemGlyphForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.modifiedBackground",
+      "#1b81a8",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorGutter.modifiedSecondaryBackground",
+      "#0d4054",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorHint.border", null, "unset", false, false, false],
+    ["editorHint.foreground", "#80cbc4", "configured", false, false, false],
+    [
+      "editorHoverWidget.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorHoverWidget.border", "#5e6066", "inherited", false, false, false],
+    [
+      "editorHoverWidget.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorHoverWidget.highlightForeground",
+      "#2aaaff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorHoverWidget.statusBarBackground",
+      "#1a1c1d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      true
+    ],
+    [
+      "editorIndentGuide.activeBackground1",
+      "#383838",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground2",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground3",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground4",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground5",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.activeBackground6",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      true
+    ],
+    [
+      "editorIndentGuide.background1",
+      "#242526",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background2",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background3",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background4",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background5",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorIndentGuide.background6",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorInfo.background", null, "unset", false, true, false],
+    ["editorInfo.border", null, "unset", false, false, false],
+    ["editorInfo.foreground", "#6ebad7", "configured", false, false, false],
+    [
+      "editorInlayHint.background",
+      "rgba(128, 203, 196, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorInlayHint.foreground", "#969696", "inherited", false, false, false],
+    [
+      "editorInlayHint.parameterBackground",
+      "rgba(128, 203, 196, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorInlayHint.parameterForeground",
+      "#969696",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorInlayHint.typeBackground",
+      "rgba(128, 203, 196, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorInlayHint.typeForeground",
+      "#969696",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorLightBulb.foreground", "#ffcc00", "inherited", false, false, false],
+    [
+      "editorLightBulbAi.foreground",
+      "#ffcc00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorLightBulbAutoFix.foreground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorLineNumber.activeForeground",
+      "#d9d9d9",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editorLineNumber.dimmedForeground", null, "unset", false, false, false],
+    [
+      "editorLineNumber.foreground",
+      "#56575d",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorLink.activeForeground",
+      "#4e94ce",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigation.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationError.background",
+      "#d36768",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationError.headerBackground",
+      "rgba(211, 103, 104, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationInfo.background",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationInfo.headerBackground",
+      "rgba(110, 186, 215, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationWarning.background",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMarkerNavigationWarning.headerBackground",
+      "rgba(213, 176, 95, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMinimap.inlineChatInserted",
+      "rgba(120, 200, 111, 0.12)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMultiCursor.primary.background",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMultiCursor.primary.foreground",
+      "#ffcc00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMultiCursor.secondary.background",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorMultiCursor.secondary.foreground",
+      "#ffcc00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.addedForeground",
+      "rgba(120, 200, 111, 0.8)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editorOverviewRuler.background", null, "unset", false, false, false],
+    [
+      "editorOverviewRuler.border",
+      "rgba(127, 127, 127, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.bracketMatchForeground",
+      "#a0a0a0",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.commentDraftForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.commentForeground",
+      "#6ebad7",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.commentUnresolvedForeground",
+      "#d5b05f",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.commonContentForeground",
+      "rgba(96, 96, 96, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.currentContentForeground",
+      "rgba(64, 200, 174, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.deletedForeground",
+      "rgba(217, 128, 134, 0.8)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.errorForeground",
+      "rgba(255, 18, 18, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.findMatchForeground",
+      "rgba(209, 134, 22, 0.49)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editorOverviewRuler.incomingContentForeground",
+      "rgba(64, 166, 255, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.infoForeground",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.inlineChatInserted",
+      "rgba(120, 200, 111, 0.12)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.inlineChatRemoved",
+      "rgba(217, 128, 134, 0.12)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.modifiedForeground",
+      "rgba(27, 129, 168, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.rangeHighlightForeground",
+      "rgba(0, 122, 204, 0.6)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editorOverviewRuler.selectionHighlightForeground",
+      "rgba(160, 160, 160, 0.8)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editorOverviewRuler.warningForeground",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorOverviewRuler.wordHighlightForeground",
+      "rgba(160, 160, 160, 0.8)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editorOverviewRuler.wordHighlightStrongForeground",
+      "rgba(192, 160, 192, 0.8)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "editorOverviewRuler.wordHighlightTextForeground",
+      "rgba(160, 160, 160, 0.8)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["editorPane.background", "#000000", "inherited", false, false, false],
+    ["editorRuler.foreground", "#5a5a5a", "inherited", false, false, false],
+    [
+      "editorStickyScroll.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorStickyScroll.border", null, "unset", false, false, false],
+    [
+      "editorStickyScroll.shadow",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorStickyScrollGutter.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorStickyScrollHover.background",
+      "#2a2d2e",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidget.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorSuggestWidget.border", "#5e6066", "inherited", false, false, false],
+    [
+      "editorSuggestWidget.focusHighlightForeground",
+      "#2aaaff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorSuggestWidget.focusOutline", null, "unset", false, false, false],
+    [
+      "editorSuggestWidget.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidget.highlightForeground",
+      "#2aaaff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidget.selectedBackground",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidget.selectedForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidget.selectedIconForeground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "editorSuggestWidgetStatus.foreground",
+      "rgba(217, 217, 217, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorUnicodeHighlight.background", null, "unset", false, false, false],
+    [
+      "editorUnicodeHighlight.border",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorUnnecessaryCode.border", null, "unset", false, false, false],
+    [
+      "editorUnnecessaryCode.opacity",
+      "rgba(0, 0, 0, 0.67)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["editorWarning.background", null, "unset", false, true, false],
+    ["editorWarning.border", null, "unset", false, false, false],
+    ["editorWarning.foreground", "#d5b05f", "configured", false, false, false],
+    [
+      "editorWhitespace.foreground",
+      "#383838",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["editorWidget.background", "#161718", "configured", false, false, false],
+    ["editorWidget.border", "#5e6066", "configured", false, false, false],
+    ["editorWidget.foreground", "#d9d9d9", "configured", false, false, false],
+    ["editorWidget.resizeBorder", null, "unset", false, false, false],
+    ["errorForeground", "#d36768", "configured", false, false, false],
+    [
+      "extensionBadge.remoteBackground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionBadge.remoteForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["extensionButton.background", "#161718", "inherited", false, false, false],
+    [
+      "extensionButton.border",
+      "rgba(217, 217, 217, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["extensionButton.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "extensionButton.hoverBackground",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionButton.prominentBackground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionButton.prominentForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionButton.prominentHoverBackground",
+      "#a3c679",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionButton.separator",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionIcon.preReleaseForeground",
+      "#1d9271",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionIcon.privateForeground",
+      "rgba(255, 255, 255, 0.38)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionIcon.sponsorForeground",
+      "#d758b3",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionIcon.starForeground",
+      "#ff8e00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "extensionIcon.verifiedForeground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["focusBorder", "#80cbc4", "configured", false, false, false],
+    ["foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "git.blame.editorDecorationForeground",
+      "#969696",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.addedResourceForeground",
+      "#81b88b",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.conflictingResourceForeground",
+      "#e4676b",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.deletedResourceForeground",
+      "#c74e39",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.ignoredResourceForeground",
+      "#8c8c8c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.modifiedResourceForeground",
+      "#e2c08d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.renamedResourceForeground",
+      "#73c991",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.stageDeletedResourceForeground",
+      "#c74e39",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.stageModifiedResourceForeground",
+      "#e2c08d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.submoduleResourceForeground",
+      "#8db9e2",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "gitDecoration.untrackedResourceForeground",
+      "#73c991",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["icon.foreground", "#c5c5c5", "inherited", false, false, false],
+    [
+      "inactiveSessionView.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inactiveSessionView.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["inlineChat.background", "#161718", "inherited", false, false, false],
+    ["inlineChat.border", "#5e6066", "inherited", false, false, false],
+    ["inlineChat.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "inlineChat.shadow",
+      "rgba(0, 0, 0, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineChatDiff.inserted",
+      "rgba(120, 200, 111, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineChatDiff.removed",
+      "rgba(217, 128, 134, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["inlineChatInput.background", "#161718", "inherited", false, false, false],
+    ["inlineChatInput.border", "#5e6066", "inherited", false, false, false],
+    [
+      "inlineChatInput.focusBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineChatInput.placeholderForeground",
+      "rgba(217, 217, 217, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.background",
+      "rgba(12, 13, 14, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.primaryBackground",
+      "rgba(128, 203, 196, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.primaryBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.primaryForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.secondaryBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.secondaryBorder",
+      "#5e6066",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.secondaryForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.successfulBackground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.successfulBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.gutterIndicator.successfulForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.modifiedBackground",
+      "rgba(120, 200, 111, 0.06)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.modifiedBorder",
+      "rgba(120, 200, 111, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.modifiedChangedLineBackground",
+      "rgba(120, 200, 111, 0.1)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.modifiedChangedTextBackground",
+      "rgba(120, 200, 111, 0.14)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.originalBackground",
+      "rgba(217, 128, 134, 0.04)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.originalBorder",
+      "rgba(217, 128, 134, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.originalChangedLineBackground",
+      "rgba(217, 128, 134, 0.16)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.originalChangedTextBackground",
+      "rgba(217, 128, 134, 0.16)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "inlineEdit.tabWillAcceptModifiedBorder",
+      "rgba(120, 200, 111, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inlineEdit.tabWillAcceptOriginalBorder",
+      "rgba(217, 128, 134, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["input.background", "#161718", "configured", false, false, false],
+    ["input.border", "#5e6066", "configured", false, false, false],
+    ["input.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "input.placeholderForeground",
+      "rgba(217, 217, 217, 0.7)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputOption.activeBackground",
+      "rgba(128, 203, 196, 0.15)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["inputOption.activeBorder", "#80cbc4", "configured", false, false, false],
+    [
+      "inputOption.activeForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputOption.hoverBackground",
+      "rgba(90, 93, 94, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputValidation.errorBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputValidation.errorBorder",
+      "#d36768",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["inputValidation.errorForeground", null, "unset", false, false, false],
+    [
+      "inputValidation.infoBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputValidation.infoBorder",
+      "#6ebad7",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["inputValidation.infoForeground", null, "unset", false, false, false],
+    [
+      "inputValidation.warningBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "inputValidation.warningBorder",
+      "#d5b05f",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["inputValidation.warningForeground", null, "unset", false, false, false],
+    [
+      "interactive.activeCodeBorder",
+      "#007acc",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "interactive.inactiveCodeBorder",
+      "#242526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "keybindingLabel.background",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["keybindingLabel.border", "#242526", "configured", false, false, false],
+    [
+      "keybindingLabel.bottomBorder",
+      "#383838",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "keybindingLabel.foreground",
+      "#d9d9d9",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "keybindingTable.headerBackground",
+      "rgba(217, 217, 217, 0.04)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "keybindingTable.rowsBackground",
+      "rgba(217, 217, 217, 0.04)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "list.activeSelectionBackground",
+      "#383838",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "list.activeSelectionForeground",
+      "#ffffff",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["list.activeSelectionIconForeground", null, "unset", false, false, false],
+    [
+      "list.deemphasizedForeground",
+      "#8c8c8c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["list.dropBackground", "#062f4a", "inherited", false, false, false],
+    ["list.dropBetweenBackground", "#c5c5c5", "inherited", false, false, false],
+    ["list.errorForeground", "#f88070", "inherited", false, false, false],
+    [
+      "list.filterMatchBackground",
+      "rgba(213, 176, 95, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["list.filterMatchBorder", null, "unset", false, false, false],
+    [
+      "list.focusAndSelectionOutline",
+      "#80cbc4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["list.focusBackground", null, "unset", false, false, false],
+    ["list.focusForeground", null, "unset", false, false, false],
+    [
+      "list.focusHighlightForeground",
+      "#2aaaff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["list.focusOutline", "#80cbc4", "configured", false, false, false],
+    ["list.highlightForeground", "#2aaaff", "inherited", false, false, false],
+    ["list.hoverBackground", "#383838", "configured", false, false, false],
+    ["list.hoverForeground", "#ffffff", "configured", false, false, false],
+    ["list.inactiveFocusBackground", null, "unset", false, false, false],
+    ["list.inactiveFocusOutline", null, "unset", false, false, false],
+    [
+      "list.inactiveSelectionBackground",
+      "#242526",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["list.inactiveSelectionForeground", null, "unset", false, false, false],
+    [
+      "list.inactiveSelectionIconForeground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    ["list.invalidItemForeground", "#b89500", "inherited", false, false, false],
+    ["list.warningForeground", "#cca700", "inherited", false, false, false],
+    [
+      "listFilterWidget.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "listFilterWidget.noMatchesOutline",
+      "#be1100",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "listFilterWidget.outline",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "listFilterWidget.shadow",
+      "rgba(0, 0, 0, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "markdownAlert.caution.foreground",
+      "#d36768",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "markdownAlert.important.foreground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "markdownAlert.note.foreground",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "markdownAlert.tip.foreground",
+      "#89d185",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "markdownAlert.warning.foreground",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["mcpIcon.starForeground", "#ff8e00", "inherited", false, false, false],
+    ["menu.background", "#161718", "configured", false, false, false],
+    ["menu.border", null, "unset", false, false, false],
+    ["menu.foreground", "#d9d9d9", "configured", false, false, false],
+    ["menu.selectionBackground", "#383838", "configured", false, false, false],
+    ["menu.selectionBorder", null, "unset", false, false, false],
+    ["menu.selectionForeground", "#ffffff", "configured", false, false, false],
+    ["menu.separatorBackground", "#383838", "configured", false, false, false],
+    [
+      "menubar.selectionBackground",
+      "rgba(90, 93, 94, 0.31)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["menubar.selectionBorder", null, "unset", false, false, false],
+    [
+      "menubar.selectionForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["merge.border", null, "unset", false, false, false],
+    [
+      "merge.commonContentBackground",
+      "rgba(96, 96, 96, 0.16)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "merge.commonHeaderBackground",
+      "rgba(96, 96, 96, 0.4)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "merge.currentContentBackground",
+      "rgba(64, 200, 174, 0.2)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "merge.currentHeaderBackground",
+      "rgba(64, 200, 174, 0.5)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "merge.incomingContentBackground",
+      "rgba(64, 166, 255, 0.2)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "merge.incomingHeaderBackground",
+      "rgba(64, 166, 255, 0.5)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "mergeEditor.change.background",
+      "rgba(155, 185, 85, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.change.word.background",
+      "rgba(156, 204, 44, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.changeBase.background",
+      "#4b1818",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.changeBase.word.background",
+      "#6f1313",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.handled.minimapOverViewRuler",
+      "rgba(173, 172, 168, 0.93)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.handledFocused.border",
+      "rgba(193, 193, 193, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.handledUnfocused.border",
+      "rgba(134, 134, 134, 0.29)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.input1.background",
+      "rgba(64, 200, 174, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.input2.background",
+      "rgba(64, 166, 255, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.unhandled.minimapOverViewRuler",
+      "#fcba03",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.unhandledFocused.border",
+      "#ffa600",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflict.unhandledUnfocused.border",
+      "rgba(255, 166, 0, 0.48)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "mergeEditor.conflictingLines.background",
+      "rgba(255, 234, 0, 0.28)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["minimap.background", null, "unset", false, false, false],
+    [
+      "minimap.chatEditHighlight",
+      "rgba(128, 203, 196, 0.4)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimap.errorHighlight",
+      "rgba(255, 18, 18, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimap.findMatchHighlight",
+      "rgba(213, 176, 95, 0.15)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["minimap.foregroundOpacity", "#000000", "inherited", false, false, false],
+    ["minimap.infoHighlight", "#6ebad7", "inherited", false, false, false],
+    [
+      "minimap.selectionHighlight",
+      "rgba(128, 203, 196, 0.25)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "minimap.selectionOccurrenceHighlight",
+      "rgba(67, 164, 155, 0.15)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    ["minimap.warningHighlight", "#d5b05f", "inherited", false, false, false],
+    [
+      "minimapGutter.addedBackground",
+      "rgba(120, 200, 111, 0.6)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimapGutter.deletedBackground",
+      "rgba(217, 128, 134, 0.6)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimapGutter.modifiedBackground",
+      "#1b81a8",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimapSlider.activeBackground",
+      "rgba(128, 203, 196, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimapSlider.background",
+      "rgba(94, 96, 102, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "minimapSlider.hoverBackground",
+      "rgba(122, 122, 128, 0.27)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["modernActivityBar.activeBackground", null, "unset", true, false, true],
+    ["modernActivityBar.activeForeground", null, "unset", true, false, true],
+    [
+      "modernActivityBar.background",
+      "#000000",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    ["modernActivityBar.border", "#151515", "inherited", true, false, false],
+    ["modernActivityBar.hoverBackground", null, "unset", true, false, true],
+    ["modernActivityBar.hoverForeground", null, "unset", true, false, true],
+    [
+      "modernActivityBar.inactiveBackground",
+      "#000000",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernActivityBarItem.activeBackground",
+      "#242526",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernActivityBarItem.activeForeground",
+      "#d9d9d9",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernActivityBarItem.hoverBackground",
+      "#383838",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernActivityBarItem.hoverForeground",
+      "#ffffff",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.activeActionBackground",
+      "#242526",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.activeBackground",
+      "#242526",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.activeForeground",
+      "#d9d9d9",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.activeHoverActionBackground",
+      "#383838",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.activeHoverBackground",
+      "#383838",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.hoverActionBackground",
+      "#383838",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.hoverBackground",
+      "#383838",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.hoverForeground",
+      "#ffffff",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.inactiveBackground",
+      "rgba(0, 0, 0, 0)",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    [
+      "modernEditorTab.selectedActionBackground",
+      "#242526",
+      "inherited",
+      true,
+      false,
+      false
+    ],
+    ["modernTab.activeBackground", "#242526", "inherited", true, false, false],
+    ["modernTab.activeForeground", "#d9d9d9", "inherited", true, false, false],
+    ["modernTab.hoverBackground", "#383838", "inherited", true, false, false],
+    ["modernTab.hoverForeground", "#ffffff", "inherited", true, false, false],
+    ["multiDiffEditor.background", "#000000", "inherited", false, false, false],
+    ["multiDiffEditor.border", null, "unset", false, false, false],
+    [
+      "multiDiffEditor.headerBackground",
+      "#262626",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["notebook.cellBorderColor", "#242526", "inherited", false, false, false],
+    [
+      "notebook.cellEditorBackground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["notebook.cellHoverBackground", null, "unset", false, false, false],
+    [
+      "notebook.cellInsertionIndicator",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebook.cellStatusBarItemHoverBackground",
+      "rgba(255, 255, 255, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebook.cellToolbarSeparator",
+      "rgba(128, 128, 128, 0.35)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["notebook.editorBackground", "#000000", "inherited", false, false, false],
+    ["notebook.focusedCellBackground", null, "unset", false, false, false],
+    ["notebook.focusedCellBorder", "#80cbc4", "inherited", false, false, false],
+    [
+      "notebook.focusedEditorBorder",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebook.inactiveFocusedCellBorder",
+      "#242526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["notebook.inactiveSelectedCellBorder", null, "unset", false, false, false],
+    [
+      "notebook.outputContainerBackgroundColor",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    ["notebook.outputContainerBorderColor", null, "unset", false, false, false],
+    [
+      "notebook.selectedCellBackground",
+      "#242526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebook.selectedCellBorder",
+      "#242526",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebook.symbolHighlightBackground",
+      "rgba(255, 255, 255, 0.04)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookEditorOverviewRuler.runningCellForeground",
+      "#89d185",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookScrollbarSlider.activeBackground",
+      "rgba(128, 203, 196, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookScrollbarSlider.background",
+      "rgba(94, 96, 102, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookScrollbarSlider.hoverBackground",
+      "rgba(122, 122, 128, 0.53)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookStatusErrorIcon.foreground",
+      "#d36768",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookStatusRunningIcon.foreground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "notebookStatusSuccessIcon.foreground",
+      "#89d185",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["notificationCenter.border", "#383838", "configured", false, false, false],
+    [
+      "notificationCenterHeader.background",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "notificationCenterHeader.foreground",
+      "#d9d9d9",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "notificationLink.foreground",
+      "#80cbc4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["notificationToast.border", null, "unset", false, false, false],
+    ["notifications.background", "#161718", "configured", false, false, false],
+    ["notifications.border", "#5e6066", "configured", false, false, false],
+    ["notifications.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "notificationsErrorIcon.foreground",
+      "#d36768",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "notificationsInfoIcon.foreground",
+      "#6ebad7",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "notificationsWarningIcon.foreground",
+      "#d5b05f",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["outputView.background", null, "unset", false, false, false],
+    ["outputViewStickyScroll.background", null, "unset", false, false, false],
+    ["panel.background", "#000000", "configured", false, false, false],
+    ["panel.border", "#383838", "configured", false, false, false],
+    ["panel.dropBorder", "#e7e7e7", "inherited", false, false, false],
+    ["panelInput.border", "#5e6066", "inherited", false, false, false],
+    ["panelSection.border", "#383838", "inherited", false, false, false],
+    [
+      "panelSection.dropBackground",
+      "rgba(83, 89, 93, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "panelSectionHeader.background",
+      "rgba(128, 128, 128, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["panelSectionHeader.border", null, "unset", false, false, false],
+    ["panelSectionHeader.foreground", null, "unset", false, false, false],
+    [
+      "panelStickyScroll.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["panelStickyScroll.border", null, "unset", false, false, false],
+    [
+      "panelStickyScroll.shadow",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["panelTitle.activeBorder", "#e7e7e7", "inherited", false, false, false],
+    [
+      "panelTitle.activeForeground",
+      "#e7e7e7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["panelTitle.border", null, "unset", false, false, false],
+    [
+      "panelTitle.inactiveForeground",
+      "rgba(231, 231, 231, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["panelTitleBadge.background", "#80cbc4", "inherited", false, false, false],
+    ["panelTitleBadge.foreground", "#000000", "inherited", false, false, false],
+    ["peekView.border", "#6ebad7", "inherited", false, false, false],
+    ["peekViewEditor.background", "#001f33", "inherited", false, false, false],
+    [
+      "peekViewEditor.matchHighlightBackground",
+      "rgba(255, 143, 0, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["peekViewEditor.matchHighlightBorder", null, "unset", false, false, false],
+    [
+      "peekViewEditorGutter.background",
+      "#001f33",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewEditorStickyScroll.background",
+      "#001f33",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewEditorStickyScrollGutter.background",
+      "#001f33",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["peekViewResult.background", "#252526", "inherited", false, false, false],
+    [
+      "peekViewResult.fileForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewResult.lineForeground",
+      "#bbbbbb",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewResult.matchHighlightBackground",
+      "rgba(234, 92, 0, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewResult.selectionBackground",
+      "rgba(51, 153, 255, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewResult.selectionForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["peekViewTitle.background", "#252526", "inherited", false, false, false],
+    [
+      "peekViewTitleDescription.foreground",
+      "rgba(204, 204, 204, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "peekViewTitleLabel.foreground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["pickerGroup.border", "#383838", "configured", false, false, false],
+    ["pickerGroup.foreground", "#80cbc4", "configured", false, false, false],
+    [
+      "ports.iconRunningProcessForeground",
+      "#80cbc4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "problemsErrorIcon.foreground",
+      "#d36768",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "problemsInfoIcon.foreground",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "problemsWarningIcon.foreground",
+      "#d5b05f",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["profileBadge.background", "#4d4d4d", "inherited", false, false, false],
+    ["profileBadge.foreground", "#ffffff", "inherited", false, false, false],
+    ["profiles.sashBorder", "#383838", "inherited", false, false, false],
+    ["progressBar.background", "#80cbc4", "configured", false, false, false],
+    ["quickInput.background", "#161718", "configured", false, false, false],
+    ["quickInput.foreground", "#d9d9d9", "configured", false, false, false],
+    ["quickInput.list.focusBackground", null, "unset", false, false, true],
+    [
+      "quickInputList.focusBackground",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "quickInputList.focusForeground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "quickInputList.focusHighlightForeground",
+      "#2aaaff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["quickInputList.focusIconForeground", null, "unset", false, false, false],
+    [
+      "quickInputTitle.background",
+      "rgba(255, 255, 255, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "radio.activeBackground",
+      "rgba(128, 203, 196, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["radio.activeBorder", "#80cbc4", "inherited", false, false, false],
+    ["radio.activeForeground", "#ffffff", "inherited", false, false, false],
+    ["radio.inactiveBackground", null, "unset", false, false, false],
+    [
+      "radio.inactiveBorder",
+      "rgba(255, 255, 255, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["radio.inactiveForeground", null, "unset", false, false, false],
+    [
+      "radio.inactiveHoverBackground",
+      "rgba(90, 93, 94, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["sash.hoverBorder", "#80cbc4", "inherited", false, false, false],
+    ["scmGraph.foreground1", "#ffb000", "inherited", false, false, false],
+    ["scmGraph.foreground2", "#dc267f", "inherited", false, false, false],
+    ["scmGraph.foreground3", "#994f00", "inherited", false, false, false],
+    ["scmGraph.foreground4", "#40b0a6", "inherited", false, false, false],
+    ["scmGraph.foreground5", "#b66dff", "inherited", false, false, false],
+    [
+      "scmGraph.historyItemBaseRefColor",
+      "#ea5c00",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemHoverAdditionsForeground",
+      "#81b88b",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemHoverDefaultLabelBackground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemHoverDefaultLabelForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemHoverDeletionsForeground",
+      "#c74e39",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemHoverLabelForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemRefColor",
+      "#6ebad7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "scmGraph.historyItemRemoteRefColor",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["scrollbar.background", null, "unset", false, false, false],
+    [
+      "scrollbar.shadow",
+      "rgba(0, 0, 0, 0.4)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "scrollbarSlider.activeBackground",
+      "rgba(128, 203, 196, 0.6)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "scrollbarSlider.background",
+      "rgba(94, 96, 102, 0.4)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "scrollbarSlider.hoverBackground",
+      "rgba(122, 122, 128, 0.53)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "search.resultsInfoForeground",
+      "rgba(217, 217, 217, 0.65)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "searchEditor.findMatchBackground",
+      "rgba(213, 176, 95, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["searchEditor.findMatchBorder", null, "unset", false, false, false],
+    [
+      "searchEditor.textInputBorder",
+      "#5e6066",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "selection.background",
+      "rgba(128, 203, 196, 0.25)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.checkboxBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.checkboxBorder", "#5e6066", "inherited", false, false, false],
+    [
+      "settings.checkboxForeground",
+      "#f0f0f0",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.dropdownBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.dropdownBorder", "#5e6066", "inherited", false, false, false],
+    [
+      "settings.dropdownForeground",
+      "#f0f0f0",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.dropdownListBorder",
+      "#5e6066",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.focusedRowBackground",
+      "rgba(56, 56, 56, 0.6)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.focusedRowBorder", "#80cbc4", "inherited", false, false, false],
+    ["settings.headerBorder", "#383838", "inherited", false, false, false],
+    ["settings.headerForeground", "#e7e7e7", "inherited", false, false, false],
+    [
+      "settings.modifiedItemIndicator",
+      "#0c7d9d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.numberInputBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.numberInputBorder", "#5e6066", "inherited", false, false, false],
+    [
+      "settings.numberInputForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.rowHoverBackground",
+      "rgba(56, 56, 56, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.sashBorder", "#383838", "inherited", false, false, false],
+    [
+      "settings.settingsHeaderHoverForeground",
+      "rgba(231, 231, 231, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "settings.textInputBackground",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["settings.textInputBorder", "#5e6066", "inherited", false, false, false],
+    [
+      "settings.textInputForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["sideBar.background", "#000000", "configured", false, false, false],
+    ["sideBar.border", "#383838", "configured", false, false, false],
+    [
+      "sideBar.dropBackground",
+      "rgba(83, 89, 93, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["sideBar.foreground", "#d9d9d9", "configured", false, false, false],
+    ["sideBarActivityBarTop.border", null, "unset", false, false, false],
+    [
+      "sideBarSectionHeader.background",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["sideBarSectionHeader.border", null, "unset", false, false, false],
+    [
+      "sideBarSectionHeader.foreground",
+      "#d9d9d9",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "sideBarStickyScroll.background",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["sideBarStickyScroll.border", null, "unset", false, false, false],
+    [
+      "sideBarStickyScroll.shadow",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["sideBarTitle.background", "#000000", "inherited", false, false, false],
+    ["sideBarTitle.border", null, "unset", false, false, false],
+    ["sideBarTitle.foreground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "sideBySideEditor.horizontalBorder",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "sideBySideEditor.verticalBorder",
+      "#383838",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "simpleFindWidget.sashBorder",
+      "#454545",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["statusBar.background", "#000000", "configured", false, false, false],
+    ["statusBar.border", "#161718", "configured", false, false, false],
+    [
+      "statusBar.debuggingBackground",
+      "#a178c4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["statusBar.debuggingBorder", "#a178c4", "configured", false, false, false],
+    [
+      "statusBar.debuggingForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["statusBar.focusBorder", "#80cbc4", "configured", false, false, false],
+    ["statusBar.foreground", "#7a7a80", "configured", false, false, false],
+    [
+      "statusBar.noFolderBackground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["statusBar.noFolderBorder", "#161718", "configured", false, false, false],
+    [
+      "statusBar.noFolderForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.activeBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.compactHoverBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.errorBackground",
+      "#d36768",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.errorForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.errorHoverBackground",
+      "#d6808f",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.errorHoverForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["statusBarItem.focusBorder", "#80cbc4", "configured", false, false, false],
+    [
+      "statusBarItem.hoverBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.hoverForeground",
+      "#ffffff",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.offlineBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.offlineForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.offlineHoverBackground",
+      "#5e6066",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.offlineHoverForeground",
+      "#ffffff",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.prominentBackground",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.prominentForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.prominentHoverBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.prominentHoverForeground",
+      "#ffffff",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.remoteBackground",
+      "#101213",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.remoteForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.remoteHoverBackground",
+      "#161718",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.remoteHoverForeground",
+      "#ffffff",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.warningBackground",
+      "#d5b05f",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.warningForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.warningHoverBackground",
+      "#ffcc00",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "statusBarItem.warningHoverForeground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["strongForeground", "#ffffff", "inherited", false, false, false],
+    ["surface.background", "#000000", "inherited", false, false, false],
+    ["surface.border", "#151515", "inherited", false, false, false],
+    ["surface.foreground", "#d9d9d9", "inherited", false, false, false],
+    ["symbolIcon.arrayForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.booleanForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.classForeground", "#ee9d28", "inherited", false, false, false],
+    ["symbolIcon.colorForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.constantForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.constructorForeground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.enumeratorForeground",
+      "#ee9d28",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.enumeratorMemberForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.eventForeground", "#ee9d28", "inherited", false, false, false],
+    ["symbolIcon.fieldForeground", "#75beff", "inherited", false, false, false],
+    ["symbolIcon.fileForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.folderForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.functionForeground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.interfaceForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.keyForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.keywordForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.methodForeground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.moduleForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.namespaceForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.nullForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.numberForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.objectForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.operatorForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.packageForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.propertyForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.referenceForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.snippetForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.stringForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "symbolIcon.structForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.textForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.typeParameterForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["symbolIcon.unitForeground", "#d9d9d9", "inherited", false, false, false],
+    [
+      "symbolIcon.variableForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["tab.activeBackground", "#000000", "configured", false, false, false],
+    ["tab.activeBorder", null, "unset", false, false, false],
+    [
+      "tab.activeBorderTop",
+      "rgba(128, 203, 196, 0.7)",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["tab.activeForeground", "#ffffff", "configured", false, false, false],
+    ["tab.activeModifiedBorder", "#3399cc", "inherited", false, false, false],
+    ["tab.border", "#252526", "inherited", false, false, false],
+    ["tab.dragAndDropBorder", "#ffffff", "inherited", false, false, false],
+    ["tab.hoverBackground", null, "unset", false, false, false],
+    ["tab.hoverBorder", null, "unset", false, false, false],
+    ["tab.hoverForeground", null, "unset", false, false, false],
+    ["tab.inactiveBackground", "#0c0d0e", "configured", false, false, false],
+    ["tab.inactiveForeground", "#7a7a80", "configured", false, false, false],
+    [
+      "tab.inactiveModifiedBorder",
+      "rgba(51, 153, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["tab.lastPinnedBorder", "#585858", "inherited", false, false, false],
+    ["tab.selectedBackground", "#242526", "inherited", false, false, false],
+    ["tab.selectedBorderTop", "#80cbc4", "inherited", false, false, false],
+    ["tab.selectedForeground", "#ffffff", "inherited", false, false, false],
+    [
+      "tab.unfocusedActiveBackground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["tab.unfocusedActiveBorder", null, "unset", false, false, false],
+    [
+      "tab.unfocusedActiveBorderTop",
+      "rgba(128, 203, 196, 0.35)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "tab.unfocusedActiveForeground",
+      "rgba(255, 255, 255, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "tab.unfocusedActiveModifiedBorder",
+      "rgba(51, 153, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["tab.unfocusedHoverBackground", null, "unset", false, false, false],
+    ["tab.unfocusedHoverBorder", null, "unset", false, false, false],
+    ["tab.unfocusedHoverForeground", null, "unset", false, false, false],
+    [
+      "tab.unfocusedInactiveBackground",
+      "#0c0d0e",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "tab.unfocusedInactiveForeground",
+      "rgba(122, 122, 128, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "tab.unfocusedInactiveModifiedBorder",
+      "rgba(51, 153, 204, 0.25)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["terminal.ansiBlack", "#383838", "configured", false, false, false],
+    ["terminal.ansiBlue", "#6a90d0", "configured", false, false, false],
+    ["terminal.ansiBrightBlack", "#7a7a80", "configured", false, false, false],
+    ["terminal.ansiBrightBlue", "#80cbc4", "configured", false, false, false],
+    ["terminal.ansiBrightCyan", "#6ebad7", "configured", false, false, false],
+    ["terminal.ansiBrightGreen", "#a3c679", "configured", false, false, false],
+    [
+      "terminal.ansiBrightMagenta",
+      "#a178c4",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["terminal.ansiBrightRed", "#d6808f", "configured", false, false, false],
+    ["terminal.ansiBrightWhite", "#ffffff", "configured", false, false, false],
+    ["terminal.ansiBrightYellow", "#ffcc00", "configured", false, false, false],
+    ["terminal.ansiCyan", "#6ebad7", "configured", false, false, false],
+    ["terminal.ansiGreen", "#a3c679", "configured", false, false, false],
+    ["terminal.ansiMagenta", "#a178c4", "configured", false, false, false],
+    ["terminal.ansiRed", "#d36768", "configured", false, false, false],
+    ["terminal.ansiWhite", "#d9d9d9", "configured", false, false, false],
+    ["terminal.ansiYellow", "#d5b05f", "configured", false, false, false],
+    ["terminal.background", "#000000", "configured", false, false, false],
+    ["terminal.border", "#383838", "inherited", false, false, false],
+    [
+      "terminal.dropBackground",
+      "rgba(83, 89, 93, 0.5)",
+      "inherited",
+      false,
+      true,
+      false
+    ],
+    [
+      "terminal.findMatchBackground",
+      "rgba(213, 176, 95, 0.25)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["terminal.findMatchBorder", "#d5b05f", "configured", false, false, false],
+    [
+      "terminal.findMatchHighlightBackground",
+      "rgba(213, 176, 95, 0.15)",
+      "configured",
+      false,
+      true,
+      false
+    ],
+    ["terminal.findMatchHighlightBorder", null, "unset", false, false, false],
+    ["terminal.foreground", "#d9d9d9", "configured", false, false, false],
+    [
+      "terminal.hoverHighlightBackground",
+      "rgba(38, 79, 120, 0.13)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminal.inactiveSelectionBackground",
+      "rgba(128, 203, 196, 0.13)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminal.initialHintForeground",
+      "rgba(255, 255, 255, 0.34)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminal.selectionBackground",
+      "rgba(128, 203, 196, 0.25)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["terminal.selectionForeground", null, "unset", false, false, false],
+    ["terminal.tab.activeBorder", null, "unset", false, false, false],
+    [
+      "terminalCommandDecoration.defaultBackground",
+      "rgba(255, 255, 255, 0.25)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalCommandDecoration.errorBackground",
+      "#f14c4c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalCommandDecoration.successBackground",
+      "#1b81a8",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalCommandGuide.foreground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    ["terminalCursor.background", null, "unset", false, false, false],
+    ["terminalCursor.foreground", "#ffcc00", "configured", false, false, false],
+    [
+      "terminalOverviewRuler.border",
+      "rgba(127, 127, 127, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalOverviewRuler.cursorForeground",
+      "rgba(160, 160, 160, 0.8)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalOverviewRuler.findMatchForeground",
+      "rgba(209, 134, 22, 0.49)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["terminalStickyScroll.background", null, "unset", false, false, false],
+    ["terminalStickyScroll.border", null, "unset", false, false, false],
+    [
+      "terminalStickyScrollHover.background",
+      "#2a2d2e",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.aliasForeground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.argumentForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.branchForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.commitForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.fileForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.flagForeground",
+      "#ee9d28",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.folderForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.inlineSuggestionForeground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.methodForeground",
+      "#b180d7",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.optionForeground",
+      "#ee9d28",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.optionValueForeground",
+      "#75beff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.pullRequestDoneForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.pullRequestForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.remoteForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.stashForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.symbolText",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.symbolicLinkFileForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.symbolicLinkFolderForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "terminalSymbolIcon.tagForeground",
+      "#d9d9d9",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coverCountBadgeBackground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coverCountBadgeForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coveredBackground",
+      "rgba(120, 200, 111, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coveredBorder",
+      "rgba(120, 200, 111, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coveredGutterBackground",
+      "rgba(120, 200, 111, 0.12)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.coveredMinimapBackground",
+      "rgba(120, 200, 111, 0.12)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconErrored", "#f88070", "inherited", false, false, false],
+    [
+      "testing.iconErrored.retired",
+      "rgba(248, 128, 112, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconFailed", "#f88070", "inherited", false, false, false],
+    [
+      "testing.iconFailed.retired",
+      "rgba(248, 128, 112, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconPassed", "#73c991", "inherited", false, false, false],
+    [
+      "testing.iconPassed.retired",
+      "rgba(115, 201, 145, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconQueued", "#cca700", "inherited", false, false, false],
+    [
+      "testing.iconQueued.retired",
+      "rgba(204, 167, 0, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconSkipped", "#848484", "inherited", false, false, false],
+    [
+      "testing.iconSkipped.retired",
+      "rgba(132, 132, 132, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.iconUnset", "#848484", "inherited", false, false, false],
+    [
+      "testing.iconUnset.retired",
+      "rgba(132, 132, 132, 0.7)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.message.error.badgeBackground",
+      "#f14c4c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.message.error.badgeBorder",
+      "#f14c4c",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.message.error.badgeForeground",
+      "#000000",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.message.error.lineBackground",
+      null,
+      "unset",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.message.info.decorationForeground",
+      "rgba(217, 217, 217, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.message.info.lineBackground", null, "unset", false, false, false],
+    ["testing.messagePeekBorder", "#6ebad7", "inherited", false, false, false],
+    [
+      "testing.messagePeekHeaderBackground",
+      "rgba(110, 186, 215, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.peekBorder", "#d36768", "inherited", false, false, false],
+    [
+      "testing.peekHeaderBackground",
+      "rgba(211, 103, 104, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["testing.runAction", "#73c991", "inherited", false, false, false],
+    [
+      "testing.uncoveredBackground",
+      "rgba(217, 128, 134, 0.2)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.uncoveredBorder",
+      "rgba(217, 128, 134, 0.15)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.uncoveredBranchBackground",
+      "#563335",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.uncoveredGutterBackground",
+      "rgba(217, 128, 134, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "testing.uncoveredMinimapBackground",
+      "rgba(217, 128, 134, 0.3)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["textBlockQuote.background", "#222222", "inherited", false, false, false],
+    [
+      "textBlockQuote.border",
+      "rgba(0, 122, 204, 0.5)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["textCodeBlock.background", "#161718", "configured", false, false, false],
+    ["textLink.activeForeground", "#a3c679", "configured", false, false, false],
+    ["textLink.foreground", "#80cbc4", "configured", false, false, false],
+    [
+      "textPreformat.background",
+      "rgba(255, 255, 255, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["textPreformat.border", null, "unset", false, false, false],
+    ["textPreformat.foreground", "#6ebad7", "configured", false, false, false],
+    [
+      "textSeparator.foreground",
+      "rgba(255, 255, 255, 0.18)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["titleBar.activeBackground", "#000000", "configured", false, false, false],
+    ["titleBar.activeForeground", "#d9d9d9", "configured", false, false, false],
+    ["titleBar.border", "#161718", "configured", false, false, false],
+    [
+      "titleBar.inactiveBackground",
+      "#000000",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "titleBar.inactiveForeground",
+      "#7a7a80",
+      "configured",
+      false,
+      false,
+      false
+    ],
+    [
+      "toolbar.activeBackground",
+      "rgba(99, 102, 103, 0.31)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "toolbar.hoverBackground",
+      "rgba(90, 93, 94, 0.31)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["toolbar.hoverOutline", null, "unset", false, false, false],
+    [
+      "tree.inactiveIndentGuidesStroke",
+      "rgba(88, 88, 88, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["tree.indentGuidesStroke", "#585858", "inherited", false, false, false],
+    [
+      "tree.tableColumnsBorder",
+      "rgba(204, 204, 204, 0.13)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "tree.tableOddRowsBackground",
+      "rgba(217, 217, 217, 0.04)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "walkThrough.embeddedEditorBackground",
+      "rgba(0, 0, 0, 0.4)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "walkthrough.stepTitle.foreground",
+      "#ffffff",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["welcomePage.background", null, "unset", false, false, false],
+    [
+      "welcomePage.progress.background",
+      "#161718",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "welcomePage.progress.foreground",
+      "#80cbc4",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["welcomePage.tileBackground", "#161718", "inherited", false, false, false],
+    [
+      "welcomePage.tileBorder",
+      "rgba(255, 255, 255, 0.1)",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    [
+      "welcomePage.tileHoverBackground",
+      "#1a1c1d",
+      "inherited",
+      false,
+      false,
+      false
+    ],
+    ["widget.border", null, "unset", false, false, false],
+    ["widget.shadow", "rgba(0, 0, 0, 0.8)", "configured", false, false, false],
+    ["window.activeBorder", null, "unset", false, false, false],
+    ["window.inactiveBorder", null, "unset", false, false, false]
+  ]
+}

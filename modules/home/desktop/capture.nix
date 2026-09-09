@@ -1,38 +1,32 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.capture;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   picturesDirectory = config.xdg.userDirs.pictures;
-  # Grimblast always passes -o to Slurp, making monitors clickable even when
-  # SLURP_RECTS is empty. Region capture must require a custom selection.
-  grimblastRegion = pkgs.grimblast.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace grimblast --replace-fail 'slurp -o ' 'slurp '
-    '';
-  });
-  screenshot = pkgs.replaceVarsWith {
+  grimblastRegion = pkgs.grimblast-region;
+  screenshot = writeBashTemplate {
     name = "desktop-screenshot";
     src = ./scripts/screenshot.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       grimblast = lib.getExe grimblastRegion;
     };
   };
-  annotate = pkgs.replaceVarsWith {
+  annotate = writeBashTemplate {
     name = "desktop-screenshot-annotate";
     src = ./scripts/screenshot-annotate.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      outputDirectory = "${picturesDirectory}/Screenshots";
+      outputDirectory = lib.escapeShellArg "${picturesDirectory}/Screenshots";
       mkdir = lib.getExe' pkgs.coreutils "mkdir";
       date = lib.getExe' pkgs.coreutils "date";
       grim = lib.getExe pkgs.grim;

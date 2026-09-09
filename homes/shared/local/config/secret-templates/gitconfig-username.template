@@ -1,0 +1,2 @@
+[user]
+    name = "{{nix-seal:git-user-name}}"

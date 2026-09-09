@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, myLib, ... }:
 let
   runtime = {
     owner = "ianmh";
@@ -10,6 +10,8 @@ in
   nixSeal = {
     enable = true;
     administrator = "ianhollow";
+    secretDirectory = "homes/shared/secrets";
+    sharedSecretDirectory = "modules/shared/secrets";
     identityFile = "/Users/ianmh/.ssh/id_ed25519";
     artifactCacheRoot = "/Users/ianmh/Library/Caches/nix-seal/v1";
     repositoryRoot = ../../.;
@@ -19,10 +21,13 @@ in
         public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3PjFNVCaBfwUJIKjQeBoK2kz0VaLdNAQVUb5pJdPPf";
       };
     };
-    # Whole-file declarations remain as rollback inputs until field authoring succeeds.
+    # Config names select public templates backed by the encrypted fields.
     inherit
-      (import ../../secrets/templates.nix {
-        inherit lib;
+      (myLib.secrets.mkTemplates {
+        inventoryFiles = [
+          ../shared/local/config/secret-templates/inventory.json
+          ./local/secret-templates/inventory.json
+        ];
         repositoryRoot = ../../.;
         scope = "ianhollow/users/ianmh";
         secrets =

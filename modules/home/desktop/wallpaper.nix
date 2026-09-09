@@ -1,22 +1,19 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.wallpaper;
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = { };
+  };
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   picturesDirectory = config.xdg.userDirs.pictures;
-
-  renderedStaticWallpapers = lib.concatStringsSep "\n" (
-    lib.mapAttrsToList (
-      output: path:
-      builtins.replaceStrings [ "@output@" "@path@" "@fitMode@" ] [ output (toString path) cfg.fitMode ] (
-        builtins.readFile ./config/hyprpaper-wallpaper-entry.conf.in
-      )
-    ) cfg.outputs
-  );
 
   awwwOutputs = lib.concatStringsSep "," cfg.rotation.outputs;
   hyprBind = key: command: {
@@ -25,11 +22,10 @@ let
       (lib.generators.mkLuaInline "hl.dsp.exec_cmd(${builtins.toJSON command})")
     ];
   };
-  wallpaperChooser = pkgs.replaceVarsWith {
+  wallpaperChooser = writeBashTemplate {
     name = "desktop-wallpaper-next";
     src = ./scripts/wallpaper-next.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -37,45 +33,43 @@ let
         pkgs.coreutils
         pkgs.findutils
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       awwwOutputs = lib.optionalString (awwwOutputs != "") "--outputs ${lib.escapeShellArg awwwOutputs}";
       transition = cfg.rotation.transition;
       transitionDuration = toString cfg.rotation.transitionDuration;
       transitionFps = toString cfg.rotation.transitionFps;
     };
   };
-  wallpaperImporter = pkgs.replaceVarsWith {
+  wallpaperImporter = pkgs.writeShellApplication {
     name = "desktop-wallpaper-add";
-    src = ./scripts/wallpaper-add.sh.in;
-    dir = "bin";
-    isExecutable = true;
-    replacements = {
-      bash = lib.getExe pkgs.bash;
-      runtimePath = lib.makeBinPath [
-        pkgs.coreutils
-        pkgs.file
-      ];
-      wallpaperDirectory = cfg.directory;
-    };
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.file
+    ];
+    inheritPath = false;
+    text = ''
+      # Configuration values are literals, including dollar signs.
+      # shellcheck disable=SC2016
+      destination_directory=${lib.escapeShellArg cfg.directory}
+    ''
+    + builtins.readFile ./scripts/wallpaper-add.sh;
   };
-  wallpaperDirectories = pkgs.replaceVarsWith {
+  wallpaperDirectories = writeBashTemplate {
     name = "desktop-wallpaper-directories";
     src = ./scripts/wallpaper-directories.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [ pkgs.coreutils ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
     };
   };
-  wallpaperNormalizer = pkgs.replaceVarsWith {
+  wallpaperNormalizer = writeBashTemplate {
     name = "desktop-wallpaper-normalize-sdr";
     src = ./scripts/wallpaper-normalize-sdr.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -85,11 +79,10 @@ let
       maxPixels = toString (7680 * 4320);
     };
   };
-  nasaSvsFetcher = pkgs.replaceVarsWith {
+  nasaSvsFetcher = writeBashTemplate {
     name = "desktop-wallpaper-fetch-nasa";
     src = ./scripts/wallpaper-fetch-nasa.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -100,8 +93,8 @@ let
         pkgs.imagemagick
         pkgs.jq
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       maxFileSizeBytes = toString (cfg.sources.nasaSvs.maxFileSizeMiB * 1024 * 1024);
       maxImages = toString cfg.sources.nasaSvs.maxImages;
       maxCandidatePages = toString cfg.sources.nasaSvs.maxCandidatePages;
@@ -111,11 +104,10 @@ let
       rejectedTermsJson = lib.escapeShellArg (builtins.toJSON cfg.sources.nasaSvs.rejectedTerms);
     };
   };
-  nasaImageLibraryFetcher = pkgs.replaceVarsWith {
+  nasaImageLibraryFetcher = writeBashTemplate {
     name = "desktop-wallpaper-fetch-nasa-library";
     src = ./scripts/wallpaper-fetch-nasa-library.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -126,8 +118,8 @@ let
         pkgs.imagemagick
         pkgs.jq
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       maxFileSizeBytes = toString (cfg.sources.nasaImageLibrary.maxFileSizeMiB * 1024 * 1024);
       maxImages = toString cfg.sources.nasaImageLibrary.maxImages;
       maxCandidateRecords = toString cfg.sources.nasaImageLibrary.maxCandidateRecords;
@@ -147,11 +139,10 @@ let
       );
     };
   };
-  cmaFetcher = pkgs.replaceVarsWith {
+  cmaFetcher = writeBashTemplate {
     name = "desktop-wallpaper-fetch-cma";
     src = ./scripts/wallpaper-fetch-cma.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -162,17 +153,16 @@ let
         pkgs.imagemagick
         pkgs.jq
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       maxFileSizeBytes = toString (cfg.sources.clevelandMuseum.maxFileSizeMiB * 1024 * 1024);
       maxImages = toString cfg.sources.clevelandMuseum.maxImages;
     };
   };
-  wikimediaCommonsFetcher = pkgs.replaceVarsWith {
+  wikimediaCommonsFetcher = writeBashTemplate {
     name = "desktop-wallpaper-fetch-wikimedia-commons";
     src = ./scripts/wallpaper-fetch-wikimedia-commons.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -183,19 +173,18 @@ let
         pkgs.imagemagick
         pkgs.jq
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       category = lib.escapeShellArg cfg.sources.wikimediaCommons.category;
       userAgent = lib.escapeShellArg cfg.sources.wikimediaCommons.userAgent;
       maxFileSizeBytes = toString (cfg.sources.wikimediaCommons.maxFileSizeMiB * 1024 * 1024);
       maxImages = toString cfg.sources.wikimediaCommons.maxImages;
     };
   };
-  smithsonianFetcher = pkgs.replaceVarsWith {
+  smithsonianFetcher = writeBashTemplate {
     name = "desktop-wallpaper-fetch-smithsonian";
     src = ./scripts/wallpaper-fetch-smithsonian.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
@@ -206,8 +195,8 @@ let
         pkgs.imagemagick
         pkgs.jq
       ];
-      wallpaperDirectory = cfg.directory;
-      stateDirectory = "${config.xdg.stateHome}/desktop-wallpaper";
+      wallpaperDirectory = lib.escapeShellArg cfg.directory;
+      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
       maxFileSizeBytes = toString (cfg.sources.smithsonian.maxFileSizeMiB * 1024 * 1024);
       maxImages = toString cfg.sources.smithsonian.maxImages;
       maxCandidateRecords = toString cfg.sources.smithsonian.maxCandidateRecords;
@@ -231,11 +220,10 @@ let
     (lib.optional cfg.sources.wikimediaCommons.enable "desktop-wallpaper-fetch-wikimedia-commons.service")
     (lib.optional cfg.sources.smithsonian.enable "desktop-wallpaper-fetch-smithsonian.service")
   ];
-  wallpaperSeed = pkgs.replaceVarsWith {
+  wallpaperSeed = writeBashTemplate {
     name = "desktop-wallpaper-seed";
     src = ./scripts/wallpaper-seed.sh.in;
     dir = "bin";
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       systemctl = lib.getExe' pkgs.systemd "systemctl";
@@ -859,10 +847,20 @@ in
       }
 
       (lib.mkIf (cfg.mode == "static") {
-        xdg.configFile."hypr/hyprpaper.conf".source = pkgs.replaceVarsWith {
-          name = "hyprpaper-config";
-          src = ./config/hyprpaper.conf.in;
-          replacements.wallpapers = renderedStaticWallpapers;
+        xdg.configFile."hypr/hyprpaper.conf".text = lib.hm.generators.toHyprconf {
+          importantPrefixes = [
+            "splash"
+            "ipc"
+          ];
+          attrs = {
+            splash = false;
+            ipc = "on";
+            wallpaper = lib.mapAttrsToList (output: path: {
+              monitor = output;
+              path = toString path;
+              fit_mode = cfg.fitMode;
+            }) cfg.outputs;
+          };
         };
 
         systemd.user.services.hyprpaper = {
@@ -923,7 +921,12 @@ in
           services.desktop-wallpaper-rotate = {
             Unit = {
               Description = "Select the next local desktop wallpaper";
+              PartOf = [ "graphical-session.target" ];
               After = [
+                # The renderer starts after the session target. Without this
+                # edge, the target implicitly orders itself after rotation
+                # and creates a cycle through awww.service.
+                "graphical-session.target"
                 "awww.service"
                 "desktop-wallpaper-directories.service"
               ];
@@ -1233,14 +1236,19 @@ in
             After = [ "graphical-session.target" ];
           };
           Service = {
-            ExecStart = lib.concatStringsSep " " [
-              (lib.getExe pkgs.mpvpaper)
-              (lib.optionalString cfg.video.pauseWhenHidden "--auto-pause FULL")
-              "--mpv-options"
-              (lib.escapeShellArg "no-config no-audio loop hwdec=auto-safe profile=fast")
-              (lib.escapeShellArg cfg.video.output)
-              (lib.escapeShellArg cfg.video.path)
-            ];
+            ExecStart = systemdUtils.escapeSystemdExecArgs (
+              [ (lib.getExe pkgs.mpvpaper) ]
+              ++ lib.optionals cfg.video.pauseWhenHidden [
+                "--auto-pause"
+                "FULL"
+              ]
+              ++ [
+                "--mpv-options"
+                "no-config no-audio loop hwdec=auto-safe profile=fast"
+                cfg.video.output
+                cfg.video.path
+              ]
+            );
             Restart = "on-failure";
             RestartSec = 3;
           };

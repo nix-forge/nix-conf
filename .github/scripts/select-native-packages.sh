@@ -1,12 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# flake.nix uses path:./pkgs. Read the policy from that same checkout so updates
+# to the package submodule also update hosted-build eligibility here.
+policy=pkgs/.github/ci-policy.json
+if ! jq -e '
+  type == "object" and all(to_entries[];
+    (.key | test("^[a-z0-9][a-z0-9+._-]*$")) and
+    (.value | type == "string" and test("\\S")))
+' "$policy" >/dev/null; then
+  echo '::error::Invalid hosted-build policy in pkgs; expected package names and nonblank reasons.' >&2
+  exit 1
+fi
+while IFS= read -r package; do
+  if [[ ! -f "pkgs/pkgs/by-name/${package:0:2}/$package/package.nix" ]]; then
+    echo "::error::Hosted-build policy names an unknown package: $package" >&2
+    exit 1
+  fi
+done < <(jq -r 'keys[]' "$policy")
+
 # Evaluate the complete current package set in a foreground command so errors
 # cannot disappear through process substitution. Never build a default target.
 current=$(nix eval --json --option eval-cores 1 --no-allow-import-from-derivation \
   ".#packages.$TARGET_SYSTEM" --apply 'builtins.mapAttrs (_: package: package.drvPath)')
 valid_map='type == "object" and all(.[]; type == "string" and startswith("/nix/store/") and endswith(".drv"))'
 jq -e "$valid_map" <<<"$current" >/dev/null
+
+# Optional attribute names narrow the macOS job to its representative outputs.
+# All candidates still pass through the same policy filter below.
+if [[ $# -gt 0 ]]; then
+  for package in "$@"; do
+    if ! jq -e --arg package "$package" 'has($package)' <<<"$current" >/dev/null; then
+      echo "::error::Unknown native package candidate: $package" >&2
+      exit 1
+    fi
+  done
+  candidates=$(printf '%s\n' "$@" | jq -Rsc 'split("\n")[:-1]')
+  current=$(jq --argjson candidates "$candidates" \
+    'with_entries(select(.key as $name | $candidates | index($name)))' <<<"$current")
+fi
 
 base_sha=${BASE_SHA:-}
 # Older queue reconcilers do not supply a root CI input. A GitHub queue
@@ -34,12 +66,19 @@ if [[ $base_sha =~ ^[0-9a-f]{40}$ ]] &&
     jq -e "$valid_map" <<<"$candidate" >/dev/null; then
     base=$candidate
   else
-    echo '::notice::Base package evaluation unavailable; building all current outputs.' >&2
+    echo '::notice::Base package evaluation unavailable; selecting all eligible candidates.' >&2
   fi
 else
-  echo '::notice::Base history unavailable; building all current outputs.' >&2
+  echo '::notice::Base history unavailable; selecting all eligible candidates.' >&2
 fi
 
-jq -n --argjson current "$current" --argjson base "$base" --arg system "$TARGET_SYSTEM" '
-  [$current | to_entries[] | select(.value != $base[.key]) |
+# Keep stdout machine-readable for the workflow. Report exclusions separately.
+jq -r --argjson current "$current" '
+  to_entries[] | select(.key as $name | $current | has($name)) |
+  "::notice::Skipping \(.key): \(.value)"
+' "$policy" >&2
+jq -n --argjson current "$current" --argjson base "$base" --arg system "$TARGET_SYSTEM" \
+  --slurpfile policy "$policy" '
+  [$current | to_entries[] | select(.key as $name | $policy[0] | has($name) | not) |
+    select(.value != $base[.key]) |
     ".#packages.\($system).\(.key | tojson)"]'

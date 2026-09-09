@@ -46,7 +46,7 @@ let
 
   scaleDefinition =
     scale: lib.findFirst (definition: definition.value == scale) null scaleDefinitions;
-  divisibleBy = dividend: divisor: builtins.div dividend divisor * divisor == dividend;
+  divisibleBy = dividend: divisor: lib.mod dividend divisor == 0;
   validForResolution =
     resolution: scale:
     let
@@ -82,16 +82,14 @@ let
     # instead of attempting DPI division on a null physical size.
     else
       1.0;
-  maximum = left: right: if left > right then left else right;
-  minimum = left: right: if left < right then left else right;
   clamp =
     lower: upper: value:
-    maximum lower (minimum upper value);
+    lib.max lower (lib.min upper value);
   scaleForCursor =
     if cursorCfg.referenceOutput != null && builtins.hasAttr cursorCfg.referenceOutput cfg.displays then
       resolvedScale cfg.displays.${cursorCfg.referenceOutput}
     else
-      builtins.foldl' (largest: display: maximum largest (resolvedScale display)) 1.0 (
+      builtins.foldl' (largest: display: lib.max largest (resolvedScale display)) 1.0 (
         builtins.attrValues cfg.displays
       );
   derivedCursorSize = clamp cursorCfg.minimumSize cursorCfg.maximumSize (

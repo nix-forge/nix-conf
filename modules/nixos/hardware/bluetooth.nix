@@ -1,9 +1,14 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  myLib,
+  pkgs,
+  ...
+}:
 let
-  disableBluetoothPairing = pkgs.replaceVarsWith {
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  disableBluetoothPairing = writeBashTemplate {
     name = "disable-bluetooth-pairing";
     src = ./scripts/disable-bluetooth-pairing.sh;
-    isExecutable = true;
     replacements = {
       bash = lib.getExe pkgs.bash;
       busctl = lib.getExe' pkgs.systemd "busctl";

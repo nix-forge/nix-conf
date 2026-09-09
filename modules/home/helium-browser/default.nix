@@ -2,11 +2,13 @@
   config,
   inputs,
   lib,
+  myLib,
   pkgs,
   system,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.programs.helium;
   inherit (config.programs.browserSuite.chromium) extensionUpdateUrl heliumExtensions;
   extensionIds = builtins.attrValues heliumExtensions;
@@ -23,26 +25,25 @@ let
     flag: "--add-flags ${lib.escapeShellArg flag}"
   ) cfg.flags;
 
-  darwinCrxToZip = builtins.path {
-    path = ./scripts/crx-to-zip.py;
-    name = "helium-crx-to-zip.py";
-  };
+  darwinCrxToZip = pkgs.writers.writePython3Bin "helium-crx-to-zip" { } ./scripts/crx-to-zip.py;
 
   # Helium stores its UI preferences in the Chromium profile. Seed these once
   # before the browser starts, so later changes made in Helium's Settings UI
   # remain user-controlled.
-  darwinHeliumPreferenceDefaults = builtins.path {
-    path = ./scripts/preference-defaults.py;
-    name = "helium-preference-defaults.py";
-  };
+  darwinHeliumPreferenceDefaults = pkgs.writers.writePython3Bin "helium-preference-defaults" {
+    # Match the project formatter: long lines and leading binary operators.
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ./scripts/preference-defaults.py;
 
-  darwinHeliumPreferenceHook = pkgs.replaceVarsWith {
+  darwinHeliumPreferenceHook = writeBashTemplate {
     name = "helium-preference-hook";
     src = ./scripts/preference-hook.sh;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      python = lib.getExe pkgs.python3;
-      defaults = darwinHeliumPreferenceDefaults;
+      defaults = lib.getExe darwinHeliumPreferenceDefaults;
     };
   };
 
@@ -51,7 +52,7 @@ let
   # registry at each Helium start instead. A failed refresh deliberately leaves
   # the previous unpacked extension in place for offline starts. Network timeouts
   # ensure a stalled Web Store request cannot leave Helium waiting indefinitely.
-  darwinExtensionUpdateHook = pkgs.replaceVarsWith {
+  darwinExtensionUpdateHook = writeBashTemplate {
     name = "helium-extension-update-hook";
     src = ./scripts/extension-update-hook.sh;
     replacements = {
@@ -64,8 +65,7 @@ let
       rm = lib.getExe' pkgs.coreutils "rm";
       mv = lib.getExe' pkgs.coreutils "mv";
       curl = lib.getExe pkgs.curl;
-      python = lib.getExe pkgs.python3;
-      crxToZip = darwinCrxToZip;
+      crxToZip = lib.getExe darwinCrxToZip;
       unzip = lib.getExe pkgs.unzip;
     };
   };

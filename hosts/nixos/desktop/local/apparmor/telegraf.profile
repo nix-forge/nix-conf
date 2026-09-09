@@ -17,6 +17,11 @@ profile nixos-telegraf @telegrafPackage@/bin/telegraf flags=(mediate_deleted) {
   # execution is therefore visible in the complain-mode audit trail.
   @telegrafPackage@/bin/telegraf mrix,
 
+  # Go's runtime reads its own process statistics every second. Permit only
+  # the service account's files so this known read does not flood discovery
+  # logs or hide accesses that still need review.
+  owner /proc/[0-9]*/stat r,
+
   # The SMART input invokes only the dedicated NixOS capability wrapper and
   # its pinned smartctl target.  Preserve the profile across that narrow
   # helper chain instead of accepting AppArmor-generated `null-` child

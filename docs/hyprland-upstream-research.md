@@ -8,7 +8,7 @@ An upstream fix is justified, subject to reproducing it on current upstream and 
 
 ## Source and local evidence
 
-The repository patch is [hyprland-subsurface-parent-lifetime.patch](../modules/nixos/desktop-envs/patches/hyprland-subsurface-parent-lifetime.patch). It adds a `surf` check to `posRelativeToParent()` and `t1Parent()`. The [local incident note](hyprland-subsurface-crash.md) records a parent-first teardown crash on revision `ee0409623e2d6a683374b39a32e0ac3d087841aa` and a successful patched reproduction. Those runtime results are prior evidence, not tests rerun in this research task.
+The repository patch is [hyprland-subsurface-parent-lifetime.patch](../overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch). It adds a `surf` check to `posRelativeToParent()` and `t1Parent()`. The [local incident note](hyprland-subsurface-crash.md) records a parent-first teardown crash on revision `ee0409623e2d6a683374b39a32e0ac3d087841aa` and a successful patched reproduction. Those runtime results are prior evidence, not tests rerun in this research task.
 
 Upstream `main` resolved through GitHub's REST API to [34eb03bd8da01024596c367fba66485a8c9b8ca7](https://github.com/hyprwm/Hyprland/commit/34eb03bd8da01024596c367fba66485a8c9b8ca7), committed September 6, 2026 at 11:00:56 UTC. [Subcompositor.cpp at that revision](https://github.com/hyprwm/Hyprland/blob/34eb03bd8da01024596c367fba66485a8c9b8ca7/src/protocols/core/Subcompositor.cpp#L131) still dereferences both weak-parent locks without a null check.
 

@@ -3,7 +3,8 @@
 set -euo pipefail
 
 url=@localUrl@
-ssh_config="@colimaHome@/_lima/colima/ssh.config"
+# shellcheck disable=SC2016
+ssh_config=@sshConfig@
 colima_bin=""
 @curl@ -fsSI --max-time 2 "$url" >/dev/null 2>&1 && exit 0
 for candidate in "$HOME/.nix-profile/bin/colima" "/etc/profiles/per-user/@username@/bin/colima" "/run/current-system/sw/bin/colima"; do

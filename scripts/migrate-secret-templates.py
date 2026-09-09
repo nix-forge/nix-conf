@@ -53,6 +53,11 @@ SUBPROCESS_TIMEOUT = 300
 
 ROOT = Path(__file__).resolve().parent.parent
 HOME_SCOPE = "ianhollow/users/ianmh"
+INVENTORY_FILES = (
+    "homes/shared/local/config/secret-templates/inventory.json",
+    "hosts/shared/secret-templates/inventory.json",
+    "homes/macbook-pro-m4/local/secret-templates/inventory.json",
+)
 GIT_FIELDS = {
     "gitconfig-username": ("name", "git-user-name"),
     "gitconfig-useremail": ("email", "git-user-email"),
@@ -122,12 +127,15 @@ def _word(value: str) -> str:
 
 def _entry(source: str, content: str, values: dict[str, str]) -> _Entry:
     scope = source.removeprefix("secrets/").rsplit("/", 1)[0]
+    field_root = (
+        f"secrets/{scope.split('/', 1)[0]}/shared"
+        if Path(source).stem == "flakehub-netrc"
+        else f"secrets/{scope}/fields"
+    )
     return {
         "original": source,
         "content": content,
-        "fields": {
-            name: {"source": f"secrets/{scope}/fields/{name}.age"} for name in values
-        },
+        "fields": {name: {"source": f"{field_root}/{name}.age"} for name in values},
         "placeholders": {name: name for name in values},
     }
 
@@ -223,6 +231,7 @@ def _parse_netrc(text: str) -> tuple[str, dict[str, str]]:
     tokens = text.split()
     _require(len(tokens) % 6 == 0 and bool(tokens), "Unsupported netrc structure.")
     lines = []
+    seen: set[str] = set()
     for offset in range(0, len(tokens), 6):
         machine, host, login, user, password, token = tokens[offset : offset + 6]
         _require(
@@ -230,23 +239,33 @@ def _parse_netrc(text: str) -> tuple[str, dict[str, str]]:
             "Unsupported netrc entry.",
         )
         _require(
-            host in {"flakehub.com", "api.flakehub.com", "cache.flakehub.com"},
+            host
+            in {
+                "flakehub.com",
+                "api.flakehub.com",
+                "cache.flakehub.com",
+                "edge.cache.flakehub.com",
+            },
             "Netrc host needs public metadata review.",
         )
-        prefix = "flakehub-" + host.replace(".", "-")
-        _require(prefix + "-login" not in values, "Duplicate netrc host.")
-        values[prefix + "-login"] = _word(user)
-        values[prefix + "-password"] = _word(token)
+        _require(host not in seen, "Duplicate netrc host.")
+        seen.add(host)
+        credentials = {"flakehub-login": _word(user), "flakehub-password": _word(token)}
+        _require(
+            not values or values == credentials,
+            "FlakeHub entries do not share one login and password.",
+        )
+        values = credentials
         lines.append(
-            f"machine {host} login {_marker(prefix + '-login')} password {_marker(prefix + '-password')}"
+            f"machine {host} login {_marker('flakehub-login')} password {_marker('flakehub-password')}"
         )
     content = "\n".join(lines) + "\n"
     return content, values
 
 
 def _parse_environment(text: str) -> tuple[str, dict[str, str]]:
-    values: dict[str, str] = {}
     lines = []
+    seen: set[str] = set()
     for line in text.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
@@ -254,15 +273,15 @@ def _parse_environment(text: str) -> tuple[str, dict[str, str]]:
             re.fullmatch(r"([A-Z_][A-Z_0-9]*)=(.*)", line),
             "Environment syntax needs review.",
         )
-        key, value = match.groups()
-        field = "service-env-" + key.lower().replace("_", "-")
-        _require(field not in values, "Duplicate environment key.")
-        # Preserve the existing value's quoting, without evaluating shell.
-        values[field] = _scalar(value)
-        lines.append(key + "=" + _marker(field))
-    _require(bool(values), "Empty service environment.")
-    content = "\n".join(lines) + "\n"
-    return content, values
+        key = match[1]
+        _require(key not in seen, "Duplicate environment key.")
+        seen.add(key)
+        lines.append(_scalar(line))
+    _require(bool(lines), "Empty service environment.")
+    # These assignments share one consumer and access policy. Keep their private
+    # names and values together instead of creating a ciphertext per setting.
+    field = "service-private-settings"
+    return _marker(field), {field: "\n".join(lines) + "\n"}
 
 
 def _split_config(
@@ -369,7 +388,18 @@ def _public_macbook_key() -> str:
     return match[0]
 
 
+def _retain_field_sources(spec: _Entry, inventory: _Inventory) -> None:
+    existing = inventory.get(spec["original"])
+    if existing is not None:
+        _require(
+            existing["fields"].keys() == spec["fields"].keys(),
+            "Reviewed template fields differ.",
+        )
+        spec["fields"] = existing["fields"]
+
+
 def _inspect_runtime(directory: Path) -> _Inventory:
+    existing = _read_inventory()
     inventory, home_values = {}, {}
     for name in [
         *GIT_FIELDS,
@@ -380,6 +410,7 @@ def _inspect_runtime(directory: Path) -> _Inventory:
         source = f"secrets/{HOME_SCOPE}/{name}.age"
         data = (directory / name).read_bytes()
         spec, values = _split_config(source, data, home_values, _public_macbook_key())
+        _retain_field_sources(spec, existing)
         _verify_template(source, data, spec, values)
         inventory[source] = spec
         home_values.update(values)
@@ -452,6 +483,7 @@ def _extract_fields(
             str(identity),
         ])
         spec, values = _split_config(source, data, home_values, _public_macbook_key())
+        _retain_field_sources(spec, inventory)
         _verify_template(source, data, spec, values)
         inventory[source] = spec
         if source.startswith(f"secrets/{HOME_SCOPE}/"):
@@ -539,7 +571,7 @@ def _author_fields(
 
 
 def _migrate(identity: Path, execute: bool, workspace: Path) -> None:
-    inventory: _Inventory = json.loads((ROOT / "secrets/templates.json").read_text())
+    inventory = _read_inventory()
     combined, originals = _collect_plans(workspace)
     private_values, declarations = _extract_fields(originals, identity, inventory)
     combined["secrets"] = declarations
@@ -556,12 +588,42 @@ def _migrate(identity: Path, execute: bool, workspace: Path) -> None:
         )
 
 
+def _read_inventory() -> _Inventory:
+    inventory: _Inventory = {}
+    for relative in INVENTORY_FILES:
+        catalog = ROOT / relative
+        for source, entry in json.loads(catalog.read_text()).items():
+            _require(source not in inventory, "Duplicate template inventory source.")
+            template = catalog.parent / entry.pop("template")
+            entry["content"] = template.read_text()
+            inventory[source] = entry
+    return inventory
+
+
 def _write_inventory(inventory: _Inventory) -> None:
-    destination = ROOT / "secrets/templates.json"
-    temporary = destination.with_suffix(".json.tmp")
-    with temporary.open("x") as output:
-        output.write(json.dumps(inventory, indent=2, sort_keys=True) + "\n")
-    temporary.replace(destination)
+    # Keep public syntax beside its owning configuration. Existing catalogs
+    # decide placement; authoring must not invent or silently omit an owner.
+    _require(
+        inventory.keys() == _read_inventory().keys(),
+        "Assign new templates to a home or host inventory before authoring.",
+    )
+    for relative in INVENTORY_FILES:
+        destination = ROOT / relative
+        entries = json.loads(destination.read_text())
+        for source, previous in entries.items():
+            spec = inventory[source]
+            template = destination.parent / previous["template"]
+            temporary = template.with_suffix(".template.tmp")
+            with temporary.open("x") as output:
+                output.write(spec["content"])
+            temporary.replace(template)
+            entries[source] = {
+                key: value for key, value in spec.items() if key != "content"
+            } | {"template": previous["template"]}
+        temporary = destination.with_suffix(".json.tmp")
+        with temporary.open("x") as output:
+            output.write(json.dumps(entries, indent=2, sort_keys=True) + "\n")
+        temporary.replace(destination)
 
 
 def _main() -> None:
@@ -580,7 +642,7 @@ def _main() -> None:
         )
         inventory = _inspect_runtime(args.inspect_runtime_home)
         if args.write_public_inventory:
-            existing = json.loads((ROOT / "secrets/templates.json").read_text())
+            existing = _read_inventory()
             _write_inventory(existing | inventory)
         sys.stdout.write(
             f"Reviewed {len(inventory)} home config templates. Private values were not written or displayed.\n"
