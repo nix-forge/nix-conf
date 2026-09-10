@@ -5,6 +5,7 @@
 
     secrets = [
       "cornell-net-id"
+      "git-privacy-policy"
       "git-user-name"
       "git-user-email"
       "git-user-email-cornell"

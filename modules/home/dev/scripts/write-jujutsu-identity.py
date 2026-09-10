@@ -39,7 +39,7 @@ def _write_identity(destination: Path, name: str, email: str) -> None:
 
 def _git_identity(git: str, key: str) -> str:
     result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Nix supplies Git; fixed argument vector.
-        [git, "config", "--global", "--get", f"user.{key}"],
+        [git, "config", "--global", "--includes", "--get", f"user.{key}"],
         check=False,
         capture_output=True,
         text=True,

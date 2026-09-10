@@ -52,7 +52,7 @@ class PublicTemplateTests(unittest.TestCase):
             "flakehub-password": "fixture-password",
             "service-private-settings": "EXAMPLE_TOKEN='fixture value'\nEXAMPLE_PORT=8788\n",
         }
-        aliases = {"name": "git-user-name", "email": "git-user-email"}
+        aliases = {"name": "git-user-name", "email": "git-user-email-github"}
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             key = root / "identity"
@@ -213,7 +213,7 @@ class PublicTemplateTests(unittest.TestCase):
             tomllib.loads(rendered["jujutsu-identity"])["user"],
             {
                 "name": values["git-user-name"],
-                "email": values["git-user-email"],
+                "email": values["git-user-email-github"],
             },
         )
         self.assertEqual(rendered["cornell-net-id-ssh-config"], "User fixture123\n")
