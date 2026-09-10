@@ -36,7 +36,6 @@
               }
             ];
           }).config;
-        home = if pkgs.stdenv.hostPlatform.isDarwin then macbook else desktop;
         nativeChecks =
           cfg:
           !(cfg.programs.git.settings.core or { } ? hooksPath)
@@ -59,8 +58,10 @@
             pkgs.python3
             pkgs.git
           ];
-          PRIVACY_COMMIT_COMMAND = home.programs.git.settings.hook.email-privacy-commit.command;
-          PRIVACY_PUSH_COMMAND = home.programs.git.settings.hook.email-privacy-push.command;
+          # Run the reusable module with this check's native package set. Host
+          # profiles above retain their own architectures and are asserted only.
+          PRIVACY_COMMIT_COMMAND = generic.programs.git.settings.hook.email-privacy-commit.command;
+          PRIVACY_PUSH_COMMAND = generic.programs.git.settings.hook.email-privacy-push.command;
         }
         ''
           mkdir -p modules/home/dev/scripts tests/git_privacy
