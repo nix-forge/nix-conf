@@ -19,7 +19,8 @@ assert shell["bar"]["default"]["start"] == ["launcher", "workspaces", "active_wi
 assert shell["osd"]["kinds"]["media"] is False
 assert shell["lockscreen"]["enabled"] is False
 palette = json.loads((root / "palette.json").read_text())
-assert palette["dark"]["mPrimary"] == "#123456"
+assert palette["dark"]["mPrimary"] == "#abcdef"
+assert palette["dark"]["mSurface"] == "#123456"
 assert palette["dark"]["terminal"]["bright"]["white"] == "#123456"
 notifications = json.loads((root / "swaync.json").read_text())
 assert notifications["widgets"] == ["title", "dnd", "notifications", "mpris", "volume"]
