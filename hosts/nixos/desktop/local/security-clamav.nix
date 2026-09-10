@@ -25,6 +25,7 @@ in
     updater = {
       frequency = 6;
       interval = "*-*-* 00/4:00:00";
+      settings.NotifyClamd = "/etc/clamav/clamd.conf";
     };
     fangfrisch.enable = false;
 
@@ -69,10 +70,35 @@ in
       RandomizedDelaySec = "30m";
     };
 
+    # An empty database must not wait for the calendar or its 30-minute
+    # jitter. This independent timer also checks for updates after each boot.
+    clamav-bootstrap = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "30s";
+        AccuracySec = "1s";
+        RandomizedDelaySec = "15s";
+        Unit = "clamav-freshclam.service";
+      };
+    };
+
     clamdscan.timerConfig = {
       Persistent = true;
       AccuracySec = "1h";
       RandomizedDelaySec = "2h";
+    };
+  };
+
+  # Start scanning with the installed, verified database while FreshClam
+  # updates independently. This workstation boots without waiting for Wi-Fi.
+  # If the database is missing or invalid, clamd fails visibly and retries
+  # until the updater has installed a usable database.
+  systemd.services.clamav-daemon = {
+    after = lib.mkForce [ ];
+    wants = lib.mkForce [ ];
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "30s";
     };
   };
 
@@ -89,6 +115,7 @@ in
     serviceConfig = {
       Restart = "on-failure";
       RestartSec = "5min";
+      TimeoutStartSec = "5min";
     };
   };
 }

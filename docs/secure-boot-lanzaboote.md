@@ -1,5 +1,10 @@
 # Secure Boot and TPM rollout for `desktop`
 
+Design review, 2026-09-09: [the storage and boot research](desktop-storage-research.md)
+compares automatic TPM, TPM-PIN, and FIDO2 unlocking. The staged implementation
+uses a normal greeter and recommends TPM-PIN after the signed boot path has
+been tested. See [the migration guide](disko-desktop-migration.md).
+
 This desktop is intentionally **not enabled** for Lanzaboote yet. Firmware
 Secure Boot is currently disabled, and its root filesystem is Btrfs without
 LUKS2 encryption. The configuration stages the tooling and retains the normal
@@ -77,8 +82,8 @@ available for the documentation, and test each reboot before proceeding.
   do not use a destructive “clear all Secure Boot settings” action.
 
 - Boot the already-tested NixOS generation and enroll the local keys while
-  retaining Microsoft certificates for the existing Windows Boot Manager and
-  signed option ROM compatibility:
+  retaining Microsoft certificates for signed option ROM and recovery-media
+  compatibility:
 
   ```sh
   sudo sbctl enroll-keys --microsoft
@@ -96,29 +101,33 @@ available for the documentation, and test each reboot before proceeding.
   tested recovery USB and ESP backup until several normal updates and rollbacks
   have succeeded.
 
-## TPM and Measured Boot
+## TPM and measured boot
 
 Lanzaboote Measured Boot is not the same as Secure Boot. It uses TPM PCR
 measurements to release a secret only to an expected boot state. It becomes
 meaningful for this desktop after a LUKS2 full-disk-encryption migration.
 
-When that migration is designed, keep a high-entropy recovery passphrase and
-verify it from the recovery USB first. Then enable the host-local
-`measuredBoot` option. The shared module uses PCR 4 (Lanzaboote's measured boot
-chain) and PCR 7 (Secure Boot policy); it intentionally does not use the more
-brittle firmware PCRs 0-3. Enroll manually with a TPM PIN for an attended
-desktop, rather than enabling automatic re-enrollment:
+After the encrypted layout has passed recovery tests, enable `measuredBoot`
+in `hosts/nixos/desktop/local/security-secure-boot.nix`. The shared module uses
+PCR 4 for the measured boot chain and PCR 7 for Secure Boot policy. Build a boot
+generation and reboot with the passphrase before enrolling a TPM credential.
+
+At the physical console, use the installed helper:
 
 ```sh
-sudo systemd-cryptenroll \
-  --tpm2-device=auto \
-  --tpm2-with-pin=true \
-  --tpm2-pcrlock=/var/lib/systemd/pcrlock.json \
-  /dev/disk/by-id/REPLACE-WITH-THE-LUKS2-DEVICE
+sudo desktop-storage-enroll tpm-pin
 ```
 
-The device identifier and LUKS mapping must be selected as part of the future
-disk redesign; this repository intentionally does not guess them.
+It verifies Secure Boot enforcement, the managed PCR policy and the recovery
+passphrase before adding a TPM slot with a PIN. It refuses to replace an existing
+TPM token. Then set `hardware.storage.encryptedRoot.unlockMethod = "tpm-pin"`
+in the host-local deployment settings and build another boot generation.
+Test PIN unlock, passphrase recovery and a signed rollback generation.
+
+Lanzaboote manages the measured policy. Automatic TPM token replacement remains
+disabled. Firmware policy changes can invalidate enrollment, so retain an
+independent recovery credential and perform any necessary re-enrollment at the
+console after checking the new boot state.
 
 ## Kernel LSM and module policy
 

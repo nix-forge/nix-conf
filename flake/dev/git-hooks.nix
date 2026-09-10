@@ -14,6 +14,7 @@
           fonttools
           lxml
           pillow
+          pytest
           selenium
           tomlkit
           uharfbuzz

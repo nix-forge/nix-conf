@@ -1,164 +1,210 @@
-# Disko encrypted-root migration for `desktop`
+# Desktop encrypted-storage migration
 
-`hosts/nixos/desktop/disko.nix` is the planned **offline installer** layout for
-the desktop's ADATA Linux NVMe. It is not imported by the running host and it
-has not been executed. Disko's `destroy,format,mount` mode repartitions and
-formats the whole target disk; this is a migration, not an in-place conversion.
+The two-drive layout is implemented but staged. The live configuration keeps
+`hardware.storage.encryptedRoot.enable = false`. Changing that setting does not
+encrypt existing data. Disko's `destroy,format,mount` operation erases both
+selected drives, including native Windows and its boot files.
 
-## Resulting layout
+Read [the design research](desktop-storage-research.md) for the filesystem and
+boot-policy tradeoffs, and [storage operations](desktop-storage-operations.md)
+for snapshots, backups and recovery checks.
 
-| Layer | Design | Purpose |
-| --- | --- | --- |
-| GPT / ESP | 2 GiB FAT32, mounted at `/boot`, root-only masks | UEFI, systemd-boot/Lanzaboote, signed boot generations, firmware capsules |
-| Root encryption | One LUKS2 `cryptroot` container with Argon2id | Encrypts the operating system, home data, Nix store, logs, and swap at rest |
-| Filesystem | One Btrfs filesystem | Checksummed COW filesystem and efficiently separated recovery domains |
-| Subvolumes | `@root`, `@var`, `@log`, `@home`, `@nix`, `@snapshots`, `@swap` | Targeted snapshots/rollback without making logs, package store, or home data part of root rollback |
-| Swap | 8 GiB Btrfs swapfile inside LUKS, priority `-1` | Encrypted overflow behind zram (priority `5`); hibernation remains disabled |
+## Installed layout
 
-The layout requires an explicit `systemDisk` argument containing the verified
-Linux SSD's stable by-id path. There is no default disk. Keep that value in
-private local storage and confirm it at the physical installer console.
-Select the Linux drive, preserving the separate Windows/games drive.
+| Device | Contents |
+| --- | --- |
+| System SSD | 2 GiB FAT32 ESP; 16 GiB randomly encrypted swap; remaining space LUKS2 `cryptroot` containing Btrfs |
+| Data SSD | LUKS2 `cryptdata` containing a separate Btrfs filesystem |
+| System subvolumes | Root, home, Nix store, `/var`, logs, caches, Docker, containerd and rootless Docker |
+| Data subvolumes | `/srv/data`, `/srv/data/work`, `/mnt/games`, `/var/lib/libvirt/images` |
 
-## Critical Windows constraint
+Both Btrfs filesystems use data SINGLE, metadata DUP and `compress=zstd:1`.
+They do not form a pool or RAID. Periodic trim passes through LUKS; continuous
+Btrfs discard is disabled. This reveals allocation patterns to an observer of
+the encrypted device. Swap gets a new encryption key each boot and cannot be
+used for hibernation. Existing zram remains the higher-priority swap tier.
 
-The currently mounted Linux ESP is also the firmware-registered **Windows Boot
-Manager** location (`EFI/Microsoft/Boot/bootmgfw.efi`). Formatting the Linux
-SSD as designed will therefore remove the only current Windows boot path,
-despite Windows itself being on the Samsung SSD. Disko's upstream guide also
-states that a whole-disk layout does not support preserving dual boot.
+Normal operation uses one root unlock. A private key on encrypted root unlocks
+the optional data SSD. A missing data SSD must leave login available and must
+prevent applications from writing replacement data beneath its mount points.
+The normal greeter requires authentication; Sunshine becomes available after
+interactive login.
 
-Do not run Disko until one of these is true:
+## Before erasing either drive
 
-1. You intentionally retire bare-metal Windows and have tested Windows
-  recovery media plus a backup of any data you need; or
-2. You independently restore/relocate Windows Boot Manager to an ESP on the
-  Windows SSD and verify that it boots **with the Linux SSD disconnected**.
+1. Provision independent encrypted backup storage outside both selected SSDs.
+   Back up home, configuration and submodules, SSH identities, application data,
+   existing games/saves and any Windows files still needed. Stop databases,
+   containers and VMs before their final export or cold copy.
+2. Restore representative files and actual important application data into a
+   separate directory. Check contents and permissions. Retain the backup's
+   password and recovery instructions independently of this desktop.
+3. Save the current ESP, UEFI boot entries, sealed-secret runtime cache and the
+   private identity required to decrypt that cache. Follow [secrets.md](secrets.md).
+   Do not put plaintext secrets in the repository or Nix store.
+4. Test a NixOS recovery USB in UEFI mode. Confirm networking, both target SSDs,
+   keyboard and recovery commands work. Keep these instructions on another device.
+5. Keep a complete installer copy of this checkout, including submodules and
+   uncommitted implementation files, outside the drives being erased and outside `/mnt`. Disko mounts the new root
+   at `/mnt`, hiding anything previously beneath that directory. A normal
+   Git clone does not contain uncommitted files. Verify the copy before proceeding.
 
-This migration does not attempt that Windows boot repair. It is a separate,
-recovery-sensitive Windows operation.
+An empty backup configuration is deliberately not a completed backup strategy.
+Do not format while the only copies of any required data remain on these SSDs.
 
-## Staged migration
+## Partition and install from recovery media
 
-### 1. Back up first
-
-Create verified, encrypted offline backups of home data, Nix configuration,
-SSH keys, browser/profile data, MiniDV captures, and the current ESP. Btrfs
-snapshots are convenient recovery points but are not backups.
-
-### 2. Prepare recovery media
-
-Create and test-boot a current NixOS installer USB, keeping a second device
-available for these instructions. Export the present ESP and NVRAM entries:
-
-```sh
-sudo install -d -m 700 /root/boot-recovery
-sudo tar --xattrs --acls -C /boot -cpf /root/boot-recovery/esp-before-disko.tar .
-sudo efibootmgr -v | sudo tee /root/boot-recovery/efibootmgr-before-disko.txt
-```
-
-### 3. Resolve Windows boot and identify the target
-
-Resolve the Windows constraint above and verify the target from the installer
-before destroying anything:
+From the installer, identify both whole drives by their stable by-id paths.
+Do not use an NVMe index or a partition path. Confirm model, size, serial and
+contents locally; keep captured identifiers private.
 
 ```sh
-read -r -p 'Verified Linux system disk by-id path: ' system_disk
+lsblk -o NAME,PATH,TYPE,SIZE,MODEL,SERIAL,FSTYPE,MOUNTPOINTS
+read -r -p 'System SSD whole-disk by-id path: ' system_disk
+read -r -p 'Data SSD whole-disk by-id path: ' data_disk
 readlink -f -- "$system_disk"
-lsblk -o NAME,PATH,SERIAL,SIZE,FSTYPE,MOUNTPOINTS
+readlink -f -- "$data_disk"
 ```
 
-The path must resolve to the 953.9 GiB ADATA drive, not the 1.8 TiB Samsung
-Windows/games drive and not the installer USB.
+The two paths must resolve to different whole devices. Neither device nor its
+children may be mounted, used as swap, or held by a device-mapper mapping.
+Double-check that the installer, checkout and backups are elsewhere. `/mnt`
+and its descendants must be unmounted, and `/mnt` must be an empty ordinary
+directory or absent, so installation cannot hide required files or mounts.
 
-### 4. Run Disko from the installer
-
-Use this repository revision, including the already pinned Disko input, and
-run the destructive operation only after the checks above pass:
+The following command is destructive. Run it only after the checks above and
+an explicit confirmation of both targets:
 
 ```sh
 sudo nix run github:nix-community/disko/ff8702b4de27f72b4c78573dfb89ec74e36abdf1 \
-  -- --argstr systemDisk "$system_disk" \
+  -- --argstr systemDisk "$system_disk" --argstr dataDisk "$data_disk" \
   --mode destroy,format,mount hosts/nixos/desktop/disko.nix
 ```
 
-Disko will request a new LUKS passphrase interactively. Use a long unique
-passphrase; do not put it in Nix, Git, `/tmp`, or a shell history.
+Disko requests LUKS passphrases interactively. Give each container a strong
+recovery passphrase and record it securely offline. Do not capture it in shell
+variables, command arguments or files under the checkout.
 
-### 5. Install the Disko system configuration
-
-Add `./disko-system.nix` to the desktop's `modules` list **only in the
-installer copy of `hosts/nixos/desktop/default.nix`**, then install. For
-example, append it beside the other explicit host paths:
+In the installer copy, change
+`hosts/nixos/desktop/local/storage-deployment.nix` to:
 
 ```nix
-modules = with modules; [
-  # existing module list …
-  ./disko-system.nix
-];
+{ lib, ... }: {
+  hardware.storage.encryptedRoot = {
+    enable = lib.mkDefault true;
+    unlockMethod = lib.mkDefault "passphrase";
+  };
+}
 ```
 
-It imports the pinned Disko NixOS module and disables the legacy plaintext
-root/swap declarations. Do not add it to the live configuration before
-formatting. Keep it in the installed configuration after migration.
+Keep Secure Boot and measured boot disabled for the first installation. The
+Disko module is already imported by the host. It derives installed mounts from
+partition labels and mapper names; private by-id arguments are only required
+for the destructive installer operation. Its default `UNCONFIGURED-*` paths
+intentionally cannot select a real disk.
 
-In that private installer copy, also set `_module.args.systemDisk` to the same
-verified by-id path. Keep the machine-specific override out of this public
-repository. Both the standalone Disko invocation and the installed module need
-an explicit disk selection; neither should guess a device from NVMe numbering.
+Restore the needed data and secret identities into the new mounted tree. Keep
+new filesystem boundaries intact. Do not overwrite generated `/etc/fstab`,
+`/etc/crypttab`, or the new ESP with old versions. Preserve ownership, ACLs,
+extended attributes and sparse VM files when copying application state.
 
-### 6. Prove passphrase and recovery-key boot
-
-Boot with the LUKS passphrase twice and test an older generation before
-introducing TPM unlock. Create and store a recovery key offline:
+Install using the prepared checkout:
 
 ```sh
+sudo nixos-install --flake "path:$PWD#desktop"
+```
+
+This intentionally includes the private installer's uncommitted enable setting.
+Ensure the installed configuration copy retains that setting for future rebuilds.
+
+## First boot and data unlock
+
+Boot with the root passphrase. The data drive may remain unavailable until its
+private automatic-unlock key is enrolled; this must not prevent login. At the
+installed physical console:
+
+```sh
+sudo desktop-storage-enroll data-key
+sudo systemctl restart systemd-cryptsetup@cryptdata.service
+sudo systemctl start desktop-data-ready.service
+for path in /srv/data /srv/data/work /mnt/games /var/lib/libvirt/images; do
+  findmnt --mountpoint "$path"
+done
+```
+
+`data-key` creates a private random key only if absent, adds it to the data
+container using its existing passphrase, and tests the key. It keeps the
+passphrase slot. Re-running it never overwrites a candidate key.
+
+Test both recovery passphrases independently. Add recovery keys if desired,
+record them offline, and test them before relying on them:
+
+```sh
+sudo cryptsetup open --test-passphrase /dev/disk/by-partlabel/NIXOS-CRYPTROOT
+sudo cryptsetup open --test-passphrase /dev/disk/by-partlabel/NIXOS-CRYPTDATA
 sudo systemd-cryptenroll --recovery-key /dev/disk/by-partlabel/NIXOS-CRYPTROOT
-sudo systemd-cryptenroll /dev/disk/by-partlabel/NIXOS-CRYPTROOT
+sudo systemd-cryptenroll --recovery-key /dev/disk/by-partlabel/NIXOS-CRYPTDATA
+sudo desktop-storage-enroll headers
 ```
 
-Keep both a tested passphrase and the recovery key. The TPM is convenience plus
-boot-state binding; it is not the only recovery mechanism.
+Move the resulting header backups to independent encrypted recovery storage.
+Repeat after credential changes. Header backups contain sensitive keyslot
+material; an old backup can restore a credential that was subsequently revoked.
 
-### 7. Roll out Secure Boot at a physical console
+Reboot twice and verify data mounts, login, NVIDIA and normal workloads.
+Test a rollback generation. Suspend remains disabled by the existing desktop
+compatibility policy; enabling and testing it is a separate change. Then follow the
+[Secure Boot rollout](secure-boot-lanzaboote.md).
 
-Follow [the Secure Boot rollout](secure-boot-lanzaboote.md) at a physical
-console. First prove Lanzaboote boots with firmware Secure Boot disabled, then
-enroll keys while retaining Microsoft certificates, and finally enable firmware
-enforcement.
+## Select hardware unlock last
 
-### 8. Enroll TPM unlock last
-
-Only after steps 1–7 are proven, enable
-`security.secureBootLanzaboote.measuredBoot`, import
-`hosts/nixos/desktop/disko-tpm-unlock.nix`, rebuild, reboot once, then enroll
-the policy with a TPM PIN:
+After Secure Boot enforcement and managed measured boot have each passed a
+physical boot test, enroll TPM plus PIN:
 
 ```sh
-sudo systemd-cryptenroll \
-  --tpm2-device=auto \
-  --tpm2-with-pin=true \
-  --tpm2-pcrlock=/var/lib/systemd/pcrlock.json \
-  /dev/disk/by-partlabel/NIXOS-CRYPTROOT
+sudo desktop-storage-enroll tpm-pin
 ```
 
-The TPM/PIN path is tested against Lanzaboote's policy rather than a brittle
-fixed PCR measurement. Test a normal TPM/PIN boot and the recovery-key boot
-before treating the migration as complete.
+The command checks firmware enforcement and the managed PCR policy, tests a
+recovery passphrase, and refuses to overwrite an existing TPM enrollment.
+Change `unlockMethod` to `"tpm-pin"`, build a boot generation, and test both PIN
+and recovery-passphrase boot. Normal PIN attempts are subject to the TPM's
+lockout policy; do not repeatedly guess.
 
-## Design boundaries
+Optional YubiKey boot enrollment is separate from web-account credentials:
 
-- The ESP is intentionally unencrypted: UEFI must read it before Linux starts.
-  Secure Boot authenticates its boot artifacts; it does not conceal their
-  metadata.
-- LUKS discard is enabled because this NVMe supports it and the desktop already
-  uses periodic trim. The tradeoff is visibility of which encrypted sectors are
-  unused, not plaintext disclosure. Set `allowDiscards = false` in `disko.nix`
-  before installation if allocation-pattern confidentiality is the higher
-  priority.
-- Disko provides the layout, not a backup service or an automatic snapshot
-  policy. Configure and test an encrypted off-host backup target before relying
-  on snapshots for recovery.
-- Do not enable automatic TPM re-enrollment. The existing Lanzaboote module
-  intentionally keeps it off; policy changes and recovery paths need attended
-  verification on this desktop.
+```sh
+sudo desktop-storage-enroll fido2
+```
+
+Connect one key at a time and repeat for the second. This requests PIN and touch.
+Select `unlockMethod = "fido2"` only after enrollment. Keep an independent
+recovery passphrase. Never reset FIDO2 as a troubleshooting shortcut: that also
+invalidates the key's existing FIDO credentials for online accounts.
+
+TPM-PIN is the intended everyday path; the YubiKeys are optional. Automatic
+TPM token replacement is intentionally disabled. Test normal boot, recovery
+boot and a signed rollback before treating the migration as complete.
+
+## Validation and remaining hardware tests
+
+Run `just desktop-storage-check` for the configuration contracts, disposable
+Restic recovery tests and the two-disk Disko VM installation test. Run
+`just desktop-storage-build` on `desktop` to build the proposed encrypted,
+Secure Boot and TPM-PIN configuration without activation or changing deployment
+flags. This build is separate from enrolling firmware or disk credentials.
+
+The VM check provisions two LUKS2/Btrfs devices, verifies metadata DUP and
+randomly encrypted swap across cold boots, checks data persistence and snapshot
+exclusions, and exercises the generated backup and verification services.
+It also boots with the data unlock key unavailable and verifies home snapshots
+and cleanup remain functional. Missing backup media must fail without creating
+a replacement repository beneath an unmounted directory. The cold-backup guard
+must refuse normal multi-user operation.
+
+VM fixture passphrases are disposable and its partitions and Argon2 parameters
+are reduced for testing. The test uses the pinned standard VM kernel, not the
+physical desktop's kernel and drivers. It does not test physical TPM enrollment,
+YubiKey initrd access, firmware policy, a physically disconnected SSD, actual
+backup hardware, or restored production applications. Those remain attended
+migration acceptance tests.

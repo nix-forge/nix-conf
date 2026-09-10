@@ -19,6 +19,12 @@
     # so this rule matches identical descriptors, not a unique physical key.
     # It omits topology to permit moving between USB ports. Changes to enabled
     # USB interfaces require another descriptor review.
+    # The WD Elements backup drive is pinned to its reviewed descriptor hash
+    # and mass-storage interface. Topology is omitted so this portable backup
+    # device can move between ports; other mass-storage devices stay blocked.
+    # The Brio 101 webcam is pinned to its reviewed descriptor hash and hub
+    # port and video/audio interfaces. This trusts the hardware without adding
+    # a privileged enable step before each call; application access is separate.
     #
     # The currently attached Samsung Flash Drive FIT (090c:1000) is deliberately
     # absent. Removable mass storage is blocked by default. If it becomes a

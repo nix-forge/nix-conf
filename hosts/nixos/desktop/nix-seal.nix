@@ -25,6 +25,9 @@
       "nix-daemon.service"
     ];
     after = [
+      # Login may need the network even when network-online.target has no
+      # wait provider. Do not delay the desktop while authenticating.
+      "multi-user.target"
       "network-online.target"
       "nix-seal-activate.service"
       "nix-daemon.service"
@@ -35,6 +38,8 @@
       RemainAfterExit = true;
       UMask = "0077";
       TimeoutStartSec = 60;
+      Restart = "on-failure";
+      RestartSec = "1min";
       ExecStart = utils.escapeSystemdExecArgs [
         "${inputs.determinate.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/determinate-nixd"
         "auth"

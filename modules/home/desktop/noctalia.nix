@@ -9,6 +9,7 @@
 let
   cfg = config.desktop.noctalia;
   noctalia = lib.getExe config.programs.noctalia.package;
+  volumeStep = "${toString cfg.volumeStepPercent}%";
   featureSettings = {
     nightlight = lib.optionalAttrs cfg.nightLight.enable {
       enabled = true;
@@ -63,6 +64,14 @@ in
     enable = lib.mkEnableOption ''
       Noctalia as the desktop shell, with Hyprshell for recent-window switching
     '';
+
+    volumeStepPercent = lib.mkOption {
+      type = lib.types.addCheck (lib.types.either lib.types.int lib.types.float) (
+        value: value > 0 && value <= 100
+      );
+      default = 5;
+      description = "Volume change in percentage points for keyboard keys and bar scrolling.";
+    };
 
     darkAppIcons.enable = lib.mkEnableOption ''
       dark ChatGPT, Zen and VS Code artwork that follows Noctalia's appearance,
@@ -322,6 +331,10 @@ in
           };
         };
         widget = {
+          volume.actions = {
+            scroll_up = "volume-up ${volumeStep}";
+            scroll_down = "volume-down ${volumeStep}";
+          };
           clock = {
             format = "{:%a %b %-d  %-I:%M %p}";
             tooltip_format = "{:%A, %B %-d, %Y}";
@@ -361,8 +374,6 @@ in
           show_actions = true;
           position = "top_right";
           layer = "top";
-          background_opacity = 0.98;
-          border = true;
           offset_x = 16;
           offset_y = 12;
           max_visible = 3;
@@ -372,8 +383,6 @@ in
         osd = {
           enabled = true;
           position = "top_center";
-          background_opacity = 0.98;
-          border = true;
           offset_x = 16;
           offset_y = 52;
           kinds = {
@@ -470,8 +479,8 @@ in
       (hyprBind "SUPER + V" "${noctalia} msg panel-toggle clipboard")
       (hyprBind "SUPER + S" "${noctalia} msg panel-toggle control-center")
       (hyprBind "SUPER + COMMA" "${noctalia} msg settings-toggle")
-      (hyprBind "XF86AudioRaiseVolume" "${noctalia} msg volume-up")
-      (hyprBind "XF86AudioLowerVolume" "${noctalia} msg volume-down")
+      (hyprBind "XF86AudioRaiseVolume" "${noctalia} msg volume-up ${volumeStep}")
+      (hyprBind "XF86AudioLowerVolume" "${noctalia} msg volume-down ${volumeStep}")
       (hyprBind "XF86AudioMute" "${noctalia} msg volume-mute")
       (hyprBind "XF86AudioMicMute" "${noctalia} msg mic-mute")
       (hyprBind "XF86MonBrightnessUp" "${noctalia} msg brightness-up")

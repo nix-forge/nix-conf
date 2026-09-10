@@ -63,6 +63,8 @@ in
         float_switch_override_focus = 0;
       };
       misc = {
+        # Allow applications to raise their windows after a notification action.
+        focus_on_activate = true;
         force_default_wallpaper = 0;
         vrr = 0;
         key_press_enables_dpms = true;

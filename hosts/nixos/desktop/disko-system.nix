@@ -1,15 +1,16 @@
-{ inputs, ... }: {
-  # Import this module into the desktop configuration only from the offline
-  # installer, after `disko.nix` has formatted the SSD. It must not be added to
-  # the deployed host before migration: the live root is not /dev/mapper/cryptroot.
-  # Set `_module.args.systemDisk` in the private installer copy. The shared
-  # layout has no default physical disk identifier.
-  imports = [
-    inputs.disko.nixosModules.disko
-    ./disko.nix
-  ];
+{
+  config,
+  inputs,
+  lib,
+  ...
+}:
+{
+  imports = [ inputs.disko.nixosModules.disko ];
 
-  # The deployed host's local filesystem module uses this explicit switch to
-  # retire its label-based plaintext root and swap declarations.
-  hardware.storage.encryptedRoot.enable = true;
+  # Always import the module, but switch layouts only in the offline install.
+  # Normal rebuilds need no private physical drive identifiers: Disko derives
+  # mounts from GPT labels and LUKS mapper names.
+  config = lib.mkIf config.hardware.storage.encryptedRoot.enable (
+    import ./disko.nix { inherit lib; }
+  );
 }

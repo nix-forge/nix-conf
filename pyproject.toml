@@ -58,6 +58,23 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"tests/storage/*.py" = [
+  # Disposable fixtures assert recovery outcomes and run real local Restic.
+  "assert",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "hardcoded-password-string",
+]
+"hosts/nixos/desktop/local/storage/*.py" = [
+  # These operator CLIs intentionally print status and invoke fixed utilities
+  # without a shell. Their wrappers provide an immutable executable PATH.
+  "print",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  # Preflight exception text is the CLI's diagnostic, not a reusable API.
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+]
 "tests/nix/check-python-helpers.py" = [
   # Sandbox fixture assertions use literal protocol and configuration values.
   "assert",

@@ -15,7 +15,9 @@ let
   # hard-coding a particular account's home directory.
   gamesMountPoint = "/mnt/games";
   gamesGroup = "users";
-  gamesScrubTimer = "btrfs-scrub-${utils.escapeSystemdPath gamesMountPoint}";
+  gamesScrubTimer = "btrfs-scrub-${
+    utils.escapeSystemdPath (if encryptedRoot then "/srv/data" else gamesMountPoint)
+  }";
 
   mkFS = label: fsType: { inherit label fsType; };
   btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
@@ -49,42 +51,9 @@ let
   bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
-  # This switch exists only during this desktop's one-time Disko migration.
-  # It is deliberately declared locally: a shared storage module must not
-  # expose a host-specific root-layout transition as a reusable option.
-  options.hardware.storage.encryptedRoot.enable = lib.mkEnableOption ''
-    this desktop's Disko-managed LUKS2 encrypted root layout
-  '';
-
   config = lib.mkMerge [
     {
-      # NixOS's built-in `users` group covers normal local accounts without
-      # tying this shared game library to a particular login.  The Btrfs
-      # subvolume is also used from Windows, so make its Steam content
-      # directory group-writable when the volume is available.
-      systemd.tmpfiles.rules = [
-        "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
-        "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
-      ];
-
-      # Only the filesystem needed to mount this desktop's root belongs in the
-      # initrd. Removable-media support is available after the real system
-      # starts.
       boot.initrd.supportedFilesystems = [ "btrfs" ];
-
-      fileSystems.${gamesMountPoint} = {
-        # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
-        # Its absence must not block the desktop from booting.
-        device = gamesDevice;
-        fsType = "btrfs";
-        options = [
-          "subvol=games"
-          "compress=zstd:1"
-          "noatime"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
 
       # Btrfs scrub covers all subvolumes on a filesystem, so one root entry
       # is enough for either storage layout. The games drive is independent.
@@ -94,7 +63,7 @@ in
         limit = "800M";
         fileSystems = [
           "/"
-          gamesMountPoint
+          (if encryptedRoot then "/srv/data" else gamesMountPoint)
         ];
       };
 
@@ -122,6 +91,29 @@ in
     # mounts or leave a plaintext swap device behind. This defaults to false
     # and changes nothing on the current live desktop.
     (lib.mkIf (!encryptedRoot) {
+      # NixOS's built-in `users` group covers normal local accounts without
+      # tying this shared game library to a particular login.  The Btrfs
+      # subvolume is also used from Windows, so make its Steam content
+      # directory group-writable when the volume is available.
+      systemd.tmpfiles.rules = [
+        "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
+        "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
+      ];
+
+      fileSystems.${gamesMountPoint} = {
+        # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
+        # Its absence must not block the desktop from booting.
+        device = gamesDevice;
+        fsType = "btrfs";
+        options = [
+          "subvol=games"
+          "compress=zstd:1"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
       fileSystems = {
         "/" = mkBTRFS rootLabel "@root" defaultBTRFSOptions;
         "/var" = mkBTRFS rootLabel "@var" defaultBTRFSOptions;
@@ -131,8 +123,8 @@ in
         ${bootMP} = mkBoot bootLabel; # should be /boot by default
       };
 
-      # Legacy plaintext swap. Disko replaces this with a LUKS-encrypted Btrfs
-      # swapfile, retaining the same zram-first priority order.
+      # Legacy plaintext swap. The offline migration replaces this with
+      # dedicated randomly encrypted swap, retaining zram-first priority.
       swapDevices = [ { label = swapLabel; } ];
     })
   ];

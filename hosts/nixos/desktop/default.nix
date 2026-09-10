@@ -88,6 +88,7 @@
     # Host-specific sealed system secrets must be imported explicitly: the
     # framework only auto-loads files under local/.
     ./nix-seal.nix
+    ./disko-system.nix
   ];
 
   homes.ianmh = {

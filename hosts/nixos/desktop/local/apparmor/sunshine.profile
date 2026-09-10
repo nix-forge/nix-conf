@@ -121,4 +121,6 @@ profile nixos-sunshine @sunshinePackage@/bin/sunshine flags=(mediate_deleted) {
   /proc/sys/vm/mmap_min_addr r,
   /dev/char/195:254 w,
   /proc/*/task/*/comm w,
+  # The runtime repeatedly reads process accounting while streaming.
+  owner /proc/[0-9]*/stat r,
 }

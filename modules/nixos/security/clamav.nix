@@ -77,7 +77,9 @@ in
       # which data directories it may inspect.
       clamdscan.serviceConfig = {
         NoNewPrivileges = true;
-        PrivateTmp = true;
+        # The scan includes the host's temporary directories. A private /tmp
+        # and /var/tmp would silently replace those inputs with empty trees.
+        PrivateTmp = false;
         PrivateDevices = true;
         PrivateNetwork = true;
         ProtectSystem = "full";
