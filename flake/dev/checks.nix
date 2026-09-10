@@ -71,7 +71,9 @@
     in
     {
       checks.clamav-runtime =
-        if pkgs.stdenv.hostPlatform.isLinux then
+        # This desktop VM needs KVM, which the hosted ARM Linux runner lacks.
+        # Run it on the same native x86 Linux platform as the storage VM test.
+        if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
           import ../../tests/nix/clamav-runtime.nix { inherit pkgs; }
         else
           pkgs.runCommand "clamav-runtime-not-applicable" { } "touch $out";
