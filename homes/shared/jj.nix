@@ -12,7 +12,7 @@ let
   runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   templatedIdentity =
     builtins.hasAttr "git-user-name" config.nixSeal.secrets
-    && builtins.hasAttr "git-user-email" config.nixSeal.secrets;
+    && builtins.hasAttr "git-user-email-github" config.nixSeal.secrets;
   secretId = "git-allowedsigners";
   hasAllowedSigners = builtins.hasAttr secretId runtimeFiles;
   identityConfig = "${config.xdg.configHome}/jj/conf.d/90-local-identity.toml";
@@ -43,7 +43,7 @@ in
       '';
       placeholders = {
         name.secret = "git-user-name";
-        email.secret = "git-user-email";
+        email.secret = "git-user-email-github";
       };
     };
   };

@@ -54,3 +54,23 @@ git config --local user.email 72767437+IanHollow@users.noreply.github.com
 Encrypting a Git configuration or adding a mailmap does not remove author and committer identities already embedded
 in old commits. Rewriting published history requires coordinating affected branches,
 open pull requests, and other clones before a force push.
+
+Both home profiles select the same protected GitHub noreply identity for Git and
+Jujutsu, including in repositories without a remote. Two configured Git checks
+use the encrypted policy described in [the secret-management guide](secrets.md):
+
+- `email-privacy-commit` runs at `commit-msg` to catch private identities, staged
+  content, and commit messages early.
+- `email-privacy-push` runs at `pre-push` to inspect outgoing history, including
+  deleted file content, commit metadata, reference names, and annotated tags.
+
+Git 2.55 or newer runs these configured checks alongside ordinary repository
+hooks. They do not replace `core.hooksPath` or require changes to hook installers.
+Git runs the ordinary filesystem hook last, so a later hook can modify a message
+or staged content after the early check; the outgoing-history check catches that
+before publication. See [Git's hook documentation](https://git-scm.com/docs/git-hook).
+
+These are local safeguards. `--no-verify`, disabled configured hooks, alternate
+Git clients, GitHub API calls, and browser edits can bypass them. Review pull
+request bodies and other web content before publishing. Each machine needs the
+home configuration and its signed secrets.
