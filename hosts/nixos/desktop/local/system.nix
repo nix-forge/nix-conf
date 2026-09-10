@@ -46,11 +46,8 @@
   programs.ssh.startAgent = false;
   environment.systemPackages = [ pkgs.seahorse ];
 
-  # The Sunshine session boots directly into Hyprland in order to provide a
-  # capture target, then immediately locks with Hyprlock. Feed the
-  # one password entered at that lock screen to GNOME Keyring as well. That
-  # unlocks the encrypted Login keyring before Helium starts using Secret
-  # Service, without leaving an unlocked desktop at the physical console.
+  # Greetd supplies the login password to GNOME Keyring. Hyprlock retains
+  # the same hook for later session unlocks; the boot PIN is independent.
   # Use Hyprlock's current upstream flake. It includes the PAM termination
   # deadlock fix that prevents a stale lock process from leaving Hyprland on
   # its crashed-lockscreen fallback.

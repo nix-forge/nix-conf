@@ -72,6 +72,14 @@ let
       wayland.windowManager.hyprland.enable = true;
     }).config;
   shell = shellFor { };
+  shellTypography = shellFor {
+    stylix.fonts = {
+      sansSerif.name = lib.mkForce "DejaVu Sans";
+      sizes.desktop = 12;
+      sizes.popups = 15;
+    };
+  };
+  near = actual: expected: actual > expected - 0.0001 && actual < expected + 0.0001;
   shellOff = shellFor { stylix.targets.noctalia.enable = false; };
   shellUpstream = shellFor { stylix.targets.noctalia.custom.enable = false; };
   chromiumFor =
@@ -197,6 +205,25 @@ assert
   !linux
   || (
     shell.programs.noctalia.customPalettes ? Stylix
+    && shell.programs.noctalia.settings.notification.background_opacity == 1.0
+    && shell.programs.noctalia.settings.osd.background_opacity == 1.0
+    && shell.programs.noctalia.settings.shell.panel.transparency_mode == "solid"
+    && shell.programs.noctalia.settings.widget.taskbar.icon_scale == 1.0
+    && shell.programs.noctalia.settings.widget.taskbar.inactive_opacity == 1.0
+    && shellTypography.programs.noctalia.settings.shell.font_family == "DejaVu Sans"
+    && shellTypography.programs.noctalia.settings.bar.default.font_family == "DejaVu Sans"
+    && near (shellTypography.programs.noctalia.settings.bar.default.font_scale * 14) 16
+    && near (shellTypography.programs.noctalia.settings.accessibility.ui_scale * 14) 16
+    && near (
+      shellTypography.programs.noctalia.settings.accessibility.ui_scale
+      * shellTypography.programs.noctalia.settings.notification.scale
+      * 14
+    ) 20
+    && near (
+      shellTypography.programs.noctalia.settings.accessibility.ui_scale
+      * shellTypography.programs.noctalia.settings.osd.scale
+      * 14
+    ) 20
     && !(shellOff.programs.noctalia.customPalettes ? Stylix)
     && shellOff.programs.noctalia.enable
     && !shellOff.programs.noctalia.settings.theme.templates.enable_community_templates

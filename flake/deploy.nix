@@ -21,20 +21,17 @@ let
   airpodsRule = lib.findFirst (
     rule: lib.any (match: (match."device.name" or null) == airpodsCardName) rule.matches
   ) null airpodsWirePlumber."monitor.bluez.rules";
-  # This installer-only system keeps the Disko layout under the same flake
-  # evaluation contract as the deployed host, without importing it into the
-  # running desktop configuration or touching any disk during checks.
+  # Evaluate the opt-in installed layout without selecting physical disks or
+  # touching them. The disposable installation test supplies its own drives.
   desktopDisko = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
-    specialArgs = {
-      inherit inputs;
-      # Evaluation fixture only. Installer callers must supply a verified disk.
-      systemDisk = "/dev/disk/by-id/contract-fixture";
-    };
+    specialArgs = { inherit inputs; };
     modules = [
       ../modules/nixos/hardware/storage.nix
       ../hosts/nixos/desktop/local/hardware/filesystems.nix
+      ../hosts/nixos/desktop/local/storage/default.nix
       ../hosts/nixos/desktop/disko-system.nix
+      { hardware.storage.encryptedRoot.enable = true; }
     ];
   };
   # Keep the opt-in branch evaluated even while passthrough remains disabled
@@ -1123,19 +1120,17 @@ in
           );
         assert desktop.services.greetd.enable;
         assert !desktop.services.displayManager.gdm.enable;
-        assert desktop.services.greetd.settings.initial_session.user == "ianmh";
+        assert !(desktop.services.greetd.settings ? initial_session);
+        assert lib.hasInfix "auth substack login" desktop.security.pam.services.greetd.text;
+        assert lib.hasInfix "session include login" desktop.security.pam.services.greetd.text;
+        assert desktop.security.pam.services.login.enableGnomeKeyring;
         assert desktop.programs.hyprlock.enable;
         assert
           desktop.programs.hyprlock.package.outPath == inputs.hyprlock.packages.x86_64-linux.hyprlock.outPath;
         assert desktop.security.pam.services.hyprlock.enableGnomeKeyring;
         assert desktop.security.pam.services.passwd.enableGnomeKeyring;
         assert hasSystemPackage "seahorse";
-        assert desktop.systemd.user.services.sunshine-session-lock.unitConfig.ConditionUser == "ianmh";
-        assert
-          desktop.systemd.user.services.sunshine-session-lock.unitConfig.After
-          == [ "graphical-session.target" ];
-        assert lib.hasInfix "pidof"
-          desktop.systemd.user.services.sunshine-session-lock.serviceConfig.ExecStart;
+        assert !(desktop.systemd.user.services ? sunshine-session-lock);
         assert lib.hasInfix "Unlock desktop" desktopHome.xdg.configFile."hypr/hyprlock.conf".text;
         assert !(builtins.hasAttr "sunshine-headless-output" desktop.systemd.user.services);
         assert
@@ -1546,7 +1541,9 @@ in
           '';
 
       desktop-disko-layout-contract =
-        assert desktopDisko.config.disko.devices.disk.system.device == "/dev/disk/by-id/contract-fixture";
+        assert
+          desktopDisko.config.disko.devices.disk.system.device == "/dev/disk/by-id/UNCONFIGURED-SYSTEM";
+        assert desktopDisko.config.disko.devices.disk.data.device == "/dev/disk/by-id/UNCONFIGURED-DATA";
         assert desktopDisko.config.hardware.storage.encryptedRoot.enable;
         assert
           desktopDisko.config.boot.initrd.luks.devices.cryptroot.device
@@ -1557,7 +1554,11 @@ in
         assert lib.elem "subvol=@root" desktopDisko.config.fileSystems."/".options;
         assert lib.elem "nodiscard" desktopDisko.config.fileSystems."/nix".options;
         assert lib.elem "subvol=@log" desktopDisko.config.fileSystems."/var/log".options;
-        assert (builtins.head desktopDisko.config.swapDevices).device == "/swap/swapfile";
+        assert
+          (builtins.head desktopDisko.config.swapDevices).device == "/dev/disk/by-partlabel/NIXOS-SWAP";
+        assert (builtins.head desktopDisko.config.swapDevices).randomEncryption.enable;
+        assert desktopDisko.config.fileSystems."/srv/data".device == "/dev/mapper/cryptdata";
+        assert !(desktopDisko.config.boot.initrd.luks.devices ? cryptdata);
         assert (builtins.head desktopDisko.config.swapDevices).priority == -1;
         assert !(lib.any (swap: swap.device == "/dev/disk/by-label/swap") desktopDisko.config.swapDevices);
         pkgs.runCommand "desktop-disko-layout-contract" { } "touch $out";

@@ -15,6 +15,7 @@
       colors = config.lib.stylix.colors.withHashtag;
       noctalia = lib.getExe config.programs.noctalia.package;
       darkAppIcons = self.packages.${system}.noctalia-dark-app-icons;
+      shellPalette = (import ./mk-palette.nix).render { inherit pkgs colors; };
       syncAppIcons = pkgs.writeShellApplication {
         name = "noctalia-sync-app-icons";
         runtimeInputs = [ pkgs.glib ];
@@ -55,10 +56,11 @@
               "${darkAppIcons}/share/icons/${darkAppIcons.iconThemeName}";
           };
           programs.noctalia = {
-            customPalettes.Stylix = (import ./palette.nix).render { inherit colors; };
+            customPalettes.Stylix = shellPalette;
             settings = lib.mkMerge [
               ((import ./settings.nix).render {
                 font = config.stylix.fonts.sansSerif.name;
+                fontSizes = config.stylix.fonts.sizes;
                 paletteName = "Stylix";
                 pureBlackDark = config.appearance.theme == "carbon-neon-oled";
               })
@@ -84,7 +86,7 @@
                   main_axis_padding = 12;
                   cross_axis_padding = 6;
                   item_spacing = 4;
-                  background_opacity = 0.96;
+                  background_opacity = 1.0;
                   radius = 14;
                   margin_edge = 10;
                   shadow = false;

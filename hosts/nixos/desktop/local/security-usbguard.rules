@@ -20,3 +20,5 @@ allow hash "BertsznnITAaNuTIVmTDexmItla4SVzIu0GewGgZp1Y="
 allow hash "gPI7GdWoaX0fu8DRkks2RxbY/4Mcm7qeop13NChBHCs="
 allow hash "XgBTq8pVM6qfvawSNZmeXDW2es5VdsP1m3ZrCbTRHiA="
 allow hash "CwFhBPBIv03wCep4yD8oMXEhm6km6k7YXpk44KGvkQQ="
+allow id 1058:2621 hash "NdRb7LK0KU7wttNrzMMzBWE3Oc/MRlSqvtx32SyC6xg=" with-interface equals { 08:06:50 }
+allow id 046d:094d hash "jCYqVKo/nzG8edAqTtlRL+nJ9S6BlMsJX5eVmv5IkG8=" parent-hash "3diggCc+UIkz1I9skI/9PxceyT0kr5r7GL5FqNeqFZg=" via-port "1-5.4" with-interface equals { 0e:01:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 0e:02:00 01:01:00 01:02:00 01:02:00 01:02:00 01:02:00 }

@@ -43,6 +43,8 @@
       trayOverrides.Bitwarden = "bitwarden-tray";
       # Use Discord's monochrome glyph for Vesktop's tray bitmap.
       trayOverrides.Vesktop = "discord-tray";
+      # Zoom sends a colored bitmap; use the theme's video-camera status glyph.
+      trayOverrides.zoom = "camera-video-symbolic";
     };
     nightLight = {
       enable = true;

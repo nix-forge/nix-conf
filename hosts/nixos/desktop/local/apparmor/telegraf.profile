@@ -22,6 +22,16 @@ profile nixos-telegraf @telegrafPackage@/bin/telegraf flags=(mediate_deleted) {
   # logs or hide accesses that still need review.
   owner /proc/[0-9]*/stat r,
 
+  # Repeated SMART polls map the helper's C/C++ runtime and read the drive
+  # database and block-device metadata. These observed read-only accesses
+  # otherwise dominate the discovery log on every collection interval.
+  /nix/store/????????????????????????????????-glibc-*/lib/lib{c,m}.so* mr,
+  /nix/store/????????????????????????????????-gcc-*-lib/lib/libstdc++.so* mr,
+  /nix/store/????????????????????????????????-gcc-*-libgcc/lib/libgcc_s.so* mr,
+  @smartmontoolsPackage@/share/smartmontools/drivedb.h r,
+  /run/udev/data/b[0-9]*:[0-9]* r,
+  /dev/ r,
+
   # The SMART input invokes only the dedicated NixOS capability wrapper and
   # its pinned smartctl target.  Preserve the profile across that narrow
   # helper chain instead of accepting AppArmor-generated `null-` child

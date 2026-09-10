@@ -10,6 +10,16 @@ default:
 generated-checks:
     nix build --no-link --option allow-import-from-derivation false "path:{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).generated-artifacts"
 
+# Install/boot disposable disks and exercise backup restoration and policy checks.
+[group('Checks')]
+desktop-storage-check:
+    nix build --no-link "path:{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "path:{{ flake }}#checks.x86_64-linux.desktop-backup-recovery" "path:{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+
+# Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
+[group('NixOS')]
+desktop-storage-build: (guard-desktop-build-location "desktop")
+    NIX_CONF_STORAGE_BUILD_ROOT={{ quote(flake) }} nix build --no-link --impure --expr 'let f = builtins.getFlake ("path:" + builtins.getEnv "NIX_CONF_STORAGE_BUILD_ROOT"); in (f.nixosConfigurations.desktop.extendModules { modules = [ ({ lib, ... }: { hardware.storage.encryptedRoot = { enable = true; unlockMethod = "tpm-pin"; }; security.secureBootLanzaboote = { enable = lib.mkForce true; measuredBoot.enable = lib.mkForce true; }; }) ]; }).config.system.build.toplevel'
+
 # ─── Flake ────────────────────────────────────────────────────────────
 
 # Update all flake inputs, or a single input if specified

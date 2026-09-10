@@ -58,7 +58,10 @@ let
             stylix = {
               enable = true;
               autoEnable = false;
-              base16Scheme = lib.mapAttrs (_: _: "123456") colors;
+              # A readable accent should survive contrast preparation unchanged.
+              base16Scheme = lib.mapAttrs (_: _: "123456") colors // {
+                base0D = "abcdef";
+              };
               targets = lib.genAttrs [ "noctalia" "hyprshell" "ironbar" "swaync" "swayosd" "walker" ] (_: {
                 enable = true;
               });

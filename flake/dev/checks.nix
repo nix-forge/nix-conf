@@ -13,6 +13,7 @@
           fonttools
           lxml
           pillow
+          pytest
           selenium
           tomlkit
           uharfbuzz
@@ -69,6 +70,14 @@
           '';
     in
     {
+      checks.clamav-runtime =
+        # This desktop VM needs KVM, which the hosted ARM Linux runner lacks.
+        # Run it on the same native x86 Linux platform as the storage VM test.
+        if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
+          import ../../tests/nix/clamav-runtime.nix { inherit pkgs; }
+        else
+          pkgs.runCommand "clamav-runtime-not-applicable" { } "touch $out";
+
       # Keep Python quality available as a standalone check on every platform.
       # `nix flake check --no-build` evaluates checks but does not execute them.
       # Copy the exact source to a writable directory; caches and bytecode must

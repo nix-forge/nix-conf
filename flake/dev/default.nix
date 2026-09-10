@@ -11,6 +11,7 @@
     ./noogle-checks.nix
     ./platform-checks.nix
     ./shell.nix
+    ./storage-checks.nix
     ./theme-checks.nix
     ./temporary-fix-checks.nix
   ];
