@@ -9,18 +9,7 @@
   perSystem =
     { config, pkgs, ... }:
     let
-      checkPython = pkgs.python3.withPackages (
-        ps: with ps; [
-          fonttools
-          lxml
-          pillow
-          pytest
-          selenium
-          tomlkit
-          uharfbuzz
-          websocket-client
-        ]
-      );
+      checkPython = import ./quality-python.nix { inherit pkgs; };
       pythonCompileAll = myLib.writers.writeBashTemplate { inherit pkgs; } {
         name = "python-compileall";
         src = ./scripts/python-compileall.sh;
