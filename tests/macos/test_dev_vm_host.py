@@ -11,6 +11,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 MODULE_PATH = Path(
     os.environ.get(
         "DEV_VM_HOST_MODULE",
@@ -410,3 +412,53 @@ class ResolverTests(unittest.TestCase):
             "172.16.42.0/24",
         )
         stdout.write.assert_called_once_with("172.16.42.129\n")
+
+
+def test_reassigned_address_does_not_resolve_previous_guest() -> None:
+    """A later lease for another adapter supersedes an unexpired old lease."""
+    records = resolver.parse_leases(
+        _lease(
+            "172.16.42.129",
+            NEW_MAC,
+            NOW - dt.timedelta(hours=1),
+            NOW + dt.timedelta(hours=2),
+        )
+        + _lease(
+            "172.16.42.129",
+            OLD_MAC,
+            NOW - dt.timedelta(minutes=20),
+            NOW + dt.timedelta(hours=2),
+        )
+    )
+    with pytest.raises(resolver.ResolutionError, match="no unexpired"):
+        resolver.select_newest_lease(
+            records,
+            mac=NEW_MAC,
+            network_text="172.16.42.0/24",
+            now=NOW,
+        )
+
+
+def test_expired_update_supersedes_unexpired_lease() -> None:
+    """The final declaration wins even when it shortens an existing lease."""
+    records = resolver.parse_leases(
+        _lease(
+            "172.16.42.129",
+            NEW_MAC,
+            NOW - dt.timedelta(hours=1),
+            NOW + dt.timedelta(hours=2),
+        )
+        + _lease(
+            "172.16.42.129",
+            NEW_MAC,
+            NOW - dt.timedelta(hours=1),
+            NOW - dt.timedelta(minutes=20),
+        )
+    )
+    with pytest.raises(resolver.ResolutionError, match="no unexpired"):
+        resolver.select_newest_lease(
+            records,
+            mac=NEW_MAC,
+            network_text="172.16.42.0/24",
+            now=NOW,
+        )

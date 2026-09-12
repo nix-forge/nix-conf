@@ -24,6 +24,8 @@ let
       mktemp = lib.getExe' pkgs.coreutils "mktemp";
       awk = awkExe;
       mv = lib.getExe' pkgs.coreutils "mv";
+      rm = lib.getExe' pkgs.coreutils "rm";
+      cmp = lib.getExe' pkgs.diffutils "cmp";
       spotifyPreferences =
         if isDarwin then
           "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/prefs"} ${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"

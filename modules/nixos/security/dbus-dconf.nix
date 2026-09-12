@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.security.dbusDconfBaseline;
 in
@@ -6,6 +11,31 @@ in
   options.security.dbusDconfBaseline.enable = lib.mkEnableOption ''
     the D-Bus Broker and dconf desktop-integration baseline
   '';
+
+  # Service modules also install packages in system.path. Merge their D-Bus
+  # directories so the broker sees each activation file once. buildEnv checks
+  # colliding contents and fails instead of choosing a conflicting policy.
+  options.services.dbus.packages = lib.mkOption {
+    apply =
+      packages:
+      if cfg.enable then
+        [
+          (pkgs.buildEnv {
+            name = "dbus-service-directories";
+            paths = map toString (lib.unique packages);
+            pathsToLink = [
+              "/etc/dbus-1/system.d"
+              "/share/dbus-1/system.d"
+              "/share/dbus-1/system-services"
+              "/etc/dbus-1/session.d"
+              "/share/dbus-1/session.d"
+              "/share/dbus-1/services"
+            ];
+          })
+        ]
+      else
+        packages;
+  };
 
   config = lib.mkIf cfg.enable {
     services.dbus = {

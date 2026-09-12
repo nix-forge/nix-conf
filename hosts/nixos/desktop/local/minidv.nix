@@ -24,7 +24,6 @@ let
     realpath() { ${lib.getExe' pkgs.coreutils "realpath"} "$@"; }
     rm() { ${lib.getExe' pkgs.coreutils "rm"} "$@"; }
     sha256sum() { ${lib.getExe' pkgs.coreutils "sha256sum"} "$@"; }
-    sleep() { ${lib.getExe' pkgs.coreutils "sleep"} "$@"; }
     tee() { ${lib.getExe' pkgs.coreutils "tee"} "$@"; }
     tail() { ${lib.getExe' pkgs.coreutils "tail"} "$@"; }
     tr() { ${lib.getExe' pkgs.coreutils "tr"} "$@"; }
@@ -34,7 +33,6 @@ let
     grep() { ${lib.getExe pkgs.gnugrep} "$@"; }
     find() { ${lib.getExe pkgs.findutils} "$@"; }
     getfacl() { ${lib.getExe' pkgs.acl "getfacl"} "$@"; }
-    dvgrab() { ${lib.getExe pkgs.dvgrab} "$@"; }
     ffmpeg() { ${lib.getExe pkgs.ffmpeg} "$@"; }
     ffprobe() { ${lib.getExe' pkgs.ffmpeg "ffprobe"} "$@"; }
     jq() { ${lib.getExe pkgs.jq} "$@"; }
@@ -73,10 +71,19 @@ let
     script = ../minidv/minidv-verify.sh;
   };
 
+  minidvSupervisor = pkgs.writers.writePython3Bin "minidv-supervise" {
+    libraries = [ pkgs.python3Packages.pyudev ];
+    flakeIgnore = [ "E501" ]; # Ruff owns line wrapping.
+  } ../minidv/minidv-supervise.py;
+
   minidvCapture = mkMiniDvApplication {
     name = "minidv-capture";
     script = ../minidv/minidv-capture.sh;
-    replacements.minidvVerify = lib.getExe minidvVerify;
+    replacements = {
+      minidvVerify = lib.getExe minidvVerify;
+      minidvSupervisor = lib.getExe minidvSupervisor;
+      dvgrab = lib.getExe pkgs.dvgrab;
+    };
   };
 
   minidvClipManifest = mkMiniDvApplication {
