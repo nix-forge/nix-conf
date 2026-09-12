@@ -9,6 +9,7 @@
     ./git-hooks.nix
     ./git-privacy-checks.nix
     ./local-control-checks.nix
+    ./memory-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
     ./python-checks.nix

@@ -21,7 +21,9 @@
       allowBroken = false;
       # allowAliases = false;
 
-      cudaSupport = true;
+      # GPU acceleration is selected by its consumer. Global CUDA changes
+      # unrelated package variants and their binary-cache coverage.
+      cudaSupport = false;
     };
   };
 
@@ -82,6 +84,7 @@
     ../../../modules/nixos/desktop-envs/interactive.nix
     ../../../modules/nixos/display-managers/greetd.nix
     locale-timesync
+    services-runners
     services-application-recovery
     ssh
     virtualisation-docker
