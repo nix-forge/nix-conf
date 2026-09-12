@@ -1,4 +1,4 @@
-{ ... }: {
+_: {
   perSystem = { pkgs, ... }: {
     # Discover all root-owned test_*.py files. Generated-artifact and daemon
     # suites opt into separate checks; operational check_* probes are explicit.

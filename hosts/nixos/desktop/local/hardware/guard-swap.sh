@@ -1,7 +1,8 @@
+# shellcheck shell=bash
 # This guard runs before NixOS opens and formats the encrypted mapping.
 set -euo pipefail
 swap_device=$(readlink -e -- "$DEVICE")
-if [[ ! -b "$swap_device" ]]; then
+if [[ ! -b $swap_device ]]; then
   echo 'Encrypted swap requires the existing dedicated block partition' >&2
   exit 1
 fi
@@ -13,7 +14,7 @@ fi
 
 active_swaps=$(swapon --show=NAME --noheadings --raw)
 while IFS= read -r active_swap; do
-  if [[ -n "$active_swap" && $(readlink -e -- "$active_swap") == "$swap_device" ]]; then
+  if [[ -n $active_swap && $(readlink -e -- "$active_swap") == "$swap_device" ]]; then
     echo 'Plaintext swap is still active. Boot the new generation to enable encrypted swap.' >&2
     exit 1
   fi
@@ -26,8 +27,8 @@ mountpoints=$(lsblk --nodeps --noheadings --output MOUNTPOINTS "$swap_device")
 signature=$(blkid -p -s TYPE -o value "$swap_device")
 shopt -s nullglob
 holders=(/sys/class/block/"${swap_device##*/}"/holders/*)
-if [[ -n "$mountpoints" || ${#holders[@]} != 0 ||
-  -n "$signature" && "$signature" != swap ]]; then
+if [[ -n $mountpoints || ${#holders[@]} != 0 ||
+  -n $signature && $signature != swap ]]; then
   echo 'Refusing encrypted swap setup: device is mounted, held, or has another filesystem' >&2
   exit 1
 fi
