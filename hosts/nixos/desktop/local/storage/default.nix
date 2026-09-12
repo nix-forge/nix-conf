@@ -40,9 +40,12 @@ let
     FSTYPE = "btrfs";
     TIMELINE_CREATE = true;
     TIMELINE_CLEANUP = true;
-    TIMELINE_LIMIT_HOURLY = 24;
-    TIMELINE_LIMIT_DAILY = 7;
-    TIMELINE_LIMIT_WEEKLY = 4;
+    # Ranges permit a second cleanup pass under space pressure. FREE_LIMIT
+    # uses filesystem free space and does not require Btrfs quota accounting.
+    TIMELINE_LIMIT_HOURLY = "0-24";
+    TIMELINE_LIMIT_DAILY = "0-7";
+    TIMELINE_LIMIT_WEEKLY = "0-4";
+    FREE_LIMIT = 0.2;
     TIMELINE_LIMIT_MONTHLY = 0;
     TIMELINE_LIMIT_YEARLY = 0;
     EMPTY_PRE_POST_CLEANUP = true;
@@ -105,6 +108,8 @@ in
           "d /var/lib/desktop-storage/keys 0700 root root - -"
           "d /var/lib/desktop-storage/recovery 0700 root root - -"
           "d /home/ianmh 0700 ianmh users - -"
+          "d /home/ianmh/.cache 0700 ianmh users - -"
+          "z /home/.snapshots 0700 root root - -"
           "d /home/ianmh/.local 0700 ianmh users - -"
           "d /home/ianmh/.local/share 0700 ianmh users - -"
           "d /home/ianmh/.local/share/docker 0700 ianmh users - -"
@@ -119,6 +124,7 @@ in
           path = [
             pkgs.util-linux
             pkgs.coreutils
+            pkgs.e2fsprogs
           ];
           serviceConfig = {
             Type = "oneshot";
@@ -127,15 +133,32 @@ in
           script = ''
             set -eu
             ${lib.concatMapStringsSep "\n" (path: "mountpoint -q ${lib.escapeShellArg path}") mounts}
+            chmod 0700 /srv/data/.snapshots /srv/data/work/.snapshots
+            # Clear inherited directory NOCOW after a restore. Existing image
+            # extents need a separate cold copy to regain data checksums.
+            chattr -C /var/lib/libvirt/images
             install -d -m 2775 -o root -g users /mnt/games/steamapps /srv/data/work/projects /srv/data/media
           '';
         };
         # The pre-start check also covers nofail mounts, whose dependency
         # strength differs by systemd.
         systemd.services.libvirtd = lib.mkIf config.virtualisation.libvirtd.enable {
+          requires = [ "desktop-data-ready.service" ];
+          after = [ "desktop-data-ready.service" ];
           unitConfig.RequiresMountsFor = [ "/var/lib/libvirt/images" ];
           serviceConfig.ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /var/lib/libvirt/images" ];
         };
+        # A restored pool can autostart with its old NOCOW policy before the
+        # reconciler updates its persistent XML. Repair directory inheritance
+        # again after reconciliation, without restarting an active pool.
+        systemd.services.libvirt-workstation-setup =
+          lib.mkIf (config.virtualisation.libvirtWorkstation.enable or false)
+            {
+              serviceConfig.ExecStartPost = [
+                "${pkgs.util-linux}/bin/mountpoint -q /var/lib/libvirt/images"
+                "${pkgs.e2fsprogs}/bin/chattr -C /var/lib/libvirt/images"
+              ];
+            };
 
         services.snapper = {
           snapshotRootOnBoot = false;
@@ -193,6 +216,7 @@ in
                       ConditionPathIsMountPoint = path;
                     };
                     serviceConfig.Type = "oneshot";
+                    serviceConfig.ExecStartPre = "${pkgs.coreutils}/bin/chmod 0700 ${path}/.snapshots";
                     script =
                       if phase == "timeline" then
                         ''
@@ -226,7 +250,7 @@ in
                   lib.nameValuePair "desktop-snapshot-${name}-${phase}" {
                     wantedBy = [ "timers.target" ];
                     timerConfig = {
-                      OnCalendar = if phase == "timeline" then "hourly" else "daily";
+                      OnCalendar = "hourly";
                       Persistent = true;
                       RandomizedDelaySec = "5m";
                     };

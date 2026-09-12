@@ -1,6 +1,5 @@
 #!@bash@
-# shellcheck shell=bash disable=SC2016,SC2239
-# Nix replaces the shebang and @awk@; Awk must receive its $ fields literally.
+# shellcheck shell=bash disable=SC2239
 set -euo pipefail
 
 export LC_ALL=C
@@ -35,8 +34,8 @@ verify_identity() {
   [[ $existing_uuid == "$guest_uuid" ]] ||
     die "$guest_name has UUID $existing_uuid, expected $guest_uuid; refusing to claim it"
 
-  existing_disk="$(@virsh@ --connect "$libvirt_uri" domblklist "$guest_name" --inactive --details |
-    @awk@ '$2 == "disk" && $3 == "sda" { print $4; exit }')"
+  existing_disk="$(@virsh@ --connect "$libvirt_uri" dumpxml "$guest_name" --inactive |
+    @python@ @xmlHelper@ disk-source sda)"
   if [[ -n $existing_disk && $existing_disk != "$disk_path" ]]; then
     die "$guest_name uses $existing_disk as its system disk, expected $disk_path"
   fi
@@ -47,10 +46,13 @@ if domain_exists; then
   if [[ -e $install_marker ]]; then
     @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
     printf 'Leaving %s in its explicit installation state.\n' "$guest_name"
-  elif domain_active; then
-    printf 'Leaving active domain %s unchanged; stop it to apply the new persistent definition.\n' "$guest_name"
   else
+    # define updates persistent XML without changing a running QEMU process.
+    # Stage it now so the next cold start does not require another rebuild.
     @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
+    if domain_active; then
+      printf 'Staged the persistent definition for %s; hardware changes apply after shutdown and start.\n' "$guest_name"
+    fi
   fi
 else
   [[ ! -e $install_marker ]] || die "installation marker exists but domain $guest_name is missing"

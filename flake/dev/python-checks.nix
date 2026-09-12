@@ -15,6 +15,7 @@ _: {
         ../../hosts/nixos/desktop/minidv/minidv-supervise.py
         ../../hosts/nixos/desktop/minidv/minidv-finalize.sh
         ../../homes/macbook-pro-m4/local/dev_vm_host.py
+        ../../hosts/nixos/desktop/local/storage/health.py
         ../../hosts/nixos/desktop/local/storage/backup-helper.py
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../scripts)
       ];

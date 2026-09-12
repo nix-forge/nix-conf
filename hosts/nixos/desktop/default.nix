@@ -82,6 +82,7 @@
     ../../../modules/nixos/desktop-envs/interactive.nix
     ../../../modules/nixos/display-managers/greetd.nix
     locale-timesync
+    services-application-recovery
     ssh
     virtualisation-docker
     virtualisation-libvirt
