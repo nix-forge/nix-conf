@@ -1,8 +1,9 @@
+# shellcheck shell=bash
 set -euo pipefail
 
 scanner=$1
 shift
-if (( $# == 0 )); then
+if (($# == 0)); then
   echo "ClamAV scan requires at least one input directory" >&2
   exit 2
 fi

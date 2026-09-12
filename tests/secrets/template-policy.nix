@@ -33,9 +33,7 @@ let
     };
     testTemplateOwnerMismatch = {
       expr = accepts (
-        lib.recursiveUpdate after {
-          templates.nix-access-tokens.owner = "unprivileged-fixture";
-        }
+        lib.recursiveUpdate after { templates.nix-access-tokens.owner = "unprivileged-fixture"; }
       );
       expected = false;
     };
@@ -45,9 +43,7 @@ let
     };
     testUnexpectedCiphertextSource = {
       expr = accepts (
-        lib.recursiveUpdate after {
-          secrets.${field}.source = "secrets/wrong-source.age";
-        }
+        lib.recursiveUpdate after { secrets.${field}.source = "secrets/wrong-source.age"; }
       );
       expected = false;
     };
