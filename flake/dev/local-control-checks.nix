@@ -93,374 +93,368 @@
 
         finder-favorites-swift = finderFavoritesSwift;
 
-        local-control-database-validation = (
-          pkgs.runCommand "local-control-database-validation" { } ''
-            set -euo pipefail
+        local-control-database-validation = pkgs.runCommand "local-control-database-validation" { } ''
+          set -euo pipefail
 
-            test_root="$TMPDIR/local-control-database-validation"
-            existing_cluster="$test_root/existing"
-            new_cluster="$test_root/new"
-            ${pkgs.coreutils}/bin/mkdir -p "$existing_cluster" "$new_cluster"
+          test_root="$TMPDIR/local-control-database-validation"
+          existing_cluster="$test_root/existing"
+          new_cluster="$test_root/new"
+          ${pkgs.coreutils}/bin/mkdir -p "$existing_cluster" "$new_cluster"
 
-            ${pkgs.postgresql_18}/bin/initdb \
-              --pgdata="$existing_cluster" \
-              --auth-local=trust \
-              --auth-host=scram-sha-256 \
-              --encoding=UTF8 \
-              --no-locale >/dev/null
-            ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"
+          ${pkgs.postgresql_18}/bin/initdb \
+            --pgdata="$existing_cluster" \
+            --auth-local=trust \
+            --auth-host=scram-sha-256 \
+            --encoding=UTF8 \
+            --no-locale >/dev/null
+          ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"
 
-            linked_cluster="$test_root/linked"
-            ${pkgs.coreutils}/bin/ln -s "$existing_cluster" "$linked_cluster"
-            if ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$linked_cluster"; then
-              printf 'A symlinked database directory was accepted.\n' >&2
-              exit 1
+          linked_cluster="$test_root/linked"
+          ${pkgs.coreutils}/bin/ln -s "$existing_cluster" "$linked_cluster"
+          if ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$linked_cluster"; then
+            printf 'A symlinked database directory was accepted.\n' >&2
+            exit 1
+          fi
+
+          ${pkgs.coreutils}/bin/chmod 755 "$existing_cluster"
+          if ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"; then
+            printf 'A group-readable database directory was accepted.\n' >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/chmod 700 "$existing_cluster"
+
+          ${pkgs.coreutils}/bin/chmod 644 "$existing_cluster/postgresql.conf"
+          if ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"; then
+            printf 'A group-readable database control file was accepted.\n' >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/chmod 600 "$existing_cluster/postgresql.conf"
+
+          corrupt_cluster="$test_root/corrupt"
+          ${pkgs.coreutils}/bin/mkdir -p "$corrupt_cluster"
+          ${pkgs.postgresql_18}/bin/initdb \
+            --pgdata="$corrupt_cluster" \
+            --auth-local=trust \
+            --auth-host=scram-sha-256 \
+            --encoding=UTF8 \
+            --no-locale >/dev/null
+          ${pkgs.coreutils}/bin/printf '17\n' > "$corrupt_cluster/PG_VERSION"
+          if ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$corrupt_cluster"; then
+            printf 'An incompatible database marker was accepted.\n' >&2
+            exit 1
+          fi
+
+          if ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$new_cluster"; then
+            printf 'An uninitialized database directory was accepted.\n' >&2
+            exit 1
+          fi
+
+          ${pkgs.postgresql_18}/bin/initdb \
+            --pgdata="$new_cluster" \
+            --auth-local=trust \
+            --auth-host=scram-sha-256 \
+            --encoding=UTF8 \
+            --no-locale >/dev/null
+          ${pkgs.coreutils}/bin/env -i \
+            HOME="$TMPDIR" \
+            PATH=/no-such-path \
+            ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$new_cluster"
+
+          socket_directory="$test_root/socket"
+          postgres_log="$test_root/postgres.log"
+          ${pkgs.coreutils}/bin/mkdir -m 700 "$socket_directory"
+          postgres_pid=""
+          stop_postgres() {
+            if [ -n "$postgres_pid" ]; then
+              kill -TERM "$postgres_pid" 2>/dev/null || true
+              wait "$postgres_pid" 2>/dev/null || true
             fi
-
-            ${pkgs.coreutils}/bin/chmod 755 "$existing_cluster"
-            if ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"; then
-              printf 'A group-readable database directory was accepted.\n' >&2
-              exit 1
+          }
+          trap stop_postgres EXIT
+          ${secureFileSystem}/bin/local-control-secure-files exec-cluster-socket \
+            "$new_cluster" \
+            18 \
+            "$socket_directory" \
+            ${pkgs.postgresql_18}/bin/postgres \
+            -D . \
+            -h "" \
+            -k __LOCAL_CONTROL_SOCKET_PATH__ \
+            -p 55439 \
+            > "$postgres_log" 2>&1 &
+          postgres_pid=$!
+          postgres_ready=""
+          for attempt in $(${pkgs.coreutils}/bin/seq 1 60); do
+            if ${pkgs.postgresql_18}/bin/pg_isready \
+              -h "$socket_directory" \
+              -p 55439 >/dev/null 2>&1; then
+              postgres_ready=1
+              break
             fi
-            ${pkgs.coreutils}/bin/chmod 700 "$existing_cluster"
+            ${pkgs.coreutils}/bin/sleep 1
+          done
+          if [ -z "$postgres_ready" ]; then
+            ${pkgs.coreutils}/bin/cat "$postgres_log" >&2
+            printf 'The descriptor-validated PostgreSQL socket path did not become ready.\n' >&2
+            exit 1
+          fi
 
-            ${pkgs.coreutils}/bin/chmod 644 "$existing_cluster/postgresql.conf"
-            if ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$existing_cluster"; then
-              printf 'A group-readable database control file was accepted.\n' >&2
-              exit 1
-            fi
-            ${pkgs.coreutils}/bin/chmod 600 "$existing_cluster/postgresql.conf"
+          ${pkgs.coreutils}/bin/touch "$out"
+        '';
 
-            corrupt_cluster="$test_root/corrupt"
-            ${pkgs.coreutils}/bin/mkdir -p "$corrupt_cluster"
-            ${pkgs.postgresql_18}/bin/initdb \
-              --pgdata="$corrupt_cluster" \
-              --auth-local=trust \
-              --auth-host=scram-sha-256 \
-              --encoding=UTF8 \
-              --no-locale >/dev/null
-            ${pkgs.coreutils}/bin/printf '17\n' > "$corrupt_cluster/PG_VERSION"
-            if ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$corrupt_cluster"; then
-              printf 'An incompatible database marker was accepted.\n' >&2
-              exit 1
-            fi
+        local-control-private-path-validation =
+          pkgs.runCommand "local-control-private-path-validation" { }
+            ''
+              set -euo pipefail
 
-            if ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$new_cluster"; then
-              printf 'An uninitialized database directory was accepted.\n' >&2
-              exit 1
-            fi
+              test_root="$TMPDIR/local-control-private-path-validation"
+              real_directory="$test_root/real"
+              target_directory="$test_root/target"
+              linked_directory="$test_root/linked"
+              bad_mode_directory="$test_root/bad-mode"
+              private_file="$test_root/private-file"
+              linked_file="$test_root/linked-file"
+              ${pkgs.coreutils}/bin/mkdir -p "$target_directory" "$bad_mode_directory"
 
-            ${pkgs.postgresql_18}/bin/initdb \
-              --pgdata="$new_cluster" \
-              --auth-local=trust \
-              --auth-host=scram-sha-256 \
-              --encoding=UTF8 \
-              --no-locale >/dev/null
-            ${pkgs.coreutils}/bin/env -i \
-              HOME="$TMPDIR" \
-              PATH=/no-such-path \
-              ${databaseClusterValidator}/bin/local-control-validate-database-cluster "$new_cluster"
+              ${privatePathGuard}/bin/local-control-private-path \
+                ensure-directory "$real_directory" "real directory"
+              [ "$(${pkgs.coreutils}/bin/stat -c '%a' "$real_directory")" = 700 ]
 
-            socket_directory="$test_root/socket"
-            postgres_log="$test_root/postgres.log"
-            ${pkgs.coreutils}/bin/mkdir -m 700 "$socket_directory"
-            postgres_pid=""
-            stop_postgres() {
-              if [ -n "$postgres_pid" ]; then
-                kill -TERM "$postgres_pid" 2>/dev/null || true
-                wait "$postgres_pid" 2>/dev/null || true
-              fi
-            }
-            trap stop_postgres EXIT
-            ${secureFileSystem}/bin/local-control-secure-files exec-cluster-socket \
-              "$new_cluster" \
-              18 \
-              "$socket_directory" \
-              ${pkgs.postgresql_18}/bin/postgres \
-              -D . \
-              -h "" \
-              -k __LOCAL_CONTROL_SOCKET_PATH__ \
-              -p 55439 \
-              > "$postgres_log" 2>&1 &
-            postgres_pid=$!
-            postgres_ready=""
-            for attempt in $(${pkgs.coreutils}/bin/seq 1 60); do
-              if ${pkgs.postgresql_18}/bin/pg_isready \
-                -h "$socket_directory" \
-                -p 55439 >/dev/null 2>&1; then
-                postgres_ready=1
-                break
-              fi
-              ${pkgs.coreutils}/bin/sleep 1
-            done
-            if [ -z "$postgres_ready" ]; then
-              ${pkgs.coreutils}/bin/cat "$postgres_log" >&2
-              printf 'The descriptor-validated PostgreSQL socket path did not become ready.\n' >&2
-              exit 1
-            fi
-
-            ${pkgs.coreutils}/bin/touch "$out"
-          ''
-        );
-
-        local-control-private-path-validation = (
-          pkgs.runCommand "local-control-private-path-validation" { } ''
-            set -euo pipefail
-
-            test_root="$TMPDIR/local-control-private-path-validation"
-            real_directory="$test_root/real"
-            target_directory="$test_root/target"
-            linked_directory="$test_root/linked"
-            bad_mode_directory="$test_root/bad-mode"
-            private_file="$test_root/private-file"
-            linked_file="$test_root/linked-file"
-            ${pkgs.coreutils}/bin/mkdir -p "$target_directory" "$bad_mode_directory"
-
-            ${privatePathGuard}/bin/local-control-private-path \
-              ensure-directory "$real_directory" "real directory"
-            [ "$(${pkgs.coreutils}/bin/stat -c '%a' "$real_directory")" = 700 ]
-
-            ${pkgs.coreutils}/bin/ln -s "$target_directory" "$linked_directory"
-            if ${privatePathGuard}/bin/local-control-private-path \
-              ensure-directory "$linked_directory" "linked directory" >/dev/null 2>&1; then
-              printf 'A directory symlink was accepted by the ensure guard.\n' >&2
-              exit 1
-            fi
-            if ${privatePathGuard}/bin/local-control-private-path \
-              validate-directory "$linked_directory" "linked directory" >/dev/null 2>&1; then
-              printf 'A directory symlink was accepted by the validation guard.\n' >&2
-              exit 1
-            fi
-
-            ${pkgs.coreutils}/bin/chmod 755 "$bad_mode_directory"
-            if ${privatePathGuard}/bin/local-control-private-path \
-              validate-directory "$bad_mode_directory" "bad mode directory" >/dev/null 2>&1; then
-              printf 'A group-readable directory was accepted.\n' >&2
-              exit 1
-            fi
-
-            ${pkgs.coreutils}/bin/printf 'private\n' > "$private_file"
-            ${pkgs.coreutils}/bin/chmod 600 "$private_file"
-            ${privatePathGuard}/bin/local-control-private-path \
-              validate-file "$private_file" "private file" 600
-            public_file="$test_root/public-file"
-            ${pkgs.coreutils}/bin/printf 'public\n' > "$public_file"
-            ${pkgs.coreutils}/bin/chmod 644 "$public_file"
-            ${privatePathGuard}/bin/local-control-private-path \
-              validate-file "$public_file" "public file" 644
-            ${pkgs.coreutils}/bin/ln -s "$private_file" "$linked_file"
-            if ${privatePathGuard}/bin/local-control-private-path \
-              validate-file "$linked_file" "linked file" 600 >/dev/null 2>&1; then
-              printf 'A file symlink was accepted.\n' >&2
-              exit 1
-            fi
-
-            ${pkgs.coreutils}/bin/touch "$out"
-          ''
-        );
-
-        local-control-environment-validation = (
-          pkgs.runCommand "local-control-environment-validation" { } ''
-            set -euo pipefail
-
-            test_root="$TMPDIR/local-control-environment-validation"
-            environment_file="$test_root/environment"
-            ${pkgs.coreutils}/bin/mkdir -p "$test_root"
-
-            write_valid_environment() {
-              ${pkgs.coreutils}/bin/printf '%s\n' \
-                'LOCAL_CONTROL_PROJECT_DIRECTORY=/tmp/source' \
-                'LOCAL_CONTROL_DATABASE_URL=database-value' \
-                'LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE=LOCAL_CONTROL_DB_URL' \
-                'LOCAL_CONTROL_SCHEMA_COMMAND=schema command' \
-                'LOCAL_CONTROL_API_COMMAND=api command' \
-                'LOCAL_CONTROL_WORKER_COMMAND=worker command' \
-                'LOCAL_CONTROL_FRONTEND_COMMAND=frontend command' \
-                'LOCAL_CONTROL_PREPARE_COMMAND=prepare command' \
-                'LOCAL_CONTROL_PREPARATION_INPUT=input-a' \
-                'LOCAL_CONTROL_READINESS_URL=http://127.0.0.1/readiness' \
-                "''${1:+SERVICE_PROXY_ATTESTATION=attestation}" > "$environment_file"
-              ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
-            }
-
-            assert_rejected() {
-              if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-                "$environment_file" "$1" >/dev/null 2>&1; then
-                printf 'Malformed environment input was accepted: %s\n' "$2" >&2
+              ${pkgs.coreutils}/bin/ln -s "$target_directory" "$linked_directory"
+              if ${privatePathGuard}/bin/local-control-private-path \
+                ensure-directory "$linked_directory" "linked directory" >/dev/null 2>&1; then
+                printf 'A directory symlink was accepted by the ensure guard.\n' >&2
                 exit 1
               fi
-            }
+              if ${privatePathGuard}/bin/local-control-private-path \
+                validate-directory "$linked_directory" "linked directory" >/dev/null 2>&1; then
+                printf 'A directory symlink was accepted by the validation guard.\n' >&2
+                exit 1
+              fi
 
-            : > "$environment_file"
-            ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
-            assert_rejected disabled empty
+              ${pkgs.coreutils}/bin/chmod 755 "$bad_mode_directory"
+              if ${privatePathGuard}/bin/local-control-private-path \
+                validate-directory "$bad_mode_directory" "bad mode directory" >/dev/null 2>&1; then
+                printf 'A group-readable directory was accepted.\n' >&2
+                exit 1
+              fi
 
-            ${pkgs.coreutils}/bin/printf 'not a record\n' > "$environment_file"
-            assert_rejected disabled malformed
+              ${pkgs.coreutils}/bin/printf 'private\n' > "$private_file"
+              ${pkgs.coreutils}/bin/chmod 600 "$private_file"
+              ${privatePathGuard}/bin/local-control-private-path \
+                validate-file "$private_file" "private file" 600
+              public_file="$test_root/public-file"
+              ${pkgs.coreutils}/bin/printf 'public\n' > "$public_file"
+              ${pkgs.coreutils}/bin/chmod 644 "$public_file"
+              ${privatePathGuard}/bin/local-control-private-path \
+                validate-file "$public_file" "public file" 644
+              ${pkgs.coreutils}/bin/ln -s "$private_file" "$linked_file"
+              if ${privatePathGuard}/bin/local-control-private-path \
+                validate-file "$linked_file" "linked file" 600 >/dev/null 2>&1; then
+                printf 'A file symlink was accepted.\n' >&2
+                exit 1
+              fi
 
-            write_valid_environment
-            ${pkgs.coreutils}/bin/printf 'LOCAL_CONTROL_API_COMMAND=duplicate\n' >> "$environment_file"
-            assert_rejected disabled duplicate
+              ${pkgs.coreutils}/bin/touch "$out"
+            '';
 
-            write_valid_environment
-            ${pkgs.coreutils}/bin/printf 'UNSUPPORTED_SETTING=reject\n' >> "$environment_file"
-            assert_rejected disabled unsupported
+        local-control-environment-validation = pkgs.runCommand "local-control-environment-validation" { } ''
+          set -euo pipefail
 
-            ${pkgs.coreutils}/bin/printf 'LOCAL_CONTROL_PROJECT_DIRECTORY=/tmp/source\r\n' > "$environment_file"
-            assert_rejected disabled carriage-return
+          test_root="$TMPDIR/local-control-environment-validation"
+          environment_file="$test_root/environment"
+          ${pkgs.coreutils}/bin/mkdir -p "$test_root"
 
-            write_valid_environment
-            ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$environment_file" disabled >/dev/null
-            write_valid_environment enabled
-            ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$environment_file" enabled >/dev/null
-            write_valid_environment
-            ${pkgs.coreutils}/bin/mkfifo "$test_root/fifo"
-            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$test_root/fifo" disabled >/dev/null 2>&1; then
-              printf 'A FIFO environment input was accepted.\n' >&2
-              exit 1
-            fi
-            ${pkgs.coreutils}/bin/ln -s "$environment_file" "$test_root/linked"
-            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$test_root/linked" disabled >/dev/null 2>&1; then
-              printf 'A symlinked environment input was accepted.\n' >&2
-              exit 1
-            fi
-
-            runtime_root="$test_root/runtime"
-            generation_root="$runtime_root/generation-1"
-            generation_environment="$generation_root/service/environment"
-            ${pkgs.coreutils}/bin/mkdir -p "$generation_root/service"
-            ${pkgs.coreutils}/bin/chmod 700 "$runtime_root" "$generation_root" "$generation_root/service"
-            write_valid_environment
-            ${pkgs.coreutils}/bin/cp "$environment_file" "$generation_environment"
-            ${pkgs.coreutils}/bin/chmod 600 "$generation_environment"
-            ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
-            ${secureFileSystem}/bin/local-control-secure-files inspect-generation-file \
-              "$runtime_root/current/service/environment" 600 >/dev/null
-            ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$runtime_root/current/service/environment" disabled >/dev/null
-
-            ${pkgs.coreutils}/bin/rm "$runtime_root/current"
-            ${pkgs.coreutils}/bin/ln -s ../outside "$runtime_root/current"
-            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
-              printf 'An escaping current-generation link was accepted.\n' >&2
-              exit 1
-            fi
-
-            ${pkgs.coreutils}/bin/rm "$runtime_root/current"
-            ${pkgs.coreutils}/bin/chmod 750 "$generation_root"
-            ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
-            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
-              "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
-              printf 'A non-private current-generation directory was accepted.\n' >&2
-              exit 1
-            fi
-            ${pkgs.coreutils}/bin/chmod 700 "$generation_root"
-
-            ${pkgs.coreutils}/bin/touch "$out"
-          ''
-        );
-
-        local-control-proxy-environment = (
-          pkgs.runCommand "local-control-proxy-environment" { } ''
-            set -euo pipefail
-
-            test_root="$TMPDIR/local-control-proxy-environment"
-            pki_directory="$test_root/pki"
-            environment_file="$test_root/environment"
-            linked_environment="$test_root/linked-environment"
-            ${pkgs.coreutils}/bin/mkdir -m 700 -p "$pki_directory"
-            ${pkgs.coreutils}/bin/printf 'ca\n' > "$pki_directory/ca.crt"
-            ${pkgs.coreutils}/bin/printf 'certificate\n' > "$pki_directory/server.crt"
-            ${pkgs.coreutils}/bin/printf 'key\n' > "$pki_directory/server.key"
-            ${pkgs.coreutils}/bin/chmod 644 "$pki_directory/ca.crt" "$pki_directory/server.crt"
-            ${pkgs.coreutils}/bin/chmod 600 "$pki_directory/server.key"
-
-            write_valid_environment() {
-              ${pkgs.coreutils}/bin/printf '%s\n' \
-                'SERVICE_DATABASE_URL=postgresql://fixture.invalid/control' \
-                'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
-                'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
-                'SERVICE_RELEASE_ID=0123456789abcdef0123456789abcdef01234567' \
-                > "$environment_file"
-              ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
-            }
-
-            write_valid_environment
-            ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
-              "$pki_directory" \
-              "$environment_file" \
-              ${pkgs.bash}/bin/bash \
-              -c '
-                [ "$SERVICE_PROXY_ATTESTATION" = fixture-proxy-attestation-0123456789abcdef ]
-                [ "$LOCAL_CONTROL_BROWSER_CREDENTIAL" = fixture-browser-credential-0123456789abcdef ]
-                [ -r "$LOCAL_CONTROL_PROXY_CA" ]
-                [ -r "$LOCAL_CONTROL_PROXY_CERT" ]
-                [ -r "$LOCAL_CONTROL_PROXY_KEY" ]
-              '
-
+          write_valid_environment() {
             ${pkgs.coreutils}/bin/printf '%s\n' \
+              'LOCAL_CONTROL_PROJECT_DIRECTORY=/tmp/source' \
+              'LOCAL_CONTROL_DATABASE_URL=database-value' \
+              'LOCAL_CONTROL_DATABASE_ENVIRONMENT_VARIABLE=LOCAL_CONTROL_DB_URL' \
+              'LOCAL_CONTROL_SCHEMA_COMMAND=schema command' \
+              'LOCAL_CONTROL_API_COMMAND=api command' \
+              'LOCAL_CONTROL_WORKER_COMMAND=worker command' \
+              'LOCAL_CONTROL_FRONTEND_COMMAND=frontend command' \
+              'LOCAL_CONTROL_PREPARE_COMMAND=prepare command' \
+              'LOCAL_CONTROL_PREPARATION_INPUT=input-a' \
+              'LOCAL_CONTROL_READINESS_URL=http://127.0.0.1/readiness' \
+              "''${1:+SERVICE_PROXY_ATTESTATION=attestation}" > "$environment_file"
+            ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+          }
+
+          assert_rejected() {
+            if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+              "$environment_file" "$1" >/dev/null 2>&1; then
+              printf 'Malformed environment input was accepted: %s\n' "$2" >&2
+              exit 1
+            fi
+          }
+
+          : > "$environment_file"
+          ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+          assert_rejected disabled empty
+
+          ${pkgs.coreutils}/bin/printf 'not a record\n' > "$environment_file"
+          assert_rejected disabled malformed
+
+          write_valid_environment
+          ${pkgs.coreutils}/bin/printf 'LOCAL_CONTROL_API_COMMAND=duplicate\n' >> "$environment_file"
+          assert_rejected disabled duplicate
+
+          write_valid_environment
+          ${pkgs.coreutils}/bin/printf 'UNSUPPORTED_SETTING=reject\n' >> "$environment_file"
+          assert_rejected disabled unsupported
+
+          ${pkgs.coreutils}/bin/printf 'LOCAL_CONTROL_PROJECT_DIRECTORY=/tmp/source\r\n' > "$environment_file"
+          assert_rejected disabled carriage-return
+
+          write_valid_environment
+          ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$environment_file" disabled >/dev/null
+          write_valid_environment enabled
+          ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$environment_file" enabled >/dev/null
+          write_valid_environment
+          ${pkgs.coreutils}/bin/mkfifo "$test_root/fifo"
+          if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$test_root/fifo" disabled >/dev/null 2>&1; then
+            printf 'A FIFO environment input was accepted.\n' >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/ln -s "$environment_file" "$test_root/linked"
+          if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$test_root/linked" disabled >/dev/null 2>&1; then
+            printf 'A symlinked environment input was accepted.\n' >&2
+            exit 1
+          fi
+
+          runtime_root="$test_root/runtime"
+          generation_root="$runtime_root/generation-1"
+          generation_environment="$generation_root/service/environment"
+          ${pkgs.coreutils}/bin/mkdir -p "$generation_root/service"
+          ${pkgs.coreutils}/bin/chmod 700 "$runtime_root" "$generation_root" "$generation_root/service"
+          write_valid_environment
+          ${pkgs.coreutils}/bin/cp "$environment_file" "$generation_environment"
+          ${pkgs.coreutils}/bin/chmod 600 "$generation_environment"
+          ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
+          ${secureFileSystem}/bin/local-control-secure-files inspect-generation-file \
+            "$runtime_root/current/service/environment" 600 >/dev/null
+          ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$runtime_root/current/service/environment" disabled >/dev/null
+
+          ${pkgs.coreutils}/bin/rm "$runtime_root/current"
+          ${pkgs.coreutils}/bin/ln -s ../outside "$runtime_root/current"
+          if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
+            printf 'An escaping current-generation link was accepted.\n' >&2
+            exit 1
+          fi
+
+          ${pkgs.coreutils}/bin/rm "$runtime_root/current"
+          ${pkgs.coreutils}/bin/chmod 750 "$generation_root"
+          ${pkgs.coreutils}/bin/ln -s generation-1 "$runtime_root/current"
+          if ${environmentSnapshot}/bin/local-control-environment-snapshot read \
+            "$runtime_root/current/service/environment" disabled >/dev/null 2>&1; then
+            printf 'A non-private current-generation directory was accepted.\n' >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/chmod 700 "$generation_root"
+
+          ${pkgs.coreutils}/bin/touch "$out"
+        '';
+
+        local-control-proxy-environment = pkgs.runCommand "local-control-proxy-environment" { } ''
+          set -euo pipefail
+
+          test_root="$TMPDIR/local-control-proxy-environment"
+          pki_directory="$test_root/pki"
+          environment_file="$test_root/environment"
+          linked_environment="$test_root/linked-environment"
+          ${pkgs.coreutils}/bin/mkdir -m 700 -p "$pki_directory"
+          ${pkgs.coreutils}/bin/printf 'ca\n' > "$pki_directory/ca.crt"
+          ${pkgs.coreutils}/bin/printf 'certificate\n' > "$pki_directory/server.crt"
+          ${pkgs.coreutils}/bin/printf 'key\n' > "$pki_directory/server.key"
+          ${pkgs.coreutils}/bin/chmod 644 "$pki_directory/ca.crt" "$pki_directory/server.crt"
+          ${pkgs.coreutils}/bin/chmod 600 "$pki_directory/server.key"
+
+          write_valid_environment() {
+            ${pkgs.coreutils}/bin/printf '%s\n' \
+              'SERVICE_DATABASE_URL=postgresql://fixture.invalid/control' \
               'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
-              'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-duplicated-value' \
               'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
+              'SERVICE_RELEASE_ID=0123456789abcdef0123456789abcdef01234567' \
               > "$environment_file"
             ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
-            if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
-              "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
-              >/dev/null 2>&1; then
-              printf 'A duplicated proxy attestation was accepted.\n' >&2
-              exit 1
-            fi
+          }
 
-            ${pkgs.coreutils}/bin/printf '%s\n' \
-              'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
-              'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
-              'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-duplicated-value' \
-              > "$environment_file"
-            ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
-            if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
-              "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
-              >/dev/null 2>&1; then
-              printf 'A duplicated control API token was accepted.\n' >&2
-              exit 1
-            fi
+          write_valid_environment
+          ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+            "$pki_directory" \
+            "$environment_file" \
+            ${pkgs.bash}/bin/bash \
+            -c '
+              [ "$SERVICE_PROXY_ATTESTATION" = fixture-proxy-attestation-0123456789abcdef ]
+              [ "$LOCAL_CONTROL_BROWSER_CREDENTIAL" = fixture-browser-credential-0123456789abcdef ]
+              [ -r "$LOCAL_CONTROL_PROXY_CA" ]
+              [ -r "$LOCAL_CONTROL_PROXY_CERT" ]
+              [ -r "$LOCAL_CONTROL_PROXY_KEY" ]
+            '
 
-            write_valid_environment
-            ${pkgs.coreutils}/bin/ln -s "$environment_file" "$linked_environment"
-            if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
-              "$pki_directory" "$linked_environment" ${pkgs.coreutils}/bin/true \
-              >/dev/null 2>&1; then
-              printf 'A symlinked proxy environment was accepted.\n' >&2
-              exit 1
-            fi
+          ${pkgs.coreutils}/bin/printf '%s\n' \
+            'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+            'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-duplicated-value' \
+            'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
+            > "$environment_file"
+          ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+          if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+            "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
+            >/dev/null 2>&1; then
+            printf 'A duplicated proxy attestation was accepted.\n' >&2
+            exit 1
+          fi
 
-            ${pkgs.coreutils}/bin/touch "$out"
-          ''
-        );
+          ${pkgs.coreutils}/bin/printf '%s\n' \
+            'SERVICE_PROXY_ATTESTATION=fixture-proxy-attestation-0123456789abcdef' \
+            'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-0123456789abcdef' \
+            'LOCAL_CONTROL_BROWSER_CREDENTIAL=fixture-browser-credential-duplicated-value' \
+            > "$environment_file"
+          ${pkgs.coreutils}/bin/chmod 600 "$environment_file"
+          if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+            "$pki_directory" "$environment_file" ${pkgs.coreutils}/bin/true \
+            >/dev/null 2>&1; then
+            printf 'A duplicated control API token was accepted.\n' >&2
+            exit 1
+          fi
 
-        local-control-preparation-proof-validation = (
+          write_valid_environment
+          ${pkgs.coreutils}/bin/ln -s "$environment_file" "$linked_environment"
+          if ${secureFileSystem}/bin/local-control-secure-files exec-proxy \
+            "$pki_directory" "$linked_environment" ${pkgs.coreutils}/bin/true \
+            >/dev/null 2>&1; then
+            printf 'A symlinked proxy environment was accepted.\n' >&2
+            exit 1
+          fi
+
+          ${pkgs.coreutils}/bin/touch "$out"
+        '';
+
+        local-control-preparation-proof-validation =
           pkgs.runCommand "local-control-preparation-proof-validation"
             {
               nativeBuildInputs = [
@@ -588,10 +582,9 @@
               fi
 
               ${pkgs.coreutils}/bin/touch "$out"
-            ''
-        );
+            '';
 
-        local-control-preparation-gate-validation = (
+        local-control-preparation-gate-validation =
           pkgs.runCommand "local-control-preparation-gate-validation"
             {
               nativeBuildInputs = [
@@ -679,8 +672,7 @@
               [ -f "$disabled_marker" ]
 
               ${pkgs.coreutils}/bin/touch "$out"
-            ''
-        );
+            '';
         local-control-generated-activation =
           let
             activationHome = "/private/tmp/local-control-activation-${builtins.hashString "sha256" (builtins.readFile ../../homes/macbook-pro-m4/local/local-control.nix)}";
