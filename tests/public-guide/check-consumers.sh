@@ -65,7 +65,7 @@ else
 fi
 for interface in source typed; do
   mkdir "$work/$interface"
-  cp "$source_path/tests/public-guide/$interface-consumer/flake.nix" "$work/$interface/flake.nix"
+  cp "$source_path/tests/public-guide/$interface-consumer/consumer.nix" "$work/$interface/flake.nix"
   cp "$source_path/tests/public-guide/recipes.nix" "$work/$interface/recipes.nix"
   if [[ $interface == source ]]; then
     overrides=(--override-input nix-conf-source "$candidate"
