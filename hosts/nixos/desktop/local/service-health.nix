@@ -27,13 +27,7 @@ in
   // lib.optionalAttrs config.services.resolved.enable {
     dns-stub = active "systemd-resolved.service";
   }
-  // lib.optionalAttrs config.services.unbound.enable {
-    dns-resolver = active "unbound.service";
-  }
-  // lib.optionalAttrs config.services.greetd.enable {
-    login-manager = active "greetd.service";
-  }
-  // lib.optionalAttrs config.services.openssh.enable {
-    remote-access = active "sshd.service";
-  };
+  // lib.optionalAttrs config.services.unbound.enable { dns-resolver = active "unbound.service"; }
+  // lib.optionalAttrs config.services.greetd.enable { login-manager = active "greetd.service"; }
+  // lib.optionalAttrs config.services.openssh.enable { remote-access = active "sshd.service"; };
 }

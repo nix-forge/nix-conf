@@ -30,9 +30,7 @@
         modules = [
           home-manager.nixosModules.home-manager
           ./vm.nix
-          ({ modulesPath, ... }: {
-            imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
-          })
+          ({ modulesPath, ... }: { imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ]; })
         ];
       };
     in
@@ -44,9 +42,7 @@
           default = homes.${system}.activationPackage;
           home-manager = home-manager.packages.${system}.home-manager;
         }
-        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-          vm = vm.config.system.build.vm;
-        }
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") { vm = vm.config.system.build.vm; }
       );
       checks = forAllSystems (
         system:

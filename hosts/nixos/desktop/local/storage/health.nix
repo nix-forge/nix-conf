@@ -8,7 +8,7 @@
 let
   cfg = config.hardware.storage.encryptedRoot;
   destinations = cfg.backup.destinations;
-  health = cfg.health;
+  inherit (cfg) health;
   mounts =
     if cfg.enable then
       [

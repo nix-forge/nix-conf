@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   networking.hostName = "nix-public-demo";
   system.stateVersion = "26.05";
   users.users.learner = {

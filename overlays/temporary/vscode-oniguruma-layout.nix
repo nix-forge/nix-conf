@@ -1,5 +1,4 @@
-{ lib, pkgs }:
-{
+{ lib, pkgs }: {
   reason = "VS Code loads the TextMate tokenizer from node_modules.asar.unpacked after Nixpkgs removes that directory.";
   upstream = "https://github.com/NixOS/nixpkgs/blob/c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0/pkgs/applications/editors/vscode/generic.nix#L409-L432";
   removal = "The Nixpkgs VS Code package preserves a browser-readable vscode-oniguruma WASM path.";

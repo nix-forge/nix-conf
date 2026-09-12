@@ -13,7 +13,7 @@ else
 fi
 native_system=$(nix eval --impure --raw --expr builtins.currentSystem)
 system=${2:-$native_system}
-if [[ "$system" != "$native_system" ]]; then
+if [[ $system != "$native_system" ]]; then
   echo "consumer checks require native $system, current host is $native_system" >&2
   exit 2
 fi
@@ -51,11 +51,11 @@ done
 nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
   "$work/starter#checks.$system.home" \
   "$work/starter#checks.$system.generated-config"
-if [[ "$system" == x86_64-linux ]]; then
+if [[ $system == x86_64-linux ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
     "$work/starter#checks.$system.vm-runtime"
 fi
-if [[ "$system" == aarch64-darwin ]]; then
+if [[ $system == aarch64-darwin ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
     "$work/darwin#checks.$system.system" \
     "$work/darwin#checks.$system.generated-config"
@@ -67,7 +67,7 @@ for interface in source typed; do
   mkdir "$work/$interface"
   cp "$source_path/tests/public-guide/$interface-consumer/flake.nix" "$work/$interface/flake.nix"
   cp "$source_path/tests/public-guide/recipes.nix" "$work/$interface/recipes.nix"
-  if [[ "$interface" == source ]]; then
+  if [[ $interface == source ]]; then
     overrides=(--override-input nix-conf-source "$candidate"
       --override-input nixpkgs "path:$nixpkgs_path"
       --override-input home-manager "path:$home_manager_path")

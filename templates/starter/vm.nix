@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{ lib, ... }: {
   networking.hostName = "nix-guide";
   system.stateVersion = "26.05";
   users.users.learner.isNormalUser = true;

@@ -11,9 +11,7 @@
     { nixpkgs, nix-darwin, ... }:
     let
       system = "aarch64-darwin";
-      example = nix-darwin.lib.darwinSystem {
-        modules = [ ./configuration.nix ];
-      };
+      example = nix-darwin.lib.darwinSystem { modules = [ ./configuration.nix ]; };
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
