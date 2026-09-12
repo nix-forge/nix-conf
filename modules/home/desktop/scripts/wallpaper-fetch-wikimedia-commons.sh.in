@@ -79,7 +79,7 @@ filter_candidates() {
     | select(any($categories[]; test($quality.rejectedCategories; "i")) | not)
     | select(any($image.metadata[]?; .name == "Model" and (.value | type) == "string" and (.value | length) > 0))
     | ([.title, $metadata.ImageDescription.value, $metadata.Categories.value]
-       | map(select(type == "string")) | join(" ") | ascii_downcase) as $subject
+        | map(select(type == "string")) | join(" ") | ascii_downcase) as $subject
     | select($subject | test($quality.rejectedSubjects; "i") | not)
     | ($metadata.LicenseShortName.value // "") as $license
     | select($licenses | index($license))
