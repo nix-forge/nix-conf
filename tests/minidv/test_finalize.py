@@ -15,8 +15,8 @@ SOURCE = ROOT / "hosts/nixos/desktop/minidv/minidv-finalize.sh"
 RUNTIME = """
 pgrep() { return 1; }
 ffprobe() {
-  printf 'probe\\n' >>"$PROBE_CALLS"
-  cat -- "$PROBE_RESULT"
+    printf 'probe\\n' >>"$PROBE_CALLS"
+    cat -- "$PROBE_RESULT"
 }
 """
 
