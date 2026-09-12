@@ -146,59 +146,11 @@ capture_started=$(date --iso-8601=seconds)
 
 camera_lost_marker="$metadata_directory/camera-disconnected"
 
-selected_camera_is_present() {
-  local device guid
-  for device in "$firewire_sysfs"/fw*; do
-    [ -r "$device/is_local" ] || continue
-    [ "$(cat "$device/is_local")" = 0 ] || continue
-    [ -r "$device/guid" ] || continue
-    guid=$(cat "$device/guid")
-    if [ "$guid" = "0x$camera_guid" ]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-watch_selected_camera() {
-  # A paused tape remains on the bus and is valid: do not impose an arbitrary
-  # no-frame timeout.  A missing remote node is different; continuing would
-  # only leave dvgrab waiting forever after a bus reset or disconnect.
-  while kill -0 "$dvgrab_pid" 2>/dev/null; do
-    if ! selected_camera_is_present; then
-      printf '%s\n' 'minidv-capture: selected camera disappeared from the FireWire bus; stopping the incomplete capture.' |
-        tee -a "$capture_log" >&2
-      : >"$camera_lost_marker"
-      kill -TERM "$dvgrab_pid" 2>/dev/null || true
-      return
-    fi
-    sleep 1
-  done
-}
-
 interrupted() {
-  trap - INT TERM HUP
-  if [ -n "${dvgrab_pid:-}" ] && kill -0 "$dvgrab_pid" 2>/dev/null; then
-    printf '\nStopping dvgrab and retaining the partial capture...\n' >&2
-    kill -INT "$dvgrab_pid" 2>/dev/null || true
-    for _ in {1..5}; do
-      kill -0 "$dvgrab_pid" 2>/dev/null || break
-      sleep 1
-    done
-
-    if kill -0 "$dvgrab_pid" 2>/dev/null; then
-      printf 'dvgrab did not exit after SIGINT; sending SIGTERM...\n' >&2
-      kill -TERM "$dvgrab_pid" 2>/dev/null || true
-      for _ in {1..5}; do
-        kill -0 "$dvgrab_pid" 2>/dev/null || break
-        sleep 1
-      done
-    fi
-
-    if kill -0 "$dvgrab_pid" 2>/dev/null; then
-      printf 'dvgrab is unresponsive; force-stopping it without removing captured data.\n' >&2
-      kill -KILL "$dvgrab_pid" 2>/dev/null || true
-    fi
+  trap '' INT TERM HUP
+  if [ -n "${supervisor_pid:-}" ]; then
+    kill -TERM "$supervisor_pid" 2>/dev/null || true
+    wait "$supervisor_pid" 2>/dev/null || true
   fi
   printf 'capture_state=interrupted\ninterrupted_at=%s\n' "$(date --iso-8601=seconds)" >>"$capture_metadata"
   printf '\nCapture interrupted. Partial files were deliberately retained in %s.\n' "$tape_directory" >&2
@@ -212,22 +164,21 @@ printf '%s\n' "Using detected camera FireWire GUID: $camera_guid"
 printf '%s\n' "DV over FireWire has no reliable tape-end signal: dvgrab cannot distinguish a paused tape from its physical end."
 printf '%s\n' "When the camcorder reaches its physical end, press Ctrl-C once. It retains the capture without deleting data; then run minidv-finalize --confirm-tape-ended on that tape directory."
 
-# Keep dvgrab as a direct child of this wrapper.  Bash defers signal traps
-# while a foreground pipeline is running, which can leave an unresponsive
-# dvgrab capture unable to react to Ctrl-C.  A background child plus wait lets
-# the trap stop precisely that child and preserve a clear incomplete state.
-dvgrab --guid "$camera_guid" --format raw --size 0 --frames 0 --showstatus --srt --noavc --nostop "$capture_base" \
+# The supervisor subscribes before checking camera presence, then blocks on
+# device events, child exit, or cancellation deadlines. Bash's asynchronous wait
+# lets the trap forward cancellation without deferring it behind a pipeline.
+@minidvSupervisor@ "$camera_guid" "$camera_lost_marker" @dvgrab@ \
+  --guid "$camera_guid" --format raw --size 0 --frames 0 --showstatus --srt --noavc --nostop "$capture_base" \
   > >(tee -a "$capture_log") 2>&1 &
-dvgrab_pid=$!
-watch_selected_camera &
-camera_watchdog_pid=$!
+supervisor_pid=$!
 set +e
-wait "$dvgrab_pid"
+wait "$supervisor_pid"
 dvgrab_status=$?
-kill "$camera_watchdog_pid" 2>/dev/null || true
-wait "$camera_watchdog_pid" 2>/dev/null || true
 set -e
-dvgrab_pid=""
+supervisor_pid=""
+if [ "$dvgrab_status" -eq 130 ]; then
+  interrupted
+fi
 capture_finished=$(date --iso-8601=seconds)
 
 if [ -e "$camera_lost_marker" ]; then

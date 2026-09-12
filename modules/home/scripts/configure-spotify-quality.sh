@@ -2,39 +2,50 @@
 if @pgrep@ -x Spotify >/dev/null 2>&1 || @pgrep@ -x spotify >/dev/null 2>&1; then
   echo "Skipping Spotify preferences because Spotify is running."
 else
-  update_pref() {
+  update_preferences() (
     prefs="$1"
-    key="$2"
-    value="$3"
-    temporary_prefs="$(@mktemp@ "${prefs}.tmp.XXXXXX")"
+    temporary_prefs="$(@mktemp@ "${prefs}.tmp.XXXXXX")" || return 1
+    # The subshell keeps cleanup traps and temporary variables out of activation.
+    trap '@rm@ -f "$temporary_prefs"' 0
 
-    # shellcheck disable=SC2016 # The Awk program must receive its own $0 and variables literally.
-    @awk@ -v key="$key" -v value="$value" '
-      index($0, key "=") == 1 {
-        if (!found++) print key "=" value
+    # Keep all managed keys in one pass, retaining the first occurrence's position.
+    # High (3) is this device's supported streaming tier; disable downgrades,
+    # track notifications and Spotify's platform-specific autostart registration.
+    # shellcheck disable=SC2016 # Awk must receive its own field and array syntax.
+    @awk@ '
+      BEGIN {
+        FS = "="
+        keys[1] = "ui.track_notifications_enabled"; values[keys[1]] = "false"
+        keys[2] = "audio.play_bitrate_enumeration"; values[keys[2]] = "3"
+        keys[3] = "audio.play_bitrate_non_metered_enumeration"; values[keys[3]] = "3"
+        keys[4] = "audio.allow_downgrade"; values[keys[4]] = "false"
+        keys[5] = "app.autostart-configured"; values[keys[5]] = "true"
+        keys[6] = "app.autostart-mode"; values[keys[6]] = "\"off\""
+      }
+      index($0, "=") && $1 in values {
+        if (!found[$1]++) print $1 "=" values[$1]
         next
       }
       { print }
       END {
-        if (!found) print key "=" value
+        for (i = 1; i <= 6; i++) {
+          if (!found[keys[i]]) print keys[i] "=" values[keys[i]]
+        }
       }
-    ' "$prefs" >"$temporary_prefs"
+    ' "$prefs" >"$temporary_prefs" || return 1
+    if @cmp@ -s "$temporary_prefs" "$prefs"; then
+      return 0
+    else
+      comparison_status=$?
+      # cmp distinguishes different bytes (1) from an I/O error (2).
+      [ "$comparison_status" -eq 1 ] || return "$comparison_status"
+    fi
     @mv@ "$temporary_prefs" "$prefs"
-  }
+  )
 
   # shellcheck disable=SC2043 # Nix substitutes a quoted path plus an unquoted glob here.
   for prefs in @spotifyPreferences@; do
     [ -f "$prefs" ] || continue
-    # Disable "Show desktop notifications when the song changes".
-    update_pref "$prefs" ui.track_notifications_enabled false
-    # Spotify reports this account/device as Standard-capable, whose highest
-    # streaming tier is High (3); Lossless (5) is unavailable.
-    update_pref "$prefs" audio.play_bitrate_enumeration 3
-    update_pref "$prefs" audio.play_bitrate_non_metered_enumeration 3
-    update_pref "$prefs" audio.allow_downgrade false
-    # Spotify owns the platform-specific registration. Persist the supported
-    # "off" preference so subsequent Spotify launches do not recreate it.
-    update_pref "$prefs" app.autostart-configured true
-    update_pref "$prefs" app.autostart-mode '"off"'
+    update_preferences "$prefs" || return 1
   done
 fi

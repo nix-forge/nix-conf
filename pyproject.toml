@@ -80,6 +80,31 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"tests/macos/check_secure_files_release.py" = [
+  # The CLI fixture drives an installed binary and reports assertions to Nix.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "print",
+  "magic-value-comparison",
+]
+"scripts/workstation_evidence.py" = [
+  # Explicit operator CLI: immutable wrappers supply Git; Nix uses the host client.
+  # Commands execute as argument lists, and reports/logs remain private locally.
+  "print",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "f-string-in-exception",
+]
+"tests/evidence/*.py" = [
+  # Disposable command fixtures verify real exit statuses, timeouts and Git state.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+  "magic-value-comparison",
+]
 "tests/**/*.py" = [
   # Pytest also runs the retained TestCase suites. Keep useful assertions while
   # using plain pytest functions for new tests and substantial rewrites.
@@ -171,6 +196,9 @@ strict = true
   "suspicious-xml-etree-import",       # ElementTree is sufficient for trusted test output without entity declarations.
 ]
 "tests/virtualisation/test_libvirt_workstation_setup.py" = [
+  # Parse fixture XML to test its meaning rather than serializer whitespace.
+  "suspicious-xml-etree-import",
+  "suspicious-xml-element-tree-usage",
   "pytest-unittest-assertion",            # Pytest supports the retained TestCase assertions.
   "subprocess-without-shell-equals-true", # The test invokes a generated fixture path without a shell.
   "suspicious-subprocess-import",         # The subprocess is the script under test.
@@ -185,15 +213,31 @@ strict = true
   "subprocess-without-shell-equals-true", # Command args are constrained to local script paths and CLI flags.
 ]
 
+"modules/nixos/virtualisation/scripts/libvirt-xml.py" = [
+  # UTF-8-only input is size-bounded; DTDs and entities are rejected before parsing.
+  "suspicious-xml-etree-import",
+  "suspicious-xml-element-tree-usage",
+  # This small CLI reports explicit policy errors directly to its operator.
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "f-string-in-exception",
+]
+"tests/virtualisation/test_libvirt_xml.py" = [
+  # Invoke only this repository's parser with fixture input and no shell.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+]
+
 [tool.ty.analysis]
 # uharfbuzz re-exports a Cython extension without .pyi files. Keep only this
 # native module opaque; font shaping is exercised by the native font checks.
 replace-imports-with-any = ["uharfbuzz"]
 # lxml.etree is also a compiled extension without shipped Python type stubs.
-allowed-unresolved-imports = ["lxml.etree"]
+# pyudev is installed only on Linux; Darwin still checks the shared Python tree.
+allowed-unresolved-imports = ["lxml.etree", "pyudev"]
 
 [tool.ty.environment]
-extra-paths = ["tests/fonts"]
+extra-paths = ["tests/fonts", "site"]
 # Pin the target independently of a developer's active virtual environment so
 # editor, pre-commit, and pure Nix checks analyse the same Python language and
 # standard-library surface.

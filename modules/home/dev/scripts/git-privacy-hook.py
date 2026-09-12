@@ -77,7 +77,8 @@ class Guard:
             PrivacyError: A blocked address occurs in the data.
 
         """
-        if any(pattern in data.lower() for pattern in self.patterns):
+        normalized = data.lower()
+        if any(pattern in normalized for pattern in self.patterns):
             raise PrivacyError(
                 "Blocked private email in Git data. Use your public noreply identity "
                 "and remove private addresses from published content."

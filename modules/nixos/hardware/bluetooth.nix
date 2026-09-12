@@ -11,7 +11,10 @@ let
     src = ./scripts/disable-bluetooth-pairing.sh;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      busctl = lib.getExe' pkgs.systemd "busctl";
+      python = lib.getExe (pkgs.python3.withPackages (ps: [ ps.dbus-next ]));
+      policyScript = pkgs.writeText "disable-bluetooth-pairing.py" (
+        builtins.readFile ./scripts/disable-bluetooth-pairing.py
+      );
     };
   };
 in
@@ -79,6 +82,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart = disableBluetoothPairing;
+      TimeoutStartSec = "15s";
       CapabilityBoundingSet = "";
       NoNewPrivileges = true;
       PrivateTmp = true;
