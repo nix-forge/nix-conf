@@ -6,85 +6,232 @@ umask 077
 # Configuration values are shell-escaped literals, including dollar signs.
 # shellcheck disable=SC2016
 cache_directory=@wallpaperDirectory@
-# Configuration values are shell-escaped literals, including dollar signs.
 # shellcheck disable=SC2016
 state_directory=@stateDirectory@
-category=@category@
+routes_json=@categoriesJson@
+# Disabled connections or categories make a scheduled invocation a no-op.
+[ "$(jq -er 'length' <<<"$routes_json")" -gt 0 ] || exit 0
+licenses_json=@licensesJson@
+quality_json=@qualityJson@
 user_agent=@userAgent@
-temporary_directory="$(mktemp -d)"
-trap 'rm -rf -- "$temporary_directory"' EXIT
+width=@targetWidth@
+height=@targetHeight@
 mkdir -p -- "$cache_directory" "$state_directory"
 chmod 700 -- "$cache_directory" "$state_directory"
+# Manual invocations and the timer share one cursor/history writer.
+exec 9>"$state_directory/commons-fetch.lock"
+flock -n 9 || exit 0
+state_file="$state_directory/commons-discovery.json"
+state_temporary="$state_directory/.commons-discovery.$$"
+temporary_directory="$(mktemp -d)"
+cleanup() {
+  rm -rf -- "$temporary_directory"
+  rm -f -- "$state_temporary" "$cache_directory/.commons-pending"
+}
+trap cleanup EXIT
 
-api_json="$temporary_directory/featured-pictures.json"
-curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 60 \
-  --max-filesize 10485760 --user-agent "$user_agent" --output "$api_json" \
-  --get --data-urlencode 'action=query' \
-  --data-urlencode 'generator=categorymembers' \
-  --data-urlencode "gcmtitle=Category:$category" \
-  --data-urlencode 'gcmtype=file' \
-  --data-urlencode 'gcmlimit=100' \
-  --data-urlencode 'prop=imageinfo' \
-  --data-urlencode 'iiprop=url|size|mime|extmetadata' \
-  --data-urlencode 'format=json' \
-  'https://commons.wikimedia.org/w/api.php'
+if [ -e "$state_file" ]; then
+  state_json="$(jq -ce '
+    select(.version == 1 and (.nextCategory | type) == "number"
+      and (.cursors | type) == "object" and (.seen | type) == "array")
+  ' "$state_file")" || {
+    echo 'Commons discovery state is invalid; leaving the collection unchanged.' >&2
+    exit 65
+  }
+else
+  state_json='{"version":1,"nextCategory":0,"cursors":{},"seen":[]}'
+fi
+save_state() {
+  printf '%s\n' "$state_json" >"$state_temporary" || return 2
+  mv -f -- "$state_temporary" "$state_file" || return 2
+}
+remember_id() {
+  state_json="$(jq -c --arg id "$1" '
+    .seen |= (if index($id) then . else . + [$id] end | .[-10000:])
+  ' <<<"$state_json")" || return 2
+  save_state
+}
 
-# Commons has per-file licences. Automated collection deliberately admits only
-# files whose API metadata calls them CC0 or public domain. The sidecar keeps
-# the original metadata for provenance.
-candidate="$(jq -r '
-  [ .query.pages[]?
+category_count="$(jq -er 'length | select(. > 0)' <<<"$routes_json")"
+category_index="$(jq -r --argjson count "$category_count" '.nextCategory % $count' <<<"$state_json")"
+route="$(jq -c --argjson index "$category_index" '.[$index]' <<<"$routes_json")"
+category="$(jq -r '.collection' <<<"$route")"
+cursor_key="$(jq -r 'if (.requireCollections // [] | length) == 0 then .collection else .category + "/" + .subcategory + ":" + .collection end' <<<"$route")"
+state_json="$(jq -c --argjson next "$((category_index + 1))" '.nextCategory = $next' <<<"$state_json")"
+# A failing category retains its cursor but must not starve the other sources.
+save_state
+
+# A featured natural-scene category and camera metadata are positive admission
+# rules. File dimensions alone cannot distinguish a photograph from a scan.
+filter_candidates() {
+  jq -r --arg category "$category" --argjson route "$route" --argjson quality "$quality_json" --argjson licenses "$licenses_json" \
+    --argjson width "$width" --argjson height "$height" '
+    .query.pages[]?
+    | try (select(.ns == 6)
     | .imageinfo[0]? as $image
     | select($image != null)
-    | ($image.extmetadata.LicenseShortName.value // "") as $license
-    | select($license | test("^(CC0|Public domain|Public Domain)$"; "i"))
+    | ($image.extmetadata // {}) as $metadata
+    | select(($metadata.Assessments.value // "" | ascii_downcase | split("|")) | index("featured"))
+    | ($metadata.Categories.value // "" | gsub("_"; " ") | split("|")) as $categories
+    | select($categories | index($category))
+    | select(all($route.requireCollections[]?; . as $required | $categories | index($required)))
+    | select(any($route.excludeCollections[]?; . as $excluded | $categories | index($excluded)) | not)
+    | select(any($categories[]; test($quality.rejectedCategories; "i")) | not)
+    | select(any($image.metadata[]?; .name == "Model" and (.value | type) == "string" and (.value | length) > 0))
+    | ([.title, $metadata.ImageDescription.value, $metadata.Categories.value]
+       | map(select(type == "string")) | join(" ") | ascii_downcase) as $subject
+    | select($subject | test($quality.rejectedSubjects; "i") | not)
+    | ($metadata.LicenseShortName.value // "") as $license
+    | select($licenses | index($license))
     | select(($image.url? | type) == "string" and ($image.url | startswith("https://upload.wikimedia.org/")))
-    | select(($image.width? // 0) >= 3840 and ($image.height? // 0) >= 2160 and $image.width >= $image.height)
+    | select(($image.width? // 0) >= $width and ($image.height? // 0) >= $height)
+    | select($image.width * $image.height <= 100000000)
+    | select($image.width * $height * 5 >= $image.height * $width * 4)
+    | select($image.width * $height * 4 <= $image.height * $width * 5)
     | select(($image.mime? // "") | test("^image/(jpeg|png|tiff|webp)$"))
     | select(($image.size? // 0) > 0 and $image.size <= @maxFileSizeBytes@)
-    | { id: (.pageid | tostring), title, url: $image.url, width: $image.width, height: $image.height,
-        mime: $image.mime, license: $license, metadata: $image.extmetadata }
-  ] | .[] | @base64' "$api_json" | shuf -n 1)"
-[ -n "$candidate" ]
+    | { id: (.pageid | tostring), title, url: $image.url,
+        original_width: $image.width, original_height: $image.height,
+        mime: $image.mime, license: $license, metadata: $metadata,
+        discovery_category: $category, connection: "wikimediaCommons",
+        wallpaper_categories: [$route.category + "/" + $route.subcategory] }
+    | @base64) catch empty' "$1"
+}
 
-id="$(echo "$candidate" | base64 -d | jq -r '.id')"
-media_url="$(echo "$candidate" | base64 -d | jq -r '.url')"
-download_file="$temporary_directory/image"
-curl --fail --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 180 \
-  --max-filesize @maxFileSizeBytes@ --user-agent "$user_agent" --output "$download_file" "$media_url"
-
-mime_type="$(file --brief --mime-type -- "$download_file")"
-case "$mime_type" in
-  image/jpeg) extension=jpg ;;
-  image/png) extension=png ;;
-  image/tiff) extension=tiff ;;
-  image/webp) extension=webp ;;
-  *) echo "Commons file was not an accepted wallpaper image ($mime_type)." >&2; exit 65 ;;
-esac
-
-dimensions="$(magick identify -ping -format '%w %h' -- "$download_file")"
-[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 1)" -ge 3840 ]
-[ "$(printf '%s' "$dimensions" | cut -d ' ' -f 2)" -ge 2160 ]
-
-checksum="$(sha256sum -- "$download_file" | cut -d ' ' -f 1)"
-destination="$cache_directory/wikimedia-commons-$id-$checksum.$extension"
-if [ ! -e "$destination" ]; then
-  install -m 600 -- "$download_file" "$destination"
+download_candidate() {
+  local candidate="$1" id="$2" media_url download_file dimensions
+  local original_width original_height orientation swap display_file checksum destination
+  media_url="$(echo "$candidate" | base64 -d | jq -r '.url')"
+  download_file="$temporary_directory/original"
+  if ! curl --fail --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 60 \
+    --retry 1 --retry-delay 2 --retry-max-time 70 \
+    --max-filesize @maxFileSizeBytes@ --user-agent "$user_agent" --output "$download_file" "$media_url"; then
+    fetch_failure=1
+    return 1
+  fi
+  case "$(file --brief --mime-type -- "$download_file")" in
+  image/jpeg | image/png | image/tiff | image/webp) ;;
+  *) return 1 ;;
+  esac
+  dimensions="$(magick identify -ping -format '%w %h\n' -- "$download_file")" || return 1
+  [[ $dimensions =~ ^([0-9]+)\ ([0-9]+)$ ]] || return 1
+  original_width="${BASH_REMATCH[1]}"
+  original_height="${BASH_REMATCH[2]}"
+  orientation="$(magick identify -ping -format '%[orientation]' -- "$download_file")" || return 1
+  case "$orientation" in
+  LeftTop | RightTop | RightBottom | LeftBottom)
+    swap="$original_width"
+    original_width="$original_height"
+    original_height="$swap"
+    ;;
+  esac
+  ((original_width >= width && original_height >= height)) || return 1
+  ((original_width * original_height <= 100000000)) || return 1
+  ((original_width * height * 5 >= original_height * width * 4)) || return 1
+  ((original_width * height * 4 <= original_height * width * 5)) || return 1
+  display_file="$temporary_directory/display.jpg"
+  magick -limit memory 256MiB -limit map 512MiB -limit disk 1GiB \
+    "$download_file" -auto-orient -colorspace sRGB \
+    -resize "${width}x${height}^" -gravity center -extent "${width}x${height}" \
+    -strip -sampling-factor 4:4:4 -quality 95 "$display_file" || return 1
+  [ "$(magick identify -ping -format '%w %h' -- "$display_file")" = "$width $height" ] || return 1
+  checksum="$(sha256sum -- "$display_file" | cut -d ' ' -f 1)"
+  destination="$cache_directory/wikimedia-commons-$id-${width}x${height}-$checksum.jpg"
   echo "$candidate" | base64 -d | jq \
-    --arg retrieved_at "$(date --iso-8601=seconds)" \
-    --arg checksum "$checksum" \
+    --arg retrieved_at "$(date --iso-8601=seconds)" --arg checksum "$checksum" \
     --arg source_page "https://commons.wikimedia.org/?curid=$id" \
-    '. + { source: "Wikimedia Commons Quality Landscapes", source_id: .id,
-      source_page: $source_page, retrieved_at: $retrieved_at, sha256: $checksum }' \
-    > "$destination.json"
-  chmod 600 -- "$destination.json"
-fi
+    --argjson width "$width" --argjson height "$height" \
+    '. + { source: "Wikimedia Commons featured photography", source_id: .id,
+      source_page: $source_page, retrieved_at: $retrieved_at, sha256: $checksum,
+      width: $width, height: $height, conversion: "Centered crop and downsample to sRGB JPEG" }' \
+    >"$temporary_directory/metadata.json" || return 2
+  # Publish the image last, atomically, so rotation cannot open a partial copy.
+  install -m 600 -- "$display_file" "$cache_directory/.commons-pending" || return 2
+  install -m 600 -- "$temporary_directory/metadata.json" "$destination.json" || return 2
+  if ! mv -f -- "$cache_directory/.commons-pending" "$destination"; then
+    rm -f -- "$destination.json"
+    return 2
+  fi
+  remember_id "$id" || return 2
+  printf 'Added Commons photograph %s from %s (%sx%s).\n' "$id" "$category" "$width" "$height"
+}
+
+accepted=0
+attempts=0
+fetch_failure=0
+pages=0
+while ((pages < @maxCandidatePages@ && attempts < @maxCandidateDownloads@)); do
+  api_json="$temporary_directory/page.json"
+  query=(--data-urlencode 'generator=categorymembers'
+    --data-urlencode "gcmtitle=Category:$category"
+    --data-urlencode 'gcmnamespace=6' --data-urlencode 'gcmtype=file'
+    --data-urlencode 'gcmsort=timestamp' --data-urlencode 'gcmdir=older'
+    --data-urlencode 'gcmlimit=50')
+  while IFS= read -r continuation; do
+    query+=(--data-urlencode "$(echo "$continuation" | base64 -d | jq -r '.key + "=" + .value')")
+  done < <(jq -r --arg category "$cursor_key" '.cursors[$category] // {} | to_entries[] | @base64' <<<"$state_json")
+  pages=$((pages + 1))
+  if ! curl --fail --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 30 \
+    --retry 2 --retry-delay 2 --retry-max-time 35 \
+    --max-filesize 10485760 --user-agent "$user_agent" --output "$api_json" \
+    --get --data-urlencode 'action=query' "${query[@]}" \
+    --data-urlencode 'prop=imageinfo' \
+    --data-urlencode 'iiprop=url|size|mime|extmetadata|metadata' \
+    --data-urlencode 'format=json' 'https://commons.wikimedia.org/w/api.php'; then
+    fetch_failure=1
+    break
+  fi
+  if ! jq -e 'type == "object" and (has("error") | not)
+      and (has("query") or has("batchcomplete"))' "$api_json" >/dev/null; then
+    # A server-invalidated token cannot recover through transport retries.
+    if jq -e '.error.code == "badcontinue"' "$api_json" >/dev/null; then
+      state_json="$(jq -c --arg category "$cursor_key" '.cursors[$category] = {}' <<<"$state_json")"
+      save_state
+    fi
+    echo 'Commons API returned an error or invalid response; preserving wallpapers and advancing to another collection.' >&2
+    fetch_failure=1
+    break
+  fi
+  filter_candidates "$api_json" >"$temporary_directory/candidates"
+  while IFS= read -r candidate; do
+    id="$(echo "$candidate" | base64 -d | jq -r '.id')"
+    if jq -e --arg id "$id" '.seen | index($id)' <<<"$state_json" >/dev/null; then
+      continue
+    fi
+    if compgen -G "$cache_directory/wikimedia-commons-$id-${width}x${height}-*.jpg" >/dev/null; then
+      remember_id "$id"
+      continue
+    fi
+    ((attempts < @maxCandidateDownloads@)) || break
+    attempts=$((attempts + 1))
+    if download_candidate "$candidate" "$id"; then
+      accepted=1
+      break
+    else
+      status=$?
+      if ((status > 1)); then
+        echo 'Commons wallpaper publication or state update failed.' >&2
+        fetch_failure=1
+        break
+      fi
+    fi
+  done < <(shuf "$temporary_directory/candidates")
+  # Retry a failed network page later; do not silently consume its candidates.
+  if ((fetch_failure == 0 || accepted == 1)); then
+    continuation_json="$(jq -c '.continue // {}' "$api_json")"
+    state_json="$(jq -c --arg category "$cursor_key" --argjson cursor "$continuation_json" \
+      '.cursors[$category] = $cursor' <<<"$state_json")"
+    save_state
+  fi
+  ((accepted == 0 && fetch_failure == 0)) || break
+  [ "$continuation_json" != '{}' ] || break
+done
 
 current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
-mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'wikimedia-commons-*' \
-  ! -name '*.json' -printf '%T@:%p\\0' | sort -z -n)
+mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'wikimedia-commons-*.jpg' \
+  -printf '%T@:%p\0' | sort -z -n)
 excess=$((${#files[@]} - @maxImages@))
-if [ "$excess" -gt 0 ]; then
+if ((accepted == 1 && excess > 0)); then
   removed=0
   for entry in "${files[@]}"; do
     [ "$removed" -ge "$excess" ] && break
@@ -93,4 +240,8 @@ if [ "$excess" -gt 0 ]; then
     rm -f -- "$stale_file" "$stale_file.json"
     removed=$((removed + 1))
   done
+fi
+if ((accepted == 0)); then
+  ((fetch_failure == 0)) || exit 1
+  printf 'No unseen qualifying photographs in %s after %s page(s); discovery will continue next run.\n' "$category" "$pages"
 fi

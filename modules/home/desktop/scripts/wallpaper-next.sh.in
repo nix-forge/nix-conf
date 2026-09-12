@@ -5,28 +5,56 @@ export PATH="@runtimePath@"
 # Configuration values are shell-escaped literals, including dollar signs.
 # shellcheck disable=SC2016
 source_directory=@wallpaperDirectory@
-[ -d "$source_directory" ] || exit 0
-candidate="$(find "$source_directory" -maxdepth 1 -type f \
-  \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jpeg' \
-  -o -iname '*.jpg' -o -iname '*.jxl' -o -iname '*.png' -o -iname '*.tif' \
-  -o -iname '*.tiff' -o -iname '*.webp' \) -print0 \
-  | shuf -z -n 1 | tr -d '\0')"
-
-# An empty library is a normal first-run condition. Do not make the graphical
-# session unhealthy while the user is still curating images.
-[ -n "$candidate" ] || exit 0
-
-# Configuration values are shell-escaped literals, including dollar signs.
 # shellcheck disable=SC2016
 state_directory=@stateDirectory@
+[ -d "$source_directory" ] || exit 0
+# The shared policy also applies to old downloads and runtime preferences.
+# Resolve filtering first: a corrupt preference file must fail visibly.
+candidates_file="$(mktemp)"
+trap 'rm -f -- "$candidates_file"' EXIT
+find "$source_directory" -maxdepth 1 -type f \
+  \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jpeg' \
+  -o -iname '*.jpg' -o -iname '*.jxl' -o -iname '*.png' -o -iname '*.tif' \
+  -o -iname '*.tiff' -o -iname '*.webp' \) -print0 |
+  @policyCommand@ filter --null >"$candidates_file"
+candidate=''
+while IFS= read -r -d '' path; do
+  dimensions="$(magick identify -ping -format '%w %h %[orientation]\n' -- "$path" 2>/dev/null)" || continue
+  # Reject animations, multi-page scans and malformed decoder output.
+  [[ $dimensions =~ ^([0-9]+)\ ([0-9]+)\ ([a-zA-Z]+)$ ]] || continue
+  width="${BASH_REMATCH[1]}"
+  height="${BASH_REMATCH[2]}"
+  case "${BASH_REMATCH[3]}" in
+  LeftTop | RightTop | RightBottom | LeftBottom)
+    swap="$width"
+    width="$height"
+    height="$swap"
+    ;;
+  esac
+  ((width >= @minWidth@ && height >= @minHeight@)) || continue
+  ((width * 1000 >= height * @minAspectRatioScaled@)) || continue
+  ((width * 1000 <= height * @maxAspectRatioScaled@)) || continue
+  candidate="$path"
+  break
+done < <(shuf -z "$candidates_file")
+
+# Do not leave a now-disabled wallpaper visible when nothing else qualifies.
+# An empty first-run library still leaves session startup healthy.
+if [ -z "$candidate" ]; then
+  # Use the normal image command so awww also replaces its restore cache.
+  awww img @awwwOutputs@ --transition-type none 0x000000
+  rm -f -- "$state_directory/current"
+  exit 0
+fi
+
 mkdir -p -- "$state_directory"
 chmod 700 -- "$state_directory"
-printf '%s\n' "$candidate" > "$state_directory/current"
-
-exec awww img @awwwOutputs@ \
+awww img @awwwOutputs@ \
   --resize crop \
   --filter Lanczos3 \
   --transition-type @transition@ \
   --transition-duration @transitionDuration@ \
   --transition-fps @transitionFps@ \
   "$candidate"
+
+printf '%s\n' "$candidate" >"$state_directory/current"

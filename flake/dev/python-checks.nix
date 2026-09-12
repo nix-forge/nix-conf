@@ -10,6 +10,7 @@
           file: file.hasExt "py" || pkgs.lib.hasSuffix ".sh.in" file.name
         ) ../../modules)
         ../../modules/nixos/display-managers/scripts/prepare-tuigreet-cache.sh
+        ../../modules/home/desktop/wallpaper-catalog.json
         ../../modules/home/desktop/scripts/session-lock.sh
         ../../modules/nixos/hardware/scripts/disable-bluetooth-pairing.sh
         ../../modules/home/scripts/karakeep-launchd.sh
@@ -28,6 +29,7 @@
         diffutils
         findutils
         git
+        imagemagick
         procps
         util-linux
         gawk
