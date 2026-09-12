@@ -102,9 +102,7 @@
         "Featured pictures of cityscapes",
         "Featured pictures of skylines"
       ],
-      "requireCollections": [
-        "Featured pictures from unmanned aerial vehicles"
-      ]
+      "requireCollections": ["Featured pictures from unmanned aerial vehicles"]
     },
     {
       "connection": "wikimediaCommons",
@@ -141,9 +139,7 @@
         "Featured pictures of cityscapes",
         "Featured pictures of skylines"
       ],
-      "requireCollections": [
-        "Featured pictures from unmanned aerial vehicles"
-      ]
+      "requireCollections": ["Featured pictures from unmanned aerial vehicles"]
     },
     {
       "connection": "wikimediaCommons",
@@ -180,9 +176,7 @@
         "Featured pictures of cityscapes",
         "Featured pictures of skylines"
       ],
-      "requireCollections": [
-        "Featured pictures from unmanned aerial vehicles"
-      ]
+      "requireCollections": ["Featured pictures from unmanned aerial vehicles"]
     },
     {
       "connection": "wikimediaCommons",
@@ -219,9 +213,7 @@
         "Featured pictures of cityscapes",
         "Featured pictures of skylines"
       ],
-      "requireCollections": [
-        "Featured pictures from unmanned aerial vehicles"
-      ]
+      "requireCollections": ["Featured pictures from unmanned aerial vehicles"]
     },
     {
       "connection": "wikimediaCommons",
@@ -258,9 +250,7 @@
         "Featured pictures of cityscapes",
         "Featured pictures of skylines"
       ],
-      "requireCollections": [
-        "Featured pictures from unmanned aerial vehicles"
-      ]
+      "requireCollections": ["Featured pictures from unmanned aerial vehicles"]
     },
     {
       "connection": "wikimediaCommons",
@@ -275,9 +265,7 @@
       "subcategory": "night",
       "collection": "Featured pictures of cityscapes",
       "kind": "city",
-      "requireCollections": [
-        "Featured night photography"
-      ]
+      "requireCollections": ["Featured night photography"]
     },
     {
       "connection": "wikimediaCommons",
@@ -292,9 +280,7 @@
       "subcategory": "night",
       "collection": "Featured pictures of skylines",
       "kind": "city",
-      "requireCollections": [
-        "Featured night photography"
-      ]
+      "requireCollections": ["Featured night photography"]
     },
     {
       "connection": "esaHubble",
