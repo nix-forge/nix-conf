@@ -213,4 +213,3 @@ update-package package *args: prepare-pkgs-branch
 [group('Maintenance')]
 fonts-check output="/tmp/font-check" browser="":
     nix run {{ flake }}#font-check -- {{ quote(output) }} {{ if browser == "" { "" } else { quote(browser) } }}
-
