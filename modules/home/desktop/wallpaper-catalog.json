@@ -1,0 +1,344 @@
+{
+  "connections": {
+    "wikimediaCommons": {
+      "label": "Wikimedia Commons featured photography"
+    },
+    "esaHubble": {
+      "label": "ESA/Hubble observations"
+    },
+    "esaWebb": {
+      "label": "ESA/Webb observations"
+    }
+  },
+  "categories": {
+    "nature": {
+      "label": "Nature",
+      "subcategories": {
+        "mountains": {
+          "label": "Mountains"
+        },
+        "coasts": {
+          "label": "Coasts and oceans"
+        },
+        "forests": {
+          "label": "Forests"
+        },
+        "lakes": {
+          "label": "Lakes"
+        },
+        "waterfalls": {
+          "label": "Waterfalls"
+        },
+        "aerials": {
+          "label": "Aerial landscapes"
+        }
+      }
+    },
+    "cityscapes": {
+      "label": "Cityscapes",
+      "subcategories": {
+        "vistas": {
+          "label": "City vistas"
+        },
+        "skylines": {
+          "label": "Skylines"
+        },
+        "night": {
+          "label": "Cities at night"
+        }
+      }
+    },
+    "space": {
+      "label": "Space",
+      "subcategories": {
+        "nebulae": {
+          "label": "Nebulae"
+        },
+        "galaxies": {
+          "label": "Galaxies"
+        },
+        "stars": {
+          "label": "Stars and star clusters"
+        },
+        "solar-system": {
+          "label": "Solar system"
+        }
+      }
+    }
+  },
+  "routes": [
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "mountains",
+      "collection": "Featured pictures of mountains",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "aerials",
+      "collection": "Featured pictures of mountains",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ],
+      "requireCollections": [
+        "Featured pictures from unmanned aerial vehicles"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "coasts",
+      "collection": "Featured pictures of coasts",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "aerials",
+      "collection": "Featured pictures of coasts",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ],
+      "requireCollections": [
+        "Featured pictures from unmanned aerial vehicles"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "forests",
+      "collection": "Featured pictures of forests",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "aerials",
+      "collection": "Featured pictures of forests",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ],
+      "requireCollections": [
+        "Featured pictures from unmanned aerial vehicles"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "lakes",
+      "collection": "Featured pictures of lakes",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "aerials",
+      "collection": "Featured pictures of lakes",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ],
+      "requireCollections": [
+        "Featured pictures from unmanned aerial vehicles"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "waterfalls",
+      "collection": "Featured pictures of waterfalls",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "nature",
+      "subcategory": "aerials",
+      "collection": "Featured pictures of waterfalls",
+      "kind": "nature",
+      "excludeCollections": [
+        "Featured pictures of boats",
+        "Featured pictures of ships",
+        "Featured pictures of watercraft",
+        "Featured pictures of vehicles",
+        "Featured pictures of people",
+        "Featured pictures of animals",
+        "Featured pictures of buildings",
+        "Featured pictures of cityscapes",
+        "Featured pictures of skylines"
+      ],
+      "requireCollections": [
+        "Featured pictures from unmanned aerial vehicles"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "cityscapes",
+      "subcategory": "vistas",
+      "collection": "Featured pictures of cityscapes",
+      "kind": "city"
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "cityscapes",
+      "subcategory": "night",
+      "collection": "Featured pictures of cityscapes",
+      "kind": "city",
+      "requireCollections": [
+        "Featured night photography"
+      ]
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "cityscapes",
+      "subcategory": "skylines",
+      "collection": "Featured pictures of skylines",
+      "kind": "city"
+    },
+    {
+      "connection": "wikimediaCommons",
+      "category": "cityscapes",
+      "subcategory": "night",
+      "collection": "Featured pictures of skylines",
+      "kind": "city",
+      "requireCollections": [
+        "Featured night photography"
+      ]
+    },
+    {
+      "connection": "esaHubble",
+      "category": "space",
+      "subcategory": "nebulae"
+    },
+    {
+      "connection": "esaHubble",
+      "category": "space",
+      "subcategory": "galaxies"
+    },
+    {
+      "connection": "esaHubble",
+      "category": "space",
+      "subcategory": "stars"
+    },
+    {
+      "connection": "esaHubble",
+      "category": "space",
+      "subcategory": "solar-system"
+    },
+    {
+      "connection": "esaWebb",
+      "category": "space",
+      "subcategory": "nebulae"
+    },
+    {
+      "connection": "esaWebb",
+      "category": "space",
+      "subcategory": "galaxies"
+    },
+    {
+      "connection": "esaWebb",
+      "category": "space",
+      "subcategory": "stars"
+    },
+    {
+      "connection": "esaWebb",
+      "category": "space",
+      "subcategory": "solar-system"
+    }
+  ],
+  "commonsQuality": {
+    "rejectedCategories": "(^|/)(Animal photography|Quality images of animals)$|^Featured montages$",
+    "rejectedSubjects": "(^|[^a-z])(paintings?|drawings?|engravings?|etchings?|lithographs?|illustrations?|manuscripts?|documents?|maps?|charts?|diagrams?|posters?|portraits?|sculptures?|statues?|screenshots?|collages?|renderings?|watermarks?|artworks?|black.and.white|monochrome|infrared)([^a-z]|$)"
+  }
+}
