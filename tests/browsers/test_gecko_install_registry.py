@@ -10,7 +10,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-BROWSER_MODULE_DIRECTORY = Path(os.environ["BROWSER_HOME_MODULE_DIRECTORY"])
+BROWSER_MODULE_DIRECTORY = Path(
+    os.environ.get(
+        "BROWSER_HOME_MODULE_DIRECTORY",
+        Path(__file__).parents[2] / "modules/home/browsers",
+    )
+)
 HELPER = BROWSER_MODULE_DIRECTORY / "shared" / "reconcile_install_registry.py"
 
 
@@ -91,7 +96,3 @@ Locked=1
             self.assertEqual(
                 second.stdout.strip(), "install registry is already current"
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

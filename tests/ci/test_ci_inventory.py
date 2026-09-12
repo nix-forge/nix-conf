@@ -1,9 +1,14 @@
 """Check CI discovery and deployment policy with independent configurations."""
 
 import json
+import os
 import subprocess
 import unittest
 from pathlib import Path
+
+import pytest
+
+pytestmark = [pytest.mark.nix_daemon, pytest.mark.usefixtures("isolated_git")]
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -15,7 +20,7 @@ class CIInventoryTests(unittest.TestCase):
         """Keep ordinary additions and same-named checks on other systems."""
         expression = """
                     let
-                        lib = (builtins.getFlake ROOT).inputs.nixpkgs.lib;
+                        lib = import NIXPKGS_LIB;
                         fixture = import DEPLOY {
                             myLib = {};
                             inputs = {
@@ -41,9 +46,9 @@ class CIInventoryTests(unittest.TestCase):
                             };
                         };
                     in builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks
-        """.replace("ROOT", json.dumps(str(ROOT))).replace(
-            "DEPLOY", str(ROOT / "flake/deploy.nix")
-        )
+        """.replace(
+            "NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib")
+        ).replace("DEPLOY", str(ROOT / "flake/deploy.nix"))
         result = json.loads(
             subprocess.check_output(
                 ["nix", "eval", "--impure", "--json", "--expr", expression], text=True
@@ -63,7 +68,7 @@ class CIInventoryTests(unittest.TestCase):
         """Discover host checks while leaving foreign closures unevaluated."""
         expression = """
             let
-                lib = (builtins.getFlake ROOT).inputs.nixpkgs.lib;
+                lib = import NIXPKGS_LIB;
                 closure = builtins.derivation {
                     name = "configuration-fixture";
                     system = "x86_64-linux";
@@ -100,9 +105,9 @@ class CIInventoryTests(unittest.TestCase):
                 added = evaluate [ "first" "new" ];
                 removed = evaluate [ "new" ];
             }
-        """.replace("ROOT", json.dumps(str(ROOT))).replace(
-            "MODULE", str(ROOT / "flake/dev/configurations.nix")
-        )
+        """.replace(
+            "NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib")
+        ).replace("MODULE", str(ROOT / "flake/dev/configurations.nix"))
         result = json.loads(
             subprocess.check_output(
                 ["nix", "eval", "--impure", "--json", "--expr", expression], text=True
@@ -124,7 +129,3 @@ class CIInventoryTests(unittest.TestCase):
                     self.assertTrue(report["drvPath"].endswith(".drv"))
                 else:
                     self.assertIsNone(report["drvPath"])
-
-
-if __name__ == "__main__":
-    unittest.main()

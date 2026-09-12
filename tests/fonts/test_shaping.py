@@ -1,36 +1,33 @@
-# ruff: file-ignore[pytest-unittest-assertion]
-# The sandbox uses the standard-library unittest runner.
-"""Regression: valid layered emoji pass; adjacent unjoined glyphs fail."""
+"""Valid layered emoji pass; missing, adjacent, and displaced glyphs fail."""
 
-import unittest
 from types import SimpleNamespace
 
+import pytest
 from emoji_support import composed
 
 
-class CompositionTests(unittest.TestCase):
-    """Exercise the composition contract with controlled glyph positions."""
-
-    def test_composition_contract(self) -> None:
-        """Reject missing, unjoined and displaced glyphs; accept overlapping layers."""
-        for advances, offsets, ids, expected in [
-            ([2048], [0], [7], True),
-            ([2048, 0], [0, -2048], [7, 8], True),
-            ([2048, 2048], [0, 0], [7, 8], False),
-            ([2048, 0], [0, -4096], [7, 8], False),
-            ([2048], [0], [0], False),
-            ([], [], [], False),
-        ]:
-            with self.subTest(advances=advances, offsets=offsets, ids=ids):
-                buffer = SimpleNamespace(
-                    glyph_infos=[SimpleNamespace(codepoint=i) for i in ids],
-                    glyph_positions=[
-                        SimpleNamespace(x_advance=a, x_offset=o)
-                        for a, o in zip(advances, offsets, strict=True)
-                    ],
-                )
-                self.assertEqual(composed(buffer), expected)
-
-
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize(
+    ("advances", "offsets", "ids", "expected"),
+    [
+        pytest.param([2048], [0], [7], True, id="single-glyph"),
+        pytest.param([2048, 0], [0, -2048], [7, 8], True, id="overlapping-layers"),
+        pytest.param([2048, 2048], [0, 0], [7, 8], False, id="unjoined-glyphs"),
+        pytest.param([2048, 0], [0, -4096], [7, 8], False, id="displaced-layer"),
+        pytest.param([2048], [0], [0], False, id="missing-glyph"),
+        pytest.param([], [], [], False, id="empty"),
+        pytest.param([0], [0], [7], False, id="no-advance"),
+        pytest.param([-1], [0], [7], False, id="negative-advance"),
+    ],
+)
+def test_composition_contract(
+    advances: list[int], offsets: list[int], ids: list[int], expected: bool
+) -> None:
+    """Check image composition independently of any installed font artwork."""
+    buffer = SimpleNamespace(
+        glyph_infos=[SimpleNamespace(codepoint=i) for i in ids],
+        glyph_positions=[
+            SimpleNamespace(x_advance=a, x_offset=o)
+            for a, o in zip(advances, offsets, strict=True)
+        ],
+    )
+    assert composed(buffer) is expected

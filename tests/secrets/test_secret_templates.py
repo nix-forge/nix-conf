@@ -61,7 +61,3 @@ class SecretTemplateTests(unittest.TestCase):
             IDENTITY["_write_identity"](destination, "", "")
             self.assertFalse(destination.is_symlink())
             self.assertEqual(generation.read_text(), "unchanged")
-
-
-if __name__ == "__main__":
-    unittest.main()

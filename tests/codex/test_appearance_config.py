@@ -1,11 +1,11 @@
-"""Exercise the built appearance updater against real TOML syntax and file state."""
+"""Exercise the appearance updater CLI against TOML syntax and file state."""
 
 from __future__ import annotations
 
-import os
-import shutil
+import json
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,27 +14,42 @@ import tomllib
 
 
 class AppearanceConfigTests(unittest.TestCase):
-    """Run with CODEX_APPEARANCE_SCRIPT pointing at the Nix-built wrapper."""
+    """Run the production CLI with a small independent managed-settings fixture."""
 
     def setUp(self) -> None:
         """Create a disposable configuration path."""
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.path = Path(self.temporary.name) / "config.toml"
-        self.script = os.environ["CODEX_APPEARANCE_SCRIPT"]
+        self.script = (
+            Path(__file__).parents[2]
+            / "modules/shared/stylix/targets/codex-desktop/configure-codex-desktop-appearance.py"
+        )
+        self.settings = self.path.with_name("settings.json")
+        self.settings.write_text(
+            json.dumps({
+                "desktop": {
+                    "appearanceTheme": "dark",
+                    "appearanceDarkChromeTheme": {
+                        "fonts": {"ui": "Fixture Sans", "code": "Fixture Mono"},
+                    },
+                },
+            })
+        )
 
     def update(self) -> subprocess.CompletedProcess[str]:
-        """Run the generated wrapper and capture its exit status.
+        """Run the updater command and capture its exit status.
 
         Returns:
             The completed updater process.
 
         """
         return subprocess.run(
-            [shutil.which("bash") or "/bin/bash", self.script, str(self.path)],
+            [sys.executable, str(self.script), str(self.path), str(self.settings)],
             capture_output=True,
             text=True,
             check=False,
+            timeout=10,
         )
 
     def read(self) -> dict:
@@ -132,7 +147,3 @@ class AppearanceConfigTests(unittest.TestCase):
         self.assertEqual(self.update().returncode, 0)
         self.assertTrue(self.path.is_symlink())
         self.assertTrue(self.read()["desktop"]["customPreference"])
-
-
-if __name__ == "__main__":
-    unittest.main()

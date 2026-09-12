@@ -52,23 +52,20 @@
       assert nativeChecks desktop;
       assert nativeChecks macbook;
       assert nativeChecks generic;
-      pkgs.runCommand "git-email-privacy"
-        {
-          nativeBuildInputs = [
-            pkgs.python3
-            pkgs.git
-          ];
-          # Run the reusable module with this check's native package set. Host
-          # profiles above retain their own architectures and are asserted only.
+      (import ../../tests/python-check.nix { inherit pkgs; }) {
+        name = "git-email-privacy";
+        files = [
+          ../../tests/git_privacy
+          ../../modules/home/dev/scripts/git-privacy-hook.py
+        ];
+        testPaths = [ "tests/git_privacy" ];
+        selection = "nix_integration";
+        nativeBuildInputs = [ pkgs.git ];
+        # Exercise the generated commands with this check's native package set.
+        environment = {
           PRIVACY_COMMIT_COMMAND = generic.programs.git.settings.hook.email-privacy-commit.command;
           PRIVACY_PUSH_COMMAND = generic.programs.git.settings.hook.email-privacy-push.command;
-        }
-        ''
-          mkdir -p modules/home/dev/scripts tests/git_privacy
-          cp ${../../modules/home/dev/scripts/git-privacy-hook.py} modules/home/dev/scripts/git-privacy-hook.py
-          cp ${../../tests/git_privacy/test_hooks.py} tests/git_privacy/test_hooks.py
-          python3 -m unittest discover -s tests/git_privacy -v
-          touch "$out"
-        '';
+        };
+      };
   };
 }

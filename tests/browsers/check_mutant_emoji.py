@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: file-ignore[assert, print]
+# ruff: file-ignore[print]
 # Assertions and printed pass/fail summaries are intentional in this test CLI.
 """Exercise font selection plus shaping for every Mutant source encoding.
 

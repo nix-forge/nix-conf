@@ -12,10 +12,13 @@ import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
 import tomllib
 
 if TYPE_CHECKING:
     from typing import Any
+
+pytestmark = pytest.mark.nix_integration
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -252,7 +255,3 @@ class PublicTemplateTests(unittest.TestCase):
         )
         self.assertTrue(all(line.endswith(signing_key) for line in signers))
         self.assertNotIn("{{public:", rendered["git-allowedsigners"])
-
-
-if __name__ == "__main__":
-    unittest.main()

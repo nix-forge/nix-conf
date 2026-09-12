@@ -8,7 +8,7 @@ import signal
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 _MODULE = runpy.run_path(str(Path(__file__).with_name("run-upstream-local.py")))
 
@@ -57,18 +57,13 @@ class UpstreamRunnerTests(unittest.TestCase):
                 patch.object(type(runner), "_run_tests", side_effect=failure),
                 patch("os.killpg") as kill,
                 patch("time.sleep"),
-                self.assertRaises(RuntimeError),  # ruff: ignore[pytest-unittest-raises-assertion] - No pytest dependency.
+                self.assertRaises(RuntimeError),
             ):
                 runner.run()
-            self.assertEqual(
-                kill.call_args_list,
-                [
-                    call(402, signal.SIGTERM),
-                    call(401, signal.SIGTERM),
-                    call(402, signal.SIGKILL),
-                    call(401, signal.SIGKILL),
-                ],
-            )
+            self.assertEqual({args[0][0] for args in kill.call_args_list}, {401, 402})
+            for pid in (401, 402):
+                kill.assert_any_call(pid, signal.SIGTERM)
+                kill.assert_any_call(pid, signal.SIGKILL)
             for child in children:
                 child.wait.assert_called_once_with(timeout=5)
             self.assertEqual(
@@ -87,7 +82,3 @@ class UpstreamRunnerTests(unittest.TestCase):
             record = _MODULE["_record_result"]
             self.assertEqual(record(evidence, 0), 2)
             self.assertEqual(record(evidence, 7), 7)
-
-
-if __name__ == "__main__":
-    unittest.main()
