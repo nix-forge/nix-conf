@@ -1,5 +1,6 @@
 {
   imports = [
+    ./authentication-checks.nix
     ./cache-checks.nix
     ./checks.nix
     ./configurations.nix

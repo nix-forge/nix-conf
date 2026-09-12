@@ -84,6 +84,7 @@ let
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
     hyprshell = [ selected.hyprshell ];
+    hypridle = [ selected.hypridle ];
     virt-manager = [ selected.virt-manager ];
     grimblast = [ selected.grimblast-region ];
     hyprland = [ selected.hyprland ];

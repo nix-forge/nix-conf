@@ -24,6 +24,11 @@ in
     gtksourceview4 = fixes.apply "gtksourceview-xvfb" pkgs.gtksourceview4;
   };
   hyprshell = fixes.apply "hyprshell-modifiers" pkgs.hyprshell;
+  hypridle = fixes.apply "hypridle-condition-inhibitors" pkgs.hypridle;
+  # Retain the selected Hyprland dependency set for the native lock UI variant.
+  hyprlock-personal = pkgs.hyprlock-personal.override {
+    hyprlock = inputs.hyprlock.packages.${system}.hyprlock;
+  };
   hyprland = fixes.apply "hyprland-subsurface" hyprlandPackages.hyprland;
   xdg-desktop-portal-hyprland = fixes.apply "hyprland-portal" hyprlandPackages.xdg-desktop-portal-hyprland;
   grimblast-region = import ./permanent/grimblast-region.nix pkgs.grimblast;

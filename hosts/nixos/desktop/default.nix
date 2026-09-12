@@ -80,9 +80,9 @@
     # This covers system GTK/Qt programs and provides the primary Fontconfig
     # aliases for every account on the machine.
     stylix
-    ../../../modules/nixos/desktop-envs/hyprland.nix
-    ../../../modules/nixos/desktop-envs/interactive.nix
-    ../../../modules/nixos/display-managers/greetd.nix
+    desktop-envs-hyprland
+    desktop-envs-interactive
+    display-managers-noctalia
     locale-timesync
     services-runners
     services-application-recovery
@@ -96,8 +96,7 @@
   ];
 
   homes.ianmh = {
-    # Keep desktop-bootstrap available as a standalone recovery profile, but
-    # use the complete desktop environment for the installed workstation.
+    # Attach the complete home profile to the installed workstation.
     config = "ianmh@desktop";
     user = {
       description = "IanHollow";

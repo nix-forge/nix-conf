@@ -9,6 +9,8 @@
         (pkgs.lib.fileset.fileFilter (
           file: file.hasExt "py" || pkgs.lib.hasSuffix ".sh.in" file.name
         ) ../../modules)
+        ../../modules/nixos/display-managers/scripts/prepare-tuigreet-cache.sh
+        ../../modules/home/desktop/scripts/session-lock.sh
         ../../modules/nixos/hardware/scripts/disable-bluetooth-pairing.sh
         ../../modules/home/scripts/karakeep-launchd.sh
         ../../modules/home/scripts/configure-spotify-quality.sh

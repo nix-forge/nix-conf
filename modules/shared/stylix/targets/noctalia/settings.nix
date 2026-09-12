@@ -59,6 +59,8 @@
         hover_highlight = true;
         font_weight = 500;
         capsule = false;
+        # Hover backgrounds use the same small rounded rectangle as workspaces.
+        capsule_radius = 6;
       };
       # Stable opaque surfaces keep popup contrast independent of the wallpaper.
       notification = {
@@ -76,6 +78,8 @@
           icon_scale = 1.0;
           active_opacity = 1.0;
           inactive_opacity = 1.0;
+          # Keep labels neutral; the widget foreground supplies group fills.
+          focused_color = "on_surface";
           occupied_color = "on_surface_variant";
           color = "on_surface";
           capsule_radius = 6;
