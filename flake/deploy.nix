@@ -437,7 +437,11 @@ in
         assert desktop.determinate.enable;
         assert desktop.nix.settings.lazy-trees;
         assert desktop.services.fprintd.enable;
-        assert lib.elem desktop.services.fprintd.package desktop.services.dbus.packages;
+        # D-Bus packages may be merged to remove duplicate activation files.
+        assert lib.any (
+          package:
+          lib.elem (toString desktop.services.fprintd.package) (map toString (package.paths or [ package ]))
+        ) desktop.services.dbus.packages;
         assert lib.elem desktop.services.fprintd.package desktop.systemd.packages;
         assert desktop.security.pam.services."polkit-1".fprintAuth;
         assert desktop.security.pam.services.sudo.fprintAuth;
