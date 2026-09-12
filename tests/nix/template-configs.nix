@@ -110,11 +110,21 @@ let
       };
     }
   ];
+  backgroundDesktop = homeFor [
+    {
+      desktop.idle = {
+        enable = true;
+        backgroundAppClasses = [ "chatgpt" ];
+      };
+      wayland.windowManager.hyprland.enable = true;
+    }
+  ];
   files = pkgs.linkFarm "generated-template-configs" {
     "noctalia.toml" = shell.config.xdg.configFile."noctalia/config.toml".source;
     "palette.json" = shell.config.xdg.configFile."noctalia/palettes/Stylix.json".source;
     "swaync.json" = desktop.config.xdg.configFile."swaync/config.json".source;
     "hypridle.conf" = desktop.config.xdg.configFile."hypr/hypridle.conf".source;
+    "hypridle-background.conf" = backgroundDesktop.config.xdg.configFile."hypr/hypridle.conf".source;
     "hyprpaper.conf" = desktop.config.xdg.configFile."hypr/hyprpaper.conf".source;
     "cliphist.conf" = desktop.config.xdg.configFile."cliphist/config".source;
     "ironbar.css" = desktop.config.xdg.configFile."ironbar/style.css".source;
