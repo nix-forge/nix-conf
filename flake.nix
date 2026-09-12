@@ -238,7 +238,9 @@
 
       _module.args.myLib = myLib;
 
-      flake.nixSeal = nixSealCatalog;
+      flake.nixSeal = nixSealCatalog // {
+        defaultConfiguration = "nixosConfigurations.desktop";
+      };
 
       nixConfigFramework = {
         root = ./.;
