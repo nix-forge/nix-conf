@@ -1,4 +1,9 @@
-{ pkgs, inputs, ... }:
+{
+  pkgs,
+  inputs,
+  lib,
+  ...
+}:
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
 in
@@ -7,6 +12,7 @@ in
     extensions = extensions.forVscode [
       "dbaeumer.vscode-eslint"
       "esbenp.prettier-vscode"
+      "oxc.oxc-vscode"
       "idered.npm"
       "christian-kohler.npm-intellisense"
       "christian-kohler.path-intellisense"
@@ -14,6 +20,9 @@ in
     ];
 
     userSettings = {
+      # Opt in per repository; existing ESLint projects retain their tooling.
+      "oxc.requireConfig" = true;
+      "oxc.path.oxlint" = lib.getExe pkgs.oxlint;
       "javascript.suggest.paths" = false;
       "[javascript]" = {
         "editor.defaultFormatter" = "esbenp.prettier-vscode";

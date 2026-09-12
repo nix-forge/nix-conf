@@ -76,7 +76,10 @@ let
   # Exercise the public selection interface and its module consumers.
   packages = {
     prism = (import ../../modules/home/prismlauncher.nix { pkgs = selected; }).home.packages;
-    claude = (import ../../modules/home/dev/agentic-tui/claude.nix { pkgs = selected; }).home.packages;
+    claude = [
+      (import ../../modules/home/dev/agentic-tui/claude.nix { pkgs = selected; })
+      .programs.claude-code.package
+    ];
     deploy = [ selected.deploy-rs ];
     determinate = [ selected.nix ];
     nh = [ selected.nh ];
@@ -86,11 +89,20 @@ let
     hyprshell = [ selected.hyprshell ];
     hypridle = [ selected.hypridle ];
     virt-manager = [ selected.virt-manager ];
+    vscode = [ selected.vscode ];
     grimblast = [ selected.grimblast-region ];
     hyprland = [ selected.hyprland ];
     portal = [ selected.xdg-desktop-portal-hyprland ];
   }
-  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin { actual = [ selected.actual-server ]; };
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+    actual = [ selected.actual-server ];
+    swift = [ selected.swift ];
+    swift-consumers = [
+      selected.ocr-capture
+      selected.finder-favorites
+      selected.vorssaint
+    ];
+  };
   derivations = lib.mapAttrs (_: map (p: p.drvPath)) packages;
 in
 assert accepts "1.2";
@@ -158,6 +170,11 @@ assert
       inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
     ).drvPath;
 assert pkgs.stdenv.hostPlatform.isDarwin || selected.nh.drvPath == pkgs.nh.drvPath;
+assert
+  if pkgs.stdenv.hostPlatform.isLinux then
+    selected.vscode.drvPath != pkgs.vscode.drvPath
+  else
+    selected.vscode.drvPath == pkgs.vscode.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
 assert (fixes.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath != (nhAt "4.4.2").drvPath;
 assert builtins.all
@@ -171,6 +188,13 @@ assert (changed.apply "nh-darwin-home" nhFixed).drvPath == nhFixed.drvPath;
 assert !(succeeds (changed.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath);
 assert !(succeeds changed.review.nh-darwin-home);
 assert succeeds nhUpdated.review.nh-darwin-home;
+assert !(succeeds (changed.apply "swift-wrapper-hardening" pkgs.swift).drvPath);
+assert
+  if pkgs.stdenv.hostPlatform.isDarwin then
+    selected.swift.drvPath == selected.swiftPackages.swift.drvPath
+    && selected.swift.drvPath != pkgs.swift.drvPath
+  else
+    selected.swift.drvPath == pkgs.swift.drvPath;
 # A fix that changes the output version still checks the incoming version.
 assert release.version == "11.1.0";
 assert

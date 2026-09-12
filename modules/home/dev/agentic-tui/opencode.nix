@@ -163,11 +163,9 @@ let
   ];
   openaiOpenCodeSkills = [
     "openai-cli-creator"
-    "openai-define-goal"
     "openai-gh-address-comments"
     "openai-gh-fix-ci"
     "openai-playwright"
-    "openai-playwright-interactive"
     "openai-security-best-practices"
     "openai-security-ownership-map"
     "openai-security-threat-model"
@@ -192,8 +190,8 @@ in
       autoupdate = false;
       plugin = [
         "@opencode-ai/plugin@${pkgs.opencode.version}"
-        "opencode-gemini-auth@latest"
-        "@mohak34/opencode-notifier@latest"
+        "opencode-gemini-auth@1.4.15"
+        "@mohak34/opencode-notifier@0.2.8"
       ];
       formatter = documentedFormatters;
       lsp = documentedLsp;

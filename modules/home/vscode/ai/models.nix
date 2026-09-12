@@ -27,7 +27,6 @@ in
       # Experimental
       "github.copilot.chat.anthropic.tools.websearch.enabled" = true;
       "github.copilot.chat.anthropic.tools.websearch.maxUses" = 20;
-      "github.copilot.chat.anthropic.thinking.budgetTokens" = 32000;
       "inlineChat.notebookAgent" = true;
       "github.copilot.chat.notebook.enhancedNextEditSuggestions.enabled" = true;
       "github.copilot.chat.notebook.followCellExecution.enabled" = true;

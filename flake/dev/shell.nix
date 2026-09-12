@@ -17,6 +17,10 @@
         ++ (with pkgs; [
           bash
           coreutils
+          dbus
+          file
+          findutils
+          imagemagick
           gawk
           git
           gnugrep
@@ -26,6 +30,7 @@
           openssh
           perl
           restic
+          util-linux
         ]);
       };
       devShells.ci = pkgs.mkShellNoCC {
@@ -59,6 +64,7 @@
             nixd
             nixf-diagnose
             nixfmt
+            oxlint
             pinact
             prettier
             prek

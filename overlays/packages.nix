@@ -6,6 +6,9 @@ let
   prismUnwrapped = if isDarwin then fixes.apply "prismlauncher-darwin-tests" release else release;
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
+  swiftPackages = pkgs.swiftPackages // {
+    swift = fixes.apply "swift-wrapper-hardening" pkgs.swiftPackages.swift;
+  };
 in
 {
   prismlauncher = pkgs.prismlauncher.override { prismlauncher-unwrapped = prismUnwrapped; };
@@ -14,6 +17,15 @@ in
   deploy-rs = if isDarwin then fixes.apply "deploy-rs-darwin-tests" deploy else deploy;
 }
 // pkgs.lib.optionalAttrs isDarwin {
+  # swiftPackages is a recursive attribute set, not an overridable scope.
+  # Explicit consumers keep SwiftPM and the compiler on their existing pin.
+  inherit swiftPackages;
+  inherit (swiftPackages) swift;
+  ocr-capture = pkgs.ocr-capture.override { inherit swiftPackages; };
+  finder-favorites = (pkgs.finder-favorites.override { inherit swiftPackages; }).overrideAttrs {
+    SWIFT_EXEC = "${swiftPackages.swift}/bin/swiftc";
+  };
+  vorssaint = pkgs.vorssaint.override { inherit (swiftPackages) swift; };
   actual-server = fixes.apply "actual-server-case" pkgs.actual-server;
   nh = pkgs.nh.override { nh-unwrapped = fixes.apply "nh-darwin-home" pkgs.nh-unwrapped; };
 }
@@ -23,6 +35,7 @@ in
   virt-manager = pkgs.virt-manager.override {
     gtksourceview4 = fixes.apply "gtksourceview-xvfb" pkgs.gtksourceview4;
   };
+  vscode = fixes.apply "vscode-oniguruma-layout" pkgs.vscode;
   hyprshell = fixes.apply "hyprshell-modifiers" pkgs.hyprshell;
   hypridle = fixes.apply "hypridle-condition-inhibitors" pkgs.hypridle;
   # Retain the selected Hyprland dependency set for the native lock UI variant.

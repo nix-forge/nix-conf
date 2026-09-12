@@ -153,6 +153,15 @@ class NativeSelectionTests(NativeSelectionFixture):
         _flake(self.root, 'demo = package "demo" "1";')
         self._select([])
 
+    def test_broken_retired_export_does_not_rebuild_unchanged_packages(self) -> None:
+        """A removed historical output cannot invalidate remaining comparisons."""
+        _flake(self.root, DEFAULT_ENTRIES + ' retired = throw "retired output";')
+        self.base = _commit(self.root)
+        _flake(self.root)
+        self._select([])
+        self._change_dependency()
+        self._select(["demo"])
+
     def test_empty_current_set(self) -> None:
         """Return an explicit empty list instead of a default build target."""
         _flake(self.root, "")
@@ -319,6 +328,35 @@ class HostedBuildPolicyTests(NativeSelectionFixture):
         self._select(["demo"], base="", candidates=("demo",))
         self.policy.write_text('{"demo": "Evaluation only: fixture restriction"}')
         self._select([], base="", candidates=("demo",))
+
+    def test_unselected_packages_remain_lazy(self) -> None:
+        """Neither current nor historical unselected derivations are forced."""
+        _flake(self.root, 'demo = package "demo" "1"; other = throw "unselected";')
+        self.base = _commit(self.root)
+        self._select([], candidates=("demo",))
+        self._select(["demo"], base="", candidates=("demo",))
+
+    def test_new_representative_keeps_unchanged_base(self) -> None:
+        """A missing historical candidate does not rebuild unchanged candidates."""
+        _flake(self.root, DEFAULT_ENTRIES + ' extra = package "extra" "1";')
+        self._select(["extra"], candidates=("demo", "extra"))
+
+    def test_invalid_selected_package(self) -> None:
+        """Projection retains selected derivation validation."""
+        _flake(self.root, 'demo = { drvPath = 3; }; other = package "other" "1";')
+        self._select(None, candidates=("demo",))
+
+    def test_unknown_excluded_representative(self) -> None:
+        """An exclusion cannot hide a stale explicit candidate name."""
+        self.policy.write_text('{"foreign": "Evaluation only: another platform"}')
+        self._select(None, candidates=("foreign",))
+
+    def test_representative_name_is_literal(self) -> None:
+        """Special characters in candidate names cannot become Nix expressions."""
+        name = 'quote" slash\\ dollar${throw "interpolation"}'
+        literal = json.dumps(name).replace("${", r"\${")
+        _flake(self.root, f'{literal} = package "literal" "1";')
+        self._select([], base=_commit(self.root), candidates=(name,))
 
     def test_unknown_representative(self) -> None:
         """Reject a stale explicit selection rather than silently losing coverage."""

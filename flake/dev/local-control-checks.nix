@@ -1,4 +1,10 @@
-{ inputs, myLib, ... }: {
+{
+  inputs,
+  self,
+  myLib,
+  ...
+}:
+{
   perSystem =
     { pkgs, ... }:
     let
@@ -11,8 +17,7 @@
       preparationProof = localControlLibrary.mkPreparationProof pkgs;
       preparationGate = localControlLibrary.mkPreparationGate pkgs;
       privatePathGuard = localControlLibrary.mkPrivatePathGuard pkgs;
-      finderFavoritesSwift =
-        inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.finder-favorites;
+      finderFavoritesSwift = self.darwinConfigurations.macbook-pro-m4.pkgs.finder-favorites;
       localControlProxyConfig = pkgs.replaceVarsWith {
         name = "local-control-proxy-check.conf";
         src = ../../homes/macbook-pro-m4/local/local-control/config/proxy.Caddyfile.in;
