@@ -164,8 +164,8 @@
 
       }
       // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
-        clamav-special-files = import ../../tests/nix/clamav-special-files.nix { inherit pkgs; };
         clamav-runtime = import ../../tests/nix/clamav-runtime.nix { inherit pkgs; };
+        clamav-special-files = import ../../tests/nix/clamav-special-files.nix { inherit pkgs; };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
         macos-home-dry-run =
