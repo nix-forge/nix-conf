@@ -8,9 +8,7 @@
       key = "nix-conf/stylix/authentication/nixos";
       config = lib.mkIf (config.stylix.enable && config.services.displayManager.noctalia-greeter.enable) {
         services.displayManager.noctalia-greeter = {
-          cursorTheme = {
-            inherit (config.stylix.cursor) package name;
-          };
+          cursorTheme = { inherit (config.stylix.cursor) package name; };
           settings = {
             appearance = {
               scheme = "Synced";
