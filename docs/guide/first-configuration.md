@@ -39,8 +39,7 @@ Source declarations live in `home.nix` and the small files under `modules/`.
 <!-- include: templates/starter/home.nix -->
 
 ```nix
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   imports = [
     ./modules/git.nix
     ./modules/shell.nix
