@@ -98,7 +98,7 @@ jobs:
           system: x86_64-linux
           checks-output: lintChecks
       - name: Test native package selection
-        run: python3 -m unittest discover -s .github/tests
+        run: nix develop .#tests --command python3 -m pytest -m nix_daemon tests/ci
       - name: Run submodule hooks
         run: |
           git submodule foreach --recursive '

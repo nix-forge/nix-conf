@@ -1530,13 +1530,6 @@ in
             shellcheck -s bash ${../modules/nixos/virtualisation/scripts/libvirt-workstation-control.sh.in}
             shellcheck -s bash ${../modules/nixos/virtualisation/scripts/libvirt-windows-vm-control.sh.in}
             shellcheck -s sh ${../homes/desktop/local/scripts/create-libvirt-vm-key.sh}
-            export LIBVIRT_WORKSTATION_SETUP_TEMPLATE=${../modules/nixos/virtualisation/scripts/libvirt-workstation-setup.sh.in}
-            export LIBVIRT_WINDOWS_VM_CONTROL_TEMPLATE=${../modules/nixos/virtualisation/scripts/libvirt-windows-vm-control.sh.in}
-            export WINDOWS_VM_SEED_RENDERER=${../modules/nixos/virtualisation/scripts/windows-vm-render-seed.py}
-            python3 -m unittest discover \
-              --start-directory ${../tests/virtualisation} \
-              --pattern 'test_*.py' \
-              --verbose
             touch "$out"
           '';
 

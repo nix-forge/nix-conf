@@ -7,7 +7,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts/select-native-packages.sh"
+import pytest
+
+pytestmark = [pytest.mark.nix_daemon, pytest.mark.usefixtures("isolated_git")]
+
+SCRIPT = (
+    Path(__file__).resolve().parents[2] / ".github/scripts/select-native-packages.sh"
+)
 DEFAULT_ENTRIES = (
     'demo = package "demo" (import ./version.nix); other = package "other" "1";'
 )

@@ -173,7 +173,3 @@ class WindowsSeedRendererTests(unittest.TestCase):
                     root / "administrator-password.txt",
                     password_file,
                 )
-
-
-if __name__ == "__main__":
-    unittest.main()

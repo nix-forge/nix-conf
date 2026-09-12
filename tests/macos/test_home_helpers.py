@@ -12,7 +12,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-MODULE_DIRECTORY = Path(os.environ["MACOS_HOME_MODULE_DIRECTORY"])
+MODULE_DIRECTORY = Path(
+    os.environ.get(
+        "MACOS_HOME_MODULE_DIRECTORY",
+        Path(__file__).parents[2] / "modules/home/macos",
+    )
+)
 
 
 class MacOSHomeHelperTests(unittest.TestCase):
@@ -68,13 +73,7 @@ class MacOSHomeHelperTests(unittest.TestCase):
                 env=environment,
             )
 
-        self.assertEqual(  # ruff:ignore[pytest-unittest-assertion]
-            result.returncode, 0, msg=result.stderr
-        )
-        self.assertEqual(  # ruff:ignore[pytest-unittest-assertion]
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertEqual(
             result.stdout.strip(), hashlib.sha256(expected_json).hexdigest()
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

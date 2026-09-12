@@ -11,6 +11,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.nix_integration
+
 SCRIPT = (
     Path(__file__).resolve().parents[2] / "modules/home/dev/scripts/git-privacy-hook.py"
 )
@@ -413,7 +417,3 @@ class HookTests(unittest.TestCase):
         )
         self._git("tag", "blob-tag", blob)
         self._blocked(self._git("push", "origin", "blob-tag", check=False))
-
-
-if __name__ == "__main__":
-    unittest.main()

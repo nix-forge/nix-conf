@@ -1,11 +1,16 @@
 """Exercise the production theme importer against changing target inventories."""
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
+
+pytestmark = [pytest.mark.nix_daemon, pytest.mark.usefixtures("isolated_git")]
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,10 +50,11 @@ class ThemeDiscoveryTests(unittest.TestCase):
 
     @staticmethod
     def _discover(root: Path) -> list[str]:
-        expression = """
+        expression = (
+            """
             let
-                inputs = (builtins.getFlake ROOT).inputs;
-                lib = inputs.nixpkgs.lib;
+                lib = import NIXPKGS_LIB;
+                inputs.nix-config-framework.lib = import FRAMEWORK_LIB { inherit lib; };
                 evaluated = lib.evalModules {
                     specialArgs = { inherit inputs; };
                     modules = [
@@ -61,8 +67,12 @@ class ThemeDiscoveryTests(unittest.TestCase):
                     ];
                 };
             in evaluated.config.discovered
-        """.replace("ROOT", json.dumps(str(ROOT))).replace(
-            "MODULE", json.dumps(str(root / "home.nix"))
+        """
+            .replace("NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib"))
+            .replace(
+                "FRAMEWORK_LIB", json.dumps(os.environ["NIX_TEST_FRAMEWORK"] + "/lib")
+            )
+            .replace("MODULE", json.dumps(str(root / "home.nix")))
         )
         result = subprocess.run(
             ["nix", "eval", "--impure", "--json", "--expr", expression],
@@ -71,7 +81,3 @@ class ThemeDiscoveryTests(unittest.TestCase):
             text=True,
         )
         return json.loads(result.stdout)
-
-
-if __name__ == "__main__":
-    unittest.main()

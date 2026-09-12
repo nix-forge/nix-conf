@@ -129,7 +129,6 @@
               export XDG_CACHE_HOME="$TMPDIR/font-cache"
               mkdir -p "$out"
               python ${testSource}/tests/fonts/check_selection.py --providers ${providers} --output "$out/selection.json"
-              python -m unittest discover -s ${testSource}/tests/fonts -p test_shaping.py
               python ${testSource}/tests/fonts/check_emoji_coverage.py --emoji-data ${emojiData}
             '';
         font-ownership =

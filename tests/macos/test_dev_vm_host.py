@@ -12,7 +12,10 @@ from pathlib import Path
 from unittest import mock
 
 MODULE_PATH = Path(
-    os.environ.get("DEV_VM_HOST_MODULE", Path(__file__).with_name("dev_vm_host.py"))
+    os.environ.get(
+        "DEV_VM_HOST_MODULE",
+        Path(__file__).parents[2] / "homes/macbook-pro-m4/local/dev_vm_host.py",
+    )
 )
 SPEC = importlib.util.spec_from_file_location("dev_vm_host", MODULE_PATH)
 if SPEC is None or SPEC.loader is None:
@@ -407,7 +410,3 @@ class ResolverTests(unittest.TestCase):
             "172.16.42.0/24",
         )
         stdout.write.assert_called_once_with("172.16.42.129\n")
-
-
-if __name__ == "__main__":
-    unittest.main()

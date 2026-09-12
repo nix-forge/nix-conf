@@ -24,7 +24,7 @@
           artifactChecks
           // integrationChecks
           // {
-            inherit (config.checks) macos-home-helpers browser-home-helpers dev-vm-host-resolution;
+            inherit (config.checks) python-tests;
           }
         );
       };

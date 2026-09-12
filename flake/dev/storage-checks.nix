@@ -14,21 +14,6 @@
     in
     {
       checks = lib.optionalAttrs (system == "x86_64-linux") {
-        desktop-backup-recovery =
-          pkgs.runCommand "desktop-backup-recovery"
-            {
-              nativeBuildInputs = [
-                (pkgs.python3.withPackages (ps: [ ps.pytest ]))
-                pkgs.restic
-              ];
-            }
-            ''
-              mkdir -p hosts/nixos/desktop/local/storage tests/storage
-              cp ${../../hosts/nixos/desktop/local/storage/backup-helper.py} hosts/nixos/desktop/local/storage/backup-helper.py
-              cp ${../../tests/storage/test_backup.py} tests/storage/test_backup.py
-              pytest -q tests/storage/test_backup.py
-              touch "$out"
-            '';
         desktop-storage-install = import ../../tests/storage/install.nix {
           inherit pkgs;
           diskoLib = import "${inputs.disko}/lib" {

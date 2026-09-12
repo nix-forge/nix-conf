@@ -1,3 +1,23 @@
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["tests/fonts"]
+addopts = [
+  "--import-mode=importlib",
+  "--strict-config",
+  "--strict-markers",
+  "-p", "pytest_timeout",
+  "-ra",
+  "-m", "not nix_integration and not nix_daemon",
+]
+timeout = 120
+xfail_strict = true
+markers = [
+  "nix_integration: requires generated artifacts supplied by its Nix check",
+  "nix_daemon: exercises Git/Nix orchestration outside the build sandbox",
+]
+
 [tool.ruff]
 # The framework has no Ruff project; its own CI owns its Python helpers.
 # Do not impose this configuration across that Git repository boundary.
@@ -58,12 +78,19 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  # Pytest also runs the retained TestCase suites. Keep useful assertions while
+  # using plain pytest functions for new tests and substantial rewrites.
+  "assert",
+  "pytest-unittest-assertion",
+  "pytest-unittest-raises-assertion",
+]
 "modules/home/dev/scripts/git-privacy-hook.py" = [
   # Invoke pinned Git/gh and executable repository hooks directly, without a shell.
   "subprocess-without-shell-equals-true",
 ]
 "tests/git_privacy/test_hooks.py" = [
-  # Real Git subprocesses run only in disposable fixtures with stdlib unittest.
+  # Real Git subprocesses run only in disposable fixtures with pytest.
   "pytest-unittest-assertion",
   "suspicious-subprocess-import",
   "subprocess-without-shell-equals-true",
@@ -96,28 +123,28 @@ strict = true
   "assert",
 ]
 "tests/codex/test_appearance_config.py" = [
-  # Exercise the generated updater on temporary configs with the stdlib runner.
+  # Exercise the generated updater on temporary configs with pytest.
   "pytest-unittest-assertion",
   "suspicious-subprocess-import",
   "subprocess-without-shell-equals-true",
 ]
-".github/tests/test_*.py" = [
-  # Exercise real Git and Nix commands in disposable repositories using stdlib tests.
+"tests/ci/test_*.py" = [
+  # Exercise real Git and Nix commands in disposable repositories using pytest.
   "pytest-unittest-assertion",
   "suspicious-subprocess-import",
   "subprocess-without-shell-equals-true",
   "start-process-with-partial-path",
 ]
-# Synthetic migration and rollback tests run with only the standard library.
+# Migration and rollback tests use disposable fixtures.
 "tests/secrets/test_secret_templates.py" = [
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
 ]
-# Keep this runner regression usable with the standard-library test runner.
+# Runner regression tests isolate children from the live compositor.
 "tests/hyprland/test_upstream_local_runner.py" = ["pytest-unittest-assertion"]
 
 "tests/secrets/test_public_templates.py" = [
-  # Exercise the installed CLI with disposable keys using the stdlib runner.
+  # Exercise the installed CLI with disposable keys using pytest.
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
   "suspicious-subprocess-import",
@@ -131,24 +158,23 @@ strict = true
   "suspicious-xml-etree-import",       # ElementTree only proves that the locally generated answer file is well-formed.
 ]
 "tests/browsers/test_gecko_install_registry.py" = [
-  # The check uses the standard-library unittest runner in the Nix sandbox.
+  # The check exercises the command in the Nix sandbox.
   "pytest-unittest-assertion",
 ]
 "tests/virtualisation/test_windows_seed_renderer.py" = [
   "hardcoded-password-string",         # Test-only credential fixtures contain no operational secret.
-  "pytest-unittest-assertion",         # The Nix sandbox intentionally uses the standard-library unittest runner.
-  "pytest-unittest-raises-assertion",  # Keep the focused check free of a pytest runtime dependency.
+  "pytest-unittest-assertion",         # Pytest supports the retained TestCase assertions.
+  "pytest-unittest-raises-assertion",  # Pytest supports TestCase exception assertions.
   "suspicious-xml-element-tree-usage", # The parsed document was generated from a fixed local test template.
   "suspicious-xml-etree-import",       # ElementTree is sufficient for trusted test output without entity declarations.
 ]
 "tests/virtualisation/test_libvirt_workstation_setup.py" = [
-  "pytest-unittest-assertion",            # The Nix sandbox intentionally uses the standard-library unittest runner.
+  "pytest-unittest-assertion",            # Pytest supports the retained TestCase assertions.
   "subprocess-without-shell-equals-true", # The test invokes a generated fixture path without a shell.
   "suspicious-subprocess-import",         # The subprocess is the script under test.
 ]
-"homes/macbook-pro-m4/local/dev_vm_host_test.py" = [
-  # This Nix check deliberately uses only the Python standard library so it
-  # can validate the runtime resolver without adding pytest to the closure.
+"tests/macos/test_dev_vm_host.py" = [
+  # Keep TestCase fixtures while running through the shared pytest configuration.
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
 ]

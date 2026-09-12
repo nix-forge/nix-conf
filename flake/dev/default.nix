@@ -8,8 +8,10 @@
     ./generated-config-checks.nix
     ./git-hooks.nix
     ./git-privacy-checks.nix
+    ./local-control-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
+    ./python-checks.nix
     ./shell.nix
     ./storage-checks.nix
     ./theme-checks.nix

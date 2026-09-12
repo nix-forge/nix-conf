@@ -5,6 +5,16 @@ flake := justfile_directory()
 default:
     @just --list --justfile {{ justfile() }}
 
+# Run root Python behavior tests with pinned dependencies; pass pytest selectors.
+[group('Checks')]
+test-python *args:
+    cd {{ quote(flake) }} && nix develop {{ quote(flake) }}#tests --command python3 -m pytest {{ args }}
+
+# Exercise CI orchestration against disposable Git repositories and a real Nix daemon.
+[group('Checks')]
+test-ci *args:
+    cd {{ quote(flake) }} && nix develop {{ quote(flake) }}#tests --command python3 -m pytest -m nix_daemon tests/ci {{ args }}
+
 # Build all generated-file checks for this platform, including rejection tests.
 [group('Checks')]
 generated-checks:
@@ -13,7 +23,7 @@ generated-checks:
 # Install/boot disposable disks and exercise backup restoration and policy checks.
 [group('Checks')]
 desktop-storage-check:
-    nix build --no-link "path:{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "path:{{ flake }}#checks.x86_64-linux.desktop-backup-recovery" "path:{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+    nix build --no-link "path:{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "path:{{ flake }}#checks.x86_64-linux.python-tests" "path:{{ flake }}#checks.x86_64-linux.desktop-storage-install"
 
 # Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
 [group('NixOS')]
