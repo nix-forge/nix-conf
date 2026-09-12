@@ -93,8 +93,11 @@ assert idle == {
     ],
 }
 background_idle = _hyprconf("hypridle-background.conf")
-assert background_idle["general"][0]["ignore_wayland_inhibit"] == "true"
+background_general = background_idle["general"]
+assert isinstance(background_general, list)
+assert background_general[0]["ignore_wayland_inhibit"] == "true"
 background_listeners = background_idle["listener"]
+assert isinstance(background_listeners, list)
 assert [listener["timeout"] for listener in background_listeners] == [
     "300",
     "330",
