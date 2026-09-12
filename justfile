@@ -213,3 +213,18 @@ update-package package *args: prepare-pkgs-branch
 [group('Maintenance')]
 fonts-check output="/tmp/font-check" browser="":
     nix run {{ flake }}#font-check -- {{ quote(output) }} {{ if browser == "" { "" } else { quote(browser) } }}
+
+# Record exact-source validation or repeatable phase measurements in private storage.
+[group('Checks')]
+evidence *args:
+    cd {{ quote(flake) }} && {{ task }} nix run .#workstation-evidence -- {{ args }}
+
+# Capture a native desktop build with its evaluated and realized system output.
+[group('Checks')]
+desktop-validation-build: (guard-desktop-build-location "desktop")
+    cd {{ quote(flake) }} && {{ task }} nix run .#workstation-evidence -- run --target desktop --check full-system --phase build --installable nixosConfigurations.desktop.config.system.build.toplevel -- just os-build desktop
+
+# Keep the required validation inventory separate from observed run records.
+[group('Checks')]
+validation-manifest:
+    cd {{ quote(flake) }} && {{ task }} nix eval --json .#validationManifest
