@@ -27,9 +27,7 @@ in
 
   config = lib.mkIf supported {
     home.packages = [
-      (self.packages.${system}.openai-codex-desktop.override {
-        inherit (cfg) extraPackages;
-      })
+      (self.packages.${system}.openai-codex-desktop.override { inherit (cfg) extraPackages; })
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin cfg.extraPackages;
   };
