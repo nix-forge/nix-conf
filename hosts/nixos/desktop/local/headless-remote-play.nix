@@ -1,8 +1,18 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   steam = lib.getExe config.programs.steam.package;
 in
 {
+  # Preserve Sunshine's NVIDIA capture/conversion path without making every
+  # CUDA-aware package in the desktop closure select its CUDA variant.
+  services.sunshine.package = pkgs.sunshine.override { cudaSupport = true; };
+  nix.caches.cuda.enable = true;
+
   # This is desktop-user behaviour, not a generic Sunshine policy. Steam is
   # explicitly detached because it replaces its bootstrap process during
   # startup. Do not add an undo command: Sunshine runs undo commands after a
