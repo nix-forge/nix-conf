@@ -1,14 +1,9 @@
 # Keep the shared helper interface explicit. Adding a file beside a helper must
 # not import it or silently replace an existing export.
-{ lib }:
-{
-  dir = {
-    inherit (import ./dir/collect.nix { inherit lib; }) collectBySuffix;
-  };
+{ lib }: {
+  dir = { inherit (import ./dir/collect.nix { inherit lib; }) collectBySuffix; };
 
-  desktop = {
-    inherit (import ./desktop/gtk-css-check.nix { inherit lib; }) mkGtkCssChecker;
-  };
+  desktop = { inherit (import ./desktop/gtk-css-check.nix { inherit lib; }) mkGtkCssChecker; };
 
   writers = {
     inherit (import ./writers/bash.nix { inherit lib; }) writeBashTemplate;
