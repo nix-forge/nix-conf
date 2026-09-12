@@ -421,13 +421,13 @@ def test_identity_matches_nix_git_filtering(submodule_repository: Path) -> None:
     root = submodule_repository
     (root / "flake.lock").unlink()
     (root / "flake.nix").write_text("""{
-      inputs.self.submodules = true;
-      outputs = { self }: { observed = {
-        tracked = builtins.pathExists (self + "/added");
-        hidden = builtins.pathExists (self + "/untracked");
-        childHidden = builtins.pathExists (self + "/child/untracked");
-        childLock = builtins.readFile (self + "/child/flake.lock");
-      }; };
+        inputs.self.submodules = true;
+        outputs = { self }: { observed = {
+            tracked = builtins.pathExists (self + "/added");
+            hidden = builtins.pathExists (self + "/untracked");
+            childHidden = builtins.pathExists (self + "/child/untracked");
+            childLock = builtins.readFile (self + "/child/flake.lock");
+        }; };
     }""")
     git_fixture(root, "add", "-A")
     git_fixture(root, "commit", "-m", "dependency-free filtering fixture")

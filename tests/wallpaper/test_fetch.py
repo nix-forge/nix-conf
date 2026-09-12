@@ -82,24 +82,24 @@ set -eu
 out=''
 api=0
 for arg in "$@"; do
-  case "$arg" in
+    case "$arg" in
 *w/api.php) api=1 ;;
 gcmtitle=Category:Featured*) touch "'''
             + str(root / "curated-query")
             + '''" ;;
 pageids=*) exit 99 ;;
-  esac
+    esac
 done
 while [ "$#" -gt 0 ]; do
-  if [ "$1" = '--output' ]; then out="$2"; shift; fi
-  shift
+    if [ "$1" = '--output' ]; then out="$2"; shift; fi
+    shift
 done
 if [ "$api" -eq 1 ]; then
-  cp "'''
+    cp "'''
             + str(payload)
             + '''" "$out"
 else
-  cp "'''
+    cp "'''
             + str(original)
             + """" "$out"
 fi
