@@ -21,11 +21,7 @@
     {
       checks = artifactChecks // {
         generated-artifacts = pkgs.linkFarm "generated-artifact-checks" (
-          artifactChecks
-          // integrationChecks
-          // {
-            inherit (config.checks) python-tests;
-          }
+          artifactChecks // integrationChecks // { inherit (config.checks) python-tests; }
         );
       };
     };

@@ -7,9 +7,11 @@ addopts = [
   "--import-mode=importlib",
   "--strict-config",
   "--strict-markers",
-  "-p", "pytest_timeout",
+  "-p",
+  "pytest_timeout",
   "-ra",
-  "-m", "not nix_integration and not nix_daemon",
+  "-m",
+  "not nix_integration and not nix_daemon",
 ]
 timeout = 120
 xfail_strict = true
