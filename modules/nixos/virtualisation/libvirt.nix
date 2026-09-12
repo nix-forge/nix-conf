@@ -282,6 +282,9 @@ let
   rawStoragePoolDefinition = pkgs.writeText "libvirt-${cfg.storage.poolName}-storage-pool.xml" ''
     <pool type="dir">
       <name>${cfg.storage.poolName}</name>
+      <features>
+        <cow state="${if cfg.storage.nocow then "no" else "yes"}"/>
+      </features>
       <target>
         <path>${cfg.storage.root}</path>
         <permissions>
@@ -339,13 +342,13 @@ let
       libvirtUri = escapeShellArg libvirtUri;
       mktemp = getExe' pkgs.coreutils "mktemp";
       networkManifest = escapeShellArg networkManifest;
-      perl = getExe pkgs.perl;
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
       poolDefinition = escapeShellArg storagePoolDefinition;
       poolName = escapeShellArg cfg.storage.poolName;
       poolPath = escapeShellArg cfg.storage.root;
       rm = getExe' pkgs.coreutils "rm";
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
-      xmllint = getExe' pkgs.libxml2 "xmllint";
     };
   };
 
@@ -414,7 +417,8 @@ let
       vfioProfile = escapeShellArg cfg.vfio.specialisationName;
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
       virtHostValidate = getExe' config.virtualisation.libvirtd.package "virt-host-validate";
-      xmllint = getExe' pkgs.libxml2 "xmllint";
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
     };
   };
 
@@ -427,7 +431,8 @@ let
       guestManifest = escapeShellArg guestManifest;
       privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
       ssh = getExe pkgs.openssh;
-      sudo = getExe pkgs.sudo;
+      # Store binaries cannot carry setuid permissions; use the NixOS wrapper.
+      sudo = "${config.security.wrapperDir}/sudo";
       virtManager = getExe config.programs.virt-manager.package;
     };
   };

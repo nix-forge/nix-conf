@@ -1,4 +1,4 @@
-{
+{ config, ... }: {
   # This is an on-demand Nix build fallback, not a resident ARM VM. The kernel
   # starts QEMU user-mode translation only when an aarch64-linux executable is
   # invoked. Native ARM builds should still use the M4 when practical.
@@ -54,9 +54,9 @@
       };
     };
 
-    # This host stores VM images on Btrfs. New files inherit NOCOW to avoid
-    # double copy-on-write; existing images still need an individual audit.
-    storage.nocow = true;
+    # The encrypted layout keeps checksums and compression for new VM images.
+    # Preserve the legacy policy until its existing images are migrated.
+    storage.nocow = !config.hardware.storage.encryptedRoot.enable;
 
     windowsVm = {
       enable = true;

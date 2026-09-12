@@ -8,6 +8,7 @@
 let
   cfg = config.hardware.storage.encryptedRoot;
   destinations = cfg.backup.destinations;
+  health = cfg.health;
   mounts =
     if cfg.enable then
       [
@@ -45,6 +46,7 @@ let
   policy = pkgs.writeText "desktop-storage-health.json" (
     builtins.toJSON {
       inherit mounts units;
+      inherit (health) probes notificationCommand;
       encrypted = cfg.enable;
       warningPercent = 80;
       stateDirectory = "/var/lib/desktop-storage";
@@ -67,7 +69,60 @@ let
   };
 in
 {
+  options.hardware.storage.encryptedRoot.health = {
+    notificationCommand = lib.mkOption {
+      type = lib.types.nullOr (lib.types.listOf lib.types.str);
+      default = null;
+      description = "Optional session-independent delivery command. Receives redacted event JSON on stdin and must return success only after accepting delivery. Credentials belong in runtime files; null retains pending warnings locally.";
+    };
+    probes = lib.mkOption {
+      default = { };
+      description = "Additional bounded health commands and successful-work freshness checks. Probe names are public notification labels.";
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options = {
+            command = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              description = "Command arguments with an absolute executable; nonzero exit is an alert. Output is never included in notifications.";
+            };
+            timeoutSeconds = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 15;
+              description = "Maximum command duration.";
+            };
+            receipt = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Runtime JSON containing completed Unix seconds and optional result, which must be success. Missing, malformed and future records alert.";
+            };
+            maxAgeSeconds = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 86400;
+              description = "Maximum age of successful work.";
+            };
+          };
+        }
+      );
+    };
+  };
   config = {
+    assertions = [
+      {
+        assertion =
+          health.notificationCommand == null
+          || (
+            health.notificationCommand != [ ] && lib.hasPrefix "/" (builtins.head health.notificationCommand)
+          );
+        message = "Storage health notificationCommand must have an absolute executable.";
+      }
+    ]
+    ++ lib.mapAttrsToList (_: probe: {
+      assertion =
+        (probe.command != [ ] || probe.receipt != null)
+        && (probe.command == [ ] || lib.hasPrefix "/" (builtins.head probe.command));
+      message = "Storage health probes require a command or receipt, and command executables must be absolute.";
+    }) health.probes;
     environment.systemPackages = [ helper ];
     systemd.tmpfiles.rules = [
       "d /var/lib/desktop-storage 0755 root root - -"
@@ -92,6 +147,27 @@ in
       timerConfig = {
         OnBootSec = "5m";
         OnUnitActiveSec = "30m";
+      };
+    };
+    # This timer is independent of collection and the graphical session, so a
+    # failed collector can still deliver its stale-result alert.
+    systemd.services.desktop-storage-delivery = {
+      description = "Deliver changed workstation health state or retain pending warnings";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe helper} deliver";
+        UMask = "0077";
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = [ "/var/lib/desktop-storage" ];
+        PrivateTmp = true;
+      };
+    };
+    systemd.timers.desktop-storage-delivery = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "6m";
+        OnUnitActiveSec = "10m";
       };
     };
     systemd.user.services.desktop-storage-notify = {
