@@ -227,7 +227,10 @@
         inputs.nix-seal.flakeModules.default
         inputs.nix-seal.flakeModules.nix-config-framework
         ./flake/partitions.nix
+        ./flake/documentation.nix
+        ./flake/public-guide.nix
         ./flake/validation.nix
+        ./flake/feature-catalog.nix
         ./flake/lint-checks.nix
         ./flake/deploy.nix
         ./flake/schemas.nix

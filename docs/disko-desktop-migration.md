@@ -15,7 +15,7 @@ for snapshots, backups and recovery checks.
 | --- | --- |
 | System SSD | 2 GiB FAT32 ESP; 16 GiB randomly encrypted swap; remaining space LUKS2 `cryptroot` containing Btrfs |
 | Data SSD | LUKS2 `cryptdata` containing a separate Btrfs filesystem |
-| System subvolumes | Root, home, Nix store, `/var`, logs, caches, Docker, containerd and rootless Docker |
+| System subvolumes | Root, home, home cache, Nix store, `/var`, logs, system cache, Docker, containerd and rootless Docker |
 | Data subvolumes | `/srv/data`, `/srv/data/work`, `/mnt/games`, `/var/lib/libvirt/images` |
 
 Both Btrfs filesystems use data SINGLE, metadata DUP and `compress=zstd:1`.
@@ -108,6 +108,19 @@ new filesystem boundaries intact. Do not overwrite generated `/etc/fstab`,
 `/etc/crypttab`, or the new ESP with old versions. Preserve ownership, ACLs,
 extended attributes and sparse VM files when copying application state.
 
+The home cache now has its own subvolume. Restore ordinary home files around
+that boundary; disposable cache data can be regenerated. If adapting an already
+installed encrypted layout, create and populate the cache subvolume offline
+before enabling its mount. A normal rebuild does not create Disko subvolumes.
+Snapshot directories must remain root-owned with mode `0700` after restore.
+
+The encrypted layout retains CoW and data checksums for new VM images. Restoring
+an old NOCOW image can preserve its `C` attribute. With the VM stopped, copy such
+images into fresh CoW files without reflinks, verify their contents and disk
+format, and retain the originals until a boot and application recovery test
+passes. Clearing `C` on a directory changes new-file inheritance only. See
+[storage operations](desktop-storage-operations.md) for the pool policy.
+
 Install using the prepared checkout:
 
 ```sh
@@ -195,12 +208,18 @@ Secure Boot and TPM-PIN configuration without activation or changing deployment
 flags. This build is separate from enrolling firmware or disk credentials.
 
 The VM check provisions two LUKS2/Btrfs devices, verifies metadata DUP and
-randomly encrypted swap across cold boots, checks data persistence and snapshot
-exclusions, and exercises the generated backup and verification services.
+randomly encrypted swap across cold boots, checks data persistence, private
+snapshot access, cache and container exclusions, and CoW inheritance for new VM
+image files. It exercises the generated backup and verification services.
 It also boots with the data unlock key unavailable and verifies home snapshots
 and cleanup remain functional. Missing backup media must fail without creating
 a replacement repository beneath an unmounted directory. The cold-backup guard
 must refuse normal multi-user operation.
+
+The 2026-09-10 review passed these storage contracts and VM tests, 25 focused
+backup and virtualization Python tests, and the full encrypted TPM-PIN system
+build on the desktop host. It did not activate the configuration. See the
+[research validation record](desktop-storage-research.md#implementation-validation-2026-09-10).
 
 VM fixture passphrases are disposable and its partitions and Argon2 parameters
 are reduced for testing. The test uses the pinned standard VM kernel, not the

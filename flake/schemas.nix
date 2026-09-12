@@ -21,6 +21,22 @@ let
 in
 {
   flake.schemas = inputs.flake-schemas.exportedSchemas // {
+    featureCatalog = {
+      version = 1;
+      doc = "Bounded reusable feature inventory and support requirements; observed validation is recorded separately.";
+      inventory = output: {
+        what = "feature inventory";
+        evalChecks.valid = output.schema == 1 && builtins.isList output.features;
+      };
+    };
+    validationManifest = {
+      version = 1;
+      doc = "Required native build, activation, runtime and recovery evidence; this inventory is not a pass record.";
+      inventory = output: {
+        what = "validation requirements";
+        evalChecks.valid = output.schema == 1 && builtins.isList output.checks;
+      };
+    };
     ciChecks = inputs.flake-schemas.exportedSchemas.checks;
     lintChecks = inputs.flake-schemas.exportedSchemas.checks;
 

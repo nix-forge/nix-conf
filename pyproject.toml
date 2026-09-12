@@ -235,7 +235,7 @@ replace-imports-with-any = ["uharfbuzz"]
 allowed-unresolved-imports = ["lxml.etree", "pyudev"]
 
 [tool.ty.environment]
-extra-paths = ["tests/fonts"]
+extra-paths = ["tests/fonts", "site"]
 # Pin the target independently of a developer's active virtual environment so
 # editor, pre-commit, and pure Nix checks analyse the same Python language and
 # standard-library surface.

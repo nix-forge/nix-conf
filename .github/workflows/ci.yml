@@ -138,6 +138,10 @@ jobs:
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
+      - name: Check extracted public templates and module consumers
+        env:
+          GUIDE_SYSTEM: ${{ matrix.system }}
+        run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM"
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash

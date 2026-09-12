@@ -53,6 +53,9 @@ to another task.
 
 ## Validation
 
+See the [testing guide](docs/testing.md) for test layers, commands, fixture
+conventions, and the framework decision.
+
 Choose the smallest check that exercises the changed behavior. Test observable
 configuration, generated output, or a command's public behavior; obtain expected
 results from the requirement or an independent fixture. For a bug, show that the

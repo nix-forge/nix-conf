@@ -8,6 +8,7 @@
       python-quality
       javascript-quality
       treefmt
+      documentation
       ;
   }) self.checks;
 }
