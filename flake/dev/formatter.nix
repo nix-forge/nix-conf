@@ -4,6 +4,7 @@
     # Preserve captured upstream source, logs, and checksums byte for byte.
     settings.global.excludes = [
       "docs/assets/hyprland-upstream-local-20260907/**"
+      "nix-homelab/**"
       "**/*.age"
     ];
     # Keep path-flake checks hermetic in linked worktrees.  treefmt creates a
