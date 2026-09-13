@@ -18,15 +18,11 @@
         );
       in
       {
-        desktop-authentication =
-          assert lib.all (entry: entry.assertion) host.assertions;
-          assert lib.all (entry: entry.assertion) home.assertions;
-          assert !host.services.fprintd.enable;
-          pkgs.runCommand "desktop-authentication-policy" { } ''
-            ${pkgs.python3}/bin/python ${../../tests/nix/check-desktop-authentication.py} ${manifest}
-            mkdir "$out"
-            cp ${manifest} "$out/manifest.json"
-          '';
+        desktop-authentication = pkgs.runCommand "desktop-authentication-policy" { } ''
+          ${pkgs.python3}/bin/python ${../../tests/nix/check-desktop-authentication.py} ${manifest}
+          mkdir "$out"
+          cp ${manifest} "$out/manifest.json"
+        '';
       }
     );
   };

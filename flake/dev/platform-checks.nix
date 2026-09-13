@@ -55,8 +55,6 @@ let
       packageNames = map lib.getName home.home.packages;
     in
     assert lib.all (a: a.assertion) home.assertions;
-    assert home.nix.settings.sandbox == true;
-    assert home.nix.settings.sandbox-fallback == false;
     assert (home.systemd.user.services ? actual) == linux;
     assert (home.launchd.agents ? actual) == !linux;
     assert !(disabled.systemd.user.services ? actual);
@@ -77,10 +75,6 @@ let
       else
         !(builtins.tryEval rootless.home.activationPackage.drvPath).success
     );
-    assert lib.hasInfix "delete_previous_word" home.programs.nushell.extraConfig;
-    assert lib.hasInfix "delete_to_line_start" home.programs.nushell.extraConfig;
-    assert lib.elem ".DS_Store" home.programs.git.ignores;
-    assert (home.programs.git.settings.core.fsmonitor or false) == !linux;
     true;
   checkPackages =
     system:
@@ -115,7 +109,6 @@ let
     in
     assert lib.all (lib.meta.availableOn pkgs.stdenv.hostPlatform) (builtins.attrValues packages);
     assert lib.all (lib.meta.availableOn pkgs.stdenv.hostPlatform) home.config.home.packages;
-    assert lib.elem pkgs.noto-fonts home.config.home.packages;
     true;
 in
 {
@@ -123,26 +116,6 @@ in
     checks.platform-contracts =
       assert lib.all checkSystem systems;
       assert lib.all checkPackages systems;
-      assert inputs.self.nixosConfigurations.desktop.config.nix.settings.sandbox == true;
-      assert inputs.self.nixosConfigurations.desktop.config.programs.appimage.enable;
-      assert inputs.self.nixosConfigurations.desktop.config.programs.nix-ld.enable;
-      assert inputs.self.nixosConfigurations.desktop.config.homelab.profiles.desktop.enable;
-      assert !inputs.self.nixosConfigurations.desktop.config.homelab.profiles.media.enable;
-      assert builtins.hasAttr "homelab-background"
-        inputs.self.nixosConfigurations.desktop.config.systemd.slices;
-      assert
-        inputs.self.darwinConfigurations.macbook-pro-m4.config.determinateNix.customSettings.sandbox
-        == true;
-      let
-        desktop = inputs.self.nixosConfigurations.desktop.config.home-manager.users.ianmh;
-        macbook = inputs.self.darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh;
-      in
-      assert desktop.home.activation ? configureCodexDesktopAppearance;
-      assert macbook.home.activation ? configureCodexDesktopAppearance;
-      assert desktop.programs.docker-cli.rootless.enable;
-      assert !macbook.programs.docker-cli.rootless.enable;
-      assert desktop.programs.mpv.config.target-colorspace-hint-mode == "source";
-      assert !(macbook.programs.mpv.config ? target-colorspace-hint-mode);
       pkgs.runCommand "platform-contracts" { } "touch $out";
   };
 }

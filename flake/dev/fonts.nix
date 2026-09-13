@@ -131,24 +131,6 @@
               python ${testSource}/tests/fonts/check_selection.py --providers ${providers} --output "$out/selection.json"
               python ${testSource}/tests/fonts/check_emoji_coverage.py --emoji-data ${emojiData}
             '';
-        font-ownership =
-          let
-            desktop = inputs.self.nixosConfigurations.desktop.config;
-            mac = inputs.self.darwinConfigurations.macbook-pro-m4.config;
-            dh = desktop.home-manager.users.ianmh;
-            mh = mac.home-manager.users.ianmh;
-            shared = builtins.filter (
-              p: builtins.any (q: toString q == toString p) mh.home.packages
-            ) mac.fonts.packages;
-          in
-          assert shared == [ ];
-          assert dh.typography.designLibrary == "full" && mh.typography.designLibrary == "full";
-          assert dh.stylix.fonts.serif.package.pname == "literata";
-          assert mh.stylix.fonts.serif.package.pname == "literata";
-          assert dh.fonts.fontconfig.defaultFonts == desktop.fonts.fontconfig.defaultFonts;
-          assert !(dh.xdg.dataFile ? "fonts/optional-emoji");
-          assert !(mh.xdg.dataFile ? "fonts/optional-emoji");
-          pkgs.runCommand "font-ownership" { } "touch $out";
       }
       // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         font-browser =

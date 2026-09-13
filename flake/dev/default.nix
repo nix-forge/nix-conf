@@ -19,5 +19,6 @@
     ./storage-checks.nix
     ./theme-checks.nix
     ./temporary-fix-checks.nix
+    ./virtualisation-checks.nix
   ];
 }
