@@ -126,6 +126,10 @@ in
       assert inputs.self.nixosConfigurations.desktop.config.nix.settings.sandbox == true;
       assert inputs.self.nixosConfigurations.desktop.config.programs.appimage.enable;
       assert inputs.self.nixosConfigurations.desktop.config.programs.nix-ld.enable;
+      assert inputs.self.nixosConfigurations.desktop.config.homelab.profiles.desktop.enable;
+      assert !inputs.self.nixosConfigurations.desktop.config.homelab.profiles.media.enable;
+      assert builtins.hasAttr "homelab-background"
+        inputs.self.nixosConfigurations.desktop.config.systemd.slices;
       assert
         inputs.self.darwinConfigurations.macbook-pro-m4.config.determinateNix.customSettings.sandbox
         == true;

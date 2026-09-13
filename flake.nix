@@ -88,6 +88,13 @@
         nix-darwin.follows = "nix-darwin";
       };
     };
+    nix-homelab = {
+      url = "path:./nix-homelab";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+      };
+    };
     determinate = {
       url = "github:DeterminateSystems/determinate";
       inputs = {
