@@ -437,7 +437,11 @@ in
         assert desktop.determinate.enable;
         assert desktop.nix.settings.lazy-trees;
         assert desktop.services.fprintd.enable;
-        assert lib.elem desktop.services.fprintd.package desktop.services.dbus.packages;
+        # D-Bus packages may be merged to remove duplicate activation files.
+        assert lib.any (
+          package:
+          lib.elem (toString desktop.services.fprintd.package) (map toString (package.paths or [ package ]))
+        ) desktop.services.dbus.packages;
         assert lib.elem desktop.services.fprintd.package desktop.systemd.packages;
         assert desktop.security.pam.services."polkit-1".fprintAuth;
         assert desktop.security.pam.services.sudo.fprintAuth;
@@ -573,22 +577,14 @@ in
         assert desktopHome.desktop.wallpaper.enable;
         assert hasHomePackage "nix-seal";
         assert desktopHome.desktop.wallpaper.mode == "rotate";
-        assert !desktopHome.desktop.wallpaper.sources.nasaSvs.enable;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.enable;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxCandidateRecords == 60;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.minYear == 2000;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxFileSizeMiB == 150;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.minAspectRatio == 1.4;
-        assert desktopHome.desktop.wallpaper.sources.nasaImageLibrary.maxAspectRatio == 2.4;
-        assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.enable;
-        assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxFileSizeMiB == 150;
-        assert desktopHome.desktop.wallpaper.sources.clevelandMuseum.maxImages == 20;
-        assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.enable;
-        assert desktopHome.desktop.wallpaper.sources.wikimediaCommons.maxFileSizeMiB == 150;
-        assert desktopHome.desktop.wallpaper.sources.smithsonian.enable;
-        assert desktopHome.desktop.wallpaper.sources.smithsonian.maxFileSizeMiB == 150;
-        assert desktopHome.desktop.wallpaper.sources.smithsonian.maxCandidateRecords == 80;
-        assert desktopHome.desktop.wallpaper.sources.initialFetches == 2;
+        assert desktopHome.desktop.wallpaper.connections.wikimediaCommons.enable;
+        assert desktopHome.desktop.wallpaper.connections.wikimediaCommons.maxFileSizeMiB == 150;
+        assert desktopHome.desktop.wallpaper.connections.esaHubble.enable;
+        assert desktopHome.desktop.wallpaper.connections.esaWebb.enable;
+        assert desktopHome.desktop.wallpaper.categories.nature.enable;
+        assert desktopHome.desktop.wallpaper.categories.cityscapes.enable;
+        assert desktopHome.desktop.wallpaper.categories.space.enable;
+        assert desktopHome.desktop.wallpaper.initialFetches == 2;
         assert desktopHome.desktop.wallpaper.rotation.interval == "30min";
         assert builtins.hasAttr "noctalia" desktopHome.systemd.user.services;
         assert lib.elem "pipewire.service" desktopHome.systemd.user.services.noctalia.Unit.After;
@@ -600,35 +596,32 @@ in
         assert builtins.hasAttr "desktop-wallpaper-directories" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-rotate" desktopHome.systemd.user.services;
         assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.services);
-        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.services;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.services;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-esa-hubble" desktopHome.systemd.user.services;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-esa-webb" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-fetch-wikimedia-commons"
           desktopHome.systemd.user.services;
-        assert
-          builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.services
-          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.services);
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.services);
         assert builtins.hasAttr "desktop-wallpaper-seed" desktopHome.systemd.user.services;
         assert builtins.hasAttr "desktop-wallpaper-rotate" desktopHome.systemd.user.timers;
         assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa" desktopHome.systemd.user.timers);
-        assert builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.timers;
-        assert builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.timers;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-esa-hubble" desktopHome.systemd.user.timers;
+        assert builtins.hasAttr "desktop-wallpaper-fetch-esa-webb" desktopHome.systemd.user.timers;
         assert builtins.hasAttr "desktop-wallpaper-fetch-wikimedia-commons" desktopHome.systemd.user.timers;
-        assert
-          builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.timers
-          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-smithsonian" desktopHome.systemd.user.timers);
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-cma" desktopHome.systemd.user.timers);
+        assert !(builtins.hasAttr "desktop-wallpaper-fetch-nasa-library" desktopHome.systemd.user.timers);
         assert builtins.hasAttr "desktop-wallpaper-seed" desktopHome.systemd.user.timers;
         assert
           desktopHome.systemd.user.timers.desktop-wallpaper-seed.Timer.Unit
           == "desktop-wallpaper-seed.service";
         assert lib.elem "desktop-wallpaper-directories.service"
-          desktopHome.systemd.user.services.desktop-wallpaper-fetch-nasa-library.Unit.Requires;
+          desktopHome.systemd.user.services.desktop-wallpaper-fetch-esa-hubble.Unit.Requires;
         assert lib.elem "desktop-wallpaper-directories.service"
-          desktopHome.systemd.user.services.desktop-wallpaper-fetch-cma.Unit.Requires;
+          desktopHome.systemd.user.services.desktop-wallpaper-fetch-esa-webb.Unit.Requires;
         assert lib.elem "desktop-wallpaper-directories.service"
           desktopHome.systemd.user.services.desktop-wallpaper-fetch-wikimedia-commons.Unit.Requires;
-        assert
-          !desktopHome.desktop.wallpaper.sources.smithsonian.enable
-          || lib.elem "desktop-wallpaper-directories.service" desktopHome.systemd.user.services.desktop-wallpaper-fetch-smithsonian.Unit.Requires;
         assert lib.elem "desktop-wallpaper-directories.service"
           desktopHome.systemd.user.services.desktop-wallpaper-rotate.Unit.Requires;
         # NixOS's Hyprlock module owns the packaged Hypridle service. Home
@@ -649,13 +642,14 @@ in
         assert !(hasHomePackage "cliphist");
         assert !(hasHomePackage "desktop-swayosd-focused");
         assert hasHomePackage "desktop-wallpaper-next";
-        assert hasHomePackage "desktop-wallpaper-fetch-nasa-library";
+        assert hasHomePackage "desktop-wallpaper-fetch-esa-hubble";
         assert !(hasHomePackage "desktop-wallpaper-fetch-nasa");
-        assert hasHomePackage "desktop-wallpaper-fetch-cma";
+        assert hasHomePackage "desktop-wallpaper-fetch-esa-webb";
         assert hasHomePackage "desktop-wallpaper-fetch-wikimedia-commons";
-        assert
-          hasHomePackage "desktop-wallpaper-fetch-smithsonian"
-          == desktopHome.desktop.wallpaper.sources.smithsonian.enable;
+        assert !(hasHomePackage "desktop-wallpaper-fetch-smithsonian");
+        assert !(hasHomePackage "desktop-wallpaper-fetch-cma");
+        assert !(hasHomePackage "desktop-wallpaper-fetch-nasa-library");
+        assert hasHomePackage "desktop-wallpaper-settings";
         assert !(hasHomePackage "desktop-wallpaper-source");
         assert lib.any (
           binding: lib.hasInfix "panel-toggle launcher" (builtins.toJSON binding)
@@ -1449,6 +1443,10 @@ in
             test -x ${vmPackage}/bin/vm
             test -x ${windowsSetupScript}
             test -x ${windowsVmPackage}/bin/windows-vm
+            # Nix store sudo has no setuid bit; generated entry points must
+            # invoke the wrapper installed by NixOS activation.
+            grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${vmPackage}/bin/vm
+            grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${windowsVmPackage}/bin/windows-vm
             test -x ${setupWindowsVmPackage}/bin/setup-windows-vm
             test -x ${nftablesRules}
             test -f ${builtins.elemAt desktop.systemd.services.libvirt-workstation-setup.restartTriggers 0}

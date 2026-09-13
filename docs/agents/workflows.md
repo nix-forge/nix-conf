@@ -4,6 +4,11 @@ Choose a workflow that matches the task. A small configuration edit can proceed
 from the user's request to a focused check and review; it needs no interview,
 specification ceremony, or new issue.
 
+For substantial work across sessions or parallel writers, use
+[coordination guidance](coordination.md). The shared `agent-workflow` skill is
+available in Codex, Claude Code, and OpenCode; it maintains task briefs and
+handoffs without requiring client-specific tools.
+
 The installed skill files are authoritative for their processes. Their upstream
 text sometimes uses names such as `/research` or `/domain-modeling`. In this
 installation those names have the `mattpocock-` prefix. Resolve the installed

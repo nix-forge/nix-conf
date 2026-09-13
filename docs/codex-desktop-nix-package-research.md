@@ -2,6 +2,90 @@
 
 Research date: 2026-09-05 UTC
 
+## Runtime dependency follow-up
+
+Reviewed: 2026-09-11 UTC. Scope: Linux application 26.901.51231 and downloaded
+primary runtime 26.905.11957.
+
+Keep required runtime helpers in the package and optional task tools in user
+configuration. OpenAI documents bubblewrap as a Linux sandbox prerequisite and
+selects it from PATH. It is not an optional project tool. A package-local PATH
+fallback satisfies that requirement without installing a global command or
+overriding an earlier user selection.
+[OpenAI sandbox prerequisites](https://learn.chatgpt.com/docs/sandboxing) and
+[Nixpkgs wrapper semantics](https://nixos.org/manual/nixpkgs/unstable/#fun-makeWrapper)
+support this split.
+
+The store application's ELF interpreter already points into the Nix store.
+In contrast, the downloaded Node and Python executables request
+`/lib64/ld-linux-x86-64.so.2`. A local namespace probe hid that loader and
+reproduced execution failure for both downloads. These files arrive after the
+application is installed. Build-time patching cannot cover them or future
+runtime updates. Nix recommends proper packaging and `autoPatchelfHook` first,
+but identifies applications that download executables as a use case for
+`buildFHSEnv`. [Nix executable compatibility guidance](https://nix.dev/guides/faq#how-to-run-non-nix-executables)
+
+Setting `NIX_LD` only in the launcher would not remove the system dependency.
+The binary's conventional interpreter must first resolve to the nix-ld shim.
+Broad `LD_LIBRARY_PATH` injection can also interfere with already-correct Nix
+programs. [nix-ld design and FAQ](https://github.com/nix-community/nix-ld)
+
+A full FHS prototype made both downloaded interpreters run without host
+nix-ld. However, this does not make it a transparent replacement for a tuned
+Nix development environment. Nixpkgs' FHS profile prepends tools and changes
+compiler flags and purity settings. Nix packages remain visible through their
+store and profile paths, but execution defaults change.
+[FHS profile implementation](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/build-fhsenv-bubblewrap/buildFHSEnv.nix)
+
+A narrower loader/cache mount could avoid those profile changes. Nix glibc
+supports a cache below its own store path, and explicit RPATH/RUNPATH lookup
+precedes cache lookup. But bubblewrap itself sets `PR_SET_NO_NEW_PRIVS`, so
+either whole-application wrapper prevents setuid and file-capability elevation
+in child processes. This would alter approved sudo workflows as well as the
+filesystem namespace. It is not the chosen default.
+[Nix glibc cache patch](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/libraries/glibc/dont-use-system-ld-so-cache.patch),
+[glibc loader](https://github.com/bminor/glibc/blob/master/elf/dl-load.c), and
+[bubblewrap implementation](https://github.com/containers/bubblewrap/blob/main/bubblewrap.c)
+
+The implementation retains the native launcher and existing host environment.
+Only Codex's individual restricted commands enter its command sandbox. It
+does not patch mutable runtime caches or substitute arbitrary runtime versions.
+Removing nix-ld from later downloads remains unresolved under the requirement
+to preserve native host execution. It needs a supported upstream execution
+hook or separately maintained Nix-packaged versions of those runtime bundles.
+
+The home feature exposes `programs.chatgpt.extraPackages`, empty by default.
+On Linux these are fallback commands only in the application environment.
+On macOS optional tools are installed in the user environment without
+modifying the signed application. For example:
+
+```nix
+programs.chatgpt.extraPackages = [ pkgs.jq pkgs.ripgrep ];
+```
+
+Project-specific toolchains still belong in project development shells. The
+general host nix-ld option remains unchanged. It serves downloaded runtime
+binaries and unrelated applications, not the patched ChatGPT application.
+
+### Follow-up validation
+
+The discarded FHS prototype built on x86_64-linux. Downloaded Node and Python
+version checks passed with host loaders hidden, while the unwrapped controls
+failed. Native NumPy import then failed for missing zlib, confirming that
+interpreter startup alone does not establish complete runtime compatibility.
+Workspace and read-only write controls passed inside that prototype. It was
+not activated, and no FHS or loader-only wrapper remains in the implementation.
+ARM Linux and macOS require their own native runtime checks. These probes do
+not establish authenticated GUI, keyring, or desktop-session behavior.
+
+The final native x86_64-linux package and its optional-tool variant build.
+Checks verify fallback availability, caller PATH precedence, preserved compiler
+settings, the direct native launcher, package contracts, updater behavior,
+package independence, and package policy. Home Manager evaluation verifies
+empty defaults and a configured tool changing the selected app derivation.
+All-platform evaluation passes, and native Codex workspace/read-only controls
+pass. No desktop activation or app restart was performed.
+
 ## Conclusion
 
 Package OpenAI's native releases instead of trying to build the desktop app

@@ -90,8 +90,10 @@
                 "editor.cursorSmoothCaretAnimation" = "explicit";
                 "editor.cursorStyle" = "block";
                 "editor.cursorBlinking" = "smooth";
-                "editor.fontLigatures" =
-                  "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'ss10'";
+                # CodeLens inherits these features while using a different font.
+                # Stylistic sets are font-specific: Inter's ss05/ss06 enclose
+                # ordinary characters in circles/squares. Use standard ligatures.
+                "editor.fontLigatures" = true;
                 "terminal.integrated.fontLigatures.enabled" = true;
                 # Iosevka's text stopwatch fits a terminal cell. Chromium otherwise
                 # falls back to a wide color glyph that xterm squeezes horizontally.

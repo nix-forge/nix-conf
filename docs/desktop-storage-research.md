@@ -1,6 +1,7 @@
 # Encrypted desktop storage and boot research
 
-Reviewed: 2026-09-09. Scope: a Linux-only NixOS desktop with two unequal NVMe
+Reviewed: 2026-09-09, with an implementation review on 2026-09-10 below.
+Scope: a Linux-only NixOS desktop with two unequal NVMe
 SSDs, development, gaming, containers, and a future Windows VM. This is a design
 recommendation based on the state before implementation. The staged implementation
 and its operator steps are now described in [the migration guide](disko-desktop-migration.md)
@@ -384,7 +385,182 @@ and VM tests for stronger validation before physical provisioning.
 [CLI reference](https://github.com/nix-community/disko/blob/ff8702b4de27f72b4c78573dfb89ec74e36abdf1/docs/reference.md),
 [test interfaces](https://github.com/nix-community/disko/blob/ff8702b4de27f72b4c78573dfb89ec74e36abdf1/module.nix)
 
-## Validation and limits
+## Implementation review, 2026-09-10
+
+The two independent LUKS2/Btrfs filesystems remain a sound choice. The review
+found more value in correcting snapshot access, maintenance dependencies and
+inherited VM file attributes than in replacing the filesystem or adding more
+formatting flags. This section records the evidence and recommendations from
+the review. Implementation validation belongs in
+[storage operations](desktop-storage-operations.md).
+
+### Correctness and recovery improvements
+
+- Give precreated `.snapshots` directories root ownership and mode `0700`.
+  Declaring an empty Disko subvolume does not establish Snapper's usual private
+  directory permissions. Snapper's own creation path restricts access to root;
+  bypassing that path must preserve the same boundary. Historical file
+  permissions can differ from current permissions, so an ordinary world-readable
+  directory is not an appropriate default for file history.
+  [Snapper permissions](https://github.com/openSUSE/snapper/blob/master/doc/permissions.txt)
+- Require the intended mount before scrubbing an optional filesystem. Btrfs
+  accepts a path inside the filesystem as the scrub target. If the data drive
+  is absent, its ordinary mountpoint directory belongs to root instead. A job
+  named for the data drive can therefore scrub the system filesystem and appear
+  successful. Check the mount and test the missing-drive case.
+  [Btrfs scrub interface](https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html),
+  [filesystem policy](../hosts/nixos/desktop/local/hardware/filesystems.nix)
+- Retain CoW for newly created VM images in the encrypted layout. The existing
+  virtualization policy enabled NOCOW, contrary to the design recommendation
+  above. NOCOW also removes data checksums and compression. Clearing `C` on the
+  image directory changes inheritance for new files; it does not rewrite
+  existing images. Converting an existing image needs an attended cold copy into
+  a normal CoW destination, with verification before replacing its original.
+  [Virtualization policy](../hosts/nixos/desktop/local/security-virtualization.nix),
+  [Btrfs attributes](https://btrfs.readthedocs.io/en/latest/ch-file-attributes.html)
+  The pool XML also explicitly selects CoW, since libvirt otherwise attempts
+  to disable it on Btrfs. Existing pool definitions are updated with their UUID
+  preserved; active pools need their next start to use the new definition.
+  [Libvirt pool features](https://www.libvirt.org/formatstorage.html#features)
+- Separate the user's `.cache` from home history just as rootless Docker
+  storage is separated. A cache subvolume avoids retaining replaceable browser,
+  shader and build-cache contents in every home snapshot. Subvolume snapshots
+  stop at nested subvolumes, so this deliberately excludes cache data from a
+  home restore. Existing cache contents need migration before an empty
+  subvolume is mounted over them.
+  [Btrfs nested subvolumes](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html#nested-subvolumes)
+
+The revised retention policy uses hourly cleanup, `FREE_LIMIT=0.2` and timeline
+ranges `0-24`, `0-7` and `0-4` for hourly, daily and weekly snapshots. Count
+limits alone do not bound snapshot bytes. Snapper supports a second
+cleanup pass when free space falls below `FREE_LIMIT`, provided timeline limits
+are ranges with separate minimum and maximum counts. This free-space check does
+not need qgroups. Limiting the space consumed specifically by snapshots through
+`SPACE_LIMIT` does need quota accounting. Retaining fewer snapshots under space
+pressure is a useful improvement, but it shortens local history and cannot
+guarantee free space if live files fill the device. Alerts and independent backups
+remain necessary.
+[Snapper cleanup algorithm](https://github.com/openSUSE/snapper/blob/master/doc/snapper.xml.in),
+[Snapper configuration](https://github.com/openSUSE/snapper/blob/master/doc/snapper-configs.xml.in)
+
+Simple quotas, supported since Linux 6.7, reduce accounting overhead but do not
+track shared versus exclusive space. They are not a drop-in replacement for
+Snapper's exclusive snapshot accounting. Enable conventional qgroups only if
+that accounting or hard subvolume limits justify the added work.
+[Btrfs quota modes](https://btrfs.readthedocs.io/en/latest/btrfs-quota.html)
+
+The ordinary Restic job intentionally requires both data mounts before recording
+a complete backup. This avoids a successful receipt for a backup that silently
+omitted the second drive, but an absent data drive also prevents that job from
+backing up home. Keeping home backups available in that condition would require
+separate source sets, receipts and restore checks. Simply removing the mount
+guard would weaken the current completeness guarantee.
+[Backup policy](../hosts/nixos/desktop/local/storage/backups.nix)
+
+### Modern defaults already present
+
+Read-only evaluation reports Linux 7.2.3, btrfs-progs 7.1, cryptsetup 2.8.7 and
+systemd 261.2. The installed `mkfs.btrfs -O list-all` reports `extref`,
+`skinny-metadata`, `no-holes`, `free-space-tree` and `block-group-tree` as defaults.
+The last became a creation default in btrfs-progs 6.19 and needs Linux 6.1 or
+newer. A newly provisioned filesystem already gets these features without
+duplicating the defaults in Disko. Recovery media must support its on-disk
+features; updating NixOS does not automatically convert an older filesystem.
+[Btrfs creation features](https://btrfs.readthedocs.io/en/latest/mkfs.btrfs.html#filesystem-features)
+
+Keep CRC32C unless a checksum comparison establishes a reason to change it.
+It is the Btrfs default and has hardware acceleration on modern CPUs. XXHASH
+offers a wider digest; SHA256 and BLAKE2 offer cryptographic-strength hashes
+with different CPU and checksum-storage costs. None adds keyed authentication
+to mutable filesystem data. Preserve data checksumming before considering a
+different checksum algorithm.
+[Btrfs checksum choices](https://btrfs.readthedocs.io/en/latest/Checksumming.html)
+
+Keep `compress=zstd:1`. Negative Zstd levels have existed since Linux 6.15 and
+trade compression ratio for speed; their availability does not establish a
+benefit for this workload. Compression mount options apply across the filesystem,
+and changes affect new writes. The documentation now describes changed direct
+I/O behavior for Linux 7.3, while the evaluated host uses 7.2.3. Do not attribute
+those newer semantics to this host or disable VM checksums solely to obtain
+direct writes without measuring the actual workload.
+[Btrfs compression versions](https://btrfs.readthedocs.io/en/latest/Compression.html)
+
+### Hardware and operator choices
+
+Keep Argon2id with cryptsetup's benchmarked passphrase cost. Arbitrarily forcing
+large memory or iteration costs can make recovery slow or exhaust initrd memory.
+Leave encryption-sector selection to the device topology by default. Upstream
+selects 4096-byte encryption sectors for devices reporting 4096-byte physical
+sectors, including 512e devices, and 512 for devices reporting only 512-byte
+physical sectors. Forcing 4096 on the latter can make interrupted writes damage
+a larger encrypted sector. Verify hardware and rescue compatibility before
+changing this creation-time decision.
+[Cryptsetup option definitions](https://github.com/mbroz/cryptsetup/blob/master/man/common_options.adoc)
+
+Keep the workqueue defaults until end-to-end tests show a benefit. The kernel
+documents synchronous workqueue bypass and warns that high-priority encryption
+can reduce general system responsiveness. Weekly TRIM with Btrfs `nodiscard`
+remains consistent; `discard=async` is a supported alternative, not a missing
+correctness setting. Either policy requires accepting allocation-information
+leakage through LUKS when discard is enabled.
+[Kernel dm-crypt options](https://docs.kernel.org/admin-guide/device-mapper/dm-crypt.html),
+[Btrfs discard policy](https://btrfs.readthedocs.io/en/latest/Administration.html)
+
+I/O priority does not guarantee that maintenance stays below a particular
+bandwidth. The host already sets scrub's own `--limit` to `800M`; measure
+foreground latency before changing that ceiling. The Btrfs manual warns that
+priority settings depend on the I/O scheduler, so `IOSchedulingClass=idle`
+alone cannot establish responsiveness on every NVMe stack.
+[Btrfs scrub bandwidth control](https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html#bandwidth-and-io-limiting)
+
+Retain the staged Lanzaboote integration and attended TPM-PIN enrollment. Its
+current guide still marks pcrlock experimental, requires recovery credentials,
+recommends a user secret for workstations and limits managed generations to
+eight. PCR0 adds firmware measurements but creates another firmware-update
+recovery dependency; PCR4+7 is the existing explicit choice. Neither a code
+change nor a successful evaluation establishes physical enrollment, firmware
+trust, kernel lockdown or a tested login boundary.
+[Lanzaboote measured-boot guide](https://nix-community.github.io/lanzaboote/how-to-guides/enable-measured-boot.html)
+
+The 2026-09-10 research used read-only source inspection, version evaluation,
+feature listing and primary-source retrieval. It ran no filesystem benchmark,
+disk formatting, filesystem conversion, enrollment or deployment. Latest
+upstream documentation describes some behavior beyond the evaluated kernel;
+those version differences are explicit above.
+
+## Implementation validation, 2026-09-10
+
+The review covered the current storage configuration at root revision
+`7fd38c80a2aabdb16674fba7231496fa4a575bee` and the resulting working-tree
+changes. The user's storage-quality request supplied the requirements;
+`CONTRIBUTING.md` supplied repository conventions. The fixes retain host-local
+storage policy and the reusable libvirt module's existing option boundary.
+
+The private snapshot-directory assertion failed against the original layout.
+The revised Disko VM test passes after provisioning two disposable encrypted
+devices. It verifies root-only snapshot access, cache and container exclusions,
+CoW inheritance for new image files, persistence over cold boots, fresh encrypted
+swap, real backup and restore services, and an unavailable data volume. The
+absent-volume scrub check verifies that it never starts a scrub on root.
+
+Storage contracts, including the generated libvirt pool CoW attribute, pass.
+The full encrypted Secure Boot and TPM-PIN configuration builds on the desktop
+host without activation. All 25 focused backup and virtualization Python tests
+pass. Formatting, spelling, local documentation links and the patch secret scan
+also pass. An intermediate VM run lacked `chattr` in its test environment; adding
+that fixture dependency resolved it. Concurrent test-tooling changes briefly
+broke check names and unrelated helper tests; the final checks use the revised
+tooling and pass.
+
+No production drive was formatted, image converted, credential enrolled or
+firmware setting changed. The VM does not run a physical TPM, libvirt workload
+benchmark or disk-full retention experiment. The 20% free-space policy follows
+Snapper's documented algorithm and its generated configuration is checked;
+it is not a measured capacity guarantee. Provision real backup destinations,
+perform offline migration and test physical boot recovery before treating the
+setup as operationally complete.
+
+## Initial research validation and limits, 2026-09-09
 
 Read-only configuration and hardware checks established the current encryption,
 boot, swap, and session-startup state. Pinned Disko and NixOS source evaluation
@@ -416,16 +592,16 @@ swap partition. Runtime configuration is gated on an offline migration setting.
 Preserve a normal recovery passphrase while introducing one security layer at
 a time. The rollout must pass these gates:
 
-1. Verify backups, a sample restore, target identities, and Linux-only migration
+- Verify backups, a sample restore, target identities, and Linux-only migration
   scope. Resolve backup destination and capacity before a wipe.
-2. Evaluate the new layout and run an isolated Disko installation/boot test,
+- Evaluate the new layout and run an isolated Disko installation/boot test,
   including random encrypted swap and missing-data-drive behavior.
-3. Install offline and test passphrase recovery for both LUKS volumes.
-4. Establish the intended login boundary, then enable and verify signed boot.
+- Install offline and test passphrase recovery for both LUKS volumes.
+- Establish the intended login boundary, then enable and verify signed boot.
   Audit kernel/module hardening against graphics, capture, and remote-play needs.
-5. Add the selected TPM-PIN or YubiKey path. Test each hardware credential,
+- Add the selected TPM-PIN or YubiKey path. Test each hardware credential,
   fallback, normal updates, older generations, and recovery after policy changes.
-6. Enable snapshots, backups, scrub/TRIM and alerts. Test representative workloads
+- Enable snapshots, backups, scrub/TRIM and alerts. Test representative workloads
   and restores before treating the migration as complete.
 
 Use [the revised migration runbook](disko-desktop-migration.md) for the two-drive

@@ -1,6 +1,12 @@
 set shell := ["/usr/bin/env", "bash", "-c"]
 
+# Let Nix use Git source filtering in this checkout. Explicit path: references
+# also include ignored local files. Add new source files to Git before evaluation.
 flake := justfile_directory()
+
+# Explicit workload isolation on the desktop; nix itself remains unchanged.
+# Other hosts retain their native build commands.
+task := if os() == "linux" { if `hostname -s` == "desktop" { "workstation-task" } else { "" } } else { "" }
 
 default:
     @just --list --justfile {{ justfile() }}
@@ -8,27 +14,27 @@ default:
 # Run root Python behavior tests with pinned dependencies; pass pytest selectors.
 [group('Checks')]
 test-python *args:
-    cd {{ quote(flake) }} && nix develop {{ quote(flake) }}#tests --command python3 -m pytest {{ args }}
+    cd {{ quote(flake) }} && {{ task }} nix develop {{ quote(flake) }}#tests --command python3 -m pytest {{ args }}
 
 # Exercise CI orchestration against disposable Git repositories and a real Nix daemon.
 [group('Checks')]
 test-ci *args:
-    cd {{ quote(flake) }} && nix develop {{ quote(flake) }}#tests --command python3 -m pytest -m nix_daemon tests/ci {{ args }}
+    cd {{ quote(flake) }} && {{ task }} nix develop {{ quote(flake) }}#tests --command python3 -m pytest -m nix_daemon tests/ci {{ args }}
 
 # Build all generated-file checks for this platform, including rejection tests.
 [group('Checks')]
 generated-checks:
-    nix build --no-link --option allow-import-from-derivation false "path:{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).generated-artifacts"
+    {{ task }} nix build --no-link --option allow-import-from-derivation false "{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).generated-artifacts"
 
 # Install/boot disposable disks and exercise backup restoration and policy checks.
 [group('Checks')]
 desktop-storage-check:
-    nix build --no-link "path:{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "path:{{ flake }}#checks.x86_64-linux.python-tests" "path:{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
 
 # Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
 [group('NixOS')]
 desktop-storage-build: (guard-desktop-build-location "desktop")
-    NIX_CONF_STORAGE_BUILD_ROOT={{ quote(flake) }} nix build --no-link --impure --expr 'let f = builtins.getFlake ("path:" + builtins.getEnv "NIX_CONF_STORAGE_BUILD_ROOT"); in (f.nixosConfigurations.desktop.extendModules { modules = [ ({ lib, ... }: { hardware.storage.encryptedRoot = { enable = true; unlockMethod = "tpm-pin"; }; security.secureBootLanzaboote = { enable = lib.mkForce true; measuredBoot.enable = lib.mkForce true; }; }) ]; }).config.system.build.toplevel'
+    NIX_CONF_STORAGE_BUILD_ROOT={{ quote(flake) }} {{ task }} nix build --no-link --impure --expr 'let f = builtins.getFlake (builtins.getEnv "NIX_CONF_STORAGE_BUILD_ROOT"); in (f.nixosConfigurations.desktop.extendModules { modules = [ ({ lib, ... }: { hardware.storage.encryptedRoot = { enable = true; unlockMethod = "tpm-pin"; }; security.secureBootLanzaboote = { enable = lib.mkForce true; measuredBoot.enable = lib.mkForce true; }; }) ]; }).config.system.build.toplevel'
 
 # ─── Flake ────────────────────────────────────────────────────────────
 
@@ -65,27 +71,27 @@ update-all:
 # Run flake checks
 [group('Flake')]
 check:
-    nix flake check
+    {{ task }} nix flake check
 
 # Evaluate all flake checks without building them
 [group('Flake')]
 check-eval:
-    nix flake check --no-build
+    {{ task }} nix flake check --no-build
 
 # Run flake checks while rejecting import-from-derivation (IFD)
 [group('Flake')]
 check-no-ifd:
-    nix flake check --no-allow-import-from-derivation
+    {{ task }} nix flake check --no-allow-import-from-derivation
 
 # Review temporary package fix guards on every supported platform
 [group('Flake')]
 temporary-fixes-check:
-    nix build --no-link "path:{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).temporary-package-fixes"
+    {{ task }} nix build --no-link "{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).temporary-package-fixes"
 
 # Show flake outputs
 [group('Flake')]
 show:
-    nix flake show
+    {{ task }} nix flake show
 
 # ─── NixOS ────────────────────────────────────────────────────────────
 
@@ -101,29 +107,29 @@ guard-desktop-build-location hostname:
 # Build a NixOS configuration (dry build, no activation)
 [group('NixOS')]
 os-build hostname *args: (guard-desktop-build-location hostname)
-    nh os build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+    {{ task }} nh os build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration, and make it the boot default
 [group('NixOS')]
 os-switch hostname *args: (guard-desktop-build-location hostname)
-    nh os switch {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+    {{ task }} nh os switch {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build a NixOS configuration and make it the boot default (no activation)
 [group('NixOS')]
 os-boot hostname *args: (guard-desktop-build-location hostname)
-    nh os boot {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+    {{ task }} nh os boot {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
 # Build and activate a NixOS configuration (without adding to boot menu)
 [group('NixOS')]
 os-test hostname *args: (guard-desktop-build-location hostname)
-    nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+    {{ task }} nh os test {{ flake }} -H {{ hostname }} --show-trace {{ args }}
 
-# Build the desktop on the desktop and show the activation diff without applying it
+# From another host, remotely build the desktop and show the activation diff
 [group('NixOS')]
 desktop-build *args:
     deploy --remote-build --dry-activate {{ args }} {{ flake }}#desktop
 
-# Build and activate the desktop on the desktop
+# From another host, remotely build and activate the desktop
 [group('NixOS')]
 desktop-deploy *args:
     deploy --remote-build {{ args }} {{ flake }}#desktop
@@ -145,19 +151,19 @@ darwin-switch hostname *args:
 # Build a home-manager configuration (dry build, no activation)
 [group('Home')]
 home-build configuration *args:
-    nh home build {{ flake }} -c {{ configuration }} --show-trace {{ args }}
+    {{ task }} nh home build {{ flake }} -c {{ configuration }} --show-trace {{ args }}
 
 # Build and activate a home-manager configuration
 [group('Home')]
 home-switch configuration *args:
-    nh home switch {{ flake }} -c {{ configuration }} --show-trace {{ args }}
+    {{ task }} nh home switch {{ flake }} -c {{ configuration }} --show-trace {{ args }}
 
 # ─── Secrets ──────────────────────────────────────────────────────────
 
 # Pass arguments directly to the repository-pinned nix-seal CLI.
 [group('Secrets')]
 secret *args:
-    nix run path:{{ flake }}#nix-seal -- {{ args }}
+    nix run "{{ flake }}#nix-seal" -- {{ args }}
 
 # ─── Maintenance ──────────────────────────────────────────────────────
 
@@ -207,3 +213,18 @@ update-package package *args: prepare-pkgs-branch
 [group('Maintenance')]
 fonts-check output="/tmp/font-check" browser="":
     nix run {{ flake }}#font-check -- {{ quote(output) }} {{ if browser == "" { "" } else { quote(browser) } }}
+
+# Record exact-source validation or repeatable phase measurements in private storage.
+[group('Checks')]
+evidence *args:
+    cd {{ quote(flake) }} && {{ task }} nix run .#workstation-evidence -- {{ args }}
+
+# Capture a native desktop build with its evaluated and realized system output.
+[group('Checks')]
+desktop-validation-build: (guard-desktop-build-location "desktop")
+    cd {{ quote(flake) }} && {{ task }} nix run .#workstation-evidence -- run --target desktop --check full-system --phase build --installable nixosConfigurations.desktop.config.system.build.toplevel -- just os-build desktop
+
+# Keep the required validation inventory separate from observed run records.
+[group('Checks')]
+validation-manifest:
+    cd {{ quote(flake) }} && {{ task }} nix eval --json .#validationManifest

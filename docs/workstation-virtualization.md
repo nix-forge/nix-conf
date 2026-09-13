@@ -1,6 +1,8 @@
 # Workstation virtualization runbook
 
-Configuration date: 2026-09-04
+Configuration reviewed: 2026-09-10. See the
+[setup review](workstation-virtualization-review-research.md) for observed runtime
+state, fixes awaiting activation, and remaining provisioning work.
 
 ## Decision
 
@@ -208,8 +210,10 @@ application startup still needs its own tested Task Scheduler policy.
 
 ## Deploying the host configuration
 
-This repository change has not been deployed. From the Mac, build or deploy
-the desktop through deploy-rs so the desktop performs the build:
+The host services and inactive Windows definition were present during the
+2026-09-10 review, but the Windows disk and installer ISO were absent. New
+configuration changes still require activation. From the Mac, build or deploy
+through deploy-rs so the desktop performs the build:
 
 ```sh
 just desktop-build   # remote build and dry activation
@@ -234,6 +238,11 @@ windows-vm plan
 
 The NixOS activation defines the networks, storage pool, and inactive Windows
 domain. It does not download Windows, create a disk, or start the VM.
+
+For an installed runtime, activation also stages the persistent domain XML
+while Windows is running. Hardware changes take effect after a complete guest
+shutdown and start. An ordinary Windows reboot need not restart the QEMU process.
+An installation marker preserves the installer definition until finalization.
 
 ## Installing Windows
 
@@ -336,6 +345,10 @@ windows-vm provisioning-log-previous
 windows-vm host-key
 ```
 
+`windows-vm baseline` reads the saved provisioning result and checks its recipe
+fingerprint. It does not execute a fresh compliance test or apply changed policy
+to an installed guest. See the setup review for the proposed maintenance path.
+
 The provisioning log is JSON Lines with a run ID, step name, result, duration,
 and failure detail. A retry rotates the current log to
 `provisioning-steps.previous.jsonl`, so the prior failure remains available
@@ -381,7 +394,11 @@ definition.
 
 No scheduled backup is enabled because the repository does not declare an
 independent destination, retention policy, or recovery-key store. Do not call
-snapshots backups. A recoverable Windows backup must capture, together:
+snapshots backups. The [storage backup implementation](desktop-storage-operations.md)
+already provides an attended cold backup path covering `/etc/libvirt` and all
+of `/var/lib/libvirt`. It requires the encrypted storage profile and configured
+destinations; neither is enabled on the reviewed desktop. Its daily file backup
+excludes libvirt state. A recoverable Windows backup must capture, together:
 
 - the qcow2 disk;
 - inactive libvirt XML;
@@ -405,8 +422,7 @@ display, reset, and recovery policy remains a separate reviewed change.
 The focused repository contract runs on the desktop host:
 
 ```sh
-nix build --store ssh-ng://root@desktop \
-  .#checks.x86_64-linux.virtualisation-configuration-contract --no-link
+nix build .#checks.x86_64-linux.virtualisation-configuration-contract --no-link
 ```
 
 It evaluates the real desktop and Mac configurations, validates both libvirt

@@ -450,7 +450,8 @@ let
     src = ./scripts/libvirt-windows-vm-reconcile.sh.in;
     replacements = {
       autostart = if cfg.autostart then "1" else "0";
-      awk = getExe pkgs.gawk;
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
       bash = getExe pkgs.bash;
       diskPath = escapeShellArg diskPath;
       guestName = escapeShellArg cfg.name;
@@ -471,7 +472,8 @@ let
       autologonArchive = escapeShellArg autologonArchive;
       autostart = if cfg.autostart then "1" else "0";
       authorizedKeysFile = escapeShellArg authorizedKeysFile;
-      awk = getExe pkgs.gawk;
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
       base64 = getExe' pkgs.coreutils "base64";
       baselineTest = escapeShellArg baselineTest;
       bash = getExe pkgs.bash;
@@ -529,7 +531,6 @@ let
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
       virtioIso = escapeShellArg virtioIso;
       wiminfo = getExe' pkgs.wimlib "wiminfo";
-      xmllint = getExe' pkgs.libxml2 "xmllint";
       xorriso = getExe pkgs.xorriso;
     };
   };
@@ -570,7 +571,7 @@ let
       setupWizard = getExe' setupWizard "setup-windows-vm";
       sha256sum = getExe' pkgs.coreutils "sha256sum";
       sshKeygen = getExe' pkgs.openssh "ssh-keygen";
-      sudo = getExe pkgs.sudo;
+      sudo = "${config.security.wrapperDir}/sudo";
     };
   };
 in

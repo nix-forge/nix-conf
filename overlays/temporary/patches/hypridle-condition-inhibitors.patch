@@ -1,0 +1,14 @@
+diff --git a/src/core/Hypridle.cpp b/src/core/Hypridle.cpp
+--- a/src/core/Hypridle.cpp
++++ b/src/core/Hypridle.cpp
+@@ -267,6 +267,10 @@
+             if (!l.conditionPending || now < l.conditionRetryAt)
+                 continue;
+ 
++            // A new inhibitor can arrive while a condition is pending.
++            // Match onIdled(), including listeners which must ignore inhibitors.
++            if (m_iInhibitLocks > 0 && !l.ignoreInhibit)
++                continue;
+             Debug::log(LOG, "Retrying condition_cmd for rule {:x}", (uintptr_t)&l);
+             if (runConditionCmd(l.conditionCmd)) {
+                 l.conditionPending = false;

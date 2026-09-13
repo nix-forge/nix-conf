@@ -124,6 +124,8 @@ in
       assert lib.all checkSystem systems;
       assert lib.all checkPackages systems;
       assert inputs.self.nixosConfigurations.desktop.config.nix.settings.sandbox == true;
+      assert inputs.self.nixosConfigurations.desktop.config.programs.appimage.enable;
+      assert inputs.self.nixosConfigurations.desktop.config.programs.nix-ld.enable;
       assert inputs.self.nixosConfigurations.desktop.config.homelab.profiles.desktop.enable;
       assert !inputs.self.nixosConfigurations.desktop.config.homelab.profiles.media.enable;
       assert builtins.hasAttr "homelab-background"

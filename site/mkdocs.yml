@@ -1,0 +1,64 @@
+site_name: nix-conf
+site_description: Build a small Nix environment, learn how it works, and reuse the parts you need.
+site_url: https://nix-forge.github.io/nix-conf/
+repo_url: https://github.com/nix-forge/nix-conf
+repo_name: GitHub
+edit_uri: blob/main/docs/
+docs_dir: ../docs
+site_dir: ../dist
+use_directory_urls: false
+strict: true
+theme:
+  name: mkdocs
+  color_mode: auto
+  user_color_mode_toggle: true
+  locale: en
+  navigation_depth: 2
+  highlightjs: false
+plugins:
+  - search
+markdown_extensions:
+  - codehilite
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+extra_css:
+  - stylesheets/guide.css
+  - stylesheets/code.css
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
+nav:
+  - Start here:
+      - Overview: README.md
+      - Prerequisites: guide/start-here.md
+      - First configuration: guide/first-configuration.md
+      - Try a NixOS VM: guide/virtual-machine.md
+      - Graphical demo: guide/graphical-demo.md
+      - Darwin example: guide/darwin-example.md
+  - Make it yours:
+      - Git defaults: guide/git.md
+      - Search files: guide/file-search.md
+      - Shell prompt: guide/prompt.md
+      - Themes and fonts: guide/appearance.md
+      - Add a host: guide/add-host.md
+      - Update and recover: guide/update-and-recover.md
+      - Application recovery: guide/recovery-drills.md
+      - Add secrets: guide/secrets.md
+  - Reference:
+      - Public examples: guide/public-examples.md
+      - Feature catalog: guide/features.md
+      - Module options: guide/options.md
+      - Validation records: guide/validation.md
+      - Reader pilot: guide/reader-pilot.md
+      - Architecture: guide/architecture.md
+      - Support and validation: guide/support.md
+      - Related projects: guide/projects.md
+      - Contribute: guide/contributing.md
+      - Build and release the guide: guide/maintaining.md

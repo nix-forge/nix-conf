@@ -6,7 +6,8 @@
 }:
 let
   cursor = config.stylix.cursor;
-  hyprlockPackage = if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock;
+  hyprlockPackage =
+    if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock-personal;
   monitor = "desc:ASUSTek COMPUTER INC PG32UCWM";
 in
 {
@@ -105,20 +106,12 @@ in
     package = hyprlockPackage;
     settings = {
       general = {
-        hide_cursor = true;
+        hide_cursor = false;
         ignore_empty_input = true;
         immediate_render = true;
       };
 
-      "input-field" = {
-        monitor = "";
-        fade_on_empty = false;
-        placeholder_text = "<i>Unlock desktop</i>";
-        hide_input = true;
-        position = "0, 0";
-        halign = "center";
-        valign = "center";
-      };
+      auth.fingerprint.enabled = false;
     };
   };
 

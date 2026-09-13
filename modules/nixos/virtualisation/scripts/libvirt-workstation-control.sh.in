@@ -218,6 +218,7 @@ check_vfio_devices() {
 
 doctor_host() {
   local network_name bridge subnet _definition route_info existing_pool_path filesystem attributes
+  local -a iommu_devices=(/sys/kernel/iommu_groups/*/devices/*)
 
   printf 'Boot profile: %s\n\n' "$(current_profile)"
 
@@ -242,7 +243,7 @@ doctor_host() {
   while IFS=$'\t' read -r network_name bridge subnet _definition; do
     [[ -n $network_name ]] || continue
     if @virsh@ --connect "$libvirt_uri" net-info "$network_name" 2>/dev/null |
-      @grep@ --quiet --extended-regexp '^Active:[[:space:]]+yes$'; then
+      @grep@ --extended-regexp '^Active:[[:space:]]+yes$' >/dev/null; then
       pass "network $network_name is active on $bridge"
     else
       fail "network $network_name is missing or inactive"
@@ -252,10 +253,10 @@ doctor_host() {
   done <"$network_manifest"
 
   if @virsh@ --connect "$libvirt_uri" pool-info "$pool_name" 2>/dev/null |
-    @grep@ --quiet --extended-regexp '^State:[[:space:]]+running$'; then
+    @grep@ --extended-regexp '^State:[[:space:]]+running$' >/dev/null; then
     pass "storage pool $pool_name is running"
     existing_pool_path="$(@virsh@ --connect "$libvirt_uri" pool-dumpxml --inactive "$pool_name" |
-      @xmllint@ --xpath 'string(/pool/target/path)' -)"
+      @python@ @xmlHelper@ pool-path)"
     if [[ $existing_pool_path == "$pool_path" ]]; then
       pass "storage pool targets $pool_path"
     else
@@ -289,7 +290,8 @@ doctor_host() {
     fi
   fi
 
-  if compgen -G '/sys/kernel/iommu_groups/*/devices/*' >/dev/null; then
+  # Nix's noninteractive Bash has no programmable-completion builtins.
+  if [[ -e ${iommu_devices[0]} ]]; then
     pass 'the kernel exposes IOMMU groups'
   elif ((iommu_enabled == 1 || vfio_enabled == 1)); then
     fail 'IOMMU policy is enabled but the kernel exposes no groups'
@@ -308,7 +310,7 @@ doctor_host() {
   fi
 
   if @ss@ --listening --tcp --numeric --process 2>/dev/null |
-    @grep@ --quiet --extended-regexp ':(16509|16514)[[:space:]]'; then
+    @grep@ --extended-regexp ':(16509|16514)[[:space:]]' >/dev/null; then
     fail 'a libvirt TCP or TLS management port is listening'
   else
     pass 'libvirt management is not listening on TCP or TLS'
@@ -338,7 +340,7 @@ doctor_guest() {
   fi
 
   autostart="$(@virsh@ --connect "$libvirt_uri" dominfo "$guest_name" |
-    @awk@ -F: '$1 ~ /^Autostart/ { sub(/^[[:space:]]+/, "", $2); print $2 }')"
+    @awk@ -F: '$1 == "Autostart" { sub(/^[[:space:]]+/, "", $2); print $2 }')"
   expected_autostart=disable
   while IFS=$'\t' read -r manifest_name _ssh _group _profile manifest_autostart _manifest_inhibit_sleep; do
     if [[ $manifest_name == "$guest_name" && $manifest_autostart == 1 ]]; then

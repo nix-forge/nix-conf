@@ -1,5 +1,6 @@
 {
   imports = [
+    ./authentication-checks.nix
     ./cache-checks.nix
     ./checks.nix
     ./configurations.nix
@@ -8,7 +9,9 @@
     ./generated-config-checks.nix
     ./git-hooks.nix
     ./git-privacy-checks.nix
+    ./javascript-checks.nix
     ./local-control-checks.nix
+    ./memory-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
     ./python-checks.nix

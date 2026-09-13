@@ -33,7 +33,10 @@ let
   pstackCodexSkills = [ "pstack-unslop" ];
 in
 {
-  home.packages = lib.optional supportsRemindctl remindctl;
+  # Terminal Codex needs the same Linux sandbox helper as the desktop app.
+  home.packages =
+    lib.optional supportsRemindctl remindctl
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.bubblewrap ];
 
   programs.codex = {
     enable = true;

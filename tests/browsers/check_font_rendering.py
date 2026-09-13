@@ -395,14 +395,16 @@ def main(
                 }[args.suite]
                 return check(driver, args.output)
             finally:
-                if driver is not None:
-                    driver.quit()
-                browser.terminate()
                 try:
-                    browser.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    browser.kill()
-                    browser.wait()
+                    if driver is not None:
+                        driver.quit()
+                finally:
+                    browser.terminate()
+                    try:
+                        browser.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        browser.kill()
+                        browser.wait(timeout=5)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+{
+  "plugins": ["unicorn", "typescript", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "node": true,
+    "browser": true
+  },
+  "ignorePatterns": ["nix-seal/**", "nix-config-framework/**", "pkgs/**"]
+}

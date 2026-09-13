@@ -39,12 +39,10 @@
     cache
     nixSeal
     ./nix-seal.nix
-    ./local/containers.nix
-    ./local/moonlight.nix
     macos
 
     fonts
-    ../../modules/home/desktop/optional-emoji-fonts.nix
+    desktop-optional-emoji-fonts
     dev
     xdg
     cli
@@ -88,7 +86,6 @@
     neovim-defaulteditor
 
     shells
-    shells-tmux
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv

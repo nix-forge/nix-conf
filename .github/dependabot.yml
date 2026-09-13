@@ -23,6 +23,7 @@ updates:
     directories:
       - "/"
       - "/flake/dev"
+      - "/templates/starter"
     schedule:
       interval: "weekly"
       day: monday

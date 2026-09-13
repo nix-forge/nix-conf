@@ -12,6 +12,7 @@ let
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
+    hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
@@ -20,6 +21,8 @@ let
     prismlauncher-release = ./prismlauncher-release.nix;
     sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     stylix-nvf = ./stylix-nvf.nix;
+    swift-wrapper-hardening = ./swift-wrapper-hardening.nix;
+    vscode-oniguruma-layout = ./vscode-oniguruma-layout.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
   };
   fixes = lib.mapAttrs (name: file: (import file { inherit pkgs lib; }) // { inherit name; }) files;
