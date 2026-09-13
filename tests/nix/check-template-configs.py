@@ -63,10 +63,15 @@ def _hyprconf(name: str) -> dict[str, str | list[dict[str, str]]]:
 idle = _hyprconf("hypridle.conf")
 enable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'"
 disable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'"
+idle_general = idle["general"]
+assert isinstance(idle_general, list)
+session_lock, lock_action = shlex.split(idle_general[0]["lock_cmd"])
+assert session_lock.endswith("/bin/desktop-session-lock"), session_lock
+assert lock_action == "lock"
 assert idle == {
     "general": [
         {
-            "lock_cmd": "pidof hyprlock || hyprlock",
+            "lock_cmd": f"{session_lock} lock",
             "inhibit_sleep": "3",
             "before_sleep_cmd": "loginctl lock-session",
             "after_sleep_cmd": enable,
@@ -85,7 +90,7 @@ assert idle == {
             "timeout": "30",
             "ignore_inhibit": "true",
             "condition_retry": "5",
-            "condition_cmd": 'pgrep -u "$(id -u)" -x hyprlock > /dev/null',
+            "condition_cmd": f"{session_lock} running",
             "on-timeout": disable,
             "on-resume": enable,
         },

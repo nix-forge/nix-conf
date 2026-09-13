@@ -46,7 +46,6 @@
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
-        vscode-oniguruma-layout = self.nixosConfigurations.desktop.pkgs.vscode.tests.oniguruma-layout;
         sentry-crashpad-lock-lifecycle =
           pkgs.runCommand "sentry-crashpad-lock-lifecycle"
             {
@@ -63,6 +62,9 @@
                 ${../../overlays/temporary/patches/sentry-crashpad-lock.patch}
               touch "$out"
             '';
+      }
+      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+        vscode-oniguruma-layout = self.nixosConfigurations.desktop.pkgs.vscode.tests.oniguruma-layout;
       };
     };
 }
