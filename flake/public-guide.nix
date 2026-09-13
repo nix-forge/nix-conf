@@ -18,9 +18,21 @@
   perSystem = { pkgs, system, ... }: {
     # These test public imports against the workstation's current inputs.
     # CI also builds templates/starter separately with its own release lockfile.
-    checks.public-guide-recipes = import ../tests/public-guide/recipes.nix {
-      inherit pkgs;
-      inherit (inputs) home-manager;
+    checks = {
+      public-guide-recipes = import ../tests/public-guide/recipes.nix {
+        inherit pkgs;
+        inherit (inputs) home-manager;
+      };
+    }
+    // lib.optionalAttrs (system == "x86_64-linux") {
+      public-demo-runtime = pkgs.testers.runNixOSTest {
+        name = "public-graphical-demo";
+        nodes.machine.imports = [
+          inputs.home-manager.nixosModules.home-manager
+          ../tests/public-guide/graphical-vm.nix
+        ];
+        testScript = import ../tests/public-guide/graphical-vm-test.nix;
+      };
     };
     packages = lib.optionalAttrs (system == "x86_64-linux") {
       public-demo-vm =
@@ -33,15 +45,5 @@
           ];
         }).config.system.build.vm;
     };
-    checks.public-demo-runtime = lib.mkIf (system == "x86_64-linux") (
-      pkgs.testers.runNixOSTest {
-        name = "public-graphical-demo";
-        nodes.machine.imports = [
-          inputs.home-manager.nixosModules.home-manager
-          ../tests/public-guide/graphical-vm.nix
-        ];
-        testScript = import ../tests/public-guide/graphical-vm-test.nix;
-      }
-    );
   };
 }

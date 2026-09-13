@@ -52,10 +52,26 @@ in
       childWhat = "platform module catalog";
     };
 
-    nixSeal = attrsetSchema {
-      doc = "Public nix-seal administrator catalog. Private identities and plaintext are never flake outputs.";
-      what = "public nix-seal policy catalog";
-      childWhat = "nix-seal catalog collection";
+    nixSeal = {
+      version = 1;
+      doc = "Public nix-seal administrator catalog and default configuration. Private identities and plaintext are never flake outputs.";
+      inventory = output: {
+        what = "public nix-seal policy catalog";
+        evalChecks.valid =
+          builtins.isAttrs output
+          && builtins.isAttrs (output.administrators or null)
+          && builtins.isString (output.defaultConfiguration or null);
+        children = {
+          administrators = {
+            what = "nix-seal administrator catalog";
+            evalChecks.isAttributeSet = builtins.isAttrs (output.administrators or null);
+          };
+          defaultConfiguration = {
+            what = "nix-seal default configuration name";
+            evalChecks.isString = builtins.isString (output.defaultConfiguration or null);
+          };
+        };
+      };
     };
   };
 }
