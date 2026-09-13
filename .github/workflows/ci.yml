@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/discover-lockfiles@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -81,19 +81,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/setup-nix@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/validate-workflows@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/repository-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/flake-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -129,12 +129,12 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/setup-nix@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           cache: 'false'
           cache-scope: ci-flake
       - name: Build every declared native CI check
-        uses: nix-forge/ci/actions/flake-checks@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/flake-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
@@ -242,4 +242,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+        uses: nix-forge/ci/actions/queue-completion@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
