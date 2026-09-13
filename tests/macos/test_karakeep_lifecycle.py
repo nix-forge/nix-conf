@@ -7,7 +7,8 @@ import shutil
 import signal
 import socket
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - Disposable command fixtures only.
-from contextlib import suppress
+import sys
+from contextlib import chdir, suppress
 from pathlib import Path
 
 import pytest
@@ -33,9 +34,22 @@ def test_stop_is_immediate_and_cleans_up_once(
     keeper = tmp_path / "keeper"
     keeper.write_text(f'#!{bash}\necho ready\nexec "{sleep}" "$@"\n', encoding="utf-8")
     keeper.chmod(0o700)
+    signal_reset = tmp_path / "signal-reset.py"
+    signal_reset.write_text(
+        """import os
+import signal
+import sys
+
+for stop_signal in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signal.signal(stop_signal, signal.SIG_DFL)
+os.execv(sys.argv[1], sys.argv[1:])
+""",
+        encoding="utf-8",
+    )
     with socket.socket(socket.AF_UNIX) as docker:
-        socket_path = tmp_path / "docker.sock"
-        docker.bind(str(socket_path))
+        socket_path = Path("docker.sock")
+        with chdir(tmp_path):
+            docker.bind(str(socket_path))
         source = SCRIPT.read_text(encoding="utf-8")
         for token, value in {
             "bash": bash,
@@ -52,11 +66,12 @@ def test_stop_is_immediate_and_cleans_up_once(
         script = tmp_path / "launchd"
         script.write_text(source, encoding="utf-8")
         with subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed interpreter and fixture.
-            [bash, str(script)],
+            [sys.executable, str(signal_reset), bash, str(script)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             start_new_session=True,
+            cwd=tmp_path,
             env={
                 key: value
                 for key, value in os.environ.items()
