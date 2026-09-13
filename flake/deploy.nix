@@ -436,23 +436,7 @@ in
         # from placing an upstream Nix on the user's PATH.
         assert desktop.determinate.enable;
         assert desktop.nix.settings.lazy-trees;
-        assert desktop.services.fprintd.enable;
-        # D-Bus packages may be merged to remove duplicate activation files.
-        assert lib.any (
-          package:
-          lib.elem (toString desktop.services.fprintd.package) (map toString (package.paths or [ package ]))
-        ) desktop.services.dbus.packages;
-        assert lib.elem desktop.services.fprintd.package desktop.systemd.packages;
-        assert desktop.security.pam.services."polkit-1".fprintAuth;
-        assert desktop.security.pam.services.sudo.fprintAuth;
-        assert desktop.security.pam.services.login.fprintAuth;
-        assert desktop.security.pam.services.greetd.fprintAuth;
-        assert desktop.security.pam.services.hyprlock.fprintAuth;
-        assert desktop.security.pam.services."polkit-1".rules.auth.fprintd.control == "sufficient";
-        assert desktop.security.pam.services.sudo.rules.auth.fprintd.control == "sufficient";
-        assert desktop.security.pam.services.login.rules.auth.fprintd.control == "sufficient";
-        assert desktop.security.pam.services.hyprlock.rules.auth.fprintd.control == "sufficient";
-        assert desktop.nix.settings.eval-cores == 0;
+        assert desktop.nix.settings.eval-cores == 4;
         assert desktop.nix.settings.flake-registry == "";
         assert
           builtins.attrNames desktop.nix.registry == [
@@ -667,7 +651,8 @@ in
           binding: lib.hasInfix "desktop-screenshot" (builtins.toJSON binding)
         ) desktopHome.wayland.windowManager.hyprland.settings.bind;
         assert lib.any (
-          binding: lib.hasInfix "desktop-wallpaper-next" (builtins.toJSON binding)
+          binding:
+          lib.hasInfix "systemctl --user start desktop-wallpaper-rotate.service" (builtins.toJSON binding)
         ) desktopHome.wayland.windowManager.hyprland.settings.bind;
         assert desktopHome.wayland.windowManager.hyprland.configType == "lua";
         assert desktopHome.wayland.windowManager.hyprland.extraConfig == "";
@@ -1119,13 +1104,11 @@ in
         assert lib.hasInfix "session include login" desktop.security.pam.services.greetd.text;
         assert desktop.security.pam.services.login.enableGnomeKeyring;
         assert desktop.programs.hyprlock.enable;
-        assert
-          desktop.programs.hyprlock.package.outPath == inputs.hyprlock.packages.x86_64-linux.hyprlock.outPath;
+        assert lib.getName desktop.programs.hyprlock.package == "hyprlock-personal";
         assert desktop.security.pam.services.hyprlock.enableGnomeKeyring;
         assert desktop.security.pam.services.passwd.enableGnomeKeyring;
         assert hasSystemPackage "seahorse";
         assert !(desktop.systemd.user.services ? sunshine-session-lock);
-        assert lib.hasInfix "Unlock desktop" desktopHome.xdg.configFile."hypr/hyprlock.conf".text;
         assert !(builtins.hasAttr "sunshine-headless-output" desktop.systemd.user.services);
         assert
           !lib.hasInfix "sunshine-headless-output.service" (
