@@ -9,3 +9,7 @@
 [submodule "nix-seal"]
 	path = nix-seal
 	url = https://github.com/nix-forge/nix-seal.git
+[submodule "nix-homelab"]
+	path = nix-homelab
+	url = https://github.com/nix-forge/nix-homelab.git
+	branch = main

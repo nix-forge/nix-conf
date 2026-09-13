@@ -124,6 +124,10 @@ in
       assert lib.all checkSystem systems;
       assert lib.all checkPackages systems;
       assert inputs.self.nixosConfigurations.desktop.config.nix.settings.sandbox == true;
+      assert inputs.self.nixosConfigurations.desktop.config.homelab.profiles.desktop.enable;
+      assert !inputs.self.nixosConfigurations.desktop.config.homelab.profiles.media.enable;
+      assert builtins.hasAttr "homelab-background"
+        inputs.self.nixosConfigurations.desktop.config.systemd.slices;
       assert
         inputs.self.darwinConfigurations.macbook-pro-m4.config.determinateNix.customSettings.sandbox
         == true;

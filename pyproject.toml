@@ -211,6 +211,7 @@ exclude = [
   "**/__pycache__",
   "dist",
   "build",
+  "nix-homelab",
   "nix-seal",
   "result",
 ]

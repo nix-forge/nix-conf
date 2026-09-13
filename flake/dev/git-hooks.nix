@@ -43,6 +43,9 @@
           # including untracked files, remains part of the exact path input.
           rootSrc = lib.mkForce (lib.cleanSource inputs.self.outPath);
           package = pkgs.prek;
+          # Each submodule runs its own hooks with its own tool versions and
+          # project configuration.
+          excludes = [ "^nix-homelab/" ];
           hooks = {
             treefmt = {
               enable = true;
