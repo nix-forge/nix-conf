@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - uses: nix-forge/ci/actions/setup-nix@78ee44eba73081183f51c85194c6dd9382feb60f # v2.5.0
+      - uses: nix-forge/ci/actions/setup-nix@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
         with:
           cache: 'false'
       - name: Build the guide
