@@ -66,4 +66,4 @@ nav:
       - OpenSSF baseline: openssf-baseline.md
       - Dependency management: dependency-management.md
       - Secret management: secret-management.md
-      - Threat model: ../THREAT_MODEL.md
+      - Threat model: threat-model.md

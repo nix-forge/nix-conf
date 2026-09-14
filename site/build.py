@@ -60,6 +60,13 @@ def build_guide(
         staged.mkdir()
         shutil.copyfile(source / "docs/README.md", staged / "README.md")
         shutil.copytree(source / "docs/guide", staged / "guide")
+        for source_name, staged_name in (
+            ("docs/openssf-baseline.md", "openssf-baseline.md"),
+            ("docs/dependency-management.md", "dependency-management.md"),
+            ("docs/secret-management.md", "secret-management.md"),
+            ("THREAT_MODEL.md", "threat-model.md"),
+        ):
+            shutil.copyfile(source / source_name, staged / staged_name)
         if catalog is not None and options is not None:
             insert_reference(staged, catalog, options)
         assets = staged / "assets/font-implementation"

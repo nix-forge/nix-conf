@@ -32,7 +32,8 @@ repository hooks, generated documentation checks, and the test suites that
 cover the affected configuration.
 
 Use the repository's pinned development environment and run the smallest
-affected checks from [docs/testing.md](testing.md). The normal baseline set is:
+affected checks from the [testing guide](https://github.com/nix-forge/nix-conf/blob/main/docs/testing.md).
+The normal baseline set is:
 
 ```console
 nix flake check --show-trace
@@ -62,18 +63,20 @@ model. Releases will not contain host credentials or deployment state.
 
 ## Governance and vulnerability response
 
-The maintainers listed in [GOVERNANCE.md](../GOVERNANCE.md) own repository
-administration, Actions secrets, Pages, dependency policy, and any release.
+The maintainers listed in the [governance policy](https://github.com/nix-forge/nix-conf/blob/main/GOVERNANCE.md)
+own repository administration, Actions secrets, Pages, dependency policy, and
+any release.
 Access to sensitive resources is granted after review of the contributor's
 history and intended responsibility. New maintainers start with the narrowest
 role needed and receive broader access only after review.
 
-Report vulnerabilities through [SECURITY.md](../SECURITY.md) or GitHub private
+Report vulnerabilities through the [security policy](https://github.com/nix-forge/nix-conf/blob/main/SECURITY.md) or GitHub private
 vulnerability reporting. The maintainer acknowledges a report within three
 business days, provides an initial assessment within seven days, and publishes
-an advisory after a fix or documented mitigation is available. [security/vex.json](../security/vex.json)
+an advisory after a fix or documented mitigation is available. The
+[OpenVEX record](https://github.com/nix-forge/nix-conf/blob/main/security/vex.json)
 records reviewed non-affectability statements. Support and end-of-life rules
-are in [SUPPORT.md](../SUPPORT.md).
+are in the [support policy](https://github.com/nix-forge/nix-conf/blob/main/SUPPORT.md).
 
 The operating procedures for [dependency management](dependency-management.md)
 and [secret management](secret-management.md) are part of this policy. They
@@ -87,13 +90,13 @@ used to support the controls below.
 | Least-privilege CI and trusted inputs | Empty default permissions, job scopes, pinned actions, quoted environment inputs, and no fork secrets |
 | Releases and change logs | This release policy and the release-evidence template |
 | Dependencies | `flake.lock`, nested lockfiles, dependency review, and CodeQL |
-| Build and test instructions | [CONTRIBUTING.md](../CONTRIBUTING.md) and [docs/testing.md](testing.md) |
-| Governance | [GOVERNANCE.md](../GOVERNANCE.md) |
-| Contributor legal agreement | [DCO](../DCO) and `.github/workflows/dco.yml` |
-| Security assessment | [THREAT_MODEL.md](../THREAT_MODEL.md) |
-| Vulnerability response | [SECURITY.md](../SECURITY.md), private reporting, advisories, and [security/vex.json](../security/vex.json) |
+| Build and test instructions | [CONTRIBUTING.md](https://github.com/nix-forge/nix-conf/blob/main/CONTRIBUTING.md) and the [testing guide](https://github.com/nix-forge/nix-conf/blob/main/docs/testing.md) |
+| Governance | [GOVERNANCE.md](https://github.com/nix-forge/nix-conf/blob/main/GOVERNANCE.md) |
+| Contributor legal agreement | [DCO](https://github.com/nix-forge/nix-conf/blob/main/DCO) and `.github/workflows/dco.yml` |
+| Security assessment | [THREAT_MODEL.md](https://github.com/nix-forge/nix-conf/blob/main/THREAT_MODEL.md) |
+| Vulnerability response | [SECURITY.md](https://github.com/nix-forge/nix-conf/blob/main/SECURITY.md), private reporting, advisories, and the [OpenVEX record](https://github.com/nix-forge/nix-conf/blob/main/security/vex.json) |
 | Public interfaces and release identity | Module and guide documentation, reviewed source commits, and future signed manifests |
-| Support lifecycle | [SUPPORT.md](../SUPPORT.md) |
+| Support lifecycle | [SUPPORT.md](https://github.com/nix-forge/nix-conf/blob/main/SUPPORT.md) |
 
 This file is reviewed when module contracts, CI trust, dependency policy, or
 release behavior changes.
