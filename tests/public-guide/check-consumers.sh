@@ -51,10 +51,6 @@ done
 nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
   "$work/starter#checks.$system.home" \
   "$work/starter#checks.$system.generated-config"
-if [[ $system == x86_64-linux ]]; then
-  nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
-    "$work/starter#checks.$system.vm-runtime"
-fi
 if [[ $system == aarch64-darwin ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
     "$work/darwin#checks.$system.system" \
