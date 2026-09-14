@@ -58,6 +58,19 @@ to another task.
 See the [testing guide](docs/testing.md) for test layers, commands, fixture
 conventions, and the framework decision.
 
+### Automated testing policy
+
+Pull requests and merge groups run repository hooks, dependency review, CodeQL,
+flake-lock health, documentation checks, and the declared evaluation and build
+matrix. Run the focused check first, then the broader checks required by the
+changed area before requesting review.
+
+Every major change to a reusable module, deployed example, public interface,
+security boundary, or recovery path must add or update an automated test. If an
+automated test is not practical, record the reason, manual evidence, and a
+follow-up plan in the pull request. Security and dependency findings follow
+the [dependency-management policy](dependency-management.md).
+
 Choose the smallest check that exercises the changed behavior. Test observable
 configuration, generated output, or a command's public behavior; obtain expected
 results from the requirement or an independent fixture. For a bug, show that the
