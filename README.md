@@ -1,8 +1,8 @@
 # nix-conf
 
-NixOS and macOS workstation configuration with a guide to building your own.
-Start with a small Home Manager environment, inspect what Nix generates, and
-reuse the features that fit your setup.
+Reusable NixOS, nix-darwin, and Home Manager configuration modules with a guide
+to building your own system. The repository also contains actively deployed
+Linux and macOS configurations as maintained examples.
 
 [Read the guide](https://nix-forge.github.io/nix-conf/) · [Build the starter](docs/guide/first-configuration.md) · [Reuse a module](docs/guide/git.md)
 
@@ -11,8 +11,8 @@ reuse the features that fit your setup.
 The [public starter](templates/starter/README.md) has its own pinned dependencies,
 Git and shell settings, and a disposable NixOS practice VM. It needs no personal
 credentials and does not activate anything on your account when you build it.
-The complete workstations add desktop services, shared appearance, font selection,
-and host-managed secrets.
+The deployed workstations add desktop services, shared appearance, font
+selection, and host-managed secrets.
 
 | Goal | Entry point |
 | --- | --- |
@@ -24,8 +24,8 @@ and host-managed secrets.
 
 The starter declares x86 Linux, ARM Linux, and Apple Silicon macOS. Its serial
 VM is x86 Linux only. The [support table](docs/guide/support.md) distinguishes
-evaluation, native builds, and runtime evidence. Personal host definitions are
-hardware-specific integration examples, not installation templates.
+evaluation, native builds, and runtime evidence. Host definitions are
+hardware-specific deployed examples, not installation templates.
 
 ## Appearance with evidence
 
@@ -75,8 +75,9 @@ Each target selects reusable features through the `modules` argument in its
 The framework also imports Nix files beneath each target's `local/` directory.
 These files must be modules; keep target-specific helper exports under the
 module's `lib` option. Do not also list automatically imported files in the
-target specification. Shared personal settings under `homes/shared/` and
-`hosts/shared/` are imported explicitly by their consumers.
+target specification. Shared settings under `homes/shared/` and `hosts/shared/`
+are imported explicitly by their consumers. Host definitions are maintained
+deployment examples; reusable behavior belongs in shared modules and features.
 
 A reusable directory's `default.nix` controls its aggregate selection. Without
 one, selecting the directory imports every Nix file below it. Adding a file to
