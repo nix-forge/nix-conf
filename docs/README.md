@@ -1,8 +1,9 @@
 # Build a Nix environment you understand
 
-nix-conf configures a NixOS desktop and an Apple Silicon Mac using Home Manager
-and reusable modules. This guide starts with a small environment you can build
-without access to either machine or its secrets.
+nix-conf provides reusable NixOS, nix-darwin, and Home Manager modules. It also
+documents actively deployed Linux and macOS configurations as maintained
+examples. This guide starts with a small environment you can build without
+access to those systems or their secrets.
 
 [Start the tutorial](guide/start-here.md) · [Browse reusable recipes](guide/git.md) · [See the architecture](guide/architecture.md)
 
@@ -22,10 +23,10 @@ without access to either machine or its secrets.
 ## Small examples, real configuration
 
 The starter has its own lockfile and a small set of public inputs. It does not
-import the personal hosts, enable proprietary applications, or provision secrets.
+import the deployed hosts, enable proprietary applications, or provision secrets.
 The recipes then show ordinary Home Manager modules from the actual repository.
 
-The full workstations go further, including shared appearance settings, font
+The deployed workstations go further, including shared appearance settings, font
 selection, desktop services, and host-managed secrets. Their hardware and runtime
 requirements are explicit in the [support table](guide/support.md).
 
