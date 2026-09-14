@@ -422,20 +422,27 @@ let
     };
   };
 
-  vmCli = writeBashTemplate {
-    name = "vm";
-    src = ./scripts/vm.sh.in;
-    dir = "bin";
-    replacements = {
-      bash = getExe pkgs.bash;
-      guestManifest = escapeShellArg guestManifest;
-      privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
-      ssh = getExe pkgs.openssh;
+  vmCli =
+    let
       # Store binaries cannot carry setuid permissions; use the NixOS wrapper.
       sudo = "${config.security.wrapperDir}/sudo";
-      virtManager = getExe config.programs.virt-manager.package;
+    in
+    (writeBashTemplate {
+      name = "vm";
+      src = ./scripts/vm.sh.in;
+      dir = "bin";
+      replacements = {
+        bash = getExe pkgs.bash;
+        guestManifest = escapeShellArg guestManifest;
+        privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
+        ssh = getExe pkgs.openssh;
+        inherit sudo;
+        virtManager = getExe config.programs.virt-manager.package;
+      };
+    })
+    // {
+      inherit sudo;
     };
-  };
 
   hostAudit = pkgs.writeShellApplication {
     name = "virt-host-audit";
