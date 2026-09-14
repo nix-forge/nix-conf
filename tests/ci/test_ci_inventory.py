@@ -70,6 +70,10 @@ class CIInventoryTests(unittest.TestCase):
                                         service-command-arguments = null;
                                         secret-templates = null;
                                     };
+                                    aarch64-linux = {
+                                        ordinary = null;
+                                        python-tests = null;
+                                    };
                                 };
                             };
                         };
@@ -98,6 +102,7 @@ class CIInventoryTests(unittest.TestCase):
                     "ordinary",
                     "secret-templates",
                 ],
+                "aarch64-linux": ["ordinary"],
             },
         )
 

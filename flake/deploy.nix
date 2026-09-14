@@ -10,6 +10,9 @@ let
     "platform-contracts"
     "temporary-package-fixes"
   ];
+  # The Python suite has operating-system-specific behavior, but repeating the
+  # same Linux suite on a second CPU architecture only duplicates test work.
+  linuxOncePerRevision = [ "python-tests" ];
   # This link farm is a local convenience target over checks that CI builds by
   # name. Evaluating it in CI duplicates the slowest part of check discovery.
   aggregateChecks = [ "generated-artifacts" ];
@@ -29,6 +32,7 @@ let
     "public-demo-runtime"
     "sentry-crashpad-lock"
     "service-command-arguments"
+    "virtualisation-generated-artifacts"
     "zen-wrapper-copy-regression"
   ];
 in
@@ -57,6 +61,7 @@ in
         aggregateChecks
         ++ hostedRunnerExclusions
         ++ lib.optionals (system != "x86_64-linux") oncePerRevision
+        ++ lib.optionals (system == "aarch64-linux") linuxOncePerRevision
         ++ builtins.attrNames (
           (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
         )
