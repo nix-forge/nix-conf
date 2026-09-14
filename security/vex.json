@@ -1,0 +1,8 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/nix-forge/nix-conf/security/vex.json",
+  "author": "nix-forge",
+  "timestamp": "2026-09-14T00:00:00Z",
+  "version": 1,
+  "statements": []
+}
