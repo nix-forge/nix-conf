@@ -13,6 +13,11 @@ asset. A future source release must use a unique immutable tag, a change log,
 integrity evidence, and the release process documented here before it is
 announced.
 
+This repository is part of the related projects listed in the
+[nix-forge project security contract](https://github.com/nix-forge/.github/blob/main/PROJECTS.md).
+Related repositories enforce the same minimum security contract or a stricter
+one for their own code and release surfaces.
+
 ## Change and build controls
 
 Every commit must carry a matching `Signed-off-by` trailer. The `DCO` file
