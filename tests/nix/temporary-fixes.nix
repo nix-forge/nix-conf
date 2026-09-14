@@ -125,7 +125,6 @@ let
     hyprshell = [ selected.hyprshell ];
     hypridle = [ selected.hypridle ];
     virt-manager = [ selected.virt-manager ];
-    vscode = [ selected.vscode ];
     grimblast = [ selected.grimblast-region ];
     hyprland = [ selected.hyprland ];
     portal = [ selected.xdg-desktop-portal-hyprland ];
@@ -207,11 +206,6 @@ assert
     ).drvPath;
 assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
 assert selected.nh.drvPath != pkgs.nh.drvPath;
-assert
-  if pkgs.stdenv.hostPlatform.isLinux then
-    selected.vscode.drvPath != pkgs.vscode.drvPath
-  else
-    selected.vscode.drvPath == pkgs.vscode.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
 assert (fixes.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath != (nhAt "4.4.2").drvPath;
 assert builtins.all

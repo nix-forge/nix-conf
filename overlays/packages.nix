@@ -50,7 +50,6 @@ in
   virt-manager = pkgs.virt-manager.override {
     gtksourceview4 = fixes.apply "gtksourceview-xvfb" pkgs.gtksourceview4;
   };
-  vscode = fixes.apply "vscode-oniguruma-layout" pkgs.vscode;
   hyprshell = fixes.apply "hyprshell-modifiers" pkgs.hyprshell;
   hypridle = fixes.apply "hypridle-condition-inhibitors" pkgs.hypridle;
   # Retain the selected Hyprland dependency set for the native lock UI variant.
