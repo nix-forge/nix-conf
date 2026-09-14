@@ -69,7 +69,7 @@ Every major change to a reusable module, deployed example, public interface,
 security boundary, or recovery path must add or update an automated test. If an
 automated test is not practical, record the reason, manual evidence, and a
 follow-up plan in the pull request. Security and dependency findings follow
-the [dependency-management policy](dependency-management.md).
+the [dependency-management policy](docs/dependency-management.md).
 
 Choose the smallest check that exercises the changed behavior. Test observable
 configuration, generated output, or a command's public behavior; obtain expected
