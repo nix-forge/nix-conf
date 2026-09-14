@@ -24,6 +24,13 @@ let
     "0E"
     "0F"
   ]) (_: "#123456");
+  testHyprland = lib.extendDerivation true { override = _: testHyprland; } (
+    pkgs.runCommand "test-hyprland-clients" { } ''
+      mkdir -p "$out/bin"
+      touch "$out/bin/hyprctl" "$out/bin/Hyprland"
+      chmod +x "$out/bin/hyprctl" "$out/bin/Hyprland"
+    ''
+  );
   homeFor =
     modules:
     inputs.home-manager.lib.homeManagerConfiguration {
@@ -116,7 +123,10 @@ let
         enable = true;
         backgroundAppClasses = [ "chatgpt" ];
       };
-      wayland.windowManager.hyprland.enable = true;
+      wayland.windowManager.hyprland = {
+        enable = true;
+        package = testHyprland;
+      };
     }
   ];
   files = pkgs.linkFarm "generated-template-configs" {
@@ -130,10 +140,6 @@ let
     "ironbar.css" = desktop.config.xdg.configFile."ironbar/style.css".source;
     "swaync.css" = desktop.config.xdg.configFile."swaync/style.css".source;
     "swayosd.css" = desktop.config.xdg.configFile."swayosd/style.css".source;
-    "swayosd-focused" = lib.getExe' (lib.findFirst (p: lib.getName p == "desktop-swayosd-focused")
-      (throw "SwayOSD focused-output helper is missing")
-      desktop.config.home.packages
-    ) "desktop-swayosd-focused";
     "hyprshell.css" = shell.config.xdg.configFile."hyprshell/styles.css".source;
     "walker.toml" = desktop.config.xdg.configFile."walker/config.toml".source;
     "walker.css" = desktop.config.xdg.configFile."walker/themes/stylix/style.css".source;
