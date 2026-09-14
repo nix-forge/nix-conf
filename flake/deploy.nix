@@ -27,6 +27,7 @@ let
     "desktop-storage-generated-artifacts"
     "desktop-storage-install"
     "public-demo-runtime"
+    "sentry-crashpad-lock"
     "service-command-arguments"
     "zen-wrapper-copy-regression"
   ];

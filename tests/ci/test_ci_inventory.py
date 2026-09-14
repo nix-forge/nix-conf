@@ -51,6 +51,7 @@ class CIInventoryTests(unittest.TestCase):
                                         ordinary = null;
                                         newly-added = null;
                                         new-portable-check = null;
+                                        sentry-crashpad-lock = null;
                                         service-command-arguments = null;
                                         secret-templates = null;
                                         host-only = null;
@@ -65,6 +66,7 @@ class CIInventoryTests(unittest.TestCase):
                                         gitleaks-policy = null;
                                         host-only = null;
                                         ordinary = null;
+                                        sentry-crashpad-lock = null;
                                         service-command-arguments = null;
                                         secret-templates = null;
                                     };
