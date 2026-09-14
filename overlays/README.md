@@ -110,9 +110,10 @@ The fix is never silently applied outside its declared range.
 For a fix that should stop applying automatically after the affected versions,
 declare `packageName` and an `appliesTo` predicate instead. The registry tests
 the incoming package before applying the patch or its revision guard. Review
-checks use `pkgs.${packageName}` for the same decision. If a registry has no
-package set, revision review remains conservative. Other fixes keep their
-existing review behavior.
+checks resolve `packageName` as a dotted attribute path below `pkgs` for the
+same decision, so nested package sets such as `plugins.example` are supported.
+If a registry has no package set, revision review remains conservative. Other
+fixes keep their existing review behavior.
 
 The `nh-darwin-home` fix applies through `nh` 4.4.2 and is skipped for newer
 versions, including its own revision-review requirement. Upstream merged

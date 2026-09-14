@@ -255,10 +255,22 @@ exclude = [
   "**/__pycache__",
   "dist",
   "build",
+  "result",
+  # Submodules own their static analysis. Root checks validate their exported
+  # Nix interfaces without recursively linting each repository a second time.
+  "nix-config-framework",
   "nix-homelab",
   "nix-seal",
-  "result",
+  "pkgs",
 ]
+
+[[tool.ty.overrides]]
+include = ["nix-seal/nix/tests/scripts/runtime-vm-test.py"]
+
+[tool.ty.overrides.rules]
+# NixOS test drivers inject these globals. The nix-seal VM check executes the
+# script in that DSL and remains the authority for those runtime names.
+unresolved-reference = "ignore"
 
 [tool.ty.terminal]
 error-on-warning = true

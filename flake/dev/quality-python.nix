@@ -12,6 +12,7 @@ pkgs.python3.withPackages (
     pillow
     pygments
     pytest
+    pyyaml
     selenium
     tomlkit
     uharfbuzz

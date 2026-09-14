@@ -7,12 +7,16 @@ let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
     actual-server-case = ./actual-server-case.nix;
+    audiomuseai-plugin-loopback-host = ./audiomuseai-plugin-loopback-host.nix;
+    audiomuseai-plugin-release = ./audiomuseai-plugin-release.nix;
     claude-code-sandbox = ./claude-code-sandbox.nix;
     deploy-rs-darwin-tests = ./deploy-rs-darwin-tests.nix;
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
+    navidrome-release = ./navidrome-release.nix;
+    nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
@@ -29,6 +33,7 @@ let
   guard = import ./guard.nix { inherit lib; };
   revision = fix: (lib.getAttrFromPath fix.inputPath inputs).rev or "<unversioned input>";
   appliesTo = fix: fix.appliesTo or (_: true);
+  reviewPackage = fix: lib.getAttrFromPath (lib.splitString "." fix.packageName) pkgs;
 in
 {
   # Callers apply a fix to its incoming package or module input.
@@ -44,7 +49,7 @@ in
   review = lib.mapAttrs (
     _: fix:
     let
-      applicable = !(fix ? appliesTo) || pkgs == null || appliesTo fix pkgs.${fix.packageName};
+      applicable = !(fix ? appliesTo) || pkgs == null || appliesTo fix (reviewPackage fix);
     in
     builtins.seq
       (if applicable then guard (fix // { affectedVersions = null; }) (revision fix) { } else null)

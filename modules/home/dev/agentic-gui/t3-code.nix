@@ -2,12 +2,8 @@
   self,
   system,
   lib,
-  pkgs,
   ...
 }:
-let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin isAarch64;
-in
 {
-  home.packages = lib.mkIf (isDarwin && isAarch64) [ self.packages.${system}.t3-code ];
+  home.packages = lib.mkIf (self.packages.${system} ? t3-code) [ self.packages.${system}.t3-code ];
 }

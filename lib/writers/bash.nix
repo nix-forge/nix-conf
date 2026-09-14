@@ -6,6 +6,8 @@
       src,
       replacements,
       dir ? null,
+      runtimeInputs ? [ ],
+      inheritPath ? true,
       shellcheckFlags ? [ ],
     }:
     let
@@ -16,9 +18,19 @@
           ${lib.getExe pkgs.shellcheck-minimal} --shell=bash ${lib.escapeShellArgs shellcheckFlags} "$1"
         '';
       };
+      contextualReplacements = lib.mapAttrs (
+        _: value: if builtins.isPath value then "${value}" else value
+      ) replacements;
+      runtimePath = lib.makeBinPath runtimeInputs;
+      pathSetup =
+        if inheritPath then
+          lib.optionalString (runtimeInputs != [ ]) "export PATH=${lib.escapeShellArg runtimePath}:\"$PATH\""
+        else
+          "export PATH=${lib.escapeShellArg runtimePath}";
       rendered = pkgs.replaceVarsWith {
         name = "${name}-body";
-        inherit src replacements;
+        inherit src;
+        replacements = contextualReplacements;
         # The writer supplies the interpreter. Keep standalone source files
         # usable, but remove their known Bash shebang after strict substitution.
         postInstall = ''
@@ -33,6 +45,13 @@
               exit 1
               ;;
           esac
+          ${lib.optionalString (pathSetup != "") ''
+            {
+              printf '%s\n' ${lib.escapeShellArg pathSetup}
+              cat "$target"
+            } > "$TMPDIR/script-with-runtime-path"
+            cat "$TMPDIR/script-with-runtime-path" > "$target"
+          ''}
         '';
       };
       options.check = lib.getExe check;

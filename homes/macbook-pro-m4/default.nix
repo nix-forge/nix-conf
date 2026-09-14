@@ -55,13 +55,6 @@
         dataDir = "${config.xdg.userDirs.documents}/Actual";
       };
     })
-    karakeep
-    ({ config, ... }: {
-      services.karakeep = {
-        enable = false;
-        dataDir = "${config.xdg.userDirs.documents}/Karakeep";
-      };
-    })
     ssh
     ({ config, ... }: {
       services.localControl = {
@@ -89,6 +82,7 @@
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
+    feishin
     libreoffice
     { programs.libreoffice.enable = true; }
     vorssaint

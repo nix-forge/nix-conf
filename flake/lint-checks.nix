@@ -7,8 +7,11 @@
       pre-commit
       python-quality
       javascript-quality
+      stylesheet-quality
+      swift-quality
       treefmt
       documentation
+      gitleaks-policy
       ;
   }) self.checks;
 }

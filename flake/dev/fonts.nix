@@ -172,7 +172,9 @@
               export QT_PLUGIN_PATH=${pkgs.qt6.qtbase}/lib/qt-6/plugins
               mkdir -p "$out" "$XDG_RUNTIME_DIR"
               chmod 700 "$XDG_RUNTIME_DIR"
-              c++ -fPIC -std=c++17 ${../../tests/fonts/render_native.cpp} -o render $(pkg-config --cflags --libs Qt6Gui pangocairo)
+              c++ -fPIC -std=c++17 -Wall -Wextra -Wpedantic -Wconversion \
+                -Wsign-conversion -Werror ${../../tests/fonts/render_native.cpp} \
+                -o render $(pkg-config --cflags --libs Qt6Gui pangocairo)
               ./render "$out"
             '';
       };

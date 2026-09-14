@@ -1,0 +1,14 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: Latest
+AlignAfterOpenBracket: DontAlign
+ColumnLimit: 100
+IndentWidth: 2
+ContinuationIndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Right
+ReferenceAlignment: Pointer
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+InsertBraces: true

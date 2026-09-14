@@ -50,6 +50,8 @@ to another task.
 - Keep private keys and plaintext credentials outside the repository and Nix
   store. Use the repository's sealed-secret integration and
   [secret-management guide](docs/secrets.md) for changes involving secrets.
+- Follow the [Nix function conventions](docs/nix-function-conventions.md) when
+  rendering templates or packaging Bash and Python helpers.
 
 ## Validation
 

@@ -53,7 +53,7 @@ let
     };
   };
 
-  actualSetup = pkgs.replaceVarsWith {
+  actualSetup = writeBashTemplate {
     name = "actual-setup.sh";
     src = ./scripts/actual-setup.sh;
     replacements = {

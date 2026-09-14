@@ -8,6 +8,11 @@ on:
         description: Base commit for native comparison workflows.
         required: false
         type: string
+      build_native_packages:
+        description: Build package outputs already owned by their source repositories.
+        required: false
+        default: false
+        type: boolean
   merge_group:
     types: [checks_requested]
 concurrency:
@@ -202,7 +207,10 @@ jobs:
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
   native:
     name: Native packages (${{ matrix.label }})
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    # Root packages mostly re-export subrepository outputs. Their source repos
+    # own routine native builds; opt in here only when auditing the root lock
+    # context explicitly. Root integration checks remain required below.
+    if: github.event_name == 'workflow_dispatch' && inputs.build_native_packages
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     permissions:
@@ -213,22 +221,28 @@ jobs:
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
-            label: x86_64-linux 1/3
-            artifact: x86_64-linux-1-of-3
-            partition-count: 3
+            label: x86_64-linux 1/4
+            artifact: x86_64-linux-1-of-4
+            partition-count: 4
             partition-index: 0
           - system: x86_64-linux
             runner: ubuntu-24.04
-            label: x86_64-linux 2/3
-            artifact: x86_64-linux-2-of-3
-            partition-count: 3
+            label: x86_64-linux 2/4
+            artifact: x86_64-linux-2-of-4
+            partition-count: 4
             partition-index: 1
           - system: x86_64-linux
             runner: ubuntu-24.04
-            label: x86_64-linux 3/3
-            artifact: x86_64-linux-3-of-3
-            partition-count: 3
+            label: x86_64-linux 3/4
+            artifact: x86_64-linux-3-of-4
+            partition-count: 4
             partition-index: 2
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            label: x86_64-linux 4/4
+            artifact: x86_64-linux-4-of-4
+            partition-count: 4
+            partition-index: 3
           - system: aarch64-linux
             runner: ubuntu-24.04-arm
             label: aarch64-linux 1/2
@@ -337,7 +351,7 @@ jobs:
           NATIVE_RESULT: ${{ needs.native.result }}
         run: |
           test "$FLAKE_RESULT" = success
-          test "$NATIVE_RESULT" = success
+          test "$NATIVE_RESULT" = success || test "$NATIVE_RESULT" = skipped
   queue-completion:
     continue-on-error: true
     name: Queue completion callback

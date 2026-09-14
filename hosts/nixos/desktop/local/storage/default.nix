@@ -1,13 +1,16 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
   cfg = config.hardware.storage.encryptedRoot;
-  enrollment = pkgs.writeShellApplication {
+  enrollment = myLib.writers.writeBashTemplate { inherit pkgs; } {
     name = "desktop-storage-enroll";
+    src = ./enroll.sh;
+    dir = "bin";
     runtimeInputs = [
       pkgs.cryptsetup
       pkgs.systemd
@@ -16,18 +19,15 @@ let
       pkgs.jq
       pkgs.python3
     ];
-    text =
-      builtins.replaceStrings
-        [ "@dataKeyFile@" "@measuredBoot@" "@pcrlockPolicy@" "@pcrlockExecutable@" ]
-        [
-          (lib.escapeShellArg cfg.dataKeyFile)
-          (lib.boolToString (config.security.secureBootLanzaboote.measuredBoot.enable or false))
-          (lib.escapeShellArg (
-            config.boot.lanzaboote.measuredBoot.pcrlockPolicy or "/var/lib/systemd/pcrlock.json"
-          ))
-          (lib.escapeShellArg "${config.systemd.package}/lib/systemd/systemd-pcrlock")
-        ]
-        (builtins.readFile ./enroll.sh);
+    replacements = {
+      dataKeyFile = lib.escapeShellArg cfg.dataKeyFile;
+      homelabKeyFile = lib.escapeShellArg cfg.homelabKeyFile;
+      measuredBoot = lib.boolToString (config.security.secureBootLanzaboote.measuredBoot.enable or false);
+      pcrlockPolicy = lib.escapeShellArg (
+        config.boot.lanzaboote.measuredBoot.pcrlockPolicy or "/var/lib/systemd/pcrlock.json"
+      );
+      pcrlockExecutable = lib.escapeShellArg "${config.systemd.package}/lib/systemd/systemd-pcrlock";
+    };
   };
   mounts = [
     "/srv/data"
@@ -63,6 +63,11 @@ in
       type = lib.types.str;
       default = "/var/lib/desktop-storage/keys/data.key";
       description = "Private runtime keyfile enrolled into cryptdata, stored only on encrypted root.";
+    };
+    homelabKeyFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/desktop-storage/keys/homelab.key";
+      description = "Private keyfile enrolled into the optional homelab HDD after encrypted-root migration.";
     };
     unlockMethod = lib.mkOption {
       type = lib.types.enum [
@@ -181,6 +186,10 @@ in
           {
             assertion = lib.hasPrefix "/" cfg.dataKeyFile && !lib.hasPrefix "/nix/store/" cfg.dataKeyFile;
             message = "cryptdata requires a private absolute runtime keyfile outside the Nix store.";
+          }
+          {
+            assertion = lib.hasPrefix "/" cfg.homelabKeyFile && !lib.hasPrefix "/nix/store/" cfg.homelabKeyFile;
+            message = "The homelab HDD requires a private absolute keyfile outside the Nix store.";
           }
           {
             assertion =

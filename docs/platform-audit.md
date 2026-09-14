@@ -165,7 +165,7 @@ their uses are grouped by file.
 | `modules/home/discord.nix` | 3, 15, 16 | Keep explicit tray UX differences. Common Vesktop preferences are already shared. |
 | `modules/home/helium-browser/default.nix` | 13, 17, 102, 104, 131 | Keep structural selection of distinct upstream adapters via the supplied system argument, avoiding config-dependent imports. |
 | `modules/home/helium-browser/flags.nix` | 3, 11 | Keep Linux Ozone/VAAPI flags isolated; startup and download policies are shared. |
-| `modules/home/karakeep.nix` | 8, 28, 109, 150, 198, 215 | Keep shared Compose config with systemd versus Colima/launchd adapters. Darwin VM port exposure accompanies an explicit forwarding helper. |
+| Karakeep | Linux-only upstream package | Moved out of Home Manager. The homelab NixOS module owns the native package, browser, search index, secrets and process policy. |
 | `modules/home/libreoffice.nix` | 10, 14, 16, 216, 251, 338, 369, 415 | Keep native package/profile locations and systemd/launchd grammar service; document and language settings are shared. |
 | `modules/home/linearmouse.nix` | 8, 102 | Keep native macOS application support, preferences, signing, TCC, and login integration. |
 | `modules/home/macos/core-packages.nix` | 8, 180 | Keep macOS native command wrappers and priority policy together; do not export invalid native paths to Linux. |

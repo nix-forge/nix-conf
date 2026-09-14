@@ -1044,6 +1044,9 @@
         "nixpkgs": [
           "nixpkgs"
         ],
+        "nixpkgs-personal": [
+          "nixpkgs-personal"
+        ],
         "systems": "systems_3",
         "treefmt-nix": "treefmt-nix",
         "vpn-confinement": "vpn-confinement"

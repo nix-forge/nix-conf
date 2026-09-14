@@ -230,12 +230,29 @@ is also disabled because swap is randomly encrypted each boot.
 
 ## Shared media and backup disk
 
-The intended desktop homelab deployment uses the existing 4 TB external drive
-primarily for home-server and media data, while retaining a separate directory
-for desktop backups. This changes its intended role from a dedicated backup
-medium to shared storage. Keep the current filesystem and existing backups
-until their contents and a recovery copy have been checked. No repartitioning
-or formatting is part of this integration.
+The intended desktop homelab deployment uses a 4 TB external HDD for
+home-server media and a separate backup subtree. Provision it as a GPT data
+partition containing LUKS2 and a single-device Btrfs filesystem. Btrfs uses data
+SINGLE, metadata DUP, xxhash checksums, `compress=zstd:1`, `noatime`, and
+`nodiscard`. Data checksums and monthly scrub detect damaged file data, but a
+single data copy cannot repair it; recovery still requires an independent
+verified backup. Metadata DUP is local resilience, not another backup copy. See
+[Btrfs checksumming](https://btrfs.readthedocs.io/en/latest/Checksumming.html),
+[scrub behavior](https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html), and
+[single-device profiles](https://btrfs.readthedocs.io/en/stable/mkfs.btrfs.html).
+
+The filesystem mounts at `/mnt/homelab` as an optional, on-demand systemd
+automount with `nodev`, `nosuid`, and `noexec`, so its absence does not delay or
+fail boot. Do not add an idle-unmount timeout: long-running downloads, media
+indexers, and filesystem watchers need a stable mount. Do not enable global
+NOCOW or autodefrag: NOCOW also loses data checksums and compression, while
+defragmentation can unshare snapshot or reflink extents. Already-compressed
+media is skipped by Btrfs's normal compression heuristic.
+
+`/mnt/homelab` remains the external drive's stable path after the Disko
+migration. `/srv/data` is a different, encrypted internal NVMe filesystem in the
+future layout; never mount the external drive there or use the two paths as if
+they were interchangeable.
 
 `nix-homelab` owns reusable media service policy. This repository owns the actual
 mount, host resource policy, nix-seal declarations and backup destinations. The
@@ -244,21 +261,62 @@ mount and list the mount itself in `homelab.storage.requiredMounts`. Keep
 downloads and libraries on the same filesystem for hardlink imports. Keep
 application databases on the system SSD and back up consistent exports.
 
+The desktop uses:
+
+```nix
+homelab.storage = {
+  rootDir = "/mnt/homelab/media";
+  requiredMounts = [ "/mnt/homelab" ];
+};
+```
+
+Store data by durability and access pattern:
+
+| Data | Location | Backup policy |
+| --- | --- | --- |
+| Service databases, configuration, accounts, and qBittorrent resume state | Native `/var/lib/<service>` paths on the system SSD | App-consistent backup; these are small and irreplaceable |
+| Rebuildable thumbnails, caches, and transcodes | Native `/var/cache` or service cache paths on the SSD | Exclude when regeneration is acceptable |
+| Incomplete downloads | `/mnt/homelab/media/downloads/incomplete` | Exclude |
+| Completed torrents and Usenet downloads | `/mnt/homelab/media/downloads/{torrents,usenet}` | Retain while seeding or importing; back up only when reacquisition cost warrants it |
+| Curated media libraries | `/mnt/homelab/media/library/{movies,tv,music,books,audiobooks}` | Keep an independent copy for anything important or hard to reacquire |
+| Local Restic repository | `/mnt/homelab/backups/restic` | It protects against system-SSD loss, not external-disk theft, failure, or host-wide incidents |
+| Future VM images, containers, and working data | `/srv/data`, `/var/lib/libvirt`, and native service state | Use consistent or cold backups to an independent destination |
+
 Use sibling media and backup directories with separate ownership. Do not put
 the backup repository inside its own source tree. Budget media growth against
 backup retention before enabling automatic downloads. Directory separation
 does not reserve capacity, and a mostly connected media disk cannot count as
 the offline backup copy. A backup of media onto that same disk cannot recover
 from failure of the disk; important media needs an independent destination.
+Keep the backup subtree root-owned and never merge or reuse it as a media
+directory. The media and backup trees are nested Btrfs subvolumes, so a future
+snapshot of one does not retain the other's data. Downloads and libraries remain
+inside the same media subvolume for hardlink imports. Start with 1 TiB of
+free-space headroom for backup growth and temporary work: pause managed downloads
+below 1 TiB and resume only above 1.125 TiB. Revisit the thresholds after
+observing growth; they are safety headroom, not a filesystem quota.
+
+Before the internal encrypted-storage migration, the first access prompts for
+the LUKS recovery passphrase. Do not store an automatic-unlock key on the current
+plaintext root filesystem. After Disko, enroll a separate random homelab key with
+`desktop-storage-enroll homelab-key`; it lives only on encrypted root and makes
+the optional disk unattended. Retain and test the recovery passphrase, then take
+a new protected LUKS header backup. The external disk stays outside Disko's
+internal-drive destroy/format operation and keeps the same mapper and mount path.
+The optional unlock behavior follows
+[crypttab's `noauto` and `nofail` semantics](https://www.freedesktop.org/software/systemd/man/latest/crypttab.html).
 
 Only the BitTorrent client uses Mullvad by default. Playback and arr managers
 keep normal host networking. Credentials remain user-provided through nix-seal;
-this integration does not include a provider profile, private key or API token.
+provider profiles are host configuration and must not be copied into public
+documentation. Private keys, passwords, and API tokens must never enter Nix
+expressions or the Nix store.
 The reusable service examples and migration notes live in the companion
 [nix-homelab repository](https://github.com/IanHollow/nix-homelab). Update that
 link after the organization transfer.
 
-Before enabling the host integration, inspect disk contents and free capacity,
-choose the media and backup space budget, set a persistent mount, configure
-backup exclusions and application exports, and verify missing-disk behavior.
-These are deployment requirements, not operations performed by this note.
+The desktop media profile deliberately remains disabled until a media/backup
+capacity budget and independent recovery destination are chosen and the
+application secrets are sealed. Before activation, verify missing-disk refusal,
+same-filesystem hardlink imports, VPN outage and recovery behavior, media
+playback, and a representative restore.

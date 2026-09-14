@@ -111,7 +111,7 @@ package upgrades.
 | Desktop applications | Firefox/Zen, Helium/Chrome, Bitwarden, LibreOffice, mpv, darktable, Spotify/Spicetify, Signal, Discord, Zoom, Teams, Notion | Keep according to required workflows. No blanket claim that a newer application is better. |
 | Gaming and remote display | Steam, Proton-related integration, PrismLauncher, Moonlight | Keep hardware/game compatibility as the acceptance criterion. |
 | Fonts and graphics | Fontconfig, HarfBuzz, Pango, Core Text, Inter, Literata, Monaspace, Noto, optional Apple/Microsoft/legacy emoji collections | Current defaults coexist with intentionally historical artwork. Do not treat old optional fonts as obsolete frameworks. |
-| Optional services | Actual Budget and Karakeep modules | Explicitly disabled in the inspected macOS home. Do not treat them as running infrastructure. |
+| Optional user service | Actual Budget module | Explicitly disabled in the inspected macOS home. Karakeep moved to the native NixOS homelab module. |
 | Tests and quality | pytest/pytest-timeout, Nix checks, NixOS VM tests, Selenium, direct browser protocol scripts, Rust/Swift tests, formatters and scanners | Improve missing behavior coverage rather than replace all test runners. |
 | CI and docs | GitHub Actions, shared `nix-forge/ci` workflows, Dependabot, native platform matrix, MkDocs/Pygments, Pages | Already substantial. Preserve reproducible builds and review gates. |
 
