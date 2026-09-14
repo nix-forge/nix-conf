@@ -1,16 +1,12 @@
 name: DCO
-
 on:
   pull_request:
   merge_group:
     types: [checks_requested]
-
 permissions: {}
-
 concurrency:
   group: dco-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-
 jobs:
   sign-off:
     name: DCO sign-off
@@ -27,8 +23,10 @@ jobs:
       - name: Check every proposed commit
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha
+            }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha
+            }}
           PR_NUMBER: ${{ github.event.pull_request.number || '' }}
         shell: bash
         run: |
