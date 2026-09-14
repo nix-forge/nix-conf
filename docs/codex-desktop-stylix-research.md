@@ -318,14 +318,14 @@ editing/parser workflow.
 The reusable checks are
 [configuration regression tests](../tests/codex/test_appearance_config.py) and
 [native runtime checks](../tests/codex/check_theme_runtime.mjs). Build the
-appearance wrapper referenced by the home profile's activation entry for the
-native test. The configuration tests run the updater with independent settings
-fixtures through pytest. The runtime test needs a private extraction of the selected app's `webview/assets`, the generated appearance
+appearance wrapper referenced by the home profile's activation entry when
+checking generated theme integration. Configuration regressions now run through
+pytest against the updater CLI with independent fixture settings. The runtime test needs a private
+extraction of the selected app's `webview/assets`, the generated appearance
 JSON referenced by the wrapper, and an isolated app debugging endpoint.
 
 ```sh
-workstation-task nix develop .#tests --command \
-  python3 -m pytest tests/codex/test_appearance_config.py
+just test-python tests/codex
 CODEX_HOME="$private_directory/config" \
   CODEX_ELECTRON_USER_DATA_PATH="$private_directory/profile" \
   "$codex_app" --user-data-dir="$private_directory/profile" \

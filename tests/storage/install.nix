@@ -1,4 +1,8 @@
-{ pkgs, diskoLib }:
+{
+  pkgs,
+  diskoLib,
+  myLib,
+}:
 let
   inherit (pkgs) lib;
   layout = import ../../hosts/nixos/desktop/disko.nix { inherit lib; };
@@ -44,6 +48,7 @@ diskoLib.testLib.makeDiskoTest {
   disko-config = fixture;
   extraInstallerConfig.virtualisation.memorySize = 2048;
   extraSystemConfig = {
+    _module.args = { inherit myLib; };
     imports = [
       ../../hosts/nixos/desktop/local/storage/default.nix
       ../../hosts/nixos/desktop/local/hardware/filesystems.nix

@@ -1,5 +1,6 @@
 {
   inputs,
+  myLib,
   pkgs,
   lib,
   config,
@@ -8,6 +9,7 @@
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
@@ -16,7 +18,7 @@ let
   spotifyPackage = self.packages.${system}.spotify-spotx;
   spotifyDarwinInstallDir = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   spotifyDarwinApp = "${spotifyDarwinInstallDir}/Spotify.app";
-  spotifyQuality = pkgs.replaceVarsWith {
+  spotifyQuality = writeBashTemplate {
     name = "configure-spotify-quality.sh";
     src = ./scripts/configure-spotify-quality.sh;
     replacements = {

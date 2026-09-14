@@ -9,10 +9,12 @@ fail() {
 [[ $EUID == 0 ]] || fail 'Run this command as root at the physical console.'
 root_device=/dev/disk/by-partlabel/NIXOS-CRYPTROOT
 data_device=/dev/disk/by-partlabel/NIXOS-CRYPTDATA
+homelab_device=/dev/disk/by-uuid/fd63a64b-e779-4557-bc98-cff841faf19b
 cryptsetup isLuks --type luks2 "$root_device" || fail 'The encrypted layout has not been installed.'
 root_source=$(findmnt -n -o SOURCE /)
 [[ $root_source == /dev/mapper/cryptroot* ]] || fail 'Boot the installed encrypted root before enrollment.'
 key_file=@dataKeyFile@
+homelab_key_file=@homelabKeyFile@
 measured_boot=@measuredBoot@
 recovery_directory=/var/lib/desktop-storage/recovery
 
@@ -47,6 +49,25 @@ data-key)
     cryptsetup open --test-passphrase --key-file "$key_file" "$data_device"
   fi
   ;;
+homelab-key)
+  cryptsetup isLuks --type luks2 "$homelab_device" || fail 'The external homelab volume is not LUKS2.'
+  install -d -m 700 "$(dirname "$homelab_key_file")"
+  if [[ ! -e $homelab_key_file ]]; then
+    (
+      set -o noclobber
+      head -c 64 /dev/urandom >"$homelab_key_file"
+    )
+  fi
+  [[ ! -L $homelab_key_file && -f $homelab_key_file ]] || fail 'The homelab key must be a regular file.'
+  [[ "$(stat -c '%u:%a' "$homelab_key_file")" == 0:600 ]] || fail 'The homelab key must be root-owned with mode 0600.'
+  if cryptsetup open --test-passphrase --key-file "$homelab_key_file" "$homelab_device"; then
+    printf '%s\n' 'The existing homelab key is already enrolled.'
+  else
+    printf '%s\n' 'Enter the existing homelab-volume recovery passphrase when cryptsetup asks.'
+    cryptsetup luksAddKey "$homelab_device" "$homelab_key_file"
+    cryptsetup open --test-passphrase --key-file "$homelab_key_file" "$homelab_device"
+  fi
+  ;;
 tpm-pin)
   signed_boot
   [[ $measured_boot == true ]] || fail 'Boot a generation with managed measured boot enabled first.'
@@ -71,10 +92,13 @@ headers)
   destination=$(mktemp -d "$recovery_directory/headers.XXXXXXXX")
   cryptsetup luksHeaderBackup "$root_device" --header-backup-file "$destination/root.header"
   cryptsetup luksHeaderBackup "$data_device" --header-backup-file "$destination/data.header"
+  if cryptsetup isLuks --type luks2 "$homelab_device"; then
+    cryptsetup luksHeaderBackup "$homelab_device" --header-backup-file "$destination/homelab.header"
+  fi
   printf '%s\n' 'Header backups created in the protected recovery directory. Copy them to independent encrypted storage.'
   ;;
 *)
-  printf '%s\n' 'Usage: desktop-storage-enroll {data-key|tpm-pin|fido2|headers}'
+  printf '%s\n' 'Usage: desktop-storage-enroll {data-key|homelab-key|tpm-pin|fido2|headers}'
   printf '%s\n' 'No command formats drives, resets a key, removes recovery slots, or changes firmware.'
   ;;
 esac

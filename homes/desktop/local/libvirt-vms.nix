@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   sshDir = "${config.home.homeDirectory}/.ssh";
   stateDir = "${config.xdg.stateHome}/libvirt-vms";
   keyFile = "${sshDir}/libvirt-dev";
@@ -12,10 +14,9 @@ let
     windows-runtime = "192.168.123.12";
   };
 
-  keySetup = pkgs.replaceVarsWith {
+  keySetup = writeBashTemplate {
     name = "libvirt-vm-key-setup";
     src = ./scripts/create-libvirt-vm-key.sh;
-    isExecutable = true;
     replacements = {
       chmod = lib.getExe' pkgs.coreutils "chmod";
       keyFile = lib.escapeShellArg keyFile;

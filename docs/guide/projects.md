@@ -6,11 +6,12 @@ adopting its secret policy.
 
 | Project | Start here |
 | --- | --- |
-| [nix-config-framework](https://github.com/nix-forge/nix-config-framework) | [Minimal consumer and setup](https://github.com/nix-forge/nix-config-framework/blob/main/docs/getting-started.md) |
-| [nixpkgs-personal](https://github.com/nix-forge/nixpkgs-personal) | [Package catalog](https://github.com/nix-forge/nixpkgs-personal/blob/main/docs/catalog.md) |
-| [nix-seal](https://github.com/nix-forge/nix-seal) | [Maturity and provider choice](secrets.md) |
+| [nix-config-framework](https://github.com/nix-forge/nix-config-framework) | [Minimal consumer and setup](https://nix-forge.github.io/nix-config-framework/getting-started/) |
+| [nixpkgs-personal](https://github.com/nix-forge/nixpkgs-personal) | [Package catalog](https://nix-forge.github.io/nixpkgs-personal/catalog/) |
+| [nix-seal](https://github.com/nix-forge/nix-seal) | [Setup and operator guide](https://nix-forge.github.io/nix-seal/) |
+| [nix-homelab](https://github.com/nix-forge/nix-homelab) | [Composable service setup](https://nix-forge.github.io/nix-homelab/) |
 | [vpn-confinement](https://github.com/nix-forge/vpn-confinement) | [Tested application recipe](https://nix-forge.github.io/vpn-confinement/guides/transmission/) |
-| [nix-forge CI](https://github.com/nix-forge/ci) | Shared Nix validation workflows and their permission contracts |
+| [nix-forge CI](https://github.com/nix-forge/ci) | [Shared workflow contracts](https://nix-forge.github.io/ci/) |
 
 Package platform availability and licenses differ. Follow the package's catalog
 entry and usage instructions. NUR registration is a separate publication step;

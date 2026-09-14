@@ -54,23 +54,18 @@ in
 
     nixSeal = {
       version = 1;
-      doc = "Public nix-seal administrator catalog and default configuration. Private identities and plaintext are never flake outputs.";
+      doc = "Public nix-seal administrator catalog and preparation metadata. Private identities and plaintext are never flake outputs.";
       inventory = output: {
         what = "public nix-seal policy catalog";
-        evalChecks.valid =
-          builtins.isAttrs output
-          && builtins.isAttrs (output.administrators or null)
-          && builtins.isString (output.defaultConfiguration or null);
-        children = {
-          administrators = {
-            what = "nix-seal administrator catalog";
-            evalChecks.isAttributeSet = builtins.isAttrs (output.administrators or null);
-          };
-          defaultConfiguration = {
-            what = "nix-seal default configuration name";
-            evalChecks.isString = builtins.isString (output.defaultConfiguration or null);
-          };
-        };
+        evalChecks.isAttributeSet = builtins.isAttrs output;
+        children = builtins.mapAttrs (name: value: {
+          what = "nix-seal ${name}";
+          evalChecks.valid =
+            if name == "defaultConfiguration" then
+              value == null || builtins.isString value
+            else
+              builtins.isAttrs value;
+        }) output;
       };
     };
   };

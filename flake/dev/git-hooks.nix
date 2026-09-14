@@ -20,6 +20,19 @@
           rm = lib.getExe' pkgs.coreutils "rm";
         };
       };
+      stylesheetLint = pkgs.writeShellApplication {
+        name = "stylesheet-lint";
+        runtimeInputs = [
+          pkgs.git
+          pkgs.stylelint
+        ];
+        text = ''
+          mapfile -d "" -t stylesheets < <(git ls-files -z -- '*.css')
+          if (( ''${#stylesheets[@]} > 0 )); then
+            stylelint --config .stylelintrc.json --max-warnings 0 "''${stylesheets[@]}"
+          fi
+        '';
+      };
     in
     {
       pre-commit = {
@@ -32,9 +45,6 @@
           # including untracked files, remains part of the exact path input.
           rootSrc = lib.mkForce (lib.cleanSource inputs.self.outPath);
           package = pkgs.prek;
-          # Each submodule runs its own hooks with its own tool versions and
-          # project configuration.
-          excludes = [ "^nix-homelab/" ];
           hooks = {
             treefmt = {
               enable = true;
@@ -58,6 +68,26 @@
               entry = "${lib.getExe pkgs.oxlint} --config .oxlintrc.json --deny-warnings tests";
               language = "system";
               files = "^(tests/.*\\.[cm]?[jt]sx?$|\\.oxlintrc\\.json)$";
+              pass_filenames = false;
+              after = [ "treefmt" ];
+            };
+            stylelint = {
+              enable = true;
+              name = "Stylelint";
+              entry = lib.getExe stylesheetLint;
+              language = "system";
+              extraPackages = [ stylesheetLint ];
+              files = "(^\\.stylelintrc\\.json$|\\.css$)";
+              pass_filenames = false;
+              after = [ "treefmt" ];
+            };
+            swift-format = {
+              enable = true;
+              name = "Swift format lint";
+              entry = "${lib.getExe pkgs.swift-format} lint --configuration .swift-format --parallel --strict tests/fonts/check_coretext.swift";
+              language = "system";
+              extraPackages = [ pkgs.swift-format ];
+              files = "(^\\.swift-format$|\\.swift$)";
               pass_filenames = false;
               after = [ "treefmt" ];
             };
@@ -185,9 +215,8 @@
               enable = true;
               # Rust inner attributes start with `#![` and are not script shebangs.
               excludes = [
-                "^homes/macbook-pro-m4/local/local-control/secure-files-rs/.*\\.rs$"
-                # Each submodule owns and verifies its own hook configuration.
-                "^nix-seal/"
+                ".*\\.rs$"
+                # The framework and package catalog own their hook configuration.
                 "^nix-config-framework/"
                 "^pkgs/"
               ];
@@ -200,7 +229,6 @@
                 "\\.age$"
                 "^docs/assets/hyprland-upstream-local-20260907/"
                 "^nix-config-framework/"
-                "^nix-seal/"
                 "^pkgs/"
               ];
             };

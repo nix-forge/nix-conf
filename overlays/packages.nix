@@ -9,8 +9,24 @@ let
   swiftPackages = pkgs.swiftPackages // {
     swift = fixes.apply "swift-wrapper-hardening" pkgs.swiftPackages.swift;
   };
+  nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
+  nh = pkgs.nh.override {
+    nix-output-monitor = nom;
+    nh-unwrapped =
+      if isDarwin then fixes.apply "nh-darwin-home" pkgs.nh-unwrapped else pkgs.nh-unwrapped;
+  };
 in
 {
+  nix-output-monitor = nom;
+  inherit nh;
+  navidrome = fixes.apply "navidrome-release" pkgs.navidrome;
+  navidromePlugins = pkgs.navidromePlugins.extend (
+    _final: prev: {
+      audiomuseai = fixes.apply "audiomuseai-plugin-loopback-host" (
+        fixes.apply "audiomuseai-plugin-release" prev.audiomuseai
+      );
+    }
+  );
   prismlauncher = pkgs.prismlauncher.override { prismlauncher-unwrapped = prismUnwrapped; };
   claude-code =
     if isDarwin then fixes.apply "claude-code-sandbox" pkgs.claude-code else pkgs.claude-code;
@@ -27,7 +43,6 @@ in
   };
   vorssaint = pkgs.vorssaint.override { inherit (swiftPackages) swift; };
   actual-server = fixes.apply "actual-server-case" pkgs.actual-server;
-  nh = pkgs.nh.override { nh-unwrapped = fixes.apply "nh-darwin-home" pkgs.nh-unwrapped; };
 }
 // pkgs.lib.optionalAttrs isLinux {
   wrapFirefox = fixes.apply "zen-wrapper-copy" pkgs.wrapFirefox;

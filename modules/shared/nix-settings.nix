@@ -22,11 +22,18 @@ let
 
     auto-optimise-store = true;
 
-    # Only enable features used by the workstation. Experiments can opt in
-    # per command with --extra-experimental-features.
     experimental-features = [
       "nix-command"
       "flakes"
+
+      "fetch-closure"
+      "recursive-nix"
+      "configurable-impure-env"
+
+      "ca-derivations"
+      "impure-derivations"
+
+      "blake3-hashes"
     ];
   };
 in

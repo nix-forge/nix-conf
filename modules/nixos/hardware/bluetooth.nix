@@ -6,15 +6,20 @@
 }:
 let
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  pairingPolicy = pkgs.writers.writePython3 "disable-bluetooth-pairing" {
+    libraries = [ pkgs.python3Packages.dbus-next ];
+    # Match Ruff's line wrapping and leading binary operators.
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ./scripts/disable-bluetooth-pairing.py;
   disableBluetoothPairing = writeBashTemplate {
     name = "disable-bluetooth-pairing";
     src = ./scripts/disable-bluetooth-pairing.sh;
     replacements = {
       bash = lib.getExe pkgs.bash;
-      python = lib.getExe (pkgs.python3.withPackages (ps: [ ps.dbus-next ]));
-      policyScript = pkgs.writeText "disable-bluetooth-pairing.py" (
-        builtins.readFile ./scripts/disable-bluetooth-pairing.py
-      );
+      policyScript = pairingPolicy;
     };
   };
 in

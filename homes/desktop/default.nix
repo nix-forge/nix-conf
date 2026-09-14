@@ -88,6 +88,7 @@
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
+    feishin
     libreoffice
     {
       programs.libreoffice = {

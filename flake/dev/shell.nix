@@ -75,6 +75,8 @@
             shellcheck
             shfmt
             statix
+            stylelint
+            swift-format
             taplo
             treefmt
             typos

@@ -11,7 +11,7 @@ templates, Windows bootstrap code, and runtime helpers in the three submodules.
 | [Workload queue](../homes/desktop/local/wait-workstation-cgroup.py) | A systemd query and sleep every 200 ms after the main command exits | Blocking cgroup populated notifications retain the queue until descendants finish. |
 | [MiniDV capture](../hosts/nixos/desktop/minidv/minidv-supervise.py) | A sysfs scan and several subprocesses each second; repeated child-exit probes during cancellation | A udev subscription, child pidfd, and signal descriptor share one blocking selector. Deadlines apply only during shutdown escalation. |
 | [MiniDV finalization](../hosts/nixos/desktop/minidv/minidv-finalize.sh) | Two identical ffprobe invocations | One stream snapshot supplies both codec and audio checks. |
-| [Karakeep launchd wrapper](../modules/home/scripts/karakeep-launchd.sh) | Hourly foreground sleeps, which could defer signal traps | An indefinite background sleep and interruptible shell wait; cancellation stops the keeper and runs Compose cleanup once. |
+| Karakeep launchd wrapper | A Compose stack kept a Linux VM and three containers alive on macOS | Removed. The reusable homelab module now runs the source-built Nixpkgs package, Meilisearch and Chromium as bounded NixOS services. |
 | [nix-seal subprocesses](../nix-seal/crates/nix-seal-runtime/src/child.rs) | Four child-status loops waking every 10 to 25 ms | One blocking observer per active child, with condition-variable deadlines and serialized cancellation/reaping. No dependency was added. |
 | [Git privacy inspection](../modules/home/dev/scripts/git-privacy-hook.py) | Full-buffer lowercasing for every blocked pattern | Normalize once per chunk, retaining case-insensitive matching. |
 

@@ -280,7 +280,6 @@ The retained files are intentional source templates:
 | 1 | `Autounattend.xml.in` | The Windows seed renderer supplies runtime provisioning values and credentials outside the Nix store. Preserve its XML escaping, semantic recipe fingerprint and independent seed tests. |
 | 1 | `proxy.Caddyfile.in` | Specialized Caddy routing and mTLS configuration with environment-supplied credentials. Conversion to native JSON would require a separate route/authentication equivalence review. |
 | 1 | `vorssaint-sudoers.in` | A constrained sudoers rule. Generic INI or key/value escaping does not implement sudoers syntax. |
-| 1 | `karakeep-extension-setup.md.in` | User-facing Markdown instructions with a substituted server URL. |
 
 The `.in` suffix alone does not identify a data format or a missed migration.
 To repeat the working-tree inventory, including hidden directories:

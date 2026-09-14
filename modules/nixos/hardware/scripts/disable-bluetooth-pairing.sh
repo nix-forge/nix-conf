@@ -9,4 +9,4 @@ for adapter in /sys/class/bluetooth/hci*; do
   [[ $name =~ ^hci[0-9]+$ ]] || continue
   adapters+=("$name")
 done
-exec @python@ @policyScript@ "$@" "${adapters[@]}"
+exec @policyScript@ "$@" "${adapters[@]}"

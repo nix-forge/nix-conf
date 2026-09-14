@@ -29,7 +29,7 @@ generated-checks:
 # Install/boot disposable disks and exercise backup restoration and policy checks.
 [group('Checks')]
 desktop-storage-check:
-    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.desktop-storage-contracts" "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.desktop-storage-generated-artifacts" "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
 
 # Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
 [group('NixOS')]
@@ -107,7 +107,7 @@ guard-desktop-build-location hostname:
 # Build a NixOS configuration (dry build, no activation)
 [group('NixOS')]
 os-build hostname *args: (guard-desktop-build-location hostname)
-    {{ task }} nh os build {{ flake }} -H {{ hostname }} --show-trace {{ args }}
+    {{ task }} nh os build {{ flake }} -H {{ hostname }} --show-trace --no-nom {{ args }}
 
 # Build and activate a NixOS configuration, and make it the boot default
 [group('NixOS')]

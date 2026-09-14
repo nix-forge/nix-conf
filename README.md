@@ -4,7 +4,7 @@ NixOS and macOS workstation configuration with a guide to building your own.
 Start with a small Home Manager environment, inspect what Nix generates, and
 reuse the features that fit your setup.
 
-[Read the guide](docs/README.md) · [Build the starter](docs/guide/first-configuration.md) · [Reuse a module](docs/guide/git.md)
+[Read the guide](https://nix-forge.github.io/nix-conf/) · [Build the starter](docs/guide/first-configuration.md) · [Reuse a module](docs/guide/git.md)
 
 ## Start small
 
