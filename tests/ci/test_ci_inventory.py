@@ -73,7 +73,6 @@ class CIInventoryTests(unittest.TestCase):
                                     aarch64-linux = {
                                         ordinary = null;
                                         python-tests = null;
-                                        vscode-oniguruma-layout = null;
                                     };
                                 };
                             };

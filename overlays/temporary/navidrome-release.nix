@@ -2,7 +2,7 @@
   reason = "Navidrome 0.64.0 fixes several security defects present in the selected Nixpkgs release.";
   upstream = "https://github.com/navidrome/navidrome/releases/tag/v0.64.0";
   removal = "Nixpkgs provides a non-broken Navidrome 0.64.0 or later.";
-  reviewedRevision = "c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0";
+  reviewedRevision = "8ce4ef6cb6f871616146b9fe26d2a5ae594e94fe";
   inputPath = [ "nixpkgs" ];
   packageName = "navidrome";
   affectedVersions = {

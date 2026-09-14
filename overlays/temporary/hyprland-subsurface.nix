@@ -2,7 +2,7 @@ _: {
   reason = "Subsurface teardown can dereference an expired parent.";
   upstream = "https://github.com/hyprwm/Hyprland";
   removal = "The pinned source handles parent-first teardown and passes the local subsurface reproduction.";
-  reviewedRevision = "34eb03bd8da01024596c367fba66485a8c9b8ca7";
+  reviewedRevision = "f05d73f35795ded80d7e1264a37e41b461625f9f";
   inputPath = [ "hyprland" ];
   apply =
     package:
