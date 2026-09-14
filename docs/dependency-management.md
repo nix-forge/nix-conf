@@ -44,4 +44,3 @@ A regression is rolled back by reverting the lockfile and declaration change,
 then tracked with a follow-up issue. Emergency security updates use the
 smallest safe change and receive normal review retrospectively if immediate
 action is required.
-

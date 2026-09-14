@@ -37,4 +37,3 @@ old or replacement value in repository history.
 
 `security/vex.json` contains only reviewed non-affectability statements. It
 must never contain secret values or private deployment details.
-
