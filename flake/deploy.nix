@@ -2,6 +2,32 @@
 let
   inherit (inputs.nixpkgs) lib;
   deploymentChecksBySystem.x86_64-linux = inputs.deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
+  # These checks already evaluate every supported target from one derivation.
+  # Running them again in the ARM and Darwin jobs only repeats the same flake
+  # evaluation with a different runCommand shell.
+  oncePerRevision = [
+    "cache-policy"
+    "git-email-privacy"
+    "platform-contracts"
+    "secret-templates"
+    "temporary-package-fixes"
+  ];
+  # This link farm is a local convenience target over checks that CI builds by
+  # name. Evaluating it in CI duplicates the slowest part of check discovery.
+  aggregateChecks = [ "generated-artifacts" ];
+  # These checks validate the concrete desktop workstation or build large
+  # workstation packages and VM closures. Generic hosted runners are the wrong
+  # owner: run them on the desktop with the dedicated validation recipes or
+  # build the check explicitly when changing the corresponding subsystem.
+  x86HostAssuranceChecks = [
+    "desktop-authentication"
+    "desktop-commands"
+    "desktop-iocost"
+    "desktop-memory-policy"
+    "desktop-storage-generated-artifacts"
+    "desktop-storage-install"
+    "zen-wrapper-copy-regression"
+  ];
 in
 {
   flake = {
@@ -25,7 +51,10 @@ in
     ciChecks = lib.mapAttrs (
       system: checks:
       removeAttrs checks (
-        builtins.attrNames (
+        aggregateChecks
+        ++ lib.optionals (system != "x86_64-linux") oncePerRevision
+        ++ lib.optionals (system == "x86_64-linux") x86HostAssuranceChecks
+        ++ builtins.attrNames (
           (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
         )
       )

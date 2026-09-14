@@ -108,8 +108,9 @@ jobs:
     name: Flake checks (${{ matrix.system }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    # This job includes integration checks and eligible cold Linux packages.
-    timeout-minutes: 150
+    # Host-bound assurance checks run explicitly on the desktop instead.
+    # Leave room for changed native packages, but stop closure leaks promptly.
+    timeout-minutes: 60
     permissions:
       contents: read
     strategy:

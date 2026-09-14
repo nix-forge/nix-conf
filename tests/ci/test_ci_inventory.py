@@ -32,16 +32,36 @@ class CIInventoryTests(unittest.TestCase):
                             };
                             self = {
                                 deploy = {};
-                                lintChecks.x86_64-linux = { new-portable-check = null; };
+                                lintChecks = {
+                                    x86_64-linux = {
+                                        gitleaks-policy = null;
+                                        new-portable-check = null;
+                                    };
+                                    aarch64-darwin.gitleaks-policy = null;
+                                };
                                 checks = {
                                     x86_64-linux = {
+                                        cache-policy = null;
+                                        desktop-authentication = null;
+                                        desktop-storage-install = null;
+                                        generated-artifacts = null;
+                                        gitleaks-policy = null;
                                         ordinary = null;
                                         newly-added = null;
                                         new-portable-check = null;
+                                        secret-templates = null;
                                         host-only = null;
                                         new-deployment-check = null;
                                     };
-                                    aarch64-darwin = { host-only = null; ordinary = null; };
+                                    aarch64-darwin = {
+                                        cache-policy = null;
+                                        desktop-authentication = null;
+                                        generated-artifacts = null;
+                                        gitleaks-policy = null;
+                                        host-only = null;
+                                        ordinary = null;
+                                        secret-templates = null;
+                                    };
                                 };
                             };
                         };
@@ -57,8 +77,17 @@ class CIInventoryTests(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                "x86_64-linux": ["newly-added", "ordinary"],
-                "aarch64-darwin": ["host-only", "ordinary"],
+                "x86_64-linux": [
+                    "cache-policy",
+                    "newly-added",
+                    "ordinary",
+                    "secret-templates",
+                ],
+                "aarch64-darwin": [
+                    "desktop-authentication",
+                    "host-only",
+                    "ordinary",
+                ],
             },
         )
 
