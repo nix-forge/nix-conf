@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       base_sha:
-        description: Base commit for native package comparison.
+        description: Base commit for native comparison workflows.
         required: false
         type: string
   merge_group:
@@ -109,7 +109,6 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
     # Host-bound assurance checks run explicitly on the desktop instead.
-    # Leave room for changed native packages, but stop closure leaks promptly.
     timeout-minutes: 60
     permissions:
       contents: read
@@ -171,77 +170,6 @@ jobs:
         run: |
           selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
-      - name: Build native Nix outputs
-        if: matrix.partition-index == 0
-        id: native-build
-        shell: bash
-        env:
-          TARGET_SYSTEM: ${{ matrix.system }}
-          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
-            }}
-        run: |
-          set -euo pipefail
-          build_log="${RUNNER_TEMP}/nix-build-${TARGET_SYSTEM}.log"
-
-          if [ "${TARGET_SYSTEM}" = "aarch64-darwin" ]; then
-              # The public macOS runner cannot materialize this repository's
-              # complete closure within its disk quota. Configuration
-              # evaluation above covers the deployable Darwin outputs; build
-              # the representative public packages here instead.
-              selected=$(bash .github/scripts/select-native-packages.sh nix-seal remindctl)
-          else
-            selected=$(bash .github/scripts/select-native-packages.sh)
-          fi
-          selected_lines=$(jq -r '.[]' <<<"$selected")
-          if [[ -z $selected_lines ]]; then
-            echo 'No eligible native package derivations changed; integration checks passed above.'
-            exit 0
-          fi
-          build_attrs=()
-          while IFS= read -r build_attr; do
-            build_attrs+=("$build_attr")
-          done <<<"$selected_lines"
-          printf 'Building changed output: %s\n' "${build_attrs[@]}"
-
-          # Full host and Home Manager closures pull in the complete desktop
-          # application set and exceed the merge queue's practical response
-          # window. The evaluation step validates those configurations while
-          # native package builds materialize eligible changed Linux outputs and the
-          # eligible changed representative Darwin outputs.
-
-          if [ "${TARGET_SYSTEM}" = "aarch64-darwin" ]; then
-            # The hosted macOS runner has less free disk than the Linux runners.
-            # Build each goal independently and collect unreferenced intermediates
-            # between goals so the native matrix still covers every output.
-            build_status=0
-            for build_attr in "${build_attrs[@]}"; do
-              if ! nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
-                "${build_attr}" >>"${build_log}" 2>&1; then
-                build_status=1
-              fi
-              nix store gc >>"${build_log}" 2>&1 || true
-            done
-          else
-            set +e
-            nix build --max-jobs 1 --cores 0 --option eval-cores 1 --keep-going --show-trace --print-build-logs --no-link \
-              "${build_attrs[@]}" >"${build_log}" 2>&1
-            build_status=$?
-            set -e
-          fi
-
-          if [ "${build_status}" -ne 0 ]; then
-            tail -n 200 "${build_log}"
-            exit "${build_status}"
-          fi
-
-          tail -n 40 "${build_log}"
-      - name: Upload native Nix build log
-        if: always() && steps.native-build.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: nix-build-log-${{ matrix.system }}
-          path: ${{ runner.temp }}/nix-build-${{ matrix.system }}.log
-          if-no-files-found: error
   tests:
     name: Repository tests
     needs: [flake]

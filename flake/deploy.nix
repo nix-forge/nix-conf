@@ -13,17 +13,21 @@ let
   # This link farm is a local convenience target over checks that CI builds by
   # name. Evaluating it in CI duplicates the slowest part of check discovery.
   aggregateChecks = [ "generated-artifacts" ];
-  # These checks validate the concrete desktop workstation or build large
-  # workstation packages and VM closures. Generic hosted runners are the wrong
-  # owner: run them on the desktop with the dedicated validation recipes or
-  # build the check explicitly when changing the corresponding subsystem.
-  x86HostAssuranceChecks = [
+  # These checks validate the concrete desktop workstation or create NixOS VM
+  # closures. Generic hosted runners are the wrong owner: run them on the
+  # desktop with the dedicated validation recipes or build the check explicitly
+  # when changing the corresponding subsystem.
+  hostedRunnerExclusions = [
+    "application-recovery"
+    "clamav-runtime"
     "desktop-authentication"
     "desktop-commands"
     "desktop-iocost"
     "desktop-memory-policy"
     "desktop-storage-generated-artifacts"
     "desktop-storage-install"
+    "public-demo-runtime"
+    "service-command-arguments"
     "zen-wrapper-copy-regression"
   ];
 in
@@ -50,8 +54,8 @@ in
       system: checks:
       removeAttrs checks (
         aggregateChecks
+        ++ hostedRunnerExclusions
         ++ lib.optionals (system != "x86_64-linux") oncePerRevision
-        ++ lib.optionals (system == "x86_64-linux") x86HostAssuranceChecks
         ++ builtins.attrNames (
           (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
         )

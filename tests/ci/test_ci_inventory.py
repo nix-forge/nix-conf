@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class CIInventoryTests(unittest.TestCase):
     """Exercise coverage policy through the real flake modules."""
 
-    def test_deployment_exclusions_apply_only_to_the_owning_system(self) -> None:
-        """Keep ordinary additions and same-named checks on other systems."""
+    def test_hosted_exclusions_preserve_ordinary_checks(self) -> None:
+        """Keep ordinary additions while removing host and deployment checks."""
         expression = """
                     let
                         lib = import NIXPKGS_LIB;
@@ -41,6 +41,7 @@ class CIInventoryTests(unittest.TestCase):
                                 };
                                 checks = {
                                     x86_64-linux = {
+                                        application-recovery = null;
                                         cache-policy = null;
                                         desktop-authentication = null;
                                         desktop-storage-install = null;
@@ -50,11 +51,13 @@ class CIInventoryTests(unittest.TestCase):
                                         ordinary = null;
                                         newly-added = null;
                                         new-portable-check = null;
+                                        service-command-arguments = null;
                                         secret-templates = null;
                                         host-only = null;
                                         new-deployment-check = null;
                                     };
                                     aarch64-darwin = {
+                                        application-recovery = null;
                                         cache-policy = null;
                                         desktop-authentication = null;
                                         generated-artifacts = null;
@@ -62,6 +65,7 @@ class CIInventoryTests(unittest.TestCase):
                                         gitleaks-policy = null;
                                         host-only = null;
                                         ordinary = null;
+                                        service-command-arguments = null;
                                         secret-templates = null;
                                     };
                                 };
@@ -87,7 +91,6 @@ class CIInventoryTests(unittest.TestCase):
                     "secret-templates",
                 ],
                 "aarch64-darwin": [
-                    "desktop-authentication",
                     "git-email-privacy",
                     "host-only",
                     "ordinary",
