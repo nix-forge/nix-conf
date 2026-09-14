@@ -38,16 +38,8 @@ Shopping clears cookies and storage, cache, browsing and download history, form 
 
 ## Validation
 
-- Build `checks.x86_64-linux.browser-configuration-contract` from a complete source tree.
-- Assert Personal is the default profile at `Profiles/default`.
-- Assert Shopping is non-default at `Profiles/shopping`.
-- Assert app-wide Firefox policies remain Strict and do not enable global shutdown sanitization.
-- Assert Shopping alone selects Standard tracking protection and shutdown cleanup.
-- Assert Bitwarden is the only automatically installed Firefox extension.
-- Assert daily Firefox extensions use `allowed`, omit `install_url`, and keep browser updates enabled.
-- Assert Zen retains automatic extension installation and required uBlock Origin.
-- Assert no Firefox Shopping launcher package or Dock item exists.
-- Run the Gecko install-registry test.
+Run the Gecko install-registry behavior test. The profile remains an attended
+workflow, so verify session clearing in the Shopping profile after activation.
 
 ## Rollout
 
@@ -61,4 +53,6 @@ Disable `programs.browserSuite.firefox.shopping`, restore the previous Firefox e
 
 ## Implementation result
 
-Implemented on 2026-09-02. The browser configuration contract and Gecko registry test cover the configuration. Runtime cashback attribution still requires the documented low-value purchase after activation.
+Implemented on 2026-09-02. The Gecko registry test covers registry reconciliation.
+Profile isolation and cashback attribution still require the documented
+post-activation checks.

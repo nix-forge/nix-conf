@@ -81,6 +81,28 @@
               touch "$out"
             '';
 
+        stylesheet-quality =
+          let
+            source = pkgs.lib.fileset.toSource {
+              root = ../..;
+              fileset = pkgs.lib.fileset.unions [
+                ../../.stylelintrc.json
+                (pkgs.lib.fileset.fileFilter (file: file.hasExt "css") ../..)
+              ];
+            };
+          in
+          pkgs.runCommand "stylesheet-quality" { nativeBuildInputs = [ pkgs.stylelint ]; } ''
+            cd ${source}
+            stylelint --config .stylelintrc.json --max-warnings 0 '**/*.css'
+            touch "$out"
+          '';
+
+        swift-quality = pkgs.runCommand "swift-quality" { nativeBuildInputs = [ pkgs.swift-format ]; } ''
+          swift-format lint --configuration ${../../.swift-format} --parallel --strict \
+            ${../../tests/fonts/check_coretext.swift}
+          touch "$out"
+        '';
+
         # Detect a canary even inside paths with narrowly scoped exceptions.
         gitleaks-policy =
           pkgs.runCommand "gitleaks-policy"

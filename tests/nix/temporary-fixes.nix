@@ -62,6 +62,24 @@ let
       inherit version;
       __intentionallyOverridingVersion = true;
     };
+  # The generated Haskell package keeps its exposed version outside
+  # overrideAttrs, so merge the fixture version at the package boundary.
+  nomAt = version: pkgs.nix-output-monitor // { inherit version; };
+  navidromeAt =
+    version:
+    pkgs.navidrome.overrideAttrs (previousAttrs: {
+      inherit version;
+      __intentionallyOverridingVersion = true;
+      meta = (previousAttrs.meta or { }) // {
+        broken = false;
+      };
+    });
+  audiomuseaiPluginAt =
+    version:
+    pkgs.navidromePlugins.audiomuseai.overrideAttrs {
+      inherit version;
+      __intentionallyOverridingVersion = true;
+    };
   nhFixed = nhAt "4.4.3";
   nhUpdated = import ../../overlays/temporary {
     pkgs = pkgs // {
@@ -73,8 +91,25 @@ let
       };
     };
   };
+  navidromeFixed = navidromeAt "0.64.0";
+  audiomuseaiPluginFixed = audiomuseaiPluginAt "10";
+  musicDiscoveryUpdated = import ../../overlays/temporary {
+    pkgs = pkgs // {
+      navidrome = navidromeFixed;
+      navidromePlugins = pkgs.navidromePlugins // {
+        audiomuseai = audiomuseaiPluginFixed;
+      };
+    };
+    inputs = inputs // {
+      nixpkgs = inputs.nixpkgs // {
+        rev = "unreviewed";
+      };
+    };
+  };
   # Exercise the public selection interface and its module consumers.
   packages = {
+    navidrome = pkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux selected.navidrome;
+    audiomuseai-plugin = [ selected.navidromePlugins.audiomuseai ];
     prism = (import ../../modules/home/prismlauncher.nix { pkgs = selected; }).home.packages;
     claude = [
       (import ../../modules/home/dev/agentic-tui/claude.nix { pkgs = selected; })
@@ -83,6 +118,7 @@ let
     deploy = [ selected.deploy-rs ];
     determinate = [ selected.nix ];
     nh = [ selected.nh ];
+    nom = [ selected.nix-output-monitor ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
@@ -169,7 +205,8 @@ assert
     selected.nix.drvPath == (fixes.apply "determinate-darwin-tests"
       inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
     ).drvPath;
-assert pkgs.stdenv.hostPlatform.isDarwin || selected.nh.drvPath == pkgs.nh.drvPath;
+assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
+assert selected.nh.drvPath != pkgs.nh.drvPath;
 assert
   if pkgs.stdenv.hostPlatform.isLinux then
     selected.vscode.drvPath != pkgs.vscode.drvPath
@@ -188,6 +225,11 @@ assert (changed.apply "nh-darwin-home" nhFixed).drvPath == nhFixed.drvPath;
 assert !(succeeds (changed.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath);
 assert !(succeeds changed.review.nh-darwin-home);
 assert succeeds nhUpdated.review.nh-darwin-home;
+assert
+  (fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath
+  != pkgs.nix-output-monitor.drvPath;
+assert !(succeeds (fixes.apply "nom-quadratic-build-plan" (nomAt "2.2.1")).drvPath);
+assert !(succeeds (changed.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath);
 assert !(succeeds (changed.apply "swift-wrapper-hardening" pkgs.swift).drvPath);
 assert
   if pkgs.stdenv.hostPlatform.isDarwin then
@@ -197,6 +239,18 @@ assert
     selected.swift.drvPath == pkgs.swift.drvPath;
 # A fix that changes the output version still checks the incoming version.
 assert release.version == "11.1.0";
+assert selected.navidrome.version == "0.64.0";
+assert selected.navidromePlugins.audiomuseai.version == "10";
+assert (fixes.apply "navidrome-release" navidromeFixed).drvPath == navidromeFixed.drvPath;
+assert
+  (fixes.apply "audiomuseai-plugin-release" audiomuseaiPluginFixed).drvPath
+  == audiomuseaiPluginFixed.drvPath;
+assert
+  (fixes.apply "audiomuseai-plugin-loopback-host" audiomuseaiPluginFixed).drvPath
+  != audiomuseaiPluginFixed.drvPath;
+assert succeeds musicDiscoveryUpdated.review.navidrome-release;
+assert succeeds musicDiscoveryUpdated.review.audiomuseai-plugin-release;
+assert !(succeeds musicDiscoveryUpdated.review.audiomuseai-plugin-loopback-host);
 assert
   !(succeeds
     (fixes.apply "prismlauncher-release" (

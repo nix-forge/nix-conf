@@ -592,16 +592,16 @@ swap partition. Runtime configuration is gated on an offline migration setting.
 Preserve a normal recovery passphrase while introducing one security layer at
 a time. The rollout must pass these gates:
 
-- Verify backups, a sample restore, target identities, and Linux-only migration
+1. Verify backups, a sample restore, target identities, and Linux-only migration
   scope. Resolve backup destination and capacity before a wipe.
-- Evaluate the new layout and run an isolated Disko installation/boot test,
+2. Evaluate the new layout and run an isolated Disko installation/boot test,
   including random encrypted swap and missing-data-drive behavior.
-- Install offline and test passphrase recovery for both LUKS volumes.
-- Establish the intended login boundary, then enable and verify signed boot.
+3. Install offline and test passphrase recovery for both LUKS volumes.
+4. Establish the intended login boundary, then enable and verify signed boot.
   Audit kernel/module hardening against graphics, capture, and remote-play needs.
-- Add the selected TPM-PIN or YubiKey path. Test each hardware credential,
+5. Add the selected TPM-PIN or YubiKey path. Test each hardware credential,
   fallback, normal updates, older generations, and recovery after policy changes.
-- Enable snapshots, backups, scrub/TRIM and alerts. Test representative workloads
+6. Enable snapshots, backups, scrub/TRIM and alerts. Test representative workloads
   and restores before treating the migration as complete.
 
 Use [the revised migration runbook](disko-desktop-migration.md) for the two-drive

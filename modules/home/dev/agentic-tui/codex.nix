@@ -13,6 +13,15 @@ let
   skillPath = package: name: "${package}/share/agent-skills/${name}";
   skillSet = package: names: lib.genAttrs names (name: skillPath package name);
 
+  # Local Codex policy; preserve the shared upstream skill for other clients.
+  researchSkill = pkgs.runCommand "codex-mattpocock-research" { } ''
+    mkdir -p "$out"
+    cp -RL ${skillPath mattpocockSkills "mattpocock-research"}/. "$out/"
+    chmod u+w "$out/SKILL.md"
+    printf '\n' >> "$out/SKILL.md"
+    cat ${./research-model-policy.md} >> "$out/SKILL.md"
+  '';
+
   mattpocockCodexSkills = [
     "mattpocock-ask-matt"
     "mattpocock-codebase-design"
@@ -44,6 +53,9 @@ in
     skills =
       lib.optionalAttrs supportsRemindctl { apple-reminders = remindctl.agentSkill; }
       // skillSet mattpocockSkills mattpocockCodexSkills
-      // skillSet pstackSkills pstackCodexSkills;
+      // skillSet pstackSkills pstackCodexSkills
+      // {
+        mattpocock-research = researchSkill;
+      };
   };
 }

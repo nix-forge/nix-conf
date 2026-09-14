@@ -11,6 +11,21 @@ let
   swapDevice = "/dev/disk/by-partuuid/0ac4f78a-c78c-44b7-a754-453a4b9d7a5e";
   swapDeviceName = lib.replaceStrings [ "\\" ] [ "" ] (utils.escapeSystemdPath swapDevice);
   bootLabel = "boot";
+  homelabLuksDevice = "/dev/disk/by-uuid/fd63a64b-e779-4557-bc98-cff841faf19b";
+  homelabMapper = "/dev/mapper/homelab";
+  homelabMountPoint = "/mnt/homelab";
+  homelabScrubService = "btrfs-scrub-${utils.escapeSystemdPath homelabMountPoint}";
+  homelabKeyFile = config.hardware.storage.encryptedRoot.homelabKeyFile;
+  homelabKeySource = if encryptedRoot then homelabKeyFile else "none";
+  homelabCryptOptions = lib.concatStringsSep "," (
+    [
+      "luks"
+      "noauto"
+      "nofail"
+      "x-systemd.device-timeout=10s"
+    ]
+    ++ lib.optionals encryptedRoot [ "headless" ]
+  );
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   # The shared Steam library is system storage, not a user's home data. Keep
   # it at a neutral mount point so any user or launcher can opt into it without
@@ -56,6 +71,58 @@ in
   config = lib.mkMerge [
     {
       boot.initrd.supportedFilesystems = [ "btrfs" ];
+
+      # Provision the removable HDD separately as LUKS2 with Btrfs inside. The
+      # planned Disko migration manages only the internal NVMe drives, so the
+      # mapper and application path stay stable. Before that migration, first
+      # access asks for the recovery passphrase. Afterwards a dedicated key on
+      # encrypted root makes the same optional automount unattended.
+      environment.etc."crypttab".text = lib.mkBefore ''
+        homelab ${homelabLuksDevice} ${homelabKeySource} ${homelabCryptOptions}
+      '';
+
+      fileSystems.${homelabMountPoint} = {
+        device = homelabMapper;
+        fsType = "btrfs";
+        options = [
+          "subvol=@homelab"
+          "compress=zstd:1"
+          "noatime"
+          "nodiscard"
+          "nofail"
+          "noauto"
+          "x-systemd.automount"
+          "x-systemd.device-timeout=10s"
+          "nodev"
+          "nosuid"
+          "noexec"
+        ];
+      };
+
+      # A maintenance timer must not trigger an unattended passphrase prompt.
+      # Scrub a mounted disk monthly and skip an absent or locked disk.
+      systemd.services.${homelabScrubService} = {
+        description = "Scrub the mounted encrypted homelab HDD";
+        unitConfig.ConditionPathIsMountPoint = homelabMountPoint;
+        serviceConfig = {
+          Type = "oneshot";
+          IOSchedulingClass = "idle";
+          CPUSchedulingPolicy = "idle";
+          Nice = 19;
+        };
+        path = [ pkgs.btrfs-progs ];
+        script = "btrfs scrub start -B -d -r ${homelabMountPoint}";
+      };
+      systemd.timers.${homelabScrubService} = {
+        description = "Monthly encrypted homelab HDD scrub";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "Sun *-*-01..07 03:00:00";
+          Persistent = true;
+          AccuracySec = "1h";
+          RandomizedDelaySec = "2h";
+        };
+      };
 
       # Btrfs scrub covers all subvolumes on a filesystem, so one root entry
       # is enough for either storage layout. The games drive is independent.

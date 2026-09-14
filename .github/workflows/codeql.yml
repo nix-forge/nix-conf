@@ -15,11 +15,12 @@ jobs:
   analyze:
     name: analyze
     permissions:
+      actions: read # Read workflow metadata for Actions analysis.
       contents: read
       security-events: write # Upload code scanning results.
     uses: nix-forge/ci/.github/workflows/codeql.yml@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
     with:
-      languages: python
+      languages: actions,python
   queue-completion:
     continue-on-error: true
     name: Queue completion callback

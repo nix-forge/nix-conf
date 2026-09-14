@@ -325,7 +325,7 @@ Examples of appropriate shared configuration:
 3. Replaced legacy search fields and raw preference stacks with typed Home Manager settings.
 4. Moved personal providers, workflow extensions, default-browser choice, Zen workspaces, and host resolver policy into local modules.
 5. Selected Zen beta for the daily browser and preserved signed Darwin application bundles for both browsers.
-6. Added a focused `browser-configuration-contract` flake check and verified the generated search, policy, extension, default-browser, and application artifacts.
+6. Added focused behavior tests for the Gecko install-registry reconciler. Browser policy and profile behavior remain activation and attended-runtime checks.
 
 ## Verification checklist
 

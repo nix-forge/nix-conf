@@ -92,9 +92,9 @@ CJK language shaping, authoritative providers, the default and Apple Unicode 17
 emoji coverage, and optional browser suites. It reports duplicate identities
 with hashes instead of silently removing them. No user cache is cleared.
 
-CI builds `font-selection` and `font-ownership` on all three supported systems.
-The selection check covers 13 role/style combinations, four language tags, and
-all 3,953 Unicode 17 emoji entries. Linux CI also renders multilingual samples
+CI builds `font-selection` on all three supported systems. It covers 13
+role/style combinations, four language tags, and all 3,953 Unicode 17 emoji
+entries. Linux CI also renders multilingual samples
 through Qt and Pango and runs the digit and multilingual browser checks against
 pinned Firefox. Native checks include bitmap scaling rules so color emoji uses
 the requested text size. Example outputs: [Qt](assets/font-implementation/qt.png)
@@ -167,9 +167,10 @@ The host has not been activated as part of this implementation. The Mac hostname
 was unavailable, so its native Core Text check is implemented in CI but has not
 been run against the personal Mac here.
 
-The final scoped Nix build passed `font-selection`, `font-ownership`,
-`font-native` and `font-browser`, using the shared build lock with one job and
-two cores. The Apple/Windows tooling check passed 21 tests. The repository Python
+The final scoped Nix build passed `font-selection`, `font-native`, and
+`font-browser`, using the shared build lock with one job and two cores. A later
+cleanup retired `font-ownership` because it only read selected option values
+back from the host configurations. The Apple/Windows tooling check passed 21 tests. The repository Python
 check also passed on its tested snapshot; subsequent browser-test edits passed
 Ruff and their positive/negative rendering checks. Exact Apple family spelling,
 including Produkt, is protected from automatic spelling correction.

@@ -72,16 +72,11 @@ let
   ];
   openerHome = homeFor [
     ../../modules/home/actual.nix
-    ../../modules/home/karakeep.nix
     {
       services.actual = {
         enable = true;
         port = 41831;
         package = pkgs.writeShellScriptBin "actual-server" "exit 0";
-      };
-      services.karakeep = {
-        enable = true;
-        port = 41832;
       };
     }
   ];
@@ -98,8 +93,7 @@ in
     mkdir -p "$HOME"
     export DISPLAY=:99 XDG_CURRENT_DESKTOP=generic
     ${opener "actual-open"}/bin/actual-open
-    ${opener "karakeep-extension-setup"}/bin/karakeep-extension-setup
-    printf '%s\n' http://127.0.0.1:41831 http://localhost:41832 > expected
+    printf '%s\n' http://127.0.0.1:41831 > expected
     cmp expected "$OPEN_LOG"
     touch "$out"
   '';

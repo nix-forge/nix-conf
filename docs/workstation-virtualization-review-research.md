@@ -166,7 +166,7 @@ backups. See the [QEMU guest-agent reference](https://www.qemu.org/docs/master/i
 ## Validation and limits
 
 - The desktop system configuration evaluated successfully. The focused
-  `virtualisation-configuration-contract` built on the desktop, validating
+  `virtualisation-generated-artifacts` check built on the desktop, validating
   generated XML, shell and PowerShell artifacts.
 - All 16 focused Python VM tests passed, plus four subtests. Regression cases
   reproduced the pipeline, persistent-definition and autostart failures before

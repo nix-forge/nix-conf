@@ -1,32 +1,32 @@
 {
   lib,
+  myLib,
   osConfig,
   pkgs,
   ...
 }:
 let
   budget = osConfig.systemd.user.slices.background-workload.sliceConfig;
-  waitForCgroup = pkgs.writeScript "wait-workstation-cgroup" ''
-    #!${pkgs.python3}/bin/python3
-    ${builtins.readFile ./wait-workstation-cgroup.py}
-  '';
-  runner = pkgs.writeShellApplication {
+  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  waitForCgroup = pkgs.writers.writePython3 "wait-workstation-cgroup" {
+    # Ruff owns line wrapping; retain the writer's other Flake8 checks.
+    flakeIgnore = [ "E501" ];
+  } ./wait-workstation-cgroup.py;
+  runner = writeBashTemplate {
     name = "workstation-task";
+    src = ./workstation-task.sh;
+    dir = "bin";
     runtimeInputs = [
       pkgs.systemd
       pkgs.util-linux
       pkgs.coreutils
     ];
-    text =
-      builtins.replaceStrings
-        [ "@memoryHigh@" "@memoryMax@" "@memorySwapMax@" "@waitForCgroup@" ]
-        [
-          (toString budget.MemoryHigh)
-          (toString budget.MemoryMax)
-          (toString budget.MemorySwapMax)
-          (lib.escapeShellArg (toString waitForCgroup))
-        ]
-        (builtins.readFile ./workstation-task.sh);
+    replacements = {
+      memoryHigh = toString budget.MemoryHigh;
+      memoryMax = toString budget.MemoryMax;
+      memorySwapMax = toString budget.MemorySwapMax;
+      waitForCgroup = lib.escapeShellArg (toString waitForCgroup);
+    };
   };
 in
 {

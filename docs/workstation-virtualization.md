@@ -419,16 +419,15 @@ display, reset, and recovery policy remains a separate reviewed change.
 
 ## Verification
 
-The focused repository contract runs on the desktop host:
+The focused generated-artifact check runs on the desktop host:
 
 ```sh
-nix build .#checks.x86_64-linux.virtualisation-configuration-contract --no-link
+nix build .#checks.x86_64-linux.virtualisation-generated-artifacts --no-link
 ```
 
-It evaluates the real desktop and Mac configurations, validates both libvirt
-domain XML files and both network XML files, lints the generated shell tools,
-parses the generated PowerShell and unattended answer file, and tests secret
-rendering, printable-ASCII enforcement, XML escaping, file permissions,
-multiline rejection, fingerprint consistency, disk topology, and symlink
-rejection. Build the complete desktop closure only with `just desktop-build`,
-which also builds it on `desktop`.
+It validates the generated runtime and installer domain XML, verifies the
+installed privilege boundary, lints the generated shell tools, parses the
+generated PowerShell, and checks that the bootstrap and baseline share a
+complete recipe fingerprint. Focused Python tests cover the command behavior.
+Build the complete desktop closure only with `just desktop-build`, which also
+builds it on `desktop`.

@@ -92,6 +92,7 @@
       url = "path:./nix-homelab";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        nixpkgs-personal.follows = "nixpkgs-personal";
         flake-parts.follows = "flake-parts";
       };
     };

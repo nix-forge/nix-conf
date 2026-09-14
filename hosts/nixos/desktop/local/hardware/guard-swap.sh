@@ -1,5 +1,5 @@
-# shellcheck shell=bash
 # This guard runs before NixOS opens and formats the encrypted mapping.
+# shellcheck shell=bash
 set -euo pipefail
 swap_device=$(readlink -e -- "$DEVICE")
 if [[ ! -b $swap_device ]]; then
