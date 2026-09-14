@@ -45,6 +45,7 @@ class CIInventoryTests(unittest.TestCase):
                                         desktop-authentication = null;
                                         desktop-storage-install = null;
                                         generated-artifacts = null;
+                                        git-email-privacy = null;
                                         gitleaks-policy = null;
                                         ordinary = null;
                                         newly-added = null;
@@ -57,6 +58,7 @@ class CIInventoryTests(unittest.TestCase):
                                         cache-policy = null;
                                         desktop-authentication = null;
                                         generated-artifacts = null;
+                                        git-email-privacy = null;
                                         gitleaks-policy = null;
                                         host-only = null;
                                         ordinary = null;
@@ -79,14 +81,17 @@ class CIInventoryTests(unittest.TestCase):
             {
                 "x86_64-linux": [
                     "cache-policy",
+                    "git-email-privacy",
                     "newly-added",
                     "ordinary",
                     "secret-templates",
                 ],
                 "aarch64-darwin": [
                     "desktop-authentication",
+                    "git-email-privacy",
                     "host-only",
                     "ordinary",
+                    "secret-templates",
                 ],
             },
         )

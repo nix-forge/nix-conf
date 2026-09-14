@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/discover-lockfiles@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -81,19 +81,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/validate-workflows@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/repository-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/flake-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -105,7 +105,7 @@ jobs:
             nix develop --command bash -c "prek run --all-files && gitleaks git --redact --no-banner"
           '
   flake:
-    name: Flake checks (${{ matrix.system }})
+    name: Flake checks (${{ matrix.label }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
     # Host-bound assurance checks run explicitly on the desktop instead.
@@ -119,10 +119,29 @@ jobs:
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
+            label: x86_64-linux 1/3
+            partition-count: 3
+            partition-index: 0
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            label: x86_64-linux 2/3
+            partition-count: 3
+            partition-index: 1
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            label: x86_64-linux 3/3
+            partition-count: 3
+            partition-index: 2
           - system: aarch64-linux
             runner: ubuntu-24.04-arm
+            label: aarch64-linux
+            partition-count: 1
+            partition-index: 0
           - system: aarch64-darwin
             runner: macos-26
+            label: aarch64-darwin
+            partition-count: 1
+            partition-index: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -130,16 +149,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
         with:
           cache: 'false'
           cache-scope: ci-flake
       - name: Build every declared native CI check
-        uses: nix-forge/ci/actions/flake-checks@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/flake-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
+          partition-count: ${{ matrix.partition-count }}
+          partition-index: ${{ matrix.partition-index }}
       - name: Check extracted public templates and module consumers
+        if: matrix.partition-index == 0
         env:
           GUIDE_SYSTEM: ${{ matrix.system }}
         run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM"
@@ -150,6 +172,7 @@ jobs:
           selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
       - name: Build native Nix outputs
+        if: matrix.partition-index == 0
         id: native-build
         shell: bash
         env:
@@ -243,4 +266,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@a53126de1b983ccdb5ab7b1ab9989ef921a880d5 # v2.5.3
+        uses: nix-forge/ci/actions/queue-completion@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4

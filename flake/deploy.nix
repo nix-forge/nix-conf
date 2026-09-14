@@ -7,9 +7,7 @@ let
   # evaluation with a different runCommand shell.
   oncePerRevision = [
     "cache-policy"
-    "git-email-privacy"
     "platform-contracts"
-    "secret-templates"
     "temporary-package-fixes"
   ];
   # This link farm is a local convenience target over checks that CI builds by
