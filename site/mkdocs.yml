@@ -62,3 +62,8 @@ nav:
       - Related projects: guide/projects.md
       - Contribute: guide/contributing.md
       - Build and release the guide: guide/maintaining.md
+  - Security and maintenance:
+      - OpenSSF baseline: openssf-baseline.md
+      - Dependency management: dependency-management.md
+      - Secret management: secret-management.md
+      - Threat model: threat-model.md

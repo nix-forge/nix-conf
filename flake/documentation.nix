@@ -17,8 +17,12 @@ _: {
           ../site
           ../docs/README.md
           ../docs/guide
+          ../docs/openssf-baseline.md
+          ../docs/dependency-management.md
+          ../docs/secret-management.md
           ../docs/assets/font-implementation/pango.png
           ../docs/assets/font-implementation/qt.png
+          ../THREAT_MODEL.md
           ../templates/starter
         ];
       };

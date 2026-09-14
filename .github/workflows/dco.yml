@@ -1,0 +1,59 @@
+name: DCO
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+permissions: {}
+concurrency:
+  group: dco-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  sign-off:
+    name: DCO sign-off
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the merge ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check every proposed commit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha
+            }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha
+            }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$BASE_SHA"
+          test -n "$HEAD_SHA"
+          git cat-file -e "${BASE_SHA}^{commit}"
+
+          if ! git cat-file -e "${HEAD_SHA}^{commit}"; then
+            if [ "$EVENT_NAME" = pull_request ] && [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+              git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
+            fi
+          fi
+          git cat-file -e "${HEAD_SHA}^{commit}"
+
+          missing=()
+          while IFS= read -r commit; do
+            author=$(git show -s --format='%an <%ae>' "$commit")
+            if ! git show -s --format='%B' "$commit" | grep -Fqx "Signed-off-by: $author"; then
+              missing+=("$commit $author")
+            fi
+          done < <(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}")
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '%s\n' "Every commit must contain a Signed-off-by trailer matching its author."
+            printf 'Missing sign-off: %s\n' "${missing[@]}"
+            printf '%s\n' 'Use: git commit --signoff'
+            exit 1
+          fi
