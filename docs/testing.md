@@ -94,6 +94,11 @@ production inventory in the test, or search source text when execution can prove
 the requirement. Exact bytes remain appropriate for preservation, wire formats,
 signatures, and executable headers.
 
+Do not test a fixed host selection by reading the same option back from the
+evaluated host. Nix evaluation already checks that assignment. Test a module's
+merge or rejection rules beside the module, or test the generated file, command,
+unit, package, or runtime behavior that consumes the option.
+
 Prefer pytest functions, `tmp_path`, `monkeypatch`, and named parameter examples
 for new Python tests. Existing `unittest.TestCase` suites remain valid under
 pytest; converting assertion syntax alone adds no coverage. Mock an unavailable

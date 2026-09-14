@@ -48,13 +48,14 @@ def test_delivery_retries_failure_and_reports_recovery(tmp_path: Path) -> None:
 def test_no_channel_retains_warning_and_test_does_not_acknowledge_it(
     tmp_path: Path,
 ) -> None:
-    """An absent channel cannot silently acknowledge warnings."""
+    """An absent channel retains warnings without failing the system unit."""
     policy = {"stateDirectory": str(tmp_path), "notificationCommand": None}
-    assert HELPER["deliver"](policy, ["Missing backup"]) == 1
+    assert HELPER["deliver"](policy, ["Missing backup"]) == 0
     assert (
         json.loads((tmp_path / "delivery/pending.json").read_text())["event"]
         == "warning"
     )
+    assert HELPER["deliver"](policy, ["Missing backup"], test=True) == 1
     policy["notificationCommand"] = [sys.executable, "-c", "pass"]
     assert HELPER["deliver"](policy, ["Missing backup"], test=True) == 0
     assert not (tmp_path / "delivery/delivered.json").exists()

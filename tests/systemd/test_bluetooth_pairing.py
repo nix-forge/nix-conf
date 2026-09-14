@@ -78,13 +78,17 @@ def run_policy(
     adapters.mkdir()
     # HCI child devices must not be mistaken for separate radio adapters.
     (adapters / "hci0:1").mkdir()
+    policy = tmp_path / "pairing-policy"
+    policy.write_text(
+        f"#!{sys.executable}\n{POLICY.read_text(encoding='utf-8')}", encoding="utf-8"
+    )
+    policy.chmod(0o755)
     script = tmp_path / "policy"
     script.write_text(
         Path(os.environ.get("TEST_PAIRING_SCRIPT", SCRIPT))
         .read_text(encoding="utf-8")
         .replace("@bash@", bash)
-        .replace("@python@", sys.executable)
-        .replace("@policyScript@", str(POLICY))
+        .replace("@policyScript@", str(policy))
         .replace("/sys/class/bluetooth", str(adapters)),
         encoding="utf-8",
     )

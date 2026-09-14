@@ -37,6 +37,35 @@ let
     };
   relaxed = bodyFor "false\nprintf '%s\\n' continued";
   parseOnly = bodyFor "exit 71";
+  pathReplacementSource = ./bash-writers.nix;
+  pathReplacement = writeBashTemplate {
+    name = "path-replacement-probe";
+    dir = "bin";
+    src = pkgs.writeText "path-replacement.sh.in" ''
+      #!@bash@
+      test -f @source@
+    '';
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      source = pathReplacementSource;
+    };
+  };
+  isolatedRuntime = writeBashTemplate {
+    name = "isolated-runtime-probe";
+    dir = "bin";
+    src = pkgs.writeText "isolated-runtime.sh.in" ''
+      #!@bash@
+      test "$(command -v hello)" = @hello@
+      test "$PATH" = @runtimePath@
+    '';
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      hello = lib.escapeShellArg (lib.getExe pkgs.hello);
+      runtimePath = lib.escapeShellArg (lib.makeBinPath [ pkgs.hello ]);
+    };
+    runtimeInputs = [ pkgs.hello ];
+    inheritPath = false;
+  };
   alias = writeBashTemplate {
     name = "alias-probe";
     src = pkgs.writeText "alias-body.sh" ''
@@ -64,6 +93,8 @@ in
       test "$(${lib.getExe relaxed})" = continued
       # Building a program that exits nonzero proves validation doesn't run it.
       test -x ${lib.getExe parseOnly}
+      ${lib.getExe pathReplacement}
+      ${lib.getExe isolatedRuntime}
       # The Nix workload launcher dispatches by the invoked symlink's name.
       ln -s ${alias} writer-alias
       test "$(./writer-alias)" = writer-alias

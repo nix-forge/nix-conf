@@ -188,7 +188,8 @@ def deliver(
     """Acknowledge changed warning/recovery state only after successful delivery.
 
     Returns:
-        One if delivery is unavailable or failed; zero after delivery or deduplication.
+        One if test delivery is unavailable or a configured command failed;
+        zero otherwise.
 
     """
     directory = (
@@ -245,7 +246,7 @@ def deliver(
         else:
             arguments = policy.get("notificationCommand") or []
         if not arguments:
-            return 1
+            return 1 if test else 0
         try:
             result = run(arguments, payload=json.dumps(event) + "\n")
         except (OSError, subprocess.SubprocessError):

@@ -1,5 +1,7 @@
 # shellcheck shell=bash
 # Run explicit background work without replacing nix or changing its options.
+set -euo pipefail
+
 if [[ $# == 0 || $1 == --help ]]; then
   echo 'Usage: workstation-task [--] COMMAND [ARGUMENT...]'
   echo 'Queue a development command in a bounded background systemd scope.'

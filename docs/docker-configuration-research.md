@@ -46,22 +46,15 @@ shows the generated service.
 
 The Home Manager profile is on state version 25.05. At that version the pinned
 Colima module stores its state in `~/.colima`, unless `colimaHomeDir` is set.
-The Karakeep module hard-codes `~/.config/colima/default/docker.sock`. That
-path will not match the generated default profile. Derive the socket from
-`services.colima.colimaHomeDir` and avoid a second definition. This preserves
-the existing `~/.colima` VM and its local images and volumes for a 25.05 Home
-Manager profile. [The pinned Colima module](https://github.com/nix-community/home-manager/blob/03f4cd46bc1dd4f3a96da778d2ce9f7ce39dd450/modules/services/colima.nix#L17-L40)
-defines the version-dependent default and
-[its service implementation](https://github.com/nix-community/home-manager/blob/03f4cd46bc1dd4f3a96da778d2ce9f7ce39dd450/modules/services/colima.nix#L249-L333)
-shows that `isService = true` starts Colima at load and keeps it alive.
+Keep that location under the Colima module's ownership. Karakeep no longer
+starts Colima or consumes its Docker socket. The homelab module uses Nixpkgs'
+source-built Karakeep, Meilisearch and Chromium packages as NixOS services.
 
-For a laptop, the Colima profile should stay active as a Docker context but not
-be a service. A manual `docker-up` wrapper should run `colima start default`,
-then wait for `docker info`; `docker-down` should run `colima stop default`.
-This releases the VM's reserved CPU and memory. Do not run Kubernetes in that
-profile. A local application with its own launchd agent, such as Karakeep, must
-be opt-in and should start Colima itself if it remains supported. It otherwise
-defeats lazy startup.
+For a laptop, the Colima profile should remain available as a Docker context but
+not run as a service. A manual `docker-up` wrapper starts the VM and waits for
+`docker info`; `docker-down` stops it. This releases the VM's reserved CPU and
+memory. Do not run Kubernetes in that profile. Application modules must not
+start Colima implicitly.
 
 ## Linux daemon design
 

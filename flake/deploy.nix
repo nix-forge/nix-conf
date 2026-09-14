@@ -13,6 +13,10 @@ let
   # The Python suite has operating-system-specific behavior, but repeating the
   # same Linux suite on a second CPU architecture only duplicates test work.
   linuxOncePerRevision = [ "python-tests" ];
+  # This regression check is produced by the concrete x86 desktop package.
+  # Building that derivation on ARM is impossible and provides no additional
+  # coverage; its native x86 CI owner remains intact.
+  x86DesktopPackageChecks = [ "vscode-oniguruma-layout" ];
   # This link farm is a local convenience target over checks that CI builds by
   # name. Evaluating it in CI duplicates the slowest part of check discovery.
   aggregateChecks = [ "generated-artifacts" ];
@@ -61,6 +65,7 @@ in
         aggregateChecks
         ++ hostedRunnerExclusions
         ++ lib.optionals (system != "x86_64-linux") oncePerRevision
+        ++ lib.optionals (system != "x86_64-linux") x86DesktopPackageChecks
         ++ lib.optionals (system == "aarch64-linux") linuxOncePerRevision
         ++ builtins.attrNames (
           (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })

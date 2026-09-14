@@ -1,0 +1,23 @@
+{
+  "fileScopedDeclarationPrivacy": {
+    "accessLevel": "private"
+  },
+  "indentation": {
+    "spaces": 2
+  },
+  "lineLength": 100,
+  "maximumBlankLines": 1,
+  "respectsExistingLineBreaks": true,
+  "rules": {
+    "AllPublicDeclarationsHaveDocumentation": false,
+    "AlwaysUseLiteralForEmptyCollectionInit": true,
+    "DoNotUseSemicolons": true,
+    "FileScopedDeclarationPrivacy": true,
+    "NeverForceUnwrap": true,
+    "NeverUseForceTry": true,
+    "OrderedImports": true,
+    "UseEarlyExits": true,
+    "UseShorthandTypeNames": true
+  },
+  "version": 1
+}

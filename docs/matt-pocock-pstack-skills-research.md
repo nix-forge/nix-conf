@@ -62,3 +62,44 @@ Repository facts were checked against the files linked above, AGENTS.md,
 `flake/dev/`, `justfile`, `.gitmodules`, and the framework README. This review
 establishes compatibility of the setup with the installed instructions. It does
 not claim that every interactive skill workflow was exercised end to end.
+
+## Research model policy, 2026-09-12
+
+The installed research skill requests a background agent and primary-source
+citations but leaves model selection unspecified. Codex can consequently inherit
+an expensive parent model for routine evidence gathering.
+
+Upstream deliberately keeps dispatch portable between clients. Matt Pocock's
+[merged change #781](https://github.com/mattpocock/skills/pull/781) removes
+Claude-specific tool and agent-type names. The
+[research introduction #409](https://github.com/mattpocock/skills/pull/409)
+describes background reading and a cited Markdown result. A
+[community repository guide](https://gist.github.com/mattehlol/7b9c365f5f97306fb99548c9b0bd876c)
+uses local model/effort and bounded-delegation instructions, although its policy
+preserves the parent model. These sources support local policy as a pattern;
+they do not establish which model is best for research or measure savings.
+
+The [Codex module](../modules/home/dev/agentic-tui/codex.nix) now copies the
+packaged research skill, preserving its resources, and appends a
+[Codex policy](../modules/home/dev/agentic-tui/research-model-policy.md).
+Other clients continue to receive the shared upstream package. This is a local
+installation preference, not a temporary repair to upstream behavior.
+
+The default is Terra medium with an explicit, fresh-context dispatch. Sol handles
+difficult synthesis and Astra handles complex security or architectural reasoning.
+Explicit user choices take precedence. Research returns citations and unresolved
+questions; the parent verifies claims that affect implementation. Escalation is
+limited to the unresolved question. These are trial defaults, not demonstrated
+quality or cost equivalences.
+
+The desktop delegation interface supports explicit model and effort overrides
+with fresh or limited history; full-history forks inherit the parent settings.
+Other Codex clients may expose different controls. Follow the available interface
+and disclose unavailable models or unsupported overrides. The
+[Codex subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+describes client agent configuration. A skill instruction guides dispatch; it is
+not a hard model restriction enforced by the runtime.
+
+Validation covers generated Nix output and preservation of upstream content.
+It does not establish live model selection, research accuracy, or measured usage
+savings. Home activation and a new session are needed to load the changed skill.

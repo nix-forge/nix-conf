@@ -113,8 +113,7 @@ let
         [ ".c" ".cpp" ".h" ".hpp" ".ino" ];
     gofmt = mkTool [ (lib.getExe' pkgs.go "gofmt") "-w" "$FILE" ] [ ".go" ];
     nixfmt = mkTool [ (lib.getExe pkgs.nixfmt) "$FILE" ] [ ".nix" ];
-    oxfmt = (mkTool [ (lib.getExe pkgs.oxfmt) "$FILE" ] [ ".js" ".jsx" ".ts" ".tsx" ]) // {
-      disabled = true;
+    oxfmt = mkTool [ (lib.getExe pkgs.oxfmt) "$FILE" ] [ ".js" ".jsx" ".ts" ".tsx" ] // {
       environment = {
         BUN_BE_BUN = "1";
       };
@@ -150,6 +149,10 @@ let
 
   anthropicSkills = self.packages.${system}.anthropic-skills;
   openaiSkills = self.packages.${system}.openai-skills;
+  mattpocockSkills = self.packages.${system}.mattpocock-skills;
+  pstackSkills = self.packages.${system}.pstack-skills;
+  supportsRemindctl = self.packages.${system} ? remindctl;
+  remindctl = self.packages.${system}.remindctl;
   skillPath = package: name: "${package}/share/agent-skills/${name}";
   skillSet = package: names: lib.genAttrs names (name: skillPath package name);
 
@@ -157,6 +160,8 @@ let
     "anthropic-brand-guidelines"
     "anthropic-frontend-design"
     "anthropic-internal-comms"
+    "anthropic-mcp-builder"
+    "anthropic-skill-creator"
     "anthropic-theme-factory"
     "anthropic-web-artifacts-builder"
     "anthropic-webapp-testing"
@@ -165,12 +170,33 @@ let
     "openai-cli-creator"
     "openai-gh-address-comments"
     "openai-gh-fix-ci"
+    "openai-pdf"
     "openai-playwright"
+    "openai-playwright-interactive"
+    "openai-screenshot"
     "openai-security-best-practices"
     "openai-security-ownership-map"
     "openai-security-threat-model"
     "openai-yeet"
   ];
+  mattpocockOpenCodeSkills = [
+    "mattpocock-ask-matt"
+    "mattpocock-codebase-design"
+    "mattpocock-code-review"
+    "mattpocock-diagnosing-bugs"
+    "mattpocock-domain-modeling"
+    "mattpocock-grill-me"
+    "mattpocock-grill-with-docs"
+    "mattpocock-grilling"
+    "mattpocock-handoff"
+    "mattpocock-research"
+    "mattpocock-resolving-merge-conflicts"
+    "mattpocock-setup-matt-pocock-skills"
+    "mattpocock-tdd"
+    "mattpocock-wizard"
+    "mattpocock-writing-for-agents"
+  ];
+  pstackOpenCodeSkills = [ "pstack-unslop" ];
 
   opencodeNotifierDarwinFallback = writeBashTemplate {
     name = "opencode-notifier-darwin-fallback";
@@ -184,10 +210,18 @@ in
     skills = {
       typst = "${typstSkillSrc}/skills/typst";
     }
+    // lib.optionalAttrs supportsRemindctl { apple-reminders = remindctl.agentSkill; }
     // skillSet anthropicSkills anthropicOpenCodeSkills
-    // skillSet openaiSkills openaiOpenCodeSkills;
+    // skillSet openaiSkills openaiOpenCodeSkills
+    // skillSet mattpocockSkills mattpocockOpenCodeSkills
+    // skillSet pstackSkills pstackOpenCodeSkills;
     settings = {
+      # Nix manages updates via the pinned package; never let opencode self-update
+      # and fight the store.
       autoupdate = false;
+      # Lock the default so an upstream default change cannot start uploading
+      # sessions. Use /share explicitly if sharing is ever needed.
+      share = "manual";
       plugin = [
         "@opencode-ai/plugin@${pkgs.opencode.version}"
         "opencode-gemini-auth@1.4.15"
@@ -196,18 +230,32 @@ in
       formatter = documentedFormatters;
       lsp = documentedLsp;
       permission = {
-        external_directory = {
-          "/nix/store/**" = "allow";
+        # Danger-full-access equivalent: allow everything by default so normal
+        # work never prompts (codex `--dangerously-bypass-approvals-and-sandbox`
+        # analogue is `opencode --auto`, which auto-approves asks but still
+        # respects explicit denies below).
+        "*" = "allow";
+        external_directory = "allow";
+        doom_loop = "allow";
 
-          "${config.xdg.cacheHome}/opencode/**" = "allow";
-        };
+        read =
+          let
+            afterStar = lib.hm.dag.entryAfter [ "*" ];
+          in
+          {
+            "*" = "allow";
+            # Re-assert the upstream .env defaults: the global allow above
+            # would otherwise permit secret files. Last match wins, so the
+            # example exception must come after its deny.
+            "*.env" = afterStar "deny";
+            "*.env.*" = lib.hm.dag.entryAfter [ "*.env" ] "deny";
+            "*.env.example" = lib.hm.dag.entryAfter [ "*.env.*" ] "allow";
 
-        read = {
-          "${config.home.homeDirectory}/.ssh/**" = "deny";
-          "${config.home.homeDirectory}/.gnupg/**" = "deny";
-          "${config.xdg.dataHome}/opencode/auth.json" = "deny";
-          "${config.xdg.dataHome}/opencode/mcp-auth.json" = "deny";
-        };
+            "${config.home.homeDirectory}/.ssh/**" = afterStar "deny";
+            "${config.home.homeDirectory}/.gnupg/**" = afterStar "deny";
+            "${config.xdg.dataHome}/opencode/auth.json" = afterStar "deny";
+            "${config.xdg.dataHome}/opencode/mcp-auth.json" = afterStar "deny";
+          };
       };
     };
   };
@@ -278,18 +326,22 @@ in
     // lib.optionalAttrs isLinux { linux.grouping = true; }
   );
 
-  home.packages = lib.optionals isLinux [ pkgs.libnotify ];
+  home.packages =
+    lib.optional supportsRemindctl remindctl ++ lib.optionals isLinux [ pkgs.libnotify ];
 
   home.sessionVariables = {
-    OPENCODE_EXPERIMENTAL_LSP_TOOLS = 1;
-    OPENCODE_EXPERIMENTAL_LSP_TY = 1;
-    OPENCODE_DISABLE_LSP_DOWNLOAD = 1;
+    # LSP code intelligence (docs use the singular TOOL name; the old plural
+    # TOOLS key was a no-op).
+    OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
+    OPENCODE_EXPERIMENTAL_LSP_TY = "true";
+    # We ship every LSP/formatter from Nix, so never auto-download binaries.
+    OPENCODE_DISABLE_LSP_DOWNLOAD = "true";
 
-    OPENCODE_EXPERIMENTAL_OXFMT = 1;
+    OPENCODE_EXPERIMENTAL_OXFMT = "true";
 
-    OPENCODE_ENABLE_EXA = 1;
-    OPENCODE_EXPERIMENTAL_EXA = 1;
+    OPENCODE_ENABLE_EXA = "true";
+    OPENCODE_EXPERIMENTAL_EXA = "true";
 
-    OPENCODE_EXPERIMENTAL_PLAN_MODE = 1;
+    OPENCODE_EXPERIMENTAL_PLAN_MODE = "true";
   };
 }

@@ -48,7 +48,12 @@ wayland-scanner client-header "$protocol_directory/staging/color-management/colo
 wayland-scanner private-code "$protocol_directory/staging/color-management/color-management-v1.xml" "$work_directory/color-management-v1-protocol.c"
 read -r -a cflags <<<"$(pkg-config --cflags wayland-client)"
 read -r -a ldflags <<<"$(pkg-config --libs wayland-client)"
-cc "${cflags[@]}" -I"$work_directory" "$test_directory/subsurface-parent-teardown.c" "$work_directory/xdg-shell-protocol.c" "$work_directory/color-management-v1-protocol.c" "${ldflags[@]}" -o "$work_directory/client"
+cc -std=c17 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Werror \
+  "${cflags[@]}" -I"$work_directory" -c "$test_directory/subsurface-parent-teardown.c" \
+  -o "$work_directory/subsurface-parent-teardown.o"
+cc "${cflags[@]}" "$work_directory/subsurface-parent-teardown.o" \
+  "$work_directory/xdg-shell-protocol.c" "$work_directory/color-management-v1-protocol.c" \
+  "${ldflags[@]}" -o "$work_directory/client"
 
 cat >"$work_directory/test.lua" <<'EOF'
 hl.config({ animations = { enabled = false }, misc = { disable_watchdog_warning = true }, debug = { disable_logs = false } })

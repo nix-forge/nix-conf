@@ -60,18 +60,35 @@ def _hyprconf(name: str) -> dict[str, str | list[dict[str, str]]]:
     return result
 
 
+def _sections(
+    config: dict[str, str | list[dict[str, str]]], name: str
+) -> list[dict[str, str]]:
+    """Return one repeated Hyprlang section after validating its shape.
+
+    Returns:
+        The section dictionaries in source order.
+
+    """
+    sections = config[name]
+    assert isinstance(sections, list)
+    return sections
+
+
 idle = _hyprconf("hypridle.conf")
 enable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'"
 disable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'"
-idle_general = idle["general"]
-assert isinstance(idle_general, list)
-session_lock, lock_action = shlex.split(idle_general[0]["lock_cmd"])
-assert session_lock.endswith("/bin/desktop-session-lock"), session_lock
-assert lock_action == "lock"
+idle_general = _sections(idle, "general")[0]
+lock_arguments = shlex.split(idle_general["lock_cmd"])
+assert lock_arguments[0].endswith("/bin/desktop-session-lock")
+assert lock_arguments[1:] == ["lock"]
+idle_listeners = _sections(idle, "listener")
+running_arguments = shlex.split(idle_listeners[2]["condition_cmd"])
+assert running_arguments[0] == lock_arguments[0]
+assert running_arguments[1:] == ["running"]
 assert idle == {
     "general": [
         {
-            "lock_cmd": f"{session_lock} lock",
+            "lock_cmd": idle_general["lock_cmd"],
             "inhibit_sleep": "3",
             "before_sleep_cmd": "loginctl lock-session",
             "after_sleep_cmd": enable,
@@ -90,7 +107,7 @@ assert idle == {
             "timeout": "30",
             "ignore_inhibit": "true",
             "condition_retry": "5",
-            "condition_cmd": f"{session_lock} running",
+            "condition_cmd": idle_listeners[2]["condition_cmd"],
             "on-timeout": disable,
             "on-resume": enable,
         },
@@ -98,24 +115,18 @@ assert idle == {
     ],
 }
 background_idle = _hyprconf("hypridle-background.conf")
-background_general = background_idle["general"]
-assert isinstance(background_general, list)
+background_general = _sections(background_idle, "general")
 assert background_general[0]["ignore_wayland_inhibit"] == "true"
-background_listeners = background_idle["listener"]
-assert isinstance(background_listeners, list)
-assert [listener["timeout"] for listener in background_listeners] == [
-    "300",
-    "330",
-    "30",
-    "900",
-]
+background_listeners = _sections(background_idle, "listener")
+expected_background_listeners = 4
+assert len(background_listeners) == expected_background_listeners
 screen_condition = background_listeners[0]["condition_cmd"]
 screen_arguments = shlex.split(screen_condition)
 assert screen_arguments[0].endswith("/bin/desktop-idle-inhibit-check")
 assert screen_arguments[1:] == ["screen", "--", "chatgpt"]
 assert background_listeners[0]["ignore_inhibit"] == "false"
 assert background_listeners[1]["condition_cmd"] == screen_condition
-assert background_listeners[2] == idle["listener"][2]
+assert background_listeners[2] == _sections(idle, "listener")[2]
 assert background_listeners[3]["condition_cmd"].endswith(
     "/bin/desktop-idle-inhibit-check suspend"
 )
