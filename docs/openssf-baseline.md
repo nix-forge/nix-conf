@@ -70,6 +70,11 @@ an advisory after a fix or documented mitigation is available. [security/vex.jso
 records reviewed non-affectability statements. Support and end-of-life rules
 are in [SUPPORT.md](../SUPPORT.md).
 
+The operating procedures for [dependency management](dependency-management.md)
+and [secret management](secret-management.md) are part of this policy. They
+define the review, release-gate, storage, access, and rotation requirements
+used to support the controls below.
+
 ## Control evidence
 
 | Control area | Evidence |

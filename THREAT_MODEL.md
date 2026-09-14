@@ -35,3 +35,11 @@ public output and must not contain private host state.
 
 Review this model when a module changes a trust boundary, a host example gains
 new credentials or network access, or CI or release automation changes.
+
+## Review cadence
+
+The maintainers review this model before each release and whenever module
+behavior, deployment defaults, dependencies, CI permissions, Pages, or secret
+handling changes. A release candidate includes an explicit attack-surface
+review and records new trust boundaries and residual risk in its release
+notes. Incidents trigger an out-of-cycle review and a dated follow-up issue.
