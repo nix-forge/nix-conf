@@ -42,7 +42,7 @@
     ./nix-seal.nix
 
     fonts
-    ../../modules/home/desktop/optional-emoji-fonts.nix
+    desktop-optional-emoji-fonts
     dev
     xdg-portal
 
@@ -73,7 +73,6 @@
     wm-hyprland
     desktop
     ssh
-    spotify
 
     zen-browser
     helium-browser

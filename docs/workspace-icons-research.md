@@ -162,3 +162,166 @@ or a complete accessibility audit.
 The earlier interaction validation remains a separate result. Arbitrarily
 large window counts, alternate themes, and optical normalization of individual
 third-party icons remain untested or outside native settings.
+
+## Workspace geometry and state hierarchy, 2026-09-10
+
+The next refinement addresses target sizes and group spacing in the same pinned
+Noctalia source. Live inspection found small numeric targets beside larger app
+icons and an accent outline around every group. The existing plain labels alone
+did not resolve these differences. This is a visual design assessment, not a
+measured latency or usability result.
+
+### Design evidence
+
+The [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)
+explains how target size and separation reduce accidental activation. Its
+24 CSS-pixel target is a web criterion, not a desktop conformance claim. Here,
+24 logical-pixel cells are a design choice for the existing 34-pixel bar, with
+16-pixel artwork centered inside. Smaller bar configurations still obey the
+native height budget.
+
+[GNOME's styling guidance](https://developer.gnome.org/hig/guidelines/ui-styling.html)
+recommends semantic colors and an additional cue when color communicates state.
+The selected workspace therefore has both a tinted fill and an outline, while
+inactive workspaces have a neutral fill. Urgency uses the configured urgency
+color and the same shape. Full-opacity application artwork retains window
+identity in either state.
+
+[W3C's consistent-navigation guidance](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html)
+describes predictable ordering and spatial memory. Applying this to a desktop
+taskbar is an inference. The native source already sorts window icons by
+workspace placement and stable tie breakers. Preserve that behavior and avoid
+changing target dimensions merely because selection or hover changes. Group
+width can still change when windows open, close, move or rearrange.
+
+### Implementation
+
+The [native taskbar reference](https://docs.noctalia.dev/noctalia/bar/widgets/taskbar/)
+documents `item_spacing` as a flat-strip setting, ignored for workspace groups.
+The missing geometry and group colors therefore need a
+[package patch](../pkgs/pkgs/by-name/no/noctalia-personal/workspace-strip.patch).
+It applies only to minimal workspace capsules showing inline labels and icons:
+
+- Numbers and icons share 24-pixel cells at the current scale. Short numbers
+  keep a full cell, including empty workspaces; long labels can grow.
+- Internal gaps remain 4 pixels; gaps between workspaces become 8 pixels.
+  Capsule padding is 2 pixels, keeping the larger targets within the bar.
+- Inactive fills use 4.5% of the semantic foreground with a transparent outline.
+  Selection uses 12% of its semantic accent and a 45% outline. Urgency and the
+  focused-output color policy use the same color resolver as workspace labels.
+- Outline width remains reserved in every state. Hover changes the existing
+  target fill without resizing artwork or adding an active-window dot.
+
+These opacity and spacing values are design judgments. They reuse theme roles
+and need visual review under a different palette. Other taskbar modes retain
+their existing rendering. Window identity, focus, close and context-menu
+handlers are unchanged.
+
+### Validation
+
+An independent source review found two scope issues in the initial patch:
+label-hidden layouts were included, and capsule accents ignored the
+focused-output-only policy. Both were corrected before final validation.
+The initial native package built on Linux and passed its existing icon-policy
+check. Live inspection at 150% output scale confirmed aligned single-window,
+duplicate-app, empty and two-digit workspace groups. Clicking the enlarged
+number target near its upper edge switched workspaces. Repeated icon clicks
+focused the corresponding windows without changing their target positions.
+The context menu opened, and moving a test window updated its workspace group.
+
+The first close check encountered Ghostty's running-process confirmation. The
+fixture was recreated with confirmation disabled; middle-click then closed
+exactly its selected window. Temporary windows were removed, and the previous
+workspace, focused window and pointer position were restored. The shell stayed
+active without a crash or automatic restart.
+
+The installed configuration passed validation with the same three existing
+symbolic-extension warnings. Nix and Markdown formatting, whitespace checks,
+and publication scans passed. The final reviewed package also built successfully, and its validator returned
+the same three warnings. A final live click check passed after restarting into
+that package. The existing Nix-generated service was serialized with only its
+executable path changed, reviewed, and applied to the user service. The temporary
+preview override was removed. A queued full-configuration service evaluation was
+canceled before it ran; no full system closure was built or activated. Additional monitors, alternative palettes, very small bars,
+and dense-session overflow remain untested. The patch preserves all icons and
+does not add an overflow mechanism.
+
+## Borderless selection refinement
+
+The current design keeps a persistent soft fill only on the selected workspace
+or a workspace requesting attention. Inactive groups have no background or
+outline. Workspace numbers and the existing gaps establish the grouping.
+This is an adaptation of Apple's emphasis on visual hierarchy and restrained
+visual effects, not a claim that Apple specifies a persistent workspace taskbar.
+Apple presents Spaces through [Mission Control](https://support.apple.com/en-au/guide/mac-help/mh35798/mac);
+its [materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials)
+advises using custom effects sparingly.
+
+Selection uses 14% of the configured workspace foreground. The desktop sets
+that role to `on_surface`, derived from Stylix `base05` and the palette's contrast
+adjustment. Urgency retains its semantic color. Hover uses 6% of the widget
+foreground, making it weaker than the selected treatment in this theme.
+These are opacity choices, not fixed RGB colors. The outlines stay transparent
+in every state, and all existing geometry and window actions remain intact.
+Other taskbar layouts retain their previous hover and group styling.
+
+The refined native package built successfully and passed its existing package
+check. An independent review found no outstanding issues. Configuration
+validation reported only the same three existing extension warnings. Live checks
+at 150% scale confirmed that inactive backgrounds match the bar, the selected
+fill is stronger than hover, and the selected edge has no brighter outline.
+Clicking near the upper edge of a workspace label switched workspaces correctly.
+The previous workspace, focused window and pointer were restored afterward.
+The package is running through the normal user service; no full system
+activation was performed. Window-action handlers and target geometry are
+unchanged from the previously validated version.
+
+### Hover reveals the inactive group
+
+Inactive workspace hover now shares one fill across the label, app icons,
+internal gaps and padding. This makes application membership visible before
+switching workspaces. The group uses the same theme foreground at 6% opacity;
+selection remains stronger at 14%. Active and urgent styling is unchanged.
+Moving between cells cancels the pending fade-out, while leaving the group
+fades its background back to transparent. A background input area covers gaps
+without consuming app clicks or contributing to layout.
+
+The source review and native package build passed. Live checks at 150% scale
+confirmed the same background across labels, multiple app icons, internal gaps
+and padding, with a weaker fill than selection. The background cleared after
+leaving the group. Label clicks switched workspaces, individual icons focused
+their own windows, and middle-click closed only the targeted test window.
+Temporary windows were removed and the previous workspace and focus restored.
+The normal user service is running the refined package without automatic
+restarts. Configuration validation retained the same three extension warnings.
+
+The first capture overlapped the shell's startup fade. A later exit check used
+cursor warps that did not deliver pointer motion to the client. Waiting for
+startup and sending nonzero virtual pointer motion made the complete check pass.
+The broader package evaluation failed on a missing standalone Hyprlock store
+path, outside this patch.
+
+### Matching fill and reduced height
+
+Selection and inactive-group hover now share the standard taskbar hover tint:
+the widget foreground at 10% opacity. The desktop maps this foreground to
+Stylix `base05`. Inline groups no longer add another highlight behind a hovered
+cell. The active group keeps its fill after the pointer leaves; inactive groups
+return to transparent. Label colors still distinguish the active workspace.
+The active fill stays consistent across outputs; `focused_output_only` continues
+to affect label colors. Urgency retains its semantic fill at 14% opacity.
+
+Removing the outer cross-axis padding reduces the normal group height from
+28 to 24 logical pixels in a 34-pixel bar. It preserves the 24-pixel targets,
+16-pixel artwork and horizontal spacing. This leaves about five logical pixels
+of bar surface above and below the group. Vertical bars apply the equivalent
+padding reduction on their horizontal axis.
+
+The fixed source delta passed independent review. The native package built
+successfully, including its existing package check. The targeted build reused
+the desktop build's output; its patch, README and remaining build inputs were
+verified against the intended change. Configuration validation retained the
+same three extension warnings, and the normal user service is running the new
+package without automatic restarts. Formatting and publication checks passed.
+Final visual and interaction checks remain pending because the output was
+unavailable for capture. The blank capture does not establish rendered geometry.

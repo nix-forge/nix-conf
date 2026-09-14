@@ -450,7 +450,8 @@ let
     src = ./scripts/libvirt-windows-vm-reconcile.sh.in;
     replacements = {
       autostart = if cfg.autostart then "1" else "0";
-      awk = getExe pkgs.gawk;
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
       bash = getExe pkgs.bash;
       diskPath = escapeShellArg diskPath;
       guestName = escapeShellArg cfg.name;
@@ -471,7 +472,8 @@ let
       autologonArchive = escapeShellArg autologonArchive;
       autostart = if cfg.autostart then "1" else "0";
       authorizedKeysFile = escapeShellArg authorizedKeysFile;
-      awk = getExe pkgs.gawk;
+      python = getExe pkgs.python3;
+      xmlHelper = ./scripts/libvirt-xml.py;
       base64 = getExe' pkgs.coreutils "base64";
       baselineTest = escapeShellArg baselineTest;
       bash = getExe pkgs.bash;
@@ -529,7 +531,6 @@ let
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
       virtioIso = escapeShellArg virtioIso;
       wiminfo = getExe' pkgs.wimlib "wiminfo";
-      xmllint = getExe' pkgs.libxml2 "xmllint";
       xorriso = getExe pkgs.xorriso;
     };
   };
@@ -550,29 +551,36 @@ let
     };
   };
 
-  windowsVmCli = writeBashTemplate {
-    name = "windows-vm";
-    src = ./scripts/windows-vm.sh.in;
-    dir = "bin";
-    replacements = {
-      bash = getExe pkgs.bash;
-      cat = getExe' pkgs.coreutils "cat";
-      chmod = getExe' pkgs.coreutils "chmod";
-      guestName = cfg.name;
-      install = getExe' pkgs.coreutils "install";
-      isoPath = escapeShellArg isoPath;
-      isoSha256 = normalizedIsoSha256;
-      isoSha256Path = escapeShellArg isoSha256Path;
-      mktemp = getExe' pkgs.coreutils "mktemp";
-      mv = getExe' pkgs.coreutils "mv";
-      privilegedControl = "${privilegedControl}/libexec/libvirt-windows-vm-control";
-      rm = getExe' pkgs.coreutils "rm";
-      setupWizard = getExe' setupWizard "setup-windows-vm";
-      sha256sum = getExe' pkgs.coreutils "sha256sum";
-      sshKeygen = getExe' pkgs.openssh "ssh-keygen";
-      sudo = getExe pkgs.sudo;
+  windowsVmCli =
+    let
+      sudo = "${config.security.wrapperDir}/sudo";
+    in
+    (writeBashTemplate {
+      name = "windows-vm";
+      src = ./scripts/windows-vm.sh.in;
+      dir = "bin";
+      replacements = {
+        bash = getExe pkgs.bash;
+        cat = getExe' pkgs.coreutils "cat";
+        chmod = getExe' pkgs.coreutils "chmod";
+        guestName = cfg.name;
+        install = getExe' pkgs.coreutils "install";
+        isoPath = escapeShellArg isoPath;
+        isoSha256 = normalizedIsoSha256;
+        isoSha256Path = escapeShellArg isoSha256Path;
+        mktemp = getExe' pkgs.coreutils "mktemp";
+        mv = getExe' pkgs.coreutils "mv";
+        privilegedControl = "${privilegedControl}/libexec/libvirt-windows-vm-control";
+        rm = getExe' pkgs.coreutils "rm";
+        setupWizard = getExe' setupWizard "setup-windows-vm";
+        sha256sum = getExe' pkgs.coreutils "sha256sum";
+        sshKeygen = getExe' pkgs.openssh "ssh-keygen";
+        inherit sudo;
+      };
+    })
+    // {
+      inherit sudo;
     };
-  };
 in
 {
   options.virtualisation.libvirtWorkstation.windowsVm = {

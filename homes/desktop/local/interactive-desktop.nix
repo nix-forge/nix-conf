@@ -9,6 +9,9 @@
   # remain reusable in lightweight, recovery, and non-Hyprland profiles.
   desktop.enable = true;
   desktop.noctalia.enable = true;
+  # "Prevent sleep while running" should preserve tasks without leaving the
+  # unlocked desktop or OLED display awake through Chromium's native inhibitor.
+  desktop.idle.backgroundAppClasses = [ "chatgpt" ];
   # Night light stays in the compositor. The physical ASUS display exposes
   # brightness through DDC/CI, so Noctalia can use the ddcutil package and the
   # active-seat I2C access supplied by the NixOS hardware profile.
@@ -67,6 +70,13 @@
   desktop.applications.sessionLauncher = "uwsm app --";
   desktop.workflow.terminalCommand = "uwsm app -- ${lib.getExe pkgs.ghostty}";
 
+  # Older revisions linked these generated files directly into the Nix store.
+  # Home Manager treats those links as foreign and otherwise blocks the first
+  # switch that moves them under Home Manager ownership.
+  xdg.configFile."hypr/hyprland.lua".force = true;
+  xdg.configFile."noctalia/config.toml".force = true;
+  xdg.configFile."systemd/user/noctalia.service".force = true;
+
   # Bound Zen's main process and content children together. On this 30 GiB
   # host, an unbounded browser exhausted RAM and swap and the global OOM
   # killer selected unrelated desktop applications. Match UWSM's escaped
@@ -113,13 +123,26 @@
     Hidden=true
   '';
 
-  # Source selection is declarative. NASA's Image and Video Library has
-  # curated mission photography; SVS remains available as an opt-in source
-  # for users who specifically want scientific visualisations.
-  desktop.wallpaper.enable = true;
-  desktop.wallpaper.sources.nasaSvs.enable = false;
-  desktop.wallpaper.sources.nasaImageLibrary.enable = true;
-  desktop.wallpaper.sources.clevelandMuseum.enable = true;
-  desktop.wallpaper.sources.wikimediaCommons.enable = true;
-  desktop.wallpaper.sources.smithsonian.enable = true;
+  # Reviewed photographs and telescope observations, cropped to the 4K display.
+  # Each connection contributes only to supported, enabled wallpaper categories.
+  desktop.wallpaper = {
+    enable = true;
+    connections = {
+      esaHubble.enable = true;
+      esaWebb.enable = true;
+      wikimediaCommons = {
+        enable = true;
+        licenses = [
+          "CC0"
+          "Public domain"
+          "Public Domain"
+          "CC BY 3.0"
+          "CC BY 4.0"
+          "CC BY-SA 3.0"
+          "CC BY-SA 4.0"
+        ];
+
+      };
+    };
+  };
 }

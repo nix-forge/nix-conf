@@ -33,8 +33,6 @@
     chromium-policies
     nixSeal
     ./nix-seal.nix
-    ./local/firewall.nix
-    ./local/ssh.nix
 
     security
     yubikey

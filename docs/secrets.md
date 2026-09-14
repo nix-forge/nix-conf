@@ -10,7 +10,9 @@ in the ignored `.nix-seal/` workspace or an exported ciphertext cache.
 
 The flake-level `flake.nixSeal.administrators.ianhollow` catalog contains the
 public administrator, recovery, and release identities and the default release
-approval policy. nix-seal automatically selects this sole catalog for each NixOS,
+approval policy. `flake.nixSeal.defaultConfiguration` selects the desktop system
+for ordinary preparation, so operators do not have to remember a selector or a
+generated store path. nix-seal automatically selects the sole catalog for each NixOS,
 nix-darwin, and Home Manager target. Target modules declare local names such
 as `nixSeal.secrets."hf-token"`; nix-seal derives the canonical ID from
 host or user metadata and default source paths from `nixSeal.secretDirectory`.
@@ -52,19 +54,22 @@ underlying application credential and must be performed as a separate, explicit
 operation.
 
 Before switching a configuration whose secret policy or templates changed, use
-`just secret prepare --flake '.#nixosConfigurations.<HOSTNAME>'` with
-`--identity` and `--signing-key` paths. Replace `<HOSTNAME>` with the selected
-configuration name. Add `--administrator-host` when those keys are on another
-machine; the key paths then refer to files on that machine. Review the dry run
-and repeat with `--execute`, then run the normal switch. Preparation discovers
-both the host and embedded home plans, installs signed ciphertext into each
-owner's cache, and checks readiness. Private keys stay on the administrator
-machine. See the [preparation workflow](../nix-seal/README.md#prepare-a-configuration-before-switching)
+`just secret prepare` with `--identity` and `--signing-key` paths. The command
+uses this flake's saved desktop default. Add `--administrator-host` when those
+keys are on another machine; the key paths then refer to files on that machine.
+Review the dry run and repeat with `--execute`, then run the normal switch. Use
+`--flake '.#nixosConfigurations.<HOSTNAME>'` only to override the saved default,
+or `--deployment` to prepare an exact previously built generation for recovery.
+Preparation discovers both the host and embedded home plans, installs signed
+ciphertext into each owner's cache, and checks readiness. Private keys stay on
+the administrator machine. See the
+[preparation workflow](../nix-seal/README.md#prepare-a-configuration-before-switching)
 for complete commands and retries.
 
 NixOS checks readiness before stopping services, and Home Manager checks before
-writing its environment. An error includes the missing secret IDs and a command
-that selects the exact deployment description. `doctor` now exits nonzero when a
+writing its environment. An error from the default configuration includes the
+stable preparation command; an older or non-default generation includes its
+exact recovery input. `doctor` now exits nonzero when a
 valid plan lacks required artifacts; it distinguishes policy validity from
 readiness in its JSON output.
 

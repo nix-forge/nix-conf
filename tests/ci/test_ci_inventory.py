@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class CIInventoryTests(unittest.TestCase):
     """Exercise coverage policy through the real flake modules."""
 
-    def test_deployment_exclusions_apply_only_to_the_owning_system(self) -> None:
-        """Keep ordinary additions and same-named checks on other systems."""
+    def test_hosted_exclusions_preserve_ordinary_checks(self) -> None:
+        """Keep ordinary additions while removing host and deployment checks."""
         expression = """
                     let
                         lib = import NIXPKGS_LIB;
@@ -32,16 +32,48 @@ class CIInventoryTests(unittest.TestCase):
                             };
                             self = {
                                 deploy = {};
-                                lintChecks.x86_64-linux = { new-portable-check = null; };
+                                lintChecks = {
+                                    x86_64-linux = {
+                                        gitleaks-policy = null;
+                                        new-portable-check = null;
+                                    };
+                                    aarch64-darwin.gitleaks-policy = null;
+                                };
                                 checks = {
                                     x86_64-linux = {
+                                        application-recovery = null;
+                                        cache-policy = null;
+                                        desktop-authentication = null;
+                                        desktop-storage-install = null;
+                                        generated-artifacts = null;
+                                        git-email-privacy = null;
+                                        gitleaks-policy = null;
                                         ordinary = null;
                                         newly-added = null;
                                         new-portable-check = null;
+                                        sentry-crashpad-lock = null;
+                                        service-command-arguments = null;
+                                        secret-templates = null;
                                         host-only = null;
                                         new-deployment-check = null;
                                     };
-                                    aarch64-darwin = { host-only = null; ordinary = null; };
+                                    aarch64-darwin = {
+                                        application-recovery = null;
+                                        cache-policy = null;
+                                        desktop-authentication = null;
+                                        generated-artifacts = null;
+                                        git-email-privacy = null;
+                                        gitleaks-policy = null;
+                                        host-only = null;
+                                        ordinary = null;
+                                        sentry-crashpad-lock = null;
+                                        service-command-arguments = null;
+                                        secret-templates = null;
+                                    };
+                                    aarch64-linux = {
+                                        ordinary = null;
+                                        python-tests = null;
+                                    };
                                 };
                             };
                         };
@@ -57,8 +89,20 @@ class CIInventoryTests(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                "x86_64-linux": ["newly-added", "ordinary"],
-                "aarch64-darwin": ["host-only", "ordinary"],
+                "x86_64-linux": [
+                    "cache-policy",
+                    "git-email-privacy",
+                    "newly-added",
+                    "ordinary",
+                    "secret-templates",
+                ],
+                "aarch64-darwin": [
+                    "git-email-privacy",
+                    "host-only",
+                    "ordinary",
+                    "secret-templates",
+                ],
+                "aarch64-linux": ["ordinary"],
             },
         )
 

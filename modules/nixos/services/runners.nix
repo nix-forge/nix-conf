@@ -1,38 +1,28 @@
-{ pkgs, lib, ... }: {
-  # run appimages with appimage-run
-  environment.systemPackages = [ pkgs.appimage-run ];
-  boot.binfmt.registrations = lib.genAttrs [ "appimage" "AppImage" ] (_: {
-    wrapInterpreterInShell = false;
-    interpreter = "${pkgs.appimage-run}/bin/appimage-run";
-    recognitionType = "magic";
-    offset = 0;
-    mask = "\\xff\\xff\\xff\\xff\\x00\\x00\\x00\\x00\\xff\\xff\\xff";
-    magicOrExtension = "\\x7fELF....AI\\x02";
-  });
+{ pkgs, ... }: {
+  # Opt-in compatibility for downloaded binaries. NixOS owns the AppImage
+  # interpreter registrations for both formats and the required FUSE setup.
+  programs.appimage = {
+    enable = true;
+    binfmt = true;
+  };
 
-  # run unpatched linux binaries with nix-ld
   programs.nix-ld = {
     enable = true;
+    # Extend NixOS's base libraries with desktop dependencies. Applications
+    # needing more libraries can add them through this same upstream option.
     libraries = with pkgs; [
-      stdenv.cc.cc
-      openssl
-      curl
       glib
-      util-linux
       glibc
       icu
       libunwind
-      libuuid
-      zlib
       libsecret
-      # graphical
       freetype
       libglvnd
       libnotify
       SDL2
       vulkan-loader
       gdk-pixbuf
-      xorg.libX11
+      libx11
     ];
   };
 }

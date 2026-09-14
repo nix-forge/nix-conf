@@ -1,0 +1,52 @@
+name: Guide feedback
+description: Report a confusing or failing step, or a completed tutorial attempt.
+title: '[guide] '
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Guide page and step
+      placeholder: First configuration, Build and inspect
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Source revision
+      description: Paste the commit or tag you used. Do not include private repository URLs.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - x86_64-linux
+        - aarch64-linux
+        - aarch64-darwin
+        - Another platform
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Blocked at a step
+        - Completed with a workaround
+        - Completed as documented
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+      description: Include the command, expected result, and a short redacted error or explanation. Leave
+        out secrets and personal account details.
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Approximate time to the first successful build
+      description: Optional. Say whether dependencies were already cached.

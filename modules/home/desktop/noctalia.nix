@@ -259,6 +259,29 @@ in
           clipboard_auto_paste = "off";
           screen_time_enabled = false;
           shared_gl_context = true;
+          session.actions = [
+            {
+              action = "command";
+              label = "Lock";
+              glyph = "lock";
+              command = "${lib.getExe' pkgs.systemd "loginctl"} lock-session";
+              shortcut = "L";
+            }
+            { action = "suspend"; }
+            {
+              action = "logout";
+              countdown_seconds = 10;
+            }
+            {
+              action = "reboot";
+              countdown_seconds = 10;
+            }
+            {
+              action = "shutdown";
+              countdown_seconds = 10;
+              variant = "destructive";
+            }
+          ];
           animation = {
             enabled = true;
             speed = 1.0;
@@ -267,8 +290,12 @@ in
             floating_layer = "overlay";
             launcher_placement = "floating";
             clipboard_placement = "floating";
-            control_center_placement = "attached";
-            session_placement = "attached";
+            control_center_placement = "floating";
+            session_placement = "floating";
+            control_center_position = "auto";
+            session_position = "auto";
+            open_near_click_control_center = true;
+            open_near_click_session = true;
             launcher_position = "center";
             clipboard_position = "center";
             floating_offset = 8;
@@ -349,7 +376,9 @@ in
         control_center = {
           sidebar = "compact";
           sidebar_section = "compact";
-          width = 680;
+          # Compact mode uses 85% of this width. Leave room for full month names
+          # and paired device cards at the shared desktop font size.
+          width = 800;
           show_shortcut_labels = true;
           show_session_button = true;
           hidden_tabs = [

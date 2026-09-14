@@ -44,7 +44,10 @@ diskoLib.testLib.makeDiskoTest {
   disko-config = fixture;
   extraInstallerConfig.virtualisation.memorySize = 2048;
   extraSystemConfig = {
-    imports = [ ../../hosts/nixos/desktop/local/storage/default.nix ];
+    imports = [
+      ../../hosts/nixos/desktop/local/storage/default.nix
+      ../../hosts/nixos/desktop/local/hardware/filesystems.nix
+    ];
     hardware.storage.encryptedRoot.enable = true;
     hardware.storage.encryptedRoot.backup = {
       paths = [ "/var/lib/desktop-storage" ];
@@ -57,6 +60,8 @@ diskoLib.testLib.makeDiskoTest {
     # Exercise jobs explicitly; an elapsed timer must not race repository setup.
     systemd.timers.restic-backups-desktop-fixture.enable = false;
     systemd.timers.desktop-backup-verify-fixture.enable = false;
+    systemd.timers.btrfs-scrub--.enable = false;
+    systemd.timers.btrfs-scrub-srv-data.enable = false;
     boot.initrd.systemd.enable = true;
     users.users.ianmh = {
       isNormalUser = true;
@@ -64,6 +69,7 @@ diskoLib.testLib.makeDiskoTest {
       group = "users";
     };
     virtualisation.libvirtd.enable = false;
+    environment.systemPackages = [ pkgs.e2fsprogs ];
   };
   postDisko = ''
     machine.succeed("install -d -m 700 /mnt/var/lib/desktop-storage/keys")
@@ -75,16 +81,26 @@ diskoLib.testLib.makeDiskoTest {
     machine.succeed("cryptsetup isLuks --type luks2 /dev/disk/by-partlabel/NIXOS-CRYPTDATA")
     machine.succeed("mountpoint /srv/data/work; mountpoint /mnt/games; mountpoint /var/lib/libvirt/images")
     machine.succeed("btrfs filesystem usage / | grep 'Metadata,DUP'")
+    for path in ["/home/.snapshots", "/srv/data/.snapshots", "/srv/data/work/.snapshots"]:
+        assert machine.succeed("stat -c '%u:%g:%a' " + path).strip() == "0:0:700"
     swap = machine.succeed("awk 'NR == 2 {print $1}' /proc/swaps").strip()
     assert machine.succeed("lsblk -ndo TYPE " + swap).strip() == "crypt"
     machine.succeed("cryptsetup status " + swap)
     swap_uuid = machine.succeed("blkid -s UUID -o value " + swap).strip()
     machine.succeed("echo before > /home/history-test")
     machine.succeed("echo excluded > /home/ianmh/.local/share/docker/layer")
+    machine.succeed("su -s /bin/sh ianmh -c 'echo cache > /home/ianmh/.cache/disposable'")
+    machine.fail("su -s /bin/sh ianmh -c 'ls /home/.snapshots'")
     snapshot = machine.succeed("snapper --no-dbus -c home create --read-only --print-number").strip()
     machine.succeed("echo after > /home/history-test")
     machine.succeed("grep before /home/.snapshots/" + snapshot + "/snapshot/history-test")
     machine.fail("test -e /home/.snapshots/" + snapshot + "/snapshot/ianmh/.local/share/docker/layer")
+    machine.fail("test -e /home/.snapshots/" + snapshot + "/snapshot/ianmh/.cache/disposable")
+    # Restoring a directory can restore NOCOW too. Preparation must clear it
+    # before new images are created, without rewriting existing image files.
+    machine.succeed("chattr +C /var/lib/libvirt/images; systemctl restart desktop-data-ready.service")
+    machine.succeed("touch /var/lib/libvirt/images/checksummed-image")
+    assert "C" not in machine.succeed("lsattr /var/lib/libvirt/images/checksummed-image").split()[0]
     machine.succeed("echo durable > /srv/data/work/reboot-test")
     # Disko starts QEMU without allow_reboot. A shutdown/start also exercises
     # genuine cold-boot key loading instead of retaining the running mapping.
@@ -129,5 +145,9 @@ diskoLib.testLib.makeDiskoTest {
     # condition. Either outcome must leave the underlying root directory alone.
     machine.execute("systemctl start desktop-snapshot-data-timeline.service")
     machine.fail("test -d /srv/data/.snapshots")
+    machine.execute("systemctl start btrfs-scrub-srv-data.service")
+    # The service must neither start a root scrub nor write data-drive status.
+    assert machine.succeed("systemctl show btrfs-scrub-srv-data.service -p ExecMainStartTimestampMonotonic --value").strip() == "0"
+    machine.succeed("btrfs scrub status / | grep 'no stats available'")
   '';
 }

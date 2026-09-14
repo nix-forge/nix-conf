@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security reporting
+    url: https://github.com/nix-forge/nix-conf/blob/main/SECURITY.md
+    about: Follow the security policy for vulnerability reports.
+  - name: Package issues
+    url: https://github.com/nix-forge/nixpkgs-personal/issues
+    about: Report package recipe problems in the package repository.

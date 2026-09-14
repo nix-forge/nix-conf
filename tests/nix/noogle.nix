@@ -36,12 +36,17 @@ let
     };
   rotating = homeFor {
     mode = "rotate";
-    sources = {
-      nasaSvs.enable = true;
-      nasaImageLibrary.enable = true;
-      clevelandMuseum.enable = true;
+    connections = {
+      esaHubble.enable = true;
+      esaWebb.enable = true;
       wikimediaCommons.enable = true;
-      smithsonian.enable = true;
+    };
+    categories = {
+      cityscapes.enable = false;
+      space = {
+        connections.esaHubble = false;
+        subcategories.nebulae.connections.esaHubble = true;
+      };
     };
   };
   video = homeFor {
@@ -62,6 +67,9 @@ let
   importer = lib.findFirst (
     p: p.name == "desktop-wallpaper-add"
   ) (throw "missing wallpaper importer") commands;
+  settings = lib.findFirst (
+    p: p.name == "desktop-wallpaper-settings"
+  ) (throw "missing wallpaper preferences command") commands;
   execStart = builtins.head (
     lib.toList video.config.systemd.user.services.mpvpaper.Service.ExecStart
   );
@@ -277,31 +285,34 @@ let
 in
 {
   wallpaper-service-ordering =
-    pkgs.runCommand "wallpaper-service-ordering" { nativeBuildInputs = [ pkgs.systemd ]; }
-      ''
-        mkdir -p units/graphical-session.target.wants runtime
-        ${lib.concatMapStringsSep "\n"
-          (name: ''
-            cp ${orderingHome.config.xdg.configFile."systemd/user/${name}.service".source} units/${name}.service
-                ln -s ../${name}.service units/graphical-session.target.wants/${name}.service
-          '')
-          [
-            "awww"
-            "desktop-wallpaper-directories"
-            "desktop-wallpaper-rotate"
-          ]
-        }
-        export XDG_RUNTIME_DIR="$PWD/runtime"
-        export SYSTEMD_UNIT_PATH="$PWD/units:${pkgs.systemd}/example/systemd/user"
-        systemd-analyze --user --man=no verify graphical-session.target > verification.log 2>&1 || {
-          cat verification.log
-          exit 1
-        }
-        if grep -E 'ordering cycle|deleted to break' verification.log; then
-          exit 1
-        fi
-        touch "$out"
-      '';
+    assert
+      orderingHome.config.systemd.user.services.desktop-wallpaper-directories.Service.RemainAfterExit;
+    assert
+      orderingHome.config.systemd.user.services.desktop-wallpaper-rotate.Unit.StartLimitIntervalSec == 0;
+    pkgs.runCommand "wallpaper-service-ordering" { nativeBuildInputs = [ pkgs.systemd ]; } ''
+      mkdir -p units/graphical-session.target.wants runtime
+      ${lib.concatMapStringsSep "\n"
+        (name: ''
+          cp ${orderingHome.config.xdg.configFile."systemd/user/${name}.service".source} units/${name}.service
+              ln -s ../${name}.service units/graphical-session.target.wants/${name}.service
+        '')
+        [
+          "awww"
+          "desktop-wallpaper-directories"
+          "desktop-wallpaper-rotate"
+        ]
+      }
+      export XDG_RUNTIME_DIR="$PWD/runtime"
+      export SYSTEMD_UNIT_PATH="$PWD/units:${pkgs.systemd}/example/systemd/user"
+      systemd-analyze --user --man=no verify graphical-session.target > verification.log 2>&1 || {
+        cat verification.log
+        exit 1
+      }
+      if grep -E 'ordering cycle|deleted to break' verification.log; then
+        exit 1
+      fi
+      touch "$out"
+    '';
   gecko-policy-merge =
     assert lib.all
       (
@@ -495,16 +506,36 @@ in
     '';
   desktop-commands =
     assert lib.hasInfix "%%literal$$dollar" execStart;
-    pkgs.runCommand "desktop-command-regressions" { nativeBuildInputs = [ pkgs.coreutils ]; } ''
-      test -d ${commandTree}
-      printf '%s' 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' | base64 -d > "source image.gif"
-      PATH=/nonexistent ${lib.getExe importer} "$PWD/source image.gif"
-      cmp "source image.gif" ${lib.escapeShellArg "${literalPath}/source image.gif"}
-      test "$(stat -c %a ${lib.escapeShellArg literalPath})" = 700
-      test "$(stat -c %a ${lib.escapeShellArg "${literalPath}/source image.gif"})" = 600
-      status=0
-      PATH=/nonexistent ${lib.getExe importer} || status=$?
-      test "$status" = 64
-      touch "$out"
-    '';
+    pkgs.runCommand "desktop-command-regressions"
+      {
+        nativeBuildInputs = [
+          pkgs.coreutils
+          pkgs.jq
+        ];
+      }
+      ''
+          test -d ${commandTree}
+          printf '%s' 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' | base64 -d > "source image.gif"
+          PATH=/nonexistent ${lib.getExe importer} "$PWD/source image.gif"
+          cmp "source image.gif" ${lib.escapeShellArg "${literalPath}/source image.gif"}
+          test "$(stat -c %a ${lib.escapeShellArg literalPath})" = 700
+          test "$(stat -c %a ${lib.escapeShellArg "${literalPath}/source image.gif"})" = 600
+          status=0
+          PATH=/nonexistent ${lib.getExe importer} || status=$?
+          test "$status" = 64
+          export XDG_CONFIG_HOME="$TMPDIR/wallpaper-config"
+        mkdir -p "$XDG_CONFIG_HOME/desktop-wallpaper"
+        ln -s ${
+          rotating.config.xdg.configFile."desktop-wallpaper/policy-command".source
+        } "$XDG_CONFIG_HOME/desktop-wallpaper/policy-command"
+        ${lib.getExe settings} plan > plan.json
+          jq -e 'all(.[]; .category != "cityscapes")' plan.json
+          jq -e '[.[] | select(.connection == "esaHubble") | .subcategory] == ["nebulae"]' plan.json
+          ${lib.getExe settings} source esaHubble space/galaxies on >/dev/null 2>&1
+          ${lib.getExe settings} plan esaHubble > plan.json
+          jq -e '[.[].subcategory] | sort == ["galaxies", "nebulae"]' plan.json
+          ${lib.getExe settings} connection esaHubble off >/dev/null 2>&1
+          test "$(${lib.getExe settings} plan esaHubble)" = '[]'
+          touch "$out"
+      '';
 }

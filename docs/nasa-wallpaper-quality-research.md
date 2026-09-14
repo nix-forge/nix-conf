@@ -4,7 +4,7 @@
 
 Make the **NASA Image and Video Library** the default NASA wallpaper source. It is the better catalogue for the desired result: mission and space-agency photography, with an original-asset manifest for each result. Keep the **Scientific Visualization Studio (SVS)** only as a deliberately opt-in, separately curated source for visualizations. It is not a photo archive, and 4K dimensions do not make an educational graphic, chart, rendered model, or video frame suitable as desktop art.
 
-The supplied example is the locally cached SVS record **4313, “Earth System Science Cartoon Schematic”**. It is a designed, text-bearing Solar System graphic rather than a photographic scene. The old fetcher can choose this class of asset because it searches SVS `Visualization` records and recursively accepts *any* nested `Image` that meets 3840x2160. It has no positive photographic criterion and does not limit itself to a page's intentionally presented still. See [`wallpaper-fetch-nasa.sh.in`](../modules/home/desktop/scripts/wallpaper-fetch-nasa.sh.in).
+The supplied example is the locally cached SVS record **4313, “Earth System Science Cartoon Schematic”**. It is a designed, text-bearing Solar System graphic rather than a photographic scene. The old fetcher can choose this class of asset because it searches SVS `Visualization` records and recursively accepts *any* nested `Image` that meets 3840x2160. It has no positive photographic criterion and does not limit itself to a page's intentionally presented still. See [`wallpaper-fetch-nasa.sh.in`](https://github.com/nix-forge/nix-conf/blob/7fd38c80a2aa/modules/home/desktop/scripts/wallpaper-fetch-nasa.sh.in).
 
 ## What the official APIs provide
 

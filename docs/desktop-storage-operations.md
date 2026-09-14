@@ -175,10 +175,16 @@ state together. Never overwrite a live VM's backing files with a restore. Test
 application startup before recording the drill.
 
 Snapper takes independent hourly snapshots of home, general data and work.
-Retention keeps 24 hourly, 7 daily and 4 weekly snapshots. Nested container state
-and the separate VM and games subvolumes are outside these histories. Snapshots
-share free space with current files, so retention counts do not impose a byte limit.
-No automatic root rollback or Btrfs quota subsystem is enabled.
+Hourly cleanup normally keeps up to 24 hourly, 7 daily and 4 weekly snapshots.
+When filesystem free space drops below 20%, range limits allow cleanup to remove
+more old timeline snapshots, down to zero subject to Snapper's minimum age.
+This shortens recovery history under pressure; it cannot guarantee free space
+when live data fills the filesystem. This free-space policy needs no quotas.
+[Snapper cleanup rules](https://github.com/openSUSE/snapper/blob/master/doc/snapper.xml.in)
+
+The home cache, nested container state and separate VM and games subvolumes are
+outside these histories. Snapshot directories are private to root, so recovery
+uses `sudo`. No automatic root rollback or Btrfs quota subsystem is enabled.
 
 ```sh
 sudo snapper --config home list
@@ -190,12 +196,25 @@ Restore selected files from a known snapshot after inspecting it. A NixOS boot
 rollback changes the system generation; it does not rewind home or application
 databases.
 
+New VM images in the encrypted layout retain Btrfs CoW, checksums and compression.
+The generated libvirt pool explicitly enables CoW because libvirt otherwise
+tries to disable it on Btrfs. Reconciliation preserves an existing pool's UUID
+and updates its persistent definition without stopping active guests. An already
+active pool takes the updated policy on its next start. The mounted image
+directory has inherited NOCOW cleared before libvirtd starts; existing image
+files still need an attended cold copy to regain checksums. See the
+[migration guide](disko-desktop-migration.md) and
+[libvirt pool feature documentation](https://www.libvirt.org/formatstorage.html#features).
+
 ## Health and recovery boundaries
 
 The system polls capacity, Btrfs device error counters, failed storage services
 and backup freshness. It warns at 80% usage. A desktop notification appears when
 warnings change, and SMART events have their own notification path. A missing
-data drive cannot stop home snapshot creation or cleanup.
+data drive cannot stop home snapshot creation or cleanup. Its scrub job requires
+the actual mount, so it cannot silently scrub root instead. The ordinary backup
+job does require the data drive; a failed backup exposes missing source data
+instead of issuing a complete-backup receipt for a partial capture.
 
 Review `journalctl -u desktop-storage-health` and the relevant failed service.
 Resolve full disks and checksum errors before deleting the only useful recovery
@@ -208,3 +227,38 @@ keys in memory, and a compromised running account can access its available data.
 Use the screen lock and shut down for a stronger offline boundary. This desktop
 currently disables suspend through its existing compatibility policy. Hibernation
 is also disabled because swap is randomly encrypted each boot.
+
+## Shared media and backup disk
+
+The intended desktop homelab deployment uses the existing 4 TB external drive
+primarily for home-server and media data, while retaining a separate directory
+for desktop backups. This changes its intended role from a dedicated backup
+medium to shared storage. Keep the current filesystem and existing backups
+until their contents and a recovery copy have been checked. No repartitioning
+or formatting is part of this integration.
+
+`nix-homelab` owns reusable media service policy. This repository owns the actual
+mount, host resource policy, nix-seal declarations and backup destinations. The
+consuming host must set `homelab.storage.rootDir` beneath the existing disk's
+mount and list the mount itself in `homelab.storage.requiredMounts`. Keep
+downloads and libraries on the same filesystem for hardlink imports. Keep
+application databases on the system SSD and back up consistent exports.
+
+Use sibling media and backup directories with separate ownership. Do not put
+the backup repository inside its own source tree. Budget media growth against
+backup retention before enabling automatic downloads. Directory separation
+does not reserve capacity, and a mostly connected media disk cannot count as
+the offline backup copy. A backup of media onto that same disk cannot recover
+from failure of the disk; important media needs an independent destination.
+
+Only the BitTorrent client uses Mullvad by default. Playback and arr managers
+keep normal host networking. Credentials remain user-provided through nix-seal;
+this integration does not include a provider profile, private key or API token.
+The reusable service examples and migration notes live in the companion
+[nix-homelab repository](https://github.com/IanHollow/nix-homelab). Update that
+link after the organization transfer.
+
+Before enabling the host integration, inspect disk contents and free capacity,
+choose the media and backup space budget, set a persistent mount, configure
+backup exclusions and application exports, and verify missing-disk behavior.
+These are deployment requirements, not operations performed by this note.

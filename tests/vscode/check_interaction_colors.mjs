@@ -35,10 +35,10 @@ const failures = [];
 async function call(method, params = {}) {
   const id = ++sequence;
   const result = new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error(`${method} timed out`)),
-      15000,
-    );
+    const timeout = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`${method} timed out`));
+    }, 15000);
     pending.set(id, (message) => {
       clearTimeout(timeout);
       if (message.error) reject(new Error(JSON.stringify(message.error)));
@@ -272,7 +272,9 @@ try {
   const page = await waitFor(async () => {
     try {
       const pages = await (
-        await fetch(`http://127.0.0.1:${port}/json/list`)
+        await fetch(`http://127.0.0.1:${port}/json/list`, {
+          signal: AbortSignal.timeout(1000),
+        })
       ).json();
       return pages.find((page) => page.type === "page");
     } catch {
@@ -280,9 +282,27 @@ try {
     }
   });
   socket = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((resolve) =>
-    socket.addEventListener("open", resolve, { once: true }),
-  );
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => finish(new Error("CDP WebSocket connection timed out")),
+      15000,
+    );
+    const opened = () => finish();
+    const failed = () => finish(new Error("CDP WebSocket connection failed"));
+    function finish(error) {
+      clearTimeout(timeout);
+      socket.removeEventListener("open", opened);
+      socket.removeEventListener("error", failed);
+      socket.removeEventListener("close", failed);
+      if (error) {
+        socket.close();
+        reject(error);
+      } else resolve();
+    }
+    socket.addEventListener("open", opened, { once: true });
+    socket.addEventListener("error", failed, { once: true });
+    socket.addEventListener("close", failed, { once: true });
+  });
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     if (pending.has(message.id)) {

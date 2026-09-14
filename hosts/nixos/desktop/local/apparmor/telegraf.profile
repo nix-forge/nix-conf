@@ -22,6 +22,22 @@ profile nixos-telegraf @telegrafPackage@/bin/telegraf flags=(mediate_deleted) {
   # logs or hide accesses that still need review.
   owner /proc/[0-9]*/stat r,
 
+  # Reviewed host-metric reads recur every collection interval. Keep discovery
+  # useful for new accesses without logging the same CPU and disk inventory.
+  /proc/{devices,diskstats,loadavg,vmstat} r,
+  /proc/1/mountinfo r,
+  /run/utmp r,
+  /sys/devices/system/cpu/cpu[0-9]*/ r,
+  /sys/devices/system/cpu/cpu[0-9]*/topology/ r,
+  /sys/devices/system/cpu/cpu[0-9]*/topology/core_cpus_list r,
+  /sys/devices/virtual/block/dm-[0-9]*/dm/name r,
+  /sys/devices/**/nvme/nvme[0-9]*/nvme[0-9]*n[0-9]*/wwid r,
+  /sys/class/scsi_host/ r,
+  /sys/devices/**/scsi_host/host[0-9]*/proc_name r,
+  /sys/devices/**/usb[0-9]*/**/{idVendor,idProduct,bcdDevice} r,
+  /dev/nvme[0-9]* r,
+  /dev/sd[a-z] r,
+
   # Repeated SMART polls map the helper's C/C++ runtime and read the drive
   # database and block-device metadata. These observed read-only accesses
   # otherwise dominate the discovery log on every collection interval.

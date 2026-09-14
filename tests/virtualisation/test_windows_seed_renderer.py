@@ -11,6 +11,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
+
 if TYPE_CHECKING:
     from types import ModuleType
 
@@ -43,6 +46,44 @@ def load_renderer() -> ModuleType:
 
 
 RENDERER = load_renderer()
+
+
+@settings(max_examples=80, derandomize=True, database=None)
+@given(
+    st.text(alphabet=st.characters(min_codepoint=33, max_codepoint=126), max_size=80)
+)
+@example("<&>'\"")
+@example("&amp;&lt;&#13;")
+def test_password_rendering_preserves_values_and_unrelated_xml(suffix: str) -> None:
+    """Round-trip generated XML metacharacters through the actual seed renderer."""
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        root = Path(temporary_directory)
+        # Synthetic input satisfies the password policy independently of its suffix.
+        password = "Aa0" * 6 + suffix
+        password_file = root / "password"
+        password_file.write_text(password + "\n", encoding="utf-8")
+        password_file.chmod(0o600)
+        template = root / "template.xml"
+        template.write_text(
+            '<root marker="unchanged"><first>'
+            "__WINDOWS_ADMINISTRATOR_PASSWORD_XML__</first>"
+            "<unrelated>keep &amp; preserve</unrelated><second>"
+            "__WINDOWS_ADMINISTRATOR_PASSWORD_XML__</second></root>",
+            encoding="utf-8",
+        )
+        answer = root / "output" / "answer.xml"
+        credential = root / "output" / "credential"
+
+        RENDERER.render(template, answer, credential, password_file)
+
+        document = ET.parse(answer).getroot()
+        assert document.findtext("first") == password
+        assert document.findtext("second") == password
+        assert document.findtext("unrelated") == "keep & preserve"
+        assert document.attrib == {"marker": "unchanged"}
+        assert credential.read_text(encoding="utf-8") == password + "\n"
+        assert stat.S_IMODE(answer.stat().st_mode) == stat.S_IRUSR | stat.S_IWUSR
+        assert stat.S_IMODE(credential.stat().st_mode) == stat.S_IRUSR | stat.S_IWUSR
 
 
 class WindowsSeedRendererTests(unittest.TestCase):

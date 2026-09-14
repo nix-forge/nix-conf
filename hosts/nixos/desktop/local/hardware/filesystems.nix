@@ -1,13 +1,15 @@
 {
   config,
   lib,
+  pkgs,
   utils,
   ...
 }:
 let
   encryptedRoot = config.hardware.storage.encryptedRoot.enable;
   rootLabel = "nixos";
-  swapLabel = "swap";
+  swapDevice = "/dev/disk/by-partuuid/0ac4f78a-c78c-44b7-a754-453a4b9d7a5e";
+  swapDeviceName = lib.replaceStrings [ "\\" ] [ "" ] (utils.escapeSystemdPath swapDevice);
   bootLabel = "boot";
   gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
   # The shared Steam library is system storage, not a user's home data. Keep
@@ -71,6 +73,13 @@ in
       # `/nix`; the shared SSD module runs periodic batch TRIM instead.
       systemd.services.fstrim.unitConfig.ConditionACPower = true;
 
+      # Scrub accepts an ordinary directory and then operates on its containing
+      # filesystem. An absent optional mount must never scrub root in its place.
+      systemd.services.${gamesScrubTimer}.unitConfig = {
+        RequiresMountsFor = [ (if encryptedRoot then "/srv/data" else gamesMountPoint) ];
+        ConditionPathIsMountPoint = if encryptedRoot then "/srv/data" else gamesMountPoint;
+      };
+
       # NixOS's auto-scrub timer intentionally uses a one-day accuracy window.
       # This single desktop uses a narrower, jittered early-morning window.
       systemd.timers = {
@@ -123,9 +132,53 @@ in
         ${bootMP} = mkBoot bootLabel; # should be /boot by default
       };
 
-      # Legacy plaintext swap. The offline migration replaces this with
-      # dedicated randomly encrypted swap, retaining zram-first priority.
-      swapDevices = [ { label = swapLabel; } ];
+      # Encrypt the existing swap partition independently of the root-storage
+      # migration. PARTUUID survives the loss of the plaintext swap label.
+      swapDevices = [
+        {
+          device = swapDevice;
+          priority = 0;
+          randomEncryption = {
+            enable = true;
+            keySize = 512;
+          };
+        }
+      ];
+      boot.resumeDevice = lib.mkForce "";
+      systemd.sleep.settings.Sleep = {
+        AllowHibernation = "no";
+        AllowHybridSleep = "no";
+        AllowSuspendThenHibernate = "no";
+      };
+      # Refuse live conversion of an in-use raw swap device. Boot the new
+      # generation to convert without draining swapped pages during work.
+      systemd.services."mkswap-${swapDeviceName}" = {
+        requires = [ "${utils.escapeSystemdPath swapDevice}.device" ];
+        after = [ "${utils.escapeSystemdPath swapDevice}.device" ];
+        path = [
+          pkgs.coreutils
+          pkgs.util-linux
+        ];
+        preStart = builtins.readFile ./guard-swap.sh;
+      };
+      # switch-to-configuration drains removed swap entries before starting
+      # mkswap. Reject that transition here, before it can call swapoff.
+      system.preSwitchChecks.encryptedSwapTransition = ''
+        set -euo pipefail
+        case "''${2-}" in
+          boot|dry-activate|check) ;;
+          *)
+            current_device=$(${pkgs.coreutils}/bin/readlink -e ${lib.escapeShellArg swapDevice})
+            active_devices=$(${pkgs.util-linux}/bin/swapon --show=NAME --noheadings --raw)
+            while IFS= read -r active_device; do
+              if [[ -n "$active_device" && "$(${pkgs.coreutils}/bin/readlink -e -- "$active_device")" == "$current_device" ]]; then
+                echo 'Refusing live plaintext-swap conversion. Stage with the boot action and reboot later.' >&2
+                exit 1
+              fi
+            done <<< "$active_devices"
+            ;;
+        esac
+      '';
     })
   ];
 }

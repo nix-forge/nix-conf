@@ -62,8 +62,9 @@ source_master=${captures[0]}
 # Confirm the file is a readable DV stream before changing names. This is a
 # lightweight structural test; minidv-verify performs the full post-finalize
 # validation and checksum generation.
-video_codec=$(ffprobe -v error -show_streams -of json -- "$source_master" | jq -r '[.streams[]? | select(.codec_type == "video") | .codec_name] | first // empty')
-audio_streams=$(ffprobe -v error -show_streams -of json -- "$source_master" | jq '[.streams[]? | select(.codec_type == "audio")] | length')
+source_probe=$(ffprobe -v error -show_streams -of json -- "$source_master")
+video_codec=$(jq -r '[.streams[]? | select(.codec_type == "video") | .codec_name] | first // empty' <<<"$source_probe")
+audio_streams=$(jq '[.streams[]? | select(.codec_type == "audio")] | length' <<<"$source_probe")
 if [ "$video_codec" != dvvideo ] || [ "$audio_streams" -lt 1 ]; then
   fail "retained file is not a readable DV capture with audio; preserved it unchanged for investigation."
 fi

@@ -5,10 +5,7 @@
   environment.etc."polkit-1/actions/com.bitwarden.Bitwarden.policy".source =
     "${pkgs.bitwarden-desktop}/share/polkit-1/actions/com.bitwarden.Bitwarden.policy";
 
-  # Use NixOS's maintained fprintd integration for login, sudo, Polkit, greetd,
-  # and screen lockers. NixOS adds pam_fprintd as a `sufficient` authentication
-  # rule, so a successful fingerprint authenticates while failure or unavailable
-  # hardware falls through to the existing password rules. Do not add autologin,
-  # empty-password, or Polkit authorization-bypass rules alongside this.
-  services.fprintd.enable = true;
+  # This desktop has no fingerprint reader. Polkit authenticates with the
+  # account password; Bitwarden does not require a fingerprint service.
+  services.fprintd.enable = false;
 }

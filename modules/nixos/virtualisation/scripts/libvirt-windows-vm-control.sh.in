@@ -1,6 +1,5 @@
 #!@bash@
-# shellcheck shell=bash disable=SC2016,SC2239
-# Nix replaces the shebang and @awk@; Awk must receive its $ fields literally.
+# shellcheck shell=bash disable=SC2239
 set -euo pipefail
 
 export LC_ALL=C
@@ -127,63 +126,16 @@ verify_domain_identity() {
   [[ $existing_uuid == "$guest_uuid" ]] ||
     die "$guest_name has UUID $existing_uuid, expected $guest_uuid"
 
-  existing_disk="$(@virsh@ --connect "$libvirt_uri" domblklist "$guest_name" --inactive --details |
-    @awk@ '$2 == "disk" && $3 == "sda" { print $4; exit }')"
+  existing_disk="$(@virsh@ --connect "$libvirt_uri" dumpxml "$guest_name" --inactive |
+    @python@ @xmlHelper@ disk-source sda)"
   if [[ -n $existing_disk && $existing_disk != "$disk_path" ]]; then
     die "$guest_name uses unexpected system disk $existing_disk"
   fi
 }
 
 verify_installer_topology() {
-  local writable_disks writable_source writable_serial writable_target writable_bus
-  local helper_disks helper_source optical_disks writable_cdroms
-
-  writable_disks="$(@xmllint@ --xpath \
-    'count(/domain/devices/disk[@device="disk" and not(readonly)])' \
-    "$installer_definition")" || die "could not parse the installer domain definition"
-  [[ $writable_disks == 1 ]] ||
-    die "installer domain must expose exactly one writable disk, found $writable_disks"
-
-  writable_source="$(@xmllint@ --xpath \
-    'string(/domain/devices/disk[@device="disk" and not(readonly)]/source/@file)' \
-    "$installer_definition")"
-  [[ $writable_source == "$disk_path" ]] ||
-    die "installer writable disk is $writable_source, expected $disk_path"
-
-  writable_serial="$(@xmllint@ --xpath \
-    'string(/domain/devices/disk[@device="disk" and not(readonly)]/serial)' \
-    "$installer_definition")"
-  [[ $writable_serial == @diskSerial@ ]] ||
-    die "installer writable disk has unexpected serial $writable_serial"
-
-  writable_target="$(@xmllint@ --xpath \
-    'string(/domain/devices/disk[@device="disk" and not(readonly)]/target/@dev)' \
-    "$installer_definition")"
-  writable_bus="$(@xmllint@ --xpath \
-    'string(/domain/devices/disk[@device="disk" and not(readonly)]/target/@bus)' \
-    "$installer_definition")"
-  [[ $writable_target == sda && $writable_bus == sata ]] ||
-    die "installer writable disk must be the SATA sda target"
-
-  helper_disks="$(@xmllint@ --xpath \
-    'count(/domain/devices/disk[@device="disk" and readonly])' \
-    "$installer_definition")"
-  [[ $helper_disks == 1 ]] ||
-    die "installer domain must expose exactly one read-only driver-prime disk"
-  helper_source="$(@xmllint@ --xpath \
-    'string(/domain/devices/disk[@device="disk" and readonly]/source/@file)' \
-    "$installer_definition")"
-  [[ $helper_source == "$prime_disk" ]] ||
-    die "installer read-only helper disk is $helper_source, expected $prime_disk"
-
-  optical_disks="$(@xmllint@ --xpath \
-    'count(/domain/devices/disk[@device="cdrom"])' \
-    "$installer_definition")"
-  [[ $optical_disks == 3 ]] || die "installer domain must expose exactly three optical media"
-  writable_cdroms="$(@xmllint@ --xpath \
-    'count(/domain/devices/disk[@device="cdrom" and not(readonly)])' \
-    "$installer_definition")"
-  [[ $writable_cdroms == 0 ]] || die "all installer optical media must be read-only"
+  @python@ @xmlHelper@ installer-topology "$installer_definition" \
+    "$disk_path" @diskSerial@ "$prime_disk"
 }
 
 verify_system_disk_file() {

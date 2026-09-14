@@ -12,8 +12,9 @@
     # Prefer zram to any physical swap device, whose priority should remain
     # lower.  This is an ordering preference, not a memory reservation.
     priority = lib.mkDefault 5;
-    # Logical zram capacity.  It does not preallocate RAM; local hosts may set
-    # a resident-memory limit through services.zram-generator instead.
+    # Logical zram capacity. It does not preallocate RAM. A smaller resident
+    # cap can fail swap writes before the logical device is full, so do not
+    # use one as a spill threshold for lower-priority disk swap.
     memoryPercent = lib.mkDefault 50;
   };
 

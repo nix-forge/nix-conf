@@ -63,6 +63,7 @@ pkgs.testers.nixosTest {
     # A missing database must fail visibly and recover after a successful
     # update without an operator restarting the daemon.
     machine.succeed("systemctl stop clamav-daemon.service")
+    machine.fail("test -e /run/clamav/fixture-ready")
     machine.succeed("rm /var/lib/clamav/fixture-db")
     machine.succeed("systemctl start clamav-daemon.service")
     machine.wait_until_succeeds(
@@ -70,6 +71,7 @@ pkgs.testers.nixosTest {
     )
     machine.succeed("touch /run/fixture-network-online")
     machine.wait_until_succeeds("test -f /run/clamav/fixture-ready", timeout=15)
+    machine.succeed("systemctl is-active clamav-daemon.service")
 
     # These are host files. PrivateTmp=true makes the scheduled scan fail
     # because its namespace cannot see either marker.

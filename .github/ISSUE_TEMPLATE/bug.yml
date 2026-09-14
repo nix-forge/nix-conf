@@ -1,0 +1,43 @@
+name: Configuration bug
+description: Report a reproducible problem in a module or example.
+title: '[bug] '
+body:
+  - type: input
+    id: component
+    attributes:
+      label: Module, example, or feature
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Configuration and Nixpkgs revisions
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and Nix version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Smallest reproduction
+      description: Include the command and relevant public configuration. Do not paste secrets, full environment
+        dumps, or personal hardware identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: A short redacted error is more useful than a complete log.
+    validations:
+      required: true

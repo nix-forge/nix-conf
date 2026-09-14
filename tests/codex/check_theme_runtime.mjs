@@ -42,15 +42,34 @@ const settingsName = source.match(
 const applyName = source.match(
   /function ([\w$]+)\(e,t,n,r,i=!0\)\{e\.classList\.toggle\(`electron-dark`/,
 )[1];
-const pages = await (await fetch(`${endpoint}/json/list`)).json();
+const pages = await (
+  await fetch(`${endpoint}/json/list`, { signal: AbortSignal.timeout(15000) })
+).json();
 const page = pages.find(
   (page) => page.type === "page" && page.url === "app://-/index.html",
 );
 assert.ok(page, "Expected isolated Codex application window");
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => {
-  socket.addEventListener("open", resolve, { once: true });
-  socket.addEventListener("error", reject, { once: true });
+  const timeout = setTimeout(
+    () => finish(new Error("CDP WebSocket connection timed out")),
+    15000,
+  );
+  const opened = () => finish();
+  const failed = () => finish(new Error("CDP WebSocket connection failed"));
+  function finish(error) {
+    clearTimeout(timeout);
+    socket.removeEventListener("open", opened);
+    socket.removeEventListener("error", failed);
+    socket.removeEventListener("close", failed);
+    if (error) {
+      socket.close();
+      reject(error);
+    } else resolve();
+  }
+  socket.addEventListener("open", opened, { once: true });
+  socket.addEventListener("error", failed, { once: true });
+  socket.addEventListener("close", failed, { once: true });
 });
 let sequence = 0;
 const pending = new Map();
@@ -63,15 +82,14 @@ socket.addEventListener("message", (event) => {
 function call(method, params = {}) {
   return new Promise((resolve, reject) => {
     const id = ++sequence;
-    const timeout = setTimeout(
-      () => reject(Error(`${method} timed out`)),
-      30000,
-    );
+    const timeout = setTimeout(() => {
+      pending.delete(id);
+      reject(Error(`${method} timed out`));
+    }, 30000);
     pending.set(id, (message) => {
       clearTimeout(timeout);
-      message.error
-        ? reject(Error(JSON.stringify(message.error)))
-        : resolve(message.result);
+      if (message.error) reject(Error(JSON.stringify(message.error)));
+      else resolve(message.result);
     });
     socket.send(JSON.stringify({ id, method, params }));
   });

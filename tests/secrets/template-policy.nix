@@ -26,51 +26,38 @@ let
       group = "root";
     };
   field = "nix-token-github-com";
+  failures = lib.runTests {
+    testProtectedTemplate = {
+      expr = accepts after;
+      expected = true;
+    };
+    testTemplateOwnerMismatch = {
+      expr = accepts (
+        lib.recursiveUpdate after { templates.nix-access-tokens.owner = "unprivileged-fixture"; }
+      );
+      expected = false;
+    };
+    testPublicSecret = {
+      expr = accepts (lib.recursiveUpdate after { secrets.${field}.mode = "0644"; });
+      expected = false;
+    };
+    testUnexpectedCiphertextSource = {
+      expr = accepts (
+        lib.recursiveUpdate after { secrets.${field}.source = "secrets/wrong-source.age"; }
+      );
+      expected = false;
+    };
+    testMissingPlaceholderBinding = {
+      expr = accepts (
+        after
+        // {
+          templates.nix-access-tokens = after.templates.nix-access-tokens // {
+            placeholders = { };
+          };
+        }
+      );
+      expected = false;
+    };
+  };
 in
-assert after.templates ? nix-access-tokens;
-assert !(after.secrets ? nix-access-tokens);
-assert after.secrets.${field}.owner == "root";
-assert after.secrets.${field}.mode == "0400";
-assert accepts after;
-assert
-  !(accepts (
-    after
-    // {
-      templates."nix-access-tokens" = after.templates."nix-access-tokens" // {
-        owner = "unprivileged-fixture";
-      };
-    }
-  ));
-
-assert
-  !(accepts (
-    after
-    // {
-      secrets = after.secrets // {
-        ${field} = after.secrets.${field} // {
-          mode = "0644";
-        };
-      };
-    }
-  ));
-assert
-  !(accepts (
-    after
-    // {
-      secrets = after.secrets // {
-        ${field} = after.secrets.${field} // {
-          source = "secrets/wrong-source.age";
-        };
-      };
-    }
-  ));
-assert
-  !(accepts (
-    after
-    // {
-      templates."nix-access-tokens" = after.templates."nix-access-tokens" // {
-        placeholders = { };
-      };
-    }
-  ));
-true
+if failures == [ ] then true else throw "Template policy failures: ${builtins.toJSON failures}"

@@ -43,6 +43,18 @@ let
       "dup"
     ];
     inherit subvolumes;
+    # Disko creates these directly, bypassing Snapper's private-directory
+    # setup. Apply the mode before the installer can restore user data.
+    postCreateHook = ''
+      (
+        snapshot_mount=$(mktemp -d)
+        mount "$device" "$snapshot_mount" -o subvolid=5
+        trap 'umount "$snapshot_mount"; rmdir "$snapshot_mount"' EXIT
+        ${lib.concatMapStringsSep "\n" (name: ''chmod 0700 "$snapshot_mount/${name}"'') (
+          lib.filter (lib.hasSuffix "/.snapshots") (builtins.attrNames subvolumes)
+        )}
+      )
+    '';
   };
   luks = name: content: {
     type = "luks";
@@ -100,6 +112,7 @@ assert systemDisk != dataDisk;
                 "@root" = subvolume "/";
                 "@home" = subvolume "/home";
                 "@home/.snapshots" = { };
+                "@home-cache" = subvolume "/home/ianmh/.cache";
                 "@nix" = subvolume "/nix";
                 "@var" = subvolume "/var";
                 "@log" = subvolume "/var/log";

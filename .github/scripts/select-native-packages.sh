@@ -19,26 +19,28 @@ while IFS= read -r package; do
   fi
 done < <(jq -r 'keys[]' "$policy")
 
-# Evaluate the complete current package set in a foreground command so errors
-# cannot disappear through process substitution. Never build a default target.
+# Project explicit candidates before forcing drvPath. Nix keeps unrelated
+# packages lazy, which matters for the representative Darwin build selection.
+# JSON encodes arbitrary attribute names; escape Nix interpolation separately.
+candidate_literal=$(jq -rn --args '$ARGS.positional | tojson | @json' -- "$@")
+candidate_literal=${candidate_literal//\$\{/\\\$\{}
+projection="packages: let
+  requested = builtins.fromJSON $candidate_literal;
+  names = if requested == [] then builtins.attrNames packages else requested;
+  project = names: builtins.listToAttrs (map (name: {
+    inherit name; value = (builtins.getAttr name packages).drvPath;
+  }) names);
+in"
+# getAttr rejects unknown current candidates; only the historical set may lack
+# a newly exported candidate. Keep evaluation failures in foreground commands.
 current=$(nix eval --json --option eval-cores 1 --no-allow-import-from-derivation \
-  ".#packages.$TARGET_SYSTEM" --apply 'builtins.mapAttrs (_: package: package.drvPath)')
+  ".#packages.$TARGET_SYSTEM" --apply "$projection project names")
 valid_map='type == "object" and all(.[]; type == "string" and startswith("/nix/store/") and endswith(".drv"))'
 jq -e "$valid_map" <<<"$current" >/dev/null
-
-# Optional attribute names narrow the macOS job to its representative outputs.
-# All candidates still pass through the same policy filter below.
-if [[ $# -gt 0 ]]; then
-  for package in "$@"; do
-    if ! jq -e --arg package "$package" 'has($package)' <<<"$current" >/dev/null; then
-      echo "::error::Unknown native package candidate: $package" >&2
-      exit 1
-    fi
-  done
-  candidates=$(printf '%s\n' "$@" | jq -Rsc 'split("\n")[:-1]')
-  current=$(jq --argjson candidates "$candidates" \
-    'with_entries(select(.key as $name | $candidates | index($name)))' <<<"$current")
-fi
+# Historical outputs removed from the current set cannot affect build selection.
+# Do not force them: a broken retired output must not trigger fallback rebuilds.
+current_names=$(jq -r 'keys | tojson | @json' <<<"$current")
+current_names=${current_names//\$\{/\\\$\{}
 
 base_sha=${BASE_SHA:-}
 # Older queue reconcilers do not supply a root CI input. A GitHub queue
@@ -62,7 +64,7 @@ if [[ $base_sha =~ ^[0-9a-f]{40}$ ]] &&
   # worktrees. Missing submodule history or an invalid base safely rebuilds all.
   if candidate=$(nix eval --json --option eval-cores 1 --no-allow-import-from-derivation \
     --no-write-lock-file "git+file://$PWD?rev=$base_sha&submodules=1#packages.$TARGET_SYSTEM" \
-    --apply 'builtins.mapAttrs (_: package: package.drvPath)') &&
+    --apply "$projection project (builtins.filter (name: builtins.hasAttr name packages) (builtins.fromJSON $current_names))") &&
     jq -e "$valid_map" <<<"$candidate" >/dev/null; then
     base=$candidate
   else

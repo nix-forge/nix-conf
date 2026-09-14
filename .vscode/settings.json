@@ -88,5 +88,8 @@
     "yokoffing",
     "zhaofengli"
   ],
-  "editor.rulers": [100]
+  "editor.rulers": [100],
+  "eslint.enable": false,
+  "oxc.enable.oxlint": true,
+  "oxc.enable.oxfmt": false
 }

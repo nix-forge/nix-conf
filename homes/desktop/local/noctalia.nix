@@ -38,7 +38,7 @@
         workspace_group_capsule = true;
         show_workspace_label = true;
         workspace_label_placement = "inside";
-        # Plain labels avoid nested badges; reserve the theme accent for selection.
+        # Plain labels avoid nested badges; Stylix owns the selection colors.
         minimal = true;
         hide_empty_workspaces = false;
         only_active_workspace = false;
@@ -55,20 +55,27 @@
       };
       # Keep playback one click away without album art or a scrolling song title.
       now-playing = {
-        type = "launcher";
+        type = "custom_button";
         glyph = "player-play";
+        tooltip = "Media controls\nRight-click to play or pause";
         actions = {
           left = "panel-toggle control-center media";
           right = "media toggle";
         };
       };
       volume.show_label = false;
-      launcher.glyph = "search";
+      launcher = {
+        type = "custom_button";
+        glyph = "search";
+        tooltip = "Search applications\nSuper+Space";
+        actions.left = "panel-toggle launcher";
+      };
       control-center.glyph = "adjustments-horizontal";
       clock.actions = {
         left = "panel-toggle control-center notifications";
         right = "panel-toggle control-center calendar";
       };
+      clock.tooltip_format = lib.mkForce "{:%A, %B %-d, %Y}\nClick for notifications\nRight-click for calendar";
     };
   };
 }

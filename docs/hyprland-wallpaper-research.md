@@ -1,15 +1,188 @@
 # Wallpaper rotation for the Hyprland desktop
 
-## Recommendation
+## Current implementation, September 2026
 
-Use a local, curated cache of 4K SDR stills with `awww` as the Hyprland
-backend. Rotate locally with a systemd user timer, once per 30 minutes by
-default, and download at most one new image per day from each of NASA's
-Scientific Visualization Studio and the Cleveland Museum of Art's CC0
-collection. Keep the source downloader, cache policy, and wallpaper renderer
-separate.
+The wallpaper catalog separates source connections from subjects. The desktop
+now enables Commons featured photography, ESA/Hubble and ESA/Webb. Each
+connection continuously discovers new eligible images in its supported categories.
+No production configuration contains fixed image IDs. The source registry and
+category mappings live in [wallpaper-catalog.json](../modules/home/desktop/wallpaper-catalog.json).
 
-That split is intentional. The renderer should never need network access, and
+| Category | Subcategories | Connections |
+| --- | --- | --- |
+| Nature | Mountains, coasts and oceans, forests, lakes, waterfalls, aerial landscapes | Wikimedia Commons featured photography |
+| Cityscapes | City vistas, skylines, cities at night | Wikimedia Commons featured photography |
+| Space | Nebulae, galaxies, stars and star clusters, solar system | ESA/Hubble, ESA/Webb |
+
+Nature uses verified featured collections of
+[mountains](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_mountains),
+[coasts](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_coasts),
+[forests](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_forests),
+[lakes](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_lakes) and
+[waterfalls](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_waterfalls).
+City views use [cityscapes](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_cityscapes)
+and [skylines](https://commons.wikimedia.org/wiki/Category:Featured_pictures_of_skylines).
+The live category API confirmed 162 mountains, 49 coasts, 63 forests, 138 lakes,
+72 waterfalls, 519 cityscapes and 86 skyline files on 2026-09-11. These are direct
+file counts before resolution, license and subject filtering, not promised wallpaper inventories.
+
+Aerials require a natural-scene collection plus
+[featured drone-photograph membership](https://commons.wikimedia.org/wiki/Category:Featured_pictures_from_unmanned_aerial_vehicles).
+Cities at night require a city collection plus
+[featured night-photograph membership](https://commons.wikimedia.org/wiki/Category:Featured_night_photography).
+Neither broad viewpoint collection can admit unrelated subjects on its own.
+River and island collections were investigated but omitted because their samples
+included boats, people, fortresses, industrial sites and montages. Guessed desert
+and glacier featured collections were absent. This catalog favors supported
+subjects over a larger list of empty or weak collections.
+
+The [ESA/Hubble feed](https://esahubble.org/images/d2d/) and
+[ESA/Webb feed](https://esawebb.org/images/d2d/) implement the
+[Data2Dome distribution format](https://www.eso.org/public/outreach/data2dome/).
+Their live payloads provide editorial priority, observation provenance, original-sized
+JPEG dimensions, credits and rights. The adapter requires priority at least 80,
+observation resources with facility/instrument metadata, and the explicit
+CC BY 4.0 rights value. It classifies an image from the image page's own
+"About the Object" category row. Site navigation categories do not count.
+Local filtering is necessary: experimental URL parameters for type and ranking
+were ignored by these feeds. Space images often have square framing; strict
+landscape geometry therefore produces a sparse collection, not a guaranteed
+new space wallpaper every day.
+
+### Controls
+
+Preferences are available without rebuilding through `desktop-wallpaper-settings`:
+
+```sh
+# Inspect configured choices and the resulting source-to-category routes.
+desktop-wallpaper-settings status
+
+# Toggle an entire connection or a subject.
+desktop-wallpaper-settings connection esaWebb off
+desktop-wallpaper-settings category cityscapes off
+desktop-wallpaper-settings category nature/waterfalls on
+
+# Exclude a connection from Space, then allow it specifically for Nebulae.
+desktop-wallpaper-settings source esaHubble space off
+desktop-wallpaper-settings source esaHubble space/nebulae on
+
+# Inherit the parent source rule, or restore this setting's Nix default.
+desktop-wallpaper-settings source esaHubble space/nebulae inherit
+desktop-wallpaper-settings source esaHubble space/nebulae default
+
+# Include or exclude manually imported images as a separate choice.
+desktop-wallpaper-settings personal off
+```
+
+Runtime preferences persist in `$XDG_STATE_HOME/desktop-wallpaper/preferences.json`,
+using the usual `$HOME/.local/state` fallback supplied by Home Manager. They
+survive login and configuration rebuilds. `default` removes the selected runtime
+override; `inherit` explicitly uses the parent category's source rule, even if
+Nix configured a leaf override. `status` returns JSON with effective settings,
+active routes and the labeled catalog. All reviewed connection services exist
+in rotation mode, so a runtime switch can enable a connection whose Nix default
+was off. Empty plans perform no network requests.
+
+The same controls have declarative defaults in the home configuration:
+
+```nix
+desktop.wallpaper = {
+  enable = true;
+  connections = {
+    wikimediaCommons.enable = true;
+    esaHubble.enable = true;
+    esaWebb.enable = true;
+  };
+  categories = {
+    nature.subcategories.waterfalls.enable = true;
+    cityscapes.enable = false;
+    space = {
+      connections.esaHubble = false;
+      subcategories.nebulae.connections.esaHubble = true;
+    };
+  };
+};
+```
+
+A globally disabled connection stays unavailable everywhere. A disabled parent
+category disables every descendant. Otherwise, the nearest explicit source
+override wins: subcategory, then category, then the enabled connection default.
+A source has no effect in an unsupported category. Images can belong to several
+subcategories and remain eligible while any supported assignment is enabled.
+For example, a night skyline remains eligible through Skylines when Cities at
+night is disabled. Disable both to exclude their overlap.
+
+Acquisition and rotation use one policy evaluator. Preference changes request
+an immediate rotation, and subsequent downloads use the updated plan. Cached
+Commons photographs receive their category assignments from retained source
+metadata, including files downloaded before the category system existed. Other
+provider images need valid sidecars. A missing or malformed sidecar never makes
+a downloaded provider image a personal import. When nothing qualifies, an
+existing wallpaper is cleared rather than leaving disabled content visible.
+
+### Quality and ongoing acquisition
+
+Commons admission requires featured assessment, camera metadata and exact
+reviewed collection membership. Featured status alone includes documents and
+artwork, so document, art, montage and monochrome checks remain mandatory.
+Natural scenes additionally exclude featured buildings, cityscapes, boats and
+other unsuitable subjects; those exclusions do not prevent legitimate city views.
+[Commons featured criteria](https://commons.wikimedia.org/wiki/Commons:Featured_picture_candidates),
+[Imageinfo metadata](https://www.mediawiki.org/wiki/API:Imageinfo).
+
+ESA admission rejects artwork, diagrams, comparison panels, annotations and
+calendar material using observation metadata, titles, image descriptions and
+source categories. Astronomy colors can represent infrared or other wavelengths;
+these are processed scientific observations. The photography camera-model gate
+is specific to Commons and would incorrectly reject telescope observations.
+
+Every downloaded wallpaper must meet the native target dimensions and lose no
+more than 20 percent of its area to cropping. The collector verifies decoded
+geometry and EXIF orientation, limits media size and pixel count, and creates an
+exact target-sized sRGB JPEG. Defaults are 3840×2160, with no upscaling. Rotation
+also checks geometry for cached and imported files. Credits, source URLs,
+licenses, retrieval dates, crop notices and checksums remain in adjacent JSON.
+Commons licenses use an explicit allowlist; downstream reuse must preserve the
+applicable attribution and share-alike terms. [Commons reuse guidance](https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia),
+[ESA/Hubble copyright](https://esahubble.org/copyright/),
+[ESA/Webb copyright](https://esawebb.org/copyright/).
+
+Collectors preserve continuation across runs, revisit exhausted feeds for new
+items and retain acquired-ID history after cache eviction. Requests, candidate
+inspections, image downloads and caches are bounded. A run adds at most one
+image per connection. Failed requests preserve retry progress and report failure;
+a valid page without suitable new images is a successful no-op. Locks serialize
+manual and scheduled invocations; image publication is atomic. Pruning preserves
+the currently displayed file. Daily discovery is independent of offline rotation.
+
+NASA SVS, the broad NASA Image Library, Cleveland Museum and Smithsonian
+collectors have been removed. Their old files are excluded by the chooser, and
+the obsolete Smithsonian service credential binding has been removed. Existing
+encrypted credential material is retained. These archives remain useful for
+research or manual browsing, but their breadth does not fit this wallpaper catalog.
+
+Metadata and editorial selection cannot guarantee a particular composition or
+personal aesthetic for every future image. The implementation rejects known
+failure classes and keeps sources narrow; it does not claim automatic visual
+assessment equivalent to Apple's manual curation.
+
+### Verification
+
+The implementation passed 152 focused tests covering preference precedence,
+cached admission, discovery progress, malformed metadata, decoded geometry and
+rotation. Generated desktop commands and systemd ordering passed Nix checks.
+Live acquisition succeeded for all three connections, and downloaded 4K samples
+were visually inspected. Live controls exercised connection and subject overrides,
+rapid successive changes, an empty selection and renderer restart. The final
+display matched the effective preferences, which were restored after testing.
+
+## Earlier renderer and source research
+
+The material below records the earlier investigation. Automatic archive-source
+recommendations and option sketches are historical and superseded by the
+implemented catalog above.
+
+The renderer should never need network access, and
 rotation must keep working while offline. `awww` can replace an image at runtime
 with a short transition and works on the wlroots layer-shell protocol used by
 Hyprland. It accepts static AVIF and JPEG XL as well as JPEG, PNG, WebP, TIFF,

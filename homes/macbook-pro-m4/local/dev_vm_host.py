@@ -357,15 +357,17 @@ def _eligible_leases(
     network: ipaddress.IPv4Network,
     now: dt.datetime,
 ) -> list[LeaseRecord]:
-    identities = {
-        (record.address, record.starts, record.ends): record
-        for record in records
+    # DHCP lease files append updates. The final declaration for an address
+    # supersedes earlier entries, even when its MAC or expiration changes.
+    current = {record.address: record for record in records}
+    return [
+        record
+        for record in current.values()
         if record.mac == mac
         and record.address in network
         and record.address not in {network.network_address, network.broadcast_address}
         and record.starts <= now < record.ends
-    }
-    return list(identities.values())
+    ]
 
 
 def select_newest_lease(

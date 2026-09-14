@@ -15,5 +15,5 @@ Reproduce the tests using the
 checked-in test sources and upstream revision recorded in the validation note.
 
 The public code and test changes are available in the repository's
-[Hyprland patches](../../../modules/nixos/desktop-envs/patches/) and
+[Hyprland patches](../../../overlays/temporary/patches/) and
 [regression tests](../../../tests/hyprland/).

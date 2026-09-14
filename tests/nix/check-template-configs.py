@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 
 import tomllib
@@ -62,10 +63,15 @@ def _hyprconf(name: str) -> dict[str, str | list[dict[str, str]]]:
 idle = _hyprconf("hypridle.conf")
 enable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'"
 disable = "hyprctl dispatch 'hl.dsp.dpms({ action = \"disable\" })'"
+idle_general = idle["general"]
+assert isinstance(idle_general, list)
+session_lock, lock_action = shlex.split(idle_general[0]["lock_cmd"])
+assert session_lock.endswith("/bin/desktop-session-lock"), session_lock
+assert lock_action == "lock"
 assert idle == {
     "general": [
         {
-            "lock_cmd": "pidof hyprlock || hyprlock",
+            "lock_cmd": f"{session_lock} lock",
             "inhibit_sleep": "3",
             "before_sleep_cmd": "loginctl lock-session",
             "after_sleep_cmd": enable,
@@ -76,7 +82,7 @@ assert idle == {
     "listener": [
         {
             "timeout": "300",
-            "ignore_inhibit": "true",
+            "ignore_inhibit": "false",
             "on-timeout": "loginctl lock-session",
         },
         {"timeout": "330", "on-timeout": disable, "on-resume": enable},
@@ -84,13 +90,36 @@ assert idle == {
             "timeout": "30",
             "ignore_inhibit": "true",
             "condition_retry": "5",
-            "condition_cmd": 'pgrep -u "$(id -u)" -x hyprlock > /dev/null',
+            "condition_cmd": f"{session_lock} running",
             "on-timeout": disable,
             "on-resume": enable,
         },
         {"timeout": "900", "on-timeout": "systemctl suspend"},
     ],
 }
+background_idle = _hyprconf("hypridle-background.conf")
+background_general = background_idle["general"]
+assert isinstance(background_general, list)
+assert background_general[0]["ignore_wayland_inhibit"] == "true"
+background_listeners = background_idle["listener"]
+assert isinstance(background_listeners, list)
+assert [listener["timeout"] for listener in background_listeners] == [
+    "300",
+    "330",
+    "30",
+    "900",
+]
+screen_condition = background_listeners[0]["condition_cmd"]
+screen_arguments = shlex.split(screen_condition)
+assert screen_arguments[0].endswith("/bin/desktop-idle-inhibit-check")
+assert screen_arguments[1:] == ["screen", "--", "chatgpt"]
+assert background_listeners[0]["ignore_inhibit"] == "false"
+assert background_listeners[1]["condition_cmd"] == screen_condition
+assert background_listeners[2] == idle["listener"][2]
+assert background_listeners[3]["condition_cmd"].endswith(
+    "/bin/desktop-idle-inhibit-check suspend"
+)
+assert all(listener["condition_retry"] == "5" for listener in background_listeners)
 assert _hyprconf("hyprpaper.conf") == {
     "splash": "false",
     "ipc": "on",

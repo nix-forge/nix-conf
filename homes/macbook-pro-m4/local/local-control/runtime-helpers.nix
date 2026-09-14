@@ -40,6 +40,17 @@
             runHook postCheck
           '';
 
+          # Exercise the installed release profile, including panic=abort,
+          # separately from Cargo's test-profile library checks.
+          doInstallCheck = true;
+          nativeInstallCheckInputs = [ pkgs.python3 ];
+          installCheckPhase = ''
+            runHook preInstallCheck
+            python3 ${../../../../tests/macos/check_secure_files_release.py} \
+              "$out/bin/local-control-secure-files"
+            runHook postInstallCheck
+          '';
+
           meta = {
             description = "Descriptor-bound filesystem safety primitives for local-control";
             license = with pkgs.lib.licenses; [

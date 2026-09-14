@@ -194,3 +194,53 @@ def test_real_backup_and_verified_restore(
     with pytest.raises(HELPER["BackupError"]):
         HELPER["restore"](policy, "remote")
     assert not list(tmp_path.glob("desktop-restore-*"))
+
+
+@pytest.mark.parametrize(
+    "repository",
+    [
+        "/var/lib/backups/restic",
+        "var/lib/backups/restic",
+        "local:/var/lib/backups/restic",
+        "local:relative-repository",
+        "../backup:archive",
+        r"\backup",
+        r"..\backup:archive",
+        "C:/backup",
+    ],
+)
+def test_local_repositories_require_external_mount(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, repository: str
+) -> None:
+    """All Restic local path forms need the same external-media protection."""
+    repository_file = tmp_path / "repository"
+    repository_file.write_text(repository, encoding="utf-8")
+    monkeypatch.setitem(HELPER["guard"].__globals__, "private_file", Path)
+    with pytest.raises(HELPER["BackupError"], match="explicit external mount"):
+        HELPER["guard"]({"repositoryFile": str(repository_file), "requiredMounts": []})
+
+
+@pytest.mark.parametrize("device", ["8:1", "8:2"])
+def test_explicit_local_backend_checks_source_device(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, device: str
+) -> None:
+    """A declared external mount must also be on a separate filesystem."""
+    repository_file = tmp_path / "repository"
+    repository_file.write_text(f"local:{tmp_path}/backup", encoding="utf-8")
+    monkeypatch.setitem(HELPER["guard"].__globals__, "private_file", Path)
+
+    def fake_run(arguments: list[str]) -> str:
+        if arguments[0] == "mountpoint":
+            return ""
+        return "8:1" if arguments[-1] in {"/", "/srv/data"} else device
+
+    monkeypatch.setitem(HELPER["guard"].__globals__, "run", fake_run)
+    policy = {
+        "repositoryFile": str(repository_file),
+        "requiredMounts": [str(tmp_path)],
+    }
+    if device == "8:1":
+        with pytest.raises(HELPER["BackupError"], match="source filesystem"):
+            HELPER["guard"](policy)
+    else:
+        HELPER["guard"](policy)

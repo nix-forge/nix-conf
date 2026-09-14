@@ -1,6 +1,5 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
@@ -11,6 +10,10 @@
     # The shared auto/0 settings allow 16 builds, each using all 16 CPUs.
     max-jobs = lib.mkForce 2;
     cores = lib.mkForce 4;
+    # A representative package evaluation took comparable time with four and
+    # sixteen evaluator threads. Bound evaluation separately from builders so
+    # it does not request all logical CPUs during interactive work.
+    eval-cores = lib.mkForce 4;
   };
 
   # Bound daemon builders separately from user-side Nix evaluations.
@@ -22,6 +25,16 @@
     # A failed builder must not cause systemd to stop all daemon connections.
     OOMPolicy = "continue";
   };
+
+  # User applications are exported through overlapping Nix profiles and XDG
+  # service directories. The reference daemon handles their search precedence
+  # without treating repeated exports of the same service as errors. Keep the
+  # system broker, and use the dbus package's own socket-activated user unit.
+  systemd.user.services.dbus-broker = {
+    enable = false;
+    aliases = lib.mkForce [ ];
+  };
+  systemd.user.services.dbus.restartTriggers = [ config.environment.etc."dbus-1".source ];
 
   # This is an existing installation. Keep its original compatibility version;
   # it must never be raised to match the current nixpkgs release.
@@ -48,12 +61,11 @@
 
   # Greetd supplies the login password to GNOME Keyring. Hyprlock retains
   # the same hook for later session unlocks; the boot PIN is independent.
-  # Use Hyprlock's current upstream flake. It includes the PAM termination
-  # deadlock fix that prevents a stale lock process from leaving Hyprland on
-  # its crashed-lockscreen fallback.
+  # The native UI variant retains the upstream PAM termination deadlock fix
+  # and adds a guarded submit control without replacing authentication.
   programs.hyprlock = {
     enable = true;
-    package = inputs.hyprlock.packages.${pkgs.stdenv.hostPlatform.system}.hyprlock;
+    package = pkgs.hyprlock-personal;
   };
   # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
   # XDG environment and therefore cannot discover Home Manager's config at
@@ -63,7 +75,16 @@
     "${lib.getExe config.services.hypridle.package} -c /home/ianmh/.config/hypr/hypridle.conf"
   ];
   security.pam.services = {
-    hyprlock.enableGnomeKeyring = true;
+    hyprlock = {
+      enableGnomeKeyring = true;
+      # This desktop uses password authentication and has no fingerprint reader.
+      fprintAuth = false;
+      allowNullPassword = false;
+      failDelay = {
+        enable = true;
+        delay = 3000000;
+      };
+    };
 
     # NixOS enables the Keyring hooks for `login`, which greetd's interactive
     # path includes. Also enable the password-change hook: otherwise a later
@@ -81,6 +102,8 @@
   # has no managed private-key/keygrip preset configuration to unlock.
   security.pam.services = {
     login = {
+      # First login supplies the password that opens GNOME Keyring.
+      fprintAuth = false;
       allowNullPassword = lib.mkForce false;
       failDelay = {
         enable = true;

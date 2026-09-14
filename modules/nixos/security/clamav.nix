@@ -1,6 +1,24 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.security.clamav;
+  scheduledScanner = pkgs.writeShellApplication {
+    name = "clamav-scan-regular-files";
+    runtimeInputs = [ pkgs.findutils ];
+    text = ''
+      set -- ${
+        lib.escapeShellArgs (
+          [ "${config.services.clamav.package}/bin/clamdscan" ]
+          ++ config.services.clamav.scanner.scanDirectories
+        )
+      }
+    ''
+    + builtins.readFile ./clamav-scan.sh;
+  };
 in
 {
   options.security.clamav.enable = lib.mkEnableOption ''
@@ -76,6 +94,11 @@ in
       # remove network/device access; host-local configuration selects exactly
       # which data directories it may inspect.
       clamdscan.serviceConfig = {
+        # clamdscan's recursive fd-passing walk treats ordinary sockets and
+        # FIFOs as scan errors. Enumerate regular files without excluding any
+        # data directories. Remove this wrapper when the upstream scanner can
+        # skip special files while retaining genuine traversal/scan failures.
+        ExecStart = lib.mkForce (lib.getExe scheduledScanner);
         NoNewPrivileges = true;
         # The scan includes the host's temporary directories. A private /tmp
         # and /var/tmp would silently replace those inputs with empty trees.

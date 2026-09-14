@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import secrets
 import stat
 import subprocess
@@ -80,10 +81,14 @@ def guard(destination: dict[str, Any]) -> None:
     repository = Path(destination["repositoryFile"]).read_text(encoding="utf-8").strip()
     if not repository:
         raise BackupError("Repository file is empty")
-    if repository.startswith("/"):
+    # Restic accepts bare paths and an explicit local: backend, including
+    # relative paths and paths containing colons. Match its local path forms.
+    if ":" not in repository or re.match(
+        r"^(?:local:|/|\\|\.\.[/\\]|[a-zA-Z]:[/\\])", repository
+    ):
         # A missing external mount must never silently create/use a repository
         # on either source SSD. Source-backed bind mounts do not qualify.
-        target = Path(repository).resolve()
+        target = Path(repository.removeprefix("local:")).resolve()
         roots = [Path(path).resolve() for path in destination["requiredMounts"]]
         if not roots or not any(target.is_relative_to(root) for root in roots):
             raise BackupError(

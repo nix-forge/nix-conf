@@ -1,0 +1,81 @@
+:root {
+  --bs-body-font-family:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bs-link-color: #146d68;
+  --bs-link-hover-color: #0c4f4b;
+}
+[data-bs-theme="dark"] {
+  --bs-body-bg: #141b22;
+  --bs-body-color: #e4eaf0;
+  --bs-link-color: #81d6cd;
+  --bs-link-hover-color: #b8f0e9;
+}
+body {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.navbar {
+  background: #152633 !important;
+  border-bottom: 3px solid #70c9bd;
+}
+.navbar-brand {
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+h1 {
+  margin-bottom: 1.25rem;
+}
+h2 {
+  margin-top: 2.25rem;
+}
+p,
+li {
+  max-width: 76ch;
+}
+pre {
+  padding: 1.1rem;
+  border: 1px solid #70809055;
+  border-radius: 0.35rem;
+}
+.codehilite {
+  background: #f0f0f0;
+  color: #202a31;
+  border-radius: 0.35rem;
+}
+code {
+  font-size: 0.9em;
+}
+.table {
+  display: block;
+  overflow-x: auto;
+  font-size: 0.95rem;
+}
+.table th {
+  white-space: nowrap;
+}
+img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #70809055;
+  border-radius: 0.35rem;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #24a394;
+  outline-offset: 3px;
+}
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  pre {
+    font-size: 0.875rem;
+  }
+}

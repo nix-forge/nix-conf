@@ -11,6 +11,7 @@ import base64
 import contextlib
 import io
 import json
+import os
 import shutil
 import socket
 import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Runs the selected local VS Code binary.
@@ -83,6 +84,32 @@ def _wait_for[T](callback: Callable[[], T | None], timeout: float = 30) -> T:
     raise TimeoutError(message)
 
 
+def _close(cdp: _CDP | None, output: Path) -> None:
+    """Retain best-effort diagnostics and always close the test connection."""
+    if cdp:
+        try:
+            # Diagnostic capture must not prevent application cleanup
+            # or replace the original rendering failure.
+            with contextlib.suppress(
+                OSError, websocket.WebSocketException, RuntimeError
+            ):
+                if not (output / "terminal.png").exists():
+                    (output / "failure.png").write_bytes(
+                        base64.b64decode(cdp.call("Page.captureScreenshot")["data"])
+                    )
+                    (output / "failure.txt").write_text(
+                        str(cdp.evaluate("document.body.innerText"))
+                    )
+        finally:
+            try:
+                with contextlib.suppress(
+                    OSError, websocket.WebSocketException, RuntimeError
+                ):
+                    cdp.call("Browser.close")
+            finally:
+                cdp.ws.close()
+
+
 def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Keep the isolated application lifecycle and cleanup together.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", type=Path, required=True)
@@ -147,6 +174,10 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
             listener.bind(("127.0.0.1", 0))
             port = listener.getsockname()[1]
         cdp = None
+        env = os.environ.copy()
+        # --noprofile/--norc do not disable BASH_ENV for a script shell.
+        for name in ("BASH_ENV", "ENV"):
+            env.pop(name, None)
         with (args.output / "code.log").open("w") as log:
             subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed arguments; no shell.
                 [
@@ -158,6 +189,7 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
                     f"--remote-debugging-port={port}",
                     str(workspace),
                 ],
+                env=env,
                 stdout=log,
                 stderr=subprocess.STDOUT,
                 check=True,
@@ -251,17 +283,7 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
                 sys.stdout.write(json.dumps(metrics) + "\n")
                 return 0 if metrics["pass"] else 1
             finally:
-                if cdp:
-                    if not (args.output / "terminal.png").exists():
-                        (args.output / "failure.png").write_bytes(
-                            base64.b64decode(cdp.call("Page.captureScreenshot")["data"])
-                        )
-                        (args.output / "failure.txt").write_text(
-                            str(cdp.evaluate("document.body.innerText"))
-                        )
-                    with contextlib.suppress(OSError, websocket.WebSocketException):
-                        cdp.call("Browser.close")
-                    cdp.ws.close()
+                _close(cdp, args.output)
 
 
 if __name__ == "__main__":

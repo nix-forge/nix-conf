@@ -22,7 +22,30 @@ def _require(condition: bool, message: str) -> None:
 
 
 def _run(args: list[str]) -> str:
-    return subprocess.check_output(args, text=True)  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit argv; no shell.
+    return subprocess.check_output(args, text=True, timeout=5)  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit argv; no shell.
+
+
+def _concurrent_pair(binary: str) -> None:
+    """Send independently scheduled IPC messages and reap both clients."""
+    opening = subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed local IPC arguments, no shell.
+        [binary, "socat", '{"OpenSwitch":{"reverse":false}}']
+    )
+    closing = None
+    try:
+        closing = subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed local IPC arguments, no shell.
+            [binary, "socat", '{"CloseSwitch":{"switch":true}}']
+        )
+        _require(opening.wait(timeout=5) == 0, "Open IPC failed")
+        _require(closing.wait(timeout=5) == 0, "Close IPC failed")
+    finally:
+        # A stalled peer must not make Popen's context-manager exit
+        # wait forever or leave the other client behind.
+        children = [child for child in (opening, closing) if child is not None]
+        for child in children:
+            if child.poll() is None:
+                child.kill()
+        for child in children:
+            child.wait(timeout=5)
 
 
 def _check(binary: str, hyprctl: str) -> None:
@@ -83,16 +106,7 @@ def _check(binary: str, hyprctl: str) -> None:
             )
             expected = clients[1]["address"]
             # Match exec_cmd spawning independently scheduled IPC clients.
-            with (
-                subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed local IPC arguments, no shell.
-                    [binary, "socat", '{"OpenSwitch":{"reverse":false}}']
-                ) as opening,
-                subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed local IPC arguments, no shell.
-                    [binary, "socat", '{"CloseSwitch":{"switch":true}}']
-                ) as closing,
-            ):
-                _require(opening.wait() == 0, "Open IPC failed")
-                _require(closing.wait() == 0, "Close IPC failed")
+            _concurrent_pair(binary)
             deadline = time.monotonic() + 1
             while time.monotonic() < deadline and (visible() or active() != expected):
                 time.sleep(0.02)
