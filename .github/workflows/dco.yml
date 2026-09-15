@@ -43,13 +43,21 @@ jobs:
           fi
           git cat-file -e "${HEAD_SHA}^{commit}"
 
+          commit_range="${BASE_SHA}..${HEAD_SHA}"
+          # GitHub's merge queue adds an unsigned synthetic tip commit. The
+          # commits it contains were already checked on the pull request; skip
+          # only that generated tip and continue checking every real commit.
+          if [ "$EVENT_NAME" = merge_group ]; then
+            commit_range="${BASE_SHA}..${HEAD_SHA}^"
+          fi
+
           missing=()
           while IFS= read -r commit; do
             author=$(git show -s --format='%an <%ae>' "$commit")
             if ! git show -s --format='%B' "$commit" | grep -Fqx "Signed-off-by: $author"; then
               missing+=("$commit $author")
             fi
-          done < <(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}")
+          done < <(git rev-list --no-merges "$commit_range")
 
           if [ "${#missing[@]}" -gt 0 ]; then
             printf '%s\n' "Every commit must contain a Signed-off-by trailer matching its author."
