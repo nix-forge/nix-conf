@@ -18,6 +18,7 @@ _: {
           ../docs/README.md
           ../docs/guide
           ../docs/openssf-baseline.md
+          ../docs/slsa.md
           ../docs/dependency-management.md
           ../docs/secret-management.md
           ../docs/assets/font-implementation/pango.png
