@@ -11,7 +11,8 @@ host definitions are maintained deployment examples, not installation
 templates. This repository does not currently publish a compiled release
 asset. A future source release must use a unique immutable tag, a change log,
 integrity evidence, and the release process documented here before it is
-announced.
+announced. The SLSA scope and future builder contract are documented in
+[docs/slsa.md](slsa.md).
 
 This repository is part of the related projects listed in the
 [nix-forge project security contract](https://github.com/nix-forge/.github/blob/main/PROJECTS.md).
