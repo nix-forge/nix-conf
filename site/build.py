@@ -62,6 +62,7 @@ def build_guide(
         shutil.copytree(source / "docs/guide", staged / "guide")
         for source_name, staged_name in (
             ("docs/openssf-baseline.md", "openssf-baseline.md"),
+            ("docs/slsa.md", "slsa.md"),
             ("docs/dependency-management.md", "dependency-management.md"),
             ("docs/secret-management.md", "secret-management.md"),
             ("THREAT_MODEL.md", "threat-model.md"),
