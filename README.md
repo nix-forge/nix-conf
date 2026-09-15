@@ -1,6 +1,6 @@
 # nix-conf
 
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14637/baseline)](https://www.bestpractices.dev/en/projects/14637/baseline-1)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14637/baseline)](https://www.bestpractices.dev/en/projects/14637/baseline-3)
 
 Reusable NixOS, nix-darwin, and Home Manager configuration modules with a guide
 to building your own system. The repository also contains actively deployed
