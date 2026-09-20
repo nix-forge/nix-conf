@@ -107,6 +107,9 @@ the framework evolve without importing workstation policy.
 
 Run `nix develop` for pinned development tools and `just --list` for commands.
 Choose focused checks using the [validation guide](CONTRIBUTING.md#validation).
+The push hook runs publication and security checks; it does not build every
+flake check. Run broader checks when the changed behavior warrants them, while
+CI distributes native checks across runners.
 Evaluation, build, and activation establish different things; successful
 evaluation alone does not validate a service at runtime.
 
