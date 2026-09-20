@@ -1,6 +1,17 @@
 { config, lib, ... }:
 let
   cfg = config.security.usbguardBaseline;
+  rules = config.services.usbguard.rules;
+  ruleLines = lib.splitString "\n" (if rules == null then "" else rules);
+  isAllowRule = line: builtins.match "[[:space:]]*allow([[:space:]].*)?" line != null;
+  hasDeviceIdentity =
+    line:
+    builtins.match ''[[:space:]]*allow[[:space:]]+id[[:space:]]+[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}[[:space:]]+hash[[:space:]]+"[A-Za-z0-9+/]{43}="[[:space:]]+.*'' line
+    != null;
+  hasBinding =
+    line:
+    (lib.hasInfix "parent-hash" line && lib.hasInfix "via-port" line)
+    || lib.hasInfix "with-interface" line;
 in
 {
   options.security.usbguardBaseline.enable = lib.mkEnableOption ''
@@ -44,6 +55,12 @@ in
       {
         assertion = config.services.usbguard.rules != null;
         message = "security.usbguardBaseline requires an explicit host-local services.usbguard.rules policy; never enable it with a blanket allow rule.";
+      }
+      {
+        assertion = lib.all (
+          line: !isAllowRule line || (hasDeviceIdentity line && hasBinding line)
+        ) ruleLines;
+        message = "security.usbguardBaseline allow rules must bind a USB id and hash to topology or interfaces.";
       }
       {
         assertion = config.services.usbguard.implicitPolicyTarget == "block";
