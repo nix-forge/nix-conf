@@ -38,7 +38,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/discover-lockfiles@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -75,7 +75,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -91,19 +91,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/setup-nix@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/validate-workflows@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/repository-checks@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/flake-checks@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -200,7 +200,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/setup-nix@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -219,22 +219,14 @@ jobs:
             echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
           } >>"${GITHUB_STEP_SUMMARY}"
       - name: Build assigned native CI checks
-        env:
-          BUILD_CORES: ${{ matrix.build-cores }}
-          TARGET_SYSTEM: ${{ matrix.system }}
-          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
-            }}
-          PARTITION_COUNT: ${{ matrix.partition-count }}
-          PARTITION_INDEX: ${{ matrix.partition-index }}
-        run: |
-          python3 .github/scripts/run-flake-checks.py \
-            --system "$TARGET_SYSTEM" \
-            --output ciChecks \
-            --cores "$BUILD_CORES" \
-            --base-revision "$BASE_SHA" \
-            --partition-count "$PARTITION_COUNT" \
-            --partition-index "$PARTITION_INDEX" \
-            --weights .github/ci-check-weights.json
+        uses: nix-forge/ci/actions/flake-checks@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
+        with:
+          system: ${{ matrix.system }}
+          checks-output: ciChecks
+          cores: ${{ matrix.build-cores }}
+          partition-count: ${{ matrix.partition-count }}
+          partition-index: ${{ matrix.partition-index }}
+          weights-file: .github/ci-check-weights.json
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash
@@ -269,7 +261,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/setup-nix@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -331,7 +323,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/setup-nix@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
         with:
           # Keep the large, opt-in package audit out of the shared cache. The
           # normal check and guide jobs are the safe cache benchmark surface.
@@ -434,4 +426,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/queue-completion@6123e1bfeb1355742acb6c695f032c9de446ba5b # v2.6.0
