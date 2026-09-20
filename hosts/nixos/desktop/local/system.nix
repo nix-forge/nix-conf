@@ -143,10 +143,15 @@
   # vendor-detected default, while MSI BIOS images continue to use M-Flash.
   services.fwupd.uefiCapsuleSettings.RequireESPFreeSpace = 128;
 
-  # This interactive workstation has sufficient RAM for a volatile /tmp.
-  # Builders and memory-constrained hosts choose their own temporary-storage
-  # policy instead of inheriting this desktop trade-off.
-  boot.tmp.useTmpfs = true;
+  # /tmp reached roughly 15 GiB on this 30 GiB workstation. tmpfs keeps its
+  # contents in memory (and can swap them), so large development caches and
+  # abandoned scratch trees competed directly with the desktop and build
+  # budgets. Keep /tmp on the root filesystem and restore its conventional
+  # ephemeral lifetime at boot; the root filesystem has ample free space.
+  boot.tmp = {
+    useTmpfs = false;
+    cleanOnBoot = true;
+  };
 
   users.users.ianmh = {
     isNormalUser = true;
