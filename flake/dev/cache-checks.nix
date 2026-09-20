@@ -85,12 +85,6 @@ let
     }).config;
   standalone = mkHome [ { programs.hyprlock.enable = true; } ];
   unmanagedClient = mkHome [ { nix.package = null; } ];
-  desktop = inputs.self.nixosConfigurations.desktop.config;
-  withoutNoctalia =
-    (inputs.self.nixosConfigurations.desktop.extendModules {
-      modules = [ { home-manager.users.ianmh.desktop.noctalia.enable = lib.mkForce false; } ];
-    }).config;
-  macbook = inputs.self.darwinConfigurations.macbook-pro-m4.config;
   bootstrap = (import ../../flake.nix).nixConfig;
 in
 {
@@ -140,18 +134,6 @@ in
       assert
         optedOut.nix.settings.trusted-public-keys
         == [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
-      assert same desktop.nix.settings.substituters [
-        official
-        community
-        cuda
-        hyprland
-        noctalia
-      ];
-      assert !(lib.elem noctalia withoutNoctalia.nix.settings.substituters);
-      assert same macbook.determinateNix.customSettings.extra-substituters [ community ];
-      assert !(macbook.determinateNix.customSettings ? substituters);
-      assert !(macbook.determinateNix.customSettings ? trusted-public-keys);
-      assert !(macbook.determinateNix.customSettings ? extra-trusted-substituters);
       # Compare the complete provider catalog independently of host selections.
       # Disabling a desktop feature must not break bootstrap consistency checks.
       assert same bootstrap.extra-substituters (

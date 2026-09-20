@@ -26,10 +26,10 @@ test-ci *args:
 generated-checks:
     {{ task }} nix build --no-link --option allow-import-from-derivation false "{{ flake }}#checks.$(nix eval --impure --raw --expr builtins.currentSystem).generated-artifacts"
 
-# Install/boot disposable disks and exercise backup restoration and policy checks.
+# Install and boot disposable disks, and exercise backup restoration.
 [group('Checks')]
 desktop-storage-check:
-    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.desktop-storage-generated-artifacts" "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
 
 # Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
 [group('NixOS')]

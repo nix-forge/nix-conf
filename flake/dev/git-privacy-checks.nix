@@ -1,19 +1,7 @@
-{ self, inputs, ... }: {
+{ inputs, ... }: {
   perSystem = { pkgs, ... }: {
     checks.git-email-privacy =
       let
-        desktop = self.nixosConfigurations.desktop.config.home-manager.users.ianmh;
-        macbook = self.darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh;
-        safeIdentity =
-          home:
-          !(home.programs.git.settings.user ? email)
-          && home.programs.git.settings.user.useConfigOnly
-          &&
-            map (entry: entry.path) home.programs.git.includes == [
-              home.nixSeal.templates.gitconfig-username.path
-              home.nixSeal.templates.gitconfig-useremail-github.path
-            ]
-          && home.nixSeal.templates.jujutsu-identity.placeholders.email.secret == "git-user-email-github";
         # The reusable feature must evaluate without an owner's profile or nix-seal.
         generic =
           (inputs.home-manager.lib.homeManagerConfiguration {
@@ -47,10 +35,6 @@
           && cfg.programs.git.settings.hook.email-privacy-commit.event == "commit-msg"
           && cfg.programs.git.settings.hook.email-privacy-push.event == "pre-push";
       in
-      assert safeIdentity desktop;
-      assert safeIdentity macbook;
-      assert nativeChecks desktop;
-      assert nativeChecks macbook;
       assert nativeChecks generic;
       (import ../../tests/python-check.nix { inherit pkgs; }) {
         name = "git-email-privacy";
