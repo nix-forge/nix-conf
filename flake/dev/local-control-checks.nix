@@ -8,6 +8,8 @@
   perSystem =
     { pkgs, ... }:
     let
+      inherit (pkgs) lib;
+      writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
       localControlLibrary =
         (import ../../homes/macbook-pro-m4/local/local-control/runtime-helpers.nix { inherit myLib; })
         .lib.localControl;
@@ -30,9 +32,182 @@
           proxyPort = 18443;
         };
       };
+      fakeProxySecureFiles = pkgs.writeShellScriptBin "fake-local-control-secure-files" ''
+        set -euo pipefail
+        case "$1" in
+          inspect-generation-file)
+            printf '%s\n' valid
+            ;;
+          exec-proxy)
+            exec "$4" "''${@:5}"
+            ;;
+          *)
+            printf 'Unexpected secure-files operation: %s\n' "$1" >&2
+            exit 64
+            ;;
+        esac
+      '';
+      fakeCaddy = pkgs.writeShellScriptBin "fake-local-control-caddy" ''
+        set -euo pipefail
+        count_file="''${FAKE_CADDY_COUNT:?}"
+        ready_file="''${FAKE_CADDY_READY:?}"
+        count=0
+        if [ -f "$count_file" ]; then
+          count="$(${pkgs.coreutils}/bin/cat "$count_file")"
+        fi
+        count=$((count + 1))
+        printf '%s\n' "$count" > "$count_file"
+        if [ "$count" -eq 1 ]; then
+          printf '%s\n' 'listen tcp 172.16.42.1:8443: bind: cannot assign requested address' >&2
+          exit 1
+        fi
+        ${pkgs.coreutils}/bin/touch "$ready_file"
+        trap 'exit 0' TERM INT
+        while :; do
+          ${pkgs.coreutils}/bin/sleep 1
+        done
+      '';
+      fakeTunnelNetcat = pkgs.writeShellScriptBin "fake-dev-vm-netcat" ''
+        set -euo pipefail
+        count_file="''${FAKE_NETCAT_COUNT:?}"
+        count=0
+        if [ -f "$count_file" ]; then
+          count="$(${pkgs.coreutils}/bin/cat "$count_file")"
+        fi
+        count=$((count + 1))
+        printf '%s\n' "$count" > "$count_file"
+        [ "$count" -ge 2 ]
+      '';
+      fakeTunnelSsh = pkgs.writeShellScriptBin "fake-dev-vm-ssh" ''
+        set -euo pipefail
+        ${pkgs.coreutils}/bin/touch "''${FAKE_SSH_STARTED:?}"
+        trap 'exit 0' TERM INT
+        while :; do
+          ${pkgs.coreutils}/bin/sleep 1
+        done
+      '';
+      proxyRestartTest = writeBashTemplate {
+        name = "local-control-proxy-restart-test";
+        src = ../../homes/macbook-pro-m4/local/local-control/scripts/proxy.sh;
+        dir = "bin";
+        replacements = {
+          bash = lib.getExe pkgs.bash;
+          secureFileSystem = lib.getExe fakeProxySecureFiles;
+          environmentFile = lib.escapeShellArg "/tmp/local-control-environment";
+          pkiDir = lib.escapeShellArg "/tmp/local-control-pki";
+          caddy = lib.getExe fakeCaddy;
+          sleep = lib.getExe' pkgs.coreutils "sleep";
+          proxyConfig = lib.escapeShellArg "/tmp/local-control-proxy.conf";
+        };
+      };
+      tunnelStartTest = writeBashTemplate {
+        name = "dev-vm-agent-tunnel-start-test";
+        src = ../../homes/macbook-pro-m4/local/scripts/dev-vm-agent-tunnel.sh;
+        dir = "bin";
+        replacements = {
+          bash = lib.getExe pkgs.bash;
+          netcat = lib.getExe fakeTunnelNetcat;
+          proxyPort = "8443";
+          sleep = lib.getExe' pkgs.coreutils "sleep";
+          ssh = lib.getExe fakeTunnelSsh;
+          sshConfig = lib.escapeShellArg "/tmp/dev-vm-ssh-config";
+        };
+      };
     in
     {
       checks = {
+        local-control-proxy-restarts-after-bind-race =
+          pkgs.runCommand "local-control-proxy-restarts-after-bind-race" { }
+            ''
+              set -euo pipefail
+
+              test_root="$TMPDIR/local-control-proxy-restarts-after-bind-race"
+              ${pkgs.coreutils}/bin/mkdir -p "$test_root"
+              count_file="$test_root/caddy-count"
+              ready_file="$test_root/caddy-ready"
+              output_file="$test_root/proxy.out"
+              error_file="$test_root/proxy.err"
+
+              cleanup() {
+                if [ -n "''${proxy_pid:-}" ]; then
+                  kill -TERM "$proxy_pid" 2>/dev/null || true
+                  wait "$proxy_pid" 2>/dev/null || true
+                fi
+              }
+              trap cleanup EXIT
+
+              FAKE_CADDY_COUNT="$count_file" \
+                FAKE_CADDY_READY="$ready_file" \
+                ${proxyRestartTest}/bin/local-control-proxy-restart-test \
+                >"$output_file" 2>"$error_file" &
+              proxy_pid=$!
+
+              for attempt in $(${pkgs.coreutils}/bin/seq 1 30); do
+                if [ -f "$ready_file" ]; then
+                  break
+                fi
+                if ! kill -0 "$proxy_pid" 2>/dev/null; then
+                  ${pkgs.coreutils}/bin/cat "$output_file" "$error_file" >&2
+                  printf 'The proxy exited before retrying its transient bind failure.\n' >&2
+                  exit 1
+                fi
+                ${pkgs.coreutils}/bin/sleep 1
+              done
+
+              if [ ! -f "$ready_file" ]; then
+                ${pkgs.coreutils}/bin/cat "$output_file" "$error_file" >&2
+                printf 'The proxy did not restart after the transient bind failure.\n' >&2
+                exit 1
+              fi
+              [ "$(${pkgs.coreutils}/bin/cat "$count_file")" -ge 2 ]
+              ${pkgs.coreutils}/bin/touch "$out"
+            '';
+
+        dev-vm-agent-tunnel-waits-for-proxy = pkgs.runCommand "dev-vm-agent-tunnel-waits-for-proxy" { } ''
+          set -euo pipefail
+
+          test_root="$TMPDIR/dev-vm-agent-tunnel-waits-for-proxy"
+          ${pkgs.coreutils}/bin/mkdir -p "$test_root"
+          count_file="$test_root/netcat-count"
+          started_file="$test_root/ssh-started"
+          output_file="$test_root/tunnel.out"
+          error_file="$test_root/tunnel.err"
+
+          cleanup() {
+            if [ -n "''${tunnel_pid:-}" ]; then
+              kill -TERM "$tunnel_pid" 2>/dev/null || true
+              wait "$tunnel_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          FAKE_NETCAT_COUNT="$count_file" \
+            FAKE_SSH_STARTED="$started_file" \
+            ${tunnelStartTest}/bin/dev-vm-agent-tunnel-start-test \
+            >"$output_file" 2>"$error_file" &
+          tunnel_pid=$!
+
+          for attempt in $(${pkgs.coreutils}/bin/seq 1 30); do
+            if [ -f "$started_file" ]; then
+              break
+            fi
+            if ! kill -0 "$tunnel_pid" 2>/dev/null; then
+              ${pkgs.coreutils}/bin/cat "$output_file" "$error_file" >&2
+              printf 'The dev-vm tunnel exited before the local proxy became ready.\n' >&2
+              exit 1
+            fi
+            ${pkgs.coreutils}/bin/sleep 1
+          done
+
+          if [ ! -f "$started_file" ]; then
+            ${pkgs.coreutils}/bin/cat "$output_file" "$error_file" >&2
+            printf 'The dev-vm tunnel did not start after the local proxy became ready.\n' >&2
+            exit 1
+          fi
+          [ "$(${pkgs.coreutils}/bin/cat "$count_file")" -ge 2 ]
+          ${pkgs.coreutils}/bin/touch "$out"
+        '';
+
         local-control-proxy-tls-policy =
           pkgs.runCommand "local-control-proxy-tls-policy"
             {
