@@ -15,7 +15,7 @@ native_system=$(nix eval --impure --raw --expr builtins.currentSystem)
 system=${2:-$native_system}
 scenario=${3:-all}
 case "$scenario" in
-all | starter | vm | darwin | source | typed) ;;
+all | starter | vm | darwin | interfaces | source | typed) ;;
 *)
   echo "unsupported public consumer scenario: $scenario" >&2
   exit 2
@@ -80,7 +80,7 @@ if [[ $scenario == all || $scenario == darwin ]]; then
   fi
 fi
 for interface in source typed; do
-  if [[ $scenario != all && $scenario != "$interface" ]]; then
+  if [[ $scenario != all && $scenario != interfaces && $scenario != "$interface" ]]; then
     continue
   fi
   mkdir "$work/$interface"
