@@ -51,7 +51,9 @@ to another task.
   store. Use the repository's sealed-secret integration and
   [secret-management guide](docs/secrets.md) for changes involving secrets.
 - Follow the [Nix function conventions](docs/nix-function-conventions.md) when
-  rendering templates or packaging Bash and Python helpers.
+  rendering templates or packaging Bash and Python helpers. Package local
+  commands with Nix and install them through the owning module instead of
+  placing executable files in `~/.local/bin`.
 
 ## Validation
 
@@ -64,6 +66,9 @@ Pull requests and merge groups run repository hooks, dependency review, CodeQL,
 flake-lock health, documentation checks, and the declared evaluation and build
 matrix. Run the focused check first, then the broader checks required by the
 changed area before requesting review.
+Keep common CI discovery and execution in `nix-forge/ci`; let this repository's
+workflow supply its own runners, check weights, and specialized steps. Avoid
+copying shared runners or repeating lists of check names in workflow code.
 
 Add or update automated tests when changing reusable behavior, a public
 interface, security boundary, or recovery path. Do not add tests that merely

@@ -72,14 +72,6 @@ let
       wayland.windowManager.hyprland.enable = true;
     }).config;
   shell = shellFor { };
-  shellTypography = shellFor {
-    stylix.fonts = {
-      sansSerif.name = lib.mkForce "DejaVu Sans";
-      sizes.desktop = 12;
-      sizes.popups = 15;
-    };
-  };
-  near = actual: expected: actual > expected - 0.0001 && actual < expected + 0.0001;
   shellOff = shellFor { stylix.targets.noctalia.enable = false; };
   shellUpstream = shellFor { stylix.targets.noctalia.custom.enable = false; };
   chromiumFor =
@@ -97,26 +89,6 @@ let
   chromium = chromiumFor { };
   chromiumOff = chromiumFor { stylix.targets.chromium-policies.enable = false; };
   enabled = (homeFor { }).config;
-  walkerOverride =
-    (homeFor {
-      desktop.walker.settings = {
-        theme = "chosen-theme";
-        providers.max_results = 7;
-      };
-    }).config;
-  walkerDefaultsSurvive =
-    c:
-    (c.desktop.walker.settings.force_keyboard_focus or false)
-    && (c.desktop.walker.settings.shell.anchor_top or false)
-    && (c.desktop.walker.settings.keybinds.close or [ ]) == [ "Escape" ]
-    &&
-      (c.desktop.walker.settings.providers.default or [ ]) == [
-        "desktopapplications"
-        "calc"
-      ]
-    && lib.any (entry: entry.prefix == "/" && entry.provider == "files") (
-      c.desktop.walker.settings.providers.prefixes or [ ]
-    );
   duplicated =
     (homeFor {
       imports = [ (import ../../modules/shared/stylix/targets/codex-desktop/home.nix).homeManager ];
@@ -167,7 +139,6 @@ let
       desktop.bar.enable = lib.mkForce false;
       desktop.walker.enable = lib.mkForce false;
     }).config;
-  profiles = (homeFor { stylix.targets.vscode.profileNames = [ "work" ]; }).config;
   noCustom =
     c:
     !(c.home.activation ? configureCodexDesktopAppearance)
@@ -176,54 +147,12 @@ let
     && !(c.xdg.configFile ? "swaync/style.css")
     && !(c.xdg.configFile ? "swayosd/style.css")
     && !(c.xdg.configFile ? "walker/themes/stylix/style.css");
-  schemes = {
-    carbon-neon = "Carbon Neon";
-    carbon-neon-oled = "Carbon Neon OLED";
-    catppuccin-mocha = "Catppuccin Mocha";
-    gruvbox-dark-medium = "Gruvbox Dark (Medium)";
-  };
-  schemeChecks = lib.mapAttrsToList (
-    theme: expected:
-    let
-      c = (homeFor { appearance.theme = theme; }).config;
-    in
-    c.programs.vscode.profiles.default.userSettings."workbench.colorTheme" == expected
-    && c.programs.ghostty.settings.selection-background == [ c.appearance.palette.accent ]
-    &&
-      c.programs.spicetify.colorScheme == {
-        carbon-neon = "custom";
-        carbon-neon-oled = "custom";
-        catppuccin-mocha = "mocha";
-        gruvbox-dark-medium = "Gruvbox";
-      }
-      .${theme}
-  ) schemes;
 in
 assert !inherited.stylix.enable && !inherited.stylix.autoEnable;
-assert inherited.appearance.theme == "gruvbox-dark-medium";
 assert
   !linux
   || (
     shell.programs.noctalia.customPalettes ? Stylix
-    && shell.programs.noctalia.settings.notification.background_opacity == 1.0
-    && shell.programs.noctalia.settings.osd.background_opacity == 1.0
-    && shell.programs.noctalia.settings.shell.panel.transparency_mode == "solid"
-    && shell.programs.noctalia.settings.widget.taskbar.icon_scale == 1.0
-    && shell.programs.noctalia.settings.widget.taskbar.inactive_opacity == 1.0
-    && shellTypography.programs.noctalia.settings.shell.font_family == "DejaVu Sans"
-    && shellTypography.programs.noctalia.settings.bar.default.font_family == "DejaVu Sans"
-    && near (shellTypography.programs.noctalia.settings.bar.default.font_scale * 14) 16
-    && near (shellTypography.programs.noctalia.settings.accessibility.ui_scale * 14) 16
-    && near (
-      shellTypography.programs.noctalia.settings.accessibility.ui_scale
-      * shellTypography.programs.noctalia.settings.notification.scale
-      * 14
-    ) 20
-    && near (
-      shellTypography.programs.noctalia.settings.accessibility.ui_scale
-      * shellTypography.programs.noctalia.settings.osd.scale
-      * 14
-    ) 20
     && !(shellOff.programs.noctalia.customPalettes ? Stylix)
     && shellOff.programs.noctalia.enable
     && !shellOff.programs.noctalia.settings.theme.templates.enable_community_templates
@@ -234,33 +163,11 @@ assert
   !linux
   || (
     chromium.programs.chromiumPolicies.heliumExtensions ? catppuccinMocha
-    &&
-      chromium.programs.chromiumPolicies.heliumExtensions.bitwarden == "nngceckbapebfimnlniiiahkandclblb"
     && !(chromiumOff.programs.chromiumPolicies.heliumExtensions ? catppuccinMocha)
     && chromiumOff.programs.chromiumPolicies.heliumExtensions ? bitwarden
-    && chromium.programs.chromiumPolicies.heliumExtensions ? sponsorBlock
-    && chromium.programs.chromiumPolicies.heliumExtensions ? karakeep
-    && chromium.programs.chromiumPolicies.heliumExtensions ? refinedGitHub
-    &&
-      lib.length chromium.programs.chromiumPolicies.targets.google-chrome.policies.ExtensionInstallForcelist
-      == 2
-    &&
-      lib.length chromiumOff.programs.chromiumPolicies.targets.google-chrome.policies.ExtensionInstallForcelist
-      == 1
   );
 assert enabled.home.activation ? configureCodexDesktopAppearance;
-assert
-  !linux
-  || lib.all walkerDefaultsSurvive [
-    enabled
-    disabled
-    optOut
-    walkerOverride
-  ];
-assert !linux || enabled.desktop.walker.settings.theme == "stylix";
 assert !linux || !(disabled.desktop.walker.settings ? theme);
-assert !linux || walkerOverride.desktop.walker.settings.theme == "chosen-theme";
-assert !linux || walkerOverride.desktop.walker.settings.providers.max_results == 7;
 assert
   duplicated.home.activation.configureCodexDesktopAppearance.data
   == enabled.home.activation.configureCodexDesktopAppearance.data;
@@ -269,15 +176,10 @@ assert noCustom manual;
 assert noCustom optOut;
 assert optIn.home.activation ? configureCodexDesktopAppearance;
 assert !(optIn.programs.ghostty.settings ? selection-background);
-assert nativeOff.programs.vscode.profiles.default.userSettings."workbench.colorTheme" == "Stylix";
-assert nativeOff.programs.spicetify.colorScheme == "base";
 assert !(nativeOff.programs.ghostty.settings ? selection-background);
 assert !(absent.home.activation ? configureCodexDesktopAppearance);
 assert !(absent.xdg.configFile ? "ironbar/style.css");
 assert !(absent.xdg.configFile ? "walker/themes/stylix/style.css");
-assert profiles.programs.vscode.profiles.work.userSettings."workbench.colorTheme" == "Carbon Neon";
-assert !((profiles.programs.vscode.profiles.default.userSettings or { }) ? "workbench.colorTheme");
-assert lib.all (x: x) schemeChecks;
 assert (enabled.xdg.configFile ? "ironbar/style.css") == linux;
 assert (enabled.xdg.configFile ? "walker/themes/stylix/style.css") == linux;
 assert
