@@ -17,6 +17,13 @@ import uharfbuzz as hb
 
 BOLD_WEIGHT = 180
 FACE_INDEX_MASK = 0xFFFF
+CSS_GENERIC_ROLE_MAP = {
+    "system-ui": "sans-serif",
+    "ui-sans-serif": "sans-serif",
+    "ui-serif": "serif",
+    "ui-monospace": "monospace",
+    "ui-rounded": "sans-serif",
+}
 
 
 class FontMatch(TypedDict):
@@ -65,6 +72,23 @@ def match(pattern: str) -> FontMatch:
     }
 
 
+def match_family(family: str, *, bold: bool = False, italic: bool = False) -> FontMatch:
+    """Match an exact family property without Fontconfig CLI ambiguity.
+
+    Fontconfig's command-line pattern parser treats hyphens as separators in
+    its shorthand syntax. CSS generic names such as ``ui-serif`` must
+    therefore be supplied through the explicit ``family`` property.
+
+    Returns:
+        The selected face for the exact family and style request.
+
+    """
+    return match(
+        f":family={family}:weight={'bold' if bold else 'regular'}:"
+        f"slant={'italic' if italic else 'roman'}"
+    )
+
+
 def check_roles(policy: dict) -> tuple[dict, list]:
     """Check the font contract.
 
@@ -81,7 +105,11 @@ def check_roles(policy: dict) -> tuple[dict, list]:
         )
         for bold, italic in styles:
             query = f"{generic}:weight={'bold' if bold else 'regular'}:slant={'italic' if italic else 'roman'}"
-            actual = match(query)
+            actual = (
+                match_family(generic, bold=bold, italic=italic)
+                if generic in CSS_GENERIC_ROLE_MAP
+                else match(query)
+            )
             results[query] = actual
             provider_ok = actual["family"] in expected["families"] and actual[
                 "file"
@@ -92,6 +120,36 @@ def check_roles(policy: dict) -> tuple[dict, list]:
             if not provider_ok or not style_ok:
                 failures.append({
                     "query": query,
+                    "actual": actual,
+                    "expected": expected,
+                })
+    return results, failures
+
+
+def check_css_generics(policy: dict) -> tuple[dict, list]:
+    """Ensure CSS UI generics use the configured role providers.
+
+    Returns:
+        Generic-family selections and any provider/style mismatches.
+
+    """
+    results, failures = {}, []
+    for generic, role in CSS_GENERIC_ROLE_MAP.items():
+        expected = policy[role]
+        for bold, italic in [(False, False), (True, False), (False, True)]:
+            query = f"{generic}:weight={'bold' if bold else 'regular'}:slant={'italic' if italic else 'roman'}"
+            actual = match_family(generic, bold=bold, italic=italic)
+            results[query] = actual
+            provider_ok = actual["family"] in expected["families"] and actual[
+                "file"
+            ].startswith(expected["package"] + "/")
+            style_ok = (actual["weight"] >= BOLD_WEIGHT) == bold and (
+                actual["slant"] != 0
+            ) == italic
+            if not provider_ok or not style_ok:
+                failures.append({
+                    "query": query,
+                    "role": role,
                     "actual": actual,
                     "expected": expected,
                 })
@@ -164,11 +222,18 @@ def main() -> bool:
     parser.add_argument("--inventory", action="store_true")
     args = parser.parse_args()
     started = time.perf_counter()
-    results, failures = check_roles(json.loads(args.providers.read_text()))
+    policy = json.loads(args.providers.read_text())
+    results, failures = check_roles(policy)
+    css_generics, css_generic_failures = check_css_generics(policy)
     cjk, cjk_failures = check_cjk()
     identities, identity_failures = inventory()
-    failures.extend(cjk_failures + identity_failures)
-    report = {"selection": results, "cjk": cjk, "failures": failures}
+    failures.extend(css_generic_failures + cjk_failures + identity_failures)
+    report = {
+        "selection": results,
+        "cssGenerics": css_generics,
+        "cjk": cjk,
+        "failures": failures,
+    }
     if args.inventory:
         paths = {path for providers in identities.values() for path, _ in providers}
         report["inventory"] = {
@@ -195,6 +260,7 @@ def main() -> bool:
         json.dumps(
             {
                 "selections": len(results),
+                "cssGenerics": len(css_generics),
                 "cjkLanguages": len(cjk),
                 "failures": failures,
             },

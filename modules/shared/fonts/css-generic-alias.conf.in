@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <!-- CSS Fonts defines these as generic families. Fontconfig's stock rules
+      infer a broader generic role from names such as ``ui-serif`` before
+      the UI-specific rule runs. Match only the first requested family so a
+      browser's generic request gets the configured role provider without
+      rewriting a named fallback stack. -->
+  <description>
+    Resolve CSS UI generic families to the selected Stylix roles.
+  </description>
+  <match target="pattern">
+    <!-- 48-guessfamily prepends its platform UI candidates before this
+        rule, so system-ui is identified by its semantic generic value. -->
+    <test qual="first" name="genericfamily" compare="eq">
+      <const>system-ui</const>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>@sansSerifFamily@</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test qual="first" name="family" compare="eq">
+      <string>ui-sans-serif</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>@sansSerifFamily@</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test qual="first" name="family" compare="eq">
+      <string>ui-serif</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>@serifFamily@</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test qual="first" name="family" compare="eq">
+      <string>ui-monospace</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>@monospaceFamily@</string>
+    </edit>
+  </match>
+  <match target="pattern">
+    <test qual="first" name="family" compare="eq">
+      <string>ui-rounded</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>@sansSerifFamily@</string>
+    </edit>
+  </match>
+</fontconfig>

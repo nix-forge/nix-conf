@@ -105,7 +105,7 @@ The shared [font configuration](../modules/shared/fonts/default.nix) installs th
 
 Nixpkgs can package a fixed-hash download from an unversioned URL. A version in the URL is not a prerequisite, but a fetchable immutable release improves rebuild availability. When automatic downloads are unavailable, `requireFile` can require an explicitly named, hashed archive supplied by the user. The Nix expression can be shared independently of the proprietary font bytes. Public nixpkgs acceptance remains a maintainer decision, and unfree metadata does not authorize public font caches. [Nixpkgs fetcher documentation](https://nixos.org/manual/nixpkgs/unstable/#requirefile), [Nixpkgs license metadata](https://nixos.org/manual/nixpkgs/unstable/#sec-meta-license).
 
-Use separate packages for developer families, selected catalog assets, and any validated OS-only import. A collection package can compose them later. Prefer `stdenvNoCC`, fixed source hashes, extraction tools in `nativeBuildInputs`, retained license files, and unchanged font bytes. Check expected paths, face identities, and duplicate PostScript names during builds. Keep fallback policy outside the font packages, as the repository already does for optional emoji fonts.
+Use one consolidated package for developer families and selected catalog assets, while keeping any validated OS-only import separate. Prefer `stdenvNoCC`, fixed source hashes, extraction tools in `nativeBuildInputs`, retained license files, and unchanged font bytes. Check expected paths, face identities, and duplicate PostScript names during builds. Keep fallback policy outside the font packages, as the repository already does for optional emoji fonts.
 
 The pinned nixpkgs `installFonts` hook covers TTF, TTC, OTF, OTC and several legacy formats, but omits dfont. Add an explicit installation step for dfont where needed. The pinned nix-darwin activation module only selects lowercase `.ttf`, `.ttc`, `.otf`, and `.dfont`; it omits `.otc` and arbitrary suitcase filenames. That extension filter needs deliberate handling before claiming native installation of every format. Home Manager copies the entire managed `share/fonts` tree. Both native paths copy font contents rather than depending on macOS recognizing Nix-store symlinks. [Pinned installFonts hook](https://github.com/NixOS/nixpkgs/blob/4382ed2b7a6839d4280a9b386db49cbc5907414d/pkgs/by-name/in/installFonts/install-fonts.sh), [Pinned nix-darwin font module](https://github.com/nix-darwin/nix-darwin/blob/4cff07de74b50e64bdd68cd4e722ab5b6b35ee48/modules/fonts/default.nix), [Pinned Home Manager font module](https://github.com/nix-community/home-manager/blob/99c9ec63390f1d8c14d95d9e8b17cc29cfbd4e11/modules/targets/darwin/fonts.nix).
 
@@ -125,8 +125,8 @@ instances. Its selection excludes assets available only to other platforms or
 marked only as invisible/catalog entries, and resolves four superseded assets.
 There are no duplicate PostScript names in the selected catalog payloads.
 
-Eight separate developer packages contain another 155 font files and 288 named
-faces or instances. They remain outside the catalog aggregate. The package
+The consolidated package includes another 155 font files and 288 named faces or
+instances from the eight developer distributions alongside the catalog. It
 exports individual catalog derivations through `apple-fonts.assets` and a
 `fromArchive` function for an explicit hashed archive exported from a known Mac.
 The exporter handles regular-file fonts, not every historical resource-fork
@@ -141,9 +141,10 @@ verify the source archive and complete font inventory and preserve font bytes.
 They install dfont explicitly and rename `.otc` to `.ttc` to satisfy the pinned
 nix-darwin extension filter without converting the font.
 
-All 323 catalog packages, their aggregate, and all eight developer packages
-built on Linux with the configuration's pinned nixpkgs. A real SF Mono export
-also built through `fromArchive`, retaining its original license. Tooling tests
+All 323 catalog source derivations, the consolidated aggregate, and its eight
+developer source derivations built on Linux with the configuration's pinned
+nixpkgs. A real SF Mono export also built through `fromArchive`, retaining its
+original license. Tooling tests
 cover selection conflicts, platform filtering, deterministic export/import,
 archive traversal and link rejection, altered/extra fonts, collection extension
 normalization, and retention of old mutable downloads. Ruff and type checks
@@ -175,15 +176,16 @@ These are document and design choices. Every selected asset is advertised as
 `macOS-download`, and none of its recorded PostScript names overlapped the
 Linux desktop's installed fonts during this check. The selection avoids a
 blanket installation of core macOS, Microsoft, or Google duplicates. The SF
-and New York developer packages remain available separately for their specified
-uses and are not enabled for ordinary desktop typography.
+and New York developer distributions remain inside the consolidated
+`apple-fonts` output for their specified uses and are not enabled for ordinary
+desktop typography.
 
 The shared `appleDocumentFonts` list lives in
-`modules/shared/fonts/packages.nix`. The desktop's local system-font module
-installs it, while the shared Darwin font module installs the same list on the
-MacBook. Home Manager does not install these assets a second time. This follows
-the hosts' existing module structure without importing the entire shared font
-collection into the desktop system profile.
+`modules/shared/fonts/packages.nix` and remains the curated catalog subset for
+the MacBook's shared Darwin font directory. The desktop's local system-font
+module installs the consolidated `apple-fonts` package, including its catalog
+and developer distributions. Home Manager does not install that system package
+a second time.
 
 Validation confirmed 16 selected system packages and zero selected Home Manager
 packages on each host. Their combined font directory builds successfully. All

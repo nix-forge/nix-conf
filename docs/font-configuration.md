@@ -11,6 +11,23 @@ families and collection selection. `modules/shared/fonts/default.nix` adapts tha
 to NixOS, nix-darwin and Home Manager. The old NixOS entry points delegate to the
 same definitions. Package modifications live in nixpkgs-personal.
 
+Fontconfig policy is kept in `.conf.in` templates rather than embedding the
+selected family names. [`modules/shared/fonts/fontconfig.nix`](../modules/shared/fonts/fontconfig.nix) renders
+those templates with `pkgs.replaceVarsWith`, using the active
+`config.stylix.fonts` values for the sans, serif and monospace roles. External
+compatibility identifiers are centralized in the catalog; they are not treated
+as replacements for the selected desktop roles. The renderer contract test
+uses synthetic role names to protect this separation from future regressions.
+
+The generated Fontconfig adapter is Linux-only. On Linux it maps CSS UI
+generics to the active Stylix roles, while leaving Apple platform protocol
+names unresolved so a page can continue to its own SF Pro/webfont entries and
+then its final generic family. On macOS, nix-darwin and Home Manager install
+font files natively and Core Text keeps Apple's system UI, language cascade,
+and emoji behavior. Stylix roles remain appropriate for applications that
+explicitly consume the configured role, but they are not substitutes for
+macOS's native `system-ui` behavior.
+
 | Role | Provider | Family |
 | --- | --- | --- |
 | Interface | nixpkgs Inter | Inter |
@@ -37,8 +54,9 @@ Twemoji remains explicitly selectable without its upstream rules overriding
 ordinary text and the default emoji family.
 
 On the desktop, Home Manager owns the general collection. NixOS installs the
-primary Stylix roles and selected Apple document fonts. Repeated references to
-the same immutable Nix package do not create a second physical font provider.
+primary Stylix roles and the consolidated `apple-fonts` package. Repeated
+references to the same immutable Nix package do not create a second physical
+font provider.
 On the Mac, Home Manager owns the general collection in the native user font
 directory. nix-darwin owns only the shared Apple document collection; its Stylix
 font-package installation is disabled. The ownership check rejects an identical
@@ -159,6 +177,31 @@ all three scripts; its [negative control](assets/font-implementation/negative-co
 rejected all three at a fallback limit of 3. References are discovered from
 Fontconfig character coverage rather than assuming one optional family exists.
 
+The current browser contract is broader than that historical evidence: the
+isolated Firefox check covers 11 script clusters (including CJK, Arabic,
+Hebrew, Indic and Southeast Asian samples), four named-stack Apple private-use
+cases plus generic-only negative controls, missing-first-family web stacks,
+Apple platform protocol names, and a local compatibility matrix. The matrix verifies installed-versus-web same-name
+shadowing, document-scoped font loading, `local()` full and PostScript names,
+real regular/bold/italic faces, a variable `wght`/`wdth` face, UI generic role
+metrics, monospace cell advances, wrapping, and text/emoji presentation,
+keycap, flag, skin-tone and ZWJ clusters. Its fixtures are served from
+loopback, so the required check is deterministic and does not depend on a
+third-party font CDN.
+
+The Linux CSS UI generic policy is deliberately separate from the Apple
+protocol names:
+`system-ui`, `ui-sans-serif`, and `ui-rounded` follow the configured Stylix
+sans role; `ui-serif` follows the configured serif role; and `ui-monospace`
+follows the configured monospace role. The rule matches the first requested
+generic family after Fontconfig's normal substitutions, so a named fallback
+stack is not rewritten. The selection check covers those five generics in
+regular, bold, and italic forms and records the selected file as well as its
+family. A browser regression fixture confirms that explicit Apple platform
+names do not resolve to the private-use provider and that a page-owned SF Pro
+face remains ahead of the final generic fallback. No Linux Apple alias rule is
+installed in the Darwin Home Manager branch.
+
 These tests reused the immutable Home Manager profile from the successful
 pre-crash desktop build. Subsequent formatting and typing edits changed some
 package derivation paths without changing the font algorithms. A later full
@@ -174,3 +217,11 @@ back from the host configurations. The Apple/Windows tooling check passed 21 tes
 check also passed on its tested snapshot; subsequent browser-test edits passed
 Ruff and their positive/negative rendering checks. Exact Apple family spelling,
 including Produkt, is protected from automatic spelling correction.
+
+The current isolated browser run additionally passed the deterministic local
+font matrix and the expanded 11-script fallback set. The network-backed
+`webfonts` suite remains available for the separate uBlock/web-font regression,
+but it is intentionally not the compatibility gate because a live CDN or
+filter-list service would make the font contract non-reproducible. Chromium
+family rendering is not claimed by the Firefox check; run the same matrix with
+an explicitly provisioned Chromium WebDriver when Blink coverage is required.

@@ -42,3 +42,7 @@ insert_final_newline = unset
 indent_style = unset
 indent_size = unset
 trim_trailing_whitespace = false
+
+[tests/browsers/check_font_rendering.py]
+# Embedded CSS and JavaScript retain their native indentation.
+indent_size = unset

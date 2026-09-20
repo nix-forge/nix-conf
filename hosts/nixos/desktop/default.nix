@@ -80,6 +80,7 @@
     # This covers system GTK/Qt programs and provides the primary Fontconfig
     # aliases for every account on the machine.
     stylix
+    fonts
     desktop-envs-hyprland
     desktop-envs-interactive
     display-managers-noctalia
