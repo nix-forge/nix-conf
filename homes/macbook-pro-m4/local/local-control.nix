@@ -67,6 +67,7 @@ let
       environmentFile = lib.escapeShellArg environmentFile;
       pkiDir = lib.escapeShellArg pkiDir;
       caddy = lib.getExe pkgs.caddy;
+      sleep = lib.getExe' pkgs.coreutils "sleep";
       proxyConfig = lib.escapeShellArg proxyConfig;
     };
   };

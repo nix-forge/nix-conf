@@ -80,19 +80,18 @@ let
     };
   };
 
-  devVmAgentTunnel = pkgs.writeShellApplication {
+  devVmAgentTunnel = writeBashTemplate {
     name = "dev-vm-agent-tunnel";
-    runtimeInputs = [ pkgs.openssh ];
-    text = ''
-      exec ssh \
-        -F ${lib.escapeShellArg "${sshDir}/config"} \
-        -N \
-        -o ExitOnForwardFailure=yes \
-        -o ServerAliveInterval=15 \
-        -o ServerAliveCountMax=3 \
-        -R 127.0.0.1:8443:127.0.0.1:8443 \
-        dev-vm
-    '';
+    src = ./scripts/dev-vm-agent-tunnel.sh;
+    dir = "bin";
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      netcat = lib.getExe pkgs.netcat;
+      proxyPort = "8443";
+      sleep = lib.getExe' pkgs.coreutils "sleep";
+      ssh = lib.getExe pkgs.openssh;
+      sshConfig = lib.escapeShellArg "${sshDir}/config";
+    };
   };
 
   devVmSshSettings = {
@@ -191,7 +190,7 @@ in
         KeepAlive = {
           SuccessfulExit = false;
         };
-        ThrottleInterval = 60;
+        ThrottleInterval = 10;
         ProcessType = "Background";
         StandardOutPath = "${stateDir}/agent-tunnel.out.log";
         StandardErrorPath = "${stateDir}/agent-tunnel.err.log";
