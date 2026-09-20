@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Exercise transport and exported names outside a Nix build sandbox.
 set -euo pipefail
-if [[ $# -gt 2 ]]; then
-  echo 'usage: check-consumers.sh [CANDIDATE_FLAKE] [SYSTEM]' >&2
+if [[ $# -gt 3 ]]; then
+  echo 'usage: check-consumers.sh [CANDIDATE_FLAKE] [SYSTEM] [SCENARIO]' >&2
   exit 2
 fi
 if [[ $# -gt 0 ]]; then
@@ -13,6 +13,14 @@ else
 fi
 native_system=$(nix eval --impure --raw --expr builtins.currentSystem)
 system=${2:-$native_system}
+scenario=${3:-all}
+case "$scenario" in
+all | starter | vm | darwin | source | typed) ;;
+*)
+  echo "unsupported public consumer scenario: $scenario" >&2
+  exit 2
+  ;;
+esac
 build_cores=${PUBLIC_GUIDE_BUILD_CORES:-2}
 if [[ ! $build_cores =~ ^[1-9][0-9]*$ ]]; then
   echo 'PUBLIC_GUIDE_BUILD_CORES must be a positive integer' >&2
@@ -29,6 +37,10 @@ x86_64-linux | aarch64-linux | aarch64-darwin) ;;
   exit 2
   ;;
 esac
+if [[ $scenario == vm && $system != x86_64-linux ]]; then
+  echo 'the starter VM scenario requires x86_64-linux' >&2
+  exit 2
+fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 # Resolve all fixtures and pins from one immutable fetched candidate. A dirty
@@ -38,41 +50,50 @@ trap 'rm -rf "$work"' EXIT
 metadata=$(nix flake metadata --no-update-lock-file --option lazy-trees false --json "$candidate")
 source_path=$(jq -er '.path' <<<"$metadata")
 printf 'Testing public consumers from %s on %s\n' "$source_path" "$system"
-export PUBLIC_GUIDE_CANDIDATE="path:$source_path"
-inputs=$(nix eval --impure --json --expr '
-  let candidate = builtins.getFlake (builtins.getEnv "PUBLIC_GUIDE_CANDIDATE");
-  in { nixpkgs = candidate.inputs.nixpkgs.outPath; homeManager = candidate.inputs.home-manager.outPath; }
-')
-nixpkgs_path=$(jq -er '.nixpkgs' <<<"$inputs")
-home_manager_path=$(jq -er '.homeManager' <<<"$inputs")
 # Use the already captured store source for every subsequent candidate access.
 # This also prevents an editor changing the checkout halfway through a run.
 candidate="path:$source_path"
 for template in starter darwin; do
-  mkdir "$work/$template"
-  (cd "$work/$template" && nix flake init --template "$candidate#$template")
-  diff -qr "$source_path/templates/$template" "$work/$template"
+  if [[ $scenario == all || $scenario == "$template" || ($scenario == vm && $template == starter) ]]; then
+    mkdir "$work/$template"
+    (cd "$work/$template" && nix flake init --template "$candidate#$template")
+    diff -qr "$source_path/templates/$template" "$work/$template"
+  fi
 done
-nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
-  "$work/starter#checks.$system.home" \
-  "$work/starter#checks.$system.generated-config"
-if [[ $system == x86_64-linux ]]; then
+if [[ $scenario == all || $scenario == starter ]]; then
+  nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
+    "$work/starter#checks.$system.home" \
+    "$work/starter#checks.$system.generated-config"
+fi
+if [[ ($scenario == all || $scenario == vm) && $system == x86_64-linux ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
     "$work/starter#checks.$system.vm-runtime"
 fi
-if [[ $system == aarch64-darwin ]]; then
-  nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
-    "$work/darwin#checks.$system.system" \
-    "$work/darwin#checks.$system.generated-config"
-else
-  # Evaluate assertions and the system derivation; Linux is not a native build.
-  nix eval --raw --no-update-lock-file "$work/darwin#darwinConfigurations.example.system.drvPath"
+if [[ $scenario == all || $scenario == darwin ]]; then
+  if [[ $system == aarch64-darwin ]]; then
+    nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
+      "$work/darwin#checks.$system.system" \
+      "$work/darwin#checks.$system.generated-config"
+  else
+    # Evaluate assertions and the system derivation; Linux is not a native build.
+    nix eval --raw --no-update-lock-file "$work/darwin#darwinConfigurations.example.system.drvPath"
+  fi
 fi
 for interface in source typed; do
+  if [[ $scenario != all && $scenario != "$interface" ]]; then
+    continue
+  fi
   mkdir "$work/$interface"
   cp "$source_path/tests/public-guide/$interface-consumer/consumer-flake.nix" "$work/$interface/flake.nix"
   cp "$source_path/tests/public-guide/recipes.nix" "$work/$interface/recipes.nix"
   if [[ $interface == source ]]; then
+    export PUBLIC_GUIDE_CANDIDATE="$candidate"
+    inputs=$(nix eval --impure --json --expr '
+      let candidate = builtins.getFlake (builtins.getEnv "PUBLIC_GUIDE_CANDIDATE");
+      in { nixpkgs = candidate.inputs.nixpkgs.outPath; homeManager = candidate.inputs.home-manager.outPath; }
+    ')
+    nixpkgs_path=$(jq -er '.nixpkgs' <<<"$inputs")
+    home_manager_path=$(jq -er '.homeManager' <<<"$inputs")
     overrides=(--override-input nix-conf-source "$candidate"
       --override-input nixpkgs "path:$nixpkgs_path"
       --override-input home-manager "path:$home_manager_path")

@@ -234,7 +234,7 @@ jobs:
           selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
   public-guide:
-    name: Public guide (${{ matrix.system }})
+    name: Public guide (${{ matrix.system }}, ${{ matrix.scenario }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -243,6 +243,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        system: [x86_64-linux, aarch64-linux, aarch64-darwin]
+        scenario: [starter, vm, darwin, source, typed]
+        exclude:
+          - system: aarch64-linux
+            scenario: vm
+          - system: aarch64-darwin
+            scenario: vm
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
@@ -268,8 +275,9 @@ jobs:
       - name: Check extracted public templates and module consumers
         env:
           GUIDE_SYSTEM: ${{ matrix.system }}
+          GUIDE_SCENARIO: ${{ matrix.scenario }}
           PUBLIC_GUIDE_BUILD_CORES: ${{ matrix.build-cores }}
-        run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM"
+        run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM" "$GUIDE_SCENARIO"
   native:
     name: Native packages (${{ matrix.label }})
     if: github.event_name == 'workflow_dispatch' && inputs.build_native_packages == true
