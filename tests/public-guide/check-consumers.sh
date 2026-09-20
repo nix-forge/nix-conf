@@ -15,7 +15,7 @@ native_system=$(nix eval --impure --raw --expr builtins.currentSystem)
 system=${2:-$native_system}
 scenario=${3:-all}
 case "$scenario" in
-all | starter | vm | darwin | interfaces | source | typed) ;;
+all | templates | starter | vm | darwin | interfaces | source | typed) ;;
 *)
   echo "unsupported public consumer scenario: $scenario" >&2
   exit 2
@@ -54,13 +54,13 @@ printf 'Testing public consumers from %s on %s\n' "$source_path" "$system"
 # This also prevents an editor changing the checkout halfway through a run.
 candidate="path:$source_path"
 for template in starter darwin; do
-  if [[ $scenario == all || $scenario == "$template" || ($scenario == vm && $template == starter) ]]; then
+  if [[ $scenario == all || $scenario == templates || $scenario == "$template" || ($scenario == vm && $template == starter) ]]; then
     mkdir "$work/$template"
     (cd "$work/$template" && nix flake init --template "$candidate#$template")
     diff -qr "$source_path/templates/$template" "$work/$template"
   fi
 done
-if [[ $scenario == all || $scenario == starter ]]; then
+if [[ $scenario == all || $scenario == templates || $scenario == starter ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
     "$work/starter#checks.$system.home" \
     "$work/starter#checks.$system.generated-config"
@@ -69,7 +69,7 @@ if [[ ($scenario == all || $scenario == vm) && $system == x86_64-linux ]]; then
   nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
     "$work/starter#checks.$system.vm-runtime"
 fi
-if [[ $scenario == all || $scenario == darwin ]]; then
+if [[ $scenario == all || $scenario == templates || $scenario == darwin ]]; then
   if [[ $system == aarch64-darwin ]]; then
     nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
       "$work/darwin#checks.$system.system" \

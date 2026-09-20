@@ -233,9 +233,39 @@ jobs:
         run: |
           selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
+  guide-changes:
+    name: Discover public guide changes
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
+            }}
+        run: |
+          if [[ -z "$BASE_SHA" ]] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE_SHA" HEAD -- \
+            .github/workflows/ci.yml flake.nix flake.lock flake \
+            templates tests/public-guide modules lib scripts homes hosts \
+            nix-config-framework nix-homelab nix-seal pkgs; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
   public-guide:
     name: Public guide (${{ matrix.system }}, ${{ matrix.scenario }})
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    needs: [guide-changes]
+    if: needs.guide-changes.outputs.changed == 'true'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     permissions:
@@ -244,12 +274,20 @@ jobs:
       fail-fast: false
       matrix:
         system: [x86_64-linux, aarch64-linux, aarch64-darwin]
-        scenario: [starter, vm, darwin, interfaces]
+        scenario: [templates, vm, interfaces, all]
         exclude:
+          - system: x86_64-linux
+            scenario: all
           - system: aarch64-linux
             scenario: vm
+          - system: aarch64-linux
+            scenario: all
+          - system: aarch64-darwin
+            scenario: templates
           - system: aarch64-darwin
             scenario: vm
+          - system: aarch64-darwin
+            scenario: interfaces
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
@@ -398,7 +436,7 @@ jobs:
           if-no-files-found: error
   tests:
     name: Repository tests
-    needs: [flake, public-guide, native]
+    needs: [flake, guide-changes, public-guide, native]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -407,11 +445,17 @@ jobs:
       - name: Require the Nix test matrix to pass
         env:
           FLAKE_RESULT: ${{ needs.flake.result }}
+          GUIDE_CHANGED: ${{ needs.guide-changes.outputs.changed }}
           GUIDE_RESULT: ${{ needs.public-guide.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
         run: |
           test "$FLAKE_RESULT" = success
-          test "$GUIDE_RESULT" = success
+          if [[ "$GUIDE_CHANGED" == true ]]; then
+            test "$GUIDE_RESULT" = success
+          else
+            test "$GUIDE_CHANGED" = false
+            test "$GUIDE_RESULT" = skipped
+          fi
           test "$NATIVE_RESULT" = success || test "$NATIVE_RESULT" = skipped
   queue-completion:
     continue-on-error: true
@@ -425,6 +469,7 @@ jobs:
       - flake-lock
       - lint
       - flake
+      - guide-changes
       - public-guide
       - native
       - tests
