@@ -9,8 +9,11 @@ Project direction should keep reusable behavior in shared modules and keep
 hardware-specific policy in the example deployments.
 
 Issues and pull requests are the public record for technical decisions. The
-protected `main` branch, required checks, review rules, and merge queue apply to
-all accepted changes. Larger design changes should explain their user-facing
+protected `main` branch, required checks, and merge queue apply to all accepted
+changes. While this is a solo-maintainer project, GitHub requires no independent
+approval; the maintainer may use AI review and authorize an agent to merge after
+the checks pass. The [organization review policy](https://github.com/nix-forge/.github/blob/main/GOVERNANCE.md#solo-maintainer-review-and-automation)
+also governs scheduled bot updates and privileged automation changes. Larger design changes should explain their user-facing
 impact and migration path before implementation.
 
 Code collaborators are reviewed before receiving escalated permissions for
