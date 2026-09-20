@@ -102,7 +102,7 @@ in
         networkConfig = {
           MulticastDNS = "resolve";
           DHCP = "ipv4";
-          IgnoreCarrierLoss = "3s";
+          IgnoreCarrierLoss = false;
           IPv6AcceptRA = true;
           IPv6PrivacyExtensions = false;
         };

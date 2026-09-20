@@ -12,6 +12,7 @@
     ./javascript-checks.nix
     ./local-control-checks.nix
     ./memory-checks.nix
+    ./network-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
     ./python-checks.nix
@@ -20,5 +21,6 @@
     ./theme-checks.nix
     ./temporary-fix-checks.nix
     ./virtualisation-checks.nix
+    ./wayland-checks.nix
   ];
 }
