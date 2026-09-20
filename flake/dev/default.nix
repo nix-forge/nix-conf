@@ -20,5 +20,6 @@
     ./theme-checks.nix
     ./temporary-fix-checks.nix
     ./virtualisation-checks.nix
+    ./wayland-checks.nix
   ];
 }
