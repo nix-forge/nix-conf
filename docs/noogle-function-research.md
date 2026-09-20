@@ -341,7 +341,7 @@ All 39 public package directories were inventoried, along with `flake.nix`, disc
 
 | Area | Packages covered | Result |
 | --- | --- | --- |
-| Fonts and emoji | Apple catalog, eight standalone Apple developer-font packages, Apple Color Emoji, EmojiOne, Firefox emoji, Mutant Standard, Twemoji, Google Fonts, M PLUS, Windows fonts | Keep specialized archive/manifest/font tests; consider collision-checked aggregation and extracted Python checks. |
+| Fonts and emoji | Apple catalog and eight developer distributions in the consolidated aggregate, Apple Color Emoji, EmojiOne, Firefox emoji, Mutant Standard, Twemoji, Google Fonts, M PLUS, Windows fonts | Keep specialized archive/manifest/font tests; consider collision-checked aggregation and extracted Python checks. |
 | Vendor/desktop applications | Bitwarden, Claude, LibreOffice, LinearMouse, Teams, Codex Desktop, remindctl, Spotify SpotX, Steam, T3 Code, Vorssaint, Wootility | Preserve platform-specific extraction/signature/wrapper behavior; avoid wholesale trivial-builder conversion. |
 | First-party native utilities | Finder Favorites, OCR Capture, Steam CEF scale override | Keep native compilers, source sets and behavior checks. |
 | Desktop assets and shell | Bibata, Noctalia dark icons, Noctalia personal | Existing standard derivations fit; Python check extraction is optional. |
