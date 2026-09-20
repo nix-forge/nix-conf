@@ -34,7 +34,9 @@ if CommandLine.arguments.count > 1 {
   }
 }
 
-let systemFont = CTFontCreateUIFontForLanguage(.system, 24, nil)
+guard let systemFont = CTFontCreateUIFontForLanguage(.system, 24, nil) else {
+  fatalError("Core Text did not provide a system font")
+}
 let families =
   selectedFamilies.isEmpty
   ? [CTFontCopyFamilyName(systemFont) as String]
