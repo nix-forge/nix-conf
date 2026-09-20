@@ -13,6 +13,11 @@ else
 fi
 native_system=$(nix eval --impure --raw --expr builtins.currentSystem)
 system=${2:-$native_system}
+build_cores=${PUBLIC_GUIDE_BUILD_CORES:-2}
+if [[ ! $build_cores =~ ^[1-9][0-9]*$ ]]; then
+  echo 'PUBLIC_GUIDE_BUILD_CORES must be a positive integer' >&2
+  exit 2
+fi
 if [[ $system != "$native_system" ]]; then
   echo "consumer checks require native $system, current host is $native_system" >&2
   exit 2
@@ -48,11 +53,15 @@ for template in starter darwin; do
   (cd "$work/$template" && nix flake init --template "$candidate#$template")
   diff -qr "$source_path/templates/$template" "$work/$template"
 done
-nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
+nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
   "$work/starter#checks.$system.home" \
   "$work/starter#checks.$system.generated-config"
+if [[ $system == x86_64-linux ]]; then
+  nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
+    "$work/starter#checks.$system.vm-runtime"
+fi
 if [[ $system == aarch64-darwin ]]; then
-  nix build --no-link --no-update-lock-file --max-jobs 1 --cores 2 \
+  nix build --no-link --no-update-lock-file --max-jobs 1 --cores "$build_cores" \
     "$work/darwin#checks.$system.system" \
     "$work/darwin#checks.$system.generated-config"
 else
@@ -61,7 +70,7 @@ else
 fi
 for interface in source typed; do
   mkdir "$work/$interface"
-  cp "$source_path/tests/public-guide/$interface-consumer/consumer.nix" "$work/$interface/flake.nix"
+  cp "$source_path/tests/public-guide/$interface-consumer/flake.nix" "$work/$interface/flake.nix"
   cp "$source_path/tests/public-guide/recipes.nix" "$work/$interface/recipes.nix"
   if [[ $interface == source ]]; then
     overrides=(--override-input nix-conf-source "$candidate"
@@ -70,6 +79,6 @@ for interface in source typed; do
   else
     overrides=(--override-input nix-conf "$candidate")
   fi
-  nix build --no-link --no-write-lock-file --max-jobs 1 --cores 2 \
+  nix build --no-link --no-write-lock-file --max-jobs 1 --cores "$build_cores" \
     "${overrides[@]}" "$work/$interface#checks.$system.recipes"
 done

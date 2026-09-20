@@ -1,9 +1,9 @@
 # Build a Nix environment you understand
 
-nix-conf provides reusable NixOS, nix-darwin, and Home Manager modules. It also
-documents actively deployed Linux and macOS configurations as maintained
-examples. This guide starts with a small environment you can build without
-access to those systems or their secrets.
+nix-conf provides reusable NixOS, nix-darwin, and Home Manager modules, together
+with actively deployed Linux and Apple Silicon macOS configurations that serve
+as maintained examples. This guide starts with a small environment you can
+build without access to the deployed systems or their secrets.
 
 [Start the tutorial](guide/start-here.md) · [Browse reusable recipes](guide/git.md) · [See the architecture](guide/architecture.md)
 
@@ -27,8 +27,8 @@ import the deployed hosts, enable proprietary applications, or provision secrets
 The recipes then show ordinary Home Manager modules from the actual repository.
 
 The deployed workstations go further, including shared appearance settings, font
-selection, desktop services, and host-managed secrets. Their hardware and runtime
-requirements are explicit in the [support table](guide/support.md).
+selection, desktop services, and host-managed secrets. Their hardware and
+runtime requirements are explicit in the [support table](guide/support.md).
 
 The repository also keeps detailed [operational guides and research](https://github.com/nix-forge/nix-conf/tree/main/docs).
 Those notes explain individual decisions and recorded results. You do not need
