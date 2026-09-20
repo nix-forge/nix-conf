@@ -5,7 +5,6 @@ let
   community = "https://nix-community.cachix.org";
   cuda = "https://cache.nixos-cuda.org";
   hyprland = "https://hyprland.cachix.org";
-  noctalia = "https://noctalia.cachix.org";
   same = a: b: lib.sort builtins.lessThan a == lib.sort builtins.lessThan b;
   mkNixos =
     modules:
