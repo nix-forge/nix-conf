@@ -21,6 +21,9 @@ _: {
         ../../hosts/nixos/desktop/minidv/minidv-finalize.sh
         ../../justfile
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../scripts)
+        ../../.github/scripts/ci_partitioning.py
+        ../../.github/scripts/run-flake-checks.py
+        ../../.github/ci-check-weights.json
         ../../site/reference.py
       ];
       nativeBuildInputs = with pkgs; [

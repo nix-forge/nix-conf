@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class CIInventoryTests(unittest.TestCase):
     """Exercise coverage policy through the real flake modules."""
 
-    def test_hosted_exclusions_preserve_ordinary_checks(self) -> None:
-        """Keep ordinary additions while removing host and deployment checks."""
+    def test_hosted_runner_exclusions_apply_on_every_system(self) -> None:
+        """Keep ordinary additions while excluding workstation checks everywhere."""
         expression = """
                     let
                         lib = import NIXPKGS_LIB;
@@ -41,8 +41,8 @@ class CIInventoryTests(unittest.TestCase):
                                 };
                                 checks = {
                                     x86_64-linux = {
-                                        application-recovery = null;
                                         cache-policy = null;
+                                        application-recovery = null;
                                         desktop-authentication = null;
                                         desktop-storage-install = null;
                                         generated-artifacts = null;
@@ -53,6 +53,7 @@ class CIInventoryTests(unittest.TestCase):
                                         new-portable-check = null;
                                         sentry-crashpad-lock = null;
                                         service-command-arguments = null;
+                                        python-tests = null;
                                         secret-templates = null;
                                         host-only = null;
                                         new-deployment-check = null;
@@ -68,6 +69,8 @@ class CIInventoryTests(unittest.TestCase):
                                         ordinary = null;
                                         sentry-crashpad-lock = null;
                                         service-command-arguments = null;
+                                        public-demo-runtime = null;
+                                        python-tests = null;
                                         secret-templates = null;
                                     };
                                     aarch64-linux = {
@@ -94,13 +97,13 @@ class CIInventoryTests(unittest.TestCase):
                     "git-email-privacy",
                     "newly-added",
                     "ordinary",
+                    "python-tests",
                     "secret-templates",
                 ],
                 "aarch64-darwin": [
-                    "git-email-privacy",
                     "host-only",
                     "ordinary",
-                    "secret-templates",
+                    "python-tests",
                 ],
                 "aarch64-linux": ["ordinary"],
             },
