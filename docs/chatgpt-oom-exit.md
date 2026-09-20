@@ -1,5 +1,31 @@
 # ChatGPT exits after a task runs out of memory
 
+## Follow-up on 2026-09-17
+
+The latest freeze and exit was not another global out-of-memory event. The
+system had substantial memory and swap available, and the current-boot logs
+contained no kernel OOM, cgroup OOM, GPU reset, or GPU fault. The coredump
+metadata instead records a `SIGTRAP` in ChatGPT's Chromium GPU process. Its
+command line selected native Wayland and the NVIDIA render node. Similar
+`SIGTRAP` records occurred on the two preceding days, all with the current
+Linux app build `26.901.51231`.
+
+The package wrapper turns the desktop's global `NIXOS_OZONE_WL=1` setting into
+`--ozone-platform=wayland`. OpenAI's [Linux app documentation](https://learn.chatgpt.com/docs/linux/linux-app)
+calls native Wayland experimental and documents XWayland as the compatibility
+path. The desktop profile keeps native Wayland as the default across the
+session, and ChatGPT inherits that session policy through its normal desktop
+entry. No X11 workaround is applied; the crash remains a native Wayland/GPU
+compatibility issue to diagnose. See the accompanying [GPU crash research
+note](chatgpt-gpu-crash-research.md).
+
+The existing Chromium memory ceilings and `OOMPolicy=continue` settings remain
+in place because they address the earlier global-OOM incidents. The concurrent
+Blocky DNSSEC warnings were not treated as the cause: resolver queries
+succeeded, and there was no matching network failure in the crash evidence.
+Activation and a full quit/relaunch of ChatGPT are still required before this
+session configuration is exercised.
+
 ## Current configuration on 2026-09-08
 
 Both ChatGPT scope families now use `OOMPolicy=continue` through
@@ -35,6 +61,28 @@ systemd from stopping surviving scope members after a child OOM. Neither
 setting guarantees survival if the kernel directly kills an application process.
 The incident analysis below explains that distinction and the remaining risk
 from overlapping large evaluations.
+
+## Follow-up on 2026-09-14
+
+The follow-up investigation found two independent sources of avoidable pressure:
+the Chromium scope retained a large long-lived process tree, and `/tmp` was a
+16 GiB tmpfs with roughly 15 GiB occupied. The host policy now moves `/tmp` to
+the root filesystem and cleans it at boot. The Chromium-family drop-in keeps
+`OOMPolicy=continue` and adds `MemoryHigh=10G`, `MemoryMax=12G`, and
+`MemorySwapMax=4G`. These are containment limits chosen above the measured
+steady resident use and below the historical peak; they may still cause an
+oversized browser task to lose a child rather than exhausting the workstation.
+
+ClamAV's daemon now sets `ConcurrentDatabaseReload=no`, avoiding the documented
+temporary second scanning engine while preserving the existing on-access,
+scheduled, and signature-update coverage. The supporting research notes are
+[tmpfs and memory pressure](tmpfs-memory-pressure-research.md) and
+[ClamAV scan memory](clamav-memory-research.md).
+
+The changes are declarative and have not been activated in this review. A later
+activation and reboot must verify the `/tmp` mount, available disk space, the
+effective Chromium cgroup limits, normal browser recovery, and a representative
+ClamAV scan.
 
 ## Review on 2026-09-08
 

@@ -55,6 +55,13 @@ the background workload subtree and can terminate an entire task under sustained
 pressure. A confined kernel OOM likewise terminates that task as a group.
 Interactive application scopes retain their child-OOM survival policy.
 
+The desktop keeps `/tmp` on the root filesystem rather than tmpfs because its
+development scratch data previously consumed most of the available tmpfs and
+was therefore memory- and swap-backed. `/tmp` is cleaned at boot. The Chromium
+application family also has a separate 10 GiB pressure threshold, 12 GiB hard
+memory ceiling, and 4 GiB swap ceiling; these limits contain retained browser
+workers without changing the replaceable-workload budget.
+
 Inspect the actual settings and pressure with:
 
 ```sh

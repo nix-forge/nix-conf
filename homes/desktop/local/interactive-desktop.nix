@@ -91,11 +91,17 @@
     OOMPolicy=continue
   '';
 
-  # ChatGPT splits its processes between Chromium and UWSM scopes. Preserve
-  # surviving processes after an OOM victim in either group. Chromium uses
-  # the first prefix too, so it receives the same behavior.
+  # ChatGPT splits its processes between Chromium and UWSM scopes. Bound the
+  # Chromium group because the measured scope retained nearly 8 GiB resident
+  # and reached roughly 21 GiB including swap during a prior workload. Keep a
+  # pressure threshold below the hard ceiling, bound swap separately, and
+  # preserve surviving processes after a child OOM. Chromium uses the first
+  # prefix too, so this is intentionally a browser-family policy.
   xdg.configFile."systemd/user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf".text = ''
     [Scope]
+    MemoryHigh=10G
+    MemoryMax=12G
+    MemorySwapMax=4G
     OOMPolicy=continue
   '';
   xdg.configFile."systemd/user/app-Hyprland-chatgpt-.scope.d/50-oom-policy.conf".text = ''

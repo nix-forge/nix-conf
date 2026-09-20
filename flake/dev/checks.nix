@@ -186,6 +186,14 @@
 
       }
       // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+        clamav-memory-policy =
+          let
+            daemonConfig = self.nixosConfigurations.desktop.config.environment.etc."clamav/clamd.conf".source;
+          in
+          pkgs.runCommand "clamav-memory-policy" { nativeBuildInputs = [ pkgs.gnugrep ]; } ''
+            grep -Eq '^[[:space:]]*ConcurrentDatabaseReload[[:space:]]+false[[:space:]]*$' ${daemonConfig}
+            touch "$out"
+          '';
         clamav-runtime = import ../../tests/nix/clamav-runtime.nix { inherit pkgs; };
         clamav-special-files = import ../../tests/nix/clamav-special-files.nix { inherit pkgs; };
       }

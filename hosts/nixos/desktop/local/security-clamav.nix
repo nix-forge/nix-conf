@@ -41,6 +41,11 @@ in
       MaxThreads = 4;
       MaxQueue = 8;
 
+      # FreshClam can reload signatures while the long-running weekly scan is
+      # active. Avoid temporarily retaining a second scanning engine on this
+      # memory-constrained workstation; scans wait briefly for the reload.
+      ConcurrentDatabaseReload = false;
+
       # Real-time prevention covers each declared normal user's two ordinary
       # ingress surfaces. It is recursive and scans write/move events as well
       # as access events; monitoring full homes or / would exhaust inotify

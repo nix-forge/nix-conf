@@ -120,6 +120,10 @@
         path = pkgs.writeText "desktop-memory-manifest.json" (
           builtins.toJSON {
             inherit (config.systemd.coredump.settings) Coredump;
+            temporaryStorage = {
+              useTmpfs = config.boot.tmp.useTmpfs;
+              cleanOnBoot = config.boot.tmp.cleanOnBoot;
+            };
             swap = map (s: {
               inherit (s)
                 device
@@ -169,5 +173,12 @@
           "hypridle"
           "noctalia"
         ]
+    ++ [
+      {
+        name = "user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf";
+        path =
+          config.home-manager.users.ianmh.xdg.configFile."systemd/user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf".source;
+      }
+    ]
   );
 }
