@@ -28,7 +28,7 @@ selection, and host-managed secrets.
 
 The starter declares x86 Linux, ARM Linux, and Apple Silicon macOS. Its serial
 VM is x86 Linux only. The [support table](docs/guide/support.md) distinguishes
-evaluation, native builds, and runtime evidence. Host definitions are
+evaluation, native builds, and runtime evidence. The host definitions are
 hardware-specific deployed examples, not installation templates.
 
 ## Appearance with evidence
@@ -80,8 +80,9 @@ The framework also imports Nix files beneath each target's `local/` directory.
 These files must be modules; keep target-specific helper exports under the
 module's `lib` option. Do not also list automatically imported files in the
 target specification. Shared settings under `homes/shared/` and `hosts/shared/`
-are imported explicitly by their consumers. Host definitions are maintained
-deployment examples; reusable behavior belongs in shared modules and features.
+are imported explicitly by their consumers. The host definitions are maintained
+deployment examples; reusable behavior belongs in the shared modules and
+features.
 
 A reusable directory's `default.nix` controls its aggregate selection. Without
 one, selecting the directory imports every Nix file below it. Adding a file to
