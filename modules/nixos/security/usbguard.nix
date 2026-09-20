@@ -32,9 +32,9 @@ in
       IPCAllowedGroups = lib.mkForce [ ];
       dbus.enable = lib.mkForce false;
 
-      # Include topology when a rule is generated or added deliberately. This
-      # prevents an otherwise identical device from being trusted when moved
-      # to another physical USB port.
+      # Include topology when a rule is generated or added deliberately. The
+      # reviewed host policy can omit it for movable devices whose identity
+      # hash and interfaces must match on any port.
       deviceRulesWithPort = true;
     };
 
