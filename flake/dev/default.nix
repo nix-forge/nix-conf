@@ -20,6 +20,7 @@
     ./storage-checks.nix
     ./theme-checks.nix
     ./temporary-fix-checks.nix
+    ./usbguard-checks.nix
     ./virtualisation-checks.nix
     ./wayland-checks.nix
   ];
