@@ -1,18 +1,14 @@
 name: Fuzz CRX extraction
-
 on:
   pull_request:
   schedule:
     - cron: '31 8 * * 1'
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: fuzz-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   crx:
     runs-on: ubuntu-latest
