@@ -81,8 +81,21 @@ fn native_mode(mode: u32) -> Result<Mode, Error> {
 }
 
 #[cfg(not(target_os = "macos"))]
+// Keep the same fallible interface as macOS, where the native mode is narrower.
+#[allow(clippy::unnecessary_wraps)]
 fn native_mode(mode: u32) -> Result<Mode, Error> {
     Ok(Mode::from_raw_mode(mode))
+}
+
+fn permission_bits(metadata: &fs::Stat) -> u32 {
+    #[cfg(target_os = "macos")]
+    {
+        u32::from(metadata.st_mode & 0o7777)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        metadata.st_mode & 0o7777
+    }
 }
 
 fn open_root(path: &Path) -> Result<OwnedFd, Error> {
@@ -245,7 +258,7 @@ fn verify_descriptor(
     if metadata.st_uid != process::geteuid().as_raw() {
         return Err(Error::UnsafePath("path is not owned by the current user"));
     }
-    let actual_mode = u32::from(metadata.st_mode & 0o7777);
+    let actual_mode = permission_bits(&metadata);
     match expected_mode {
         ExpectedMode::Private if actual_mode & 0o077 != 0 => {
             return Err(Error::UnsafePath("path is accessible to group or others"));
@@ -357,7 +370,7 @@ pub fn repair_file_mode(path: &Path, mode: u32) -> Result<bool, Error> {
         || before.st_uid != after.st_uid
         || before.st_gid != after.st_gid
         || before.st_nlink != after.st_nlink
-        || u32::from(after.st_mode & 0o7777) != mode
+        || permission_bits(&after) != mode
     {
         return Err(Error::UnsafePath(
             "file changed while its mode was being repaired",
@@ -904,7 +917,7 @@ fn snapshot_directory(
             "source directory changed while it was being snapshotted",
         ));
     }
-    write_snapshot_record(output, b'D', u32::from(before.st_mode & 0o7777), path, None)?;
+    write_snapshot_record(output, b'D', permission_bits(&before), path, None)?;
     for name in names {
         let child = fs::openat(
             directory,
@@ -929,7 +942,7 @@ fn snapshot_directory(
             write_snapshot_record(
                 output,
                 b'F',
-                u32::from(metadata.st_mode & 0o7777),
+                permission_bits(&metadata),
                 &child_path,
                 Some(&contents),
             )?;
