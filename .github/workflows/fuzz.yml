@@ -1,0 +1,39 @@
+name: Fuzz CRX extraction
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+  schedule:
+    - cron: '31 8 * * 1'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  crx:
+    name: Fuzz CRX extraction
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Atheris
+        run: |
+          python3 -m venv "$RUNNER_TEMP/fuzz-venv"
+          "$RUNNER_TEMP/fuzz-venv/bin/pip" install atheris==3.1.0
+      - name: Fuzz CRX headers and payload extraction
+        run: |
+          mkdir -p "$RUNNER_TEMP/fuzz-crashes"
+          "$RUNNER_TEMP/fuzz-venv/bin/python" fuzz/crx_fuzzer.py -max_total_time=180 -timeout=10 -artifact_prefix="$RUNNER_TEMP/fuzz-crashes/"
+      - name: Save crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-crashes
+          path: ${{ runner.temp }}/fuzz-crashes/
+          if-no-files-found: ignore
+          retention-days: 7
