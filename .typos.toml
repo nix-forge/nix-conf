@@ -20,6 +20,7 @@ inh = "inh"
 relm4 = "relm4"     # Rust UI crate referenced by the Hyprshell patch.
 
 [default.extend-words]
+intoto = "intoto"   # SLSA provenance asset filename suffix.
 produkt = "produkt" # Apple's font family and package identifier.
 Produkt = "Produkt" # Apple-distributed font family and its PostScript identifiers.
 constan = "constan" # Upstream Microsoft font filename, constan.ttf.
