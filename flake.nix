@@ -238,6 +238,7 @@
         ./flake/documentation.nix
         ./flake/public-guide.nix
         ./flake/validation.nix
+        ./flake/storage.nix
         ./flake/feature-catalog.nix
         ./flake/lint-checks.nix
         ./flake/deploy.nix

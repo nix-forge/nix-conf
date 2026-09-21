@@ -44,7 +44,6 @@ class CIInventoryTests(unittest.TestCase):
                                         cache-policy = null;
                                         application-recovery = null;
                                         desktop-authentication = null;
-                                        desktop-storage-install = null;
                                         generated-artifacts = null;
                                         git-email-privacy = null;
                                         gitleaks-policy = null;
