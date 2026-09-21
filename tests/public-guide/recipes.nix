@@ -20,6 +20,13 @@ let
           stateVersion = "26.05";
         };
         programs.bash.enable = true;
+        # This recipe checks aliases, not the production credential helper or
+        # Git LFS. Keep their large package closures out of the smoke test.
+        programs.git = {
+          package = pkgs.lib.mkForce pkgs.gitMinimal;
+          lfs.enable = pkgs.lib.mkForce false;
+          settings.credential.helper = pkgs.lib.mkForce "";
+        };
       }
     ];
   };
