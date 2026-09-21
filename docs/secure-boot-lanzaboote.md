@@ -133,21 +133,21 @@ console after checking the new boot state.
 
 The secure-boot module preserves the NixOS-managed LSM sequence and requires
 AppArmor, not a hand-built `lsm=` parameter or concurrent SELinux setup. The
-currently selected `linuxPackages_latest` kernel reports both
-`CONFIG_SECURITY_LOCKDOWN_LSM` and `CONFIG_MODULE_SIG` as disabled. Therefore,
-on this desktop Secure Boot authenticates the UEFI boot chain but does **not**
-provide kernel lockdown or module-signature enforcement. A `lockdown=` command
-line option cannot enable an LSM that was not compiled into the kernel.
+previously selected `linuxPackages_latest` kernel reported both
+`CONFIG_SECURITY_LOCKDOWN_LSM` and `CONFIG_MODULE_SIG` as disabled. The desktop
+now selects the shared XanMod kernel; check its built configuration before
+claiming lockdown or module-signature enforcement. A `lockdown=` command line
+option cannot enable an LSM that was not compiled into the kernel.
 
 We deliberately do not add `lockdown=`, force kernel module signatures, or set
 `security.lockKernelModules`: those choices would affect the staged
-non-Secure-Boot system and require a separate audit of NVIDIA, FireWire capture,
+non-Secure-Boot system and require a separate audit of NVIDIA,
 networking, and other loadable drivers. If kernel lockdown becomes a required
 property, design a separate custom-kernel transition that enables the Lockdown
 LSM and signs every required in-tree and out-of-tree module. Verify NVIDIA,
-capture, suspend, networking, and a rollback generation at the physical
+networking, suspend, and a rollback generation at the physical
 console before enforcing module signatures.
 
 This separation preserves Secure Boot's offline boot-chain integrity benefit
 without turning a normal driver update into a boot-recovery event or claiming a
-runtime kernel-integrity boundary that the selected kernel does not provide.
+runtime kernel-integrity boundary without checking the selected kernel.

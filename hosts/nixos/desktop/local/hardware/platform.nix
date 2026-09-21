@@ -46,11 +46,6 @@
       fi
     '';
   };
-  # Capture reliability takes precedence over scheduler tuning: the prior
-  # XanMod build reproduced an AMD-Vi/firewire_ohci DMA fault. Use the matching
-  # upstream kernel as this host's ordinary kernel for a controlled comparison.
-  # This is not a boot specialisation.
-  boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
   # Keep this host's additions narrowly tailored to its Zen 4 platform. Do
   # not force-replace the whole command line: NixOS derives the LSM sequence
   # and AppArmor's activation parameter from enabled security modules. In

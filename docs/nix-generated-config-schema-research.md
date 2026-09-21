@@ -500,7 +500,8 @@ the checks must examine the final script body.
 
 The migration covers 60 Bash template sources: desktop tools, browser and editor
 helpers, VM controls, the Nix workload launcher, the Python compilation hook,
-local-control commands, the Wi-Fi profile materializer, and seven MiniDV tools.
+local-control commands, the Wi-Fi profile materializer, and seven MiniDV tools
+that have since been retired.
 The five sourced setup fragments and UWSM environment data remain plain rendered
 files. Their caller controls the interpreter and shell environment.
 
@@ -508,9 +509,10 @@ Validation on 2026-09-08 passed the writer's positive and negative build tests,
 template configuration regressions, desktop command regressions, and LibreOffice
 profile-path check with import from derivation disabled. The complete desktop
 system closure then built successfully on its native Linux host. No activation
-was performed. The MiniDV command-forwarding functions require a documented,
-local exception for ShellCheck SC2119 and SC2120 because zero arguments are valid
-for the wrapped external commands. Other ShellCheck rules remain enabled.
+was performed. The now-retired MiniDV command-forwarding functions required a
+documented, local exception for ShellCheck SC2119 and SC2120 because zero
+arguments were valid for the wrapped external commands. Other ShellCheck rules
+remained enabled.
 
 The Darwin local-control Home Manager fixture evaluated its package derivations,
 launchd command, activation dependencies, and assertions successfully with import

@@ -21,9 +21,9 @@
 
   # These loadable protocols are available in the running kernel but have no
   # role on this workstation. Blacklisting is intentionally narrow: do not
-  # blacklist FireWire (MiniDV capture), Bluetooth, USB storage, FUSE,
-  # SquashFS, or Thunderbolt/USB4 pre-emptively, because those are either in
-  # use or need a separately reviewed hardware policy.
+  # blacklist Bluetooth, USB storage, FUSE, SquashFS, or Thunderbolt/USB4
+  # pre-emptively. Those are either in use or need a separately reviewed
+  # hardware policy.
   boot.blacklistedKernelModules = [
     "appletalk"
     "atm"

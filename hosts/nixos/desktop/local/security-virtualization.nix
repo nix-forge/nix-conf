@@ -156,9 +156,9 @@
 
     # The AMD IOMMU is active, but GPU passthrough remains a separate rebooting
     # change. A read-only audit found only these two functions in group 12.
-    # Recheck them after firmware or hardware changes, prove the iGPU-only
-    # desktop first, and verify FireWire with the unchanged IOMMU mode. Never
-    # add an ACS override or unsafe interrupts to make a poor group appear safe.
+    # Recheck them after firmware or hardware changes and prove the iGPU-only
+    # desktop first. Never add an ACS override or unsafe interrupts to make a
+    # poor group appear safe.
     vfio = {
       enable = false;
       specialisationName = "windows-vfio";

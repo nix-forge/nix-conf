@@ -265,13 +265,13 @@ state together before adopting another manager.
 [libvirt domain model](https://libvirt.org/formatdomain.html),
 [existing virtualization review](workstation-virtualization-review-research.md).
 
-Two source details matter when judging newer alternatives. The shared kernel
-module declares XanMod, but the [host override](../hosts/nixos/desktop/local/hardware/platform.nix)
-selects upstream `linuxPackages_latest` and records a hardware failure that
-motivated the change. Keep that baseline until capture reliability is verified.
-Similarly, keep GNOME Keyring/GCR; oo7 would require validating more than the
-Secret Service API, including login unlock, browser integration, SSH agent, and
-PKCS#11 behavior. [XanMod scope](https://xanmod.org/),
+One source detail matters when judging newer alternatives. The shared kernel
+module selects XanMod. A former [host override](../hosts/nixos/desktop/local/hardware/platform.nix)
+selected upstream `linuxPackages_latest` for FireWire capture reliability; it
+was removed when that workflow was retired. Keep GNOME Keyring/GCR; oo7 would
+require validating more than the Secret Service API, including login unlock,
+browser integration, SSH agent, and PKCS#11 behavior.
+[XanMod scope](https://xanmod.org/),
 [oo7 components](https://github.com/linux-credentials/oo7),
 [local keyring contract](../modules/nixos/security/keyring.nix).
 
