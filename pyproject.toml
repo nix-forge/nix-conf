@@ -80,6 +80,10 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
+"fuzz/*.py" = [
+  # Fuzzer properties deliberately use assertions to signal a crash.
+  "assert",
+]
 "tests/macos/check_secure_files_release.py" = [
   # The CLI fixture drives an installed binary and reports assertions to Nix.
   "suspicious-subprocess-import",
