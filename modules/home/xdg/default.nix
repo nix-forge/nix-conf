@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
   inherit (config.home) homeDirectory;
 in
 {
@@ -24,18 +24,13 @@ in
       # on a future Home Manager upgrade.
       setSessionVariables = true;
       createDirectories = true;
-      extraConfig =
-        lib.optionalAttrs isDarwin {
-          # macOS tools and the Dock expose source work through Developer.
-          DEVELOPER = "${homeDirectory}/Developer";
-        }
-        // lib.optionalAttrs isLinux {
-          # xdg-user-dirs 0.20 standardizes this general project location.
-          PROJECTS = "${homeDirectory}/Projects";
-        }
-        // {
-          SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
-        };
+      # PROJECTS is a standard Home Manager user directory on both targets.
+      # Keep source checkouts in Developer and other projects in Projects.
+      projects = "${homeDirectory}/Projects";
+      extraConfig = {
+        DEVELOPER = "${homeDirectory}/Developer";
+        SCREENSHOTS = "${config.xdg.userDirs.pictures}/Screenshots";
+      };
       videos = lib.mkIf isDarwin (lib.mkDefault "${homeDirectory}/Movies");
       templates = lib.mkIf isDarwin (lib.mkDefault null);
     };
