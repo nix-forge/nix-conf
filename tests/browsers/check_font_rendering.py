@@ -659,6 +659,7 @@ body {{ margin:0; background:#000; color:#fff;
                 max(rgb) - min(rgb) > EMOJI_COLOR_SPREAD
                 and max(rgb) > EMOJI_VISIBLE_CHANNEL
                 for rgb in bitmap.get_flattened_data()
+                if isinstance(rgb, tuple)
             )
     finally:
         server.shutdown()
