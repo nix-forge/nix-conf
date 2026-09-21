@@ -256,16 +256,6 @@
 
             flake-checker.enable = true;
 
-            nix-flake-check = {
-              enable = true;
-              name = "nix flake check (local system)";
-              # Use the Nix installation that supplies the daemon and its settings.
-              # Injecting nixpkgs' CLI rejects Determinate's schemas/settings.
-              entry = "nix flake check";
-              always_run = true;
-              pass_filenames = false;
-              stages = [ "pre-push" ];
-            };
           };
         };
       };

@@ -51,7 +51,9 @@ to another task.
   store. Use the repository's sealed-secret integration and
   [secret-management guide](docs/secrets.md) for changes involving secrets.
 - Follow the [Nix function conventions](docs/nix-function-conventions.md) when
-  rendering templates or packaging Bash and Python helpers.
+  rendering templates or packaging Bash and Python helpers. Package local
+  commands with Nix and install them through the owning module instead of
+  placing executable files in `~/.local/bin`.
 
 ## Validation
 
@@ -64,15 +66,19 @@ Pull requests and merge groups run repository hooks, dependency review, CodeQL,
 flake-lock health, documentation checks, and the declared evaluation and build
 matrix. Run the focused check first, then the broader checks required by the
 changed area before requesting review.
+Keep common CI discovery and execution in `nix-forge/ci`; let this repository's
+workflow supply its own runners, check weights, and specialized steps. Avoid
+copying shared runners or repeating lists of check names in workflow code.
 
-Every major change to a reusable module, deployed example, public interface,
-security boundary, or recovery path must add or update an automated test. If an
-automated test is not practical, record the reason, manual evidence, and a
-follow-up plan in the pull request. Security and dependency findings follow
+Add or update automated tests when changing reusable behavior, a public
+interface, security boundary, or recovery path. Do not add tests that merely
+read back a chosen host or home setting; Nix evaluation already validates the
+assignment. Put genuine configuration invariants in the owning module's
+`assertions` block. Security and dependency findings follow
 the [dependency-management policy](docs/dependency-management.md).
 
 Choose the smallest check that exercises the changed behavior. Test observable
-configuration, generated output, or a command's public behavior; obtain expected
+module behavior, generated output, or a command's public behavior; obtain expected
 results from the requirement or an independent fixture. For a bug, show that the
 reproduction fails before the fix and passes after it. A successful evaluation
 does not prove a package builds or a running service behaves correctly.

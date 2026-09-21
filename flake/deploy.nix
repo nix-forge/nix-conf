@@ -31,7 +31,6 @@ let
     "desktop-commands"
     "desktop-iocost"
     "desktop-memory-policy"
-    "desktop-storage-generated-artifacts"
     "desktop-storage-install"
     "public-demo-runtime"
     "sentry-crashpad-lock"

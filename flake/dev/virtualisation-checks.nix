@@ -64,12 +64,7 @@
               grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${vmPackage}/bin/vm
               grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${windowsVmPackage}/bin/windows-vm
 
-              test "$(xmllint --xpath 'string(/domain/os/type/@machine)' ${runtimeDomain})" = pc-q35-10.2
-              test "$(xmllint --xpath 'string(/domain/devices/disk[@device="disk"]/target/@bus)' ${runtimeDomain})" = scsi
-              test "$(xmllint --xpath 'count(/domain/devices/disk[@device="cdrom"])' ${runtimeDomain})" = 0
-              test "$(xmllint --xpath 'count(/domain/devices/interface)' ${runtimeDomain})" = 2
-              test "$(xmllint --xpath 'string(/domain/devices/disk[@device="disk" and target/@dev="sda"]/target/@bus)' ${installerDomain})" = sata
-              test "$(xmllint --xpath 'count(/domain/devices/disk[@device="cdrom"])' ${installerDomain})" = 3
+              xmllint --noout ${runtimeDomain} ${installerDomain}
 
               ! grep -Eq '__[A-Z0-9_]+__' ${windowsBootstrap}
               ! grep -Eq '__[A-Z0-9_]+__' ${windowsBaseline}

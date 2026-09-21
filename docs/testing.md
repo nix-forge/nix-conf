@@ -99,6 +99,13 @@ evaluated host. Nix evaluation already checks that assignment. Test a module's
 merge or rejection rules beside the module, or test the generated file, command,
 unit, package, or runtime behavior that consumes the option.
 
+Keep configuration errors in the owning module's `assertions` block when an
+invalid combination would prevent correct or safe operation. A user's chosen
+value is not itself an error. Avoid CI checks for fixed values in rendered host
+files, especially when each configuration edit would require updating the check.
+Retain checks with an independent expected result, such as a failed invalid
+combination, a real command outcome, or a recovery transition.
+
 Prefer pytest functions, `tmp_path`, `monkeypatch`, and named parameter examples
 for new Python tests. Existing `unittest.TestCase` suites remain valid under
 pytest; converting assertion syntax alone adds no coverage. Mock an unavailable

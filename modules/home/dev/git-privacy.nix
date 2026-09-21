@@ -46,7 +46,13 @@ in
         assertion = lib.hasPrefix "/" cfg.policyFile;
         message = "Git email privacy needs an absolute runtime policy path.";
       }
+      {
+        assertion =
+          !(config.programs.git.settings.user ? email) && config.programs.git.settings.user.useConfigOnly;
+        message = "Git email privacy requires an encrypted identity and user.useConfigOnly.";
+      }
     ];
+    programs.git.settings.user.useConfigOnly = lib.mkDefault true;
     # Git runs configured hooks alongside ordinary repository hooks. No global
     # hooksPath, hook forwarding, or hook-installer changes are necessary.
     programs.git.settings.hook = {
