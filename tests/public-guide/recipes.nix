@@ -28,7 +28,7 @@ assert pkgs.lib.all (assertion: assertion.assertion) home.config.assertions;
 pkgs.runCommand "public-guide-recipes"
   {
     nativeBuildInputs = [
-      pkgs.git
+      pkgs.gitMinimal
       pkgs.fzf
       pkgs.fd
     ];
