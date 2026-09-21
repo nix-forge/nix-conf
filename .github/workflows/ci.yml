@@ -38,7 +38,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/discover-lockfiles@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -75,7 +75,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -91,19 +91,19 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/validate-workflows@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
       - name: Run repository hooks and publication checks
         uses: nix-forge/ci/actions/repository-checks@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/flake-checks@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -200,7 +200,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -219,7 +219,7 @@ jobs:
             echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
           } >>"${GITHUB_STEP_SUMMARY}"
       - name: Build assigned native CI checks
-        uses: nix-forge/ci/actions/flake-checks@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/flake-checks@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
@@ -306,7 +306,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -369,7 +369,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
           # Keep the large, opt-in package audit out of the shared cache. The
           # normal check and guide jobs are the safe cache benchmark surface.
@@ -479,4 +479,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
+        uses: nix-forge/ci/actions/queue-completion@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
