@@ -14,8 +14,12 @@ If a source archive or package becomes a supported release artifact, its
 release workflow must call the pinned
 `nix-forge/ci/.github/workflows/slsa-source-release.yml` reusable builder. The
 builder must create the exact bytes and provenance, while a protected publisher
-verifies the signer workflow before release. The builder commit and consumer
-verification command must be recorded in the release documentation.
+verifies the signer workflow before release. The publisher must attach the
+portable `*.intoto.jsonl` SLSA provenance bundle beside every release
+archive and verify it against the exact release bytes, source tag, and
+pinned builder before publishing the immutable release. The builder
+commit and consumer verification command must be recorded in the release
+documentation.
 
 See the [SLSA Build specification](https://slsa.dev/spec/v1.2/) and
 [GitHub's artifact-attestation guidance](https://docs.github.com/en/actions/concepts/security/artifact-attestations)
