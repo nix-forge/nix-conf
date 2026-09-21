@@ -46,6 +46,7 @@ diskoLib.testLib.makeDiskoTest {
   inherit pkgs;
   name = "desktop-encrypted-storage";
   disko-config = fixture;
+  efi = true;
   extraInstallerConfig.virtualisation.memorySize = 2048;
   extraSystemConfig = {
     _module.args = { inherit myLib; };
@@ -77,10 +78,16 @@ diskoLib.testLib.makeDiskoTest {
     environment.systemPackages = [ pkgs.e2fsprogs ];
   };
   postDisko = ''
+    # Restores happen before the first boot, so tmpfiles cannot be relied on
+    # to repair these permissions after the installer formats the disks.
+    for path in ["/mnt/home/.snapshots", "/mnt/srv/data/.snapshots", "/mnt/srv/data/work/.snapshots"]:
+        assert machine.succeed("stat -c '%u:%g:%a' " + path).strip() == "0:0:700"
     machine.succeed("install -d -m 700 /mnt/var/lib/desktop-storage/keys")
     machine.succeed("install -m 600 /tmp/secret.key /mnt/var/lib/desktop-storage/keys/data.key")
   '';
   extraTestScript = ''
+    machine.succeed("test -d /sys/firmware/efi && mountpoint -q /boot")
+    machine.fail("su -s /bin/sh ianmh -c 'ls /boot'")
     machine.wait_for_unit("desktop-data-ready.service")
     machine.succeed("cryptsetup isLuks --type luks2 /dev/disk/by-partlabel/NIXOS-CRYPTROOT")
     machine.succeed("cryptsetup isLuks --type luks2 /dev/disk/by-partlabel/NIXOS-CRYPTDATA")

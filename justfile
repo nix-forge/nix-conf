@@ -29,7 +29,7 @@ generated-checks:
 # Install and boot disposable disks, and exercise backup restoration.
 [group('Checks')]
 desktop-storage-check:
-    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#checks.x86_64-linux.desktop-storage-install"
+    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#packages.x86_64-linux.desktop-storage-install"
 
 # Build the proposed encrypted TPM-PIN system without changing deployment flags or activating it.
 [group('NixOS')]
