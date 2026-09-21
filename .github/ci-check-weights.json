@@ -9,9 +9,10 @@
     "local-control-database-validation": 8,
     "local-control-generated-activation": 8,
     "native-application-services": 4,
-    "nixos-configuration-desktop": 8,
+    "nixos-configuration-desktop": 16,
     "public-guide-recipes": 3,
     "python-tests": 6,
+    "secret-templates": 20,
     "sentry-crashpad-lock-lifecycle": 8,
     "template-configs": 4
   }
