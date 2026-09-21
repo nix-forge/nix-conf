@@ -54,6 +54,7 @@ in
     profiles.default = {
       id = 0;
       isDefault = true;
+      userContent = builtins.readFile ../shared/emoji-presentation.css;
       settings = profile.commonSettings // profile.scrolling.${scrolling};
       search = {
         force = true;

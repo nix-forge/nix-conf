@@ -1,0 +1,7 @@
+/* Follow Unicode's default presentation when a page leaves it unspecified.
+   Explicit emoji/text selectors and author CSS still take precedence. */
+@-moz-document url-prefix("http://"), url-prefix("https://") {
+  :root {
+    font-variant-emoji: unicode;
+  }
+}

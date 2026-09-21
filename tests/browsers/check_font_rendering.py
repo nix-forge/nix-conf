@@ -39,6 +39,10 @@ from selenium.webdriver.firefox.service import Service
 PIXEL_THRESHOLD = 100
 MIN_PAINTED_PIXELS = 4
 MAX_PRIVATE_USE_PIXEL_DIFFERENCE = 500
+MIN_EMOJI_COLORED_PIXELS = 100
+MAX_TEXT_COLORED_PIXELS = 10
+EMOJI_COLOR_SPREAD = 45
+EMOJI_VISIBLE_CHANNEL = 70
 # Representative legacy Apple private-use assignments carried by the provider.
 # Keep this broader than U+F8FF so a provider update cannot silently regress the
 # compatibility range while preserving the browser's normal named-family path.
@@ -604,6 +608,80 @@ body {{ background:#111; color:white; margin:20px; }}
     if failures:
         print(json.dumps(failures, indent=2))  # ruff: ignore[print] -- Diagnostic CLI output.
     return failed
+
+
+def check_emoji_presentation(driver: webdriver.Firefox, output: Path) -> bool:
+    """Verify Unicode emoji defaults without overriding explicit text choices.
+
+    Returns:
+        Whether the rendered presentation differs from the requested style.
+
+    """
+    samples = {
+        "emoji-default": ("😄", ""),
+        "text-default": ("☺", ""),
+        "requested-emoji": ("☺️", ""),
+        "requested-text": ("☺︎", ""),
+        "author-text": ("😄", "font-variant-emoji:text"),
+    }
+    rows = "".join(
+        f'<div id="{name}" class="sample" style="{style}">{glyph}</div>'
+        for name, (glyph, style) in samples.items()
+    )
+    html = f"""<!doctype html><meta charset="utf-8"><style>
+body {{ margin:0; background:#000; color:#fff;
+  font-family:'DejaVu Sans','Noto Color Emoji',sans-serif; }}
+.sample {{ font-size:64px; line-height:90px; width:150px; height:90px; }}
+</style>{rows}""".encode()
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html)
+
+        def log_message(self, format: str, *args: object) -> None:  # ruff: ignore[builtin-argument-shadowing] -- Match the standard-library override.
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        driver.set_window_size(320, 700)
+        driver.get(f"http://127.0.0.1:{server.server_port}/")
+        driver.execute_async_script("document.fonts.ready.then(() => arguments[0]())")
+        pixels = {}
+        for name in samples:
+            screenshot = driver.find_element("id", name).screenshot_as_png
+            bitmap = Image.open(io.BytesIO(screenshot)).convert("RGB")
+            pixels[name] = sum(
+                max(rgb) - min(rgb) > EMOJI_COLOR_SPREAD
+                and max(rgb) > EMOJI_VISIBLE_CHANNEL
+                for rgb in bitmap.get_flattened_data()
+            )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+    failures = [
+        name
+        for name in ("emoji-default", "requested-emoji")
+        if pixels[name] < MIN_EMOJI_COLORED_PIXELS
+    ] + [
+        name
+        for name in ("text-default", "requested-text", "author-text")
+        if pixels[name] > MAX_TEXT_COLORED_PIXELS
+    ]
+    (output / "emoji-presentation.json").write_text(
+        json.dumps({"colored_pixels": pixels, "failures": failures}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(  # ruff: ignore[print] -- The command reports the browser test verdict.
+        f"{'FAIL' if failures else 'PASS'}: Unicode emoji presentation and text overrides"
+    )
+    return bool(failures)
 
 
 def check_webfonts(driver: webdriver.Firefox, output: Path) -> bool:
@@ -1448,6 +1526,24 @@ def _wait_for_browser(browser: subprocess.Popen[bytes], port: int) -> None:
             time.sleep(0.1)
 
 
+def _write_browser_profile(
+    profile: Path, prefs: dict[str, object], user_content_css: Path | None
+) -> None:
+    """Write isolated Gecko preferences and optional content CSS."""
+    if user_content_css:
+        chrome = profile / "chrome"
+        chrome.mkdir()
+        (chrome / "userContent.css").write_text(
+            user_content_css.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    (profile / "user.js").write_text(
+        "\n".join(
+            f"user_pref({json.dumps(k)}, {json.dumps(v)});" for k, v in prefs.items()
+        ),
+        encoding="utf-8",
+    )
+
+
 def main(
     *,
     digit_check: Callable[[webdriver.Firefox, Path], bool] = check_digits,
@@ -1475,6 +1571,7 @@ def main(
             "apple-platform",
             "missing-named-stack",
             "compatibility",
+            "emoji-presentation",
             "webfonts",
         ],
         default="digits",
@@ -1489,6 +1586,7 @@ def main(
         help="Import a test uBlock filter list",
     )
     parser.add_argument("--generic-substitutions", type=int, default=127)
+    parser.add_argument("--user-content-css", type=Path)
     parser.add_argument(
         "--headed", action="store_true", help="Also exercise the desktop compositor"
     )
@@ -1511,15 +1609,10 @@ def main(
         "font.name.monospace.x-western": monospace_family,
         "layout.css.devPixelsPerPx": "1.0",
         "gfx.font_rendering.fontconfig.max_generic_substitutions": args.generic_substitutions,
+        "toolkit.legacyUserProfileCustomizations.stylesheets": True,
     }
     with tempfile.TemporaryDirectory(prefix="gecko-font-check-") as profile:
-        Path(profile, "user.js").write_text(
-            "\n".join(
-                f"user_pref({json.dumps(k)}, {json.dumps(v)});"
-                for k, v in prefs.items()
-            ),
-            encoding="utf-8",
-        )
+        _write_browser_profile(Path(profile), prefs, args.user_content_css)
         command = [
             args.browser,
             "-no-remote",
@@ -1557,6 +1650,7 @@ def main(
                     "apple-platform": check_apple_platform_namespace,
                     "missing-named-stack": check_missing_named_stack,
                     "compatibility": check_font_compatibility,
+                    "emoji-presentation": check_emoji_presentation,
                     "webfonts": check_webfonts,
                 }[args.suite]
                 return check(driver, args.output)
