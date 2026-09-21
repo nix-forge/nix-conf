@@ -3,7 +3,6 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14637/baseline)](https://www.bestpractices.dev/en/projects/14637/baseline-3)
 [![OpenSSF Developer Best Practices](https://www.bestpractices.dev/projects/14637/badge)](https://www.bestpractices.dev/en/projects/14637/passing)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nix-forge/nix-conf/badge)](https://scorecard.dev/viewer/?uri=github.com/nix-forge/nix-conf)
-[![SLSA status](https://img.shields.io/badge/SLSA-status-blue)](https://github.com/nix-forge/.github/blob/main/docs/slsa.md)
 
 Reusable NixOS, nix-darwin, and Home Manager configuration modules with a guide
 to building your own system. The repository also contains actively deployed
