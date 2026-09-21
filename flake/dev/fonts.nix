@@ -60,6 +60,7 @@
           pkgs.noto-fonts-cjk-sans
           pkgs.noto-fonts-cjk-serif
           pkgs.roboto
+          pkgs.dejavu_fonts
         ]
         ++ privateUseProviders
         ++ applePlatformProviders;
@@ -213,8 +214,8 @@
               export XDG_CONFIG_HOME="$TMPDIR/config"
               export XDG_DATA_HOME="$TMPDIR/data"
               mkdir -p "$out"
-              for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility; do
-                python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --output "$out/$suite"
+              for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility emoji-presentation; do
+                python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$out/$suite"
               done
             '';
         font-native =
@@ -283,8 +284,8 @@
               du -sb "$XDG_CACHE_HOME/fontconfig" | cut -f1 > "$output/fontconfig-cache-bytes.txt"
               if [[ "$#" -ge 2 ]]; then
                 browser=$(realpath "$2")
-                for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility; do
-                  python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser "$browser" --output "$output/$suite"
+                for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility emoji-presentation; do
+                  python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser "$browser" --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$output/$suite"
                 done
                 python -m zipfile -e ${personal.mutant-standard-emoji.compiledFont.src} "$XDG_CACHE_HOME/artwork"
                 python ${testSource}/tests/browsers/check_mutant_emoji.py --installed --font ${personal.mutant-standard-emoji}/share/fonts/truetype/MutantStandardEmoji.ttf --artwork "$XDG_CACHE_HOME/artwork/emoji" --browser "$browser" --output "$output/mutant"

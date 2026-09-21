@@ -10,6 +10,7 @@
         "browser.contentblocking.category" = "strict";
         "privacy.globalprivacycontrol.enabled" = true;
         "privacy.resistFingerprinting" = false;
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
 
         # Keep browser security services and their recovery paths intact.
         "browser.safebrowsing.downloads.remote.enabled" = true;

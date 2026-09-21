@@ -58,6 +58,7 @@ in
       id = 0;
       isDefault = true;
       name = "default";
+      userContent = lib.mkAfter (builtins.readFile ../shared/emoji-presentation.css);
       settings =
         profile.commonSettings
         // profile.scrolling.${scrolling}

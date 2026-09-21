@@ -101,6 +101,7 @@ in
       id = 1;
       isDefault = false;
       name = cfg.profileName;
+      userContent = lib.mkAfter (builtins.readFile ../shared/emoji-presentation.css);
       path = cfg.profilePath;
       settings =
         profile.commonSettings
