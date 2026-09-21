@@ -258,7 +258,8 @@ strict = true
 replace-imports-with-any = ["uharfbuzz"]
 # lxml.etree is also a compiled extension without shipped Python type stubs.
 # pyudev is installed only on Linux; Darwin still checks the shared Python tree.
-allowed-unresolved-imports = ["lxml.etree", "pyudev"]
+# Atheris is installed only in the fuzz job.
+allowed-unresolved-imports = ["atheris", "lxml.etree", "pyudev"]
 
 [tool.ty.environment]
 extra-paths = ["tests/fonts", "site"]
