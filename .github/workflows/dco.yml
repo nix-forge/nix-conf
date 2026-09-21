@@ -3,6 +3,9 @@ on:
   pull_request:
   merge_group:
     types: [checks_requested]
+  schedule:
+    - cron: '43 11 * * 0'
+  workflow_dispatch:
 permissions: {}
 concurrency:
   group: dco-${{ github.event.pull_request.number || github.ref }}
@@ -32,36 +35,74 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -n "$BASE_SHA"
-          test -n "$HEAD_SHA"
-          git cat-file -e "${BASE_SHA}^{commit}"
+          check_signoffs() {
+            test -n "$BASE_SHA"
+            test -n "$HEAD_SHA"
+            git cat-file -e "${BASE_SHA}^{commit}"
 
-          if ! git cat-file -e "${HEAD_SHA}^{commit}"; then
-            if [ "$EVENT_NAME" = pull_request ] && [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
-              git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
+            if ! git cat-file -e "${HEAD_SHA}^{commit}"; then
+              if [ "$EVENT_NAME" = pull_request ] && [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+                git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
+              fi
             fi
-          fi
-          git cat-file -e "${HEAD_SHA}^{commit}"
+            git cat-file -e "${HEAD_SHA}^{commit}"
 
-          commit_range="${BASE_SHA}..${HEAD_SHA}"
-          # GitHub's merge queue adds an unsigned synthetic tip commit. The
-          # commits it contains were already checked on the pull request; skip
-          # only that generated tip and continue checking every real commit.
-          if [ "$EVENT_NAME" = merge_group ]; then
-            commit_range="${BASE_SHA}..${HEAD_SHA}^"
-          fi
+            local commit_range="${BASE_SHA}..${HEAD_SHA}"
+            # GitHub's merge queue adds an unsigned synthetic tip commit. The
+            # commits it contains were already checked on the pull request; skip
+            # only that generated tip and continue checking every real commit.
+            if [ "$EVENT_NAME" = merge_group ]; then
+              commit_range="${BASE_SHA}..${HEAD_SHA}^"
+            fi
 
-          missing=()
-          while IFS= read -r commit; do
-            author=$(git show -s --format='%an <%ae>' "$commit")
-            if ! git show -s --format='%B' "$commit" | grep -Fqx "Signed-off-by: $author"; then
+            local missing=() commit author
+            while IFS= read -r commit; do
+              author=$(git show -s --format='%an <%ae>' "$commit")
+              if git show -s --format='%B' "$commit" | grep -Fqx "Signed-off-by: $author"; then
+                continue
+              fi
+
+              # Dependabot authors with its GitHub noreply identity but uses its
+              # support address in the DCO trailer.
+              if [ "$author" = 'dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>' ] &&
+                git show -s --format='%B' "$commit" | grep -Fqx 'Signed-off-by: dependabot[bot] <support@github.com>'; then
+                continue
+              fi
+
               missing+=("$commit $author")
-            fi
-          done < <(git rev-list --no-merges "$commit_range")
+            done < <(git rev-list --no-merges "$commit_range")
 
-          if [ "${#missing[@]}" -gt 0 ]; then
-            printf '%s\n' "Every commit must contain a Signed-off-by trailer matching its author."
-            printf 'Missing sign-off: %s\n' "${missing[@]}"
-            printf '%s\n' 'Use: git commit --signoff'
-            exit 1
+            if [ "${#missing[@]}" -gt 0 ]; then
+              printf '%s\n' 'Every commit must contain a valid Signed-off-by trailer for its author.'
+              printf 'Missing sign-off: %s\n' "${missing[@]}"
+              printf '%s\n' 'Use: git commit --signoff'
+              return 1
+            fi
+          }
+
+          if [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
+            fixture=$(mktemp -d)
+            trap 'rm -rf "$fixture"' EXIT
+            cd "$fixture"
+            git init -q
+            git config commit.gpgsign false
+            git -c user.name=Fixture -c user.email=fixture@example.invalid commit --allow-empty -qm base
+            BASE_SHA=$(git rev-parse HEAD)
+            git -c user.name='dependabot[bot]' -c user.email='49699333+dependabot[bot]@users.noreply.github.com' \
+              commit --allow-empty -qm $'bot update\n\nSigned-off-by: dependabot[bot] <support@github.com>'
+            git -c user.name=Fixture -c user.email=fixture@example.invalid \
+              commit --allow-empty -qm $'human update\n\nSigned-off-by: Fixture <fixture@example.invalid>'
+            HEAD_SHA=$(git rev-parse HEAD)
+            check_signoffs
+            BASE_SHA=$HEAD_SHA
+            git -c user.name='dependabot[bot]' -c user.email='49699333+dependabot[bot]@users.noreply.github.com' \
+              commit --allow-empty -qm $'bad trailer\n\nSigned-off-by: dependabot[bot] <wrong@example.invalid>'
+            HEAD_SHA=$(git rev-parse HEAD)
+            if check_signoffs; then
+              echo 'DCO fixture accepted an invalid Dependabot trailer' >&2
+              exit 1
+            fi
+            echo 'DCO fixture passed'
+          else
+            check_signoffs
           fi
