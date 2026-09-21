@@ -22,7 +22,7 @@ jobs:
       actions: read # Read workflow metadata for Actions analysis.
       contents: read
       security-events: write # Upload code scanning results.
-    uses: nix-forge/ci/.github/workflows/codeql.yml@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
+    uses: nix-forge/ci/.github/workflows/codeql.yml@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
     with:
       languages: ${{ matrix.language }}
   analyze:
@@ -49,4 +49,4 @@ jobs:
       actions: write # Dispatch trusted queue validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
+        uses: nix-forge/ci/actions/queue-completion@bb1b39a9082f72dc6c7ce596103ce7a5e4d29b01 # v2.8.0
