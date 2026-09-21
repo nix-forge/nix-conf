@@ -1,6 +1,8 @@
 name: Fuzz CRX extraction
 on:
   pull_request:
+  merge_group:
+    types: [checks_requested]
   schedule:
     - cron: '31 8 * * 1'
   workflow_dispatch:
