@@ -283,13 +283,20 @@ in
           (lib.mkIf isLinux (linuxShared {
             inherit pkgs;
           }))
+          (lib.mkIf (!isLinux) {
+            # Stylix's Fontconfig target is enabled by default on Home
+            # Manager. Darwin applications use Core Text, so do not leave
+            # role aliases configured for a disabled Fontconfig backend.
+            targets.fontconfig.enable = lib.mkForce false;
+          })
         ];
 
         appearance.palette = semanticPalette config;
 
-        # Home Manager writes its own Fontconfig configuration. Mirror the
-        # system policy here so user applications receive the same fallbacks.
-        fonts.fontconfig.defaultFonts = lib.mkIf config.stylix.enable (
+        # Home Manager writes its own Linux Fontconfig configuration. Mirror
+        # the system policy there; Darwin applications use Core Text and must
+        # retain the platform's native system-font and cascade behavior.
+        fonts.fontconfig.defaultFonts = lib.mkIf (isLinux && config.stylix.enable) (
           lib.mkForce (fontFallbacks config.stylix.fonts)
         );
       };

@@ -2,6 +2,18 @@
 _:
 let
   catalog = {
+    compatibility = {
+      # These are external CSS/platform protocol identifiers, not desktop
+      # roles. Keep them in one catalog so templates and tests do not copy
+      # compatibility names independently.
+      appleSystemFamily = "-apple-system";
+      blinkMacSystemFamily = "BlinkMacSystemFont";
+      appleColorEmojiFamily = "Apple Color Emoji";
+      appleSansPrefix = "SF ";
+      appleSerifPrefix = "New York";
+      appleHelveticaNeueFamily = "Helvetica Neue";
+      privateUseFallbackFamily = "Lucida Grande";
+    };
     roles = pkgs: {
       monospace = {
         package = pkgs.nerd-fonts.monaspace;
@@ -28,7 +40,7 @@ let
         "Noto Serif CJK HK"
         "Noto Serif CJK JP"
         "Noto Serif CJK KR"
-        "Noto Color Emoji"
+        fonts.emoji.name
       ];
       sansSerif = [
         fonts.sansSerif.name
@@ -37,7 +49,7 @@ let
         "Noto Sans CJK HK"
         "Noto Sans CJK JP"
         "Noto Sans CJK KR"
-        "Noto Color Emoji"
+        fonts.emoji.name
       ];
       monospace = [
         fonts.monospace.name
@@ -46,7 +58,7 @@ let
         "Noto Sans Mono CJK HK"
         "Noto Sans Mono CJK JP"
         "Noto Sans Mono CJK KR"
-        "Noto Color Emoji"
+        fonts.emoji.name
       ];
       emoji = [ fonts.emoji.name ];
     };

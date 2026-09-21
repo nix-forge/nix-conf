@@ -1,4 +1,10 @@
-{ inputs, lib, ... }: {
+{
+  inputs,
+  lib,
+  myLib,
+  ...
+}:
+{
   perSystem =
     {
       pkgs,
@@ -9,17 +15,54 @@
     let
       catalog = import ../../modules/shared/fonts/packages.nix { };
       roles = catalog.roles pkgs;
+      personal = inputs.self.packages.${system};
+      privateUseProviders = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+        personal.apple-fonts.assets.apple-asset-lucidagrande
+      ];
+      applePlatformProviders = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+        # Keep Apple protocol-family fixtures independent of the host profile.
+        personal.apple-fonts
+      ];
+      renderFontconfig = (import ../../modules/shared/fonts/fontconfig.nix).render;
+      fontRules = renderFontconfig {
+        inherit myLib pkgs;
+        fonts = roles;
+        fontPackages = core;
+      };
+      syntheticSans = "Synthetic Sans Role";
+      syntheticSerif = "Synthetic Serif Role";
+      syntheticMonospace = "Synthetic Monospace Role";
+      syntheticRules = renderFontconfig {
+        inherit myLib pkgs;
+        fonts = roles // {
+          sansSerif = roles.sansSerif // {
+            name = syntheticSans;
+          };
+          serif = roles.serif // {
+            name = syntheticSerif;
+          };
+          monospace = roles.monospace // {
+            name = syntheticMonospace;
+          };
+        };
+        fontPackages = core;
+      };
       python = pkgs.python3.withPackages (p: [
         p.fonttools
         p.uharfbuzz
         p.pillow
         p.selenium
       ]);
-      core = map (r: r.package) (builtins.attrValues roles) ++ [
-        pkgs.noto-fonts
-        pkgs.noto-fonts-cjk-sans
-        pkgs.noto-fonts-cjk-serif
-      ];
+      core =
+        map (r: r.package) (builtins.attrValues roles)
+        ++ [
+          pkgs.noto-fonts
+          pkgs.noto-fonts-cjk-sans
+          pkgs.noto-fonts-cjk-serif
+          pkgs.roboto
+        ]
+        ++ privateUseProviders
+        ++ applePlatformProviders;
       families = {
         sans-serif = "sansSerif";
         serif = "serif";
@@ -77,10 +120,11 @@
         impureFontDirectories = [ ];
         includes = [
           defaultRules
+          fontRules.cssGenericAlias
           policy
+          fontRules.privateUseFallback
         ];
       };
-      personal = inputs.self.packages.${system};
       fontPkgs = import inputs.nixpkgs {
         inherit system;
         config.allowUnfreePredicate =
@@ -90,16 +134,26 @@
             "joypixels"
           ];
       };
-      collection = catalog.select fontPkgs personal {
-        designLibrary = "full";
-        optionalEmoji.enable = true;
+      collection =
+        catalog.select fontPkgs personal {
+          designLibrary = "full";
+          optionalEmoji.enable = true;
+        }
+        ++ privateUseProviders
+        ++ applePlatformProviders;
+      collectionFontRules = renderFontconfig {
+        inherit myLib pkgs;
+        fonts = roles;
+        fontPackages = collection;
       };
       collectionConfig = makeFontsConf {
         fontDirectories = map (p: "${p}/share/fonts") collection;
         impureFontDirectories = [ ];
         includes = map (p: "${p}/etc/fonts/conf.d") collection ++ [
           defaultRules
+          collectionFontRules.cssGenericAlias
           policy
+          collectionFontRules.privateUseFallback
         ];
       };
       emojiData = pkgs.fetchurl {
@@ -116,6 +170,17 @@
     in
     {
       checks = {
+        fontconfig-renderer =
+          pkgs.runCommand "fontconfig-renderer" { nativeBuildInputs = [ pkgs.gnugrep ]; }
+            ''
+              grep -F -- ${lib.escapeShellArg syntheticSans} ${syntheticRules.cssGenericAlias} >/dev/null
+              grep -F -- ${lib.escapeShellArg syntheticSerif} ${syntheticRules.cssGenericAlias} >/dev/null
+              grep -F -- ${lib.escapeShellArg syntheticMonospace} ${syntheticRules.cssGenericAlias} >/dev/null
+              ! grep -F -- '@sansSerifFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
+              ! grep -F -- '@serifFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
+              ! grep -F -- '@monospaceFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
+              touch "$out"
+            '';
         font-selection =
           pkgs.runCommand "font-selection"
             {
@@ -148,7 +213,7 @@
               export XDG_CONFIG_HOME="$TMPDIR/config"
               export XDG_DATA_HOME="$TMPDIR/data"
               mkdir -p "$out"
-              for suite in digits multilingual; do
+              for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility; do
                 python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --output "$out/$suite"
               done
             '';
@@ -218,7 +283,7 @@
               du -sb "$XDG_CACHE_HOME/fontconfig" | cut -f1 > "$output/fontconfig-cache-bytes.txt"
               if [[ "$#" -ge 2 ]]; then
                 browser=$(realpath "$2")
-                for suite in digits multilingual; do
+                for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility; do
                   python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser "$browser" --output "$output/$suite"
                 done
                 python -m zipfile -e ${personal.mutant-standard-emoji.compiledFont.src} "$XDG_CACHE_HOME/artwork"

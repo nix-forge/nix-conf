@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+output=$1
+private_use_fallback=@privateUseFallbackFamily@
+apple_system=@appleSystemFamily@
+blink_mac_system=@blinkMacSystemFamily@
+apple_color_emoji=@appleColorEmojiFamily@
+apple_sans_prefix=@appleSansPrefix@
+apple_serif_prefix=@appleSerifPrefix@
+apple_helvetica_neue=@appleHelveticaNeueFamily@
+
+xml_escape() {
+  sed \
+    -e 's/&/\\&amp;/g' \
+    -e 's/</\\&lt;/g' \
+    -e 's/>/\\&gt;/g' \
+    -e 's/"/\\&quot;/g' \
+    -e "s/'/\\&apos;/g"
+}
+
+escaped_private_use_fallback=$(printf '%s' "$private_use_fallback" | xml_escape)
+
+printf '%s\n' \
+  '<?xml version="1.0"?>' \
+  '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">' \
+  '<fontconfig>' > "$output"
+
+for directory in @fontDirectories@; do
+  test -d "$directory" || continue
+  find "$directory" -type f -print0
+done \
+  | while IFS= read -r -d '' file; do
+      fc-scan --format='%{family[0]}\n' "$file" 2>/dev/null || true
+    done \
+  | sort -u \
+  | while IFS= read -r family; do
+      test -n "$family" || continue
+      case "$family" in
+        "$private_use_fallback" \
+        | "$apple_system" \
+        | "$apple_system"* \
+        | "$blink_mac_system" \
+        | "$apple_color_emoji" \
+        | "$apple_sans_prefix"* \
+        | "$apple_serif_prefix"* \
+        | "$apple_helvetica_neue" \
+        | sans-serif \
+        | serif \
+        | monospace \
+        | cursive \
+        | fantasy \
+        | emoji \
+        | math \
+        | fangsong \
+        | system \
+        | system-ui \
+        | ui-serif \
+        | ui-sans-serif \
+        | ui-monospace \
+        | ui-rounded \
+        | ui)
+          continue
+          ;;
+      esac
+      escaped_family=$(printf '%s' "$family" | xml_escape)
+      printf '%s\n' \
+        '  <match target="pattern">' \
+        '    <test qual="first" name="family" compare="eq">' \
+        "      <string>$escaped_family</string>" \
+        '    </test>' \
+        '    <edit name="family" mode="append" binding="weak">' \
+        "      <string>$escaped_private_use_fallback</string>" \
+        '    </edit>' \
+        '  </match>' >> "$output"
+    done
+
+printf '%s\n' '</fontconfig>' >> "$output"
