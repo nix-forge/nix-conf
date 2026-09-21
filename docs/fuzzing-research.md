@@ -24,6 +24,23 @@ supports Python and Rust and provides PR fuzzing, longer batch runs, corpora,
 and coverage reports. It adds a container build and more CI setup than these
 small Python targets need.
 
+## CI ownership
+
+The six Atheris workflows used to repeat Python setup, the dependency install,
+campaign limits, and crash artifact handling. The shared
+[`fuzz-atheris` action](https://github.com/nix-forge/ci/tree/main/actions/fuzz-atheris)
+in `nix-forge/ci` now owns those steps. Each repository keeps its own target,
+triggers, runner, permissions, and required check name. The framework also keeps
+its Nix setup and longer per-input timeout; two targets select Python 3.14.
+Keeping these jobs local avoids changing branch protection check names when the
+shared implementation changes. Callers pin the action to one reviewed commit,
+along with their other general shared CI references.
+
+`nix-seal` has one Rust-specific smoke job that installs `cargo-fuzz` and invokes
+its own target selector. There is no repeated Rust setup across repositories to
+extract. The `.github` repository still has no useful fuzz target or campaign to
+centralize.
+
 ## Repository assessment
 
 The baseline is the OpenSSF Scorecard API result retrieved on 2026-09-21.

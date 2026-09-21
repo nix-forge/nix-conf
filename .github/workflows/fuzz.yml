@@ -21,19 +21,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install Atheris
-        run: |
-          python3 -m venv "$RUNNER_TEMP/fuzz-venv"
-          "$RUNNER_TEMP/fuzz-venv/bin/pip" install atheris==3.1.0
-      - name: Fuzz CRX headers and payload extraction
-        run: |
-          mkdir -p "$RUNNER_TEMP/fuzz-crashes"
-          "$RUNNER_TEMP/fuzz-venv/bin/python" fuzz/crx_fuzzer.py -max_total_time=180 -timeout=10 -artifact_prefix="$RUNNER_TEMP/fuzz-crashes/"
-      - name: Save crashing inputs
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: nix-forge/ci/actions/fuzz-atheris@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0-compatible fuzz action
         with:
-          name: fuzz-crashes
-          path: ${{ runner.temp }}/fuzz-crashes/
-          if-no-files-found: ignore
-          retention-days: 7
+          target: fuzz/crx_fuzzer.py
