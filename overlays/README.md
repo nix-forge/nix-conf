@@ -122,11 +122,10 @@ the next release number is not yet announced. This cutoff assumes subsequent
 releases include that correction. The inactive patch files can be deleted
 during later maintenance; evaluation does not modify the checkout.
 
-The existing PrismLauncher release override is limited to `[11.0.3, 11.1.0)`.
-That is the currently supported incoming range for the already selected 11.1.0
-source, not a claim that every older PrismLauncher release is broken. Its Darwin
-watch-test patch has a separate lifecycle. The other migrated workarounds have
-no confirmed fixed release recorded, so they use revision review triggers.
+Nixpkgs now provides PrismLauncher 11.1.0, so the release override has been
+retired. Its Darwin watch-test patch has a separate lifecycle. The other
+workarounds have no confirmed fixed release recorded, so they use revision
+review triggers.
 
 These triggers are conservative. An input change means review is required; it
 does not prove the bug is fixed. Keeping the revision guard alongside a version

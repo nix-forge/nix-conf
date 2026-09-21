@@ -1,8 +1,8 @@
 { lib, ... }: {
   reason = "Determinate's NixOS module must receive its Nix input with the temporary Sentry report-lock repair.";
-  upstream = "https://github.com/DeterminateSystems/determinate/blob/cb76ac22754f6b36c008a3c39477c174a146dd6b/modules/nixos.nix";
+  upstream = "https://github.com/DeterminateSystems/determinate/blob/35e914102d4992b10bac4c12e94ec606d109633d/modules/nixos.nix";
   removal = "Determinate's unmodified Nix input passes the Sentry report-lock checks; retire the module replacement in overlays/inputs.nix.";
-  reviewedRevision = "cb76ac22754f6b36c008a3c39477c174a146dd6b";
+  reviewedRevision = "35e914102d4992b10bac4c12e94ec606d109633d";
   inputPath = [ "determinate" ];
   apply =
     determinate:

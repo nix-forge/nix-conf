@@ -2,8 +2,11 @@
 let
   fixes = import ./temporary { inherit inputs pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux system;
-  release = fixes.apply "prismlauncher-release" pkgs.prismlauncher-unwrapped;
-  prismUnwrapped = if isDarwin then fixes.apply "prismlauncher-darwin-tests" release else release;
+  prismUnwrapped =
+    if isDarwin then
+      fixes.apply "prismlauncher-darwin-tests" pkgs.prismlauncher-unwrapped
+    else
+      pkgs.prismlauncher-unwrapped;
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
   swiftPackages = pkgs.swiftPackages // {
@@ -19,7 +22,6 @@ in
 {
   nix-output-monitor = nom;
   inherit nh;
-  navidrome = fixes.apply "navidrome-release" pkgs.navidrome;
   navidromePlugins = pkgs.navidromePlugins.extend (
     _final: prev: {
       audiomuseai = fixes.apply "audiomuseai-plugin-loopback-host" (

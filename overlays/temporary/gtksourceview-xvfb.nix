@@ -2,7 +2,7 @@
   reason = "Xvfb resets between GTK test clients and races the next client.";
   upstream = "https://github.com/NixOS/nixpkgs";
   removal = "The upstream check keeps Xvfb alive between test clients.";
-  reviewedRevision = "8ce4ef6cb6f871616146b9fe26d2a5ae594e94fe";
+  reviewedRevision = "b1b875982b17dabde9b4a37f3e229e74913e6db3";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

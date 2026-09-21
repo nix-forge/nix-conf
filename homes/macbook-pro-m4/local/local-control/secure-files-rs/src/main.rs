@@ -85,7 +85,7 @@ fn run_exec_files(path: &Path, rest: &[String]) -> Result<i32, String> {
         return Ok(usage());
     }
     let mut mappings = Vec::new();
-    for specification in specifications.chunks_exact(3) {
+    for specification in specifications.as_chunks::<3>().0 {
         let access = specification[0]
             .strip_prefix("--")
             .filter(|access| matches!(*access, "create" | "update" | "read"))

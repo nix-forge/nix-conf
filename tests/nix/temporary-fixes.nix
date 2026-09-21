@@ -53,7 +53,6 @@ let
       };
     };
   };
-  release = fixes.apply "prismlauncher-release" pkgs.prismlauncher-unwrapped;
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -65,15 +64,6 @@ let
   # The generated Haskell package keeps its exposed version outside
   # overrideAttrs, so merge the fixture version at the package boundary.
   nomAt = version: pkgs.nix-output-monitor // { inherit version; };
-  navidromeAt =
-    version:
-    pkgs.navidrome.overrideAttrs (previousAttrs: {
-      inherit version;
-      __intentionallyOverridingVersion = true;
-      meta = (previousAttrs.meta or { }) // {
-        broken = false;
-      };
-    });
   audiomuseaiPluginAt =
     version:
     pkgs.navidromePlugins.audiomuseai.overrideAttrs {
@@ -91,11 +81,9 @@ let
       };
     };
   };
-  navidromeFixed = navidromeAt "0.64.0";
   audiomuseaiPluginFixed = audiomuseaiPluginAt "10";
   musicDiscoveryUpdated = import ../../overlays/temporary {
     pkgs = pkgs // {
-      navidrome = navidromeFixed;
       navidromePlugins = pkgs.navidromePlugins // {
         audiomuseai = audiomuseaiPluginFixed;
       };
@@ -231,29 +219,17 @@ assert
     && selected.swift.drvPath != pkgs.swift.drvPath
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
-# A fix that changes the output version still checks the incoming version.
-assert release.version == "11.1.0";
+assert selected.prismlauncher.version == "11.1.0";
 assert selected.navidrome.version == "0.64.0";
 assert selected.navidromePlugins.audiomuseai.version == "10";
-assert (fixes.apply "navidrome-release" navidromeFixed).drvPath == navidromeFixed.drvPath;
 assert
   (fixes.apply "audiomuseai-plugin-release" audiomuseaiPluginFixed).drvPath
   == audiomuseaiPluginFixed.drvPath;
 assert
   (fixes.apply "audiomuseai-plugin-loopback-host" audiomuseaiPluginFixed).drvPath
   != audiomuseaiPluginFixed.drvPath;
-assert succeeds musicDiscoveryUpdated.review.navidrome-release;
 assert succeeds musicDiscoveryUpdated.review.audiomuseai-plugin-release;
 assert !(succeeds musicDiscoveryUpdated.review.audiomuseai-plugin-loopback-host);
-assert
-  !(succeeds
-    (fixes.apply "prismlauncher-release" (
-      pkgs.prismlauncher-unwrapped.overrideAttrs {
-        version = "11.1.0";
-        __intentionallyOverridingVersion = true;
-      }
-    )).drvPath
-  );
 builtins.deepSeq fixes.review (
   builtins.deepSeq derivations {
     registry = fixes.review;

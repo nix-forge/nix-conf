@@ -15,14 +15,12 @@ let
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
-    navidrome-release = ./navidrome-release.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
     nh-darwin-home = ./nh-darwin-home.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
-    prismlauncher-release = ./prismlauncher-release.nix;
     sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     stylix-nvf = ./stylix-nvf.nix;
     swift-wrapper-hardening = ./swift-wrapper-hardening.nix;
