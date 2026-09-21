@@ -1,0 +1,18 @@
+{
+  "default": 1,
+  "weights": {
+    "clamav-special-files": 4,
+    "darwin-configuration-macbook-pro-m4": 8,
+    "finder-favorites-swift": 4,
+    "font-browser": 4,
+    "font-native": 4,
+    "local-control-database-validation": 8,
+    "local-control-generated-activation": 8,
+    "native-application-services": 4,
+    "nixos-configuration-desktop": 8,
+    "public-guide-recipes": 3,
+    "python-tests": 6,
+    "sentry-crashpad-lock-lifecycle": 8,
+    "template-configs": 4
+  }
+}

@@ -76,7 +76,7 @@
               # Cover every Python-bearing top-level source tree, including the
               # MacBook local-control resolver and its unittest fixture. Bytecode
               # is redirected outside the source tree above.
-              python3 -m compileall -q homes modules scripts tests pkgs
+              python3 -m compileall -q homes modules scripts tests pkgs .github/scripts
 
               touch "$out"
             '';

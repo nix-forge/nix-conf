@@ -162,6 +162,26 @@ strict = true
   "subprocess-without-shell-equals-true",
   "start-process-with-partial-path",
 ]
+".github/scripts/run-flake-checks.py" = [
+  # This CI entrypoint intentionally orchestrates fixed Git and Nix executables
+  # and emits GitHub workflow-group commands while continuing independent checks.
+  "complex-structure",
+  "print",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "suspicious-subprocess-import",
+  "start-process-with-partial-path",
+  "subprocess-without-shell-equals-true",
+  "too-many-arguments",
+  "too-many-branches",
+]
+".github/scripts/ci_partitioning.py" = [
+  # Validation failures include the offending check name to make a bad manual
+  # weight file or matrix immediately diagnosable in the CI log.
+  "f-string-in-exception",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+]
 # Migration and rollback tests use disposable fixtures.
 "tests/secrets/test_secret_templates.py" = [
   "pytest-unittest-assertion",

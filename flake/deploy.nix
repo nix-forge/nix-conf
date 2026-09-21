@@ -7,19 +7,23 @@ let
   # evaluation with a different runCommand shell.
   oncePerRevision = [
     "cache-policy"
+    "git-email-privacy"
     "platform-contracts"
+    "secret-templates"
     "temporary-package-fixes"
   ];
-  # The Python suite has operating-system-specific behavior, but repeating the
-  # same Linux suite on a second CPU architecture only duplicates test work.
+  # Python behavior tests are platform-independent and do not need to run on
+  # both Linux architectures. Keep one Linux copy and retain the Darwin copy
+  # so the separate native environment still exercises the shared test tree.
   linuxOncePerRevision = [ "python-tests" ];
   # This link farm is a local convenience target over checks that CI builds by
   # name. Evaluating it in CI duplicates the slowest part of check discovery.
   aggregateChecks = [ "generated-artifacts" ];
-  # These checks validate the concrete desktop workstation or create NixOS VM
-  # closures. Generic hosted runners are the wrong owner: run them on the
-  # desktop with the dedicated validation recipes or build the check explicitly
-  # when changing the corresponding subsystem.
+  # These checks validate the concrete desktop workstation, run VM-backed
+  # integration tests, or build large workstation closures. Generic hosted
+  # runners are the wrong owner: run them on the desktop with the dedicated
+  # validation recipes or build the check explicitly when changing the
+  # corresponding subsystem.
   hostedRunnerExclusions = [
     "application-recovery"
     "clamav-runtime"

@@ -48,7 +48,8 @@ def load_renderer() -> ModuleType:
 RENDERER = load_renderer()
 
 
-@settings(max_examples=80, derandomize=True, database=None)
+# Rendering creates temporary files; runner I/O scheduling is not a property of the XML.
+@settings(max_examples=80, derandomize=True, database=None, deadline=None)
 @given(
     st.text(alphabet=st.characters(min_codepoint=33, max_codepoint=126), max_size=80)
 )

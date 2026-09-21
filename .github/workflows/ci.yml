@@ -5,11 +5,16 @@ on:
   workflow_dispatch:
     inputs:
       base_sha:
-        description: Base commit for native comparison workflows.
+        description: Base commit for native package comparison.
         required: false
         type: string
       build_native_packages:
-        description: Build package outputs already owned by their source repositories.
+        description: Build changed native packages in the explicit package audit.
+        required: false
+        default: false
+        type: boolean
+      use_nix_cache:
+        description: Enable the bounded GitHub Nix store cache for a manual benchmark.
         required: false
         default: false
         type: boolean
@@ -33,7 +38,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/discover-lockfiles@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -70,7 +75,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -86,22 +91,23 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/setup-nix@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/validate-workflows@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/repository-checks@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/flake-checks@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
           system: x86_64-linux
           checks-output: lintChecks
+          cores: 4
       - name: Test native package selection
         run: nix develop .#tests --command python3 -m pytest -m nix_daemon tests/ci
       - name: Run submodule hooks
@@ -113,8 +119,7 @@ jobs:
     name: Flake checks (${{ matrix.label }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    # Host-bound assurance checks run explicitly on the desktop instead.
-    timeout-minutes: 60
+    timeout-minutes: 45
     permissions:
       contents: read
     strategy:
@@ -122,58 +127,69 @@ jobs:
       matrix:
         include:
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 1/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 0
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 2/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 1
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 3/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 2
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 4/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 3
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 5/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 4
           - system: x86_64-linux
-            runner: ubuntu-24.04
             label: x86_64-linux 6/6
+            runner: ubuntu-24.04
+            build-cores: 4
             partition-count: 6
             partition-index: 5
           - system: aarch64-linux
-            runner: ubuntu-24.04-arm
             label: aarch64-linux 1/4
+            runner: ubuntu-24.04-arm
+            build-cores: 4
             partition-count: 4
             partition-index: 0
           - system: aarch64-linux
-            runner: ubuntu-24.04-arm
             label: aarch64-linux 2/4
+            runner: ubuntu-24.04-arm
+            build-cores: 4
             partition-count: 4
             partition-index: 1
           - system: aarch64-linux
-            runner: ubuntu-24.04-arm
             label: aarch64-linux 3/4
+            runner: ubuntu-24.04-arm
+            build-cores: 4
             partition-count: 4
             partition-index: 2
           - system: aarch64-linux
-            runner: ubuntu-24.04-arm
             label: aarch64-linux 4/4
+            runner: ubuntu-24.04-arm
+            build-cores: 4
             partition-count: 4
             partition-index: 3
           - system: aarch64-darwin
-            runner: macos-26
             label: aarch64-darwin
+            runner: macos-26
+            build-cores: 3
             partition-count: 1
             partition-index: 0
     steps:
@@ -183,84 +199,105 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        id: nix-setup
+        uses: nix-forge/ci/actions/setup-nix@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
-          cache: 'false'
-          cache-scope: ci-flake
-      - name: Build every declared native CI check
-        uses: nix-forge/ci/actions/flake-checks@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+          cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
+          cache-scope: ci-${{ matrix.system }}
+      - name: Record runner resource policy
+        env:
+          BUILD_CORES: ${{ matrix.build-cores }}
+          CACHE_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true
+            }}
+          CACHE_HIT: ${{ steps.nix-setup.outputs.cache-hit }}
+        run: |
+          {
+            echo '### Nix resource policy'
+            echo "Build cores per active check: ${BUILD_CORES}"
+            echo 'Nix jobs per runner: 1'
+            echo "GitHub Nix cache requested: ${CACHE_REQUESTED}"
+            echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
+          } >>"${GITHUB_STEP_SUMMARY}"
+      - name: Build assigned native CI checks
+        uses: nix-forge/ci/actions/flake-checks@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
+          cores: ${{ matrix.build-cores }}
           partition-count: ${{ matrix.partition-count }}
           partition-index: ${{ matrix.partition-index }}
-      - name: Check extracted public templates and module consumers
-        if: matrix.partition-index == 0
-        env:
-          GUIDE_SYSTEM: ${{ matrix.system }}
-        run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM"
+          weights-file: .github/ci-check-weights.json
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash
         run: |
           selection=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.font-selection)
           xcrun swift tests/fonts/check_coretext.swift "$selection/selection.json"
-  native:
-    name: Native packages (${{ matrix.label }})
-    # Root packages mostly re-export subrepository outputs. Their source repos
-    # own routine native builds; opt in here only when auditing the root lock
-    # context explicitly. Root integration checks remain required below.
-    if: github.event_name == 'workflow_dispatch' && inputs.build_native_packages
+  guide-changes:
+    name: Discover public guide changes
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
+            }}
+        run: |
+          if [[ -z "$BASE_SHA" ]] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE_SHA" HEAD -- \
+            .github/workflows/ci.yml flake.nix flake.lock flake \
+            templates tests/public-guide modules lib scripts homes hosts \
+            nix-config-framework nix-homelab nix-seal pkgs; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+  public-guide:
+    name: Public guide (${{ matrix.system }}, ${{ matrix.scenario }})
+    needs: [guide-changes]
+    if: needs.guide-changes.outputs.changed == 'true'
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
+        system: [x86_64-linux, aarch64-linux, aarch64-darwin]
+        scenario: [templates, vm, interfaces, all]
+        exclude:
+          - system: x86_64-linux
+            scenario: all
+          - system: aarch64-linux
+            scenario: vm
+          - system: aarch64-linux
+            scenario: all
+          - system: aarch64-darwin
+            scenario: templates
+          - system: aarch64-darwin
+            scenario: vm
+          - system: aarch64-darwin
+            scenario: interfaces
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
-            label: x86_64-linux 1/4
-            artifact: x86_64-linux-1-of-4
-            partition-count: 4
-            partition-index: 0
-          - system: x86_64-linux
-            runner: ubuntu-24.04
-            label: x86_64-linux 2/4
-            artifact: x86_64-linux-2-of-4
-            partition-count: 4
-            partition-index: 1
-          - system: x86_64-linux
-            runner: ubuntu-24.04
-            label: x86_64-linux 3/4
-            artifact: x86_64-linux-3-of-4
-            partition-count: 4
-            partition-index: 2
-          - system: x86_64-linux
-            runner: ubuntu-24.04
-            label: x86_64-linux 4/4
-            artifact: x86_64-linux-4-of-4
-            partition-count: 4
-            partition-index: 3
+            build-cores: 4
           - system: aarch64-linux
             runner: ubuntu-24.04-arm
-            label: aarch64-linux 1/2
-            artifact: aarch64-linux-1-of-2
-            partition-count: 2
-            partition-index: 0
-          - system: aarch64-linux
-            runner: ubuntu-24.04-arm
-            label: aarch64-linux 2/2
-            artifact: aarch64-linux-2-of-2
-            partition-count: 2
-            partition-index: 1
+            build-cores: 4
           - system: aarch64-darwin
             runner: macos-26
-            label: aarch64-darwin
-            artifact: aarch64-darwin
-            partition-count: 1
-            partition-index: 0
+            build-cores: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -268,37 +305,98 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        id: nix-setup
+        uses: nix-forge/ci/actions/setup-nix@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
         with:
+          cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
+          cache-scope: ci-${{ matrix.system }}
+      - name: Check extracted public templates and module consumers
+        env:
+          GUIDE_SYSTEM: ${{ matrix.system }}
+          GUIDE_SCENARIO: ${{ matrix.scenario }}
+          PUBLIC_GUIDE_BUILD_CORES: ${{ matrix.build-cores }}
+        run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM" "$GUIDE_SCENARIO"
+  native:
+    name: Native packages (${{ matrix.label }})
+    if: github.event_name == 'workflow_dispatch' && inputs.build_native_packages == true
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            label: x86_64-linux 1/4
+            runner: ubuntu-24.04
+            package-count: 4
+            package-index: 0
+          - system: x86_64-linux
+            label: x86_64-linux 2/4
+            runner: ubuntu-24.04
+            package-count: 4
+            package-index: 1
+          - system: x86_64-linux
+            label: x86_64-linux 3/4
+            runner: ubuntu-24.04
+            package-count: 4
+            package-index: 2
+          - system: x86_64-linux
+            label: x86_64-linux 4/4
+            runner: ubuntu-24.04
+            package-count: 4
+            package-index: 3
+          - system: aarch64-linux
+            label: aarch64-linux 1/2
+            runner: ubuntu-24.04-arm
+            package-count: 2
+            package-index: 0
+          - system: aarch64-linux
+            label: aarch64-linux 2/2
+            runner: ubuntu-24.04-arm
+            package-count: 2
+            package-index: 1
+          - system: aarch64-darwin
+            label: aarch64-darwin
+            runner: macos-26
+            package-count: 1
+            package-index: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Nix
+        uses: nix-forge/ci/actions/setup-nix@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
+        with:
+          # Keep the large, opt-in package audit out of the shared cache. The
+          # normal check and guide jobs are the safe cache benchmark surface.
           cache: 'false'
-          cache-scope: ci-native
-      - name: Build changed native Nix outputs
+          cache-scope: ci-native-${{ matrix.system }}
+      - name: Build changed native packages
         id: native-build
         shell: bash
         env:
           TARGET_SYSTEM: ${{ matrix.system }}
-          PARTITION_COUNT: ${{ matrix.partition-count }}
-          PARTITION_INDEX: ${{ matrix.partition-index }}
-          PARTITION_LABEL: ${{ matrix.label }}
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha
             }}
+          PACKAGE_COUNT: ${{ matrix.package-count }}
+          PACKAGE_INDEX: ${{ matrix.package-index }}
         run: |
           set -euo pipefail
-          build_log="${RUNNER_TEMP}/nix-build-${TARGET_SYSTEM}-${PARTITION_INDEX}.log"
+          build_log="${RUNNER_TEMP}/nix-build-${TARGET_SYSTEM}-${PACKAGE_INDEX}.log"
 
           if [ "${TARGET_SYSTEM}" = "aarch64-darwin" ]; then
             selected=$(bash .github/scripts/select-native-packages.sh nix-seal remindctl)
           else
             selected=$(bash .github/scripts/select-native-packages.sh)
           fi
-          selected=$(jq \
-            --argjson count "$PARTITION_COUNT" \
-            --argjson index "$PARTITION_INDEX" \
-            'sort | to_entries | map(select((.key % $count) == $index) | .value)' \
-            <<<"$selected")
-          selected_lines=$(jq -r '.[]' <<<"$selected")
+          selected_lines=$(jq -r --argjson count "$PACKAGE_COUNT" --argjson index "$PACKAGE_INDEX" \
+            'to_entries[] | select(.key % $count == $index) | .value' <<<"$selected")
           if [[ -z $selected_lines ]]; then
-            echo "No eligible native package derivations changed in ${PARTITION_LABEL}."
+            echo 'No eligible native package derivations in this package shard.'
             exit 0
           fi
           build_attrs=()
@@ -328,18 +426,17 @@ jobs:
             tail -n 200 "${build_log}"
             exit "${build_status}"
           fi
-
           tail -n 40 "${build_log}"
       - name: Upload native Nix build log
         if: always() && steps.native-build.outcome == 'failure'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: nix-build-log-${{ matrix.artifact }}
-          path: ${{ runner.temp }}/nix-build-${{ matrix.system }}-${{ matrix.partition-index }}.log
+          name: nix-build-log-${{ matrix.system }}-${{ matrix.package-index }}
+          path: ${{ runner.temp }}/nix-build-${{ matrix.system }}-${{ matrix.package-index }}.log
           if-no-files-found: error
   tests:
     name: Repository tests
-    needs: [flake, native]
+    needs: [flake, guide-changes, public-guide, native]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -348,20 +445,38 @@ jobs:
       - name: Require the Nix test matrix to pass
         env:
           FLAKE_RESULT: ${{ needs.flake.result }}
+          GUIDE_CHANGED: ${{ needs.guide-changes.outputs.changed }}
+          GUIDE_RESULT: ${{ needs.public-guide.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
         run: |
           test "$FLAKE_RESULT" = success
+          if [[ "$GUIDE_CHANGED" == true ]]; then
+            test "$GUIDE_RESULT" = success
+          else
+            test "$GUIDE_CHANGED" = false
+            test "$GUIDE_RESULT" = skipped
+          fi
           test "$NATIVE_RESULT" = success || test "$NATIVE_RESULT" = skipped
   queue-completion:
     continue-on-error: true
     name: Queue completion callback
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
       github.event.repository.default_branch))
-    needs: [lock-health, discover, legacy-secret-manager-symbols, flake-lock, lint, flake, native, tests]
+    needs:
+      - lock-health
+      - discover
+      - legacy-secret-manager-symbols
+      - flake-lock
+      - lint
+      - flake
+      - guide-changes
+      - public-guide
+      - native
+      - tests
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@b5ec655589b52df24c9b38d20a6b4bf364ec35cc # v2.5.4
+        uses: nix-forge/ci/actions/queue-completion@25b3d6365ebf21ef7b5402874f29f91eb36f170b # v2.7.0
