@@ -9,8 +9,8 @@ templates, Windows bootstrap code, and runtime helpers in the three submodules.
 | --- | --- | --- |
 | [Bluetooth startup policy](../modules/nixos/hardware/scripts/disable-bluetooth-pairing.py) | Up to 100 separate property probes per adapter, spaced 100 ms apart | One connection subscribes to adapter-added signals before taking an ObjectManager snapshot. It sets pairing policy once per adapter and bounds the entire operation. |
 | [Workload queue](../homes/desktop/local/wait-workstation-cgroup.py) | A systemd query and sleep every 200 ms after the main command exits | Blocking cgroup populated notifications retain the queue until descendants finish. |
-| [MiniDV capture](../hosts/nixos/desktop/minidv/minidv-supervise.py) | A sysfs scan and several subprocesses each second; repeated child-exit probes during cancellation | A udev subscription, child pidfd, and signal descriptor share one blocking selector. Deadlines apply only during shutdown escalation. |
-| [MiniDV finalization](../hosts/nixos/desktop/minidv/minidv-finalize.sh) | Two identical ffprobe invocations | One stream snapshot supplies both codec and audio checks. |
+| MiniDV capture, since retired | A sysfs scan and several subprocesses each second; repeated child-exit probes during cancellation | A udev subscription, child pidfd, and signal descriptor shared one blocking selector. Deadlines applied only during shutdown escalation. |
+| MiniDV finalization, since retired | Two identical ffprobe invocations | One stream snapshot supplied both codec and audio checks. |
 | Karakeep launchd wrapper | A Compose stack kept a Linux VM and three containers alive on macOS | Removed. The reusable homelab module now runs the source-built Nixpkgs package, Meilisearch and Chromium as bounded NixOS services. |
 | [nix-seal subprocesses](../nix-seal/crates/nix-seal-runtime/src/child.rs) | Four child-status loops waking every 10 to 25 ms | One blocking observer per active child, with condition-variable deadlines and serialized cancellation/reaping. No dependency was added. |
 | [Git privacy inspection](../modules/home/dev/scripts/git-privacy-hook.py) | Full-buffer lowercasing for every blocked pattern | Normalize once per chunk, retaining case-insensitive matching. |
@@ -20,11 +20,11 @@ signals. Subscribing before the snapshot closes the registration race.
 [BlueZ API guide](https://www.bluez.org/bluez-5-api-introduction-and-porting-guide/),
 [D-Bus ObjectManager contract](https://dbus.freedesktop.org/doc/dbus-specification.html#standard-interfaces-objectmanager).
 
-Linux cgroup notifications describe whether any descendants remain. MiniDV uses
-udev's selectable monitor and a pidfd for its own child. The Rust observer uses
-`waitid` with `WNOWAIT` so normal observation does not release the PID before
-cancellation has finished. Reported loss of child ownership fails without
-signalling that numeric PID.
+Linux cgroup notifications describe whether any descendants remain. The retired
+MiniDV capture used udev's selectable monitor and a pidfd for its own child.
+The Rust observer uses `waitid` with `WNOWAIT` so normal observation does not
+release the PID before cancellation has finished. Reported loss of child
+ownership fails without signalling that numeric PID.
 [Cgroup notifications](https://docs.kernel.org/admin-guide/cgroup-v2.html#un-populated-notification),
 [pyudev monitor API](https://pyudev.readthedocs.io/en/latest/api/pyudev.html#pyudev.Monitor),
 [rustix waitid](https://docs.rs/rustix/latest/rustix/process/fn.waitid.html).
