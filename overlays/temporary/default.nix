@@ -14,6 +14,7 @@ let
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
+    helium-darwin-install = ./helium-darwin-install.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     hyprland-portal = ./hyprland-portal.nix;

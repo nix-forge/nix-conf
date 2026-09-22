@@ -53,6 +53,14 @@ let
       };
     };
   };
+  changedHelium = import ../../overlays/temporary {
+    inherit pkgs;
+    inputs = inputs // {
+      helium-browser-darwin = inputs.helium-browser-darwin // {
+        rev = "unreviewed";
+      };
+    };
+  };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -96,6 +104,10 @@ let
   };
   # Exercise the public selection interface and its module consumers.
   packages = {
+    helium-darwin = [
+      inputs.helium-browser-darwin.packages.aarch64-darwin.default
+      inputs.helium-browser-darwin.packages.x86_64-darwin.default
+    ];
     navidrome = pkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux selected.navidrome;
     audiomuseai-plugin = [ selected.navidromePlugins.audiomuseai ];
     prism = (import ../../modules/home/prismlauncher.nix { pkgs = selected; }).home.packages;
@@ -163,6 +175,7 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 # The registry checks disabled fixes without depending on lazy module consumers.
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
+assert !(succeeds changedHelium.review.helium-darwin-install);
 assert !(succeeds changedDeterminate.review);
 assert !(succeeds changedDeterminateModule.review);
 assert
