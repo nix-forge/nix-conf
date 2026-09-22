@@ -2,7 +2,7 @@
   reason = "The AudioMuse-AI Navidrome plugin grants HTTP access to every host instead of this deployment's loopback API.";
   upstream = "https://github.com/NeptuneHub/AudioMuse-AI-NV-plugin/releases/tag/v10";
   removal = "The packaged plugin manifest limits HTTP access to 127.0.0.1; until then this fix also verifies that the permission does not silently broaden or change shape.";
-  reviewedRevision = "b1b875982b17dabde9b4a37f3e229e74913e6db3";
+  reviewedRevision = "44a91898084f46797b5fac650c7e8c9ac38c43d4";
   inputPath = [ "nixpkgs" ];
   packageName = "navidromePlugins.audiomuseai";
   affectedVersions = null;

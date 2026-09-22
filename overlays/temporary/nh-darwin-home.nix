@@ -2,7 +2,7 @@
   reason = "Privileged nh commands set an empty HOME on Darwin, creating Nix's cache in the working directory.";
   upstream = "https://github.com/nix-community/nh/pull/758";
   removal = "The pinned nh source sets an absolute root-owned HOME for elevated Darwin commands.";
-  reviewedRevision = "b1b875982b17dabde9b4a37f3e229e74913e6db3";
+  reviewedRevision = "44a91898084f46797b5fac650c7e8c9ac38c43d4";
   inputPath = [ "nixpkgs" ];
   packageName = "nh-unwrapped";
   # 4.4.2 is the latest reviewed release without PR #758. The next release

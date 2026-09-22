@@ -2,7 +2,7 @@
   reason = "The Swift wrapper reads the removed hardeningCFlags array and drops Clang importer hardening flags.";
   upstream = "https://github.com/NixOS/nixpkgs/blob/c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0/pkgs/development/compilers/swift/wrapper/wrapper.sh";
   removal = "The pinned Swift wrapper forwards both cc-wrapper hardening arrays in the intended order and passes the native hardening probe.";
-  reviewedRevision = "b1b875982b17dabde9b4a37f3e229e74913e6db3";
+  reviewedRevision = "44a91898084f46797b5fac650c7e8c9ac38c43d4";
   inputPath = [ "nixpkgs" ];
   apply =
     package:
