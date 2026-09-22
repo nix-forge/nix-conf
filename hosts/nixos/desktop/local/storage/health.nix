@@ -24,7 +24,7 @@ let
     "smartd.service"
     "fstrim.service"
   ]
-  ++ map (path: "btrfs-scrub-${utils.escapeSystemdPath path}.service") mounts
+  ++ map (path: "btrfs-scrub@${utils.escapeSystemdPath path}.service") mounts
   ++ lib.optionals cfg.enable [ "desktop-data-ready.service" ]
   ++ lib.optionals cfg.enable (
     lib.concatMap
