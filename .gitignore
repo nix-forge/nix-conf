@@ -15,6 +15,7 @@ __pycache__/
 .rumdl_cache/
 .mypy_cache/
 .pytest_cache/
+.cache/
 .coverage
 .coverage.*
 htmlcov/

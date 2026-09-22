@@ -88,6 +88,10 @@ let
   '';
 in
 {
+  usbguard-policy = pkgs.runCommand "usbguard-policy" { nativeBuildInputs = [ pkgs.usbguard ]; } ''
+    usbguard-rule-parser -f ${../../hosts/nixos/desktop/local/security-usbguard.rules} > /dev/null
+    touch "$out"
+  '';
   browser-openers = pkgs.runCommand "browser-openers" { nativeBuildInputs = [ pkgs.which ]; } ''
     export HOME="$TMPDIR/home" OPEN_LOG="$TMPDIR/urls" BROWSER=${browser}
     mkdir -p "$HOME"
