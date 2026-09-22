@@ -66,8 +66,7 @@ diskoLib.testLib.makeDiskoTest {
     # Exercise jobs explicitly; an elapsed timer must not race repository setup.
     systemd.timers.restic-backups-desktop-fixture.enable = false;
     systemd.timers.desktop-backup-verify-fixture.enable = false;
-    systemd.timers.btrfs-scrub--.enable = false;
-    systemd.timers.btrfs-scrub-srv-data.enable = false;
+    systemd.timers."btrfs-scrub@".timerConfig.Persistent = lib.mkForce false;
     boot.initrd.systemd.enable = true;
     users.users.ianmh = {
       isNormalUser = true;
@@ -146,6 +145,7 @@ diskoLib.testLib.makeDiskoTest {
     machine.shutdown()
     machine.start()
     machine.wait_for_unit("multi-user.target")
+    machine.succeed("systemd-analyze verify --man=no /etc/systemd/system/btrfs-scrub*.timer")
     machine.succeed("mountpoint /home")
     machine.fail("mountpoint /srv/data")
     machine.fail("test -e /dev/mapper/cryptdata")
@@ -157,9 +157,9 @@ diskoLib.testLib.makeDiskoTest {
     # condition. Either outcome must leave the underlying root directory alone.
     machine.execute("systemctl start desktop-snapshot-data-timeline.service")
     machine.fail("test -d /srv/data/.snapshots")
-    machine.execute("systemctl start btrfs-scrub-srv-data.service")
+    machine.execute("systemctl start btrfs-scrub@srv-data.service")
     # The service must neither start a root scrub nor write data-drive status.
-    assert machine.succeed("systemctl show btrfs-scrub-srv-data.service -p ExecMainStartTimestampMonotonic --value").strip() == "0"
+    assert machine.succeed("systemctl show btrfs-scrub@srv-data.service -p ExecMainStartTimestampMonotonic --value").strip() == "0"
     machine.succeed("btrfs scrub status / | grep 'no stats available'")
   '';
 }

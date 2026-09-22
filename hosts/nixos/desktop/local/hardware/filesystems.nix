@@ -32,9 +32,6 @@ let
   # hard-coding a particular account's home directory.
   gamesMountPoint = "/mnt/games";
   gamesGroup = "users";
-  gamesScrubTimer = "btrfs-scrub-${
-    utils.escapeSystemdPath (if encryptedRoot then "/srv/data" else gamesMountPoint)
-  }";
 
   mkFS = label: fsType: { inherit label fsType; };
   btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
@@ -141,23 +138,15 @@ in
       systemd.services.fstrim.unitConfig.ConditionACPower = true;
 
       # Scrub accepts an ordinary directory and then operates on its containing
-      # filesystem. An absent optional mount must never scrub root in its place.
-      systemd.services.${gamesScrubTimer}.unitConfig = {
-        RequiresMountsFor = [ (if encryptedRoot then "/srv/data" else gamesMountPoint) ];
-        ConditionPathIsMountPoint = if encryptedRoot then "/srv/data" else gamesMountPoint;
-      };
+      # filesystem. Require the path selected by the upstream template to be a
+      # mount point so an absent optional volume cannot scrub root instead.
+      systemd.services."btrfs-scrub@".unitConfig.ConditionPathIsMountPoint = "%f";
 
-      # NixOS's auto-scrub timer intentionally uses a one-day accuracy window.
-      # This single desktop uses a narrower, jittered early-morning window.
-      systemd.timers = {
-        "btrfs-scrub--".timerConfig = {
-          AccuracySec = lib.mkForce "1h";
-          RandomizedDelaySec = "2h";
-        };
-        ${gamesScrubTimer}.timerConfig = {
-          AccuracySec = lib.mkForce "1h";
-          RandomizedDelaySec = "2h";
-        };
+      # Apply the desktop schedule to every auto-scrub instance, including any
+      # filesystems added later. NixOS supplies OnCalendar on the template.
+      systemd.timers."btrfs-scrub@".timerConfig = {
+        AccuracySec = lib.mkForce "1h";
+        RandomizedDelaySec = "2h";
       };
     }
 
