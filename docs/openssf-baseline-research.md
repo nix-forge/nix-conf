@@ -37,7 +37,7 @@ security assessment, supply-chain and SAST gates, release verification, and
 support lifecycle documentation. The repository workflows already used most of
 the required permission pattern. This change adds the missing DCO and coverage
 where the organization repository and the shared CI repository needed their own
-checks, then updates branch protection to require one non-author approval.
+checks, then planned to require one non-author approval. A September 2026 audit found this was not enforced: the four project branches required zero approvals and have one maintainer. OSPS-QA-07.01 must therefore be marked unmet; see [current assessed status](openssf-baseline.md#current-assessed-status).
 
 Release and compiled-asset controls are marked not applicable only for
 repositories that do not publish that kind of artifact. `ci` and
