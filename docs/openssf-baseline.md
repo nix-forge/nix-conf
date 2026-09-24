@@ -1,8 +1,19 @@
 # OpenSSF baseline policy
 
-This repository follows the [OSPS Baseline](https://baseline.openssf.org/versions/2026-08-28)
-version 2026.08.28. The policy applies to the reusable modules, deployed
+This repository uses the [OSPS Baseline](https://baseline.openssf.org/versions/2026-08-28)
+version 2026.08.28 as its security policy reference. The policy applies to the reusable modules, deployed
 configuration examples, documentation site, CI, and source history.
+
+## Current assessed status
+
+The project is working toward the OSPS Baseline version 2026.08.28. It does
+**not** claim Level 3. OSPS-QA-07.01 at Level 3 requires every change to receive
+approval from at least one human reviewer who did not author it. The project
+currently has one maintainer, and the protected `main` branch requires zero
+approving reviews. This control is **unmet**. The OpenSSF Best Practices
+assessment must be updated to mark OSPS-QA-07.01 as unmet before its Baseline
+badge can be used again. A future Level 3 claim needs both the independent
+review process and an evidence-backed assessment of all other Level 3 controls.
 
 ## Project scope
 
