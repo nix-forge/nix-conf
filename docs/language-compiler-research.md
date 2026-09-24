@@ -93,7 +93,7 @@ A single full-application Swift 6.3.3 comparison also produced a smaller binary
 with WMO: 45,512,936 versus 41,614,976 bytes, with build time 362 versus 193
 seconds. The package retains its existing application flags because this
 comparison lacks pinned-compiler full-application and GUI runtime validation.
-The reusable [OCR benchmark](../pkgs/pkgs/by-name/oc/ocr-capture/Scripts/benchmark-optimization.sh)
+The reusable [OCR benchmark](https://github.com/IanHollow/ocr-capture/blob/8cb0bc8107245d1659667a383d84f4cc27d0b5e6/Scripts/benchmark-optimization.sh)
 and [PersonalMonitor benchmark](../pkgs/pkgs/by-name/vo/vorssaint/Scripts/benchmark-optimization.sh)
 document the inputs and optional application comparison. Neither launches the
 GUI or accesses live screen content or fan controls.
@@ -240,20 +240,20 @@ can rely on unsafe implementations underneath its interfaces.
 
 ### Keep Swift and constrain the remaining C
 
-[OCR Capture](../pkgs/pkgs/by-name/oc/ocr-capture/Sources/OCRCapture/RecognitionBackends.swift)
+[OCR Capture](https://github.com/IanHollow/ocr-capture/blob/8cb0bc8107245d1659667a383d84f4cc27d0b5e6/Sources/OCRCapture/RecognitionBackends.swift)
 uses Vision and other Apple frameworks. A Rust wrapper would still call those
 frameworks and would add a foreign interface. It would not replace the OCR engine.
 
-[Finder Favorites](../pkgs/pkgs/by-name/fi/finder-favorites/Sources/FinderFavoritesCore/Backend.swift)
+[Finder Favorites](https://github.com/IanHollow/finder-favorites/blob/bd42779b3766ca7444a160d1ff8c3b30bf2a5d7a/Sources/FinderFavoritesCore/Backend.swift)
 already keeps planning and models in Swift. Its
-[C bridge](../pkgs/pkgs/by-name/fi/finder-favorites/Sources/FinderFavoritesBridge/FinderFavoritesBridge.c)
+[C bridge](https://github.com/IanHollow/finder-favorites/blob/bd42779b3766ca7444a160d1ff8c3b30bf2a5d7a/Sources/FinderFavoritesBridge/FinderFavoritesBridge.c)
 owns Core Foundation objects and allocated strings for a deprecated native API.
 Keep new policy in Swift. Consider reducing the bridge's owned string arrays only
 if a prototype removes manual lifetime management without losing the required API
 or Swift-toolchain compatibility. A Rust port that retains raw pointers and the
 same API is not an established security improvement.
 
-The [Steam interposer](../pkgs/pkgs/by-name/st/steam-cef-scale-override/steam-cef-scale-override.c)
+The [Steam interposer](https://github.com/IanHollow/steam-cef-scale-override/blob/f5dc905f1e683a8f7eab5275c9d74c0c0cf4174a/steam-cef-scale-override.c)
 is a small C ABI adapter using `dlsym`, bounded string handling and finite scale
 validation. Keep it in C with its compiler diagnostics and fixtures. Removing the
 interposer when upstream provides the needed behavior would remove more code and
@@ -424,7 +424,7 @@ fixtures. These flags are test instrumentation, not shipping hardening.
 [Clang UBSan](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html).
 
 Finder already has Clang warnings, static analysis, ASan and TSan in its
-[quality script](../pkgs/pkgs/by-name/fi/finder-favorites/Scripts/check-quality.sh).
+[quality script](https://github.com/IanHollow/finder-favorites/blob/bd42779b3766ca7444a160d1ff8c3b30bf2a5d7a/Scripts/check-quality.sh).
 For compositor and greeter patches, retain upstream build policy and targeted
 behavior tests. New global C++ flags could conflict with upstream's allocator,
 linking or dependency choices. Review any inherited hardening exception on the
