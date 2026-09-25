@@ -6,13 +6,13 @@ configuration examples, documentation site, CI, and source history.
 
 ## Current assessed status
 
-The project is working toward the OSPS Baseline version 2026.08.28. It does
+The [current self-assessment](https://www.bestpractices.dev/en/projects/14637/baseline-2)
+records OSPS Baseline Level 2 for version 2026.08.28. The project does
 **not** claim Level 3. OSPS-QA-07.01 at Level 3 requires every change to receive
 approval from at least one human reviewer who did not author it. The project
 currently has one maintainer, and the protected `main` branch requires zero
-approving reviews. This control is **unmet**. The OpenSSF Best Practices
-assessment must be updated to mark OSPS-QA-07.01 as unmet before its Baseline
-badge can be used again. A future Level 3 claim needs both the independent
+approving reviews. This control is **unmet** in the published assessment,
+so the Baseline badge displays Level 2. A future Level 3 claim needs both the independent
 review process and an evidence-backed assessment of all other Level 3 controls.
 
 ## Project scope
