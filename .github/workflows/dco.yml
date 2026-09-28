@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '43 11 * * 0'
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Queue commit parent; omit to run the DCO fixture.
+        type: string
+        required: false
 permissions: {}
 concurrency:
   group: dco-${{ github.event.pull_request.number || github.ref }}
@@ -26,11 +31,12 @@ jobs:
       - name: Check every proposed commit
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha
-            }}
+          BASE_SHA: ${{ inputs.base_sha || github.event_name == 'pull_request' && github.event.pull_request.base.sha
+            || github.event.merge_group.base_sha }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha
             }}
           PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         shell: bash
         run: |
           set -euo pipefail
@@ -80,7 +86,21 @@ jobs:
             fi
           }
 
-          if [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
+          check_queue_dispatch() {
+            # A dispatched queue run validates the exact synthetic commit
+            # built from the parent selected by the trusted reconciler.
+            [[ "$GITHUB_REF" == refs/heads/gh-readonly-queue/"$DEFAULT_BRANCH"/* ]] || return 1
+            [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || return 1
+            test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA" || return 1
+            local original_event=$EVENT_NAME
+            EVENT_NAME=merge_group
+            check_signoffs
+            EVENT_NAME=$original_event
+          }
+
+          if [ "$EVENT_NAME" = workflow_dispatch ] && [ -n "$BASE_SHA" ]; then
+            check_queue_dispatch
+          elif [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
             fixture=$(mktemp -d)
             trap 'rm -rf "$fixture"' EXIT
             cd "$fixture"
@@ -95,6 +115,17 @@ jobs:
             HEAD_SHA=$(git rev-parse HEAD)
             check_signoffs
             BASE_SHA=$HEAD_SHA
+            git -c user.name=Fixture -c user.email=fixture@example.invalid \
+              commit --allow-empty -qm 'unsigned synthetic queue tip'
+            HEAD_SHA=$(git rev-parse HEAD)
+            GITHUB_REF="refs/heads/gh-readonly-queue/$DEFAULT_BRANCH/fixture"
+            check_queue_dispatch
+            BASE_SHA=$(git rev-parse "${HEAD_SHA}^^")
+            if check_queue_dispatch; then
+              echo 'DCO queue fixture accepted a wrong parent' >&2
+              exit 1
+            fi
+            BASE_SHA=$HEAD_SHA
             git -c user.name='dependabot[bot]' -c user.email='49699333+dependabot[bot]@users.noreply.github.com' \
               commit --allow-empty -qm $'bad trailer\n\nSigned-off-by: dependabot[bot] <wrong@example.invalid>'
             HEAD_SHA=$(git rev-parse HEAD)
@@ -106,3 +137,16 @@ jobs:
           else
             check_signoffs
           fi
+  queue-completion:
+    continue-on-error: true
+    name: Queue completion callback
+    if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
+      github.event.repository.default_branch))
+    needs: [sign-off]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      actions: write # Notify the trusted default-branch reconciler.
+    steps:
+      - name: Notify trusted queue reconciler
+        uses: nix-forge/ci/actions/queue-completion@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
