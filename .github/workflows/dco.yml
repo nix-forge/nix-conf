@@ -149,4 +149,4 @@ jobs:
       actions: write # Notify the trusted default-branch reconciler.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
+        uses: nix-forge/ci/actions/queue-completion@13ad6e366ec01e317705d750fc512d33ecc15f6c # v2.9.0

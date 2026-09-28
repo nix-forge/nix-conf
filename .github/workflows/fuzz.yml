@@ -21,6 +21,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: nix-forge/ci/actions/fuzz-atheris@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0-compatible fuzz action
+      - uses: nix-forge/ci/actions/fuzz-atheris@13ad6e366ec01e317705d750fc512d33ecc15f6c # v2.9.0-compatible fuzz action
         with:
           target: fuzz/crx_fuzzer.py
