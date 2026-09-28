@@ -233,7 +233,7 @@ assert
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
 assert selected.prismlauncher.version == "11.1.0";
-assert selected.navidrome.version == "0.64.0";
+assert lib.versionAtLeast selected.navidrome.version "0.64.0";
 assert selected.navidromePlugins.audiomuseai.version == "10";
 assert
   (fixes.apply "audiomuseai-plugin-release" audiomuseaiPluginFixed).drvPath

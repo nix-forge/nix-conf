@@ -2,7 +2,7 @@
   reason = "Condition retries bypass active D-Bus inhibitors and can lock or suspend during video playback.";
   upstream = "https://github.com/hyprwm/hypridle/blob/v0.1.8/src/core/Hypridle.cpp";
   removal = "The pinned Hypridle rechecks inhibitors before retrying pending conditions and passes the retry regression.";
-  reviewedRevision = "44a91898084f46797b5fac650c7e8c9ac38c43d4";
+  reviewedRevision = "4975466d324710c576dc11ad614684e6bd8cad8e";
   inputPath = [ "nixpkgs" ];
   apply =
     package:
