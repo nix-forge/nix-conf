@@ -59,7 +59,7 @@ updates:
     groups:
       shared-ci:
         patterns: ["nix-forge/ci"]
-        group-by: dependency-name
+        # All shared action references must advance to the same reviewed commit.
       github-actions-minor-and-patch:
         patterns:
           - "*"
