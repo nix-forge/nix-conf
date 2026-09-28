@@ -91,7 +91,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@cddabb5fd285b579c66a204dcbed036fef0c1470 # v2.8.0
         with:
           cache: 'false'
           cache-scope: ci-lint
@@ -200,7 +200,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@cddabb5fd285b579c66a204dcbed036fef0c1470 # v2.8.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -306,7 +306,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@cddabb5fd285b579c66a204dcbed036fef0c1470 # v2.8.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -369,7 +369,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
+        uses: nix-forge/ci/actions/setup-nix@cddabb5fd285b579c66a204dcbed036fef0c1470 # v2.8.0
         with:
           # Keep the large, opt-in package audit out of the shared cache. The
           # normal check and guide jobs are the safe cache benchmark surface.
