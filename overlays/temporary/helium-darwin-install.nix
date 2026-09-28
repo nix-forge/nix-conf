@@ -2,7 +2,7 @@
   reason = "The Darwin installer copies the extracted Helium.app into another Helium.app directory.";
   upstream = "https://github.com/schembriaiden/helium-browser-nix-flake";
   removal = "The upstream Darwin package installs Helium.app at Applications/Helium.app and builds unmodified.";
-  reviewedRevision = "3e2ae244e94de0309b2c33c36a137722b87386e5";
+  reviewedRevision = "b413a26c70bb354197e34fd2e493508cb8326576";
   inputPath = [ "helium-browser-darwin" ];
   apply =
     package:
