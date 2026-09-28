@@ -1,7 +1,7 @@
 name: Reconcile merge queue
 on: # zizmor: ignore[dangerous-triggers] Reads API metadata and runs only the default branch's script.
   workflow_run:
-    workflows: ["CI Tests", "Dependency Review", "CodeQL"]
+    workflows: ["CI Tests", "Dependency Review", "CodeQL", "DCO"]
     types: [completed]
   schedule:
     - cron: 17 * * * *
@@ -33,6 +33,6 @@ jobs:
       - name: Reconcile verified automation
         uses: nix-forge/ci/actions/reconcile-queue@4f58fd74e91957fa257cb48e2fa2687e09689e2c # v2.8.0
         with:
-          workflows: '["ci.yml", "dependency-review.yml", "codeql.yml"]'
-          base-sha-workflows: '["ci.yml"]'
+          workflows: '["ci.yml", "dependency-review.yml", "codeql.yml", "dco.yml"]'
+          base-sha-workflows: '["ci.yml", "dco.yml"]'
           source-run-id: ${{ inputs.source_run_id }}
