@@ -53,14 +53,6 @@ let
       };
     };
   };
-  changedHelium = import ../../overlays/temporary {
-    inherit pkgs;
-    inputs = inputs // {
-      helium-browser-darwin = inputs.helium-browser-darwin // {
-        rev = "unreviewed";
-      };
-    };
-  };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -74,10 +66,12 @@ let
   nomAt = version: pkgs.nix-output-monitor // { inherit version; };
   audiomuseaiPluginAt =
     version:
-    pkgs.navidromePlugins.audiomuseai.overrideAttrs {
-      inherit version;
-      __intentionallyOverridingVersion = true;
-    };
+    (import inputs.nixpkgs { system = pkgs.stdenv.hostPlatform.system; })
+    .pkgsCross.wasi32.navidromePlugins.audiomuseai.overrideAttrs
+      {
+        inherit version;
+        __intentionallyOverridingVersion = true;
+      };
   nhFixed = nhAt "4.4.3";
   nhUpdated = import ../../overlays/temporary {
     pkgs = pkgs // {
@@ -175,7 +169,6 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 # The registry checks disabled fixes without depending on lazy module consumers.
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
-assert !(succeeds changedHelium.review.helium-darwin-install);
 assert !(succeeds changedDeterminate.review);
 assert !(succeeds changedDeterminateModule.review);
 assert
@@ -225,11 +218,10 @@ assert
   != pkgs.nix-output-monitor.drvPath;
 assert !(succeeds (fixes.apply "nom-quadratic-build-plan" (nomAt "2.2.1")).drvPath);
 assert !(succeeds (changed.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath);
-assert !(succeeds (changed.apply "swift-wrapper-hardening" pkgs.swift).drvPath);
 assert
   if pkgs.stdenv.hostPlatform.isDarwin then
     selected.swift.drvPath == selected.swiftPackages.swift.drvPath
-    && selected.swift.drvPath != pkgs.swift.drvPath
+    && selected.swift.drvPath == pkgs.swift.drvPath
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
 assert selected.prismlauncher.version == "11.1.0";

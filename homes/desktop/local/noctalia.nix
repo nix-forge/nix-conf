@@ -1,5 +1,4 @@
-{ inputs, lib, ... }: {
-  imports = [ inputs.noctalia.homeModules.default ];
+{ lib, ... }: {
 
   # AirPods Pro 2 stem swipes move AVRCP volume by 8 on its 0..127 scale.
   # Match that measured step in the keyboard and bar controls.

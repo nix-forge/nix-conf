@@ -2,7 +2,7 @@
   reason = "The selected Nixpkgs package predates AudioMuse-AI Navidrome plugin v10.";
   upstream = "https://github.com/NeptuneHub/AudioMuse-AI-NV-plugin/releases/tag/v10";
   removal = "Nixpkgs provides AudioMuse-AI Navidrome plugin v10 or later.";
-  reviewedRevision = "4975466d324710c576dc11ad614684e6bd8cad8e";
+  reviewedRevision = "c59305bab2065cfecc4944690d9eedbb56f3a9fa";
   inputPath = [ "nixpkgs" ];
   packageName = "navidromePlugins.audiomuseai";
   affectedVersions = {

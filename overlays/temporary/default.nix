@@ -14,7 +14,6 @@ let
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
-    helium-darwin-install = ./helium-darwin-install.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     hyprland-portal = ./hyprland-portal.nix;
@@ -24,7 +23,6 @@ let
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     stylix-nvf = ./stylix-nvf.nix;
-    swift-wrapper-hardening = ./swift-wrapper-hardening.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
   };
   fixes = lib.mapAttrs (name: file: (import file { inherit pkgs lib; }) // { inherit name; }) files;

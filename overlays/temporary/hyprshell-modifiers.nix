@@ -2,7 +2,7 @@ _: {
   reason = "Modifier release can arrive before the switcher opens.";
   upstream = "https://github.com/H3rmt/hyprshell";
   removal = "The pinned release passes the local Alt+Tab release and cancellation reproductions.";
-  reviewedRevision = "4975466d324710c576dc11ad614684e6bd8cad8e";
+  reviewedRevision = "c59305bab2065cfecc4944690d9eedbb56f3a9fa";
   inputPath = [ "nixpkgs" ];
   apply =
     package:
