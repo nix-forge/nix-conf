@@ -2,7 +2,7 @@ _: {
   reason = "Case-hacked source paths break the Actual CSS imports on Darwin.";
   upstream = "https://github.com/actualbudget/actual";
   removal = "The unmodified Darwin package builds with the normal theme paths.";
-  reviewedRevision = "4975466d324710c576dc11ad614684e6bd8cad8e";
+  reviewedRevision = "c59305bab2065cfecc4944690d9eedbb56f3a9fa";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

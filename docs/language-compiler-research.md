@@ -54,19 +54,20 @@ writer on Darwin. That rendering check substitutes only the native Bash
 interpreter and strips dependency contexts from Linux command paths; it neither
 builds the Linux closure nor executes the generated VM commands.
 
-The [Swift repair](../overlays/temporary/swift-wrapper-hardening.nix) tracks
-Nixpkgs revision `c5c4a43b0e8056328ec4529f735cabdb8f1942bb`. That wrapper reads
-`hardeningCFlags`, while the associated cc-wrapper provides
-`hardeningCFlagsBefore` and `hardeningCFlagsAfter`. The fix forwards both arrays
-and fails on unexpected wrapper source. It runs inside `buildCommand`, because
-this wrapper derivation does not execute ordinary phase hooks. The
-[selection overlay](../overlays/packages.nix) explicitly supplies the repaired
-compiler to OCR Capture, Finder Favorites and PersonalMonitor; Finder also sets
-`SWIFT_EXEC` for SwiftPM. The temporary-fix registry requires review when the
-input changes, and the Darwin check builds a native probe. This repair concerns
-Clang flags passed through Swift; it does not imply that all prior Mach-O
-hardening was absent. Both original and repaired probe executables had PIE, and
-Finder's separately compiled C bridge already received stack protection.
+At the earlier Nixpkgs revision `c5c4a43b0e8056328ec4529f735cabdb8f1942bb`,
+the Swift wrapper read `hardeningCFlags`, while cc-wrapper provided
+`hardeningCFlagsBefore` and `hardeningCFlagsAfter`. A temporary repair forwarded
+both arrays inside `buildCommand`, because that derivation did not run ordinary
+phase hooks. The [new Nixpkgs Swift package](https://github.com/NixOS/nixpkgs/blob/c59305bab2065cfecc4944690d9eedbb56f3a9fa/pkgs/development/compilers/swift/by-name/sw/swift/package.nix)
+uses an unwrapped driver, so the earlier wrapper repair no longer applies. A
+native Darwin build showed that its Clang importer still misses those flags.
+The [current repair](../overlays/temporary/swift-clang-hardening.nix) forwards
+the active cc-wrapper flags through `swiftc` without changing SwiftPM commands.
+The [native Darwin probe](../tests/nix/swift-hardening.nix) checks the result.
+This repair concerns Clang flags passed through Swift; it does not imply that
+all Mach-O hardening was absent. Both original and repaired probe executables
+had PIE, and Finder's separately compiled C bridge already received stack
+protection.
 
 ### Optimization results and limits
 

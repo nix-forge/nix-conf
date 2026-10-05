@@ -2,7 +2,7 @@
   reason = "Stylix's nvf target defines the deprecated lualine.theme option.";
   upstream = "https://github.com/nix-community/stylix/blob/master/modules/neovim/nvf.nix";
   removal = "Stylix uses lualine.setupOpts.options.theme and nvf evaluates without the rename warning.";
-  reviewedRevision = "abff36bfab11cbdcd0723f41c1b0921e211be6ac";
+  reviewedRevision = "7c065d1ed05381fceb2403b963c5ad150f32fe39";
   inputPath = [ "stylix" ];
   apply =
     stylix:

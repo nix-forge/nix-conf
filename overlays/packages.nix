@@ -9,8 +9,11 @@ let
       pkgs.prismlauncher-unwrapped;
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
+  # Build plugins with an unextended package set. pkgsCross inherited from this
+  # overlay would reapply the overlay while constructing the WASI package set.
+  wasiPlugins = (import inputs.nixpkgs { inherit system; }).pkgsCross.wasi32.navidromePlugins;
   swiftPackages = pkgs.swiftPackages // {
-    swift = fixes.apply "swift-wrapper-hardening" pkgs.swiftPackages.swift;
+    swift = fixes.apply "swift-clang-hardening" pkgs.swiftPackages.swift;
   };
   nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
@@ -22,7 +25,9 @@ in
 {
   nix-output-monitor = nom;
   inherit nh;
-  navidromePlugins = pkgs.navidromePlugins.extend (
+  # Nixpkgs builds Navidrome plugins for WASI; use that package set so
+  # evaluation and compilation agree on the plugin target.
+  navidromePlugins = wasiPlugins.extend (
     _final: prev: {
       audiomuseai = fixes.apply "audiomuseai-plugin-loopback-host" (
         fixes.apply "audiomuseai-plugin-release" prev.audiomuseai

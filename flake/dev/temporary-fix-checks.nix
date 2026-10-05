@@ -33,7 +33,9 @@
         );
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-        swift-wrapper-hardening = self.darwinConfigurations.macbook-pro-m4.pkgs.swift.tests.hardening;
+        swift-hardening = import ../../tests/nix/swift-hardening.nix {
+          pkgs = self.darwinConfigurations.macbook-pro-m4.pkgs;
+        };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;

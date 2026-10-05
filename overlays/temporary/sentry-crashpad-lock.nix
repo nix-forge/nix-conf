@@ -2,7 +2,7 @@
   reason = "Crashpad logs expected interprocess report-lock contention as a filesystem error.";
   upstream = "https://github.com/getsentry/crashpad/blob/e5040b878718f5c004d0ecfe1747642c72ddcd39/client/crash_report_database_generic.cc#L112-L121";
   removal = "Unmodified Determinate Sentry passes the pending/completed contention and real-error regression checks.";
-  reviewedRevision = "6468ca430b298865100b753ec21687aba457a05c";
+  reviewedRevision = "8bb6b35147841a45b6dead93fc98339798d586f5";
   inputPath = [
     "determinate"
     "inputs"

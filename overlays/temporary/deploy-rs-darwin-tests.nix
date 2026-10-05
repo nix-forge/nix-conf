@@ -2,7 +2,7 @@ _: {
   reason = "FSEvents requires a host service denied by the Darwin sandbox.";
   upstream = "https://github.com/serokell/deploy-rs";
   removal = "The confirmation and cancellation watcher tests support a hermetic backend.";
-  reviewedRevision = "e760371d631165e7d8de5b0dcf148e21ec4c16f0";
+  reviewedRevision = "cf64c8cbadd9b13ea79ba7720aa2930500f2ece7";
   inputPath = [ "deploy-rs" ];
   apply =
     package:
