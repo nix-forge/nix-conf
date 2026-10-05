@@ -38,7 +38,7 @@ in
           done
           if (( ''${NIX_DEBUG:-0} >= 1 )); then
             printf 'Swift Clang flags:' >&2
-            printf ' %q' "''${flags[@]}" >&2
+            printf ' %q' "''${hardeningCFlagsBefore[@]}" "''${hardeningCFlagsAfter[@]}" >&2
             printf '\n' >&2
           fi
           exec -a "$0" "$(dirname "$0")/swift-driver" "''${flags[@]}" "$@"
