@@ -11,26 +11,28 @@
         # The upstream package makes swiftc a symlink to swift-driver. Keep the
         # driver in place, and add flags only to compiler invocations.
         test "$(readlink "$out/bin/swiftc")" = swift-driver
+        chmod u+w "$out/bin"
         rm "$out/bin/swiftc"
-        cat > "$out/bin/swiftc" <<'WRAPPER'
-        #!${pkgs.bash}/bin/bash
-        source ${pkgs.stdenv.cc}/nix-support/add-hardening.sh
-        flags=()
-        for flag in "''${hardeningCFlagsBefore[@]}"; do
-          flags+=(-Xcc "$flag")
-        done
-        for flag in ''${NIX_CFLAGS_COMPILE_BEFORE-}; do
-          flags+=(-Xcc "$flag")
-        done
-        for flag in "''${hardeningCFlagsAfter[@]}"; do
-          flags+=(-Xcc "$flag")
-        done
-        for flag in ''${NIX_CFLAGS_COMPILE-}; do
-          flags+=(-Xcc "$flag")
-        done
-        exec -a "$0" "$(dirname "$0")/swift-driver" "''${flags[@]}" "$@"
+          cat > "$out/bin/swiftc" <<'WRAPPER'
+          #!${pkgs.bash}/bin/bash
+          source ${pkgs.stdenv.cc}/nix-support/add-hardening.sh
+          flags=()
+          for flag in "''${hardeningCFlagsBefore[@]}"; do
+            flags+=(-Xcc "$flag")
+          done
+          for flag in ''${NIX_CFLAGS_COMPILE_BEFORE-}; do
+            flags+=(-Xcc "$flag")
+          done
+          for flag in "''${hardeningCFlagsAfter[@]}"; do
+            flags+=(-Xcc "$flag")
+          done
+          for flag in ''${NIX_CFLAGS_COMPILE-}; do
+            flags+=(-Xcc "$flag")
+          done
+          exec -a "$0" "$(dirname "$0")/swift-driver" "''${flags[@]}" "$@"
         WRAPPER
         chmod +x "$out/bin/swiftc"
+        chmod u-w "$out/bin"
       '';
     });
 }
