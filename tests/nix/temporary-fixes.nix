@@ -218,10 +218,11 @@ assert
   != pkgs.nix-output-monitor.drvPath;
 assert !(succeeds (fixes.apply "nom-quadratic-build-plan" (nomAt "2.2.1")).drvPath);
 assert !(succeeds (changed.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath);
+assert !(succeeds (changed.apply "swift-clang-hardening" pkgs.swift).drvPath);
 assert
   if pkgs.stdenv.hostPlatform.isDarwin then
     selected.swift.drvPath == selected.swiftPackages.swift.drvPath
-    && selected.swift.drvPath == pkgs.swift.drvPath
+    && selected.swift.drvPath != pkgs.swift.drvPath
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
 assert selected.prismlauncher.version == "11.1.0";

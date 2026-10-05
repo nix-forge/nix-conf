@@ -22,6 +22,7 @@ let
     nh-darwin-home = ./nh-darwin-home.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
+    swift-clang-hardening = ./swift-clang-hardening.nix;
     stylix-nvf = ./stylix-nvf.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
   };

@@ -12,7 +12,9 @@ let
   # Build plugins with an unextended package set. pkgsCross inherited from this
   # overlay would reapply the overlay while constructing the WASI package set.
   wasiPlugins = (import inputs.nixpkgs { inherit system; }).pkgsCross.wasi32.navidromePlugins;
-  swiftPackages = pkgs.swiftPackages;
+  swiftPackages = pkgs.swiftPackages // {
+    swift = fixes.apply "swift-clang-hardening" pkgs.swiftPackages.swift;
+  };
   nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
     nix-output-monitor = nom;
