@@ -1,4 +1,8 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+let
+  ccSuffix = pkgs.lib.replaceStrings [ "-" ] [ "_" ] pkgs.stdenv.hostPlatform.config;
+in
+{
   reason = "The unwrapped Swift driver does not forward cc-wrapper hardening flags to its Clang importer.";
   upstream = "https://github.com/NixOS/nixpkgs/blob/c59305bab2065cfecc4944690d9eedbb56f3a9fa/pkgs/development/compilers/swift/by-name/sw/swift/package.nix";
   removal = "The pinned Swift compiler forwards cc-wrapper hardening flags to Clang and passes the native probe.";
@@ -15,6 +19,9 @@
         rm "$out/bin/swiftc"
           sed 's/^  //' > "$out/bin/swiftc" <<'WRAPPER'
           #!${pkgs.bash}/bin/bash
+          if [[ -n "''${NIX_HARDENING_ENABLE-}" ]]; then
+            export NIX_HARDENING_ENABLE_${ccSuffix}="$NIX_HARDENING_ENABLE"
+          fi
           source ${pkgs.stdenv.cc}/nix-support/add-hardening.sh
           flags=()
           for flag in "''${hardeningCFlagsBefore[@]}"; do
