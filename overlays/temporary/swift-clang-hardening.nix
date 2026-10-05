@@ -36,6 +36,10 @@ in
           for flag in ''${NIX_CFLAGS_COMPILE-}; do
             flags+=(-Xcc "$flag")
           done
+          if (( ''${NIX_DEBUG:-0} >= 1 )); then
+            printf 'Swift Clang flags: %q ' "''${flags[@]}" >&2
+            printf '\n' >&2
+          fi
           exec -a "$0" "$(dirname "$0")/swift-driver" "''${flags[@]}" "$@"
         WRAPPER
         chmod +x "$out/bin/swiftc"
