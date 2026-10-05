@@ -13,7 +13,7 @@
         test "$(readlink "$out/bin/swiftc")" = swift-driver
         chmod u+w "$out/bin"
         rm "$out/bin/swiftc"
-          cat > "$out/bin/swiftc" <<'WRAPPER'
+          sed 's/^  //' > "$out/bin/swiftc" <<'WRAPPER'
           #!${pkgs.bash}/bin/bash
           source ${pkgs.stdenv.cc}/nix-support/add-hardening.sh
           flags=()
