@@ -33,7 +33,6 @@ let
     "mattpocock-grilling"
     "mattpocock-handoff"
     "mattpocock-research"
-    "mattpocock-resolving-merge-conflicts"
     "mattpocock-setup-matt-pocock-skills"
     "mattpocock-tdd"
     "mattpocock-wizard"
