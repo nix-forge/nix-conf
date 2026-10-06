@@ -30,7 +30,6 @@ or filesystem tools; a tool literally named `Skill` is not required.
 | Build requested behavior test-first | `mattpocock-tdd` | Agree the public interface to test, then work one behavior at a time. |
 | Review against a fixed point | `mattpocock-code-review` | Use the standards and requirements sources below. |
 | Investigate a source-backed question | `mattpocock-research` | Follow [research guidance](research.md), including for its background agent. |
-| Resolve an in-progress merge or rebase | `mattpocock-resolving-merge-conflicts` | Trace each side's intent and keep unrelated work outside the operation. |
 | Transfer work to a new environment | `mattpocock-handoff` | Write a redacted handoff outside the repository and link existing artifacts. |
 | Guide steps only a human can perform | `mattpocock-wizard` | Use its installed template; keep one-off scripts and captured values private. |
 | Write agent-facing instructions | `mattpocock-writing-for-agents` | Keep AGENTS.md short and put task-specific guidance behind clear pointers. |
