@@ -14,6 +14,11 @@ let
         version = "1.0";
         applicationName = "Wrapper Fixture";
         binaryName = name;
+        passthru = {
+          inherit (pkgs) gtk3;
+          enableAddonSigning = true;
+          enableAddonSideload = false;
+        };
         meta.license = lib.licenses.mit;
       }
       ''
