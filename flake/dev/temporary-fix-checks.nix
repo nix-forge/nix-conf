@@ -45,7 +45,9 @@
         };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-        hyprland-portal-build = patchedPortal;
+        hyprland-portal-build =
+          assert patchedPortal.stdenv.cc.isGNU;
+          patchedPortal;
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
         sentry-crashpad-lock-lifecycle =
           pkgs.runCommand "sentry-crashpad-lock-lifecycle"

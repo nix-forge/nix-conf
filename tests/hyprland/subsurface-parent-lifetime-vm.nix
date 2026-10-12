@@ -4,6 +4,13 @@
   patched,
 }:
 let
+  fixture = pkgs.lib.fileset.toSource {
+    root = ./.;
+    fileset = pkgs.lib.fileset.unions [
+      ./check-subsurface-teardown.sh
+      ./subsurface-parent-teardown.c
+    ];
+  };
   node =
     compositor:
     let
@@ -41,8 +48,8 @@ let
           PKG_CONFIG_PATH = "${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig";
         };
         etc = {
-          "lifetime-probe/check-subsurface-teardown.sh".source = ./check-subsurface-teardown.sh;
-          "lifetime-probe/subsurface-parent-teardown.c".source = ./subsurface-parent-teardown.c;
+          "lifetime-probe/check-subsurface-teardown.sh".source = "${fixture}/check-subsurface-teardown.sh";
+          "lifetime-probe/subsurface-parent-teardown.c".source = "${fixture}/subsurface-parent-teardown.c";
         };
       };
     };

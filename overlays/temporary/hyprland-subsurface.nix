@@ -7,6 +7,12 @@ _: {
   apply =
     package:
     package.overrideAttrs (old: {
-      patches = (old.patches or [ ]) ++ [ ./patches/hyprland-subsurface-parent-lifetime.patch ];
+      # Keep unrelated repository edits out of the native package source hash.
+      patches = (old.patches or [ ]) ++ [
+        (builtins.path {
+          path = ./patches/hyprland-subsurface-parent-lifetime.patch;
+          name = "hyprland-subsurface-parent-lifetime.patch";
+        })
+      ];
     });
 }

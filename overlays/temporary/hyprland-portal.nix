@@ -11,6 +11,12 @@ _: {
   apply =
     package:
     package.overrideAttrs (old: {
-      patches = (old.patches or [ ]) ++ [ ./patches/hyprland-portal-compiler-warnings.patch ];
+      # Keep unrelated repository edits out of the native package source hash.
+      patches = (old.patches or [ ]) ++ [
+        (builtins.path {
+          path = ./patches/hyprland-portal-compiler-warnings.patch;
+          name = "hyprland-portal-compiler-warnings.patch";
+        })
+      ];
     });
 }
