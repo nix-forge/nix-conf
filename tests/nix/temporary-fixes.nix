@@ -134,6 +134,7 @@ let
   };
   derivations = lib.mapAttrs (_: map (p: p.drvPath)) packages;
 in
+assert import ../../overlays/temporary/tests/darwin-functional-contract.nix;
 assert accepts "1.2";
 assert accepts "1.3.9";
 assert !(accepts "1.1.9");

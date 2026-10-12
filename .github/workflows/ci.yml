@@ -84,7 +84,7 @@ jobs:
   package-fixes-review-proof:
     name: Review current package fix (${{ matrix.target }})
     if: github.event_name == 'workflow_dispatch' && inputs.prove_package_fixes
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     env:
       # Consume the root's existing trusted cache; these proofs publish no outputs.
@@ -96,7 +96,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [gtk, hypridle, hyprshell, nom, audioMuse]
+        include:
+          - {target: gtk, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: hypridle, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: hyprshell, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: nom, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: audioMuse, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: determinate, runner: macos-26, proof: current-darwin-package-proof.nix}
+          - {target: nh, runner: macos-26, proof: current-darwin-package-proof.nix}
+          - {target: claude, runner: macos-26, proof: current-darwin-package-proof.nix}
+          - {target: deploy, runner: macos-26, proof: current-darwin-package-proof.nix}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -105,15 +114,48 @@ jobs:
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
       - name: Record actual packages and preserved regression suites
-        run: nix eval --impure --json --file overlays/temporary/tests/current-package-fixes-proof.nix metadata
+        env:
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: nix eval --impure --json --file "$PROOF_FILE" metadata
       - name: Build native package and exercise its regression suite
         env:
           TARGET: ${{ matrix.target }}
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
         run: |
           targets=("$TARGET")
           if [[ "$TARGET" == hypridle ]]; then targets+=(hypridleBaseline); fi
+          if [[ "$TARGET" == determinate ]]; then targets+=(determinateFunctional regression); fi
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
-            --file overlays/temporary/tests/current-package-fixes-proof.nix "${targets[@]}"
+            --file "$PROOF_FILE" "${targets[@]}"
+      - name: Verify the exact native capability-dependent baseline
+        if: always() && (matrix.target == 'determinate' || matrix.target == 'deploy')
+        env:
+          TARGET: ${{ matrix.target }}
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: |
+          if [[ "$TARGET" == determinate ]]; then baseline=rawSentryDenied; else baseline=deployRawWatcherDenied; fi
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$PROOF_FILE" "$baseline"
+      - name: Inspect installed Claude entrypoint and native loader
+        if: matrix.target == 'claude'
+        run: |
+          package=$(nix build --option sandbox true --impure --no-link --print-out-paths \
+            --file overlays/temporary/tests/current-darwin-package-proof.nix claude)
+          test -x "$package/bin/claude"
+          vendor="$package/bin/.claude-wrapped"
+          test -x "$vendor"
+          /usr/bin/lipo -verify_arch arm64 "$vendor"
+          /usr/bin/otool -L "$vendor"
+          # Inspect the vendor signature without executing its binary or
+          # claiming notarization, certificate trust, or runtime correctness.
+          status=0
+          /usr/bin/codesign --display --verbose=4 "$vendor" > "$RUNNER_TEMP/claude-signature.txt" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/claude-signature.txt"
+          if [[ "$status" == 0 ]]; then
+            /usr/bin/codesign --verify --strict "$vendor"
+          else
+            grep -F 'code object is not signed at all' "$RUNNER_TEMP/claude-signature.txt"
+          fi
   prism-review-proof:
     name: Review current Prism watch capability
     if: github.event_name == 'workflow_dispatch' && inputs.prove_prism_watch

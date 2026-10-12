@@ -7,6 +7,8 @@ _: {
       files = [
         ../../overlays/temporary/tests/crashpad-lock.py
         ../../overlays/temporary/tests/prism-watch-result.py
+        ../../overlays/temporary/tests/darwin-package-result.py
+        ../../overlays/temporary/tests/test_darwin_package_result.py
         ../../overlays/temporary/tests/actual-css-result.py
         ../../overlays/temporary/tests/actual-runtime.py
         ../../overlays/temporary/tests/test_actual_proof.py
@@ -31,6 +33,7 @@ _: {
         "tests"
         "overlays/temporary/tests/test_prism_watch_result.py"
         "overlays/temporary/tests/test_actual_proof.py"
+        "overlays/temporary/tests/test_darwin_package_result.py"
       ];
       nativeBuildInputs = with pkgs; [
         bash
