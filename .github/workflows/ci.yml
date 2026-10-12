@@ -61,7 +61,7 @@ concurrency:
 permissions: {}
 jobs:
   actual-review-proof:
-    name: Review current Actual CSS and packaged runtime
+    name: Review current unmodified Actual package and runtime
     if: github.event_name == 'workflow_dispatch' && inputs.prove_actual_runtime
     runs-on: macos-26
     timeout-minutes: 90
@@ -76,11 +76,11 @@ jobs:
       - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
       - name: Record selected Actual package and native runtime
         run: nix eval --impure --json --file overlays/temporary/tests/current-actual-proof.nix metadata
-      - name: Verify precise CSS failures and repaired packaged service
+      - name: Verify source layout and unmodified packaged service
         run: |
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file overlays/temporary/tests/current-actual-proof.nix \
-            upstreamCssFailure currentCssFailure improvedPackage runtime regression
+            sourceLayout rawPackage rawRuntime regression
   package-fixes-review-proof:
     name: Review current package fix (${{ matrix.target }})
     if: github.event_name == 'workflow_dispatch' && inputs.prove_package_fixes
