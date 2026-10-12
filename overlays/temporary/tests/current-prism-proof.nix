@@ -81,7 +81,10 @@ let
         cat prism-watch.xml
         runHook postCheck
       '';
-      postInstall = (old.postInstall or "") + ''
+      # Upstream test resources deliberately include invalid .jar fixtures.
+      # Export them after ordinary archive normalization, leaving production
+      # package fixups enabled and preserving the fixture bytes for host tests.
+      postFixup = (old.postFixup or "") + ''
         mkdir -p "$out/libexec/prism-watch-proof"
         cp ResourceFolderModel watch-prerequisite prism-watch.xml \
           "$out/libexec/prism-watch-proof/"
