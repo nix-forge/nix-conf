@@ -2,7 +2,14 @@
 let
   root = toString ../../..;
   flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
-  pkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
+  system = "x86_64-linux";
+  rawHyprland = flake.inputs.hyprland.packages.${system}.hyprland;
+  pkgs = import flake.inputs.nixpkgs {
+    inherit system;
+    # Match the selected compositor headers and runtime dependency without
+    # refreshing its independent installed compatibility guard.
+    overlays = [ (_final: _prev: { hyprland = rawHyprland; }) ];
+  };
   inherit (pkgs) lib;
   apply = name: package: (import (../. + "/${name}.nix") { inherit pkgs lib; }).apply package;
   gtk = apply "gtksourceview-xvfb" pkgs.gtksourceview4;
@@ -64,6 +71,10 @@ assert plugin.version == "10";
 {
   metadata = {
     nixpkgsRevision = flake.inputs.nixpkgs.rev;
+    hyprlandDependency = {
+      revision = flake.inputs.hyprland.rev;
+      package = rawHyprland.drvPath;
+    };
     packages =
       lib.mapAttrs
         (_: package: {
