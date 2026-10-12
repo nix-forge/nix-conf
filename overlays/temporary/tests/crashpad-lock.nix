@@ -1,5 +1,8 @@
 # Build the same behavioral probe into upstream and patched Sentry packages.
-{ python3 }:
+{
+  python3,
+  expectNoisyContention ? false,
+}:
 package:
 package.overrideAttrs (old: {
   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ python3 ];
@@ -16,6 +19,8 @@ package.overrideAttrs (old: {
     CMAKE
   '';
   postBuild = (old.postBuild or "") + ''
-    LC_ALL=C ${python3}/bin/python3 ${./crashpad-lock.py} ./nix-conf-crashpad-lock-test
+    LC_ALL=C ${python3}/bin/python3 ${./crashpad-lock.py} ./nix-conf-crashpad-lock-test ${
+      if expectNoisyContention then "--expect-noisy-contention" else ""
+    }
   '';
 })

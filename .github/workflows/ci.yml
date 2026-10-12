@@ -4,6 +4,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
+      prove_sentry_lock:
+        description: Independently verify current upstream and repaired Sentry lock behavior.
+        required: false
+        default: false
+        type: boolean
       base_sha:
         description: Base commit for native package comparison.
         required: false
@@ -25,6 +30,26 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  sentry-review-proof:
+    name: Review current Sentry lock behavior
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_sentry_lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected dependency
+        run: nix eval --impure --json --file overlays/temporary/tests/current-sentry-proof.nix metadata
+      - name: Verify upstream symptom, repaired behavior and patch lifecycle
+        run: |
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-sentry-proof.nix \
+            upstream crashpad-lock lifecycle
   discover:
     name: Discover CI inputs
     runs-on: ubuntu-24.04

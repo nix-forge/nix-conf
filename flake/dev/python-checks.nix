@@ -5,6 +5,7 @@ _: {
     checks.python-tests = (import ../../tests/python-check.nix { inherit pkgs; }) {
       name = "python-behavior-tests";
       files = [
+        ../../overlays/temporary/tests/crashpad-lock.py
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../tests)
         (pkgs.lib.fileset.fileFilter (
           file: file.hasExt "py" || pkgs.lib.hasSuffix ".sh.in" file.name
