@@ -135,6 +135,17 @@ working fix. Record the specific issue or PR URL when one is established.
 
 ## Add, check, and retire a fix
 
+The Swift Clang importer fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its combined compiler recipe,
+driver recipe, compiler recipe, source manifest and hardening helper remain
+identical to the previous reviewed source blobs. The
+[native macOS proof](https://github.com/nix-forge/nix-conf/actions/runs/38312707376/job/115022124354)
+selects the configuration's actual `swiftPackages.swift` 6.2.4 compiler.
+Unmodified typechecking reports both missing fortify and strong stack protection;
+the repaired importer receives both flags and passes typechecking, linking and
+the native runtime probe. This justifies retaining the fix at the reviewed pin,
+while the guard still rejects later input changes.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
