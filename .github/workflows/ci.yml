@@ -136,7 +136,7 @@ jobs:
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file "$PROOF_FILE" "${targets[@]}"
       - name: Verify the exact native capability-dependent baseline
-        if: always() && (matrix.target == 'determinate' || matrix.target == 'deploy')
+        if: ${{ !cancelled() && (matrix.target == 'determinate' || matrix.target == 'deploy') }}
         env:
           TARGET: ${{ matrix.target }}
           PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
