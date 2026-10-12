@@ -27,6 +27,23 @@ class Guest(Protocol):
         ...
 
 
+def require_parent_protocols(capabilities: str) -> None:
+    """Reject a parent that cannot support the actual nested backend requests."""
+    versions = {
+        name: int(version)
+        for name, version in re.findall(
+            r"interface:\s*'([^']+)',\s*version:\s*(\d+)", capabilities
+        )
+    }
+    for interface, required in {
+        "xdg_wm_base": 6,
+        "wl_compositor": 6,
+        "wl_seat": 9,
+        "zwp_linux_dmabuf_v1": 4,
+    }.items():
+        assert versions.get(interface, 0) >= required, capabilities
+
+
 def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> None:
     """Require the original crash and successful repaired lifecycle scenarios."""
     guest.succeed("command -v wayland-scanner cc pkg-config jq setsid timeout")
@@ -47,19 +64,7 @@ def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> No
     capabilities = guest.succeed(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 wayland-info"
     )
-    versions = {
-        name: int(version)
-        for name, version in re.findall(
-            r"interface: '([^']+)', version: (\d+)", capabilities
-        )
-    }
-    for interface, required in {
-        "xdg_wm_base": 6,
-        "wl_compositor": 6,
-        "wl_seat": 9,
-        "zwp_linux_dmabuf_v1": 4,
-    }.items():
-        assert versions.get(interface, 0) >= required, capabilities
+    require_parent_protocols(capabilities)
     scenarios = (
         "HYPRLAND_TEST_SCENARIOS=child-first "
         if parent_only
