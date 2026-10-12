@@ -45,6 +45,8 @@
         };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        # Temporary proof output: decide whether the compiler fix can be retired.
+        hyprland-portal-unpatched-build = hyprlandPackages.xdg-desktop-portal-hyprland;
         hyprland-portal-build =
           assert patchedPortal.stdenv.cc.isGNU;
           patchedPortal;
