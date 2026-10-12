@@ -1,4 +1,4 @@
-"""Reject unrelated build failures and broken installed Actual resources."""
+"""Validate real source layout evidence and installed Actual runtime resources."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 if TYPE_CHECKING:
     from types import ModuleType
-from unittest.mock import patch
 
 
 def _module(name: str) -> ModuleType:
@@ -26,63 +26,36 @@ def _module(name: str) -> ModuleType:
     return result
 
 
-_CSS = _module("actual-css-result")
+_SOURCE = _module("actual-css-result")
 _RUNTIME = _module("actual-runtime")
-_SIDEBAR = "[vite:load-fallback] Could not load /source/packages/component-library/src/themes/sidebar-redesign-light.css?inline (imported by /source/packages/desktop-client/src/style/theme.tsx): ENOENT: no such file or directory"
+
+
+def _tree(root: Path) -> Path:
+    names = ("dark.css", "sidebar-redesign-light.css")
+    component = root / "packages/component-library"
+    directory = component / "src/themes"
+    directory.mkdir(parents=True)
+    (component / "package.json").write_text(
+        json.dumps({
+            "exports": {f"./themes/{name}": f"./src/themes/{name}" for name in names}
+        })
+    )
+    theme = root / "packages/desktop-client/src/style/theme.tsx"
+    theme.parent.mkdir(parents=True)
+    theme.write_text(
+        "\n".join(
+            f"import css{index} from '@actual-app/components/themes/{name}?inline';"
+            for index, name in enumerate(names)
+        )
+        + "\n"
+    )
+    for name in names:
+        (directory / name).write_text(f"/* source stylesheet fixture: {name} */")
+    return theme
 
 
 class ActualProofTest(unittest.TestCase):
-    """Require specific CSS regressions and truthful packaged runtime witnesses."""
-
-    @staticmethod
-    def test_raw_css_failure() -> None:
-        """Test raw css failure."""
-        _CSS.verify(_SIDEBAR.replace("sidebar-redesign-light", "dark"), 1, "raw")
-
-    @staticmethod
-    def test_new_fifth_css_failure() -> None:
-        """Test new fifth css failure."""
-        _CSS.verify("\x1b[31m" + _SIDEBAR + "\x1b[0m", 1, "four")
-
-    def test_success_cannot_be_failure_evidence(self) -> None:
-        """Test success cannot be failure evidence."""
-        with self.assertRaisesRegex(ValueError, "failed build"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(_SIDEBAR, 0, "four")
-
-    def test_crash_cannot_be_failure_evidence(self) -> None:
-        """Test crash cannot be failure evidence."""
-        with self.assertRaisesRegex(ValueError, "signal"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(_SIDEBAR, 139, "raw")
-
-    def test_native_node_failure_is_rejected(self) -> None:
-        """Test native node failure is rejected."""
-        with self.assertRaisesRegex(ValueError, "Node or native-addon"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(
-                _SIDEBAR + "\nError [ERR_DLOPEN_FAILED]: incompatible ABI", 1, "four"
-            )
-
-    def test_four_path_fix_must_fail_at_new_import(self) -> None:
-        """Test four path fix must fail at new import."""
-        with self.assertRaisesRegex(ValueError, "exact Actual theme"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(_SIDEBAR.replace("sidebar-redesign-light", "dark"), 1, "four")
-
-    def test_other_importer_is_not_evidence(self) -> None:
-        """Test other importer is not evidence."""
-        with self.assertRaisesRegex(ValueError, "exact Actual theme"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(
-                _SIDEBAR.replace("desktop-client/src/style/theme.tsx", "unrelated.tsx"),
-                1,
-                "raw",
-            )
-
-    def test_css_mentions_without_resolver_error_rejected(self) -> None:
-        """Test css mentions without resolver error rejected."""
-        with self.assertRaisesRegex(ValueError, "exact Actual theme"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
-            _CSS.verify(
-                "themes/sidebar-redesign-light.css and desktop-client/src/style/theme.tsx",
-                1,
-                "four",
-            )
+    """Verify case-collision removal and actual packaged runtime resource checks."""
 
     def test_runtime_serves_installed_assets(self) -> None:
         """Test runtime serves installed assets."""
@@ -149,6 +122,65 @@ class ActualProofTest(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "no executable"),  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library proof fixtures do not require pytest.
         ):
             _RUNTIME.asset_paths("<html></html>", Path(temporary))
+
+    def test_source_inventory_does_not_mutate(self) -> None:
+        """Read exact entries/imports/exports without changing source bytes."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _tree(root)
+            before = {
+                file.relative_to(root).as_posix(): file.read_bytes()
+                for file in root.rglob("*")
+                if file.is_file()
+            }
+            result = _SOURCE.inventory(root)
+            after = {
+                file.relative_to(root).as_posix(): file.read_bytes()
+                for file in root.rglob("*")
+                if file.is_file()
+            }
+            self.assertEqual(before, after)  # ruff: ignore[pytest-unittest-assertion] - Standard library source/runtime regressions.
+            self.assertEqual(result["caseFoldedThemeEntries"], ["themes"])  # ruff: ignore[pytest-unittest-assertion] - Standard library source/runtime regressions.
+            self.assertIn("sidebar-redesign-light.css", result["imports"])  # ruff: ignore[pytest-unittest-assertion] - Standard library source/runtime regressions.
+
+    def test_old_case_collision_rejected(self) -> None:
+        """Exact entry names detect the old case conflict on every test platform."""
+        with self.assertRaisesRegex(ValueError, "case-colliding"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library source/runtime regressions.
+            _SOURCE.check_directory_names(["Themes", "themes"])
+
+    def test_uppercase_lookup_not_lowercase_entry(self) -> None:
+        """A case-insensitive path lookup cannot substitute for an exact entry."""
+        with self.assertRaisesRegex(ValueError, "case-colliding"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library source/runtime regressions.
+            _SOURCE.check_directory_names(["Themes"])
+
+    def test_case_hacked_source_rejected(self) -> None:
+        """Do not accept old or induced case-hacked source as the new raw tree."""
+        with self.assertRaisesRegex(ValueError, "case-colliding"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library source/runtime regressions.
+            _SOURCE.check_directory_names(["themes", "themes~nix~case~hack~1"])
+
+    def test_missing_sidebar_source_rejected(self) -> None:
+        """Keep the new source stylesheet requirement meaningful."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _tree(root)
+            (
+                root
+                / "packages/component-library/src/themes/sidebar-redesign-light.css"
+            ).unlink()
+            with self.assertRaisesRegex(ValueError, "stylesheet is missing"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library source/runtime regressions.
+                _SOURCE.inventory(root)
+
+    def test_mismatched_export_rejected(self) -> None:
+        """CSS exports must point to the intact normal source files."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _tree(root)
+            manifest = root / "packages/component-library/package.json"
+            data = json.loads(manifest.read_text())
+            data["exports"]["./themes/sidebar-redesign-light.css"] = "./unrelated.css"
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, "export does not match"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library source/runtime regressions.
+                _SOURCE.inventory(root)
 
 
 if __name__ == "__main__":
