@@ -1,7 +1,5 @@
 """Compare parent-first teardown on the exact unpatched and repaired compositor."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Protocol, cast
 
 if TYPE_CHECKING:
