@@ -7,6 +7,9 @@ _: {
       files = [
         ../../overlays/temporary/tests/crashpad-lock.py
         ../../overlays/temporary/tests/prism-watch-result.py
+        ../../overlays/temporary/tests/actual-css-result.py
+        ../../overlays/temporary/tests/actual-runtime.py
+        ../../overlays/temporary/tests/test_actual_proof.py
         ../../overlays/temporary/tests/test_prism_watch_result.py
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../tests)
         (pkgs.lib.fileset.fileFilter (
@@ -27,6 +30,7 @@ _: {
       testPaths = [
         "tests"
         "overlays/temporary/tests/test_prism_watch_result.py"
+        "overlays/temporary/tests/test_actual_proof.py"
       ];
       nativeBuildInputs = with pkgs; [
         bash
