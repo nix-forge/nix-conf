@@ -10,6 +10,8 @@ binary=${1:?Provide the Hyprland binary to test}
 : "${XDG_RUNTIME_DIR:?A Wayland runtime directory is required}"
 test_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 work_directory=$(mktemp -d)
+# The crash reporter creates its final directory, so its XDG parent must exist.
+mkdir -p "$work_directory/cache" "$work_directory/state"
 runtime_directory=$(mktemp -d /tmp/hc.XXXXXX)
 compositor_pid=
 cleanup() {

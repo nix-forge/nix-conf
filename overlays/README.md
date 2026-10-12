@@ -140,6 +140,16 @@ retain their behavior. It does not change the portal derivation or build source.
 Review is tied to Home Manager, and retirement requires its module to check the
 portal override arguments before supplying the compositor.
 
+The subsurface parent-lifetime fix was reviewed at compositor input
+`9dc5398d14a090b4d2e69380ad22d2410ba10090`. Its three relevant source blobs
+remain identical to the previous reviewed revision. The
+[paired native VM proof](https://github.com/nix-forge/nix-conf/actions/runs/38317651888/job/115038543998)
+requires the unmodified compositor to reproduce the parent-lifetime crash in
+`posRelativeToParent`. The repaired compositor passes orphan, disconnect,
+feedback and child-first scenarios and exits cleanly. The fixture parent supports
+the nested backend's requested protocol versions in both guests; target packages
+remain exact. This supports retaining the lifetime repair at the reviewed pin.
+
 These triggers are conservative. An input change means review is required; it
 does not prove the bug is fixed. Keeping the revision guard alongside a version
 range also catches packaging changes within that range. A merged PR or closed
