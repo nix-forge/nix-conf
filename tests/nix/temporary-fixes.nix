@@ -225,7 +225,14 @@ assert
     && selected.swift.drvPath != pkgs.swift.drvPath
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
-assert selected.prismlauncher.version == "11.1.0";
+# Keep the upstream release; the Darwin fix only changes test prerequisites.
+assert selected.prismlauncher.version == pkgs.prismlauncher.version;
+assert selected.prismlauncher-unwrapped.drvPath == pkgs.prismlauncher-unwrapped.drvPath;
+assert
+  if pkgs.stdenv.hostPlatform.isDarwin then
+    (fixes.apply "prismlauncher-darwin-tests" pkgs.prismlauncher-unwrapped).doCheck
+  else
+    selected.prismlauncher.drvPath == pkgs.prismlauncher.drvPath;
 assert lib.versionAtLeast selected.navidrome.version "0.64.0";
 assert selected.navidromePlugins.audiomuseai.version == "10";
 assert
