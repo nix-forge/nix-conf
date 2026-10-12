@@ -6,9 +6,6 @@
       patchedHyprland =
         (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
           hyprlandPackages.hyprland;
-      patchedPortal =
-        (import ../../overlays/temporary/hyprland-portal.nix { }).apply
-          hyprlandPackages.xdg-desktop-portal-hyprland;
       determinatePackage = import ../../tests/nix/determinate-module.nix { inherit pkgs inputs; };
       # Evaluation covers all supported platforms without building foreign
       # packages or moving the desktop closure to another builder.
@@ -45,11 +42,10 @@
         };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-        # Temporary proof output: decide whether the compiler fix can be retired.
-        hyprland-portal-unpatched-build = hyprlandPackages.xdg-desktop-portal-hyprland;
+        # Keep native compiler compatibility coverage after retiring the override.
         hyprland-portal-build =
-          assert patchedPortal.stdenv.cc.isGNU;
-          patchedPortal;
+          assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
+          hyprlandPackages.xdg-desktop-portal-hyprland;
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
         sentry-crashpad-lock-lifecycle =
           pkgs.runCommand "sentry-crashpad-lock-lifecycle"

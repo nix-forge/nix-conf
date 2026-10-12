@@ -88,9 +88,9 @@ path, and an explicitly reviewed input revision. Do not derive
 the check accept every update automatically.
 
 The guard throws a review error when that input changes. This catches recipe
-changes and backports even when a package keeps the same version. The portal fix
-tracks `hyprland.inputs.xdph`; tracking only the outer Hyprland revision would
-miss an independent portal input update.
+changes and backports even when a package keeps the same version. Track the
+input that owns the affected source or recipe. A nested input can change
+independently of its parent, so record that nested input path when needed.
 
 When a release boundary is known, add `affectedVersions`:
 
@@ -126,6 +126,13 @@ Nixpkgs now provides PrismLauncher 11.1.0, so the release override has been
 retired. Its Darwin watch-test patch has a separate lifecycle. The other
 workarounds have no confirmed fixed release recorded, so they use revision
 review triggers.
+
+The portal compiler override was retired at portal input
+`e87ae7823e7bf0601385220c69b5a3b245123fc5`. Unmodified native builds passed on
+[x86 Linux](https://github.com/nix-forge/nix-conf/actions/runs/38302691574/job/114989461417)
+and [ARM Linux](https://github.com/nix-forge/nix-conf/actions/runs/38302691574/job/114989461739).
+The native portal check now builds the selected upstream package with its GNU
+compiler and keeps compiler compatibility covered without a temporary patch.
 
 These triggers are conservative. An input change means review is required; it
 does not prove the bug is fixed. Keeping the revision guard alongside a version

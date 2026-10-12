@@ -16,7 +16,6 @@ let
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
-    hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
     nh-darwin-home = ./nh-darwin-home.nix;

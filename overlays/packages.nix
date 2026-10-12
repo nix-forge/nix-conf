@@ -64,6 +64,6 @@ in
     hyprlock = inputs.hyprlock.packages.${system}.hyprlock;
   };
   hyprland = fixes.apply "hyprland-subsurface" hyprlandPackages.hyprland;
-  xdg-desktop-portal-hyprland = fixes.apply "hyprland-portal" hyprlandPackages.xdg-desktop-portal-hyprland;
+  xdg-desktop-portal-hyprland = hyprlandPackages.xdg-desktop-portal-hyprland;
   grimblast-region = import ./permanent/grimblast-region.nix pkgs.grimblast;
 }
