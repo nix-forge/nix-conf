@@ -187,6 +187,17 @@ package definition is also identical.
   retains the version 2.2.0 graph-state repair and passes both upstream unit and
   documentation test suites.
 
+The Hyprshell modifier-state fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The upstream recipe and fixed
+version 4.10.8 source selection remain unchanged. The
+[native Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557982)
+uses the configuration's exact unmodified Hyprland dependency at
+`663b29b846e4bad17cfa29941f6d2fbb6b61f139` and passes all four existing
+modifier timestamp regressions: IPC expiry, wraparound, half-cycle cancellation
+and acceptance of the next chord. The existing scoped Cargo test selection stays
+unchanged. This supports retaining the repair; it does not establish an
+interactive Alt+Tab session or justify advancing Hyprland's own runtime guard.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
