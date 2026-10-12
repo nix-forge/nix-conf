@@ -149,8 +149,9 @@ jobs:
   flake:
     needs: [hyprland-parent-proof]
     name: Flake checks (${{ matrix.label }})
-    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.hyprland-parent-proof.result
-      == 'success' || needs.hyprland-parent-proof.result == 'skipped')
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+      && (needs.hyprland-parent-proof.result == 'success' || needs.hyprland-parent-proof.result == 'skipped')
+      }}
     runs-on: ${{ matrix.runner }}
     # The paired x86 VM may compile both compositor variants on a cold runner.
     timeout-minutes: ${{ matrix.system == 'x86_64-linux' && 90 || 45 }}
