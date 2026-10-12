@@ -119,7 +119,8 @@ jobs:
     name: Flake checks (${{ matrix.label }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    # The paired x86 VM may compile both compositor variants on a cold runner.
+    timeout-minutes: ${{ matrix.system == 'x86_64-linux' && 90 || 45 }}
     permissions:
       contents: read
     strategy:
