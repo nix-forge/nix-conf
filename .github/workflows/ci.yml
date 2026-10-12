@@ -4,6 +4,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
+      prove_swift_hardening:
+        description: Independently verify current upstream and repaired Swift hardening.
+        required: false
+        default: false
+        type: boolean
       prove_sentry_lock:
         description: Independently verify current upstream and repaired Sentry lock behavior.
         required: false
@@ -41,6 +46,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          fetch-depth: 0
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
       - name: Record exact selected dependency
@@ -50,6 +56,26 @@ jobs:
           nix build --impure --no-link -L --max-jobs 1 --cores 2 \
             --file overlays/temporary/tests/current-sentry-proof.nix \
             upstream crashpad-lock lifecycle
+  swift-review-proof:
+    name: Review current Swift hardening
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_swift_hardening
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected compiler
+        run: nix eval --impure --json --file overlays/temporary/tests/current-swift-proof.nix metadata
+      - name: Verify missing upstream flags and repaired native runtime
+        run: |
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-swift-proof.nix upstream repaired
   discover:
     name: Discover CI inputs
     runs-on: ubuntu-24.04
