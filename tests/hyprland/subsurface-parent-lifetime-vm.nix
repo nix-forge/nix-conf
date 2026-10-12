@@ -2,6 +2,7 @@
   pkgs,
   unpatched,
   patched,
+  parentOnly ? false,
 }:
 let
   fixture = pkgs.lib.fileset.toSource {
@@ -42,6 +43,7 @@ let
           pkgs.pkg-config
           pkgs.stdenv.cc
           pkgs.wayland
+          pkgs.wayland-utils
           (pkgs.lib.getBin pkgs.wayland-scanner)
         ];
         variables = {
@@ -56,10 +58,12 @@ let
     };
 in
 pkgs.testers.runNixOSTest {
-  name = "hyprland-subsurface-parent-lifetime";
+  name = if parentOnly then "hyprland-parent-display" else "hyprland-subsurface-parent-lifetime";
   nodes = {
     baseline = node unpatched;
-    repaired = node patched;
-  };
-  testScript = builtins.readFile ./subsurface_parent_lifetime_vm.py;
+  }
+  // pkgs.lib.optionalAttrs (!parentOnly) { repaired = node patched; };
+  testScript =
+    pkgs.lib.optionalString parentOnly "parent_only = True\n"
+    + builtins.readFile ./subsurface_parent_lifetime_vm.py;
 }

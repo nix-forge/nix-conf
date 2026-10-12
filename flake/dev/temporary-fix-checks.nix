@@ -65,6 +65,12 @@
             '';
       }
       // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+        hyprland-parent-display = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
+          inherit pkgs;
+          unpatched = hyprlandPackages.hyprland;
+          patched = hyprlandPackages.hyprland;
+          parentOnly = true;
+        };
         hyprland-subsurface-lifetime = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
           inherit pkgs;
           unpatched = hyprlandPackages.hyprland;

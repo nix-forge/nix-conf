@@ -26,16 +26,29 @@ class Guest(Protocol):
         ...
 
 
-def verify(guest: Guest, *, expect_crash: bool) -> None:
+def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> None:
     """Require the original crash and successful repaired lifecycle scenarios."""
     guest.succeed("command -v wayland-scanner cc pkg-config jq setsid timeout")
+    guest.wait_for_file("/dev/dri/renderD128")
     guest.succeed("mkdir -m700 /run/lifetime-parent")
     guest.succeed(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WLR_BACKENDS=headless "
-        "WLR_RENDERER=pixman cage -- sleep 600 > /var/log/lifetime-cage.log 2>&1 &"
+        "WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 "
+        "WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 LIBGL_ALWAYS_SOFTWARE=1 "
+        "cage -- sleep 600 > /var/log/lifetime-cage.log 2>&1 & "
+        "echo $! > /run/lifetime-cage.pid"
+    )
+    guest.succeed(
+        "sleep 1; kill -0 $(cat /run/lifetime-cage.pid) || "
+        "{ cat /var/log/lifetime-cage.log >&2; exit 1; }"
     )
     guest.wait_for_file("/run/lifetime-parent/wayland-0")
-    guest.wait_for_file("/dev/dri/renderD128")
+    capabilities = guest.succeed(
+        "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 wayland-info"
+    )
+    assert "zwp_linux_dmabuf_v1" in capabilities, capabilities
+    if parent_only:
+        return
     status, _ = guest.execute(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 "
         "LIBGL_ALWAYS_SOFTWARE=1 AQ_BACKEND=wayland KEEP_TEST_OUTPUT=1 "
@@ -46,6 +59,9 @@ def verify(guest: Guest, *, expect_crash: bool) -> None:
     output = guest.succeed("cat /var/log/lifetime-probe.log")
     guest.copy_from_machine("/var/log/lifetime-probe.log")
     guest.copy_from_machine("/var/log/lifetime-cage.log")
+    backend_logs = guest.succeed(
+        "find /tmp -path '/tmp/tmp.*/compositor.log' -exec cat '{}' +"
+    )
     if expect_crash:
         assert status != 0, "Unpatched parent-first teardown unexpectedly succeeded"
         reports = guest.succeed(
@@ -54,9 +70,11 @@ def verify(guest: Guest, *, expect_crash: bool) -> None:
         assert "posRelativeToParent" in reports, (
             "The baseline failed without reproducing the parent-lifetime crash: "
             + output
+            + reports
+            + backend_logs
         )
     else:
-        assert status == 0, output
+        assert status == 0, output + backend_logs
         assert "PASS: compositor survived every selected subsurface lifecycle" in output
         assert "exited cleanly" in output
 
@@ -64,5 +82,8 @@ def verify(guest: Guest, *, expect_crash: bool) -> None:
 # NixOS's test driver supplies these guests and the lifecycle entrypoint.
 _start = cast("Callable[[], None]", globals()["start_all"])
 _start()
-verify(cast("Guest", globals()["baseline"]), expect_crash=True)
-verify(cast("Guest", globals()["repaired"]), expect_crash=False)
+if globals().get("parent_only", False):
+    verify(cast("Guest", globals()["baseline"]), expect_crash=False, parent_only=True)
+else:
+    verify(cast("Guest", globals()["baseline"]), expect_crash=True)
+    verify(cast("Guest", globals()["repaired"]), expect_crash=False)
