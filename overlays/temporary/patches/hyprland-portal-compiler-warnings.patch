@@ -9,24 +9,6 @@
  
  # dependencies
  message(STATUS "Checking deps...")
---- a/hyprland-share-picker/main.cpp
-+++ b/hyprland-share-picker/main.cpp
-@@ -155,7 +155,6 @@
-     const auto WINDOWS_SCROLL_AREA_CONTENTS_LAYOUT = WINDOWS_SCROLL_AREA_CONTENTS->layout();
- 
-     // loop over them
--    int windowIterator = 0;
-     for (auto& window : WINDOWLIST) {
-         QString       text = QString::fromStdString(window.clazz + ": " + window.name);
- 
-@@ -180,7 +179,6 @@
-             return 0;
-         });
- 
--        windowIterator++;
-     }
- 
-     QSpacerItem* WINDOWS_SPACER = new QSpacerItem(0, 10000, QSizePolicy::Expanding, QSizePolicy::Expanding);
 --- a/src/shared/ScreencopyShared.cpp
 +++ b/src/shared/ScreencopyShared.cpp
 @@ -48,7 +48,7 @@
