@@ -46,9 +46,9 @@ let
       binary=${lib.escapeShellArg browser.binaryName}
       test -x "${wrapped}/bin/$binary"
       "${wrapped}/bin/$binary" | grep -Fx 'wrapper fixture runtime'
-      cmp "${browser}/bin/$binary" "${wrapped}/bin/.$binary-wrapped"
+      cmp "${browser}/bin/$binary" "${wrapped}/bin/.$binary-old"
       test "$(stat -c '%a' "${browser}/bin/$binary")" \
-        = "$(stat -c '%a' "${wrapped}/bin/.$binary-wrapped")"
+        = "$(stat -c '%a' "${wrapped}/bin/.$binary-old")"
       cmp "${browser}/lib/$binary/fixture.txt" "${wrapped}/lib/$binary/fixture.txt"
       test "$(readlink "${wrapped}/lib/$binary/fixture.link")" = fixture.txt
       touch "$out"
