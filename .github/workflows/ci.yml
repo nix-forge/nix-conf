@@ -100,6 +100,7 @@ jobs:
           - {target: gtk, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
           - {target: hypridle, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
           - {target: hyprshell, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
+          - {target: hyprland, runner: ubuntu-24.04, proof: current-hyprland-proof.nix}
           - {target: nom, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
           - {target: audioMuse, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
           - {target: determinate, runner: macos-26, proof: current-darwin-package-proof.nix}
@@ -117,6 +118,13 @@ jobs:
         env:
           PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
         run: nix eval --impure --json --file "$PROOF_FILE" metadata
+      - name: Verify the software parent and unmodified compositor startup
+        if: matrix.target == 'hyprland'
+        env:
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$PROOF_FILE" hyprlandParent
       - name: Build native package and exercise its regression suite
         env:
           TARGET: ${{ matrix.target }}

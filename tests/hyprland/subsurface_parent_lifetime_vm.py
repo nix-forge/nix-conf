@@ -1,0 +1,111 @@
+"""Compare parent-first teardown on the exact unpatched and repaired compositor."""
+
+import re
+from typing import TYPE_CHECKING, Protocol, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+class Guest(Protocol):
+    """The small NixOS driver interface used by this regression."""
+
+    def succeed(self, command: str) -> str:
+        """Execute a successful guest command."""
+        ...
+
+    def execute(self, command: str) -> tuple[int, str]:
+        """Execute a guest command and return its status and output."""
+        ...
+
+    def wait_for_file(self, path: str, *, timeout: int = 60) -> None:
+        """Wait for a guest file with a bounded deadline."""
+        ...
+
+    def copy_from_machine(self, path: str) -> None:
+        """Preserve a guest log as test evidence."""
+        ...
+
+
+def require_parent_protocols(capabilities: str) -> None:
+    """Reject a parent that cannot support the actual nested backend requests."""
+    versions = {
+        name: int(version)
+        for name, version in re.findall(
+            r"interface:\s*'([^']+)',\s*version:\s*(\d+)", capabilities
+        )
+    }
+    for interface, required in {
+        "xdg_wm_base": 6,
+        "wl_compositor": 6,
+        "wl_seat": 9,
+        "zwp_linux_dmabuf_v1": 4,
+    }.items():
+        assert versions.get(interface, 0) >= required, capabilities
+
+
+def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> None:
+    """Require the original crash and successful repaired lifecycle scenarios."""
+    guest.succeed("command -v wayland-scanner cc pkg-config jq setsid timeout")
+    guest.wait_for_file("/dev/dri/renderD128")
+    guest.succeed("mkdir -m700 /run/lifetime-parent")
+    guest.succeed(
+        "XDG_RUNTIME_DIR=/run/lifetime-parent WLR_BACKENDS=headless "
+        "WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 "
+        "WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 LIBGL_ALWAYS_SOFTWARE=1 "
+        "cage -- sleep 600 > /var/log/lifetime-cage.log 2>&1 & "
+        "echo $! > /run/lifetime-cage.pid"
+    )
+    guest.succeed(
+        "sleep 1; kill -0 $(cat /run/lifetime-cage.pid) || "
+        "{ cat /var/log/lifetime-cage.log >&2; exit 1; }"
+    )
+    guest.wait_for_file("/run/lifetime-parent/wayland-0")
+    capabilities = guest.succeed(
+        "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 wayland-info"
+    )
+    require_parent_protocols(capabilities)
+    scenarios = (
+        "HYPRLAND_TEST_SCENARIOS=child-first "
+        if parent_only
+        else "HYPRLAND_TEST_SCENARIOS='orphan disconnect feedback child-first' "
+    )
+    status, _ = guest.execute(
+        "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 "
+        "LIBGL_ALWAYS_SOFTWARE=1 AQ_BACKEND=wayland KEEP_TEST_OUTPUT=1 "
+        + scenarios
+        + 'timeout 240 bash /etc/lifetime-probe/check-subsurface-teardown.sh "$HYPRLAND_UNDER_TEST" '
+        "> /var/log/lifetime-probe.log 2>&1"
+    )
+    output = guest.succeed("cat /var/log/lifetime-probe.log")
+    guest.copy_from_machine("/var/log/lifetime-probe.log")
+    guest.copy_from_machine("/var/log/lifetime-cage.log")
+    backend_logs = guest.succeed(
+        "find /tmp -type f \\( -name compositor.log -o -name hyprland.log \\) "
+        "-exec cat '{}' +"
+    )
+    if expect_crash:
+        assert status != 0, "Unpatched parent-first teardown unexpectedly succeeded"
+        reports = guest.succeed(
+            "find /tmp -name 'hyprlandCrashReport*.txt' -exec cat '{}' +"
+        )
+        assert "posRelativeToParent" in reports, (
+            "The baseline failed without reproducing the parent-lifetime crash: "
+            + output
+            + reports
+            + backend_logs
+        )
+    else:
+        assert status == 0, output + backend_logs
+        assert "PASS: compositor survived every selected subsurface lifecycle" in output
+        assert "exited cleanly" in output
+
+
+# NixOS's test driver supplies these guests and the lifecycle entrypoint.
+_start = cast("Callable[[], None]", globals()["start_all"])
+_start()
+if globals().get("parent_only", False):
+    verify(cast("Guest", globals()["baseline"]), expect_crash=False, parent_only=True)
+else:
+    verify(cast("Guest", globals()["baseline"]), expect_crash=True)
+    verify(cast("Guest", globals()["repaired"]), expect_crash=False)
