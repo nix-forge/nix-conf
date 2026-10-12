@@ -15,12 +15,14 @@ _: {
           packages/component-library/src/themes~nix~case~hack~1/light.css \
           packages/component-library/src/themes~nix~case~hack~1/midnight.css \
           packages/component-library/src/themes~nix~case~hack~1/palette.css \
+          packages/component-library/src/themes~nix~case~hack~1/sidebar-redesign-light.css \
           packages/desktop-client/src/style/themes/
         substituteInPlace packages/desktop-client/src/style/theme.tsx \
           --replace-fail "@actual-app/components/themes/dark.css?inline" "./themes/dark.css?inline" \
           --replace-fail "@actual-app/components/themes/light.css?inline" "./themes/light.css?inline" \
           --replace-fail "@actual-app/components/themes/midnight.css?inline" "./themes/midnight.css?inline" \
-          --replace-fail "@actual-app/components/themes/palette.css?inline" "./themes/palette.css?inline"
+          --replace-fail "@actual-app/components/themes/palette.css?inline" "./themes/palette.css?inline" \
+          --replace-fail "@actual-app/components/themes/sidebar-redesign-light.css?inline" "./themes/sidebar-redesign-light.css?inline"
       '';
     });
 }
