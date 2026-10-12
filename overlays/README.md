@@ -134,6 +134,12 @@ and [ARM Linux](https://github.com/nix-forge/nix-conf/actions/runs/38302691574/j
 The native portal check now builds the selected upstream package with its GNU
 compiler and keeps compiler compatibility covered without a temporary patch.
 
+The Home Manager portal compatibility fix drops only its obsolete `hyprland`
+argument when the selected portal recipe no longer accepts it. Other overrides
+retain their behavior. It does not change the portal derivation or build source.
+Review is tied to Home Manager, and retirement requires its module to check the
+portal override arguments before supplying the compositor.
+
 These triggers are conservative. An input change means review is required; it
 does not prove the bug is fixed. Keeping the revision guard alongside a version
 range also catches packaging changes within that range. A merged PR or closed
