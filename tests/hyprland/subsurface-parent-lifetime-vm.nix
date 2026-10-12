@@ -5,6 +5,15 @@
   parentOnly ? false,
 }:
 let
+  # Both guests use the same fixture-only parent. wlroots implements version 6,
+  # while Cage's default version 5 cannot satisfy Aquamarine's nested client.
+  parent = pkgs.cage.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace cage.c \
+        --replace-fail 'wlr_xdg_shell_create(server.wl_display, 5)' \
+          'wlr_xdg_shell_create(server.wl_display, 6)'
+    '';
+  });
   fixture = pkgs.lib.fileset.toSource {
     root = ./.;
     fileset = pkgs.lib.fileset.unions [
@@ -38,7 +47,7 @@ let
         systemPackages = [
           compositor
           executable
-          pkgs.cage
+          parent
           pkgs.jq
           pkgs.pkg-config
           pkgs.stdenv.cc

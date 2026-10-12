@@ -1,5 +1,6 @@
 """Compare parent-first teardown on the exact unpatched and repaired compositor."""
 
+import re
 from typing import TYPE_CHECKING, Protocol, cast
 
 if TYPE_CHECKING:
@@ -46,21 +47,37 @@ def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> No
     capabilities = guest.succeed(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 wayland-info"
     )
-    assert "zwp_linux_dmabuf_v1" in capabilities, capabilities
-    if parent_only:
-        return
+    versions = {
+        name: int(version)
+        for name, version in re.findall(
+            r"interface: '([^']+)', version: (\d+)", capabilities
+        )
+    }
+    for interface, required in {
+        "xdg_wm_base": 6,
+        "wl_compositor": 6,
+        "wl_seat": 9,
+        "zwp_linux_dmabuf_v1": 4,
+    }.items():
+        assert versions.get(interface, 0) >= required, capabilities
+    scenarios = (
+        "HYPRLAND_TEST_SCENARIOS=child-first "
+        if parent_only
+        else "HYPRLAND_TEST_SCENARIOS='orphan disconnect feedback child-first' "
+    )
     status, _ = guest.execute(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 "
         "LIBGL_ALWAYS_SOFTWARE=1 AQ_BACKEND=wayland KEEP_TEST_OUTPUT=1 "
-        "HYPRLAND_TEST_SCENARIOS='orphan disconnect feedback child-first' "
-        'bash /etc/lifetime-probe/check-subsurface-teardown.sh "$HYPRLAND_UNDER_TEST" '
+        + scenarios
+        + 'timeout 240 bash /etc/lifetime-probe/check-subsurface-teardown.sh "$HYPRLAND_UNDER_TEST" '
         "> /var/log/lifetime-probe.log 2>&1"
     )
     output = guest.succeed("cat /var/log/lifetime-probe.log")
     guest.copy_from_machine("/var/log/lifetime-probe.log")
     guest.copy_from_machine("/var/log/lifetime-cage.log")
     backend_logs = guest.succeed(
-        "find /tmp -path '/tmp/tmp.*/compositor.log' -exec cat '{}' +"
+        "find /tmp -type f \\( -name compositor.log -o -name hyprland.log \\) "
+        "-exec cat '{}' +"
     )
     if expect_crash:
         assert status != 0, "Unpatched parent-first teardown unexpectedly succeeded"
