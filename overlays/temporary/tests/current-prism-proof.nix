@@ -59,16 +59,25 @@ let
         test -e ${checkerRegression}
         $CXX -std=c++17 ${prerequisite} -o watch-prerequisite \
           $(pkg-config --cflags --libs Qt6Core)
-        status=0
-        ./watch-prerequisite || status=$?
-        test "$status" = 3
+        capability=0
+        ./watch-prerequisite || capability=$?
+        case "$capability" in
+          0) expected=present ;;
+          3) expected=${mode} ;;
+          *) printf 'Unexpected watcher prerequisite exit: %s\n' "$capability" >&2; exit 1 ;;
+        esac
+        printf 'Measured watcher capability exit: %s; required native outcome: %s\n' "$capability" "$expected"
         export QT_QPA_PLATFORM=offscreen
         # Every other CTest target must pass, even for the negative baseline.
         ctest --output-on-failure --exclude-regex '^ResourceFolderModel$'
         status=0
         ./ResourceFolderModel -o prism-watch.xml,xml || status=$?
-        ${if mode == "unavailable" then ''test "$status" = 1'' else ''test "$status" = 0''}
-        ${lib.getExe pkgs.python3} ${checker} ${mode} prism-watch.xml
+        if [ "$expected" = unavailable ]; then
+          test "$status" = 1
+        else
+          test "$status" = 0
+        fi
+        ${lib.getExe pkgs.python3} ${checker} "$expected" prism-watch.xml
         cat prism-watch.xml
         runHook postCheck
       '';
@@ -109,9 +118,9 @@ assert current.drvPath != improved.drvPath;
     improvedPackage = improved.drvPath;
     checksPreserved = upstream.doCheck && current.doCheck && improved.doCheck;
   };
-  # Successful only for the precise expected watch denial, never generic failure.
-  upstreamUnavailable = proof upstream "unavailable";
-  currentUnavailable = proof current "skip";
-  improvedUnavailable = repaired;
+  # Measure capability first, then require the corresponding actual native cases.
+  upstreamBehavior = proof upstream "unavailable";
+  currentBehavior = proof current "skip";
+  improvedBehavior = repaired;
   inherit capabilityPresent checkerRegression;
 }
