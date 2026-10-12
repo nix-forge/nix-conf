@@ -33,7 +33,7 @@ let
     let
       self = {
         doCheck = true;
-        checkInputs = checks;
+        buildInputs = checks;
         override =
           arguments:
           package (
@@ -49,15 +49,16 @@ let
   original = package (units ++ [ functional ]);
   repaired = fix.apply original;
   accepts =
-    candidate: (builtins.tryEval (builtins.deepSeq (fix.apply candidate).checkInputs true)).success;
-  repairedUnits = builtins.filter (check: check.name != "nix-functional-tests") repaired.checkInputs;
+    candidate: (builtins.tryEval (builtins.deepSeq (fix.apply candidate).buildInputs true)).success;
+  repairedUnits = builtins.filter (check: check.name != "nix-functional-tests") repaired.buildInputs;
   repairedFunctional = builtins.head (
-    builtins.filter (check: check.name == "nix-functional-tests") repaired.checkInputs
+    builtins.filter (check: check.name == "nix-functional-tests") repaired.buildInputs
   );
 in
+assert !(original ? checkInputs) && !(repaired ? checkInputs);
 assert repaired.doCheck;
 assert repairedUnits == units;
-assert builtins.length repaired.checkInputs == 6;
+assert builtins.length repaired.buildInputs == 6;
 assert repairedFunctional.doCheck;
 assert
   repairedFunctional.mesonCheckFlags == [
@@ -77,4 +78,15 @@ assert
     )
   );
 assert !accepts (original // { doCheck = false; });
+assert !accepts (package (units ++ [ (functional // { doCheck = false; }) ]));
+assert
+  !accepts (
+    package (
+      units
+      ++ [
+        functional
+        { name = "unexpected-input"; }
+      ]
+    )
+  );
 true

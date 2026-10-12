@@ -11,13 +11,16 @@
   apply =
     package:
     let
+      # stdenv consumes checkInputs into the effective build dependency graph.
       functional =
         lib.findSingle (check: lib.getName check == "nix-functional-tests")
           (throw "Determinate Nix has no functional gate; review the Darwin Sentry fix")
           (throw "Determinate Nix has multiple functional gates; review the Darwin Sentry fix")
-          package.checkInputs;
+          package.buildInputs;
     in
     assert package.doCheck;
+    assert builtins.length package.buildInputs == 6;
+    assert functional.doCheck;
     builtins.seq functional (
       package.override {
         nix-functional-tests = functional.overrideAttrs (old: {

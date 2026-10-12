@@ -13,9 +13,9 @@ let
     lib.findSingle (check: lib.getName check == "nix-functional-tests")
       (throw "No Determinate functional gate")
       (throw "Multiple Determinate functional gates")
-      package.checkInputs;
+      package.buildInputs;
   unitGates =
-    package: builtins.filter (check: lib.getName check != "nix-functional-tests") package.checkInputs;
+    package: builtins.filter (check: lib.getName check != "nix-functional-tests") package.buildInputs;
   upstream = flake.inputs.determinate.inputs.nix.packages.${system}.default;
   functional = functionalGate upstream;
   repaired = (import ../determinate-darwin-tests.nix { inherit lib; }).apply upstream;
@@ -102,6 +102,7 @@ let
 in
 assert import ./darwin-functional-contract.nix;
 assert upstream.doCheck && functional.doCheck && repaired.doCheck && repairedFunctional.doCheck;
+assert builtins.length upstream.buildInputs == 6 && builtins.length repaired.buildInputs == 6;
 assert builtins.length (unitGates upstream) == 5;
 assert !(repaired.__noChroot or false) && !(repairedFunctional.__noChroot or false);
 assert
