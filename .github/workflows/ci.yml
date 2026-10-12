@@ -4,6 +4,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
+      prove_package_fixes:
+        description: Exercise current native package repairs without changing review guards.
+        required: false
+        default: false
+        type: boolean
       prove_prism_watch:
         description: Verify current Prism watcher denial and capability-present behavior.
         required: false
@@ -50,6 +55,34 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  package-fixes-review-proof:
+    name: Review current package fix (${{ matrix.target }})
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_package_fixes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [gtk, hypridle, hyprshell, nom, audioMuse]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record actual packages and preserved regression suites
+        run: nix eval --impure --json --file overlays/temporary/tests/current-package-fixes-proof.nix metadata
+      - name: Build native package and exercise its regression suite
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          targets=("$TARGET")
+          if [[ "$TARGET" == hypridle ]]; then targets+=(hypridleBaseline); fi
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-package-fixes-proof.nix "${targets[@]}"
   prism-review-proof:
     name: Review current Prism watch capability
     if: github.event_name == 'workflow_dispatch' && inputs.prove_prism_watch
@@ -596,6 +629,7 @@ jobs:
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
       github.event.repository.default_branch))
     needs:
+      - package-fixes-review-proof
       - prism-review-proof
       - sentry-review-proof
       - swift-review-proof

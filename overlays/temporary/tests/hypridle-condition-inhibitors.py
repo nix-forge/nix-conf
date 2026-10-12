@@ -1,12 +1,19 @@
 """Execute the packaged retry loop with native conditions and D-Bus inhibitors."""
 
+import argparse
 import os
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - compile and execute a local test
 import sys
 import tempfile
 from pathlib import Path
 
-source = Path(sys.argv[1]).read_text(encoding="utf-8")
+UNSAFE_INHIBITOR_EXIT = 23
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("source", type=Path)
+parser.add_argument("--expect-unsafe-inhibitor", action="store_true")
+args = parser.parse_args()
+source = args.source.read_text(encoding="utf-8")
 start = source.index(
     "        for (auto& l : m_sWaylandIdleState.listeners) {",
     source.index("// Check condition_cmd retries"),
@@ -17,6 +24,7 @@ loop = source[start:end]
 program = (
     r"""
 #include <cstdint>
+#include <cstdio>
 #include <stdexcept>
 #include <vector>
 enum { LOG };
@@ -50,7 +58,10 @@ int main() {
     condition = true;
     daemon.m_iInhibitLocks = 1;
     daemon.retry(5);
-    require(probes == 1 && actions == 0 && listener.conditionPending);
+    if (!(probes == 1 && actions == 0 && listener.conditionPending)) {
+        std::fputs("Pending condition bypassed an active inhibitor\n", stderr);
+        return 23;
+    }
     daemon.m_iInhibitLocks = 0;
     daemon.retry(6);
     require(actions == 1 && listener.onTimeoutFired && !listener.conditionPending);
@@ -72,5 +83,21 @@ with tempfile.TemporaryDirectory() as temporary:
         [os.environ.get("CXX", "c++"), "-std=c++17", str(cpp), "-o", str(binary)],
         check=True,
     )
-    subprocess.run([str(binary)], check=True)  # ruff: ignore[subprocess-without-shell-equals-true] - compiler and executable from the build sandbox
-sys.stdout.write("Hypridle condition/inhibitor regression passed\n")
+    result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - compiler and executable from the build sandbox
+        [str(binary)], capture_output=True, text=True, check=False
+    )
+    if args.expect_unsafe_inhibitor:
+        if (
+            result.returncode != UNSAFE_INHIBITOR_EXIT
+            or result.stdout
+            or result.stderr != "Pending condition bypassed an active inhibitor\n"
+        ):
+            message = "The baseline did not reproduce the precise inhibitor bypass"
+            raise RuntimeError(message)
+    else:
+        result.check_returncode()
+sys.stdout.write(
+    "Hypridle precise upstream inhibitor bypass reproduced\n"
+    if args.expect_unsafe_inhibitor
+    else "Hypridle condition/inhibitor regression passed\n"
+)
