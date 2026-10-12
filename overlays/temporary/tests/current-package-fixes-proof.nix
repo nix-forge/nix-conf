@@ -52,11 +52,7 @@ let
 in
 assert gtk.doCheck && hypridle.doCheck && hypridleBaseline.doCheck && hyprshell.doCheck;
 assert nom.doCheck;
-assert
-  nom.testTargets == [
-    "unit-tests"
-    "doc-tests"
-  ];
+assert lib.hasInfix "test unit-tests doc-tests" nom.checkPhase;
 assert
   hyprshell.cargoTestFlags == [
     "--package"
@@ -85,7 +81,7 @@ assert plugin.version == "10";
           audiomuse = repairedPlugin;
         };
     audioMuseReleaseFixApplicable = release.appliesTo plugin;
-    inherit (nom) testTargets;
+    nomCheckPhase = nom.checkPhase;
     inherit (hyprshell) cargoTestFlags;
   };
   inherit
