@@ -57,7 +57,11 @@ on:
   merge_group:
     types: [checks_requested]
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name
+    == 'workflow_dispatch' && (contains(fromJSON('["darwin","linux","hyprland","all"]'), inputs.prove_package_fixes)
+    || inputs.prove_actual_runtime == true || inputs.prove_prism_watch == true || inputs.prove_zen_wrapper
+    == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening == true || inputs.prove_sentry_lock
+    == true) && format('-proof-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
