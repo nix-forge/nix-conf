@@ -5,17 +5,18 @@ on:
   workflow_dispatch:
     inputs:
       prove_actual_runtime:
-        description: Verify current Actual CSS baseline and installed Node24 runtime.
+        description: Verify unmodified Actual source, package and installed Node24 runtime.
         required: false
         default: false
         type: boolean
       prove_package_fixes:
-        description: Exercise current native package repairs without changing review guards.
+        description: Select native package repair proofs without changing review guards.
         required: false
-        default: false
-        type: boolean
+        default: none
+        type: choice
+        options: [none, darwin, linux, hyprland, all]
       prove_prism_watch:
-        description: Verify current Prism watcher denial and capability-present behavior.
+        description: Measure native Prism watcher capability and verify actual resource cases.
         required: false
         default: false
         type: boolean
@@ -83,7 +84,8 @@ jobs:
             sourceLayout rawPackage rawRuntime regression
   package-fixes-review-proof:
     name: Review current package fix (${{ matrix.target }})
-    if: github.event_name == 'workflow_dispatch' && inputs.prove_package_fixes
+    if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["darwin","linux","hyprland","all"]'),
+      inputs.prove_package_fixes)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     env:
@@ -96,17 +98,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {target: gtk, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
-          - {target: hypridle, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
-          - {target: hyprshell, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
-          - {target: hyprland, runner: ubuntu-24.04, proof: current-hyprland-proof.nix}
-          - {target: nom, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
-          - {target: audioMuse, runner: ubuntu-24.04, proof: current-package-fixes-proof.nix}
-          - {target: determinate, runner: macos-26, proof: current-darwin-package-proof.nix}
-          - {target: nh, runner: macos-26, proof: current-darwin-package-proof.nix}
-          - {target: claude, runner: macos-26, proof: current-darwin-package-proof.nix}
-          - {target: deploy, runner: macos-26, proof: current-darwin-package-proof.nix}
+        include: >-
+          ${{ fromJSON( inputs.prove_package_fixes == 'darwin' && '[ {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
+          {"target":"nh","runner":"macos-26","proof":"current-darwin-package-proof.nix"}, {"target":"claude","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
+          {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes
+          == 'linux' && '[ {"target":"gtk","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
+          {"target":"hypridle","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"hyprshell","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
+          {"target":"nom","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"audioMuse","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}
+          ]' || inputs.prove_package_fixes == 'hyprland' && '[ {"target":"hyprland","runner":"ubuntu-24.04","proof":"current-hyprland-proof.nix"}
+          ]' || inputs.prove_package_fixes == 'all' && '[ {"target":"gtk","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
+          {"target":"hypridle","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"hyprshell","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
+          {"target":"hyprland","runner":"ubuntu-24.04","proof":"current-hyprland-proof.nix"}, {"target":"nom","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
+          {"target":"audioMuse","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
+          {"target":"nh","runner":"macos-26","proof":"current-darwin-package-proof.nix"}, {"target":"claude","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
+          {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"} ]' || '[]')
+          }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
