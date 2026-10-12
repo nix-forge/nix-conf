@@ -1,8 +1,8 @@
 { lib, ... }: {
   reason = "Stylix's nvf target defines the deprecated lualine.theme option.";
-  upstream = "https://github.com/nix-community/stylix/blob/master/modules/neovim/nvf.nix";
+  upstream = "https://github.com/nix-community/stylix/blob/2856c4c6a845b9bec98828ef197abe176e4806bb/modules/neovim/nvf.nix";
   removal = "Stylix uses lualine.setupOpts.options.theme and nvf evaluates without the rename warning.";
-  reviewedRevision = "7c065d1ed05381fceb2403b963c5ad150f32fe39";
+  reviewedRevision = "2856c4c6a845b9bec98828ef197abe176e4806bb";
   inputPath = [ "stylix" ];
   apply =
     stylix:

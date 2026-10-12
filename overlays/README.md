@@ -135,6 +135,22 @@ working fix. Record the specific issue or PR URL when one is established.
 
 ## Add, check, and retire a fix
 
+The Stylix nvf target was reviewed at
+`2856c4c6a845b9bec98828ef197abe176e4806bb`; its source blob is unchanged.
+The [paired module proof](https://github.com/nix-forge/nix-conf/actions/runs/38314456594/job/115027658395)
+checks the actual enabled `nvf` target with current Home Manager and nvf modules.
+Upstream emits the deprecated lualine theme warning; the repaired module has no
+warnings. Both preserve the canonical `base16` theme and satisfy their assertions.
+
+The Zen wrapper was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its only recipe change adds a
+runtime library; the copy command, following mode update and Coreutils recipe
+remain unchanged. The [native wrapper proof](https://github.com/nix-forge/nix-conf/actions/runs/38314456594/job/115027658416)
+uses inert fixture binaries with the actual selected wrapper, verifying copied
+payload bytes and modes, data, symlinks and launcher execution. The ordinary
+Firefox wrapper retains its identical derivation. This supports retaining the
+narrow repair; retirement on the native builder's store mount remains unverified.
+
 The Swift Clang importer fix was reviewed at Nixpkgs
 `e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its combined compiler recipe,
 driver recipe, compiler recipe, source manifest and hardening helper remain
