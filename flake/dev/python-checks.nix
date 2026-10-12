@@ -6,6 +6,8 @@ _: {
       name = "python-behavior-tests";
       files = [
         ../../overlays/temporary/tests/crashpad-lock.py
+        ../../overlays/temporary/tests/prism-watch-result.py
+        ../../overlays/temporary/tests/test_prism_watch_result.py
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../tests)
         (pkgs.lib.fileset.fileFilter (
           file: file.hasExt "py" || pkgs.lib.hasSuffix ".sh.in" file.name
@@ -21,6 +23,10 @@ _: {
         ../../justfile
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../scripts)
         ../../site/reference.py
+      ];
+      testPaths = [
+        "tests"
+        "overlays/temporary/tests/test_prism_watch_result.py"
       ];
       nativeBuildInputs = with pkgs; [
         bash

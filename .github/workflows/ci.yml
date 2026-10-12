@@ -4,6 +4,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
+      prove_prism_watch:
+        description: Verify current Prism watcher denial and capability-present behavior.
+        required: false
+        default: false
+        type: boolean
       prove_zen_wrapper:
         description: Verify native repaired Zen wrapper invariants and ordinary Firefox preservation.
         required: false
@@ -45,6 +50,32 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  prism-review-proof:
+    name: Review current Prism watch capability
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_prism_watch
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected package and enabled checks
+        run: nix eval --impure --json --file overlays/temporary/tests/current-prism-proof.nix metadata
+      - name: Verify raw denial and capability-aware native checks
+        run: |
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-prism-proof.nix \
+            upstreamUnavailable currentUnavailable improvedUnavailable checkerRegression
+      - name: Execute real watch integration with host capability
+        run: |
+          proof=$(nix build --impure --no-link --print-out-paths \
+            --file overlays/temporary/tests/current-prism-proof.nix capabilityPresent)
+          "$proof/bin/prism-watch-capability-present"
   zen-wrapper-review-proof:
     name: Review current browser wrapper invariants
     if: github.event_name == 'workflow_dispatch' && inputs.prove_zen_wrapper
@@ -565,6 +596,7 @@ jobs:
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
       github.event.repository.default_branch))
     needs:
+      - prism-review-proof
       - sentry-review-proof
       - swift-review-proof
       - stylix-review-proof
