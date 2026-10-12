@@ -162,6 +162,16 @@ the repaired importer receives both flags and passes typechecking, linking and
 the native runtime probe. This justifies retaining the fix at the reviewed pin,
 while the guard still rejects later input changes.
 
+The AudioMuse-AI loopback manifest fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected upstream plugin is
+version 10, so the earlier release override automatically remains inactive.
+The upstream v10 manifest still grants HTTP access to every host. The
+[Linux-hosted WASI build and manifest check](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557695)
+compiles the actual selected plugin and verifies that its packed manifest matches
+the repaired source. Only `permissions.http.requiredHosts` changes to
+`127.0.0.1`; every other manifest field and source file remains unchanged.
+This validates packaging and permission scope, not a running Navidrome deployment.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
