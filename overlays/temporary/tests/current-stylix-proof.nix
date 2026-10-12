@@ -25,7 +25,7 @@ let
           stylix = {
             enable = true;
             autoEnable = false;
-            targets.neovim = {
+            targets.nvf = {
               enable = true;
               plugin = "base16";
             };
