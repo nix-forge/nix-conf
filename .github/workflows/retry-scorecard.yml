@@ -1,0 +1,18 @@
+name: Recover transient Scorecard failures
+on: # zizmor: ignore[dangerous-triggers] Trusted metadata-only recovery, without caller checkout.
+  workflow_run:
+    workflows: ["OpenSSF Scorecard"]
+    types: [completed]
+permissions: {}
+concurrency:
+  group: recover-scorecard-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+jobs:
+  retry:
+    if: github.event.workflow_run.conclusion == 'failure'
+    permissions:
+      actions: write # Retry only verified transient service failures.
+      contents: read
+    uses: nix-forge/ci/.github/workflows/retry-scorecard.yml@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+    with:
+      source-run-id: ${{ format('{0}', github.event.workflow_run.id) }}

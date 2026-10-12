@@ -31,7 +31,7 @@ jobs:
       statuses: write # Publish verified validation results on the queue commit.
     steps:
       - name: Reconcile verified automation
-        uses: nix-forge/ci/actions/reconcile-queue@13ad6e366ec01e317705d750fc512d33ecc15f6c # v2.9.0
+        uses: nix-forge/ci/actions/reconcile-queue@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
         with:
           workflows: '["ci.yml", "dependency-review.yml", "codeql.yml", "dco.yml", "fuzz.yml"]'
           base-sha-workflows: '["ci.yml", "dco.yml"]'
