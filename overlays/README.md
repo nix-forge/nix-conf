@@ -198,6 +198,18 @@ and acceptance of the next chord. The existing scoped Cargo test selection stays
 unchanged. This supports retaining the repair; it does not establish an
 interactive Alt+Tab session or justify advancing Hyprland's own runtime guard.
 
+The Actual CSS case workaround was retired at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Actual 26.10 removed the
+uppercase `Themes` directory that collided with lowercase `themes` in 26.9.
+The [unmodified Darwin package proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022916)
+verifies the exact lowercase directory entries and all five stylesheet imports
+and exports, then builds the ordinary package. Its installed Node 24.21 runtime
+writes, closes and reopens a native SQLite database; the packaged server starts,
+migrates its account database, and serves its installed page and declared assets.
+The required Darwin `actual-runtime` check preserves those runtime checks using
+the configured service's package and its selected Node dependency, with only
+loopback networking allowed in the strict sandbox.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.

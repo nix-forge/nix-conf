@@ -198,6 +198,12 @@
         clamav-special-files = import ../../tests/nix/clamav-special-files.nix { inherit pkgs; };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+        # Exercise the same package selected by the configured local service.
+        actual-runtime = import ../../tests/nix/actual-runtime.nix {
+          inherit pkgs;
+          actualPackage =
+            self.darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh.services.actual.package;
+        };
         macos-home-dry-run =
           let
             fakeDockutil = pkgs.writeShellScriptBin "dockutil" ''

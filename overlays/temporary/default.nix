@@ -6,7 +6,6 @@
 let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
-    actual-server-case = ./actual-server-case.nix;
     audiomuseai-plugin-loopback-host = ./audiomuseai-plugin-loopback-host.nix;
     audiomuseai-plugin-release = ./audiomuseai-plugin-release.nix;
     claude-code-sandbox = ./claude-code-sandbox.nix;

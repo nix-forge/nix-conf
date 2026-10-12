@@ -49,7 +49,6 @@ in
     SWIFT_EXEC = "${swiftPackages.swift}/bin/swiftc";
   };
   vorssaint = pkgs.vorssaint.override { inherit (swiftPackages) swift; };
-  actual-server = fixes.apply "actual-server-case" pkgs.actual-server;
 }
 // pkgs.lib.optionalAttrs isLinux {
   wrapFirefox = fixes.apply "zen-wrapper-copy" pkgs.wrapFirefox;

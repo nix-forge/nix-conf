@@ -124,7 +124,6 @@ let
     portal = [ selected.xdg-desktop-portal-hyprland ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-    actual = [ selected.actual-server ];
     swift = [ selected.swift ];
     swift-consumers = [
       selected.ocr-capture
@@ -199,6 +198,9 @@ assert
     selected.nix.drvPath == (fixes.apply "determinate-darwin-tests"
       inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
     ).drvPath;
+# The current Actual source removed its case-colliding directory upstream.
+assert
+  pkgs.stdenv.hostPlatform.isLinux || selected.actual-server.drvPath == pkgs.actual-server.drvPath;
 assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
 assert selected.nh.drvPath != pkgs.nh.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
