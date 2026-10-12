@@ -56,16 +56,20 @@ let
     };
   upstream = (evaluate false).config;
   repaired = (evaluate true).config;
+  upstreamSettings = upstream.programs.nvf.settings;
+  repairedSettings = repaired.programs.nvf.settings;
   renamedTheme = warning: lib.hasInfix "lualine.theme" warning && lib.hasInfix "renamed" warning;
 in
 assert lib.all (entry: entry.assertion) upstream.assertions;
 assert lib.all (entry: entry.assertion) repaired.assertions;
-assert lib.any renamedTheme upstream.warnings;
-assert !(lib.any renamedTheme repaired.warnings);
-assert upstream.programs.nvf.settings.vim.statusline.lualine.setupOpts.options.theme == "base16";
-assert repaired.programs.nvf.settings.vim.statusline.lualine.setupOpts.options.theme == "base16";
+assert lib.all (entry: entry.assertion) upstreamSettings.assertions;
+assert lib.all (entry: entry.assertion) repairedSettings.assertions;
+assert lib.any renamedTheme upstreamSettings.warnings;
+assert !(lib.any renamedTheme repairedSettings.warnings);
+assert upstreamSettings.vim.statusline.lualine.setupOpts.options.theme == "base16";
+assert repairedSettings.vim.statusline.lualine.setupOpts.options.theme == "base16";
 {
   inherit (flake.inputs.stylix) rev;
-  upstreamWarnings = upstream.warnings;
-  repairedWarnings = repaired.warnings;
+  upstreamWarnings = upstreamSettings.warnings;
+  repairedWarnings = repairedSettings.warnings;
 }
