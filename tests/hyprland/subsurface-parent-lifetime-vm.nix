@@ -42,6 +42,7 @@ let
           pkgs.pkg-config
           pkgs.stdenv.cc
           pkgs.wayland
+          (pkgs.lib.getBin pkgs.wayland-scanner)
         ];
         variables = {
           HYPRLAND_UNDER_TEST = pkgs.lib.getExe executable;

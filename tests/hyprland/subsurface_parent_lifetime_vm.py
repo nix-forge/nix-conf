@@ -28,6 +28,7 @@ class Guest(Protocol):
 
 def verify(guest: Guest, *, expect_crash: bool) -> None:
     """Require the original crash and successful repaired lifecycle scenarios."""
+    guest.succeed("command -v wayland-scanner cc pkg-config jq setsid timeout")
     guest.succeed("mkdir -m700 /run/lifetime-parent")
     guest.succeed(
         "XDG_RUNTIME_DIR=/run/lifetime-parent WLR_BACKENDS=headless "
