@@ -3,8 +3,12 @@
 import ast
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 CAPABILITIES = """interface: 'zwp_linux_dmabuf_v1',                        version:  4, name:  2
 interface: 'wl_compositor',                              version:  6, name:  3
@@ -21,12 +25,13 @@ def _require(capabilities: str) -> None:
         for node in tree.body
         if isinstance(node, ast.FunctionDef) and node.name == "require_parent_protocols"
     )
-    namespace = {"re": re}
+    namespace: dict[str, object] = {"re": re}
     exec(  # ruff: ignore[exec-builtin] - Execute only the repository-owned parser AST, without starting the VM driver.
         compile(ast.Module(body=[function], type_ignores=[]), str(driver), "exec"),
         namespace,
     )
-    namespace["require_parent_protocols"](capabilities)
+    require = cast("Callable[[str], None]", namespace["require_parent_protocols"])
+    require(capabilities)
 
 
 def test_padded_native_protocol_versions_are_accepted() -> None:
