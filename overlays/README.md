@@ -172,6 +172,21 @@ the repaired source. Only `permissions.http.requiredHosts` changes to
 `127.0.0.1`; every other manifest field and source file remains unchanged.
 This validates packaging and permission scope, not a running Navidrome deployment.
 
+The GtkSourceView, Hypridle and nix-output-monitor fixes were reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Their upstream package recipes
+and fixed source selections remain unchanged; nix-output-monitor's generated
+package definition is also identical.
+
+- The [GtkSourceView Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557870)
+  retains the scoped Xvfb `-noreset` repair and passes all 23 native Meson tests.
+- The [Hypridle Linux proof](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557887)
+  builds version 0.1.8 and executes its actual retry body in the native fixture.
+  The upstream body bypasses an active inhibitor; the repaired body preserves
+  pending work, then runs it after the inhibitor clears. Explicit overrides still run.
+- The [nix-output-monitor Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557918)
+  retains the version 2.2.0 graph-state repair and passes both upstream unit and
+  documentation test suites.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
