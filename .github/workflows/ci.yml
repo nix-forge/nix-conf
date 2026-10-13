@@ -14,7 +14,7 @@ on:
         required: false
         default: none
         type: choice
-        options: [none, darwin, linux, hyprland, all]
+        options: [none, darwin, deploy, linux, hyprland, all]
       prove_prism_watch:
         description: Measure native Prism watcher capability and verify actual resource cases.
         required: false
@@ -58,7 +58,7 @@ on:
     types: [checks_requested]
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name
-    == 'workflow_dispatch' && (contains(fromJSON('["darwin","linux","hyprland","all"]'), inputs.prove_package_fixes)
+    == 'workflow_dispatch' && (contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'), inputs.prove_package_fixes)
     || inputs.prove_actual_runtime == true || inputs.prove_prism_watch == true || inputs.prove_zen_wrapper
     == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening == true || inputs.prove_sentry_lock
     == true) && format('-proof-{0}', github.run_id) || '' }}
@@ -88,7 +88,7 @@ jobs:
             sourceLayout rawPackage rawRuntime regression
   package-fixes-review-proof:
     name: Review current package fix (${{ matrix.target }})
-    if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["darwin","linux","hyprland","all"]'),
+    if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'),
       inputs.prove_package_fixes)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -103,7 +103,8 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON( inputs.prove_package_fixes == 'darwin' && '[ {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
+          ${{ fromJSON( inputs.prove_package_fixes == 'deploy' && '[ {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"}
+          ]' || inputs.prove_package_fixes == 'darwin' && '[ {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
           {"target":"nh","runner":"macos-26","proof":"current-darwin-package-proof.nix"}, {"target":"claude","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
           {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes
           == 'linux' && '[ {"target":"gtk","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
@@ -178,6 +179,17 @@ jobs:
           nix eval --impure --json --file "$proof_file" metadata
           proof=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
             --max-jobs 1 --cores 2 --file "$proof_file" strictDiagnostic)
+          python3 - <<'PYDIR'
+          import json
+          import os
+          import tempfile
+          from pathlib import Path
+          print(json.dumps({
+              "hostTmpdirEnvironment": os.environ.get("TMPDIR"),
+              "hostTemporaryDirectory": tempfile.gettempdir(),
+              "hostResolvedTemporaryDirectory": str(Path(tempfile.gettempdir()).resolve()),
+          }))
+          PYDIR
           python3 "$proof/compare.py" record "$proof/bin/activate-tests" \
             "$proof/bin/fsevents-probe" "$RUNNER_TEMP/deploy-watch-host"
           python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-host"
