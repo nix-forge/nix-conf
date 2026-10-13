@@ -1,4 +1,3 @@
-# Register only after the native normal-directory and alias controls pass.
 _: {
   reason = "Darwin filesystem events use canonical paths, but confirmation compares a lexical canary path.";
   upstream = "https://github.com/serokell/deploy-rs/blob/45ba3f8c5cb28396fff71671806e2550b464ac86/src/bin/activate.rs";

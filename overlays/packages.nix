@@ -37,7 +37,11 @@ in
   prismlauncher = pkgs.prismlauncher.override { prismlauncher-unwrapped = prismUnwrapped; };
   claude-code =
     if isDarwin then fixes.apply "claude-code-sandbox" pkgs.claude-code else pkgs.claude-code;
-  deploy-rs = if isDarwin then fixes.apply "deploy-rs-darwin-tests" deploy else deploy;
+  deploy-rs =
+    if isDarwin then
+      fixes.apply "deploy-rs-darwin-tests" (fixes.apply "deploy-rs-confirmation-path" deploy)
+    else
+      deploy;
 }
 // pkgs.lib.optionalAttrs isDarwin {
   # swiftPackages is a recursive attribute set, not an overridable scope.

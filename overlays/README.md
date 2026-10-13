@@ -278,6 +278,21 @@ successfully; the functional suite reports 189 passing cases, zero failures and
 36 upstream skips. The combined package remains under the strict sandbox, with
 only its existing declared local-network allowance for functional tests.
 
+The Deploy Darwin repairs were reviewed at
+`45ba3f8c5cb28396fff71671806e2550b464ac86`. The
+[native same-binary control](https://github.com/nix-forge/nix-conf/actions/runs/38329944044/job/115077204280)
+shows that strict sandboxing prevents FSEvents from starting; with a canonical
+temporary directory on the host, all three original watcher cases pass. Ordinary
+host directory aliases separately expose a real confirmation-path bug. The
+[native source-repair proof](https://github.com/nix-forge/nix-conf/actions/runs/38331485552/job/115081978519)
+requires the unmodified helper to pass its real-directory case and fail its
+verified symlink-alias case. The repaired helper passes both cases and all three
+original watcher cases under the ordinary host environment, without changing
+watcher predicates or timeouts. Its complete Rust package checks preserve only
+the three existing strict-sandbox capability exclusions; sentinel tests remain
+live. The path-normalization repair has its own record and removal condition,
+independent of the sandbox-test repair. Linux keeps the unmodified package.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
