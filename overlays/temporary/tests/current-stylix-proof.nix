@@ -1,7 +1,7 @@
 # Compare observable module warnings and the preserved canonical theme.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
   inherit (pkgs) lib;
   adapter = (import ../stylix-nvf.nix { inherit lib; }).apply flake.inputs.stylix;

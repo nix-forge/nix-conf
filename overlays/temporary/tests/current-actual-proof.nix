@@ -2,7 +2,7 @@
 # Actual 26.10 removed the uppercase Themes directory present beside themes in Actual 26.9.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   upstream = pkgs.actual-server;
   node = pkgs.nodejs_24;

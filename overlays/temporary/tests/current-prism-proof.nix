@@ -1,7 +1,7 @@
 # Native evidence only. These outputs never refresh installed review guards.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   inherit (pkgs) lib;
   upstream = pkgs.prismlauncher-unwrapped;

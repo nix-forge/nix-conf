@@ -1,7 +1,7 @@
 # Native proof packages never advance installed temporary-fix review guards.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   system = "aarch64-darwin";
   pkgs = import flake.inputs.nixpkgs {
     inherit system;

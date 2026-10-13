@@ -1,7 +1,7 @@
 # Source repair remains isolated until its raw and repaired native controls pass.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   upstream = flake.inputs.deploy-rs.packages.aarch64-darwin.default;
   repairPatch = builtins.path {

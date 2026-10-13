@@ -2,7 +2,7 @@
 # This isolated proof does not apply or advance installed configuration guards.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
   inherit (pkgs) lib;
   packages = flake.inputs.determinate.inputs.nix.packages.x86_64-linux;

@@ -1,7 +1,7 @@
 # Diagnostic pair only. This never changes installed Deploy tests or guards.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   upstream = flake.inputs.deploy-rs.packages.aarch64-darwin.default;
   export = upstream.overrideAttrs (old: {

@@ -103,21 +103,28 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON( inputs.prove_package_fixes == 'deploy' && '[ {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"}
-          ]' || inputs.prove_package_fixes == 'darwin' && '[ {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
-          {"target":"nh","runner":"macos-26","proof":"current-darwin-package-proof.nix"}, {"target":"claude","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
-          {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes
-          == 'linux' && '[ {"target":"gtk","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
-          {"target":"hypridle","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"hyprshell","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
-          {"target":"nom","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"audioMuse","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}
-          ]' || inputs.prove_package_fixes == 'hyprland' && '[ {"target":"hyprland","runner":"ubuntu-24.04","proof":"current-hyprland-proof.nix"}
-          ]' || inputs.prove_package_fixes == 'all' && '[ {"target":"gtk","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
-          {"target":"hypridle","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"hyprshell","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
-          {"target":"hyprland","runner":"ubuntu-24.04","proof":"current-hyprland-proof.nix"}, {"target":"nom","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"},
-          {"target":"audioMuse","runner":"ubuntu-24.04","proof":"current-package-fixes-proof.nix"}, {"target":"determinate","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
-          {"target":"nh","runner":"macos-26","proof":"current-darwin-package-proof.nix"}, {"target":"claude","runner":"macos-26","proof":"current-darwin-package-proof.nix"},
-          {"target":"deploy","runner":"macos-26","proof":"current-darwin-package-proof.nix"} ]' || '[]')
-          }}
+          ${{ fromJSON( inputs.prove_package_fixes == 'deploy' && '[ {"target": "deploy", "runner": "macos-26",
+          "proof": "current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes == 'darwin' &&
+          '[ {"target": "determinate", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"},
+          {"target": "nh", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target":
+          "claude", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target": "deploy",
+          "runner": "macos-26", "proof": "current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes
+          == 'linux' && '[ {"target": "gtk", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "hypridle", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "hyprshell", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "nom", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"}, {"target":
+          "audioMuse", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"} ]' || inputs.prove_package_fixes
+          == 'hyprland' && '[ {"target": "hyprland", "runner": "ubuntu-24.04", "proof": "current-hyprland-proof.nix"}
+          ]' || inputs.prove_package_fixes == 'all' && '[ {"target": "gtk", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hypridle", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hyprshell", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hyprland", "runner": "ubuntu-24.04",
+          "proof": "current-hyprland-proof.nix"}, {"target": "nom", "runner": "ubuntu-24.04", "proof":
+          "current-package-fixes-proof.nix"}, {"target": "audioMuse", "runner": "ubuntu-24.04", "proof":
+          "current-package-fixes-proof.nix"}, {"target": "determinate", "runner": "macos-26", "proof":
+          "current-darwin-package-proof.nix"}, {"target": "nh", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"},
+          {"target": "claude", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target":
+          "deploy", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"} ]' || '[]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -164,9 +171,19 @@ jobs:
             status=$?
             trap - EXIT
             set +e
-            for directory in "${proof:+$proof/strict}" "$RUNNER_TEMP/deploy-watch-host" "$RUNNER_TEMP/deploy-watch-canonical"; do
+            for directory in \
+              "${proof:+$proof/strict}" \
+              "$RUNNER_TEMP/deploy-watch-host" \
+              "$RUNNER_TEMP/deploy-watch-canonical"; do
               [[ -d "$directory" ]] || continue
-              for filename in status.json test.log fsevents.json watch-1.json watch-1.log watch-2.json watch-2.log; do
+              for filename in \
+                status.json \
+                test.log \
+                fsevents.json \
+                watch-1.json \
+                watch-1.log \
+                watch-2.json \
+                watch-2.log; do
                 [[ -f "$directory/$filename" ]] || continue
                 printf '::group::Deploy watcher evidence %s/%s\n' "$directory" "$filename"
                 sed -n '1,80p' "$directory/$filename"
@@ -222,9 +239,24 @@ jobs:
             status=$?
             trap - EXIT
             set +e
-            for directory in "${raw:+$raw/strict}" "${repaired:+$repaired/strict}" "$RUNNER_TEMP/deploy-confirmation-raw" "$RUNNER_TEMP/deploy-confirmation-repaired"; do
+            for directory in \
+              "${raw:+$raw/strict}" \
+              "${repaired:+$repaired/strict}" \
+              "$RUNNER_TEMP/deploy-confirmation-raw" \
+              "$RUNNER_TEMP/deploy-confirmation-repaired"; do
               [[ -d "$directory" ]] || continue
-              for filename in status.json test.log fsevents.json watch-1.json watch-1.log watch-2.json watch-2.log directory-0.json directory-0.log directory-1.json directory-1.log; do
+              for filename in \
+                status.json \
+                test.log \
+                fsevents.json \
+                watch-1.json \
+                watch-1.log \
+                watch-2.json \
+                watch-2.log \
+                directory-0.json \
+                directory-0.log \
+                directory-1.json \
+                directory-1.log; do
                 [[ -f "$directory/$filename" ]] || continue
                 printf '::group::Deploy confirmation evidence %s/%s\n' "$directory" "$filename"
                 sed -n '1,80p' "$directory/$filename"

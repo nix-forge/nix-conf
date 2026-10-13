@@ -2,7 +2,7 @@
 # A hosted filesystem pass does not establish retirement on the native builder mount.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
   inherit (pkgs) lib;
   repair = (import ../zen-wrapper-copy.nix { inherit lib; }).apply pkgs.wrapFirefox;

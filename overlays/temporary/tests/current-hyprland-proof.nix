@@ -1,7 +1,7 @@
 # Native proof for the current input, without accepting its installed guard.
 let
   root = toString ../../..;
-  flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   system = "x86_64-linux";
   pkgs = import flake.inputs.nixpkgs { inherit system; };
   unpatched = flake.inputs.hyprland.packages.${system}.hyprland;
