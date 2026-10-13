@@ -2,6 +2,7 @@
 let
   root = toString ../../..;
   flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
+  pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   upstream = flake.inputs.deploy-rs.packages.aarch64-darwin.default;
   repairPatch = ../patches/deploy-confirmation-parent-path.patch;
   regressionPatch = ../patches/deploy-confirmation-directory-tests.patch;
@@ -10,11 +11,20 @@ let
   });
   fullPackage = (import ../deploy-rs-darwin-tests.nix { }).apply repaired;
   diagnostic = (import ./current-deploy-watch-proof.nix).strictDiagnostic;
+  regression =
+    pkgs.runCommand "deploy-confirmation-path-result-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
+      ''
+        cp ${./deploy-confirmation-path-result.py} deploy-confirmation-path-result.py
+        cp ${./test_deploy_confirmation_path_result.py} test_deploy_confirmation_path_result.py
+        python3 -m unittest discover -s . -p test_deploy_confirmation_path_result.py
+        touch "$out"
+      '';
   withDirectoryTests =
     patches:
     diagnostic.overrideAttrs (old: {
       patches = (old.patches or [ ]) ++ patches ++ [ regressionPatch ];
       postCheck = (old.postCheck or "") + ''
+        test -e ${regression}
         python3 ${./deploy-confirmation-path-result.py} extra \
           "$(cat test-binary-path)" strict-results
       '';
@@ -44,7 +54,7 @@ assert !(fullPackage.__noChroot or false);
     fullTestsRetainExistingThreeCapabilityExclusions = true;
     hostOriginalThreeAndNormalAliasTestsRequired = true;
   };
-  inherit fullPackage;
+  inherit fullPackage regression;
   rawAliasDiagnostic = withDirectoryTests [ ];
   repairedDiagnostic = withDirectoryTests [ repairPatch ];
 }
