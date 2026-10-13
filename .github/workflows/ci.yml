@@ -146,14 +146,24 @@ jobs:
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file "$PROOF_FILE" "${targets[@]}"
       - name: Verify the exact native capability-dependent baseline
-        if: ${{ !cancelled() && (matrix.target == 'determinate' || matrix.target == 'deploy') }}
+        if: ${{ !cancelled() && matrix.target == 'determinate' }}
         env:
           TARGET: ${{ matrix.target }}
           PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
         run: |
-          if [[ "$TARGET" == determinate ]]; then baseline=rawSentryDenied; else baseline=deployRawWatcherDenied; fi
+          baseline=rawSentryDenied
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file "$PROOF_FILE" "$baseline"
+      - name: Compare identical Deploy watcher binaries in sandbox and on host
+        if: ${{ !cancelled() && matrix.target == 'deploy' }}
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-watch-proof.nix
+          nix eval --impure --json --file "$proof_file" metadata
+          proof=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" strictDiagnostic)
+          python3 "$proof/compare.py" record "$proof/bin/activate-tests" \
+            "$proof/bin/fsevents-probe" "$RUNNER_TEMP/deploy-watch-host"
+          python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-host"
       - name: Inspect installed Claude entrypoint and native loader
         if: matrix.target == 'claude'
         run: |
