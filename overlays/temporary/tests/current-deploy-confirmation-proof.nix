@@ -4,12 +4,16 @@ let
   flake = builtins.getFlake ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "aarch64-darwin"; };
   upstream = flake.inputs.deploy-rs.packages.aarch64-darwin.default;
-  repairPatch = ../patches/deploy-confirmation-parent-path.patch;
-  regressionPatch = ../patches/deploy-confirmation-directory-tests.patch;
-  repaired = upstream.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ repairPatch ];
-  });
-  fullPackage = (import ../deploy-rs-darwin-tests.nix { }).apply repaired;
+  repairPatch = builtins.path {
+    path = ../patches/deploy-confirmation-parent-path.patch;
+    name = "deploy-confirmation-parent-path.patch";
+  };
+  regressionPatch = builtins.path {
+    path = ../patches/deploy-confirmation-directory-tests.patch;
+    name = "deploy-confirmation-directory-tests.patch";
+  };
+  # The owning integration installs this patch once before building this proof.
+  fullPackage = (import ../deploy-rs-darwin-tests.nix { }).apply upstream;
   diagnostic = (import ./current-deploy-watch-proof.nix).strictDiagnostic;
   regression =
     pkgs.runCommand "deploy-confirmation-path-result-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
@@ -34,6 +38,7 @@ let
     });
 in
 assert fullPackage.doCheck;
+assert fullPackage.patches == (upstream.patches or [ ]) ++ [ repairPatch ];
 assert
   fullPackage.checkFlags == (upstream.checkFlags or [ ])
   ++ [
