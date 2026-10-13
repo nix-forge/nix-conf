@@ -71,8 +71,8 @@ def _require_host_watchers(control: Path) -> None:
             _reject("All three unchanged host watcher cases must execute and pass")
 
 
-def compare(strict: Path, control: Path) -> None:
-    """Require successful event delivery and the same real testcase as control."""
+def require_host_control(strict: Path, control: Path) -> None:
+    """Require identical binaries, valid canaries and all real host watcher cases."""
     raw = json.loads((strict / "fsevents.json").read_text())
     host = json.loads((control / "fsevents.json").read_text())
     raw_status = json.loads((strict / "status.json").read_text())
@@ -94,15 +94,22 @@ def compare(strict: Path, control: Path) -> None:
             _reject("The real FSEvents canary preconditions did not pass")
     if host["startedStream"] is not True or host["removeCallbacks"] < 1:
         _reject("The capability-present control did not deliver removal")
-    if raw["removeCallbacks"] != 0:
-        _reject("Strict sandbox delivered removal; investigate test timing")
     _require_host_watchers(control)
     passing = (control / "test.log").read_text()
-    failing = (strict / "test.log").read_text()
     if host_status["exit"] != 0 or not (
         f"test {CASE} ... ok" in passing and "1 passed; 0 failed; 0 ignored" in passing
     ):
         _reject("The unchanged host testcase did not pass")
+
+
+def compare(strict: Path, control: Path) -> None:
+    """Keep audit admission tied to the precise sandbox event-loss differential."""
+    require_host_control(strict, control)
+    raw = json.loads((strict / "fsevents.json").read_text())
+    raw_status = json.loads((strict / "status.json").read_text())
+    failing = (strict / "test.log").read_text()
+    if raw["removeCallbacks"] != 0:
+        _reject("Strict sandbox delivered removal; investigate test timing")
     if raw_status["exit"] != _RUST_FAILURE or not (
         f"test {CASE} ... FAILED" in failing
         and "observe canary removal: TimesUp" in failing

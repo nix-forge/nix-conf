@@ -71,4 +71,9 @@ assert !(fullPackage.__noChroot or false);
   inherit fullPackage regression;
   rawAliasDiagnostic = withDirectoryTests [ ];
   repairedDiagnostic = withDirectoryTests [ repairPatch ];
+  # Ordinary CI tests the same registered package consumed by this system.
+  productionDiagnostic =
+    assert builtins.hasAttr "deploy-rs-confirmation-path" registry.review;
+    assert flake.darwinConfigurations.macbook-pro-m4.pkgs.deploy-rs.drvPath == fullPackage.drvPath;
+    withDirectoryTests [ repairPatch ];
 }

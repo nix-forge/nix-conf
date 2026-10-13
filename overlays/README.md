@@ -291,7 +291,10 @@ original watcher cases under the ordinary host environment, without changing
 watcher predicates or timeouts. Its complete Rust package checks preserve only
 the three existing strict-sandbox capability exclusions; sentinel tests remain
 live. The path-normalization repair has its own record and removal condition,
-independent of the sandbox-test repair. Linux keeps the unmodified package.
+independent of the sandbox-test repair. The required Darwin CI job builds the
+actual configured package and executes all five native host regressions using its
+selected source and repairs; no manual proof dispatch is needed for this gate.
+Linux keeps the unmodified package.
 
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision

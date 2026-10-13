@@ -617,6 +617,39 @@ jobs:
           partition-count: ${{ matrix.partition-count }}
           partition-index: ${{ matrix.partition-index }}
           weights-file: .github/ci-check-weights.json
+      - name: Verify configured Deploy confirmation and cancellation on Darwin
+        if: matrix.system == 'aarch64-darwin'
+        env:
+          NIX_CONFIG: |
+            sandbox = true
+            sandbox-fallback = false
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-confirmation-proof.nix
+          receipt="$RUNNER_TEMP/deploy-confirmation-required"
+          report_required_confirmation() {
+            status=$?
+            trap - EXIT
+            set +e
+            for filename in \
+              status.json test.log fsevents.json \
+              watch-1.json watch-1.log watch-2.json watch-2.log \
+              directory-0.json directory-0.log directory-1.json directory-1.log; do
+              [[ -f "$receipt/$filename" ]] || continue
+              printf '::group::Required Deploy runtime evidence %s\n' "$filename"
+              sed -n '1,80p' "$receipt/$filename"
+              printf '\n::endgroup::\n'
+            done
+            exit "$status"
+          }
+          trap report_required_confirmation EXIT
+          nix eval --impure --json --file "$proof_file" metadata
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" fullPackage regression
+          proof=$(nix build --impure --no-link --print-out-paths -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" productionDiagnostic)
+          # Preserve the ordinary host TMPDIR and execute only source-built tests.
+          python3 "$proof/path-proof.py" host "$proof" "$receipt"
+          python3 "$proof/path-proof.py" host-positive "$proof" "$receipt"
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash

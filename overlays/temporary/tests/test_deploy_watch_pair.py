@@ -102,6 +102,21 @@ class PairTest(unittest.TestCase):
         with self.assertRaises(ValueError):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library fixtures need no pytest.
             PAIR.compare(self.strict, self.control)
 
+    def test_host_positive_allows_strict_delivery(self) -> None:
+        """A healthy host gate remains automatic if sandbox capability improves."""
+        self.update(self.strict, "fsevents.json", "removeCallbacks", 1)
+        self.update(self.strict, "status.json", "exit", 0)
+        (self.strict / "test.log").write_text(
+            f"test {PAIR.CASE} ... ok\n1 passed; 0 failed; 0 ignored"
+        )
+        PAIR.require_host_control(self.strict, self.control)
+
+    def test_host_positive_rejects_failed_confirmation(self) -> None:
+        """The required runtime gate cannot pass a host confirmation timeout."""
+        self.update(self.control, "status.json", "exit", 101)
+        with self.assertRaises(ValueError):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library fixtures need no pytest.
+            PAIR.require_host_control(self.strict, self.control)
+
     def test_invalid_directory(self) -> None:
         """An absent real writable directory cannot masquerade as event loss."""
         self.update(self.strict, "fsevents.json", "validDirectory", False)

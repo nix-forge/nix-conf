@@ -90,6 +90,9 @@ def main() -> None:
     host.add_argument("output", type=Path)
     baseline = commands.add_parser("raw-alias")
     baseline.add_argument("output", type=Path)
+    positive = commands.add_parser("host-positive")
+    positive.add_argument("artifact", type=Path)
+    positive.add_argument("host", type=Path)
     proof = commands.add_parser("compare")
     proof.add_argument("artifact", type=Path)
     proof.add_argument("host", type=Path)
@@ -115,6 +118,10 @@ def main() -> None:
             args.output,
         )
         extra(args.artifact / "bin/activate-tests", args.output)
+    elif args.mode == "host-positive":
+        pair.require_host_control(args.artifact / "strict", args.host)
+        require_case(args.host, 0, passing=True)
+        require_case(args.host, 1, passing=True)
     else:
         pair.compare(args.artifact / "strict", args.host)
         require_strict_original(args.artifact / "strict")
