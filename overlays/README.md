@@ -210,6 +210,27 @@ The required Darwin `actual-runtime` check preserves those runtime checks using
 the configured service's package and its selected Node dependency, with only
 loopback networking allowed in the strict sandbox.
 
+The nh Darwin HOME fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its version 4.4.2 recipe and
+fixed source selection remain unchanged. The
+[native Darwin build](https://github.com/nix-forge/nix-conf/actions/runs/38324209549/job/115059018442)
+preserves the upstream Cargo test selection and passes those Rust suites. The
+exact absolute-HOME regression passes in the normal suite and an additional
+named invocation. The existing version predicate still bypasses this fix for
+newer upstream releases.
+
+The Prism Launcher Darwin watcher test fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected package is 11.1.1;
+its upstream resource-test source is identical to 11.1.0. The
+[native paired proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022809)
+measures a valid but unavailable Qt directory-watch prerequisite in the strict
+sandbox and reproduces the original resource-removal failure. Both the existing
+and improved repairs skip only that case; all 20 other CTest targets pass. The
+improved test first asserts that its temporary directory is valid and exists.
+Outside the sandbox, the actual exported resource-test binary passes its full
+suite with no skips, so the capability check does not bypass assertions when
+watching is available.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
