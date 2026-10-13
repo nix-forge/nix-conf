@@ -1,5 +1,5 @@
---- a/tests/functional/meson.build
-+++ b/tests/functional/meson.build
+--- a/meson.build
++++ b/meson.build
 @@ -252,6 +252,10 @@
      deps += [ nix ] + nix_subproject.get_variable('nix_symlinks_targets')
    endif
