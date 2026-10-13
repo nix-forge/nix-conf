@@ -1,0 +1,64 @@
+--- a/src/bin/activate.rs
++++ b/src/bin/activate.rs
+@@ -431,6 +431,61 @@
+         fs::remove_dir(&temp_path)
+             .await
+             .expect("remove test directory");
++    }
++
++    #[cfg(unix)]
++    async fn confirmation_removal_directory_fixture(alias: bool) {
++        let id = TEMP_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed);
++        let directory = env::temp_dir().join(format!(
++            "deploy-rs-confirmation-path-test-{}-{id}",
++            std::process::id()
++        ));
++        fs::create_dir_all(&directory)
++            .await
++            .expect("create real directory");
++        let real = directory.canonicalize().expect("canonical real directory");
++        let alias_path = directory.with_extension("alias");
++        let watched = if alias {
++            std::os::unix::fs::symlink(&real, &alias_path).expect("create directory alias");
++            assert!(std::fs::symlink_metadata(&alias_path)
++                .unwrap()
++                .file_type()
++                .is_symlink());
++            assert_eq!(alias_path.canonicalize().unwrap(), real);
++            alias_path.clone()
++        } else {
++            real
++        };
++        let canary = watched.join("canary");
++        let (_watcher, done) =
++            confirmation_watcher(&watched, &canary).expect("watch real existing directory");
++        fs::File::create(&canary)
++            .await
++            .expect("create actual canary");
++        fs::remove_file(&canary)
++            .await
++            .expect("remove actual canary immediately");
++        danger_zone(done, 1)
++            .await
++            .expect("observe real directory canary removal");
++        if alias {
++            fs::remove_file(&alias_path).await.expect("remove alias");
++        }
++        fs::remove_dir(&directory)
++            .await
++            .expect("remove real directory");
++    }
++
++    #[cfg(unix)]
++    #[tokio::test]
++    async fn confirmation_watcher_observes_normal_directory_removal() {
++        confirmation_removal_directory_fixture(false).await;
++    }
++
++    #[cfg(unix)]
++    #[tokio::test]
++    async fn confirmation_watcher_observes_symlink_directory_removal() {
++        confirmation_removal_directory_fixture(true).await;
+     }
+ 
+     fn test_closure(id: u64) -> String {
