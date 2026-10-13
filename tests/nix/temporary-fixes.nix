@@ -53,6 +53,27 @@ let
       };
     };
   };
+  # Exercise the selected upstream module after retiring its argument adapter.
+  homeManagerPortal =
+    portalPackage: finalPackage:
+    (import (inputs.home-manager + "/modules/services/window-managers/hyprland/default.nix") {
+      inherit lib pkgs;
+      config.wayland.windowManager.hyprland = { inherit portalPackage finalPackage; };
+    }).options.wayland.windowManager.hyprland.finalPortalPackage.default;
+  portalFixture = lib.makeOverridable (
+    {
+      label ? "original",
+    }:
+    pkgs.runCommand "portal-${label}" { } "touch $out"
+  ) { };
+  compositorFixture = pkgs.runCommand "compositor" { } "touch $out";
+  legacyPortalFixture = lib.makeOverridable (
+    {
+      hyprland ? compositorFixture,
+      label ? "original",
+    }:
+    pkgs.runCommand "portal-${label}-${hyprland.name}" { } "touch $out"
+  ) { };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -176,6 +197,20 @@ assert
     changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
   ));
 assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
+assert (homeManagerPortal portalFixture compositorFixture).drvPath == portalFixture.drvPath;
+assert
+  (homeManagerPortal (portalFixture.override { label = "changed"; }) compositorFixture).drvPath
+  == (portalFixture.override { label = "changed"; }).drvPath;
+assert
+  (homeManagerPortal legacyPortalFixture selected.hyprland).drvPath
+  == (legacyPortalFixture.override { inherit (selected) hyprland; }).drvPath;
+assert
+  (homeManagerPortal (legacyPortalFixture.override { label = "changed"; }) selected.hyprland).drvPath
+  == (legacyPortalFixture.override {
+    label = "changed";
+    inherit (selected) hyprland;
+  }).drvPath;
+assert homeManagerPortal null compositorFixture == null;
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
 # Platform decisions belong to the selection interface. Linux keeps the

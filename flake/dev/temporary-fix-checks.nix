@@ -44,6 +44,9 @@
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # Keep native compiler compatibility coverage after retiring the override.
         hyprland-portal-build =
+          assert
+            self.nixosConfigurations.desktop.config.home-manager.users.ianmh.wayland.windowManager.hyprland.finalPortalPackage.drvPath
+            == inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.drvPath;
           assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
           hyprlandPackages.xdg-desktop-portal-hyprland;
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
