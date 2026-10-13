@@ -164,7 +164,7 @@ jobs:
             status=$?
             trap - EXIT
             set +e
-            for directory in "${proof:+$proof/strict}" "$RUNNER_TEMP/deploy-watch-host"; do
+            for directory in "${proof:+$proof/strict}" "$RUNNER_TEMP/deploy-watch-host" "$RUNNER_TEMP/deploy-watch-canonical"; do
               [[ -d "$directory" ]] || continue
               for filename in status.json test.log fsevents.json watch-1.json watch-1.log watch-2.json watch-2.log; do
                 [[ -f "$directory/$filename" ]] || continue
@@ -192,7 +192,26 @@ jobs:
           PYDIR
           python3 "$proof/compare.py" record "$proof/bin/activate-tests" \
             "$proof/bin/fsevents-probe" "$RUNNER_TEMP/deploy-watch-host"
-          python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-host"
+          # Retain the ordinary host receipts; separately control the temp-path alias.
+          PROOF_OUTPUT="$proof" python3 - <<'PYCONTROL'
+          import json
+          import os
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+          proof = Path(os.environ["PROOF_OUTPUT"])
+          runner_temp = Path(os.environ["RUNNER_TEMP"])
+          with tempfile.TemporaryDirectory(prefix="deploy-watch-control-", dir=runner_temp) as temporary:
+              os.environ["TMPDIR"] = str(Path(temporary).resolve())
+              print(json.dumps({"canonicalControlTmpdir": os.environ["TMPDIR"]}), flush=True)
+              subprocess.run([
+                  sys.executable, str(proof / "compare.py"), "record",
+                  str(proof / "bin/activate-tests"), str(proof / "bin/fsevents-probe"),
+                  str(runner_temp / "deploy-watch-canonical"),
+              ], check=True)
+          PYCONTROL
+          python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-canonical"
       - name: Inspect installed Claude entrypoint and native loader
         if: matrix.target == 'claude'
         run: |
