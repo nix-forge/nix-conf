@@ -631,7 +631,7 @@ jobs:
           executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
           [[ "$executable" =~ ^[A-Za-z0-9._-]+$ && "$executable" != . && "$executable" != .. ]]
           test -x "$app/Contents/MacOS/$executable"
-          /usr/bin/lipo -verify_arch arm64 "$app/Contents/MacOS/$executable"
+          /usr/bin/lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
           /usr/bin/codesign --verify --deep --strict "$app"
       - name: Verify configured Deploy confirmation and cancellation on Darwin
         if: matrix.system == 'aarch64-darwin'
