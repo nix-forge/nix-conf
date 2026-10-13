@@ -5,6 +5,18 @@ _: {
     checks.python-tests = (import ../../tests/python-check.nix { inherit pkgs; }) {
       name = "python-behavior-tests";
       files = [
+        ../../overlays/temporary/tests/crashpad-lock.py
+        ../../overlays/temporary/tests/prism-watch-result.py
+        ../../overlays/temporary/tests/darwin-package-result.py
+        ../../overlays/temporary/tests/deploy-watch-pair.py
+        ../../overlays/temporary/tests/deploy-confirmation-path-result.py
+        ../../overlays/temporary/tests/test_deploy_confirmation_path_result.py
+        ../../overlays/temporary/tests/test_deploy_watch_pair.py
+        ../../overlays/temporary/tests/test_darwin_package_result.py
+        ../../overlays/temporary/tests/actual-css-result.py
+        ../../overlays/temporary/tests/actual-runtime.py
+        ../../overlays/temporary/tests/test_actual_proof.py
+        ../../overlays/temporary/tests/test_prism_watch_result.py
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../tests)
         (pkgs.lib.fileset.fileFilter (
           file: file.hasExt "py" || pkgs.lib.hasSuffix ".sh.in" file.name
@@ -20,6 +32,14 @@ _: {
         ../../justfile
         (pkgs.lib.fileset.fileFilter (file: file.hasExt "py") ../../scripts)
         ../../site/reference.py
+      ];
+      testPaths = [
+        "tests"
+        "overlays/temporary/tests/test_prism_watch_result.py"
+        "overlays/temporary/tests/test_actual_proof.py"
+        "overlays/temporary/tests/test_darwin_package_result.py"
+        "overlays/temporary/tests/test_deploy_watch_pair.py"
+        "overlays/temporary/tests/test_deploy_confirmation_path_result.py"
       ];
       nativeBuildInputs = with pkgs; [
         bash

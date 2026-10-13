@@ -1,0 +1,19 @@
+--- a/src/bin/activate.rs
++++ b/src/bin/activate.rs
+@@ -299,7 +299,15 @@
+     notify::Error,
+ > {
+     let (deleted, done) = mpsc::channel(1);
+-    let lock_path = lock_path.to_path_buf();
++    // The removed file cannot be canonicalized after its notification arrives.
++    // Normalize its existing parent before comparing native filesystem events.
++    let parent = lock_path
++        .parent()
++        .ok_or_else(notify::Error::path_not_found)?;
++    let name = lock_path
++        .file_name()
++        .ok_or_else(notify::Error::path_not_found)?;
++    let lock_path = parent.canonicalize().map_err(notify::Error::io)?.join(name);
+ 
+     let mut watcher =
+         recommended_watcher(move |res: Result<notify::event::Event, notify::Error>| {

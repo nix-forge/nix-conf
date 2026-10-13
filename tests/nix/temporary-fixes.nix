@@ -53,29 +53,28 @@ let
       };
     };
   };
-  portalCompatibility =
-    (import ../../overlays/temporary/home-manager-hyprland-portal.nix { inherit lib; }).apply;
+  # Exercise the selected upstream module after retiring its argument adapter.
+  homeManagerPortal =
+    portalPackage: finalPackage:
+    (import (inputs.home-manager + "/modules/services/window-managers/hyprland/default.nix") {
+      inherit lib pkgs;
+      config.wayland.windowManager.hyprland = { inherit portalPackage finalPackage; };
+    }).options.wayland.windowManager.hyprland.finalPortalPackage.default;
   portalFixture = lib.makeOverridable (
     {
       label ? "original",
     }:
     pkgs.runCommand "portal-${label}" { } "touch $out"
   ) { };
-  compatiblePortal = portalCompatibility portalFixture;
-  legacyPortal = lib.makeOverridable (
+  compositorFixture = pkgs.runCommand "compositor" { } "touch $out";
+  legacyCompositorFixture = pkgs.runCommand "legacy-compositor" { } "touch $out";
+  legacyPortalFixture = lib.makeOverridable (
     {
-      hyprland ? "original",
+      hyprland ? legacyCompositorFixture,
+      label ? "original",
     }:
-    pkgs.runCommand "portal-${hyprland}" { } "touch $out"
+    pkgs.runCommand "portal-${label}-${hyprland.name}" { inherit hyprland; } "touch $out"
   ) { };
-  changedHomeManager = import ../../overlays/temporary {
-    inherit lib;
-    inputs = inputs // {
-      home-manager = inputs.home-manager // {
-        rev = "unreviewed";
-      };
-    };
-  };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -147,7 +146,6 @@ let
     portal = [ selected.xdg-desktop-portal-hyprland ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-    actual = [ selected.actual-server ];
     swift = [ selected.swift ];
     swift-consumers = [
       selected.ocr-capture
@@ -157,6 +155,7 @@ let
   };
   derivations = lib.mapAttrs (_: map (p: p.drvPath)) packages;
 in
+assert import ../../overlays/temporary/tests/darwin-functional-contract.nix;
 assert accepts "1.2";
 assert accepts "1.3.9";
 assert !(accepts "1.1.9");
@@ -199,22 +198,20 @@ assert
     changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
   ));
 assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
-# Home Manager's obsolete argument must not alter the selected portal output.
-assert (compatiblePortal.override { hyprland = "compositor"; }).drvPath == portalFixture.drvPath;
+assert (homeManagerPortal portalFixture compositorFixture).drvPath == portalFixture.drvPath;
 assert
-  (compatiblePortal.override {
+  (homeManagerPortal (portalFixture.override { label = "changed"; }) compositorFixture).drvPath
+  == (portalFixture.override { label = "changed"; }).drvPath;
+assert
+  (homeManagerPortal legacyPortalFixture compositorFixture).drvPath
+  == (legacyPortalFixture.override { hyprland = compositorFixture; }).drvPath;
+assert
+  (homeManagerPortal (legacyPortalFixture.override { label = "changed"; }) compositorFixture).drvPath
+  == (legacyPortalFixture.override {
     label = "changed";
-    hyprland = "compositor";
-  }).drvPath == (portalFixture.override { label = "changed"; }).drvPath;
-assert
-  (compatiblePortal.override (_: {
-    label = "changed";
-    hyprland = "compositor";
-  })).drvPath == (portalFixture.override { label = "changed"; }).drvPath;
-assert
-  ((portalCompatibility legacyPortal).override { hyprland = "changed"; }).drvPath
-  == (legacyPortal.override { hyprland = "changed"; }).drvPath;
-assert !(succeeds (changedHomeManager.apply "home-manager-hyprland-portal" portalFixture));
+    hyprland = compositorFixture;
+  }).drvPath;
+assert homeManagerPortal null compositorFixture == null;
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
 # Platform decisions belong to the selection interface. Linux keeps the
@@ -237,6 +234,9 @@ assert
     selected.nix.drvPath == (fixes.apply "determinate-darwin-tests"
       inputs.determinate.inputs.nix.packages.${pkgs.stdenv.hostPlatform.system}.default
     ).drvPath;
+# The current Actual source removed its case-colliding directory upstream.
+assert
+  pkgs.stdenv.hostPlatform.isLinux || selected.actual-server.drvPath == pkgs.actual-server.drvPath;
 assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
 assert selected.nh.drvPath != pkgs.nh.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
@@ -264,7 +264,14 @@ assert
     && selected.swift.drvPath != pkgs.swift.drvPath
   else
     selected.swift.drvPath == pkgs.swift.drvPath;
-assert selected.prismlauncher.version == "11.1.0";
+# Keep the upstream release; the Darwin fix only changes test prerequisites.
+assert selected.prismlauncher.version == pkgs.prismlauncher.version;
+assert selected.prismlauncher-unwrapped.drvPath == pkgs.prismlauncher-unwrapped.drvPath;
+assert
+  if pkgs.stdenv.hostPlatform.isDarwin then
+    (fixes.apply "prismlauncher-darwin-tests" pkgs.prismlauncher-unwrapped).doCheck
+  else
+    selected.prismlauncher.drvPath == pkgs.prismlauncher.drvPath;
 assert lib.versionAtLeast selected.navidrome.version "0.64.0";
 assert selected.navidromePlugins.audiomuseai.version == "10";
 assert

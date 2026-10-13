@@ -23,7 +23,7 @@ from operator import itemgetter
 from typing import TYPE_CHECKING, Literal, overload
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 TAB, ALT, SHIFT, ESC, RALT = 15, 56, 42, 1, 100
 KEYS = (TAB, ALT, SHIFT, ESC, RALT)
@@ -82,7 +82,7 @@ def _require(condition: bool, message: str) -> None:
 
 
 @contextmanager
-def _keyboard() -> Iterator[int]:
+def _keyboard() -> Generator[int]:
     fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
     created = False
     try:

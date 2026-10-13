@@ -8,10 +8,12 @@
  #include <QTemporaryDir>
  #include <QTest>
  #include <QTimer>
-@@ -154,6 +155,12 @@
+@@ -154,6 +155,14 @@
          QString file_mod = QFINDTESTDATA("testdata/Resources/supercoolmod.jar");
  
          QTemporaryDir tmp;
++        QVERIFY(tmp.isValid());
++        QVERIFY(QDir(tmp.path()).exists());
 +        // The native watcher needs a host service unavailable in some sandboxes.
 +        // Keep this integration test runnable when that service is available.
 +        QFileSystemWatcher watcher;

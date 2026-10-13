@@ -4,8 +4,39 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
-      prove_hyprland_parent:
-        description: Verify the software parent display before the paired compositor regression.
+      prove_actual_runtime:
+        description: Verify unmodified Actual source, package and installed Node24 runtime.
+        required: false
+        default: false
+        type: boolean
+      prove_package_fixes:
+        description: Select native package repair proofs without changing review guards.
+        required: false
+        default: none
+        type: choice
+        options: [none, darwin, deploy, linux, hyprland, all]
+      prove_prism_watch:
+        description: Measure native Prism watcher capability and verify actual resource cases.
+        required: false
+        default: false
+        type: boolean
+      prove_zen_wrapper:
+        description: Verify native repaired Zen wrapper invariants and ordinary Firefox preservation.
+        required: false
+        default: false
+        type: boolean
+      prove_stylix_nvf:
+        description: Independently evaluate current upstream and repaired Stylix Neovim behavior.
+        required: false
+        default: false
+        type: boolean
+      prove_swift_hardening:
+        description: Independently verify current upstream and repaired Swift hardening.
+        required: false
+        default: false
+        type: boolean
+      prove_sentry_lock:
+        description: Independently verify current upstream and repaired Sentry lock behavior.
         required: false
         default: false
         type: boolean
@@ -26,21 +57,21 @@ on:
   merge_group:
     types: [checks_requested]
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name
+    == 'workflow_dispatch' && (contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'), inputs.prove_package_fixes)
+    || inputs.prove_actual_runtime == true || inputs.prove_prism_watch == true || inputs.prove_zen_wrapper
+    == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening == true || inputs.prove_sentry_lock
+    == true) && format('-proof-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
-  hyprland-parent-proof:
-    name: Verify compositor parent display
-    if: github.event_name == 'workflow_dispatch' && inputs.prove_hyprland_parent
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+  actual-review-proof:
+    name: Review current unmodified Actual package and runtime
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_actual_runtime
+    runs-on: macos-26
+    timeout-minutes: 90
     permissions:
       contents: read
-    env:
-      NIX_CONFIG: |
-        extra-substituters = https://hyprland.cachix.org
-        extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,11 +79,328 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record selected Actual package and native runtime
+        run: nix eval --impure --json --file overlays/temporary/tests/current-actual-proof.nix metadata
+      - name: Verify source layout and unmodified packaged service
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-actual-proof.nix \
+            sourceLayout rawPackage rawRuntime regression
+  package-fixes-review-proof:
+    name: Review current package fix (${{ matrix.target }})
+    if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'),
+      inputs.prove_package_fixes)
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      # Consume the root's existing trusted cache; these proofs publish no outputs.
+      NIX_CONFIG: |
+        extra-substituters = https://hyprland.cachix.org
+        extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON( inputs.prove_package_fixes == 'deploy' && '[ {"target": "deploy", "runner": "macos-26",
+          "proof": "current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes == 'darwin' &&
+          '[ {"target": "determinate", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"},
+          {"target": "nh", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target":
+          "claude", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target": "deploy",
+          "runner": "macos-26", "proof": "current-darwin-package-proof.nix"} ]' || inputs.prove_package_fixes
+          == 'linux' && '[ {"target": "gtk", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "hypridle", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "hyprshell", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"},
+          {"target": "nom", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"}, {"target":
+          "audioMuse", "runner": "ubuntu-24.04", "proof": "current-package-fixes-proof.nix"} ]' || inputs.prove_package_fixes
+          == 'hyprland' && '[ {"target": "hyprland", "runner": "ubuntu-24.04", "proof": "current-hyprland-proof.nix"}
+          ]' || inputs.prove_package_fixes == 'all' && '[ {"target": "gtk", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hypridle", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hyprshell", "runner": "ubuntu-24.04",
+          "proof": "current-package-fixes-proof.nix"}, {"target": "hyprland", "runner": "ubuntu-24.04",
+          "proof": "current-hyprland-proof.nix"}, {"target": "nom", "runner": "ubuntu-24.04", "proof":
+          "current-package-fixes-proof.nix"}, {"target": "audioMuse", "runner": "ubuntu-24.04", "proof":
+          "current-package-fixes-proof.nix"}, {"target": "determinate", "runner": "macos-26", "proof":
+          "current-darwin-package-proof.nix"}, {"target": "nh", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"},
+          {"target": "claude", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"}, {"target":
+          "deploy", "runner": "macos-26", "proof": "current-darwin-package-proof.nix"} ]' || '[]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          cache: 'false'
-          cache-scope: ci-hyprland-parent
-      - name: Verify native parent protocols
-        run: nix build --no-link -L --max-jobs 1 --cores 2 .#checks.x86_64-linux.hyprland-parent-display
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record actual packages and preserved regression suites
+        env:
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: nix eval --impure --json --file "$PROOF_FILE" metadata
+      - name: Verify the software parent and unmodified compositor startup
+        if: matrix.target == 'hyprland'
+        env:
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$PROOF_FILE" hyprlandParent
+      - name: Build native package and exercise its regression suite
+        env:
+          TARGET: ${{ matrix.target }}
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: |
+          targets=("$TARGET")
+          if [[ "$TARGET" == hypridle ]]; then targets+=(hypridleBaseline); fi
+          if [[ "$TARGET" == determinate ]]; then targets+=(determinateFunctional regression); fi
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$PROOF_FILE" "${targets[@]}"
+      - name: Verify the exact native capability-dependent baseline
+        if: ${{ !cancelled() && matrix.target == 'determinate' }}
+        env:
+          TARGET: ${{ matrix.target }}
+          PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
+        run: |
+          baseline=rawSentryDenied
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$PROOF_FILE" "$baseline"
+      - name: Compare identical Deploy watcher binaries in sandbox and on host
+        if: ${{ !cancelled() && matrix.target == 'deploy' }}
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-watch-proof.nix
+          proof=
+          report_pair() {
+            status=$?
+            trap - EXIT
+            set +e
+            for directory in \
+              "${proof:+$proof/strict}" \
+              "$RUNNER_TEMP/deploy-watch-host" \
+              "$RUNNER_TEMP/deploy-watch-canonical"; do
+              [[ -d "$directory" ]] || continue
+              for filename in \
+                status.json \
+                test.log \
+                fsevents.json \
+                watch-1.json \
+                watch-1.log \
+                watch-2.json \
+                watch-2.log; do
+                [[ -f "$directory/$filename" ]] || continue
+                printf '::group::Deploy watcher evidence %s/%s\n' "$directory" "$filename"
+                sed -n '1,80p' "$directory/$filename"
+                printf '\n::endgroup::\n'
+              done
+            done
+            exit "$status"
+          }
+          trap report_pair EXIT
+          nix eval --impure --json --file "$proof_file" metadata
+          proof=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" strictDiagnostic)
+          python3 - <<'PYDIR'
+          import json
+          import os
+          import tempfile
+          from pathlib import Path
+          print(json.dumps({
+              "hostTmpdirEnvironment": os.environ.get("TMPDIR"),
+              "hostTemporaryDirectory": tempfile.gettempdir(),
+              "hostResolvedTemporaryDirectory": str(Path(tempfile.gettempdir()).resolve()),
+          }))
+          PYDIR
+          python3 "$proof/compare.py" record "$proof/bin/activate-tests" \
+            "$proof/bin/fsevents-probe" "$RUNNER_TEMP/deploy-watch-host"
+          # Retain the ordinary host receipts; separately control the temp-path alias.
+          PROOF_OUTPUT="$proof" python3 - <<'PYCONTROL'
+          import json
+          import os
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+          proof = Path(os.environ["PROOF_OUTPUT"])
+          runner_temp = Path(os.environ["RUNNER_TEMP"])
+          with tempfile.TemporaryDirectory(prefix="deploy-watch-control-", dir=runner_temp) as temporary:
+              os.environ["TMPDIR"] = str(Path(temporary).resolve())
+              print(json.dumps({"canonicalControlTmpdir": os.environ["TMPDIR"]}), flush=True)
+              subprocess.run([
+                  sys.executable, str(proof / "compare.py"), "record",
+                  str(proof / "bin/activate-tests"), str(proof / "bin/fsevents-probe"),
+                  str(runner_temp / "deploy-watch-canonical"),
+              ], check=True)
+          PYCONTROL
+          python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-canonical"
+      - name: Verify actual Deploy confirmation through directory aliases
+        if: ${{ !cancelled() && matrix.target == 'deploy' }}
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-confirmation-proof.nix
+          raw=
+          repaired=
+          report_confirmation() {
+            status=$?
+            trap - EXIT
+            set +e
+            for directory in \
+              "${raw:+$raw/strict}" \
+              "${repaired:+$repaired/strict}" \
+              "$RUNNER_TEMP/deploy-confirmation-raw" \
+              "$RUNNER_TEMP/deploy-confirmation-repaired"; do
+              [[ -d "$directory" ]] || continue
+              for filename in \
+                status.json \
+                test.log \
+                fsevents.json \
+                watch-1.json \
+                watch-1.log \
+                watch-2.json \
+                watch-2.log \
+                directory-0.json \
+                directory-0.log \
+                directory-1.json \
+                directory-1.log; do
+                [[ -f "$directory/$filename" ]] || continue
+                printf '::group::Deploy confirmation evidence %s/%s\n' "$directory" "$filename"
+                sed -n '1,80p' "$directory/$filename"
+                printf '\n::endgroup::\n'
+              done
+            done
+            exit "$status"
+          }
+          trap report_confirmation EXIT
+          nix eval --impure --json --file "$proof_file" metadata
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" fullPackage regression
+          raw=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" rawAliasDiagnostic)
+          repaired=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" repairedDiagnostic)
+          # These host controls retain the ordinary lexical TMPDIR unchanged.
+          python3 "$raw/path-proof.py" host "$raw" "$RUNNER_TEMP/deploy-confirmation-raw"
+          python3 "$raw/path-proof.py" raw-alias "$RUNNER_TEMP/deploy-confirmation-raw"
+          python3 "$repaired/path-proof.py" host "$repaired" "$RUNNER_TEMP/deploy-confirmation-repaired"
+          python3 "$repaired/path-proof.py" compare "$repaired" "$RUNNER_TEMP/deploy-confirmation-repaired"
+      - name: Inspect installed Claude entrypoint and native loader
+        if: matrix.target == 'claude'
+        run: |
+          package=$(nix build --option sandbox true --impure --no-link --print-out-paths \
+            --file overlays/temporary/tests/current-darwin-package-proof.nix claude)
+          test -x "$package/bin/claude"
+          vendor="$package/bin/.claude-wrapped"
+          test -x "$vendor"
+          /usr/bin/lipo "$vendor" -verify_arch arm64
+          /usr/bin/otool -L "$vendor"
+          # Inspect the vendor signature without executing its binary or
+          # claiming notarization, certificate trust, or runtime correctness.
+          status=0
+          /usr/bin/codesign --display --verbose=4 "$vendor" > "$RUNNER_TEMP/claude-signature.txt" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/claude-signature.txt"
+          if [[ "$status" == 0 ]]; then
+            /usr/bin/codesign --verify --strict "$vendor"
+          else
+            grep -F 'code object is not signed at all' "$RUNNER_TEMP/claude-signature.txt"
+          fi
+  prism-review-proof:
+    name: Review current Prism watch capability
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_prism_watch
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected package and enabled checks
+        run: nix eval --impure --json --file overlays/temporary/tests/current-prism-proof.nix metadata
+      - name: Measure capability and verify full native watch cases
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-prism-proof.nix \
+            upstreamBehavior currentBehavior improvedBehavior checkerRegression
+      - name: Execute real watch integration with host capability
+        run: |
+          proof=$(nix build --option sandbox true --impure --no-link --print-out-paths \
+            --file overlays/temporary/tests/current-prism-proof.nix capabilityPresent)
+          "$proof/bin/prism-watch-capability-present"
+  zen-wrapper-review-proof:
+    name: Review current browser wrapper invariants
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_zen_wrapper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact wrapper inputs
+        run: nix eval --impure --json --file overlays/temporary/tests/current-zen-wrapper-proof.nix metadata
+      - name: Build and exercise actual selected wrapper
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-zen-wrapper-proof.nix zen firefox
+  stylix-review-proof:
+    name: Review current Stylix Neovim behavior
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_stylix_nvf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Compare actual module warnings and canonical theme
+        run: nix eval --impure --json --file overlays/temporary/tests/current-stylix-proof.nix
+  sentry-review-proof:
+    name: Review current Sentry lock behavior
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_sentry_lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected dependency
+        run: nix eval --impure --json --file overlays/temporary/tests/current-sentry-proof.nix metadata
+      - name: Verify upstream symptom, repaired behavior and patch lifecycle
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-sentry-proof.nix \
+            upstream crashpad-lock lifecycle
+  swift-review-proof:
+    name: Review current Swift hardening
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_swift_hardening
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
+      - name: Record exact selected compiler
+        run: nix eval --impure --json --file overlays/temporary/tests/current-swift-proof.nix metadata
+      - name: Verify missing upstream flags and repaired native runtime
+        run: |
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file overlays/temporary/tests/current-swift-proof.nix upstream repaired
   discover:
     name: Discover CI inputs
     runs-on: ubuntu-24.04
@@ -147,11 +495,11 @@ jobs:
             nix develop --command bash -c "prek run --all-files && gitleaks git --redact --no-banner"
           '
   flake:
-    needs: [hyprland-parent-proof]
+    needs: [package-fixes-review-proof]
     name: Flake checks (${{ matrix.label }})
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
-      && (needs.hyprland-parent-proof.result == 'success' || needs.hyprland-parent-proof.result == 'skipped')
-      }}
+      && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
+      == 'skipped') }}
     runs-on: ${{ matrix.runner }}
     # The paired x86 VM may compile both compositor variants on a cold runner.
     timeout-minutes: ${{ matrix.system == 'x86_64-linux' && 90 || 45 }}
@@ -257,6 +605,8 @@ jobs:
         # Fixed upstream cache policy, downloading without publication credentials.
         env:
           NIX_CONFIG: |
+            sandbox = true
+            sandbox-fallback = false
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
         uses: nix-forge/ci/actions/flake-checks@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
@@ -267,6 +617,39 @@ jobs:
           partition-count: ${{ matrix.partition-count }}
           partition-index: ${{ matrix.partition-index }}
           weights-file: .github/ci-check-weights.json
+      - name: Verify configured Deploy confirmation and cancellation on Darwin
+        if: matrix.system == 'aarch64-darwin'
+        env:
+          NIX_CONFIG: |
+            sandbox = true
+            sandbox-fallback = false
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-confirmation-proof.nix
+          receipt="$RUNNER_TEMP/deploy-confirmation-required"
+          report_required_confirmation() {
+            status=$?
+            trap - EXIT
+            set +e
+            for filename in \
+              status.json test.log fsevents.json \
+              watch-1.json watch-1.log watch-2.json watch-2.log \
+              directory-0.json directory-0.log directory-1.json directory-1.log; do
+              [[ -f "$receipt/$filename" ]] || continue
+              printf '::group::Required Deploy runtime evidence %s\n' "$filename"
+              sed -n '1,80p' "$receipt/$filename"
+              printf '\n::endgroup::\n'
+            done
+            exit "$status"
+          }
+          trap report_required_confirmation EXIT
+          nix eval --impure --json --file "$proof_file" metadata
+          nix build --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" fullPackage regression
+          proof=$(nix build --impure --no-link --print-out-paths -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" productionDiagnostic)
+          # Preserve the ordinary host TMPDIR and execute only source-built tests.
+          python3 "$proof/path-proof.py" host "$proof" "$receipt"
+          python3 "$proof/path-proof.py" host-positive "$proof" "$receipt"
       - name: Check native Core Text selection and shaping
         if: matrix.system == 'aarch64-darwin'
         shell: bash
@@ -503,7 +886,13 @@ jobs:
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
       github.event.repository.default_branch))
     needs:
-      - hyprland-parent-proof
+      - actual-review-proof
+      - package-fixes-review-proof
+      - prism-review-proof
+      - sentry-review-proof
+      - swift-review-proof
+      - stylix-review-proof
+      - zen-wrapper-review-proof
       - lock-health
       - discover
       - legacy-secret-manager-symbols

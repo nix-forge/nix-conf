@@ -29,8 +29,8 @@ package set. The GtkSourceView repair remains confined to Virt Manager's depende
 `pkgs.gtksourceview4` itself keeps its upstream definition. `pkgs.grimblast-region`
 is a separate permanent variant, while `pkgs.grimblast` retains its normal behavior.
 
-The overlay also owns the Determinate Nix package selection, its Darwin test
-condition, the Darwin Actual repair, and the Linux Zen wrapper repair. The
+The overlay also owns the Determinate Nix package selection, its scoped Darwin
+test repair, and the Linux Zen wrapper repair. The
 Determinate modules configure the service and daemon settings.
 
 ## Which repository owns an override?
@@ -134,21 +134,11 @@ and [ARM Linux](https://github.com/nix-forge/nix-conf/actions/runs/38302691574/j
 The native portal check now builds the selected upstream package with its GNU
 compiler and keeps compiler compatibility covered without a temporary patch.
 
-The Home Manager portal compatibility fix drops only its obsolete `hyprland`
-argument when the selected portal recipe no longer accepts it. Other overrides
-retain their behavior. It does not change the portal derivation or build source.
-Review is tied to Home Manager, and retirement requires its module to check the
-portal override arguments before supplying the compositor.
-
-The subsurface parent-lifetime fix was reviewed at compositor input
-`9dc5398d14a090b4d2e69380ad22d2410ba10090`. Its three relevant source blobs
-remain identical to the previous reviewed revision. The
-[paired native VM proof](https://github.com/nix-forge/nix-conf/actions/runs/38317651888/job/115038543998)
-requires the unmodified compositor to reproduce the parent-lifetime crash in
-`posRelativeToParent`. The repaired compositor passes orphan, disconnect,
-feedback and child-first scenarios and exits cleanly. The fixture parent supports
-the nested backend's requested protocol versions in both guests; target packages
-remain exact. This supports retaining the lifetime repair at the reviewed pin.
+The Home Manager portal compatibility adapter was retired at
+`6b88c12cc6d234de4888f5d21076fb11199d0844`. Its upstream Hyprland module now
+checks `lib.functionArgs portalPackage.override` before passing the `hyprland`
+argument, preserving the selected upstream portal without an adapter. The normal
+native configuration and upstream portal checks cover the consuming graph.
 
 These triggers are conservative. An input change means review is required; it
 does not prove the bug is fixed. Keeping the revision guard alongside a version
@@ -157,6 +147,154 @@ issue is evidence to investigate, not proof that the pinned source includes a
 working fix. Record the specific issue or PR URL when one is established.
 
 ## Add, check, and retire a fix
+
+The Stylix nvf target was reviewed at
+`2856c4c6a845b9bec98828ef197abe176e4806bb`; its source blob is unchanged.
+The [paired module proof](https://github.com/nix-forge/nix-conf/actions/runs/38314456594/job/115027658395)
+checks the actual enabled `nvf` target with current Home Manager and nvf modules.
+Upstream emits the deprecated lualine theme warning; the repaired module has no
+warnings. Both preserve the canonical `base16` theme and satisfy their assertions.
+
+The Zen wrapper was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its only recipe change adds a
+runtime library; the copy command, following mode update and Coreutils recipe
+remain unchanged. The [native wrapper proof](https://github.com/nix-forge/nix-conf/actions/runs/38314456594/job/115027658416)
+uses inert fixture binaries with the actual selected wrapper, verifying copied
+payload bytes and modes, data, symlinks and launcher execution. The ordinary
+Firefox wrapper retains its identical derivation. This supports retaining the
+narrow repair; retirement on the native builder's store mount remains unverified.
+
+The Swift Clang importer fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its combined compiler recipe,
+driver recipe, compiler recipe, source manifest and hardening helper remain
+identical to the previous reviewed source blobs. The
+[native macOS proof](https://github.com/nix-forge/nix-conf/actions/runs/38312707376/job/115022124354)
+selects the configuration's actual `swiftPackages.swift` 6.2.4 compiler.
+Unmodified typechecking reports both missing fortify and strong stack protection;
+the repaired importer receives both flags and passes typechecking, linking and
+the native runtime probe. This justifies retaining the fix at the reviewed pin,
+while the guard still rejects later input changes.
+
+The AudioMuse-AI loopback manifest fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected upstream plugin is
+version 10, so the earlier release override automatically remains inactive.
+The upstream v10 manifest still grants HTTP access to every host. The
+[Linux-hosted WASI build and manifest check](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557695)
+compiles the actual selected plugin and verifies that its packed manifest matches
+the repaired source. Only `permissions.http.requiredHosts` changes to
+`127.0.0.1`; every other manifest field and source file remains unchanged.
+This validates packaging and permission scope, not a running Navidrome deployment.
+
+The GtkSourceView, Hypridle and nix-output-monitor fixes were reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Their upstream package recipes
+and fixed source selections remain unchanged; nix-output-monitor's generated
+package definition is also identical.
+
+- The [GtkSourceView Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557870)
+  retains the scoped Xvfb `-noreset` repair and passes all 23 native Meson tests.
+- The [Hypridle Linux proof](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557887)
+  builds version 0.1.8 and executes its actual retry body in the native fixture.
+  The upstream body bypasses an active inhibitor; the repaired body preserves
+  pending work, then runs it after the inhibitor clears. Explicit overrides still run.
+- The [nix-output-monitor Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557918)
+  retains the version 2.2.0 graph-state repair and passes both upstream unit and
+  documentation test suites.
+
+The Hyprshell modifier-state fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The upstream recipe and fixed
+version 4.10.8 source selection remain unchanged. The
+[native Linux build](https://github.com/nix-forge/nix-conf/actions/runs/38318398666/job/115040557982)
+uses the configuration's exact unmodified Hyprland dependency at
+`663b29b846e4bad17cfa29941f6d2fbb6b61f139` and passes all four existing
+modifier timestamp regressions: IPC expiry, wraparound, half-cycle cancellation
+and acceptance of the next chord. The existing scoped Cargo test selection stays
+unchanged. This supports retaining the repair; it does not establish an
+interactive Alt+Tab session or justify advancing Hyprland's own runtime guard.
+
+The Actual CSS case workaround was retired at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Actual 26.10 removed the
+uppercase `Themes` directory that collided with lowercase `themes` in 26.9.
+The [unmodified Darwin package proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022916)
+verifies the exact lowercase directory entries and all five stylesheet imports
+and exports, then builds the ordinary package. Its installed Node 24.21 runtime
+writes, closes and reopens a native SQLite database; the packaged server starts,
+migrates its account database, and serves its installed page and declared assets.
+The required Darwin `actual-runtime` check preserves those runtime checks using
+the configured service's package and its selected Node dependency, with only
+loopback networking allowed in the strict sandbox.
+
+The nh Darwin HOME fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its version 4.4.2 recipe and
+fixed source selection remain unchanged. The
+[native Darwin build](https://github.com/nix-forge/nix-conf/actions/runs/38324209549/job/115059018442)
+preserves the upstream Cargo test selection and passes those Rust suites. The
+exact absolute-HOME regression passes in the normal suite and an additional
+named invocation. The existing version predicate still bypasses this fix for
+newer upstream releases.
+
+The Prism Launcher Darwin watcher test fix was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected package is 11.1.1;
+its upstream resource-test source is identical to 11.1.0. The
+[native paired proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022809)
+measures a valid but unavailable Qt directory-watch prerequisite in the strict
+sandbox and reproduces the original resource-removal failure. Both the existing
+and improved repairs skip only that case; all 20 other CTest targets pass. The
+improved test first asserts that its temporary directory is valid and exists.
+Outside the sandbox, the actual exported resource-test binary passes its full
+suite with no skips, so the capability check does not bypass assertions when
+watching is available.
+
+The Hyprland subsurface repair was reviewed at
+`663b29b846e4bad17cfa29941f6d2fbb6b61f139`. The critical subsurface,
+compositor and subcompositor sources remain byte-identical to the previously
+reviewed revision. The
+[native paired VM proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022924)
+first verifies the software parent display and an unmodified child-first control.
+Its actual unmodified compositor then reproduces the precise parent-position
+failure; the repaired compositor passes orphan, disconnect, color-feedback and
+child-first lifecycle scenarios with clean exit. The production patch is unchanged.
+
+The Claude Code packaging repair was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected vendor package is
+2.1.292, with source SHA-256
+`dfabaa49a309abe3229719ecfaf41d557c831168b2b642cf2c24e7ab0fc40291`.
+The [native Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/38326427698/job/115066059454)
+builds it in the strict sandbox with the existing install-check override, checks
+both executable entrypoints, verifies arm64 architecture and inspects the native
+loader. Apple's signature integrity check passes for the preserved vendor
+signature. The vendor program is not executed; these checks do not establish
+runtime correctness, notarization or certificate trust. The repair remains scoped
+to strict packaging and disabling the vendor install check.
+
+The Determinate Darwin test repair was reviewed at its nested Nix input
+`1ef903401b3426fbca74a692e158cca82d7c98ab`, version 3.23.1. The
+[native strict-sandbox proof](https://github.com/nix-forge/nix-conf/actions/runs/38327735034/job/115070216612)
+reproduces only the Sentry crashdump failure with Crashpad Mach registration
+permission denied (1100). The repair preserves `doCheck`, all five original unit
+gate derivations, upstream patches and Meson flags. It omits only the Darwin
+`main/sentry.sh` registration; native introspection verifies every other test's
+registration and execution settings remain unchanged. All five unit gates build
+successfully; the functional suite reports 189 passing cases, zero failures and
+36 upstream skips. The combined package remains under the strict sandbox, with
+only its existing declared local-network allowance for functional tests.
+
+The Deploy Darwin repairs were reviewed at
+`45ba3f8c5cb28396fff71671806e2550b464ac86`. The
+[native same-binary control](https://github.com/nix-forge/nix-conf/actions/runs/38329944044/job/115077204280)
+shows that strict sandboxing prevents FSEvents from starting; with a canonical
+temporary directory on the host, all three original watcher cases pass. Ordinary
+host directory aliases separately expose a real confirmation-path bug. The
+[native source-repair proof](https://github.com/nix-forge/nix-conf/actions/runs/38331485552/job/115081978519)
+requires the unmodified helper to pass its real-directory case and fail its
+verified symlink-alias case. The repaired helper passes both cases and all three
+original watcher cases under the ordinary host environment, without changing
+watcher predicates or timeouts. Its complete Rust package checks preserve only
+the three existing strict-sandbox capability exclusions; sentinel tests remain
+live. The path-normalization repair has its own record and removal condition,
+independent of the sandbox-test repair. The required Darwin CI job builds the
+actual configured package and executes all five native host regressions using its
+selected source and repairs; no manual proof dispatch is needed for this gate.
+Linux keeps the unmodified package.
 
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision

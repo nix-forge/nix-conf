@@ -6,15 +6,14 @@
 let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
-    actual-server-case = ./actual-server-case.nix;
     audiomuseai-plugin-loopback-host = ./audiomuseai-plugin-loopback-host.nix;
     audiomuseai-plugin-release = ./audiomuseai-plugin-release.nix;
     claude-code-sandbox = ./claude-code-sandbox.nix;
+    deploy-rs-confirmation-path = ./deploy-rs-confirmation-path.nix;
     deploy-rs-darwin-tests = ./deploy-rs-darwin-tests.nix;
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
-    home-manager-hyprland-portal = ./home-manager-hyprland-portal.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;

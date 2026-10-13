@@ -1,6 +1,7 @@
 {
   "default": 1,
   "weights": {
+    "actual-runtime": 4,
     "clamav-special-files": 4,
     "darwin-configuration-macbook-pro-m4": 8,
     "finder-favorites-swift": 4,

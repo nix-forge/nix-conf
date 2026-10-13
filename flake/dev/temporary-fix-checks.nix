@@ -44,6 +44,13 @@
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # Keep native compiler compatibility coverage after retiring the override.
         hyprland-portal-build =
+          # NixOS owns the configured desktop portal; Home Manager delegates it.
+          assert
+            self.nixosConfigurations.desktop.config.home-manager.users.ianmh.wayland.windowManager.hyprland.finalPortalPackage
+            == null;
+          assert
+            self.nixosConfigurations.desktop.config.programs.hyprland.portalPackage.drvPath
+            == inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.drvPath;
           assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
           hyprlandPackages.xdg-desktop-portal-hyprland;
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;

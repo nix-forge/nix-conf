@@ -65,6 +65,20 @@ a synthetic completed report with a held lock. Upstream emitted four error
 lines; the patched CLI emitted none. Both commands succeeded and preserved the
 held lock. Reporting remained enabled with a loopback-only endpoint.
 
+The current review covers Determinate input
+`27ba8489c5a7289c0d80e400fe813b31afca5dc2` and its Nix 3.23.1 input
+`1ef903401b3426fbca74a692e158cca82d7c98ab`. The module factory and Sentry
+recipe remain identical to their previously reviewed source blobs. The selected
+dependency is still Sentry Native 0.13.5 with the same immutable source hash.
+The [paired native Linux proof](https://github.com/nix-forge/nix-conf/actions/runs/38311793956/job/115019580250)
+requires the unmodified dependency to reproduce only lock-file `EEXIST`
+diagnostics, while its C++ probe verifies busy status, lock ownership and report
+preservation. The repaired dependency passes quiet pending and completed
+contention and visible permission-error checks. Patch application, skipping an
+existing repair and rejecting unfamiliar source all pass on this selected source.
+Both revision guards retain the repair based on that source and behavioral
+evidence; other input changes still require independent review.
+
 ```console
 nix build --no-link path:.#checks.x86_64-linux.sentry-crashpad-lock
 nix build --no-link path:.#checks.x86_64-linux.sentry-crashpad-lock-lifecycle
