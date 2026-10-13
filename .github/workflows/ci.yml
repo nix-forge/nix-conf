@@ -474,6 +474,8 @@ jobs:
         # Fixed upstream cache policy, downloading without publication credentials.
         env:
           NIX_CONFIG: |
+            sandbox = true
+            sandbox-fallback = false
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
         uses: nix-forge/ci/actions/flake-checks@32dec0910e46dda3568ef5a494ed5fb6a9a08f31 # v2.10.0
