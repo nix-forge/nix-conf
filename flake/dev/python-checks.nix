@@ -9,6 +9,8 @@ _: {
         ../../overlays/temporary/tests/prism-watch-result.py
         ../../overlays/temporary/tests/darwin-package-result.py
         ../../overlays/temporary/tests/deploy-watch-pair.py
+        ../../overlays/temporary/tests/deploy-confirmation-path-result.py
+        ../../overlays/temporary/tests/test_deploy_confirmation_path_result.py
         ../../overlays/temporary/tests/test_deploy_watch_pair.py
         ../../overlays/temporary/tests/test_darwin_package_result.py
         ../../overlays/temporary/tests/actual-css-result.py
@@ -37,6 +39,7 @@ _: {
         "overlays/temporary/tests/test_actual_proof.py"
         "overlays/temporary/tests/test_darwin_package_result.py"
         "overlays/temporary/tests/test_deploy_watch_pair.py"
+        "overlays/temporary/tests/test_deploy_confirmation_path_result.py"
       ];
       nativeBuildInputs = with pkgs; [
         bash

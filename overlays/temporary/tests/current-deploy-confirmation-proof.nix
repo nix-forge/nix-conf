@@ -13,7 +13,8 @@ let
     name = "deploy-confirmation-directory-tests.patch";
   };
   # The owning integration installs this patch once before building this proof.
-  fullPackage = (import ../deploy-rs-darwin-tests.nix { }).apply upstream;
+  installedFix = import ../deploy-rs-darwin-tests.nix { };
+  fullPackage = installedFix.apply upstream;
   diagnostic = (import ./current-deploy-watch-proof.nix).strictDiagnostic;
   regression =
     pkgs.runCommand "deploy-confirmation-path-result-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
@@ -53,7 +54,8 @@ assert !(fullPackage.__noChroot or false);
     rawPackage = upstream.drvPath;
     repairedPackage = fullPackage.drvPath;
     strictSandboxRequired = true;
-    guardAdvanced = false;
+    installedGuardMatchesInput = installedFix.reviewedRevision == flake.inputs.deploy-rs.rev;
+    proofChangesInstalledGuard = false;
     repairPatchSha256 = builtins.hashFile "sha256" repairPatch;
     regressionPatchSha256 = builtins.hashFile "sha256" regressionPatch;
     fullTestsRetainExistingThreeCapabilityExclusions = true;

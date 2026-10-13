@@ -212,6 +212,40 @@ jobs:
               ], check=True)
           PYCONTROL
           python3 "$proof/compare.py" compare "$proof/strict" "$RUNNER_TEMP/deploy-watch-canonical"
+      - name: Verify actual Deploy confirmation through directory aliases
+        if: ${{ !cancelled() && matrix.target == 'deploy' }}
+        run: |
+          proof_file=overlays/temporary/tests/current-deploy-confirmation-proof.nix
+          raw=
+          repaired=
+          report_confirmation() {
+            status=$?
+            trap - EXIT
+            set +e
+            for directory in "${raw:+$raw/strict}" "${repaired:+$repaired/strict}" "$RUNNER_TEMP/deploy-confirmation-raw" "$RUNNER_TEMP/deploy-confirmation-repaired"; do
+              [[ -d "$directory" ]] || continue
+              for filename in status.json test.log fsevents.json watch-1.json watch-1.log watch-2.json watch-2.log directory-0.json directory-0.log directory-1.json directory-1.log; do
+                [[ -f "$directory/$filename" ]] || continue
+                printf '::group::Deploy confirmation evidence %s/%s\n' "$directory" "$filename"
+                sed -n '1,80p' "$directory/$filename"
+                printf '\n::endgroup::\n'
+              done
+            done
+            exit "$status"
+          }
+          trap report_confirmation EXIT
+          nix eval --impure --json --file "$proof_file" metadata
+          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
+            --file "$proof_file" fullPackage regression
+          raw=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" rawAliasDiagnostic)
+          repaired=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
+            --max-jobs 1 --cores 2 --file "$proof_file" repairedDiagnostic)
+          # These host controls retain the ordinary lexical TMPDIR unchanged.
+          python3 "$raw/path-proof.py" host "$raw" "$RUNNER_TEMP/deploy-confirmation-raw"
+          python3 "$raw/path-proof.py" raw-alias "$RUNNER_TEMP/deploy-confirmation-raw"
+          python3 "$repaired/path-proof.py" host "$repaired" "$RUNNER_TEMP/deploy-confirmation-repaired"
+          python3 "$repaired/path-proof.py" compare "$repaired" "$RUNNER_TEMP/deploy-confirmation-repaired"
       - name: Inspect installed Claude entrypoint and native loader
         if: matrix.target == 'claude'
         run: |
