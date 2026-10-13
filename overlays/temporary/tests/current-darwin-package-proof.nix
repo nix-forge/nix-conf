@@ -36,6 +36,7 @@ let
       runHook preCheck
       test -e ${regression}
       meson --version
+      meson introspect --tests > registered-tests.json
       status=0
       meson test --no-rebuild --print-errorlogs --logbase=sentry-baseline sentry || status=$?
       ${lib.getExe pkgs.python3} ${checker} sentry meson-logs/sentry-baseline.json --status "$status"
@@ -43,9 +44,21 @@ let
     '';
     installPhase = ''
       mkdir -p "$out"
-      cp meson-logs/sentry-baseline.{json,txt} "$out/"
+      cp meson-logs/sentry-baseline.{json,txt} registered-tests.json "$out/"
     '';
   });
+  checkedFunctional = repairedFunctional.overrideAttrs (old: {
+    postCheck = (old.postCheck or "") + ''
+      test -e ${regression}
+      meson introspect --tests > registered-tests.json
+      ${lib.getExe pkgs.python3} ${checker} registration \
+        ${rawSentryDenied}/registered-tests.json --repaired registered-tests.json
+    '';
+    installPhase = (old.installPhase or "") + ''
+      cp registered-tests.json "$out/"
+    '';
+  });
+  checkedPackage = repaired.override { nix-functional-tests = checkedFunctional; };
   nh = (import ../nh-darwin-home.nix { inherit lib; }).apply pkgs.nh-unwrapped;
   nhWithRegression = nh.overrideAttrs (old: {
     nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.python3 ];
@@ -107,12 +120,15 @@ assert builtins.length (unitGates upstream) == 5;
 assert !(repaired.__noChroot or false) && !(repairedFunctional.__noChroot or false);
 assert
   map (gate: gate.drvPath) (unitGates upstream) == map (gate: gate.drvPath) (unitGates repaired);
+assert repairedFunctional.mesonCheckFlags == functional.mesonCheckFlags;
 assert
-  repairedFunctional.mesonCheckFlags == (functional.mesonCheckFlags or [ ])
-  ++ [
-    "--exclude"
-    "sentry"
-  ];
+  repairedFunctional.patches
+  == (functional.patches or [ ]) ++ [ ../patches/determinate-darwin-sentry-registration.patch ];
+assert checkedPackage.doCheck && checkedFunctional.doCheck;
+assert builtins.length checkedPackage.buildInputs == 6;
+assert
+  map (gate: gate.drvPath) (unitGates upstream)
+  == map (gate: gate.drvPath) (unitGates checkedPackage);
 assert nh.version == "4.4.2" && nhWithRegression.doCheck;
 assert nhWithRegression.checkFlags == pkgs.nh-unwrapped.checkFlags;
 assert claude.__noChroot == false && claude.doInstallCheck == false;
@@ -141,6 +157,8 @@ assert
       )
     );
     repairedFunctionalGate = repairedFunctional.drvPath;
+    nativeCheckedFunctionalGate = checkedFunctional.drvPath;
+    nativeCheckedCombinedGate = checkedPackage.drvPath;
     unitGateNames = map lib.getName (unitGates upstream);
     unitGatesPreserved =
       map (gate: gate.drvPath) (unitGates upstream) == map (gate: gate.drvPath) (unitGates repaired);
@@ -156,8 +174,8 @@ assert
     deployCheckFlags = deployWithTests.checkFlags;
     deployChecksEnabled = deployWithTests.doCheck;
   };
-  determinate = repaired;
-  determinateFunctional = repairedFunctional;
+  determinate = checkedPackage;
+  determinateFunctional = checkedFunctional;
   nh = nhWithRegression;
   deploy = deployWithTests;
   inherit

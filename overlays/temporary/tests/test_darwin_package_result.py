@@ -126,5 +126,83 @@ class DarwinResultTest(unittest.TestCase):
             _RESULT.sentinel("running 0 tests\n0 passed; 0 failed;", "sentinel-removal")
 
 
+def _registered(
+    name: str, suite: str = "nix-functional-tests:main"
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "suite": [suite],
+        "cmd": ["/nix/store/fixture-bash/bin/bash", "-x", f"{name}.sh"],
+        "timeout": 300,
+        "protocol": "exitcode",
+        "is_parallel": True,
+        "priority": 0,
+    }
+
+
+class FunctionalRegistrationTest(unittest.TestCase):
+    """Check real Meson registration sets preserve every other native case."""
+
+    @staticmethod
+    def test_only_sentry_removed() -> None:
+        """Preserve both main and other suites after the exact Sentry exclusion."""
+        preserved = [
+            _registered("init"),
+            _registered("build", "nix-functional-tests:ca"),
+        ]
+        _RESULT.registration([*preserved, _registered("sentry")], preserved)
+
+    def test_additional_test_removed_is_rejected(self) -> None:
+        """An unrelated omitted test cannot qualify as the narrow policy."""
+        with self.assertRaisesRegex(ValueError, "beyond"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(
+                [_registered("init"), _registered("build"), _registered("sentry")],
+                [_registered("init")],
+            )
+
+    def test_retained_sentry_is_rejected(self) -> None:
+        """A no-op source patch does not exclude the required native case."""
+        cases = [_registered("init"), _registered("sentry")]
+        with self.assertRaisesRegex(ValueError, "beyond"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(cases, cases)
+
+    def test_missing_raw_sentry_is_rejected(self) -> None:
+        """Require the actual raw suite to expose the original case."""
+        with self.assertRaisesRegex(ValueError, "exactly one"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration([_registered("init")], [_registered("init")])
+
+    def test_wrong_sentry_suite_is_rejected(self) -> None:
+        """An identically named case in a different suite is not the reviewed target."""
+        with self.assertRaisesRegex(ValueError, "exactly one"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(
+                [_registered("init"), _registered("sentry", "nix-functional-tests:ca")],
+                [_registered("init")],
+            )
+
+    def test_added_case_is_rejected(self) -> None:
+        """Do not accept unexpected native test registration changes."""
+        with self.assertRaisesRegex(ValueError, "beyond"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(
+                [_registered("init"), _registered("sentry")],
+                [_registered("init"), _registered("unexpected")],
+            )
+
+    def test_duplicate_case_is_rejected(self) -> None:
+        """Duplicate native names must not disappear through set normalization."""
+        with self.assertRaisesRegex(ValueError, "Duplicate"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(
+                [_registered("init"), _registered("sentry")],
+                [_registered("init"), _registered("init")],
+            )
+
+    def test_changed_timeout_is_rejected(self) -> None:
+        """Preserve surviving test invocation, timeout and execution flags."""
+        changed = _registered("init") | {"timeout": 0}
+        with self.assertRaisesRegex(ValueError, "execution contract"):  # ruff: ignore[pytest-unittest-raises-assertion] - Standard library native registration regressions.
+            _RESULT.registration(
+                [_registered("init"), _registered("sentry")], [changed]
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

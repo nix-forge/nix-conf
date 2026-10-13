@@ -43,6 +43,48 @@ def sentry(records: list[dict[str, object]], status: int) -> None:
         _reject("Missing precise no-crashdump and explicit Mach permission denial")
 
 
+def _registration_cases(
+    records: list[dict[str, object]],
+) -> dict[tuple[str, tuple[str, ...]], dict[str, object]]:
+    cases = {}
+    for case in records:
+        name = case.get("name")
+        suites = case.get("suite")
+        if not isinstance(name, str) or not name or not isinstance(suites, list):
+            _reject("Malformed native Meson test registration")
+        names = [suite for suite in suites if isinstance(suite, str)]
+        if not names or len(names) != len(suites) or len(set(names)) != len(names):
+            _reject("Malformed native Meson suite registration")
+        key = (name, tuple(sorted(names)))
+        if key in cases:
+            _reject("Duplicate native Meson test registration")
+        cases[key] = case
+    return cases
+
+
+def registration(
+    original: list[dict[str, object]], repaired: list[dict[str, object]]
+) -> None:
+    """Require all actual native registrations except the exact main Sentry case."""
+    raw = _registration_cases(original)
+    selected = _registration_cases(repaired)
+    removed = {
+        key
+        for key in raw
+        if key[0] == "sentry" and key[1] == ("nix-functional-tests:main",)
+    }
+    if len(removed) != 1 or len(raw) <= 1:
+        _reject("The raw native registration must contain exactly one main Sentry case")
+    if set(selected) != set(raw) - removed:
+        _reject("Native functional registrations differ beyond the one Sentry case")
+    for key, case in selected.items():
+        for field in ("cmd", "timeout", "protocol", "is_parallel", "priority"):
+            if field not in case or case[field] != raw[key].get(field):
+                _reject(
+                    "A surviving native functional test changed its execution contract"
+                )
+
+
 def home(log: str) -> None:
     """Require the actual added absolute-HOME test to execute and pass."""
     if f"test {_HOME_CASE} ... ok" not in log or "1 passed; 0 failed;" not in log:
@@ -77,16 +119,28 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "mode",
-        choices=["sentry", "home", "deploy", "sentinel-existing", "sentinel-removal"],
+        choices=[
+            "sentry",
+            "home",
+            "deploy",
+            "registration",
+            "sentinel-existing",
+            "sentinel-removal",
+        ],
     )
     parser.add_argument("result", type=Path)
     parser.add_argument("--status", type=int, default=0)
+    parser.add_argument("--repaired", type=Path)
     args = parser.parse_args()
     log = args.result.read_text()
     if args.mode == "sentry":
         sentry(
             [json.loads(line) for line in log.splitlines() if line.strip()], args.status
         )
+    elif args.mode == "registration":
+        if args.repaired is None:
+            parser.error("Native registration comparison requires --repaired")
+        registration(json.loads(log), json.loads(args.repaired.read_text()))
     elif args.mode == "home":
         home(log)
     elif args.mode == "deploy":
