@@ -162,7 +162,7 @@ jobs:
           test -x "$package/bin/claude"
           vendor="$package/bin/.claude-wrapped"
           test -x "$vendor"
-          /usr/bin/lipo -verify_arch arm64 "$vendor"
+          /usr/bin/lipo "$vendor" -verify_arch arm64
           /usr/bin/otool -L "$vendor"
           # Inspect the vendor signature without executing its binary or
           # claiming notarization, certificate trust, or runtime correctness.
