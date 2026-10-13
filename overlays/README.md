@@ -231,6 +231,28 @@ Outside the sandbox, the actual exported resource-test binary passes its full
 suite with no skips, so the capability check does not bypass assertions when
 watching is available.
 
+The Hyprland subsurface repair was reviewed at
+`663b29b846e4bad17cfa29941f6d2fbb6b61f139`. The critical subsurface,
+compositor and subcompositor sources remain byte-identical to the previously
+reviewed revision. The
+[native paired VM proof](https://github.com/nix-forge/nix-conf/actions/runs/38322581431/job/115055022924)
+first verifies the software parent display and an unmodified child-first control.
+Its actual unmodified compositor then reproduces the precise parent-position
+failure; the repaired compositor passes orphan, disconnect, color-feedback and
+child-first lifecycle scenarios with clean exit. The production patch is unchanged.
+
+The Claude Code packaging repair was reviewed at Nixpkgs
+`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected vendor package is
+2.1.292, with source SHA-256
+`dfabaa49a309abe3229719ecfaf41d557c831168b2b642cf2c24e7ab0fc40291`.
+The [native Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/38326427698/job/115066059454)
+builds it in the strict sandbox with the existing install-check override, checks
+both executable entrypoints, verifies arm64 architecture and inspects the native
+loader. Apple's signature integrity check passes for the preserved vendor
+signature. The vendor program is not executed; these checks do not establish
+runtime correctness, notarization or certificate trust. The repair remains scoped
+to strict packaging and disabling the vendor install check.
+
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision
    of the input that owns the broken source or recipe.
