@@ -1,0 +1,13 @@
+--- a/tests/functional/meson.build
++++ b/tests/functional/meson.build
+@@ -252,6 +252,10 @@
+     deps += [ nix ] + nix_subproject.get_variable('nix_symlinks_targets')
+   endif
+   foreach script : suite['tests']
++    # Crashpad Mach registration is unavailable in the strict Darwin sandbox.
++    if host_machine.system() == 'darwin' and suite_name == 'main' and script == 'sentry.sh'
++      continue
++    endif
+     # Turns, e.g., `tests/functional/flakes/show.sh` into a Meson test target called
+     # `functional-flakes-show`.
+     name = fs.replace_suffix(script, '')

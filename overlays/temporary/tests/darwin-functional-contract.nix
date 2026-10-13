@@ -20,6 +20,7 @@ let
         name = "nix-functional-tests";
         doCheck = true;
         mesonCheckFlags = [ "--print-errorlogs" ];
+        patches = [ "upstream-existing-patch" ];
         overrideAttrs = transform: self // transform self;
       };
     in
@@ -60,12 +61,11 @@ assert repaired.doCheck;
 assert repairedUnits == units;
 assert builtins.length repaired.buildInputs == 6;
 assert repairedFunctional.doCheck;
+assert repairedFunctional.mesonCheckFlags == functional.mesonCheckFlags;
 assert
-  repairedFunctional.mesonCheckFlags == [
-    "--print-errorlogs"
-    "--exclude"
-    "sentry"
-  ];
+  repairedFunctional.patches
+  == functional.patches ++ [ ../patches/determinate-darwin-sentry-registration.patch ];
+assert builtins.length repairedFunctional.patches == builtins.length functional.patches + 1;
 assert !accepts (package units);
 assert
   !accepts (

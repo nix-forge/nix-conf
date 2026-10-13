@@ -24,10 +24,7 @@
     builtins.seq functional (
       package.override {
         nix-functional-tests = functional.overrideAttrs (old: {
-          mesonCheckFlags = (old.mesonCheckFlags or [ ]) ++ [
-            "--exclude"
-            "sentry"
-          ];
+          patches = (old.patches or [ ]) ++ [ ./patches/determinate-darwin-sentry-registration.patch ];
         });
       }
     );
