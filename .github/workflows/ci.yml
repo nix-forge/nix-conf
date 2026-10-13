@@ -158,6 +158,23 @@ jobs:
         if: ${{ !cancelled() && matrix.target == 'deploy' }}
         run: |
           proof_file=overlays/temporary/tests/current-deploy-watch-proof.nix
+          proof=
+          report_pair() {
+            status=$?
+            trap - EXIT
+            set +e
+            for directory in "${proof:+$proof/strict}" "$RUNNER_TEMP/deploy-watch-host"; do
+              [[ -d "$directory" ]] || continue
+              for filename in status.json test.log fsevents.json watch-1.json watch-1.log watch-2.json watch-2.log; do
+                [[ -f "$directory/$filename" ]] || continue
+                printf '::group::Deploy watcher evidence %s/%s\n' "$directory" "$filename"
+                sed -n '1,80p' "$directory/$filename"
+                printf '\n::endgroup::\n'
+              done
+            done
+            exit "$status"
+          }
+          trap report_pair EXIT
           nix eval --impure --json --file "$proof_file" metadata
           proof=$(nix build --option sandbox true --impure --no-link --print-out-paths -L \
             --max-jobs 1 --cores 2 --file "$proof_file" strictDiagnostic)
