@@ -12,9 +12,14 @@ let
     path = ../patches/deploy-confirmation-directory-tests.patch;
     name = "deploy-confirmation-directory-tests.patch";
   };
-  # The owning integration installs this patch once before building this proof.
+  # Trial both independent repairs before registering the path fix.
   installedFix = import ../deploy-rs-darwin-tests.nix { };
-  fullPackage = installedFix.apply upstream;
+  pathFix = import ../deploy-rs-confirmation-path.nix { };
+  registry = import ../default.nix {
+    inherit (flake) inputs;
+    inherit (pkgs) lib;
+  };
+  fullPackage = installedFix.apply (pathFix.apply upstream);
   diagnostic = (import ./current-deploy-watch-proof.nix).strictDiagnostic;
   regression =
     pkgs.runCommand "deploy-confirmation-path-result-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
@@ -55,6 +60,8 @@ assert !(fullPackage.__noChroot or false);
     repairedPackage = fullPackage.drvPath;
     strictSandboxRequired = true;
     installedGuardMatchesInput = installedFix.reviewedRevision == flake.inputs.deploy-rs.rev;
+    pathFixRegistered = builtins.hasAttr "deploy-rs-confirmation-path" registry.review;
+    pathReviewMatchesInput = pathFix.reviewedRevision == flake.inputs.deploy-rs.rev;
     proofChangesInstalledGuard = false;
     repairPatchSha256 = builtins.hashFile "sha256" repairPatch;
     regressionPatchSha256 = builtins.hashFile "sha256" regressionPatch;
