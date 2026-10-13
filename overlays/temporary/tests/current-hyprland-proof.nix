@@ -5,7 +5,8 @@ let
   system = "x86_64-linux";
   pkgs = import flake.inputs.nixpkgs { inherit system; };
   unpatched = flake.inputs.hyprland.packages.${system}.hyprland;
-  patched = (import ../hyprland-subsurface.nix { }).apply unpatched;
+  installedFix = import ../hyprland-subsurface.nix { };
+  patched = installedFix.apply unpatched;
   proof = import ../../../tests/hyprland/subsurface-parent-lifetime-vm.nix;
 in
 assert flake.inputs.hyprland.rev == "663b29b846e4bad17cfa29941f6d2fbb6b61f139";
@@ -18,7 +19,8 @@ assert patched.drvPath != unpatched.drvPath;
     repairedPackage = patched.drvPath;
     sourcePath = toString unpatched.src;
     baselineIsUnmodified = true;
-    installedGuardWasAdvanced = false;
+    installedGuardMatchesInput = installedFix.reviewedRevision == flake.inputs.hyprland.rev;
+    proofChangesInstalledGuard = false;
   };
   hyprlandParent = proof {
     inherit pkgs unpatched;
