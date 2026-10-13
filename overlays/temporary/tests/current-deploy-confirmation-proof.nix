@@ -1,4 +1,4 @@
-# Source repair remains isolated until its raw and repaired native controls pass.
+# Native regressions cover the independent Darwin path and sandbox repairs.
 let
   root = toString ../../..;
   flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
@@ -12,7 +12,7 @@ let
     path = ../patches/deploy-confirmation-directory-tests.patch;
     name = "deploy-confirmation-directory-tests.patch";
   };
-  # Trial both independent repairs before registering the path fix.
+  # Compose the independent repairs for the production package contract.
   installedFix = import ../deploy-rs-darwin-tests.nix { };
   pathFix = import ../deploy-rs-confirmation-path.nix { };
   registry = import ../default.nix {
