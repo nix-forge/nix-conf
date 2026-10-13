@@ -67,12 +67,13 @@ let
     pkgs.runCommand "portal-${label}" { } "touch $out"
   ) { };
   compositorFixture = pkgs.runCommand "compositor" { } "touch $out";
+  legacyCompositorFixture = pkgs.runCommand "legacy-compositor" { } "touch $out";
   legacyPortalFixture = lib.makeOverridable (
     {
-      hyprland ? compositorFixture,
+      hyprland ? legacyCompositorFixture,
       label ? "original",
     }:
-    pkgs.runCommand "portal-${label}-${hyprland.name}" { } "touch $out"
+    pkgs.runCommand "portal-${label}-${hyprland.name}" { inherit hyprland; } "touch $out"
   ) { };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
@@ -202,13 +203,13 @@ assert
   (homeManagerPortal (portalFixture.override { label = "changed"; }) compositorFixture).drvPath
   == (portalFixture.override { label = "changed"; }).drvPath;
 assert
-  (homeManagerPortal legacyPortalFixture selected.hyprland).drvPath
-  == (legacyPortalFixture.override { inherit (selected) hyprland; }).drvPath;
+  (homeManagerPortal legacyPortalFixture compositorFixture).drvPath
+  == (legacyPortalFixture.override { hyprland = compositorFixture; }).drvPath;
 assert
-  (homeManagerPortal (legacyPortalFixture.override { label = "changed"; }) selected.hyprland).drvPath
+  (homeManagerPortal (legacyPortalFixture.override { label = "changed"; }) compositorFixture).drvPath
   == (legacyPortalFixture.override {
     label = "changed";
-    inherit (selected) hyprland;
+    hyprland = compositorFixture;
   }).drvPath;
 assert homeManagerPortal null compositorFixture == null;
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
