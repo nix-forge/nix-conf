@@ -14,9 +14,9 @@ let
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
     determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
+    home-manager-hyprland-portal = ./home-manager-hyprland-portal.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
-    hyprland-portal = ./hyprland-portal.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
     nh-darwin-home = ./nh-darwin-home.nix;

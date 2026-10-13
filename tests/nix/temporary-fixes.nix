@@ -53,6 +53,29 @@ let
       };
     };
   };
+  portalCompatibility =
+    (import ../../overlays/temporary/home-manager-hyprland-portal.nix { inherit lib; }).apply;
+  portalFixture = lib.makeOverridable (
+    {
+      label ? "original",
+    }:
+    pkgs.runCommand "portal-${label}" { } "touch $out"
+  ) { };
+  compatiblePortal = portalCompatibility portalFixture;
+  legacyPortal = lib.makeOverridable (
+    {
+      hyprland ? "original",
+    }:
+    pkgs.runCommand "portal-${hyprland}" { } "touch $out"
+  ) { };
+  changedHomeManager = import ../../overlays/temporary {
+    inherit lib;
+    inputs = inputs // {
+      home-manager = inputs.home-manager // {
+        rev = "unreviewed";
+      };
+    };
+  };
   overlay = import ../../overlays { inherit inputs; };
   selected = pkgs.extend overlay;
   nhAt =
@@ -176,6 +199,22 @@ assert
     changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
   ));
 assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
+# Home Manager's obsolete argument must not alter the selected portal output.
+assert (compatiblePortal.override { hyprland = "compositor"; }).drvPath == portalFixture.drvPath;
+assert
+  (compatiblePortal.override {
+    label = "changed";
+    hyprland = "compositor";
+  }).drvPath == (portalFixture.override { label = "changed"; }).drvPath;
+assert
+  (compatiblePortal.override (_: {
+    label = "changed";
+    hyprland = "compositor";
+  })).drvPath == (portalFixture.override { label = "changed"; }).drvPath;
+assert
+  ((portalCompatibility legacyPortal).override { hyprland = "changed"; }).drvPath
+  == (legacyPortal.override { hyprland = "changed"; }).drvPath;
+assert !(succeeds (changedHomeManager.apply "home-manager-hyprland-portal" portalFixture));
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
 # Platform decisions belong to the selection interface. Linux keeps the
