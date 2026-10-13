@@ -29,8 +29,8 @@ package set. The GtkSourceView repair remains confined to Virt Manager's depende
 `pkgs.gtksourceview4` itself keeps its upstream definition. `pkgs.grimblast-region`
 is a separate permanent variant, while `pkgs.grimblast` retains its normal behavior.
 
-The overlay also owns the Determinate Nix package selection, its Darwin test
-condition, the Darwin Actual repair, and the Linux Zen wrapper repair. The
+The overlay also owns the Determinate Nix package selection, its scoped Darwin
+test repair, and the Linux Zen wrapper repair. The
 Determinate modules configure the service and daemon settings.
 
 ## Which repository owns an override?
@@ -265,6 +265,18 @@ loader. Apple's signature integrity check passes for the preserved vendor
 signature. The vendor program is not executed; these checks do not establish
 runtime correctness, notarization or certificate trust. The repair remains scoped
 to strict packaging and disabling the vendor install check.
+
+The Determinate Darwin test repair was reviewed at its nested Nix input
+`1ef903401b3426fbca74a692e158cca82d7c98ab`, version 3.23.1. The
+[native strict-sandbox proof](https://github.com/nix-forge/nix-conf/actions/runs/38327735034/job/115070216612)
+reproduces only the Sentry crashdump failure with Crashpad Mach registration
+permission denied (1100). The repair preserves `doCheck`, all five original unit
+gate derivations, upstream patches and Meson flags. It omits only the Darwin
+`main/sentry.sh` registration; native introspection verifies every other test's
+registration and execution settings remain unchanged. All five unit gates build
+successfully; the functional suite reports 189 passing cases, zero failures and
+36 upstream skips. The combined package remains under the strict sandbox, with
+only its existing declared local-network allowance for functional tests.
 
 1. Add `temporary/<name>.nix`, following an existing record. Put its patch data
    under `temporary/patches/`. Use a concrete removal condition and the revision

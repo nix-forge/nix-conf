@@ -2,7 +2,7 @@
   reason = "The Sentry crashdump test needs Crashpad Mach ports denied by the Darwin sandbox.";
   upstream = "https://github.com/DeterminateSystems/nix";
   removal = "The Sentry crashdump case passes in the strict Darwin sandbox.";
-  reviewedRevision = "8bb6b35147841a45b6dead93fc98339798d586f5";
+  reviewedRevision = "1ef903401b3426fbca74a692e158cca82d7c98ab";
   inputPath = [
     "determinate"
     "inputs"
