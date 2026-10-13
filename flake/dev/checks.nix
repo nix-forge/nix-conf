@@ -13,6 +13,9 @@
     in
     {
       checks = {
+        # Validate the selected release artifacts without building a host closure.
+        zen-beta-artifact = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.beta-unwrapped;
+
         secret-templates =
           assert import ../../tests/secrets/template-policy.nix { inherit (pkgs) lib; };
           (import ../../tests/python-check.nix { inherit pkgs; }) {
