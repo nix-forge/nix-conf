@@ -2,6 +2,10 @@
   perSystem =
     { pkgs, ... }:
     let
+      hyprlandPackages = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
+      patchedHyprland =
+        (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
+          hyprlandPackages.hyprland;
       determinatePackage = import ../../tests/nix/determinate-module.nix { inherit pkgs inputs; };
       # Evaluation covers all supported platforms without building foreign
       # packages or moving the desktop closure to another builder.
@@ -38,6 +42,10 @@
         };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        # Keep native compiler compatibility coverage after retiring the override.
+        hyprland-portal-build =
+          assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
+          hyprlandPackages.xdg-desktop-portal-hyprland;
         sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
         sentry-crashpad-lock-lifecycle =
           pkgs.runCommand "sentry-crashpad-lock-lifecycle"
@@ -55,6 +63,19 @@
                 ${../../overlays/temporary/patches/sentry-crashpad-lock.patch}
               touch "$out"
             '';
+      }
+      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+        hyprland-parent-display = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
+          inherit pkgs;
+          unpatched = hyprlandPackages.hyprland;
+          patched = hyprlandPackages.hyprland;
+          parentOnly = true;
+        };
+        hyprland-subsurface-lifetime = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
+          inherit pkgs;
+          unpatched = hyprlandPackages.hyprland;
+          patched = patchedHyprland;
+        };
       };
     };
 }
