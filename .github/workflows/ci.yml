@@ -474,7 +474,7 @@ jobs:
       - name: Check shared workflow contracts
         uses: nix-forge/ci/actions/validate-workflows@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Run repository hooks and publication checks
-        uses: nix-forge/ci/actions/repository-checks@13ad6e366ec01e317705d750fc512d33ecc15f6c # v2.9.0
+        uses: nix-forge/ci/actions/repository-checks@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           dev-shell: ci
           publication-script: .github/scripts/scan-publication.sh
