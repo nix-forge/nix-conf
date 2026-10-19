@@ -13,6 +13,6 @@ jobs:
     permissions:
       actions: write # Retry only verified transient service failures.
       contents: read
-    uses: nix-forge/ci/.github/workflows/retry-scorecard.yml@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+    uses: nix-forge/ci/.github/workflows/retry-scorecard.yml@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
     with:
       source-run-id: ${{ format('{0}', github.event.workflow_run.id) }}

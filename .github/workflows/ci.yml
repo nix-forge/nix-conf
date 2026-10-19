@@ -78,7 +78,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record selected Actual package and native runtime
         run: nix eval --impure --json --file overlays/temporary/tests/current-actual-proof.nix metadata
       - name: Verify source layout and unmodified packaged service
@@ -131,7 +131,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record actual packages and preserved regression suites
         env:
           PROOF_FILE: overlays/temporary/tests/${{ matrix.proof }}
@@ -311,7 +311,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record exact selected package and enabled checks
         run: nix eval --impure --json --file overlays/temporary/tests/current-prism-proof.nix metadata
       - name: Measure capability and verify full native watch cases
@@ -337,7 +337,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record exact wrapper inputs
         run: nix eval --impure --json --file overlays/temporary/tests/current-zen-wrapper-proof.nix metadata
       - name: Build and exercise actual selected wrapper
@@ -357,7 +357,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Compare actual module warnings and canonical theme
         run: nix eval --impure --json --file overlays/temporary/tests/current-stylix-proof.nix
   sentry-review-proof:
@@ -373,7 +373,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record exact selected dependency
         run: nix eval --impure --json --file overlays/temporary/tests/current-sentry-proof.nix metadata
       - name: Verify upstream symptom, repaired behavior and patch lifecycle
@@ -394,7 +394,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Record exact selected compiler
         run: nix eval --impure --json --file overlays/temporary/tests/current-swift-proof.nix metadata
       - name: Verify missing upstream flags and repaired native runtime
@@ -414,7 +414,7 @@ jobs:
         with:
           persist-credentials: false
       - id: inventory
-        uses: nix-forge/ci/actions/discover-lockfiles@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/discover-lockfiles@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
   legacy-secret-manager-symbols:
     name: Reject removed secret-manager runtime references
     runs-on: ubuntu-24.04
@@ -451,7 +451,7 @@ jobs:
       fail-fast: false
       matrix:
         lockfile: ${{ fromJSON(needs.discover.outputs.lockfiles) }}
-    uses: nix-forge/ci/.github/workflows/flake-lock.yml@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+    uses: nix-forge/ci/.github/workflows/flake-lock.yml@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
     with:
       lockfile: ${{ matrix.lockfile }}
   lint:
@@ -467,12 +467,12 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
           cache-scope: ci-lint
       - name: Check shared workflow contracts
-        uses: nix-forge/ci/actions/validate-workflows@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/validate-workflows@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Run repository hooks and publication checks
         uses: nix-forge/ci/actions/repository-checks@13ad6e366ec01e317705d750fc512d33ecc15f6c # v2.9.0
         with:
@@ -482,7 +482,7 @@ jobs:
         if: failure()
         run: git diff --stat
       - name: Build portable lint checks
-        uses: nix-forge/ci/actions/flake-checks@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/flake-checks@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           system: x86_64-linux
           checks-output: lintChecks
@@ -583,7 +583,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -609,7 +609,7 @@ jobs:
             sandbox-fallback = false
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
-        uses: nix-forge/ci/actions/flake-checks@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/flake-checks@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
@@ -745,7 +745,7 @@ jobs:
           submodules: recursive
       - name: Set up Nix
         id: nix-setup
-        uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: ${{ github.event_name == 'workflow_dispatch' && inputs.use_nix_cache == true }}
           cache-scope: ci-${{ matrix.system }}
@@ -808,7 +808,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Nix
-        uses: nix-forge/ci/actions/setup-nix@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           # Keep the large, opt-in package audit out of the shared cache. The
           # normal check and guide jobs are the safe cache benchmark surface.
@@ -925,4 +925,4 @@ jobs:
       actions: write # Dispatch the trusted queue reconciler after validation.
     steps:
       - name: Notify trusted queue reconciler
-        uses: nix-forge/ci/actions/queue-completion@ab8e486d3d1c48edd116578e097a46eb0c8f5097 # v2.12.0
+        uses: nix-forge/ci/actions/queue-completion@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
