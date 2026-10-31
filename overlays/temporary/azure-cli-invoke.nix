@@ -28,12 +28,14 @@
             args
             // lib.optionalAttrs (baseNameOf path == "python-packages.nix") {
               python3 = args.python3 // {
-                override = overrides: args.python3.override (overrides // {
-                  packageOverrides = lib.composeExtensions overrides.packageOverrides pinInvoke;
-                });
+                override =
+                  overrides:
+                  args.python3.override (
+                    overrides // { packageOverrides = lib.composeExtensions overrides.packageOverrides pinInvoke; }
+                  );
               };
             }
-          )
+          );
       });
     in
     repaired;
