@@ -340,8 +340,8 @@ body {{ background:#111; color:white; margin:20px; }}
 <div id="bold" class="sample" style="font:700 40px/1.15 FaceFixture">{sample}</div>
 <div id="italic" class="sample" style="font:italic 400 40px/1.15 FaceFixture">{sample}</div>
 <div id="missing" class="sample" style="font:oblique 400 40px/1.15 MissingFixture;font-synthesis:none">{sample}</div>
-<div id="variable-low" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 100,'wdth' 75">{sample}</div>
-<div id="variable-high" class="sample" style="font:900 40px/1.15 VariableFixture;font-variation-settings:'wght' 900,'wdth' 125">{sample}</div>
+<div id="variable-low" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 75">{sample}</div>
+<div id="variable-high" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 125">{sample}</div>
 <div id="role-sans" class="sample role" style='font-family:{sans_css}'>{sample}</div>
 <div id="role-serif" class="sample role" style='font-family:{serif_css}'>{sample}</div>
 <div id="role-mono" class="sample role" style='font-family:{monospace_css}'>{sample}</div>
@@ -472,9 +472,27 @@ body {{ background:#111; color:white; margin:20px; }}
                   const context = canvas.getContext('2d');
                   context.font = `${weight} 40px ${family}`;
                   const metrics = context.measureText(value);
+                  const padding = 8;
+                  const left = Math.max(0, metrics.actualBoundingBoxLeft);
+                  const right = Math.max(metrics.width, metrics.actualBoundingBoxRight);
+                  canvas.width = Math.ceil(left + right + padding * 2);
+                  canvas.height = Math.ceil(metrics.actualBoundingBoxAscent +
+                    metrics.actualBoundingBoxDescent + padding * 2);
+                  // Resizing clears the drawing state, including the selected font.
+                  context.font = `${weight} 40px ${family}`;
+                  context.textBaseline = 'alphabetic';
+                  context.fillStyle = '#000';
+                  context.fillText(value, padding + left,
+                    padding + metrics.actualBoundingBoxAscent);
+                  const pixels = context.getImageData(0, 0,
+                    canvas.width, canvas.height).data;
+                  let ink = 0;
+                  for (let index = 3; index < pixels.length; index += 4)
+                    if (pixels[index] > 8) ink += 1;
                   return {width: metrics.width,
                     ascent: metrics.actualBoundingBoxAscent,
-                    descent: metrics.actualBoundingBoxDescent};
+                    descent: metrics.actualBoundingBoxDescent,
+                    ink, canvasWidth: canvas.width, canvasHeight: canvas.height};
                 }
                 const emojiCases = {
                   text: '☕︎', presentation: '☕️', keycap: '1️⃣',
@@ -569,8 +587,18 @@ body {{ background:#111; color:white; margin:20px; }}
         failures.append("CSS style descriptors were not preserved")
     variable_low = face_result["variableCanvas"]["low"]
     variable_high = face_result["variableCanvas"]["high"]
-    if abs(variable_low["width"] - variable_high["width"]) <= 1.0:
-        failures.append("variable font axes did not change measured metrics")
+    if (
+        abs(
+            face_metrics["variable-low"]["width"]
+            - face_metrics["variable-high"]["width"]
+        )
+        <= 1.0
+    ):
+        failures.append("variable font width axis did not change measured advances")
+    if min(variable_low["ink"], variable_high["ink"]) < MIN_PAINTED_PIXELS:
+        failures.append("variable font weight samples did not paint glyphs")
+    elif variable_low["ink"] == variable_high["ink"]:
+        failures.append("variable font weight axis did not change painted glyphs")
     mono = face_result["monoCanvas"]
     if abs(mono["lower"]["width"] - mono["upper"]["width"]) > 1.0:
         failures.append("configured monospace face has unequal cell advances")
