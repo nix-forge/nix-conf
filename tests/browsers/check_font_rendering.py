@@ -1191,6 +1191,9 @@ body {{ background: #111; color: white; margin: 20px; }}
               widths: Object.fromEntries(ids.map(id => [
                 id, document.getElementById(id).getBoundingClientRect().width,
               ])),
+              fontFaces: [...document.fonts].map(face => ({
+                family: face.family, status: face.status,
+              })),
               webFontLoaded: [...document.fonts].some(face =>
                 face.family === '"SF Pro"' && face.status === 'loaded'),
             };"""
@@ -1250,6 +1253,10 @@ body {{ background: #111; color: white; margin: 20px; }}
                 "fallback_family": fallback_family,
                 "generic_matches": generic_matches,
                 "generic_roles_preserved": generic_roles_preserved,
+                "ordinary_not_hijacked": ordinary_not_hijacked,
+                "generic_not_hijacked": generic_not_hijacked,
+                "generic_fontconfig_not_hijacked": generic_fontconfig_not_hijacked,
+                "private_use_preserved": private_use_preserved,
                 "result": result,
                 "platform_stack_preserves_web_font": platform_stack_preserves_web_font,
                 "failed": failed,
