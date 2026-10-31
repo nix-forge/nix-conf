@@ -2,7 +2,7 @@ _: {
   reason = "nix-output-monitor 2.2.0 builds large dependency graphs with quadratic root removal.";
   upstream = "https://github.com/maralorn/nix-output-monitor/pull/304";
   removal = "Upstream merges PR #304 and Nixpkgs packages a release containing it.";
-  reviewedRevision = "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8";
+  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
   inputPath = [ "nixpkgs" ];
   affectedVersions = {
     from = "2.2.0";

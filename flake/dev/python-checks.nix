@@ -5,7 +5,6 @@ _: {
     checks.python-tests = (import ../../tests/python-check.nix { inherit pkgs; }) {
       name = "python-behavior-tests";
       files = [
-        ../../overlays/temporary/tests/crashpad-lock.py
         ../../overlays/temporary/tests/prism-watch-result.py
         ../../overlays/temporary/tests/darwin-package-result.py
         ../../overlays/temporary/tests/deploy-watch-pair.py

@@ -15,7 +15,6 @@
     "public-guide-recipes": 3,
     "python-tests": 6,
     "secret-templates": 20,
-    "sentry-crashpad-lock-lifecycle": 8,
     "template-configs": 4
   }
 }

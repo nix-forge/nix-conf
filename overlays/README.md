@@ -322,3 +322,14 @@ The check performs evaluation and tests guard behavior. It does not build every
 package or demonstrate runtime correctness. It needs no live GitHub status
 request, so normal evaluation remains reproducible and works with cached inputs.
 It does not send notifications or poll upstream while the lockfile is unchanged.
+
+The dependency review at Nixpkgs `02c087f3fe673c9e317f206a627cb6b910336dbe`
+retains the GTK, Zen wrapper, Swift hardening, Nix Output Monitor, Hypridle,
+Hyprshell, AudioMuse loopback, NH Darwin home, and Claude sandbox fixes.
+Source comparison confirms the repaired paths remain applicable; the current
+native proofs pass in [run 41226706466](https://github.com/nix-forge/nix-conf/actions/runs/41226706466).
+GTK adds an upstream Meson timeout setting; NH adds system SQLite configuration.
+Claude advances to 2.1.303: the native proof checks packaging, architecture and
+signing entry points, without executing the vendor program. The Darwin
+Determinate test policy also passes against its current nested Nix revision
+`9993a12bd434f653d5081b9b35f50900412fece8`.
