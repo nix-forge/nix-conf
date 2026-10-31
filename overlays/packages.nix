@@ -36,8 +36,6 @@ in
     }
   );
   prismlauncher = pkgs.prismlauncher.override { prismlauncher-unwrapped = prismUnwrapped; };
-  claude-code =
-    if isDarwin then fixes.apply "claude-code-sandbox" pkgs.claude-code else pkgs.claude-code;
   deploy-rs =
     if isDarwin then
       fixes.apply "deploy-rs-darwin-tests" (fixes.apply "deploy-rs-confirmation-path" deploy)

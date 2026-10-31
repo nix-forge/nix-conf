@@ -252,17 +252,14 @@ Its actual unmodified compositor then reproduces the precise parent-position
 failure; the repaired compositor passes orphan, disconnect, color-feedback and
 child-first lifecycle scenarios with clean exit. The production patch is unchanged.
 
-The Claude Code packaging repair was reviewed at Nixpkgs
-`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected vendor package is
-2.1.292, with source SHA-256
-`dfabaa49a309abe3229719ecfaf41d557c831168b2b642cf2c24e7ab0fc40291`.
-The [native Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/38326427698/job/115066059454)
-builds it in the strict sandbox with the existing install-check override, checks
-both executable entrypoints, verifies arm64 architecture and inspects the native
-loader. Apple's signature integrity check passes for the preserved vendor
-signature. The vendor program is not executed; these checks do not establish
-runtime correctness, notarization or certificate trust. The repair remains scoped
-to strict packaging and disabling the vendor install check.
+The Claude Code packaging repair is retired at Nixpkgs
+`02c087f3fe673c9e317f206a627cb6b910336dbe`. Upstream removed its
+unsandboxed-build setting. The [native unmodified-package proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890275)
+builds vendor version 2.1.303 under the strict Darwin sandbox with its original
+install checks enabled. The version hook executes `claude --version` and
+successfully reports 2.1.303. The proof also inspects the executable entrypoints,
+architecture and preserved signature. This establishes the override's removal
+condition; it does not establish every application feature or certificate trust.
 
 The Determinate Darwin test repair was reviewed at its nested Nix input
 `1ef903401b3426fbca74a692e158cca82d7c98ab`, version 3.23.1. The
@@ -329,9 +326,6 @@ Hyprshell, AudioMuse loopback, and NH Darwin home fixes.
 Source comparison confirms the repaired paths remain applicable; the current
 native proofs pass in [run 41226706466](https://github.com/nix-forge/nix-conf/actions/runs/41226706466).
 GTK adds an upstream Meson timeout setting; NH adds system SQLite configuration.
-Claude advances to 2.1.303: the initial native proof checks packaging, architecture
-and signing entry points. Upstream removed its unsandboxed-build setting; the
-unmodified version check must now be tested before retaining or retiring the
-local override. Its review guard remains pending. The Darwin
+Claude's separate unmodified-package proof above supports retiring its override. The Darwin
 Determinate test policy also passes against its current nested Nix revision
 `9993a12bd434f653d5081b9b35f50900412fece8`.

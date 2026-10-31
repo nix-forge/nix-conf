@@ -202,10 +202,10 @@ assert
 assert homeManagerPortal null compositorFixture == null;
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
-# Platform decisions belong to the selection interface. Linux keeps the
-# upstream Claude Code and deploy-rs derivations and their check settings.
-assert
-  pkgs.stdenv.hostPlatform.isDarwin || selected.claude-code.drvPath == pkgs.claude-code.drvPath;
+# Claude now uses upstream packaging and install checks on every platform.
+assert selected.claude-code.drvPath == pkgs.claude-code.drvPath;
+assert (selected.claude-code.doInstallCheck or false) == (pkgs.claude-code.doInstallCheck or false);
+# Platform decisions belong to the selection interface. Linux keeps upstream deploy-rs.
 assert
   pkgs.stdenv.hostPlatform.isDarwin
   ||
