@@ -25,14 +25,6 @@ let
     };
   };
   moduleFixes = import ../../overlays/temporary { inherit lib inputs; };
-  changedDeterminateModule = import ../../overlays/temporary {
-    inherit lib;
-    inputs = inputs // {
-      determinate = inputs.determinate // {
-        rev = "unreviewed";
-      };
-    };
-  };
   changedDeterminate = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -193,12 +185,7 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
 assert !(succeeds changedDeterminate.review);
-assert !(succeeds changedDeterminateModule.review);
-assert
-  !(succeeds (
-    changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
-  ));
-assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
+assert !(succeeds (changedDeterminate.apply "determinate-darwin-tests" { }));
 assert (homeManagerPortal portalFixture compositorFixture).drvPath == portalFixture.drvPath;
 assert
   (homeManagerPortal (portalFixture.override { label = "changed"; }) compositorFixture).drvPath
@@ -225,8 +212,8 @@ assert
     selected.deploy-rs.drvPath
     == inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath;
 assert pkgs.stdenv.hostPlatform.isLinux || !(overlay selected pkgs ? hyprland);
-# The Crashpad repair belongs to the NixOS module, not the package overlay.
-# Darwin retains its existing Determinate package and sandbox-test policy.
+# Linux uses upstream Determinate after its Sentry repair landed.
+# Darwin retains its existing sandbox-test policy.
 assert
   if pkgs.stdenv.hostPlatform.isLinux then
     selected.nix.drvPath

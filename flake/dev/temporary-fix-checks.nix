@@ -7,6 +7,10 @@
         (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
           hyprlandPackages.hyprland;
       determinatePackage = import ../../tests/nix/determinate-module.nix { inherit pkgs inputs; };
+      sentryPackage = import ../../tests/nix/sentry/package.nix {
+        inherit inputs;
+        system = pkgs.stdenv.hostPlatform.system;
+      };
       # Evaluation covers all supported platforms without building foreign
       # packages or moving the desktop closure to another builder.
       results = builtins.listToAttrs (
@@ -53,23 +57,9 @@
             == inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.drvPath;
           assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
           hyprlandPackages.xdg-desktop-portal-hyprland;
-        sentry-crashpad-lock = determinatePackage.tests.crashpad-lock;
-        sentry-crashpad-lock-lifecycle =
-          pkgs.runCommand "sentry-crashpad-lock-lifecycle"
-            {
-              nativeBuildInputs = [
-                pkgs.bash
-                pkgs.patch
-                pkgs.python3
-              ];
-            }
-            ''
-              python3 ${../../overlays/temporary/tests/crashpad-lock-lifecycle.py} \
-                ${determinatePackage.tests.crashpad-lock.src} \
-                ${../../overlays/temporary/patches/apply-crashpad-lock.sh} \
-                ${../../overlays/temporary/patches/sentry-crashpad-lock.patch}
-              touch "$out"
-            '';
+        sentry-crashpad-lock = builtins.seq determinatePackage (
+          (import ../../tests/nix/sentry/crashpad-lock.nix { inherit (pkgs) python3; }) sentryPackage
+        );
       }
       // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
         hyprland-parent-display = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {

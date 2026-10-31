@@ -12,7 +12,6 @@ let
     deploy-rs-confirmation-path = ./deploy-rs-confirmation-path.nix;
     deploy-rs-darwin-tests = ./deploy-rs-darwin-tests.nix;
     determinate-darwin-tests = ./determinate-darwin-tests.nix;
-    determinate-sentry-module = ./determinate-sentry-module.nix;
     gtksourceview-xvfb = ./gtksourceview-xvfb.nix;
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
@@ -21,7 +20,6 @@ let
     nh-darwin-home = ./nh-darwin-home.nix;
     nu-scripts-pytest-lists = ./nu-scripts-pytest-lists.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
-    sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     swift-clang-hardening = ./swift-clang-hardening.nix;
     stylix-nvf = ./stylix-nvf.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;
