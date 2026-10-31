@@ -4,6 +4,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
+      prove_azure_cli:
+        description: Verify Azure's private SSH dependencies and CLI in the Darwin sandbox.
+        required: false
+        default: false
+        type: boolean
       prove_actual_runtime:
         description: Verify unmodified Actual source, package and installed Node24 runtime.
         required: false
@@ -59,12 +64,32 @@ on:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name
     == 'workflow_dispatch' && (contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'), inputs.prove_package_fixes)
-    || inputs.prove_actual_runtime == true || inputs.prove_prism_watch == true || inputs.prove_zen_wrapper
-    == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening == true || inputs.prove_sentry_lock
-    == true) && format('-proof-{0}', github.run_id) || '' }}
+    || inputs.prove_azure_cli == true || inputs.prove_actual_runtime == true || inputs.prove_prism_watch
+    == true || inputs.prove_zen_wrapper == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening
+    == true || inputs.prove_sentry_lock == true) && format('-proof-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  azure-review-proof:
+    name: Review Azure SSH dependencies and CLI
+    if: github.event_name == 'workflow_dispatch' && inputs.prove_azure_cli
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+      - name: Record the selected private SSH dependency
+        run: nix eval --impure --json --file overlays/temporary/tests/current-azure-proof.nix metadata
+      - name: Run native SSH tests and CLI integration in the sandbox
+        run: |
+          nix build --option sandbox true --impure --no-link -L \
+            --file overlays/temporary/tests/current-azure-proof.nix ssh cli
   actual-review-proof:
     name: Review current unmodified Actual package and runtime
     if: github.event_name == 'workflow_dispatch' && inputs.prove_actual_runtime
