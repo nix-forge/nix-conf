@@ -526,8 +526,9 @@ jobs:
       && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
-    # The paired x86 VM may compile both compositor variants on a cold runner.
-    timeout-minutes: ${{ matrix.system == 'x86_64-linux' && 90 || 45 }}
+    # Cold Darwin checks may compile Azure CLI and Nix runtime dependencies;
+    # the paired x86 VM may compile both compositor variants.
+    timeout-minutes: ${{ matrix.system == 'aarch64-linux' && 45 || 90 }}
     permissions:
       contents: read
     strategy:
