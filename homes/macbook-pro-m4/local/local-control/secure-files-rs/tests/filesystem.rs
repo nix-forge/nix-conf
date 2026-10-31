@@ -60,7 +60,7 @@ fn creates_and_reads_a_private_file_without_following_symlinks() {
         .output()
         .expect("read symlink command");
     assert!(!rejected_read.status.success());
-    assert!(rejected_read.stdout.is_empty());
+    assert_eq!(rejected_read.stdout, [] as [u8; 0]);
 }
 
 #[test]

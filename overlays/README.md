@@ -364,4 +364,10 @@ Invoke 3.0.3. The repaired CLI's `withExtensions` method retains this scope and
 the packaged Azure DevOps extension. A required native check imports Azure's
 actual App Service SSH module with Fabric and Invoke, constructs a connection
 without opening it, and checks offline CLI help and extension discovery.
-Retire the repair when the selected upstream dependency set is compatible.
+The same private scope grants Darwin local networking to `sshtunnel`'s
+unmodified loopback SSH tests, matching the upstream Paramiko recipe. Its
+sandbox and complete selected pytest suite remain enabled. The original
+Darwin build failed in test setup while resolving `localhost`; native
+validation of the local-networking setting remains required.
+Retire the repair when the selected upstream dependency set is compatible and
+its SSH test recipe declares the needed Darwin local networking.

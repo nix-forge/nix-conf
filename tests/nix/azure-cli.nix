@@ -12,12 +12,18 @@ let
       (throw "Fabric has no Invoke dependency")
       (throw "Fabric has multiple Invoke dependencies")
       fabric.propagatedBuildInputs;
+  sshtunnel =
+    pkgs.lib.findSingle (package: (package.pname or "") == "sshtunnel")
+      (throw "Azure CLI has no SSH tunnel dependency")
+      (throw "Azure CLI has multiple SSH tunnel dependencies")
+      azure.propagatedBuildInputs;
   python = fabric.pythonModule;
 in
 assert fabric.version == "3.2.3";
 assert invoke.version == "2.2.1";
 assert !(fabric.meta.broken or false);
 assert pkgs.python3Packages.invoke.version == "3.0.3";
+assert !(sshtunnel.__noChroot or false);
 pkgs.runCommand "azure-cli-compatible-invoke" { } ''
   export HOME="$TMPDIR/home"
   mkdir -p "$HOME"
