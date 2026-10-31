@@ -17,12 +17,14 @@ let
   };
   nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
+    azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
     nix-output-monitor = nom;
     nh-unwrapped =
       if isDarwin then fixes.apply "nh-darwin-home" pkgs.nh-unwrapped else pkgs.nh-unwrapped;
   };
 in
 {
+  azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   nix-output-monitor = nom;
   inherit nh;
   nu_scripts = fixes.apply "nu-scripts-pytest-lists" pkgs.nu_scripts;

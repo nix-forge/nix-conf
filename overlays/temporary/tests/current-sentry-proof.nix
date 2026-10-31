@@ -5,7 +5,7 @@ let
   flake = (builtins.getAttr "getFlake" builtins) ("git+file://" + root + "?submodules=1");
   pkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
   sentry = import ../../../tests/nix/sentry/package.nix {
-    inputs = flake.inputs;
+    inherit (flake) inputs;
     system = "x86_64-linux";
   };
 in

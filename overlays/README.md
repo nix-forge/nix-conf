@@ -336,3 +336,13 @@ remain byte-identical to the previous review. The
 [current paired native VM proof](https://github.com/nix-forge/nix-conf/actions/runs/41226706466/job/124612259173)
 passes the unmodified startup control, reproduces the baseline lifetime failure,
 and passes the repaired lifecycle scenarios.
+
+Both Deploy repairs are retained at
+`1cec0527bd09074bbee6d4461900ce5d58267217`. Upstream changes only
+package version metadata and its CLI version declaration; watcher and
+confirmation logic and Rust dependencies are unchanged. The
+[current native proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890335)
+reproduces the sandbox event-delivery limitation and raw directory-alias timeout.
+The identical watcher binary passes its three original cases with a canonical
+host directory; the repaired helper passes both ordinary and alias paths.
+The full suite retains the existing non-watcher and sentinel assertions.

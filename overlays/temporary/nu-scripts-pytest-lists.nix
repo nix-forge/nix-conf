@@ -1,4 +1,4 @@
-{ ... }: {
+_: {
   reason = "The pytest completion uses semicolons where Nushell requires list separators.";
   upstream = "https://github.com/nushell/nu_scripts/blob/3ffc5aa43194bb4d5295dec9fbf0a18b3a2dddfc/custom-completions/pytest/pytest-completions.nu#L10-L11";
   removal = "The selected upstream pytest completion parses without replacing its list separators.";

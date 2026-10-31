@@ -6,6 +6,7 @@
 let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
+    azure-cli-invoke = ./azure-cli-invoke.nix;
     audiomuseai-plugin-loopback-host = ./audiomuseai-plugin-loopback-host.nix;
     audiomuseai-plugin-release = ./audiomuseai-plugin-release.nix;
     deploy-rs-confirmation-path = ./deploy-rs-confirmation-path.nix;

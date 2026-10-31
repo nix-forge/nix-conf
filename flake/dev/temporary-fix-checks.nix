@@ -34,6 +34,7 @@
     in
     {
       checks = {
+        azure-cli-invoke = import ../../tests/nix/azure-cli.nix { inherit pkgs inputs; };
         temporary-package-fixes = builtins.deepSeq results (
           pkgs.runCommand "temporary-package-fixes" { } ''
             touch "$out"
