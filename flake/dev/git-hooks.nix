@@ -245,6 +245,8 @@
               enable = true;
               name = "Gitleaks";
               entry = "${lib.getExe pkgs.gitleaks} git --pre-commit --staged --redact --no-banner";
+              # The entry supplies the complete command; replace upstream default arguments.
+              args = [ ];
               language = "system";
               always_run = true;
               pass_filenames = false;
