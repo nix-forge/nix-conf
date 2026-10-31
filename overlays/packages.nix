@@ -17,7 +17,6 @@ let
   };
   nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
-    azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
     nix-output-monitor = nom;
     nh-unwrapped =
       if isDarwin then fixes.apply "nh-darwin-home" pkgs.nh-unwrapped else pkgs.nh-unwrapped;
