@@ -251,7 +251,9 @@ assert
     selected.swift.drvPath == selected.swiftPackages.swift.drvPath
     && selected.swift.drvPath != pkgs.swift.drvPath
   else
-    selected.swift.drvPath == pkgs.swift.drvPath;
+    # Upstream may mark a Linux compiler broken. Verify the selection boundary
+    # without forcing that unsupported derivation or allowing broken packages.
+    !(overlay selected pkgs ? swift) && !(overlay selected pkgs ? swiftPackages);
 # Keep the upstream release; the Darwin fix only changes test prerequisites.
 assert selected.prismlauncher.version == pkgs.prismlauncher.version;
 assert selected.prismlauncher-unwrapped.drvPath == pkgs.prismlauncher-unwrapped.drvPath;
