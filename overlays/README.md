@@ -346,3 +346,11 @@ reproduces the sandbox event-delivery limitation and raw directory-alias timeout
 The identical watcher binary passes its three original cases with a canonical
 host directory; the repaired helper passes both ordinary and alias paths.
 The full suite retains the existing non-watcher and sentinel assertions.
+
+The Prism capability repair is retained at Nixpkgs
+`02c087f3fe673c9e317f206a627cb6b910336dbe`. Its source and package
+recipe are unchanged. The [current native proof](https://github.com/nix-forge/nix-conf/actions/runs/41227385502/job/124614264423)
+measures unavailable native watching in the sandbox, requires the precise
+unmodified failure and capability skips, and passes every other resource case.
+The exported actual test binary passes the full resource suite on the host
+where the independent prerequisite confirms watcher availability.

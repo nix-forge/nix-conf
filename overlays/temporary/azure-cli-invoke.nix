@@ -22,16 +22,18 @@
         azure-cli = repaired;
         callPackage =
           path: args:
-          let
-            result = arguments.callPackage path args;
-            python = result.override (old: {
-              self = python;
-              packageOverrides = lib.composeExtensions old.packageOverrides pinInvoke;
-            });
-          in
-          # Compose after Azure's own interpreter overrides, preserving its
-          # tightly coupled core packages and the rest of the global Python set.
-          if baseNameOf path == "python-packages.nix" then python else result;
+          # Compose at the interpreter call: callPackage wraps the returned
+          # interpreter's override with the recipe's own arguments.
+          arguments.callPackage path (
+            args
+            // lib.optionalAttrs (baseNameOf path == "python-packages.nix") {
+              python3 = args.python3 // {
+                override = overrides: args.python3.override (overrides // {
+                  packageOverrides = lib.composeExtensions overrides.packageOverrides pinInvoke;
+                });
+              };
+            }
+          )
       });
     in
     repaired;
