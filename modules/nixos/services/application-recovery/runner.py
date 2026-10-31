@@ -1,6 +1,6 @@
 """Run declared application exports and isolated restoration drills."""
 
-# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception, start-process-with-partial-path, try-except-in-loop]
+# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception, start-process-with-partial-path]
 # Operator CLI invokes immutable declared commands without shell interpolation.
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ def backup(policy: dict[str, Any], environment: dict[str, str]) -> None:
         for unit in reversed(restart):
             try:
                 command(["systemctl", "start", unit], environment, timeout)
-            except (OSError, subprocess.SubprocessError, RecoveryError):
+            except OSError, subprocess.SubprocessError, RecoveryError:
                 failed.append(unit)
         if failed:
             raise RecoveryError("One or more application writers could not restart")

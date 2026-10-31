@@ -224,7 +224,7 @@ class _Runner:
     def _try_verify(self) -> bool:
         try:
             return self._verify_once()
-        except (subprocess.SubprocessError, json.JSONDecodeError, FileNotFoundError):
+        except subprocess.SubprocessError, json.JSONDecodeError, FileNotFoundError:
             time.sleep(0.05)
             return False
 

@@ -225,7 +225,7 @@ def _eligible(
             isinstance(group, str) and group in supported.get(connection, ())
             for group in groups
         )
-    except (OSError, ValueError, TypeError, AttributeError):
+    except OSError, ValueError, TypeError, AttributeError:
         return False
 
 

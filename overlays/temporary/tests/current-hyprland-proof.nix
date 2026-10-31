@@ -9,7 +9,7 @@ let
   patched = installedFix.apply unpatched;
   proof = import ../../../tests/hyprland/subsurface-parent-lifetime-vm.nix;
 in
-assert flake.inputs.hyprland.rev == "663b29b846e4bad17cfa29941f6d2fbb6b61f139";
+assert flake.inputs.hyprland.rev == "76edafffc68951a66b094806659ac4823e22c624";
 assert patched.drvPath != unpatched.drvPath;
 {
   metadata = {

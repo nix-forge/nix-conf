@@ -2,6 +2,7 @@
   "default": 1,
   "weights": {
     "actual-runtime": 4,
+    "azure-cli-invoke": 16,
     "clamav-special-files": 4,
     "darwin-configuration-macbook-pro-m4": 8,
     "finder-favorites-swift": 4,
@@ -15,7 +16,6 @@
     "public-guide-recipes": 3,
     "python-tests": 6,
     "secret-templates": 20,
-    "sentry-crashpad-lock-lifecycle": 8,
     "template-configs": 4
   }
 }

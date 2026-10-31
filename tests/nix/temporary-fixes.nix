@@ -25,14 +25,6 @@ let
     };
   };
   moduleFixes = import ../../overlays/temporary { inherit lib inputs; };
-  changedDeterminateModule = import ../../overlays/temporary {
-    inherit lib;
-    inputs = inputs // {
-      determinate = inputs.determinate // {
-        rev = "unreviewed";
-      };
-    };
-  };
   changedDeterminate = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -135,6 +127,7 @@ let
     determinate = [ selected.nix ];
     nh = [ selected.nh ];
     nom = [ selected.nix-output-monitor ];
+    nu-scripts = [ selected.nu_scripts ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
@@ -192,12 +185,7 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
 assert !(succeeds changedDeterminate.review);
-assert !(succeeds changedDeterminateModule.review);
-assert
-  !(succeeds (
-    changedDeterminateModule.apply "determinate-sentry-module" inputs.determinate { inherit pkgs; }
-  ));
-assert !(succeeds (changedDeterminate.apply "sentry-crashpad-lock" { }));
+assert !(succeeds (changedDeterminate.apply "determinate-darwin-tests" { }));
 assert (homeManagerPortal portalFixture compositorFixture).drvPath == portalFixture.drvPath;
 assert
   (homeManagerPortal (portalFixture.override { label = "changed"; }) compositorFixture).drvPath
@@ -214,18 +202,18 @@ assert
 assert homeManagerPortal null compositorFixture == null;
 assert !(succeeds (changedStylix.apply "stylix-nvf" inputs.stylix));
 assert succeeds (moduleFixes.apply "stylix-nvf" inputs.stylix);
-# Platform decisions belong to the selection interface. Linux keeps the
-# upstream Claude Code and deploy-rs derivations and their check settings.
-assert
-  pkgs.stdenv.hostPlatform.isDarwin || selected.claude-code.drvPath == pkgs.claude-code.drvPath;
+# Claude now uses upstream packaging and install checks on every platform.
+assert selected.claude-code.drvPath == pkgs.claude-code.drvPath;
+assert (selected.claude-code.doInstallCheck or false) == (pkgs.claude-code.doInstallCheck or false);
+# Platform decisions belong to the selection interface. Linux keeps upstream deploy-rs.
 assert
   pkgs.stdenv.hostPlatform.isDarwin
   ||
     selected.deploy-rs.drvPath
     == inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default.drvPath;
 assert pkgs.stdenv.hostPlatform.isLinux || !(overlay selected pkgs ? hyprland);
-# The Crashpad repair belongs to the NixOS module, not the package overlay.
-# Darwin retains its existing Determinate package and sandbox-test policy.
+# Linux uses upstream Determinate after its Sentry repair landed.
+# Darwin retains its existing sandbox-test policy.
 assert
   if pkgs.stdenv.hostPlatform.isLinux then
     selected.nix.drvPath
@@ -263,7 +251,9 @@ assert
     selected.swift.drvPath == selected.swiftPackages.swift.drvPath
     && selected.swift.drvPath != pkgs.swift.drvPath
   else
-    selected.swift.drvPath == pkgs.swift.drvPath;
+    # Upstream may mark a Linux compiler broken. Verify the selection boundary
+    # without forcing that unsupported derivation or allowing broken packages.
+    !(overlay selected pkgs ? swift) && !(overlay selected pkgs ? swiftPackages);
 # Keep the upstream release; the Darwin fix only changes test prerequisites.
 assert selected.prismlauncher.version == pkgs.prismlauncher.version;
 assert selected.prismlauncher-unwrapped.drvPath == pkgs.prismlauncher-unwrapped.drvPath;

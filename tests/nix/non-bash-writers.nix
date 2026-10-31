@@ -54,7 +54,8 @@ let
     };
   };
   home = inputs.home-manager.lib.homeManagerConfiguration {
-    inherit pkgs;
+    # Real homes consume the root package repairs, including nu_scripts syntax.
+    pkgs = pkgs.extend (import ../../overlays { inherit inputs; });
     extraSpecialArgs = { inherit myLib; };
     modules = [
       ../../modules/home/shells/nushell

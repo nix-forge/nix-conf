@@ -382,7 +382,7 @@ def _discover(args: argparse.Namespace, enabled: set[str]) -> int:  # ruff: igno
             for item in candidates:
                 try:
                     resource = _resource(item, connection, args.width, args.height)
-                except (TypeError, ValueError, KeyError, AttributeError):
+                except TypeError, ValueError, KeyError, AttributeError:
                     # Skip malformed records without consuming the rest of the feed.
                     print("Skipping malformed astronomy metadata.", file=sys.stderr)  # ruff: ignore[print] - bounded CLI diagnostic
                     continue

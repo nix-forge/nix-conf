@@ -13,7 +13,7 @@ applied_version = 5
 
 try:
     preferences = json.loads(preferences_path.read_text())
-except (FileNotFoundError, json.JSONDecodeError):
+except FileNotFoundError, json.JSONDecodeError:
     preferences = {}
 
 helium_preferences = preferences.setdefault("helium", {})

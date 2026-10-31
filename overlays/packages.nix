@@ -23,8 +23,10 @@ let
   };
 in
 {
+  azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   nix-output-monitor = nom;
   inherit nh;
+  nu_scripts = fixes.apply "nu-scripts-pytest-lists" pkgs.nu_scripts;
   # Nixpkgs builds Navidrome plugins for WASI; use that package set so
   # evaluation and compilation agree on the plugin target.
   navidromePlugins = wasiPlugins.extend (
@@ -35,8 +37,6 @@ in
     }
   );
   prismlauncher = pkgs.prismlauncher.override { prismlauncher-unwrapped = prismUnwrapped; };
-  claude-code =
-    if isDarwin then fixes.apply "claude-code-sandbox" pkgs.claude-code else pkgs.claude-code;
   deploy-rs =
     if isDarwin then
       fixes.apply "deploy-rs-darwin-tests" (fixes.apply "deploy-rs-confirmation-path" deploy)

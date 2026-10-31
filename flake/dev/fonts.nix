@@ -215,7 +215,14 @@
               export XDG_DATA_HOME="$TMPDIR/data"
               mkdir -p "$out"
               for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility emoji-presentation; do
-                python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$out/$suite"
+                if ! python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$out/$suite"; then
+                  # Failed derivations do not retain outputs; keep measurements
+                  # available for diagnosis without changing the assertions.
+                  for evidence in "$out/$suite"/*.json; do
+                    if test -f "$evidence"; then cat "$evidence"; fi
+                  done
+                  exit 1
+                fi
               done
             '';
         font-native =

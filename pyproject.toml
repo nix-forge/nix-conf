@@ -21,9 +21,9 @@ markers = [
 ]
 
 [tool.ruff]
-# The framework has no Ruff project; its own CI owns its Python helpers.
-# Do not impose this configuration across that Git repository boundary.
-extend-exclude = ["nix-config-framework"]
+target-version = "py314"
+# Submodules own their Python checks in their independent repositories.
+extend-exclude = ["nix-config-framework", "nix-homelab", "nix-seal", "pkgs"]
 fix = false
 preview = true
 

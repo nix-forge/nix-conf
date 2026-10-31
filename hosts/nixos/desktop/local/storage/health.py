@@ -136,7 +136,7 @@ def probe_messages(policy: dict[str, Any]) -> list[str]:
                     or record.get("result", "success") != "success"
                 ):
                     messages.append(f"Successful work is missing or overdue: {name}")
-        except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):  # ruff: ignore[try-except-in-loop] - continue checking independent services
+        except OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError:
             messages.append(f"Service probe unavailable: {name}")
     return messages
 
@@ -174,7 +174,7 @@ def read(policy: dict[str, Any]) -> list[str]:
         ):
             return ["Storage health report is malformed"]
         return report["messages"]
-    except (OSError, ValueError, TypeError, KeyError):
+    except OSError, ValueError, TypeError, KeyError:
         return ["Storage health has not been checked yet"]
 
 
@@ -217,7 +217,7 @@ def deliver(
         receipt = directory / "delivered.json"
         try:
             previous = json.loads(receipt.read_text())
-        except (OSError, ValueError):
+        except OSError, ValueError:
             previous = {}
         if not isinstance(previous, dict):
             previous = {}
@@ -249,7 +249,7 @@ def deliver(
             return 1 if test else 0
         try:
             result = run(arguments, payload=json.dumps(event) + "\n")
-        except (OSError, subprocess.SubprocessError):
+        except OSError, subprocess.SubprocessError:
             return 1
         if result.returncode:
             return 1

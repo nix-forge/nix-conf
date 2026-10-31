@@ -48,7 +48,7 @@ class ReviewProbeTests(unittest.TestCase):
             "sys.exit(int(os.environ['PROBE_EXIT']))\n"
         )
         adapter.chmod(0o700)
-        driver = Path(__file__).parents[2] / "overlays/temporary/tests/crashpad-lock.py"
+        driver = Path(__file__).parent / "sentry/crashpad-lock.py"
         command = [sys.executable, str(driver), str(adapter)]
         if noisy:
             command.append("--expect-noisy-contention")

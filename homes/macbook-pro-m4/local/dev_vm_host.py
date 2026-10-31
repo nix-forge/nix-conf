@@ -272,7 +272,7 @@ def _parse_lease_timestamp(statement: str, field: str) -> dt.datetime:
         value = dt.datetime.strptime(
             f"{match.group(3)} {match.group(4)}",
             "%Y/%m/%d %H:%M:%S",
-        ).replace(tzinfo=dt.timezone.utc)
+        ).replace(tzinfo=dt.UTC)
     except ValueError as error:
         _fail(f"DHCP lease has an invalid {field} timestamp", cause=error)
     isc_weekday = (value.weekday() + 1) % 7
@@ -496,14 +496,14 @@ def require_host_only_route(
 
 def _utc_now(value: str | None) -> dt.datetime:
     if value is None:
-        return dt.datetime.now(tz=dt.timezone.utc)
+        return dt.datetime.now(tz=dt.UTC)
     try:
-        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(value)
     except ValueError as error:
         _fail("comparison time is malformed", cause=error)
     if parsed.tzinfo is None:
         _fail("comparison time must include a UTC offset")
-    return parsed.astimezone(dt.timezone.utc)
+    return parsed.astimezone(dt.UTC)
 
 
 def _resolver_config(options: argparse.Namespace) -> ResolverConfig:

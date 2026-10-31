@@ -7,9 +7,8 @@ Long-lived package selection and behavior live in [`permanent/`](permanent/).
 package set through `useGlobalPkgs`.
 [`packages.nix`](packages.nix) owns platform conditions, package sources, and
 the order in which fixes apply. It receives the incoming `prev` package set.
-[`inputs.nix`](inputs.nix) applies module replacements to flake inputs before
-configuration evaluation. Consumers keep their normal upstream module imports
-when these replacements are retired.
+Consumers keep their normal upstream module imports when an input-module
+replacement is retired.
 
 Modules use ordinary package attributes:
 
@@ -59,11 +58,10 @@ with its recipe and validate them in that repository. Do not introduce a
 dependency from nixpkgs-personal back into this configuration.
 
 The permanent Determinate overlay selects the Nix implementation. Its Darwin
-test workaround is a separate temporary fix. The Linux Sentry report-lock fix
-passes a repaired Nix input directly to Determinate's NixOS module factory,
-without changing the global package overlay or forcing `nix.package`. Its
-[investigation and regression checks](../docs/sentry-crashpad-lock.md) describe
-the source-aware skip and revision review needed for retirement.
+test workaround is a separate temporary fix. Linux uses the unmodified
+Determinate module and package after its selected Sentry dependency incorporated
+the report-lock repair. The [upstream regression check](../docs/sentry-crashpad-lock.md)
+retains quiet-contention and visible-filesystem-error coverage.
 Region-only Grimblast behavior is
 a permanent override. Module-specific Git options and browser flags stay with
 the module that owns those options.
@@ -77,7 +75,7 @@ Module fixes use the same registry and revision guard as package fixes. Their
 imports that result, as the Neovim module does for `stylix-nvf`. Construct its
 registry with `{ inherit inputs lib; }` so import resolution does not depend on
 `config._module.args.pkgs`. Module fixes stay outside the Nixpkgs overlay in `packages.nix`; they need no package version range.
-When a fix replaces an exported upstream module, apply it in `inputs.nix` so
+When a fix replaces an exported upstream module, apply it at the flake's input boundary so
 the consuming configuration does not need patch-specific imports.
 
 ## Temporary fix lifecycle
@@ -254,17 +252,14 @@ Its actual unmodified compositor then reproduces the precise parent-position
 failure; the repaired compositor passes orphan, disconnect, color-feedback and
 child-first lifecycle scenarios with clean exit. The production patch is unchanged.
 
-The Claude Code packaging repair was reviewed at Nixpkgs
-`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected vendor package is
-2.1.292, with source SHA-256
-`dfabaa49a309abe3229719ecfaf41d557c831168b2b642cf2c24e7ab0fc40291`.
-The [native Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/38326427698/job/115066059454)
-builds it in the strict sandbox with the existing install-check override, checks
-both executable entrypoints, verifies arm64 architecture and inspects the native
-loader. Apple's signature integrity check passes for the preserved vendor
-signature. The vendor program is not executed; these checks do not establish
-runtime correctness, notarization or certificate trust. The repair remains scoped
-to strict packaging and disabling the vendor install check.
+The Claude Code packaging repair is retired at Nixpkgs
+`02c087f3fe673c9e317f206a627cb6b910336dbe`. Upstream removed its
+unsandboxed-build setting. The [native unmodified-package proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890275)
+builds vendor version 2.1.303 under the strict Darwin sandbox with its original
+install checks enabled. The version hook executes `claude --version` and
+successfully reports 2.1.303. The proof also inspects the executable entrypoints,
+architecture and preserved signature. This establishes the override's removal
+condition; it does not establish every application feature or certificate trust.
 
 The Determinate Darwin test repair was reviewed at its nested Nix input
 `1ef903401b3426fbca74a692e158cca82d7c98ab`, version 3.23.1. The
@@ -324,3 +319,62 @@ The check performs evaluation and tests guard behavior. It does not build every
 package or demonstrate runtime correctness. It needs no live GitHub status
 request, so normal evaluation remains reproducible and works with cached inputs.
 It does not send notifications or poll upstream while the lockfile is unchanged.
+
+The dependency review at Nixpkgs `02c087f3fe673c9e317f206a627cb6b910336dbe`
+retains the GTK, Zen wrapper, Swift hardening, Nix Output Monitor, Hypridle,
+Hyprshell, AudioMuse loopback, and NH Darwin home fixes.
+Source comparison confirms the repaired paths remain applicable; the current
+native proofs pass in [run 41226706466](https://github.com/nix-forge/nix-conf/actions/runs/41226706466).
+GTK adds an upstream Meson timeout setting; NH adds system SQLite configuration.
+Claude's separate unmodified-package proof above supports retiring its override. The Darwin
+Determinate test policy also passes against its current nested Nix revision
+`9993a12bd434f653d5081b9b35f50900412fece8`.
+
+The Hyprland parent-lifetime repair is retained at
+`76edafffc68951a66b094806659ac4823e22c624`. The critical source files
+remain byte-identical to the previous review. The
+[current paired native VM proof](https://github.com/nix-forge/nix-conf/actions/runs/41226706466/job/124612259173)
+passes the unmodified startup control, reproduces the baseline lifetime failure,
+and passes the repaired lifecycle scenarios.
+
+Both Deploy repairs are retained at
+`1cec0527bd09074bbee6d4461900ce5d58267217`. Upstream changes only
+package version metadata and its CLI version declaration; watcher and
+confirmation logic and Rust dependencies are unchanged. The
+[current native proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890335)
+reproduces the sandbox event-delivery limitation and raw directory-alias timeout.
+The identical watcher binary passes its three original cases with a canonical
+host directory; the repaired helper passes both ordinary and alias paths.
+The full suite retains the existing non-watcher and sentinel assertions.
+
+The Prism capability repair is retained at Nixpkgs
+`02c087f3fe673c9e317f206a627cb6b910336dbe`. Its source and package
+recipe are unchanged. The [current native proof](https://github.com/nix-forge/nix-conf/actions/runs/41227385502/job/124614264423)
+measures unavailable native watching in the sandbox, requires the precise
+unmodified failure and capability skips, and passes every other resource case.
+The exported actual test binary passes the full resource suite on the host
+where the independent prerequisite confirms watcher availability.
+
+Azure CLI 2.91.0 needs Fabric 3.2.3, whose declared Invoke range is
+`>=2.0,<3.0`. The current Nixpkgs scope supplies Invoke 3.0.3 and correctly
+marks that Fabric dependency broken. The `azure-cli-invoke` repair pins the
+non-yanked Invoke 2.2.1 source inside Azure's private interpreter, composing
+after Azure's own package overrides. The ordinary Python package set retains
+Invoke 3.0.3. The repaired CLI's `withExtensions` method retains this scope and
+the packaged Azure DevOps extension. A required native check imports Azure's
+actual App Service SSH module with Fabric and Invoke, constructs a connection
+without opening it, and checks offline CLI help and extension discovery.
+The same private scope grants Darwin local networking to `sshtunnel`'s
+unmodified loopback SSH tests, matching the upstream Paramiko recipe. Its
+sandbox and complete selected pytest suite remain enabled. The original
+Darwin build failed in test setup while resolving `localhost`; the native
+repair subsequently passed all 47 selected SSH tests. A separate HTTPX2 timeout
+fixture could return EOF before a descheduled caller started waiting. Its mock
+now stays open until explicit close, and both immediate and delayed callers
+must still raise the same timeout. Production HTTPX2 code is unchanged.
+The private Requests telemetry dependency also gets Darwin local networking
+for its real loopback HTTP server tests. The [focused Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/41240432860/job/124653014334)
+passes all 81 telemetry tests and CLI integration alongside the SSH and HTTPX2
+suites. Retire the repair when the selected dependencies supply compatible
+Fabric/Invoke, and their Darwin tests have the required local networking and
+deterministic timeout fixtures.

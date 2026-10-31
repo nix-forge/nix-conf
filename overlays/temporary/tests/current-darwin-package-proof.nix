@@ -72,7 +72,7 @@ let
     '';
   });
   claudeUpstream = pkgs.claude-code;
-  claude = (import ../claude-code-sandbox.nix { }).apply claudeUpstream;
+  claude = claudeUpstream;
   deployUpstream = flake.inputs.deploy-rs.packages.${system}.default;
   deploy = (import ../deploy-rs-darwin-tests.nix { }).apply deployUpstream;
   deployWithTests = deploy.overrideAttrs (old: {
@@ -131,7 +131,7 @@ assert
   == map (gate: gate.drvPath) (unitGates checkedPackage);
 assert nh.version == "4.4.2" && nhWithRegression.doCheck;
 assert nhWithRegression.checkFlags == pkgs.nh-unwrapped.checkFlags;
-assert claude.__noChroot == false && claude.doInstallCheck == false;
+assert !(claude.__noChroot or false) && claude.doInstallCheck;
 assert claude.src.outputHash == claudeUpstream.src.outputHash;
 assert deployWithTests.doCheck;
 assert
@@ -168,8 +168,8 @@ assert
     nhChecksEnabled = nhWithRegression.doCheck;
     claudeVersion = claude.version;
     claudeSourceHash = claude.src.outputHash;
-    claudeStrictSandbox = !claude.__noChroot;
-    claudeInstallCheckDisabled = !claude.doInstallCheck;
+    claudeStrictSandbox = !(claude.__noChroot or false);
+    claudeInstallCheckEnabled = claude.doInstallCheck;
     deployRevision = flake.inputs.deploy-rs.rev;
     deployCheckFlags = deployWithTests.checkFlags;
     deployChecksEnabled = deployWithTests.doCheck;
@@ -181,6 +181,7 @@ assert
   inherit
     rawSentryDenied
     claude
+    claudeUpstream
     deployRawWatcherDenied
     regression
     ;
