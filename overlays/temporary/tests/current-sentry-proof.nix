@@ -24,7 +24,8 @@ in
   upstream =
     (import ./crashpad-lock.nix {
       inherit (pkgs) python3;
-      expectNoisyContention = true;
+      # This selected Crashpad source includes the upstream contention fix.
+      expectNoisyContention = false;
     })
       sentry;
   inherit (repaired.tests) crashpad-lock;

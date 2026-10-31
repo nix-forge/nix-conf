@@ -135,6 +135,7 @@ let
     determinate = [ selected.nix ];
     nh = [ selected.nh ];
     nom = [ selected.nix-output-monitor ];
+    nu-scripts = [ selected.nu_scripts ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];

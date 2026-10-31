@@ -4,9 +4,8 @@ import json
 import os
 import re
 import shlex
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 root = Path(os.environ["FILES"])
 with (root / "noctalia.toml").open("rb") as source:

@@ -19,6 +19,7 @@ let
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
     nh-darwin-home = ./nh-darwin-home.nix;
+    nu-scripts-pytest-lists = ./nu-scripts-pytest-lists.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
     sentry-crashpad-lock = ./sentry-crashpad-lock.nix;
     swift-clang-hardening = ./swift-clang-hardening.nix;

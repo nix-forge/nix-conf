@@ -7,11 +7,10 @@ import os
 import stat
 import sys
 import tempfile
+import tomllib
 from collections.abc import MutableMapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-import tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

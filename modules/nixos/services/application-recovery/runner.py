@@ -1,6 +1,6 @@
 """Run declared application exports and isolated restoration drills."""
 
-# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception, start-process-with-partial-path, try-except-in-loop]
+# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception, start-process-with-partial-path]
 # Operator CLI invokes immutable declared commands without shell interpolation.
 from __future__ import annotations
 

@@ -25,6 +25,7 @@ in
 {
   nix-output-monitor = nom;
   inherit nh;
+  nu_scripts = fixes.apply "nu-scripts-pytest-lists" pkgs.nu_scripts;
   # Nixpkgs builds Navidrome plugins for WASI; use that package set so
   # evaluation and compilation agree on the plugin target.
   navidromePlugins = wasiPlugins.extend (

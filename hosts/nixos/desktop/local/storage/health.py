@@ -136,7 +136,7 @@ def probe_messages(policy: dict[str, Any]) -> list[str]:
                     or record.get("result", "success") != "success"
                 ):
                     messages.append(f"Successful work is missing or overdue: {name}")
-        except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):  # ruff: ignore[try-except-in-loop] - continue checking independent services
+        except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
             messages.append(f"Service probe unavailable: {name}")
     return messages
 

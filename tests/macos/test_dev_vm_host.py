@@ -27,7 +27,7 @@ resolver = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = resolver
 SPEC.loader.exec_module(resolver)
 
-NOW = dt.datetime(2026, 8, 12, 16, 0, tzinfo=dt.timezone.utc)
+NOW = dt.datetime(2026, 8, 12, 16, 0, tzinfo=dt.UTC)
 CURRENT_UID = os.getuid()
 NEW_MAC = "00:0c:29:e3:5c:79"
 OLD_MAC = "00:0c:29:35:9f:d5"

@@ -8,12 +8,12 @@ import os
 import re
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-import tomllib
 
 if TYPE_CHECKING:
     from typing import Any

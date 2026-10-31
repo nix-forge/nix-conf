@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
-from builtins import ExceptionGroup
 
 from dbus_next import BusType, Message, MessageType, Variant
 from dbus_next.aio import MessageBus
