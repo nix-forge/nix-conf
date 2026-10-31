@@ -181,6 +181,7 @@ assert
   inherit
     rawSentryDenied
     claude
+    claudeUpstream
     deployRawWatcherDenied
     regression
     ;
