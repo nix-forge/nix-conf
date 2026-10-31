@@ -372,5 +372,9 @@ repair subsequently passed all 47 selected SSH tests. A separate HTTPX2 timeout
 fixture could return EOF before a descheduled caller started waiting. Its mock
 now stays open until explicit close, and both immediate and delayed callers
 must still raise the same timeout. Production HTTPX2 code is unchanged.
-Retire the repair when the selected upstream dependency set is compatible and
-its SSH test recipe declares the needed Darwin local networking.
+The private Requests telemetry dependency also gets Darwin local networking
+for its real loopback HTTP server tests. The [focused Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/41240432860/job/124653014334)
+passes all 81 telemetry tests and CLI integration alongside the SSH and HTTPX2
+suites. Retire the repair when the selected dependencies supply compatible
+Fabric/Invoke, and their Darwin tests have the required local networking and
+deterministic timeout fixtures.
