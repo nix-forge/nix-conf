@@ -354,3 +354,14 @@ measures unavailable native watching in the sandbox, requires the precise
 unmodified failure and capability skips, and passes every other resource case.
 The exported actual test binary passes the full resource suite on the host
 where the independent prerequisite confirms watcher availability.
+
+Azure CLI 2.91.0 needs Fabric 3.2.3, whose declared Invoke range is
+`>=2.0,<3.0`. The current Nixpkgs scope supplies Invoke 3.0.3 and correctly
+marks that Fabric dependency broken. The `azure-cli-invoke` repair pins the
+non-yanked Invoke 2.2.1 source inside Azure's private interpreter, composing
+after Azure's own package overrides. The ordinary Python package set retains
+Invoke 3.0.3. The repaired CLI's `withExtensions` method retains this scope and
+the packaged Azure DevOps extension. A required native check imports Azure's
+actual App Service SSH module with Fabric and Invoke, constructs a connection
+without opening it, and checks offline CLI help and extension discovery.
+Retire the repair when the selected upstream dependency set is compatible.
