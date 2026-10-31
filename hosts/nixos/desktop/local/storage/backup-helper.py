@@ -135,7 +135,7 @@ def read_stamp(policy: dict[str, Any], name: str, phase: str) -> float:
     try:
         value = json.loads(state_file(policy, name, phase).read_text())["completed"]
         return float(value) if 0 < float(value) <= time.time() + 60 else 0
-    except (OSError, ValueError, TypeError, KeyError):
+    except OSError, ValueError, TypeError, KeyError:
         return 0
 
 

@@ -66,7 +66,7 @@ def _main() -> None:
 if __name__ == "__main__":
     try:
         _main()
-    except (OSError, UnicodeError, subprocess.SubprocessError):
+    except OSError, UnicodeError, subprocess.SubprocessError:
         # Git diagnostics can include private identity data; never relay them.
         sys.stderr.write("Unable to install the private Jujutsu identity.\n")
         sys.exit(1)

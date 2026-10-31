@@ -118,7 +118,7 @@ def backup(policy: dict[str, Any], environment: dict[str, str]) -> None:
         for unit in reversed(restart):
             try:
                 command(["systemctl", "start", unit], environment, timeout)
-            except (OSError, subprocess.SubprocessError, RecoveryError):
+            except OSError, subprocess.SubprocessError, RecoveryError:
                 failed.append(unit)
         if failed:
             raise RecoveryError("One or more application writers could not restart")

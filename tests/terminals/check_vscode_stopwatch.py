@@ -77,7 +77,7 @@ def _wait_for[T](callback: Callable[[], T | None], timeout: float = 30) -> T:
             result = callback()
             if result:
                 return result
-        except (OSError, ValueError):
+        except OSError, ValueError:
             time.sleep(0.2)
         time.sleep(0.2)
     message = "VS Code diagnostic window did not become ready"

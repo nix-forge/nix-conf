@@ -135,7 +135,7 @@ def _variable_font_metadata(path: Path) -> tuple[set[str], set[int]] | None:
             cmap = set((font.getBestCmap() or {}).keys())
         finally:
             font.close()
-    except (OSError, KeyError, TTLibError, ValueError):
+    except OSError, KeyError, TTLibError, ValueError:
         return None
     return axes, cmap
 
