@@ -329,3 +329,10 @@ GTK adds an upstream Meson timeout setting; NH adds system SQLite configuration.
 Claude's separate unmodified-package proof above supports retiring its override. The Darwin
 Determinate test policy also passes against its current nested Nix revision
 `9993a12bd434f653d5081b9b35f50900412fece8`.
+
+The Hyprland parent-lifetime repair is retained at
+`76edafffc68951a66b094806659ac4823e22c624`. The critical source files
+remain byte-identical to the previous review. The
+[current paired native VM proof](https://github.com/nix-forge/nix-conf/actions/runs/41226706466/job/124612259173)
+passes the unmodified startup control, reproduces the baseline lifetime failure,
+and passes the repaired lifecycle scenarios.
