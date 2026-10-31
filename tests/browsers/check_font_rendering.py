@@ -1195,7 +1195,8 @@ body {{ background: #111; color: white; margin: 20px; }}
                 family: face.family, status: face.status,
               })),
               webFontLoaded: [...document.fonts].some(face =>
-                face.family === '"SF Pro"' && face.status === 'loaded'),
+                ['SF Pro', '"SF Pro"'].includes(face.family)
+                  && face.status === 'loaded'),
             };"""
         )
         driver.save_screenshot(str(output / "apple-system-stack.png"))
