@@ -1,7 +1,7 @@
 { lib, pkgs, ... }: {
-  reason = "Azure CLI needs compatible Invoke and local networking for Darwin SSH tunnel tests.";
+  reason = "Azure CLI needs compatible Invoke and hermetic, deterministic Darwin dependency tests.";
   upstream = "https://github.com/fabric/fabric/issues/2376";
-  removal = "The selected Azure CLI dependencies supply compatible Fabric/Invoke and declare Darwin SSH test networking.";
+  removal = "The selected Azure CLI dependencies supply compatible Fabric/Invoke and hermetic, deterministic Darwin tests.";
   reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
   inputPath = [ "nixpkgs" ];
   apply =
@@ -25,6 +25,12 @@
             # Like Paramiko's recipe, retain the sandbox and grant only local networking.
             # https://github.com/pahaz/sshtunnel/blob/0.4.0/tests/test_forwarder.py
             sshtunnel = previous.sshtunnel.overridePythonAttrs { __darwinAllowLocalNetworking = true; };
+            # Keep the mock connection open until close() instead of racing a
+            # 0.1-second receive timeout against EOF after a 0.2-second sleep.
+            # https://github.com/pydantic/httpx2/blob/v2.13.1/tests/httpx2/websockets/test_api.py
+            httpx2 = previous.httpx2.overridePythonAttrs (old: {
+              patches = (old.patches or [ ]) ++ [ ./patches/httpx2-timeout-fixture.patch ];
+            });
           }
         );
       repaired = package.override (arguments: {

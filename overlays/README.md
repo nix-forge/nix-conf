@@ -367,7 +367,10 @@ without opening it, and checks offline CLI help and extension discovery.
 The same private scope grants Darwin local networking to `sshtunnel`'s
 unmodified loopback SSH tests, matching the upstream Paramiko recipe. Its
 sandbox and complete selected pytest suite remain enabled. The original
-Darwin build failed in test setup while resolving `localhost`; native
-validation of the local-networking setting remains required.
+Darwin build failed in test setup while resolving `localhost`; the native
+repair subsequently passed all 47 selected SSH tests. A separate HTTPX2 timeout
+fixture could return EOF before a descheduled caller started waiting. Its mock
+now stays open until explicit close, and both immediate and delayed callers
+must still raise the same timeout. Production HTTPX2 code is unchanged.
 Retire the repair when the selected upstream dependency set is compatible and
 its SSH test recipe declares the needed Darwin local networking.

@@ -1,0 +1,34 @@
+diff --git a/tests/httpx2/websockets/test_api.py b/tests/httpx2/websockets/test_api.py
+--- a/tests/httpx2/websockets/test_api.py
++++ b/tests/httpx2/websockets/test_api.py
+@@ -235,24 +235,27 @@
+             with WebSocketSession(stream) as websocket_session:
+                 websocket_session.receive()
+ 
+-    def test_receive_timeout(self) -> None:
++    @pytest.mark.parametrize("caller_delay", [0.0, 0.4])
++    def test_receive_timeout(self, caller_delay: float) -> None:
+         class MockNetworkStream(NetworkStream):
+             def __init__(self) -> None:
+                 self.connection = wsproto.connection.Connection(wsproto.connection.ConnectionType.SERVER)
++                self.closed = threading.Event()
+ 
+             def read(self, max_bytes: int, timeout: float | None = None) -> bytes:
+-                time.sleep(0.2)
++                self.closed.wait()
+                 return b""
+ 
+             def write(self, buffer: bytes, timeout: float | None = None) -> None:
+                 pass
+ 
+             def close(self) -> None:
+-                pass
++                self.closed.set()
+ 
+         stream = MockNetworkStream()
+         with pytest.raises(TimeoutError):
+             with WebSocketSession(stream) as websocket_session:
++                time.sleep(caller_delay)
+                 websocket_session.receive(timeout=0.1)
+ 
+     async def test_async_receive_error(self) -> None:

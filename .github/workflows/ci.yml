@@ -927,6 +927,7 @@ jobs:
     if: always() && github.event_name == 'workflow_dispatch' && startsWith(github.ref, format('refs/heads/gh-readonly-queue/{0}/',
       github.event.repository.default_branch))
     needs:
+      - azure-review-proof
       - actual-review-proof
       - package-fixes-review-proof
       - prism-review-proof
