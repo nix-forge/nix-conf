@@ -13,6 +13,8 @@ import subprocess  # ruff: ignore[suspicious-subprocess-import] - Git plumbing a
 import sys
 from pathlib import Path
 
+from notification_process import run as run_command
+
 
 class PrivacyError(Exception):
     """A privacy check could not safely permit the operation."""
@@ -28,7 +30,7 @@ def run(command: list[str], data: bytes | None = None) -> bytes:
         PrivacyError: The command failed; its diagnostics remain private.
 
     """
-    result = subprocess.run(
+    result = run_command(
         command, input=data, capture_output=True, check=False, timeout=120
     )
     if result.returncode:

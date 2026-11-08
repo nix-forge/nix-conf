@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -16,7 +17,7 @@ import pytest
 pytestmark = pytest.mark.nix_integration
 
 SCRIPT = (
-    Path(__file__).resolve().parents[2] / "modules/home/dev/scripts/git-privacy-hook.py"
+    Path(__file__).resolve().parents[2] / "modules/home/dev/scripts/git_privacy_hook.py"
 )
 PRIVATE = "private@example.invalid"
 PUBLIC = "123+tester@users.noreply.github.com"
@@ -59,7 +60,10 @@ class HookTests(unittest.TestCase):
         self._git("config", "--global", "commit.gpgSign", "false")
         self.fake_gh = self.root / "gh"
         self.fake_gh.write_text(
-            "#!/bin/sh\nprintf '{\"private\":true}\\n'\n", encoding="utf-8"
+            (
+                Path(__file__).with_name("fixtures") / "private-repository-response.sh"
+            ).read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
         self.fake_gh.chmod(0o700)
         for event in ["commit-msg", "pre-push"]:
@@ -195,7 +199,13 @@ class HookTests(unittest.TestCase):
         )
         local = self.repo / ".git/hooks/commit-msg"
         local.write_text(
-            '#!/bin/sh\nprintf "%s\\n" ' + shlex.quote(PRIVATE) + ' >> "$1"\n',
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {"__fixture_0__": str(shlex.quote(PRIVATE))}[match[0]],
+                (
+                    Path(__file__).with_name("fixtures") / "append-commit-message.sh.in"
+                ).read_text(encoding="utf-8"),
+            ),
             encoding="utf-8",
         )
         local.chmod(0o700)
@@ -246,12 +256,19 @@ class HookTests(unittest.TestCase):
         """Existing repository hooks receive their original arguments and input."""
         local = self.repo / ".git/hooks/pre-push"
         local.write_text(
-            '#!/bin/sh\ncat > push-input\nprintf "%s" "$1" > push-remote\n',
+            (
+                Path(__file__).with_name("fixtures") / "record-pre-push-input.sh"
+            ).read_text(encoding="utf-8"),
             encoding="utf-8",
         )
         local.chmod(0o700)
         post = self.repo / ".git/hooks/post-commit"
-        post.write_text("#!/bin/sh\ntouch post-marker\n", encoding="utf-8")
+        post.write_text(
+            (Path(__file__).with_name("fixtures") / "mark-post-commit.sh").read_text(
+                encoding="utf-8"
+            ),
+            encoding="utf-8",
+        )
         post.chmod(0o700)
         self._stage("safe")
         self._commit()
@@ -296,10 +313,18 @@ class HookTests(unittest.TestCase):
             )
         )
         self.fake_gh.write_text(
-            "#!/bin/sh\nprintf '{\"private\":false}\\n'\n", encoding="utf-8"
+            (
+                Path(__file__).with_name("fixtures") / "public-repository-response.sh"
+            ).read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
         self._commit()
-        self.fake_gh.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        self.fake_gh.write_text(
+            (
+                Path(__file__).with_name("fixtures") / "failed-visibility-response.sh"
+            ).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
         self._commit()
         self._git("remote", "set-url", "origin", str(self.remote))
         self._blocked(self._git("push", "origin", "main", check=False))
@@ -317,11 +342,15 @@ class HookTests(unittest.TestCase):
         # Keep real object plumbing but route remote discovery to the local fixture.
         fake_git = self.root / "git-wrapper"
         fake_git.write_text(
-            '#!/bin/sh\nif test "$1" = ls-remote; then\n'
-            "  exec git ls-remote --refs "
-            + shlex.quote(str(self.remote))
-            + "\n"
-            + 'fi\nexec git "$@"\n',
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {"__fixture_0__": str(shlex.quote(str(self.remote)))}[
+                    match[0]
+                ],
+                (
+                    Path(__file__).with_name("fixtures") / "redirect-ls-remote.sh.in"
+                ).read_text(encoding="utf-8"),
+            ),
             encoding="utf-8",
         )
         fake_git.chmod(0o700)
@@ -330,13 +359,19 @@ class HookTests(unittest.TestCase):
         else:
             command[-1:-1] = ["--git", str(fake_git)]
         for response, permitted in [
-            ("printf '{\"private\":true}\\n'", True),
-            ("printf '{\"private\":false}\\n'", False),
-            ("exit 1", False),
+            ("private", True),
+            ("public", False),
+            ("error", False),
         ]:
             with self.subTest(response=response):
                 self.fake_gh.write_text(
-                    "#!/bin/sh\n" + response + "\n", encoding="utf-8"
+                    (
+                        Path(__file__).with_name("fixtures")
+                        / "repository-visibility-response.sh.in"
+                    )
+                    .read_text(encoding="utf-8")
+                    .replace("__mode__", response),
+                    encoding="utf-8",
                 )
                 result = subprocess.run(
                     [
@@ -382,13 +417,22 @@ class HookTests(unittest.TestCase):
         child = self.root / "child"
         self._git("clone", str(self.repo), str(child))
         nested = child / ".git/hooks/post-checkout"
-        nested.write_text("#!/bin/sh\ntouch nested-marker\n", encoding="utf-8")
+        nested.write_text(
+            (Path(__file__).with_name("fixtures") / "mark-nested-hook.sh").read_text(
+                encoding="utf-8"
+            ),
+            encoding="utf-8",
+        )
         nested.chmod(0o700)
         parent = self.repo / ".git/hooks/post-checkout"
         parent.write_text(
-            "#!/bin/sh\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE\ngit -C "
-            + shlex.quote(str(child))
-            + " checkout main\n",
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {"__fixture_0__": str(shlex.quote(str(child)))}[match[0]],
+                (
+                    Path(__file__).with_name("fixtures") / "checkout-nested-main.sh.in"
+                ).read_text(encoding="utf-8"),
+            ),
             encoding="utf-8",
         )
         parent.chmod(0o700)
