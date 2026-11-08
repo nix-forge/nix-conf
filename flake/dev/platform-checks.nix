@@ -1,15 +1,12 @@
 {
   inputs,
+  configurationInputs,
   lib,
   myLib,
   ...
 }:
 let
-  systems = [
-    "x86_64-linux"
-    "aarch64-linux"
-    "aarch64-darwin"
-  ];
+  systems = import ../supported-systems.nix;
   mkHome =
     system: extraModules: extraSpecialArgs:
     inputs.home-manager.lib.homeManagerConfiguration {
@@ -112,10 +109,27 @@ let
     true;
 in
 {
-  perSystem = { pkgs, ... }: {
-    checks.platform-contracts =
-      assert lib.all checkSystem systems;
-      assert lib.all checkPackages systems;
-      pkgs.runCommand "platform-contracts" { } "touch $out";
+  perSystem = { pkgs, configurationPkgs, ... }: {
+    checks = {
+      macos-application-capabilities = import ../../tests/nix/macos-application-capabilities.nix {
+        inherit inputs pkgs;
+      };
+      platform-contracts =
+        assert lib.all checkSystem systems;
+        assert lib.all checkPackages systems;
+        pkgs.runCommand "platform-contracts" { } "touch $out";
+    }
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+      desktop-session = import ../../tests/nix/desktop-session.nix { inherit inputs pkgs; };
+      refined-github-import = import ../../tests/nix/refined-github-import.nix { inherit pkgs; };
+    }
+    // lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+      gaming-selection = import ../../tests/nix/gaming-selection.nix { inherit inputs pkgs; };
+    }
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+      finder-favorites-swift =
+        (configurationPkgs.extend (import ../../overlays { inputs = configurationInputs; }))
+        .finder-favorites;
+    };
   };
 }

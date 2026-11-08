@@ -3,6 +3,7 @@
     ./authentication-checks.nix
     ./cache-checks.nix
     ./checks.nix
+    ./configuration-context.nix
     ./configurations.nix
     ./fonts.nix
     ./formatter.nix
@@ -10,12 +11,12 @@
     ./git-hooks.nix
     ./git-privacy-checks.nix
     ./javascript-checks.nix
-    ./local-control-checks.nix
     ./memory-checks.nix
     ./noogle-checks.nix
     ./platform-checks.nix
     ./python-checks.nix
     ./shell.nix
+    ./security-checks.nix
     ./storage-checks.nix
     ./theme-checks.nix
     ./temporary-fix-checks.nix

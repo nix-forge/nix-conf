@@ -23,25 +23,21 @@
                 else
                   null;
             in
-            pkgs.runCommand "configuration-evaluation"
-              {
-                # Evaluation checks must never build the full system closure.
-                report = builtins.unsafeDiscardStringContext (
-                  builtins.toJSON {
-                    inherit
-                      kind
-                      name
-                      configurationSystem
-                      native
-                      drvPath
-                      ;
-                  }
-                );
-                passAsFile = [ "report" ];
-              }
-              ''
-                cp "$reportPath" "$out"
-              ''
+            pkgs.runCommand "configuration-evaluation" {
+              # Evaluation checks must never build the full system closure.
+              report = builtins.unsafeDiscardStringContext (
+                builtins.toJSON {
+                  inherit
+                    kind
+                    name
+                    configurationSystem
+                    native
+                    drvPath
+                    ;
+                }
+              );
+              passAsFile = [ "report" ];
+            } (builtins.readFile ./scripts/configuration-evaluation.sh)
           )
         ) configurations;
     in

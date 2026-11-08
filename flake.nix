@@ -2,19 +2,21 @@
   # Bootstrap caches for commands using this flake, including the first build
   # before system settings are activated. Nix requires literal settings here;
   # this list applies to every output. Installed policy is feature-dependent
-  # in modules/shared/cache.nix. See docs/nix-caches-research.md.
+  # in modules/shared/cache.nix. See docs/research/nix-caches-research.md.
   nixConfig = {
     extra-substituters = [
       "https://nix-community.cachix.org"
       "https://hyprland.cachix.org"
       "https://cache.nixos-cuda.org"
       "https://noctalia.cachix.org"
+      "https://nixos-raspberrypi.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
       "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
     ];
   };
 
@@ -23,6 +25,11 @@
 
     # Core
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Track the official T3 Code package without downgrading existing app data.
+    nixpkgs-t3code = {
+      url = "github:NixOS/nixpkgs/master";
+      flake = false;
+    };
     systems.url = "github:nix-systems/default";
     nixpkgs-personal = {
       url = "path:./pkgs";
@@ -37,6 +44,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
+        pre-commit-hooks.inputs.flake-compat.follows = "flake-compat";
       };
     };
     hyprlock = {
@@ -94,6 +102,7 @@
         nixpkgs.follows = "nixpkgs";
         nixpkgs-personal.follows = "nixpkgs-personal";
         flake-parts.follows = "flake-parts";
+        git-hooks-nix.inputs.flake-compat.follows = "flake-compat";
       };
     };
     determinate = {
@@ -101,6 +110,7 @@
       inputs = {
         nix.inputs = {
           flake-parts.follows = "flake-parts";
+          git-hooks-nix.inputs.flake-compat.follows = "flake-compat";
         };
       };
     };
@@ -147,16 +157,25 @@
     };
 
     # NixOS Hardware
+    # Keep the Pi kernel and firmware on the vendor's tested, cached pin.
+    # The Pi NixOS system itself uses the root nixpkgs input, like desktop.
+    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
+    nixos-anywhere = {
+      url = "github:nix-community/nixos-anywhere";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.disko.follows = "disko";
+    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     lanzaboote = {
-      # Keep the boot-chain implementation on a released interface.  Secure
-      # Boot policy and key material remain in the NixOS configuration and on
-      # the physical host respectively, never in this flake input.
-      url = "github:nix-community/lanzaboote/v1.2.0";
+      # This pinned upstream revision retains the booted generation and the
+      # previous bootloader measurement during an update. Both repairs are
+      # newer than v1.2.0; review a release before moving off this commit.
+      url = "github:nix-community/lanzaboote/c57a9234747eea6fe498d0eb601583f7ba378f06";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.pre-commit.inputs.flake-compat.follows = "flake-compat";
     };
 
     zen-browser = {
@@ -173,6 +192,7 @@
     helium-browser-darwin = {
       url = "github:schembriaiden/helium-browser-nix-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.utils.inputs.systems.follows = "systems";
     };
 
     # Dependency Override
@@ -190,65 +210,44 @@
   };
 
   outputs =
-    inputs:
+    upstreamInputs:
     let
+      inputs = import ./overlays/inputs.nix { inputs = upstreamInputs; };
       myLib = import ./lib { inherit (inputs.nixpkgs) lib; };
-      # Public repository trust anchors. Private age identities and signing
-      # keys remain outside this repository and outside the Nix store.
-      nixSealCatalog = {
-        administrators.ianhollow = {
-          identities = {
-            administrator = {
-              kind = "administrator";
-              public = "age1x2k2hx0rzltg56p4et3yn4a873m6jltk62vmlrs8leamel69kamqf8ycqx";
-            };
-            recovery = {
-              kind = "recovery";
-              public = "age12h383letjnn5sag0799ssvfz94n83mwvcfcv87lkj379y0c65d0ss2t559";
-            };
-            release = {
-              kind = "signer";
-              public = "nix-seal-ed25519-v1:bGfuLIxQvDrT8IMpu931WWcILSKDrDmaCJ8oPFyT3X4=";
-            };
-            delegated-create = {
-              kind = "authorizer";
-              public = "nix-seal-ed25519-v1:Izzr/Ats9t9oXkXLl7+WotqnPeGdRhQdiR/i7Xlym2k=";
-            };
-          };
-          approvalPolicies.release = {
-            threshold = 1;
-            signers = [ "release" ];
-          };
-          defaultApprovalPolicy = "release";
-        };
-      };
+
     in
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "aarch64-darwin"
-      ];
+      systems = import ./flake/supported-systems.nix;
       imports = [
+        ./flake/build-platform.nix
         inputs.nix-config-framework.flakeModules.default
         inputs.nix-seal.flakeModules.default
         inputs.nix-seal.flakeModules.nix-config-framework
         ./flake/partitions.nix
         ./flake/documentation.nix
         ./flake/public-guide.nix
-        ./flake/validation.nix
+        ./hosts/shared/local/flake/validation.nix
+        ./hosts/shared/local/flake/development-tools.nix
         ./flake/storage.nix
         ./flake/feature-catalog.nix
         ./flake/lint-checks.nix
-        ./flake/deploy.nix
+        ./hosts/shared/local/flake/nix-seal.nix
+        ./hosts/shared/local/flake/deploy.nix
+        ./hosts/shared/local/flake/raspberry-pi.nix
+        ./hosts/shared/local/flake/desktop-installer.nix
         ./flake/schemas.nix
       ];
 
+      flake.lib.packagesFor = platform: inputs.nixpkgs-personal.lib.packagesFor platform;
+      flake.lib.nixosConfigurationFor =
+        { name, buildSystem }:
+        inputs.self.nixosConfigurations.${name}.extendModules {
+          modules = [ ({ lib, ... }: { nixpkgs.buildPlatform = lib.mkForce buildSystem; }) ];
+        };
       _module.args.myLib = myLib;
-
-      flake.nixSeal = nixSealCatalog // {
-        defaultConfiguration = "nixosConfigurations.desktop";
-      };
+      # Development partitions may replace tooling inputs. Configuration
+      # fixtures must retain the inputs used by the deployed configurations.
+      _module.args.configurationInputs = inputs;
 
       nixConfigFramework = {
         root = ./.;
