@@ -1,0 +1,22 @@
+--- a/torrentdownload.yml
++++ b/torrentdownload.yml
+@@ -114,6 +114,9 @@
+       attribute: href
+ 
+ search:
++  keywordsfilters:
++    - name: re_replace
++      args: ["['’]", ""]
+   paths:
+     - path: "{{ if .Keywords }}search{{ re_replace .Config.sort \"_\" \"\" }}?q={{ .Keywords }}{{ else }}/{{ end }}"
+ 
+@@ -128,6 +131,9 @@
+           args: ["[^A-Za-z]+", ""] # strip everything but letters
+     title:
+       selector: div.tt-name > a[href^="/"]
++      filters:
++        - name: re_replace
++          args: ['^(.+?) {3,}(.+\((?:19|20)[0-9]{2}\).*(?:FLAC|Mp3|MP3).*)$', '$1 - $2']
+     details:
+       selector: div.tt-name > a[href^="/"]
+       attribute: href

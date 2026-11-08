@@ -1,0 +1,56 @@
+/* Native fallback reader. Keep the selected Miniflux theme and its colors. */
+.entry-content {
+  max-width: 74ch;
+  margin-inline: auto;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.entry-content p,
+.entry-content ul,
+.entry-content ol {
+  margin-block: 1.1em;
+}
+
+.entry-content figure {
+  margin: 1.5em 0;
+}
+
+.entry-content img,
+.entry-content video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 0.4rem;
+}
+
+.entry-content figcaption {
+  margin-block-start: 0.6em;
+  font-family: system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.entry-content a {
+  text-underline-offset: 0.18em;
+}
+
+.entry-content pre {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media (width <= 40rem) {
+  .entry-content {
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+}
