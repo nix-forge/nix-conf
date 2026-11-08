@@ -32,7 +32,7 @@ def load_renderer() -> ModuleType:
     if source is None:
         source = str(
             Path(__file__).parents[2]
-            / "modules/nixos/virtualisation/scripts/windows-vm-render-seed.py"
+            / "modules/nixos/virtualisation/scripts/windows_vm_render_seed.py"
         )
     specification = importlib.util.spec_from_file_location(
         "windows_vm_seed_renderer", source

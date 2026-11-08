@@ -2,23 +2,17 @@
   config,
   lib,
   pkgs,
+  utils,
   ...
 }:
 let
   cfg = config.security.clamav;
-  scheduledScanner = pkgs.writeShellApplication {
-    name = "clamav-scan-regular-files";
-    runtimeInputs = [ pkgs.findutils ];
-    text = ''
-      set -- ${
-        lib.escapeShellArgs (
-          [ "${config.services.clamav.package}/bin/clamdscan" ]
-          ++ config.services.clamav.scanner.scanDirectories
-        )
-      }
-    ''
-    + builtins.readFile ./clamav-scan.sh;
-  };
+  daemonThreads = config.services.clamav.daemon.settings.MaxThreads;
+  validDaemonThreads = builtins.isInt daemonThreads && daemonThreads > 0;
+  scanWorkers = if validDaemonThreads then lib.min 4 daemonThreads else 1;
+  scheduledScanner = pkgs.writers.writePython3Bin "clamav-scan-regular-files" {
+    flakeIgnore = [ "E501" ];
+  } ./clamav_scan.py;
 in
 {
   options.security.clamav.enable = lib.mkEnableOption ''
@@ -32,11 +26,16 @@ in
       # scanner uses the local Unix socket with fd passing rather than exposing
       # a network listener or granting the daemon access to every user file.
       daemon.enable = true;
+      daemon.settings.MaxThreads = lib.mkDefault 4;
       updater.enable = true;
       scanner.enable = true;
     };
 
     assertions = [
+      {
+        assertion = validDaemonThreads;
+        message = "security.clamav requires services.clamav.daemon.settings.MaxThreads to be a positive Nix integer.";
+      }
       {
         assertion = config.services.clamav.daemon.enable;
         message = "security.clamav requires the clamd daemon.";
@@ -52,8 +51,16 @@ in
       {
         assertion =
           !config.services.clamav.clamonacc.enable
-          || config.services.clamav.daemon.settings ? OnAccessIncludePath;
-        message = "ClamAV on-access scanning requires an explicit, narrowly scoped OnAccessIncludePath in host-local configuration.";
+          || (
+            config.services.clamav.daemon.settings ? OnAccessIncludePath
+            && (
+              let
+                paths = lib.toList config.services.clamav.daemon.settings.OnAccessIncludePath;
+              in
+              paths != [ ] && lib.all (path: builtins.isString path && lib.hasPrefix "/" path) paths
+            )
+          );
+        message = "ClamAV on-access scanning requires nonempty absolute OnAccessIncludePath entries in host-local configuration.";
       }
     ];
 
@@ -64,6 +71,10 @@ in
     # inspect host files or use fanotify.
     systemd.services = {
       clamav-daemon.serviceConfig = {
+        # The socket unit remains listening while the daemon stops or retries.
+        # Removing its parent directory would unlink that live socket and leave
+        # clients unable to connect after a successful daemon recovery.
+        RuntimeDirectoryPreserve = true;
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = true;
@@ -94,11 +105,20 @@ in
       # remove network/device access; host-local configuration selects exactly
       # which data directories it may inspect.
       clamdscan.serviceConfig = {
-        # clamdscan's recursive fd-passing walk treats ordinary sockets and
-        # FIFOs as scan errors. Enumerate regular files without excluding any
-        # data directories. Remove this wrapper when the upstream scanner can
-        # skip special files while retaining genuine traversal/scan failures.
-        ExecStart = lib.mkForce (lib.getExe scheduledScanner);
+        # Retain regular-file descriptors before submission. clamdscan's
+        # pathname walk races cache eviction and reports special files as
+        # errors. Remove the client when upstream offers these guarantees.
+        ExecStart = lib.mkForce (
+          utils.escapeSystemdExecArgs (
+            [
+              (lib.getExe scheduledScanner)
+              "--workers"
+              (toString scanWorkers)
+              config.services.clamav.daemon.settings.LocalSocket
+            ]
+            ++ config.services.clamav.scanner.scanDirectories
+          )
+        );
         NoNewPrivileges = true;
         # The scan includes the host's temporary directories. A private /tmp
         # and /var/tmp would silently replace those inputs with empty trees.

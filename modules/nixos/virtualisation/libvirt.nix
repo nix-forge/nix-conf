@@ -2,7 +2,6 @@
   config,
   lib,
   myLib,
-  options,
   pkgs,
   ...
 }:
@@ -20,7 +19,6 @@ let
     mkIf
     mkMerge
     mkOption
-    optionalAttrs
     optionalString
     optionals
     types
@@ -235,66 +233,57 @@ let
 
   rawNetworkDefinitions = lib.mapAttrs (
     name: network:
-    pkgs.writeText "libvirt-${name}-network.xml" ''
-      <network>
-        <name>${name}</name>
-        <metadata>
-          <description xmlns="https://ianmh.dev/libvirt/network/1">NixOS-managed development network</description>
-        </metadata>
-        ${optionalString (network.mode == "nat") ''
-          <forward mode="nat">
-            <nat>
-              <port start="1024" end="65535"/>
-            </nat>
-          </forward>
-        ''}
-        <bridge name="${network.bridge}" stp="on" delay="0" macTableManager="libvirt"/>
-        ${optionalString network.isolateGuests ''<port isolated="yes"/>''}
-        <domain name="${network.domain}" localOnly="yes"/>
-        <dns enable="yes"/>
-        <ip address="${network.ipv4Prefix}.1" netmask="255.255.255.0">
-          <dhcp>
-            <range start="${network.ipv4Prefix}.${toString network.dhcp.start}" end="${network.ipv4Prefix}.${toString network.dhcp.end}"/>
-            ${concatMapStrings (
-              reservationName:
-              let
-                reservation = network.reservations.${reservationName};
-              in
-              ''<host mac="${lib.toLower reservation.macAddress}" name="${reservationName}" ip="${network.ipv4Prefix}.${toString reservation.address}"/>''
-            ) (builtins.attrNames network.reservations)}
-          </dhcp>
-        </ip>
-      </network>
-    ''
+    pkgs.writeText "libvirt-${name}-network.xml" (
+      (import ../../../lib/templates/text.nix) ./scripts/network.xml {
+        inherit name;
+        optionalString_network_mode_nat_forward_mode_nat_nat_port_st =
+          optionalString (network.mode == "nat")
+            ''
+              <forward mode="nat">
+                <nat>
+                  <port start="1024" end="65535"/>
+                </nat>
+              </forward>
+            '';
+        network_bridge = network.bridge;
+        optionalString_network_isolateGuests_port_isolated_yes = optionalString network.isolateGuests ''<port isolated="yes"/>'';
+        network_domain = network.domain;
+        network_ipv4Prefix = network.ipv4Prefix;
+        toString_network_dhcp_start = toString network.dhcp.start;
+        toString_network_dhcp_end = toString network.dhcp.end;
+        concatMapStrings_reservationName_let_reservation_network_res = concatMapStrings (
+          reservationName:
+          let
+            reservation = network.reservations.${reservationName};
+          in
+          ''<host mac="${lib.toLower reservation.macAddress}" name="${reservationName}" ip="${network.ipv4Prefix}.${toString reservation.address}"/>''
+        ) (builtins.attrNames network.reservations);
+      }
+    )
   ) cfg.networks;
 
   validateLibvirtXml =
     kind: name: source:
-    pkgs.runCommand "validated-libvirt-${name}-${kind}.xml" { } ''
-      cp ${source} "$out"
-      ${getExe' config.virtualisation.libvirtd.package "virt-xml-validate"} "$out" ${kind}
-    '';
+    pkgs.runCommand "validated-libvirt-${name}-${kind}.xml" { } (
+      (import ../../../lib/templates/text.nix) ./scripts/validate-resource-xml.sh {
+        inherit source;
+        getExe_config_virtualisation_libvirtd_package_virt_xml_valid = getExe' config.virtualisation.libvirtd.package "virt-xml-validate";
+        inherit kind;
+      }
+    );
 
   networkDefinitions = lib.mapAttrs (
     name: source: validateLibvirtXml "network" name source
   ) rawNetworkDefinitions;
 
-  rawStoragePoolDefinition = pkgs.writeText "libvirt-${cfg.storage.poolName}-storage-pool.xml" ''
-    <pool type="dir">
-      <name>${cfg.storage.poolName}</name>
-      <features>
-        <cow state="${if cfg.storage.nocow then "no" else "yes"}"/>
-      </features>
-      <target>
-        <path>${cfg.storage.root}</path>
-        <permissions>
-          <mode>0710</mode>
-          <owner>0</owner>
-          <group>${toString config.ids.gids.qemu-libvirtd}</group>
-        </permissions>
-      </target>
-    </pool>
-  '';
+  rawStoragePoolDefinition = pkgs.writeText "libvirt-${cfg.storage.poolName}-storage-pool.xml" (
+    (import ../../../lib/templates/text.nix) ./scripts/storage-pool.xml {
+      cfg_storage_poolName = cfg.storage.poolName;
+      if_cfg_storage_nocow_then_no_else_yes = if cfg.storage.nocow then "no" else "yes";
+      cfg_storage_root = cfg.storage.root;
+      toString_config_ids_gids_qemu_libvirtd = toString config.ids.gids.qemu-libvirtd;
+    }
+  );
   storagePoolDefinition =
     validateLibvirtXml "storagepool" cfg.storage.poolName
       rawStoragePoolDefinition;
@@ -343,7 +332,7 @@ let
       mktemp = getExe' pkgs.coreutils "mktemp";
       networkManifest = escapeShellArg networkManifest;
       python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt-xml.py;
+      xmlHelper = ./scripts/libvirt_xml.py;
       poolDefinition = escapeShellArg storagePoolDefinition;
       poolName = escapeShellArg cfg.storage.poolName;
       poolPath = escapeShellArg cfg.storage.root;
@@ -377,12 +366,20 @@ let
     };
   };
 
-  sleepInhibitorReady = pkgs.writeShellScript "libvirt-workstation-sleep-inhibitor-ready" ''
-    set -euo pipefail
-    # systemd-inhibit invokes this only after logind grants the inhibitor.
-    ${getExe' pkgs.systemd "systemd-notify"} --ready
-    exec ${getExe' pkgs.coreutils "sleep"} infinity
-  '';
+  sleepInhibitorReady = pkgs.writeShellScript "libvirt-workstation-sleep-inhibitor-ready" (
+    (import ../../../lib/templates/text.nix) ./scripts/libvirt-workstation-sleep-inhibitor-ready.sh {
+      getExe_pkgs_systemd_systemd_notify = getExe' pkgs.systemd "systemd-notify";
+      getExe_pkgs_coreutils_sleep = getExe' pkgs.coreutils "sleep";
+    }
+  );
+
+  sleepInhibitor = pkgs.writeShellScript "libvirt-workstation-sleep-inhibitor" (
+    (import ../../../lib/templates/text.nix) ./scripts/libvirt-workstation-sleep-inhibitor.sh {
+      getExe_pkgs_systemd_systemd_inhibit = getExe' pkgs.systemd "systemd-inhibit";
+      getExe_pkgs_coreutils_env = getExe' pkgs.coreutils "env";
+      inherit sleepInhibitorReady;
+    }
+  );
 
   privilegedControl = writeBashTemplate {
     name = "libvirt-workstation-control";
@@ -418,7 +415,7 @@ let
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
       virtHostValidate = getExe' config.virtualisation.libvirtd.package "virt-host-validate";
       python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt-xml.py;
+      xmlHelper = ./scripts/libvirt_xml.py;
     };
   };
 
@@ -439,9 +436,9 @@ let
 
   hostAudit = pkgs.writeShellApplication {
     name = "virt-host-audit";
-    text = ''
-      exec ${getExe' vmCli "vm"} doctor "$@"
-    '';
+    text = (import ../../../lib/templates/text.nix) ./scripts/virt-host-audit.sh {
+      getExe_vmCli_vm = getExe' vmCli "vm";
+    };
   };
 
   networkBridges = map (name: cfg.networks.${name}.bridge) networkNames;
@@ -500,7 +497,6 @@ let
       iifname "${network.bridge}" ip daddr { ${restrictedIpv4Destinations} } counter drop comment "block ${name} guest egress to non-public IPv4"
     ''
   ) networkNames;
-  hasSunshineOption = lib.hasAttrByPath [ "services" "sunshine" "enable" ] options;
 in
 {
   imports = [ ./windows-vm.nix ];
@@ -643,11 +639,6 @@ in
         description = "Host drivers prevented from claiming the passed device functions.";
       };
 
-      disableSunshine = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Disable the NixOS Sunshine service in the VFIO specialization when present.";
-      };
     };
   };
 
@@ -764,8 +755,11 @@ in
           message = "Guest disks and installation media must use distinct directories.";
         }
         {
-          assertion = config.networking.nftables.enable;
-          message = "virtualisation.libvirtWorkstation requires nftables for libvirt's firewall.";
+          assertion =
+            config.networking.nftables.enable
+            && config.networking.firewall.enable
+            && config.networking.firewall.backend == "nftables";
+          message = "virtualisation.libvirtWorkstation requires the enabled NixOS nftables firewall for guest-to-host isolation.";
         }
         {
           assertion = !config.virtualisation.incus.enable;
@@ -864,8 +858,13 @@ in
 
       users = {
         groups.libvirt-media = { };
+        groups.tss = { };
         users = {
           qemu-libvirtd.extraGroups = [ "libvirt-media" ];
+          tss = {
+            isSystemUser = true;
+            group = "tss";
+          };
         }
         // lib.genAttrs cfg.operators (_: {
           # This group can stage ISO files but cannot open the libvirt
@@ -914,6 +913,9 @@ in
       }) cfg.operators;
 
       systemd = {
+        # swtpm ships its local CA state-directory rule separately from its
+        # binaries. libvirt manufactures certificates as the unprivileged tss.
+        tmpfiles.packages = [ config.virtualisation.libvirtd.qemu.swtpm.package ];
         tmpfiles.rules = [
           "d ${cfg.storage.root} 0710 root qemu-libvirtd -"
           "d ${cfg.storage.installationMedia} 2770 root libvirt-media -"
@@ -949,7 +951,7 @@ in
             Type = "notify";
             NotifyAccess = "all";
             TimeoutStartSec = 15;
-            ExecStart = "${getExe' pkgs.systemd "systemd-inhibit"} --what=sleep --who=libvirt-guest-%i --why=managed-guest-is-running --mode=block ${sleepInhibitorReady}";
+            ExecStart = "${sleepInhibitor} %I";
             Restart = "always";
             RestartSec = 5;
             CapabilityBoundingSet = "";
@@ -1000,10 +1002,6 @@ in
             kernelParams = [ "vfio-pci.ids=${vfioIdArgument}" ];
           };
         }
-
-        (optionalAttrs (cfg.vfio.disableSunshine && hasSunshineOption) {
-          services.sunshine.enable = lib.mkForce false;
-        })
       ];
     })
   ]);

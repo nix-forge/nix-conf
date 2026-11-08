@@ -5,7 +5,16 @@
 }:
 let
   inherit (pkgs) lib;
-  layout = import ../../hosts/nixos/desktop/disko.nix { inherit lib; };
+  layout =
+    lib.recursiveUpdate
+      ((import ../../hosts/nixos/desktop/local/storage/disk-layout.nix { }).lib.desktopDiskLayout {
+        inherit lib;
+      })
+      (
+        (import ../../hosts/nixos/desktop/local/storage/homelab-disk-layout.nix { }).lib.homelabDiskLayout {
+          inherit lib;
+        }
+      );
   fixture = lib.recursiveUpdate layout {
     disko.devices.disk = {
       system.content.partitions = {
@@ -39,6 +48,20 @@ let
           "4"
         ];
       };
+      homelab.content.partitions.crypt.content = {
+        passwordFile = "/tmp/secret.key";
+        settings.keyFile = "/tmp/secret.key";
+        extraFormatArgs = [
+          "--type"
+          "luks2"
+          "--pbkdf"
+          "argon2id"
+          "--pbkdf-memory"
+          "32768"
+          "--pbkdf-force-iterations"
+          "4"
+        ];
+      };
     };
   };
 in
@@ -55,6 +78,7 @@ diskoLib.testLib.makeDiskoTest {
       ../../hosts/nixos/desktop/local/hardware/filesystems.nix
     ];
     hardware.storage.encryptedRoot.enable = true;
+    hardware.storage.homelabHdd.enable = true;
     hardware.storage.encryptedRoot.backup = {
       paths = [ "/var/lib/desktop-storage" ];
       destinations.fixture = {
@@ -73,93 +97,15 @@ diskoLib.testLib.makeDiskoTest {
       uid = 1000;
       group = "users";
     };
+    users.users.alex = {
+      isNormalUser = true;
+      uid = 1001;
+      group = "alex";
+    };
+    users.groups.alex = { };
     virtualisation.libvirtd.enable = false;
     environment.systemPackages = [ pkgs.e2fsprogs ];
   };
-  postDisko = ''
-    # Restores happen before the first boot, so tmpfiles cannot be relied on
-    # to repair these permissions after the installer formats the disks.
-    for path in ["/mnt/home/.snapshots", "/mnt/srv/data/.snapshots", "/mnt/srv/data/work/.snapshots"]:
-        assert machine.succeed("stat -c '%u:%g:%a' " + path).strip() == "0:0:700"
-    machine.succeed("install -d -m 700 /mnt/var/lib/desktop-storage/keys")
-    machine.succeed("install -m 600 /tmp/secret.key /mnt/var/lib/desktop-storage/keys/data.key")
-  '';
-  extraTestScript = ''
-    machine.succeed("test -d /sys/firmware/efi && mountpoint -q /boot")
-    machine.fail("su -s /bin/sh ianmh -c 'ls /boot'")
-    machine.wait_for_unit("desktop-data-ready.service")
-    machine.succeed("cryptsetup isLuks --type luks2 /dev/disk/by-partlabel/NIXOS-CRYPTROOT")
-    machine.succeed("cryptsetup isLuks --type luks2 /dev/disk/by-partlabel/NIXOS-CRYPTDATA")
-    machine.succeed("mountpoint /srv/data/work; mountpoint /mnt/games; mountpoint /var/lib/libvirt/images")
-    machine.succeed("btrfs filesystem usage / | grep 'Metadata,DUP'")
-    for path in ["/home/.snapshots", "/srv/data/.snapshots", "/srv/data/work/.snapshots"]:
-        assert machine.succeed("stat -c '%u:%g:%a' " + path).strip() == "0:0:700"
-    swap = machine.succeed("awk 'NR == 2 {print $1}' /proc/swaps").strip()
-    assert machine.succeed("lsblk -ndo TYPE " + swap).strip() == "crypt"
-    machine.succeed("cryptsetup status " + swap)
-    swap_uuid = machine.succeed("blkid -s UUID -o value " + swap).strip()
-    machine.succeed("echo before > /home/history-test")
-    machine.succeed("echo excluded > /home/ianmh/.local/share/docker/layer")
-    machine.succeed("su -s /bin/sh ianmh -c 'echo cache > /home/ianmh/.cache/disposable'")
-    machine.fail("su -s /bin/sh ianmh -c 'ls /home/.snapshots'")
-    snapshot = machine.succeed("snapper --no-dbus -c home create --read-only --print-number").strip()
-    machine.succeed("echo after > /home/history-test")
-    machine.succeed("grep before /home/.snapshots/" + snapshot + "/snapshot/history-test")
-    machine.fail("test -e /home/.snapshots/" + snapshot + "/snapshot/ianmh/.local/share/docker/layer")
-    machine.fail("test -e /home/.snapshots/" + snapshot + "/snapshot/ianmh/.cache/disposable")
-    # Restoring a directory can restore NOCOW too. Preparation must clear it
-    # before new images are created, without rewriting existing image files.
-    machine.succeed("chattr +C /var/lib/libvirt/images; systemctl restart desktop-data-ready.service")
-    machine.succeed("touch /var/lib/libvirt/images/checksummed-image")
-    assert "C" not in machine.succeed("lsattr /var/lib/libvirt/images/checksummed-image").split()[0]
-    machine.succeed("echo durable > /srv/data/work/reboot-test")
-    # Disko starts QEMU without allow_reboot. A shutdown/start also exercises
-    # genuine cold-boot key loading instead of retaining the running mapping.
-    machine.shutdown()
-    machine.start()
-    machine.wait_for_unit("desktop-data-ready.service")
-    machine.succeed("grep durable /srv/data/work/reboot-test")
-    swap = machine.succeed("awk 'NR == 2 {print $1}' /proc/swaps").strip()
-    assert machine.succeed("blkid -s UUID -o value " + swap).strip() != swap_uuid
-    machine.succeed("install -d -m 700 /var/lib/desktop-backup-fixture /mnt/backup-fixture")
-    machine.succeed("mount -t tmpfs -o size=128M tmpfs /mnt/backup-fixture")
-    machine.succeed("umask 077; printf '%s\\n' /mnt/backup-fixture/repository > /var/lib/desktop-backup-fixture/repository; printf '%s\\n' public-disposable-test-password > /var/lib/desktop-backup-fixture/password")
-    machine.succeed("RESTIC_REPOSITORY_FILE=/var/lib/desktop-backup-fixture/repository RESTIC_PASSWORD_FILE=/var/lib/desktop-backup-fixture/password restic init")
-    machine.succeed("systemctl start restic-backups-desktop-fixture.service")
-    machine.succeed("test -s /var/lib/desktop-storage/checks/fixture-backup.json")
-    machine.succeed("systemctl start desktop-backup-verify-fixture.service")
-    machine.succeed("test -s /var/lib/desktop-storage/checks/fixture-integrity.json; test -s /var/lib/desktop-storage/checks/fixture-restore.json")
-    machine.fail("systemctl start desktop-backup-cold-fixture.service")
-    backup_receipt = machine.succeed("cat /var/lib/desktop-storage/checks/fixture-backup.json")
-    restore_receipt = machine.succeed("cat /var/lib/desktop-storage/checks/fixture-restore.json")
-    machine.succeed("umount /mnt/backup-fixture")
-    machine.fail("systemctl start restic-backups-desktop-fixture.service")
-    machine.fail("systemctl start desktop-backup-verify-fixture.service")
-    assert machine.succeed("cat /var/lib/desktop-storage/checks/fixture-backup.json") == backup_receipt
-    assert machine.succeed("cat /var/lib/desktop-storage/checks/fixture-restore.json") == restore_receipt
-    machine.fail("test -e /mnt/backup-fixture/repository")
-    machine.fail("desktop-backup-check status")
-    # Remove only the fixture's runtime data key. On the next cold boot,
-    # headless crypttab cannot create cryptdata and must not delay root login.
-    machine.succeed("mv /var/lib/desktop-storage/keys/data.key /var/lib/desktop-storage/keys/data.unavailable")
-    machine.shutdown()
-    machine.start()
-    machine.wait_for_unit("multi-user.target")
-    machine.succeed("systemd-analyze verify --man=no /etc/systemd/system/btrfs-scrub*.timer")
-    machine.succeed("mountpoint /home")
-    machine.fail("mountpoint /srv/data")
-    machine.fail("test -e /dev/mapper/cryptdata")
-    machine.fail("systemctl start desktop-data-ready.service")
-    machine.fail("test -e /mnt/games/steamapps")
-    machine.succeed("systemctl start desktop-snapshot-home-timeline.service")
-    machine.succeed("systemctl start desktop-snapshot-home-cleanup.service")
-    # An unavailable data mount may fail its dependency or skip the mount
-    # condition. Either outcome must leave the underlying root directory alone.
-    machine.execute("systemctl start desktop-snapshot-data-timeline.service")
-    machine.fail("test -d /srv/data/.snapshots")
-    machine.execute("systemctl start btrfs-scrub@srv-data.service")
-    # The service must neither start a root scrub nor write data-drive status.
-    assert machine.succeed("systemctl show btrfs-scrub@srv-data.service -p ExecMainStartTimestampMonotonic --value").strip() == "0"
-    machine.succeed("btrfs scrub status / | grep 'no stats available'")
-  '';
+  postDisko = builtins.readFile ./scripts/desktop_encrypted_storage.py;
+  extraTestScript = builtins.readFile ./scripts/desktop_storage_extra_test.py;
 }

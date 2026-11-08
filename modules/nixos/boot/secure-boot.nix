@@ -26,12 +26,13 @@ in
     };
 
     configurationLimit = lib.mkOption {
-      type = lib.types.ints.between 1 8;
-      default = 8;
+      type = lib.types.ints.between 1 4;
+      default = 4;
       description = ''
-        Number of signed boot generations retained on the ESP. Eight is the
-        maximum supported by systemd-pcrlock and leaves practical headroom on
-        small ESPs for UKIs and firmware capsules.
+        Number of signed boot generations retained on the ESP. Lanzaboote
+        supports at most four with measured boot because bootloader updates
+        require two PCR 4 alternatives per generation. Specialisations use
+        additional alternatives and may require a smaller limit.
       '';
     };
 
@@ -48,6 +49,11 @@ in
       enable = lib.mkEnableOption ''
         systemd-pcrlock policy generation for a future LUKS2 TPM2-unlock
         policy
+      '';
+
+      bindPcr7Directly = lib.mkEnableOption ''
+        binding PCR 7's observed Secure Boot value directly at attended TPM
+        enrollment when firmware ordering makes pcrlock prediction incorrect
       '';
 
       pcrs = lib.mkOption {
@@ -67,7 +73,9 @@ in
         ];
         description = ''
           PCRs represented by the generated policy. PCR 4 covers the measured
-          loader/Lanzaboote boot chain, while PCR 7 covers Secure Boot policy.
+          loader/Lanzaboote boot chain, while PCR 7 normally covers Secure
+          Boot policy. A host with unreliable PCR 7 prediction may set
+          bindPcr7Directly and enroll the observed PCR 7 value separately.
           Firmware PCRs 0-3 are intentionally not selected by default because
           they make firmware configuration and update recovery more brittle.
         '';
@@ -83,8 +91,12 @@ in
 
     boot.lanzaboote = {
       enable = true;
-      inherit (cfg) pkiBundle;
+      pkiBundle = if cfg.pkiBundle == null then "/var/lib/sbctl" else cfg.pkiBundle;
       inherit (cfg) configurationLimit;
+
+      # Keep the generation that loaded the running kernel and initrd within
+      # the ESP retention limit, even after several online switches.
+      protectedSystem = "/run/booted-system";
 
       # A missing or unreadable signing key must fail activation rather than
       # placing an unsigned boot path on the ESP. Key creation and firmware
@@ -114,7 +126,11 @@ in
 
     assertions = [
       {
-        assertion = cfg.pkiBundle != null;
+        assertion =
+          cfg.pkiBundle != null
+          && lib.hasPrefix "/" cfg.pkiBundle
+          && !lib.hasPrefix "/nix/store" cfg.pkiBundle
+          && !lib.elem ".." (lib.splitString "/" cfg.pkiBundle);
         message = "security.secureBootLanzaboote requires a host-local persistent pkiBundle outside the Nix store.";
       }
       {
@@ -122,12 +138,16 @@ in
         message = "security.secureBootLanzaboote requires boot.loader.efi.canTouchEfiVariables so signed loader updates and recovery entries reach UEFI NVRAM.";
       }
       {
-        assertion = config.boot.initrd.systemd.enable;
+        assertion = !cfg.measuredBoot.enable || config.boot.initrd.systemd.enable;
         message = "security.secureBootLanzaboote requires the systemd initrd for the supported measured-boot and future TPM2-unlock path.";
       }
       {
         assertion = config.boot.lanzaboote.allowUnsigned == false;
         message = "security.secureBootLanzaboote must not install unsigned boot artifacts.";
+      }
+      {
+        assertion = config.boot.lanzaboote.protectedSystem == "/run/booted-system";
+        message = "security.secureBootLanzaboote must retain the booted system within Lanzaboote's generation limit.";
       }
       {
         assertion =
@@ -144,23 +164,13 @@ in
       }
       {
         assertion =
-          !cfg.measuredBoot.enable || (lib.elem 4 cfg.measuredBoot.pcrs && lib.elem 7 cfg.measuredBoot.pcrs);
-        message = "Measured Boot must cover PCR 4 (boot chain) and PCR 7 (Secure Boot policy).";
-      }
-      {
-        # Preserve the supported NixOS-managed MAC path. Firmware Secure Boot
-        # only activates kernel lockdown when the selected kernel was built
-        # with that LSM; this module intentionally makes no false promise
-        # about that separate kernel-build property.
-        assertion = lib.elem "apparmor" config.security.lsm && !lib.elem "selinux" config.security.lsm;
-        message = "security.secureBootLanzaboote requires the supported AppArmor LSM path; do not replace it with an unsupported concurrent SELinux configuration.";
-      }
-      {
-        # This desktop uses NVIDIA, USB, networking, and capture drivers that
-        # may be loaded after early boot. One-way module locking has a separate
-        # compatibility audit and is not a prerequisite for Secure Boot.
-        assertion = !config.security.lockKernelModules;
-        message = "security.secureBootLanzaboote does not support security.lockKernelModules: make any runtime-module lockdown a separately tested host decision.";
+          !cfg.measuredBoot.enable
+          || (
+            lib.elem 4 cfg.measuredBoot.pcrs
+            && (lib.elem 7 cfg.measuredBoot.pcrs || cfg.measuredBoot.bindPcr7Directly)
+            && !(lib.elem 7 cfg.measuredBoot.pcrs && cfg.measuredBoot.bindPcr7Directly)
+          );
+        message = "Measured Boot must cover PCR 4 and bind PCR 7 through either pcrlock or attended direct enrollment.";
       }
     ];
   };

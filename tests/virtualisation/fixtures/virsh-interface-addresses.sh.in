@@ -1,0 +1,9 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+case "$3" in
+dominfo) exit 0 ;;
+domifaddr) if [[ $6 == @__value1@ ]]; then cat @__value2@; fi ;;
+*) exit 2 ;;
+esac

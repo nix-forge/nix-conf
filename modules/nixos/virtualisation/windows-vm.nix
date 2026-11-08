@@ -101,7 +101,7 @@ let
   qemuGroup = "qemu-libvirtd";
   mediaInspectorUser = "windows-media";
   mediaInspectorGroup = "windows-media";
-  mediaInspectionDirectory = "/run/libvirt-windows-media/${cfg.name}";
+  mediaInspectionDirectory = "/var/tmp/libvirt-windows-media/${cfg.name}";
   windowsPartitionMiB = cfg.resources.diskSizeGiB * 1024 - 1300;
   activeHoursDuration =
     if cfg.maintenance.activeHoursEnd > cfg.maintenance.activeHoursStart then
@@ -111,7 +111,7 @@ let
   enableLua = if cfg.administrator.disableUac then "0" else "1";
   normalizedIsoSha256 = lib.toLower cfg.installation.isoSha256;
   headlessRuntimeProfile = cfg.baseline.profile == "headless-runtime";
-  baselineVersion = "4";
+  baselineVersion = "5";
   renderedAppxPackages = concatStringsSep ",\n" (
     map (packageName: "    '${packageName}'") cfg.baseline.removeAppxPackages
   );
@@ -181,7 +181,6 @@ let
       [
         "__ADMINISTRATOR_NAME__"
         "__COMPUTER_NAME__"
-        "__ENABLE_LUA__"
         "__IMAGE_NAME__"
         "__LOCALE__"
         "__TIME_ZONE__"
@@ -190,7 +189,6 @@ let
       [
         cfg.administrator.name
         cfg.computerName
-        enableLua
         (lib.escapeXML cfg.installation.imageName)
         cfg.installation.locale
         (lib.escapeXML cfg.installation.timeZone)
@@ -214,6 +212,7 @@ let
         "__ADMINISTRATOR_NAME__"
         "__BASELINE_VERSION__"
         "__BASELINE_PROFILE__"
+        "__ENABLE_LUA__"
         "__HEADLESS_RUNTIME__"
         "__MANAGEMENT_GUEST_ADDRESS__"
         "__MANAGEMENT_HOST_ADDRESS__"
@@ -227,6 +226,7 @@ let
         cfg.administrator.name
         baselineVersion
         cfg.baseline.profile
+        enableLua
         (if headlessRuntimeProfile then "$true" else "$false")
         managementGuestAddress
         managementHostAddress
@@ -248,6 +248,7 @@ let
         "__ENABLE_LUA__"
         "__HEADLESS_RUNTIME__"
         "__MANAGEMENT_GUEST_ADDRESS__"
+        "__MANAGEMENT_HOST_ADDRESS__"
         "__RECIPE_FINGERPRINT__"
         "__REMOVE_APPX_PACKAGES__"
         "__WINDOWS_RELEASE__"
@@ -261,6 +262,7 @@ let
         enableLua
         (if headlessRuntimeProfile then "$true" else "$false")
         managementGuestAddress
+        managementHostAddress
         recipeFingerprint
         renderedAppxPackages
         cfg.installation.release
@@ -276,7 +278,7 @@ let
   seedRenderer = pkgs.writers.writePython3Bin "windows-vm-render-seed" {
     # Ruff owns formatting; retain the writer's other Flake8 checks.
     flakeIgnore = [ "E501" ];
-  } ./scripts/windows-vm-render-seed.py;
+  } ./scripts/windows_vm_render_seed.py;
 
   runtimeDiskDevices = ''
     <disk type="file" device="disk">
@@ -328,119 +330,38 @@ let
     let
       diskDevices = if installationMode then installerDiskDevices else runtimeDiskDevices;
     in
-    pkgs.writeText "${cfg.name}-${if installationMode then "installer" else "runtime"}-domain.xml" ''
-      <domain type="kvm">
-        <name>${cfg.name}</name>
-        <uuid>${lib.toLower cfg.uuid}</uuid>
-        <genid>${lib.toLower cfg.generationId}</genid>
-        <title>Managed Windows runtime</title>
-        <description>NixOS-managed Windows 11 guest with private runtime provisioning</description>
-        <metadata>
-          <managed xmlns="https://ianmh.dev/libvirt/windows-vm/1" recipe="windows-vm-v1"/>
-        </metadata>
-        <memory unit="MiB">${toString cfg.resources.memoryMiB}</memory>
-        <currentMemory unit="MiB">${toString cfg.resources.memoryMiB}</currentMemory>
-        <vcpu placement="static">${toString cfg.resources.vcpus}</vcpu>
-        <iothreads>1</iothreads>
-        <resource>
-          <partition>/machine</partition>
-        </resource>
-        <cputune>
-          <shares>${toString cfg.resources.cpuShares}</shares>
-        </cputune>
-        <os>
-          <type arch="x86_64" machine="${cfg.machine}">hvm</type>
-          <loader readonly="yes" secure="yes" type="pflash" format="raw">${secureBootFirmware.firmware}</loader>
-          <nvram template="${secureBootFirmware.variablesMs}" templateFormat="raw" format="raw">${nvramPath}</nvram>
-          <bootmenu enable="yes" timeout="3000"/>
-        </os>
-        <features>
-          <acpi/>
-          <apic/>
-          <hyperv mode="custom">
-            <relaxed state="on"/>
-            <vapic state="on"/>
-            <spinlocks state="on" retries="8191"/>
-            <vpindex state="on"/>
-            <runtime state="on"/>
-            <synic state="on"/>
-            <stimer state="on">
-              <direct state="on"/>
-            </stimer>
-            <reset state="on"/>
-            <frequencies state="on"/>
-            <reenlightenment state="on"/>
-            <tlbflush state="on"/>
-            <ipi state="on"/>
-          </hyperv>
-          <vmport state="off"/>
-          <smm state="on"/>
-        </features>
-        <cpu mode="host-passthrough" check="none" migratable="off">
-          <topology sockets="1" dies="1" cores="${toString cfg.resources.vcpus}" threads="1"/>
-          <feature policy="disable" name="svm"/>
-        </cpu>
-        <clock offset="localtime">
-          <timer name="rtc" tickpolicy="catchup"/>
-          <timer name="pit" tickpolicy="delay"/>
-          <timer name="hpet" present="no"/>
-          <timer name="hypervclock" present="yes"/>
-        </clock>
-        <on_poweroff>destroy</on_poweroff>
-        <on_reboot>restart</on_reboot>
-        <on_crash>restart</on_crash>
-        <pm>
-          <suspend-to-mem enabled="no"/>
-          <suspend-to-disk enabled="no"/>
-        </pm>
-        <devices>
-          <emulator>${qemuPackage}/bin/qemu-system-x86_64</emulator>
-          ${diskDevices}
-          <controller type="sata" index="0"/>
-          <controller type="scsi" index="0" model="virtio-scsi">
-            <driver iothread="1" queues="${toString cfg.resources.vcpus}"/>
-          </controller>
-          <controller type="usb" index="0" model="qemu-xhci" ports="4"/>
-          ${networkDevices}
-          <channel type="unix">
-            <target type="virtio" name="org.qemu.guest_agent.0"/>
-          </channel>
-          <input type="tablet" bus="usb"/>
-          <input type="keyboard" bus="usb"/>
-          <graphics type="spice" autoport="yes">
-            <listen type="socket"/>
-            <clipboard copypaste="no"/>
-            <filetransfer enable="no"/>
-            <gl enable="no"/>
-          </graphics>
-          <video>
-            <model type="virtio" heads="1" primary="yes">
-              <acceleration accel3d="no"/>
-            </model>
-          </video>
-          <memballoon model="virtio" autodeflate="on">
-            <stats period="10"/>
-          </memballoon>
-          <rng model="virtio">
-            <backend model="random">/dev/urandom</backend>
-          </rng>
-          <tpm model="tpm-crb">
-            <backend type="emulator" version="2.0" persistent_state="yes"/>
-          </tpm>
-          <panic model="hyperv"/>
-        </devices>
-      </domain>
-    '';
+    pkgs.writeText "${cfg.name}-${if installationMode then "installer" else "runtime"}-domain.xml" (
+      (import ../../../lib/templates/text.nix) ./scripts/windows-vm-config.xml {
+        cfg_name = cfg.name;
+        lib_toLower_cfg_uuid = lib.toLower cfg.uuid;
+        lib_toLower_cfg_generationId = lib.toLower cfg.generationId;
+        toString_cfg_resources_memoryMiB = toString cfg.resources.memoryMiB;
+        currentMemoryMiB = toString (
+          if installationMode then cfg.resources.memoryMiB else cfg.resources.currentMemoryMiB
+        );
+        toString_cfg_resources_vcpus = toString cfg.resources.vcpus;
+        toString_cfg_resources_cpuShares = toString cfg.resources.cpuShares;
+        cfg_machine = cfg.machine;
+        secureBootFirmware_firmware = secureBootFirmware.firmware;
+        secureBootFirmware_variablesMs = secureBootFirmware.variablesMs;
+        inherit nvramPath;
+        inherit qemuPackage;
+        inherit diskDevices;
+        inherit networkDevices;
+      }
+    );
 
   runtimeDomainSource = mkDomainDefinition false;
   installerDomainSource = mkDomainDefinition true;
 
   validateDomain =
     name: source:
-    pkgs.runCommand "validated-${name}-domain.xml" { } ''
-      cp ${source} "$out"
-      ${getExe' config.virtualisation.libvirtd.package "virt-xml-validate"} "$out" domain
-    '';
+    pkgs.runCommand "validated-${name}-domain.xml" { } (
+      (import ../../../lib/templates/text.nix) ./scripts/validate-domain-xml.sh {
+        inherit source;
+        getExe_config_virtualisation_libvirtd_package_virt_xml_valid = getExe' config.virtualisation.libvirtd.package "virt-xml-validate";
+      }
+    );
 
   runtimeDefinition = validateDomain "${cfg.name}-runtime" runtimeDomainSource;
   installerDefinition = validateDomain "${cfg.name}-installer" installerDomainSource;
@@ -451,7 +372,7 @@ let
     replacements = {
       autostart = if cfg.autostart then "1" else "0";
       python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt-xml.py;
+      xmlHelper = ./scripts/libvirt_xml.py;
       bash = getExe pkgs.bash;
       diskPath = escapeShellArg diskPath;
       guestName = escapeShellArg cfg.name;
@@ -463,6 +384,11 @@ let
     };
   };
 
+  shutdownGuest = pkgs.writers.writePython3Bin "libvirt-shutdown" {
+    libraries = [ pkgs.python3Packages.libvirt ];
+    flakeIgnore = [ "E501" ];
+  } (builtins.readFile ./scripts/libvirt_shutdown.py);
+
   privilegedControl = writeBashTemplate {
     name = "libvirt-windows-vm-control";
     src = ./scripts/libvirt-windows-vm-control.sh.in;
@@ -473,7 +399,7 @@ let
       autostart = if cfg.autostart then "1" else "0";
       authorizedKeysFile = escapeShellArg authorizedKeysFile;
       python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt-xml.py;
+      xmlHelper = ./scripts/libvirt_xml.py;
       base64 = getExe' pkgs.coreutils "base64";
       baselineTest = escapeShellArg baselineTest;
       bash = getExe pkgs.bash;
@@ -488,7 +414,6 @@ let
       downloadPage = escapeShellArg cfg.installation.downloadPage;
       env = getExe' pkgs.coreutils "env";
       find = getExe pkgs.findutils;
-      fuseArchive = getExe pkgs.fuse-archive;
       grep = getExe pkgs.gnugrep;
       guestName = escapeShellArg cfg.name;
       guestUuid = escapeShellArg (lib.toLower cfg.uuid);
@@ -505,7 +430,6 @@ let
       mediaInspectorUser = escapeShellArg mediaInspectorUser;
       mkdir = getExe' pkgs.coreutils "mkdir";
       mktemp = getExe' pkgs.coreutils "mktemp";
-      mountpoint = getExe' pkgs.util-linux "mountpoint";
       mv = getExe' pkgs.coreutils "mv";
       passwordFile = escapeShellArg passwordFile;
       primeDisk = escapeShellArg primeDisk;
@@ -516,22 +440,22 @@ let
       qemuImg = getExe' qemuPackage "qemu-img";
       inherit qemuUser;
       rm = getExe' pkgs.coreutils "rm";
-      rmdir = getExe' pkgs.coreutils "rmdir";
       runtimeDefinition = escapeShellArg runtimeDefinition;
       runtimeDirectory = escapeShellArg runtimeDirectory;
       seedIso = escapeShellArg seedIso;
       seedRenderer = getExe seedRenderer;
+      sevenZip = getExe' pkgs.p7zip "7z";
       setpriv = getExe' pkgs.util-linux "setpriv";
       sha256sum = getExe' pkgs.coreutils "sha256sum";
+      shutdownGuest = getExe shutdownGuest;
       sleep = getExe' pkgs.coreutils "sleep";
       sshKeygen = getExe' pkgs.openssh "ssh-keygen";
       stateDirectory = escapeShellArg stateDirectory;
       storageRoot = escapeShellArg workstation.storage.root;
-      umount = getExe' pkgs.util-linux "umount";
       virsh = getExe' config.virtualisation.libvirtd.package "virsh";
       virtioIso = escapeShellArg virtioIso;
       wiminfo = getExe' pkgs.wimlib "wiminfo";
-      xorriso = getExe pkgs.xorriso;
+      xorriso = getExe' pkgs.xorriso "xorriso";
     };
   };
 
@@ -540,14 +464,12 @@ let
     src = ./scripts/setup-windows-vm.sh.in;
     dir = "bin";
     replacements = {
-      downloadPage = escapeShellArg cfg.installation.downloadPage;
       guestName = cfg.name;
       imageName = escapeShellArg cfg.installation.imageName;
       isoFileName = escapeShellArg cfg.installation.isoFileName;
       isoSha256 = escapeShellArg normalizedIsoSha256;
       mediaDescription = escapeShellArg cfg.installation.mediaDescription;
       privateDirectory = escapeShellArg privateDirectory;
-      release = escapeShellArg cfg.installation.release;
     };
   };
 
@@ -559,12 +481,16 @@ let
       bash = getExe pkgs.bash;
       cat = getExe' pkgs.coreutils "cat";
       chmod = getExe' pkgs.coreutils "chmod";
+      curl = getExe pkgs.curl;
       guestName = cfg.name;
       install = getExe' pkgs.coreutils "install";
+      isoLanguage = escapeShellArg cfg.installation.isoLanguage;
       isoPath = escapeShellArg isoPath;
+      isoProductId = escapeShellArg cfg.installation.isoProductId;
       isoSha256 = normalizedIsoSha256;
       isoSha256Path = escapeShellArg isoSha256Path;
       mktemp = getExe' pkgs.coreutils "mktemp";
+      msdl = getExe pkgs.msdl-cli;
       mv = getExe' pkgs.coreutils "mv";
       privilegedControl = "${privilegedControl}/libexec/libvirt-windows-vm-control";
       rm = getExe' pkgs.coreutils "rm";
@@ -709,6 +635,16 @@ in
         description = "Fixed filename below the libvirt installation-media directory.";
       };
 
+      isoProductId = mkOption {
+        type = types.strMatching "^[0-9]+$";
+        description = "Microsoft consumer ISO product ID selected by the pinned link resolver.";
+      };
+
+      isoLanguage = mkOption {
+        type = types.nonEmptyStr;
+        description = "Microsoft consumer ISO language label used by the link resolver.";
+      };
+
       isoSha256 = mkOption {
         type = types.strMatching sha256Pattern;
         description = ''
@@ -725,7 +661,7 @@ in
 
       timeZone = mkOption {
         type = types.nonEmptyStr;
-        default = "Pacific Standard Time";
+        default = "UTC";
         description = "Windows time-zone identifier.";
       };
     };
@@ -741,6 +677,19 @@ in
         type = types.ints.between 4096 24576;
         default = 8192;
         description = "Guest memory ceiling in MiB.";
+      };
+
+      currentMemoryMiB = mkOption {
+        type = types.ints.between 4096 24576;
+        default = cfg.resources.memoryMiB;
+        defaultText = lib.literalExpression "config.virtualisation.libvirtWorkstation.windowsVm.resources.memoryMiB";
+        description = ''
+          Runtime guest allocation in MiB, at most memoryMiB. Changes stage the
+          persistent definition for the next guest start; they do not balloon a
+          running guest. Installation uses the full ceiling. A smaller value
+          needs guest workload measurements: Windows ballooning does not
+          guarantee automatic growth when the guest runs short of memory.
+        '';
       };
 
       diskSizeGiB = mkOption {
@@ -774,6 +723,10 @@ in
   config = mkIf cfg.enable {
     assertions = [
       {
+        assertion = cfg.resources.currentMemoryMiB <= cfg.resources.memoryMiB;
+        message = "windowsVm.resources.currentMemoryMiB must not exceed memoryMiB.";
+      }
+      {
         assertion = workstation.enable;
         message = "windowsVm requires virtualisation.libvirtWorkstation.enable.";
       }
@@ -794,16 +747,16 @@ in
         message = "windowsVm.managementNetwork must be one of windowsVm.networks.";
       }
       {
-        assertion = managementNetwork.mode == "isolated";
+        assertion = (workstation.networks.${cfg.managementNetwork}.mode or null) == "isolated";
         message = "windowsVm.managementNetwork must be host-only.";
       }
       {
-        assertion = lib.any (name: workstation.networks.${name}.mode == "nat") cfg.networks;
+        assertion = lib.any (name: (workstation.networks.${name}.mode or null) == "nat") cfg.networks;
         message = "windowsVm needs one NAT network for updates and runtime egress.";
       }
       {
         assertion = lib.all (
-          name: builtins.hasAttr cfg.name workstation.networks.${name}.reservations
+          name: builtins.hasAttr cfg.name (workstation.networks.${name}.reservations or { })
         ) cfg.networks;
         message = "Every windowsVm network must have a reservation named after the guest.";
       }
@@ -899,8 +852,8 @@ in
       "d ${privateDirectory} 2770 root windows-vm-provisioning -"
       "d /run/libvirt-workstation 0710 root ${qemuGroup} -"
       "d ${runtimeDirectory} 0710 root ${qemuGroup} -"
-      "d /run/libvirt-windows-media 0710 root ${mediaInspectorGroup} -"
-      "d ${mediaInspectionDirectory} 0710 root ${mediaInspectorGroup} -"
+      "d /var/tmp/libvirt-windows-media 0710 root ${mediaInspectorGroup} 1d"
+      "d ${mediaInspectionDirectory} 0710 root ${mediaInspectorGroup} 1d"
     ];
 
     systemd.services.libvirt-windows-vm-setup = {

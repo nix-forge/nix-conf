@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import json
+import os
 import runpy
+import select
+import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    not hasattr(os, "pidfd_open"), reason="NixOS process supervision uses Linux pidfds"
+)
 
 if TYPE_CHECKING:
     from typing import Any
@@ -19,20 +26,64 @@ HELPER = runpy.run_path(
 )
 
 
+def test_group_snapshot_accepts_arbitrary_process_name_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Parse numeric stat fields without interpreting unrelated comm bytes."""
+    process = tmp_path / "123"
+    process.mkdir()
+    stat = process / "stat"
+    stat.write_bytes(b"123 (fixture\xff) S 1 456 0\n")
+    monkeypatch.setitem(
+        HELPER["_unfinished_group"].__globals__, "Path", lambda _: tmp_path
+    )
+    assert not HELPER["_unfinished_group"](789)
+    stat.write_bytes(b"123 (fixture\xff) S 1 789 0\n")
+    assert HELPER["_unfinished_group"](789)
+
+
+def test_finished_health_leader_cannot_leave_closed_pipe_descendants(
+    tmp_path: Path,
+) -> None:
+    """Reject and terminate descendants even after their output pipes close."""
+    child_file = tmp_path / "child.pid"
+    fixture = Path(__file__).parents[1] / "process/fixtures/command.py"
+    with pytest.raises(subprocess.SubprocessError, match="unfinished child processes"):
+        HELPER["run"]([
+            sys.executable,
+            str(fixture),
+            "closed-descendant",
+            str(child_file),
+        ])
+    child = int(child_file.read_text(encoding="utf-8"))
+    try:
+        descriptor = os.pidfd_open(child)
+    except ProcessLookupError:
+        return
+    try:
+        assert select.select([descriptor], [], [], 1)[0]
+    finally:
+        os.close(descriptor)
+
+
 def test_delivery_retries_failure_and_reports_recovery(tmp_path: Path) -> None:
     """Failed delivery must retry; successful warnings and recovery deduplicate."""
     log = tmp_path / "events"
     policy = {
         "stateDirectory": str(tmp_path),
-        "notificationCommand": [sys.executable, "-c", "raise SystemExit(1)"],
+        "notificationCommand": [
+            sys.executable,
+            str(Path(__file__).with_name("fixtures") / "failed_delivery.py"),
+        ],
     }
     assert HELPER["deliver"](policy, ["Probe failed"]) == 1
     assert (tmp_path / "delivery/pending.json").exists()
     assert not (tmp_path / "delivery/delivered.json").exists()
     policy["notificationCommand"] = [
         sys.executable,
-        "-c",
-        f"import pathlib,sys; p=pathlib.Path({str(log)!r}); p.open('a').write(sys.stdin.read())",
+        str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+        "stdin-log",
+        str(log),
     ]
     assert HELPER["deliver"](policy, ["Probe failed"]) == 0
     assert HELPER["deliver"](policy, ["Probe failed"]) == 0
@@ -56,7 +107,10 @@ def test_no_channel_retains_warning_and_test_does_not_acknowledge_it(
         == "warning"
     )
     assert HELPER["deliver"](policy, ["Missing backup"], test=True) == 1
-    policy["notificationCommand"] = [sys.executable, "-c", "pass"]
+    policy["notificationCommand"] = [
+        sys.executable,
+        str(Path(__file__).with_name("fixtures") / "successful_delivery.py"),
+    ]
     assert HELPER["deliver"](policy, ["Missing backup"], test=True) == 0
     assert not (tmp_path / "delivery/delivered.json").exists()
     assert (
@@ -89,8 +143,10 @@ def test_probes_fail_closed_and_keep_output_private(tmp_path: Path) -> None:
         "service": {
             "command": [
                 sys.executable,
-                "-c",
-                "print('private-token'); raise SystemExit(1)",
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "failed_probe_with_private_output.py"
+                ),
             ],
             "receipt": None,
             "timeoutSeconds": 1,
@@ -118,16 +174,17 @@ def test_delivery_cleans_up_children_and_retains_pending(
 ) -> None:
     """A timed-out or asynchronous channel cannot hang or acknowledge delivery."""
     marker = tmp_path / "late-delivery"
-    child = f"import pathlib,time; time.sleep(0.6); pathlib.Path({str(marker)!r}).touch(); time.sleep(2)"
-    output = (
-        ""
-        if inherit_pipes
-        else ", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL"
-    )
-    hook = f"import subprocess,sys; subprocess.Popen([sys.executable, '-c', {child!r}]{output})"
     policy = {
         "stateDirectory": str(tmp_path),
-        "notificationCommand": [sys.executable, "-c", hook],
+        "notificationCommand": [
+            sys.executable,
+            str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+            "spawn-delayed",
+            str(marker),
+            "0.6",
+            "2",
+            "inherit" if inherit_pipes else "redirect",
+        ],
     }
     actual_run = HELPER["run"]
 

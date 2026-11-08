@@ -1,0 +1,14 @@
+<pool type="dir">
+  <name>@cfg_storage_poolName@</name>
+  <features>
+    <cow state="@if_cfg_storage_nocow_then_no_else_yes@"/>
+  </features>
+  <target>
+    <path>@cfg_storage_root@</path>
+    <permissions>
+      <mode>0710</mode>
+      <owner>0</owner>
+      <group>@toString_config_ids_gids_qemu_libvirtd@</group>
+    </permissions>
+  </target>
+</pool>

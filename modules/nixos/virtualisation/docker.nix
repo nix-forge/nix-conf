@@ -47,9 +47,11 @@
 
   # The upstream rootless NixOS unit is enabled at every user login and
   # restarts unconditionally. Keep it disabled until `docker-up` starts it;
-  # a clean stop stays stopped and costs no daemon CPU or memory.
+  # a clean stop stays stopped and costs no daemon CPU or memory. System
+  # accounts such as the greeter cannot start a Docker daemon.
   systemd.user.services.docker = {
     wantedBy = lib.mkForce [ ];
+    unitConfig.ConditionUser = lib.mkForce "!@system";
     serviceConfig.Restart = lib.mkForce "on-failure";
   };
 }
