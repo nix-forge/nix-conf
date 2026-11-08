@@ -1,4 +1,14 @@
-{ config, ... }: {
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  fixes = import ../../../../../overlays/temporary { inherit inputs lib pkgs; };
+in
+{
   services.xserver.videoDrivers = [ "nvidia" ];
 
   # Aquamarine separates AQ_DRM_DEVICES entries with colons, which makes the
@@ -32,7 +42,7 @@
       open = true;
       nvidiaSettings = true;
       videoAcceleration = true;
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      package = fixes.apply "nvidia-bin-patchelf" config.boot.kernelPackages.nvidiaPackages.production;
     };
   };
 }

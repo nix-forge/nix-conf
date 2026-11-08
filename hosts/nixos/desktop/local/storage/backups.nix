@@ -7,9 +7,50 @@
 let
   cfg = config.hardware.storage.encryptedRoot;
   destinations = cfg.backup.destinations;
+  defaultExcludes = [
+    "**/.snapshots"
+    "/home/*/.cache"
+    "/home/*/.local/share/docker"
+    "/var/lib/docker"
+    "/var/lib/containerd"
+    "/var/lib/libvirt"
+    "/var/lib/desktop-storage/restore-tests"
+    "/var/lib/systemd/coredump"
+  ];
+  # Share the bulk lane with user builds; this root-owned lock is provisioned
+  # by the desktop memory policy. The per-repository Restic lock is separate.
+  bulkLock = "/run/workstation-workloads/bulk.lock";
+  # The repository index remains resident even when source trees are excluded.
+  # Share the bulk lane's ceiling and leave kernel/cache headroom above the Go
+  # soft limit. The 8 GiB pressure threshold caused index/traversal reclaim
+  # stalls; keep a 1 GiB margin below the unchanged 10 GiB hard ceiling.
+  memoryBudget = {
+    MemoryAccounting = true;
+    MemoryHigh = "9G";
+    MemoryMax = "10G";
+    MemorySwapMax = "1G";
+    OOMPolicy = "kill";
+    CPUWeight = 25;
+    IOWeight = 25;
+    # Restic flushes its current index when interrupted. Give it time to exit
+    # before systemd enforces the cgroup cleanup boundary.
+    KillSignal = "SIGINT";
+    KillMode = "control-group";
+    TimeoutStopSec = "5min";
+  };
+  # Backups and verification can overlap with exclusive repository maintenance.
+  # Let Restic wait for the lock instead of recording a spurious failed attempt.
+  restic = pkgs.writeShellApplication {
+    name = "restic";
+    text = (import ../../../../../lib/templates/text.nix) ./scripts/restic-lock-wait.sh {
+      restic = lib.getExe pkgs.restic;
+      flock = lib.getExe' pkgs.util-linux "flock";
+      inherit bulkLock;
+    };
+  };
   credentialPath = lib.types.strMatching "/[^\n\r ]+";
   python = lib.getExe pkgs.python3;
-  helper = ./backup-helper.py;
+  helper = ./backup_helper.py;
   helperConfig = pkgs.writeText "desktop-backup-policy.json" (
     builtins.toJSON {
       stateDirectory = "/var/lib/desktop-storage";
@@ -21,16 +62,18 @@ let
     name = "desktop-backup-check";
     runtimeInputs = [
       pkgs.python3
-      pkgs.restic
+      restic
       pkgs.coreutils
       pkgs.util-linux
       config.programs.ssh.package
       pkgs.procps
       config.systemd.package
     ];
-    text = ''
-      exec ${python} ${helper} ${helperConfig} "$@"
-    '';
+    text = (import ../../../../../lib/templates/text.nix) ./scripts/desktop-backup-check.sh {
+      inherit python;
+      inherit helper;
+      inherit helperConfig;
+    };
   };
   guard = name: "${python} ${helper} ${helperConfig} guard ${lib.escapeShellArg name}";
   stamp =
@@ -40,6 +83,7 @@ let
     "${python} ${helper} ${helperConfig} finish ${lib.escapeShellArg name} ${operation}";
   jobName = name: "desktop-${name}";
   resticJob = name: destination: {
+    package = restic;
     inherit (destination) repositoryFile passwordFile environmentFile;
     initialize = false;
     createWrapper = true;
@@ -52,15 +96,18 @@ let
     extraBackupArgs = [
       "--tag desktop-files"
       "--exclude-caches"
+      "--json"
     ];
-    backupPrepareCommand = ''
-      #!${pkgs.runtimeShell}
-      set -eu
-      ${guard name}
-      ${pkgs.util-linux}/bin/mountpoint -q /srv/data
-      ${pkgs.util-linux}/bin/mountpoint -q /srv/data/work
-      ${python} ${helper} ${helperConfig} canary
-    '';
+    backupPrepareCommand =
+      (import ../../../../../lib/templates/text.nix) ./scripts/desktop-backup-check-body.sh.in
+        {
+          pkgs_runtimeShell = pkgs.runtimeShell;
+          guard_name = guard name;
+          pkgs_util_linux = pkgs.util-linux;
+          inherit python;
+          inherit helper;
+          inherit helperConfig;
+        };
     timerConfig = {
       OnCalendar = destination.schedule;
       Persistent = true;
@@ -72,7 +119,7 @@ let
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     path = [
-      pkgs.restic
+      restic
       pkgs.coreutils
       pkgs.util-linux
       config.programs.ssh.package
@@ -81,35 +128,38 @@ let
       "PATH"
     ];
     unitConfig.RequiresMountsFor = destination.requiredMounts;
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      UMask = "0077";
-      PrivateTmp = true;
-      CacheDirectory = "desktop-backup-verify-${name}";
-      CacheDirectoryMode = "0700";
-      Nice = 15;
-      IOSchedulingClass = "idle";
-      ExecStopPost = [ (finish name "verification") ];
-    }
-    // lib.optionalAttrs (destination.environmentFile != null) {
-      EnvironmentFile = destination.environmentFile;
+    serviceConfig =
+      memoryBudget
+      // {
+        Type = "oneshot";
+        User = "root";
+        UMask = "0077";
+        PrivateTmp = true;
+        CacheDirectory = "desktop-backup-verify-${name}";
+        CacheDirectoryMode = "0700";
+        Nice = 15;
+        IOSchedulingClass = "idle";
+        ExecStopPost = [ (finish name "verification") ];
+      }
+      // lib.optionalAttrs (destination.environmentFile != null) {
+        EnvironmentFile = destination.environmentFile;
+      };
+    script = (import ../../../../../lib/templates/text.nix) ./scripts/backups-script.sh {
+      guard_name = guard name;
+      stamp_name_integrity = stamp name "integrity";
+      inherit python;
+      inherit helper;
+      inherit helperConfig;
+      lib_escapeShellArg_name = lib.escapeShellArg name;
+      stamp_name_restore = stamp name "restore";
     };
-    script = ''
-      set -eu
-      ${guard name}
-      restic check --read-data
-      ${stamp name "integrity"}
-      ${python} ${helper} ${helperConfig} restore ${lib.escapeShellArg name}
-      ${stamp name "restore"}
-    '';
   };
   coldJob = name: destination: {
     description = "Attended rescue-mode backup of durable VM and container data to ${name}";
     # Deliberately no timer and no automatic workload stop/start. The operator
     # enters rescue mode and keeps application writers stopped for this job.
     path = [
-      pkgs.restic
+      restic
       pkgs.coreutils
       pkgs.util-linux
       pkgs.procps
@@ -119,21 +169,26 @@ let
     environment = removeAttrs config.systemd.services."restic-backups-${jobName name}".environment [
       "PATH"
     ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      UMask = "0077";
-      PrivateTmp = true;
-      CacheDirectory = "desktop-backup-cold-${name}";
-      CacheDirectoryMode = "0700";
-      ExecStopPost = [ (finish name "cold") ];
-    }
-    // lib.optionalAttrs (destination.environmentFile != null) {
-      EnvironmentFile = destination.environmentFile;
+    serviceConfig =
+      memoryBudget
+      // {
+        Type = "oneshot";
+        User = "root";
+        UMask = "0077";
+        PrivateTmp = true;
+        CacheDirectory = "desktop-backup-cold-${name}";
+        CacheDirectoryMode = "0700";
+        ExecStopPost = [ (finish name "cold") ];
+      }
+      // lib.optionalAttrs (destination.environmentFile != null) {
+        EnvironmentFile = destination.environmentFile;
+      };
+    script = (import ../../../../../lib/templates/text.nix) ./scripts/run-cold-backup.sh {
+      inherit python;
+      inherit helper;
+      inherit helperConfig;
+      lib_escapeShellArg_name = lib.escapeShellArg name;
     };
-    script = ''
-      exec ${python} ${helper} ${helperConfig} cold-backup ${lib.escapeShellArg name}
-    '';
   };
 in
 {
@@ -145,8 +200,12 @@ in
         "/var/lib/libvirt"
         "/var/lib/docker"
         "/var/lib/containerd"
-        "/home/ianmh/.local/share/docker"
-      ];
+      ]
+      ++ lib.mapAttrsToList (name: _: "/home/${name}/.local/share/docker") (
+        lib.filterAttrs (
+          name: user: (user.isNormalUser or false) && user.home == "/home/${name}"
+        ) config.users.users
+      );
       description = ''
         Durable application state captured by desktop-backup-cold-<destination>
         in attended rescue mode with all VM/container writers stopped. Includes
@@ -167,16 +226,7 @@ in
     };
     exclude = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [
-        "**/.snapshots"
-        "/home/*/.cache"
-        "/home/*/.local/share/docker"
-        "/var/lib/docker"
-        "/var/lib/containerd"
-        "/var/lib/libvirt"
-        "/var/lib/desktop-storage/restore-tests"
-        "/var/lib/systemd/coredump"
-      ];
+      default = [ ];
       description = "Caches and live application trees omitted here; the latter require the separate cold backup job.";
     };
     destinations = lib.mkOption {
@@ -267,6 +317,9 @@ in
   };
 
   config = {
+    # Option defaults disappear when any caller defines a list, even mkAfter.
+    # Make the baseline a composable definition so host additions retain it.
+    hardware.storage.encryptedRoot.backup.exclude = lib.mkBefore defaultExcludes;
     assertions = lib.concatLists (
       lib.mapAttrsToList (name: destination: [
         {
@@ -291,6 +344,27 @@ in
         }
       ]) destinations
     );
+    # Retire the named transitional overrides once the declarative units are
+    # installed. Otherwise an older ExecStart or RAM cap can survive activation.
+    # Keep arbitrary operator drop-ins and property overrides untouched.
+    system.activationScripts.desktopBackupPolicyCleanup = lib.mkIf cfg.enable {
+      deps = [ "etc" ];
+      text =
+        lib.concatMapStringsSep "\n"
+          (unit: ''
+            ${pkgs.coreutils}/bin/rm -f -- \
+              /etc/systemd/system.control/${unit}.d/80-recurring-memory-fix.conf \
+              /etc/systemd/system.control/${unit}.d/90-backup-policy-preview.conf \
+              /run/systemd/system/${unit}.d/90-maintenance-stop.conf
+          '')
+          (
+            lib.concatMap (name: [
+              "restic-backups-${jobName name}.service"
+              "desktop-backup-verify-${name}.service"
+              "desktop-backup-cold-${name}.service"
+            ]) (lib.attrNames destinations)
+          );
+    };
     services.restic.backups = lib.mkIf cfg.enable (
       lib.mapAttrs' (
         name: destination: lib.nameValuePair (jobName name) (resticJob name destination)
@@ -309,7 +383,7 @@ in
             "/srv/data/work"
           ]
           ++ destination.requiredMounts;
-          serviceConfig = {
+          serviceConfig = memoryBudget // {
             UMask = "0077";
             Nice = 15;
             IOSchedulingClass = "idle";

@@ -1,0 +1,304 @@
+# MacBook Rift policy. OCR is injected from macos.ocrCapture.command by the module.
+
+[settings]
+default_disable = false
+animate = false
+focus_follows_mouse = false
+mouse_follows_focus = false
+mouse_hides_on_focus = false
+hot_reload = true
+run_on_start = []
+
+[settings.layout]
+mode = "traditional"
+window_insertion_point = "next_to_selection"
+
+[settings.layout.traditional]
+equalize_nodes = true
+
+[settings.layout.scrolling]
+animate = false
+column_width_ratio = 0.85
+min_column_width_ratio = 0.5
+max_column_width_ratio = 1.0
+preserve_window_sizes = false
+expand_single_column = true
+alignment = "center"
+focus_navigation_style = "niri"
+
+[settings.layout.scrolling.gestures]
+enabled = false
+
+[settings.layout.stack]
+stack_offset = 30.0
+
+[settings.layout.gaps.outer]
+top = 0
+left = 0
+bottom = 0
+right = 0
+
+[settings.layout.gaps.inner]
+horizontal = 0
+vertical = 0
+
+[settings.ui.menu_bar]
+enabled = true
+show_empty = false
+show_binding_mode = true
+mode = "all"
+display_style = "label"
+active_label = "name"
+
+[settings.ui.mission_control]
+# Keep capture-related Rift features disabled; no Screen Recording setup.
+enabled = false
+window_previews = false
+show_empty_workspaces = true
+
+# Keep native trackpad gestures during the first migration. Enable four-finger
+# Rift gestures only after checking macOS gesture conflicts.
+[settings.gestures]
+enabled = false
+
+# Keep ordinary mouse/trackpad behavior during the initial migration.
+[settings.drag_drop]
+enabled = false
+
+[virtual_workspaces]
+mode = "global"
+enabled = true
+default_workspace_count = 20
+default_workspace = 0
+auto_assign_windows = true
+preserve_focus_per_workspace = true
+workspace_auto_back_and_forth = false
+prevent_wrapping = false
+reapply_app_rules_on_title_change = false
+workspace_names = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "B",
+  "C",
+  "D",
+  "M",
+  "N",
+  "P",
+  "T",
+  "E",
+  "A",
+  "S",
+  "Z",
+]
+
+# Numbered workspaces stay flexible scratch areas with the traditional default.
+# No display placement rules. Spacious columns for content/editors/agents/terminal.
+workspace_rules = [
+  { workspace = "C", layout = "scrolling" },
+  { workspace = "A", layout = "scrolling" },
+  { workspace = "E", layout = "scrolling" },
+  { workspace = "T", layout = "scrolling" },
+]
+
+# Rift selects ONE most-specific matching app rule; rules do not merge.
+# Put single-condition dialog exceptions BEFORE single-condition app routes.
+# Equal specificity uses earlier order, so native dialogs stay contextual. Do not add
+# extra conditions to destination rules without updating these exceptions.
+# v0.7.2 rejects repeated AX role/subrole strings across app rules.
+# Never force management of system UI; normal manageability heuristics apply.
+app_rules = [
+  { ax_subrole = "AXDialog", manage = false },
+  { ax_subrole = "AXSystemDialog", manage = false },
+  { ax_subrole = "AXFloatingWindow", manage = false },
+  { ax_role = "AXSheet", manage = false },
+
+  # Gecko extension popouts belong to Zen, not the Bitwarden desktop app.
+  # Match the extension wrapper and give it compact initial geometry.
+  { app_id = "app.zen-browser.zen", title_regex = "^Extension: [(]Bitwarden Password Manager[)](?: - .*)?$", floating = true, size = { w = 480.0, h = 630.0 }, position = { x = 0.5, y = 0.5 } },
+
+  # Contextual security and utility windows: float, without a destination.
+  { app_id = "com.bitwarden.desktop", floating = true },
+  { app_id = "com.apple.Passwords", floating = true },
+  { app_id = "com.apple.systempreferences", floating = true },
+  { app_id = "com.apple.ActivityMonitor", floating = true },
+  { app_id = "com.apple.calculator", floating = true },
+  { app_id = "com.apple.Dictionary", floating = true },
+  { app_id = "com.apple.AddressBook", floating = true },
+  { app_id = "com.apple.clock", floating = true },
+  { app_id = "com.apple.weather", floating = true },
+  { app_id = "com.apple.Maps", floating = true },
+  { app_id = "com.apple.findmy", floating = true },
+  { app_id = "com.apple.Home", floating = true },
+  { app_id = "com.apple.shortcuts", floating = true },
+  { app_id = "com.apple.FontBook", floating = true },
+  { app_id = "com.apple.DiskUtility", floating = true },
+  { app_id = "com.apple.audio.AudioMIDISetup", floating = true },
+  { app_id = "com.apple.Console", floating = true },
+  { app_id = "com.apple.SystemProfiler", floating = true },
+  { app_id = "com.apple.ColorSyncUtility", floating = true },
+  { app_id = "com.apple.DigitalColorMeter", floating = true },
+  { app_id = "com.wooting.wootility", floating = true },
+  { app_id = "com.lujjjh.LinearMouse", floating = true },
+  { app_id = "io.github.ianhollow.personalmonitor", floating = true },
+  { app_id = "com.wireguard.macos", floating = true },
+
+  { app_id = "app.zen-browser.zen", workspace = "C", focus = false },
+
+  { app_id = "com.microsoft.VSCode", workspace = "E", focus = false },
+  { app_id = "com.todesktop.230313mzl4w4u92", workspace = "E", focus = false },
+  { app_id = "com.apple.dt.Xcode", workspace = "E", focus = false },
+
+  { app_id = "com.t3tools.t3code", workspace = "A", focus = false },
+  { app_id = "com.openai.codex", workspace = "A", focus = false },
+  { app_id = "com.anthropic.claudefordesktop", workspace = "A", focus = false },
+
+  { app_id = "com.mitchellh.ghostty", workspace = "T", focus = false },
+  { app_id = "com.apple.Terminal", workspace = "T", focus = false },
+
+  { app_id = "com.apple.MobileSMS", workspace = "S", focus = false },
+  { app_id = "org.whispersystems.signal-desktop", workspace = "S", focus = false },
+  { app_id = "dev.vencord.vesktop", workspace = "S", focus = false },
+  { app_id = "net.whatsapp.WhatsApp", workspace = "S", focus = false },
+
+  { app_id = "com.apple.iCal", workspace = "N", focus = false },
+  { app_id = "com.apple.reminders", workspace = "N", focus = false },
+  { app_id = "com.apple.mail", workspace = "S", focus = false },
+
+  { app_id = "com.valvesoftware.steam", workspace = "M", focus = false },
+  { app_id = "org.prismlauncher.PrismLauncher", workspace = "M", focus = false },
+  { app_id = "com.apple.games", workspace = "M", focus = false },
+  { app_id = "com.apple.Chess", workspace = "M", focus = false },
+
+  { app_id = "us.zoom.xos", workspace = "Z", focus = false },
+  { app_id = "com.microsoft.teams2", workspace = "S", focus = false },
+  { app_id = "com.apple.FaceTime", workspace = "S", focus = false },
+  { app_id = "com.apple.mobilephone", workspace = "S", focus = false },
+
+  { app_id = "com.apple.Pages", workspace = "D", focus = false },
+  { app_id = "com.apple.Numbers", workspace = "D", focus = false },
+  { app_id = "com.apple.Keynote", workspace = "D", focus = false },
+  { app_id = "org.libreoffice.script", workspace = "D", focus = false },
+  { app_id = "com.apple.TextEdit", workspace = "D", focus = false },
+
+  { app_id = "com.spotify.client", workspace = "M", focus = false },
+  { app_id = "com.apple.Music", workspace = "M", focus = false },
+  { app_id = "org.jeffvli.feishin", workspace = "M", focus = false },
+  { app_id = "com.apple.logic10", workspace = "M", focus = false },
+  { app_id = "com.apple.podcasts", workspace = "M", focus = false },
+  { app_id = "com.apple.VoiceMemos", workspace = "M", focus = false },
+
+  { app_id = "com.apple.Notes", workspace = "N", focus = false },
+  { app_id = "notion.id", workspace = "N", focus = false },
+  { app_id = "com.apple.freeform", workspace = "N", focus = false },
+  { app_id = "com.apple.journal", workspace = "N", focus = false },
+  { app_id = "com.apple.Stickies", workspace = "N", focus = false },
+  { app_id = "com.apple.iBooksX", workspace = "N", focus = false },
+  { app_id = "com.apple.news", workspace = "N", focus = false },
+
+  { app_id = "org.darktable", workspace = "P", focus = false },
+  { app_id = "com.apple.Photos", workspace = "P", focus = false },
+  { app_id = "com.apple.Image_Capture", workspace = "P", focus = false },
+  { app_id = "com.apple.PhotoBooth", workspace = "P", focus = false },
+  { app_id = "com.apple.GenerativePlaygroundApp", workspace = "P", focus = false },
+
+  { app_id = "org.moonfin.app", workspace = "M", focus = false },
+  { app_id = "io.mpv", workspace = "M", focus = false },
+  { app_id = "com.apple.TV", workspace = "M", focus = false },
+
+  # B is available for manual use. Secondary browsers, Finder, Preview,
+  # QuickTime, Screen Sharing, capture
+  # tools, and system agents have no destination rule. Keep them contextual.
+]
+[keys]
+# Preserve workspace muscle memory. Commands take ZERO-based numeric indices.
+"Alt + 1" = { switch_to_workspace = 0 }
+"Alt + 2" = { switch_to_workspace = 1 }
+"Alt + 3" = { switch_to_workspace = 2 }
+"Alt + 4" = { switch_to_workspace = 3 }
+"Alt + 5" = { switch_to_workspace = 4 }
+"Alt + 6" = { switch_to_workspace = 5 }
+"Alt + 7" = { switch_to_workspace = 6 }
+"Alt + 8" = { switch_to_workspace = 7 }
+"Alt + 9" = { switch_to_workspace = 8 }
+"Alt + B" = { switch_to_workspace = 9 }
+"Alt + C" = { switch_to_workspace = 10 }
+"Alt + D" = { switch_to_workspace = 11 }
+"Alt + M" = { switch_to_workspace = 12 }
+"Alt + N" = { switch_to_workspace = 13 }
+"Alt + P" = { switch_to_workspace = 14 }
+"Alt + T" = { switch_to_workspace = 15 }
+"Alt + E" = { switch_to_workspace = 16 }
+"Alt + A" = { switch_to_workspace = 17 }
+"Alt + S" = { switch_to_workspace = 18 }
+"Alt + Z" = { switch_to_workspace = 19 }
+
+"Alt + Shift + 1" = { move_window_to_workspace = { workspace = 0, follow = false } }
+"Alt + Shift + 2" = { move_window_to_workspace = { workspace = 1, follow = false } }
+"Alt + Shift + 3" = { move_window_to_workspace = { workspace = 2, follow = false } }
+"Alt + Shift + 4" = { move_window_to_workspace = { workspace = 3, follow = false } }
+"Alt + Shift + 5" = { move_window_to_workspace = { workspace = 4, follow = false } }
+"Alt + Shift + 6" = { move_window_to_workspace = { workspace = 5, follow = false } }
+"Alt + Shift + 7" = { move_window_to_workspace = { workspace = 6, follow = false } }
+"Alt + Shift + 8" = { move_window_to_workspace = { workspace = 7, follow = false } }
+"Alt + Shift + 9" = { move_window_to_workspace = { workspace = 8, follow = false } }
+"Alt + Shift + B" = { move_window_to_workspace = { workspace = 9, follow = false } }
+"Alt + Shift + C" = { move_window_to_workspace = { workspace = 10, follow = false } }
+"Alt + Shift + D" = { move_window_to_workspace = { workspace = 11, follow = false } }
+"Alt + Shift + M" = { move_window_to_workspace = { workspace = 12, follow = false } }
+"Alt + Shift + N" = { move_window_to_workspace = { workspace = 13, follow = false } }
+"Alt + Shift + P" = { move_window_to_workspace = { workspace = 14, follow = false } }
+"Alt + Shift + T" = { move_window_to_workspace = { workspace = 15, follow = false } }
+"Alt + Shift + E" = { move_window_to_workspace = { workspace = 16, follow = false } }
+"Alt + Shift + A" = { move_window_to_workspace = { workspace = 17, follow = false } }
+"Alt + Shift + S" = { move_window_to_workspace = { workspace = 18, follow = false } }
+"Alt + Shift + Z" = { move_window_to_workspace = { workspace = 19, follow = false } }
+
+# N gains the missing, symmetric Option+Shift+N move shortcut.
+"Alt + Tab" = "switch_to_last_workspace"
+"Alt + H" = { move_focus = "left" }
+"Alt + J" = { move_focus = "down" }
+"Alt + K" = { move_focus = "up" }
+"Alt + L" = { move_focus = "right" }
+"Alt + Shift + H" = { move_node = "left" }
+"Alt + Shift + J" = { move_node = "down" }
+"Alt + Shift + K" = { move_node = "up" }
+"Alt + Shift + L" = { move_node = "right" }
+"Alt + Minus" = { resize_window_shrink = "smart" }
+"Alt + Equal" = { resize_window_grow = "smart" }
+"Alt + Shift + F" = "toggle_fullscreen"
+"Alt + Slash" = "toggle_orientation"
+"Alt + Comma" = "toggle_stack"
+"Alt + Shift + R" = "reload_config"
+"Alt + Shift + Semicolon" = { binding_mode = "service" }
+
+# Easy additions: float, temporary tiling suspension, and terminal.
+# No Overview binding: capture-related Rift features stay disabled.
+"Alt + Shift + Space" = "toggle_window_floating"
+"Alt + Ctrl + Z" = "toggle_space_activated"
+"Alt + Enter" = { exec = ["/usr/bin/open", "-b", "com.mitchellh.ghostty"] }
+
+# Modes replace the main keymap. Escape always returns to ordinary shortcuts.
+[binding_modes.service]
+"Escape" = [{ binding_mode = "default" }, "reload_config"]
+"F" = ["toggle_window_floating", { binding_mode = "default" }]
+"R" = ["balance", { binding_mode = "default" }]
+"S" = [
+  { set_workspace_layout = { mode = "scrolling" } },
+  { binding_mode = "default" },
+]
+"T" = [
+  { set_workspace_layout = { mode = "traditional" } },
+  { binding_mode = "default" },
+]
+"C" = ["center_selection", { binding_mode = "default" }]
+"Alt + Shift + H" = [{ join_window = "left" }, { binding_mode = "default" }]
+"Alt + Shift + J" = [{ join_window = "down" }, { binding_mode = "default" }]
+"Alt + Shift + K" = [{ join_window = "up" }, { binding_mode = "default" }]
+"Alt + Shift + L" = [{ join_window = "right" }, { binding_mode = "default" }]

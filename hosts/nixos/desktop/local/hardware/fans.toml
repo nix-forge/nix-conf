@@ -1,0 +1,79 @@
+# First-start policy; CoolerControl owns subsequent edits and calibration.
+# Confirmed wiring: PUMP_FAN1 = shared Liquid Freezer II PWM (no tach),
+# SYS_FAN1 = ARCTIC top exhaust; SYS_FAN2 = front Noctuas.
+# Keep the shared AIO circuit running; never perform fan-stop calibration.
+[devices]
+[legacy690]
+
+[device-settings.7bfee7e15e0af819a1c74ac2f088d69197bdae5f361d2af4da2960c931be3cc7]
+fan2 = { profile_uid = "quiet-aio-cpu" }
+fan3 = { profile_uid = "quiet-case-mix" }
+fan4 = { profile_uid = "quiet-case-mix" }
+
+[[profiles]]
+uid = "0"
+name = "Unmanaged"
+p_type = "Default"
+function_uid = "0"
+
+[[profiles]]
+uid = "quiet-aio-cpu"
+name = "Liquid Freezer II - CPU only"
+p_type = "Graph"
+function_uid = "quiet-response"
+speed_profile = [[30, 60], [60, 60], [70, 70], [80, 85], [90, 100]]
+temp_source = { device_uid = "fb7c8060ec8a8a6f71c84972bdb15935dc68d6853e42ab92686f8bb2ce731fae", temp_name = "temp1" }
+
+[[profiles]]
+uid = "quiet-case-cpu"
+name = "Case airflow - CPU demand"
+p_type = "Graph"
+function_uid = "quiet-response"
+speed_profile = [[30, 35], [65, 35], [75, 45], [85, 65], [92, 100]]
+temp_source = { device_uid = "fb7c8060ec8a8a6f71c84972bdb15935dc68d6853e42ab92686f8bb2ce731fae", temp_name = "temp1" }
+
+[[profiles]]
+uid = "quiet-case-gpu"
+name = "Case airflow - GPU demand"
+p_type = "Graph"
+function_uid = "quiet-response"
+speed_profile = [[30, 35], [50, 35], [60, 45], [70, 60], [78, 80], [83, 100]]
+temp_source = { device_uid = "da1e13341ec1543dbee29e9c117b59d153e828f66befc23bfcdc4f585f4561e4", temp_name = "GPU Temp" }
+
+[[profiles]]
+uid = "quiet-case-mix"
+name = "Case fans - max CPU and GPU"
+p_type = "Mix"
+function_uid = "0"
+member_profile_uids = ["quiet-case-cpu", "quiet-case-gpu"]
+mix_function_type = "Max"
+
+[[functions]]
+uid = "0"
+name = "Default Function"
+f_type = "Identity"
+
+[[functions]]
+uid = "quiet-response"
+name = "Fast up, quiet slow down"
+f_type = "Standard"
+duty_minimum = 2
+duty_maximum = 100
+step_size_min_decreasing = 1
+step_size_max_decreasing = 3
+threshold_hopping = true
+bypass_min_at_extremes = true
+deviance = 3.0
+response_delay = 15
+only_downward = true
+
+[settings]
+apply_on_boot = true
+startup_delay = 2
+ipv4_address = "127.0.0.1"
+ipv6_address = "::1"
+port = 11987
+# The Liquid Freezer II uses motherboard PWM, not USB liquidctl.
+liquidctl_integration = false
+# NixOS owns Super-I/O driver selection.
+sensors_auto_detect = false

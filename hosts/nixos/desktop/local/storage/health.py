@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import os
+import selectors
 import shutil
 import signal
 import subprocess
@@ -16,11 +17,37 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from notification_process import communicate, defer_cancellation
+
 if TYPE_CHECKING:
     from typing import Any
 
 MAX_REPORT_AGE = 7200
 MAX_CLOCK_SKEW = 60
+
+
+def _reap(process: subprocess.Popen[str]) -> None:
+    """Bound exit observation after communication using a Linux pidfd.
+
+    Communication owns its observer until exit. A kernel-uninterruptible child
+    can delay that preceding cleanup; the service manager is the outer owner.
+
+    Raises:
+        subprocess.TimeoutExpired: The killed child has not exited within five seconds.
+
+    """
+    if process.returncode is not None:
+        return
+    descriptor = os.pidfd_open(process.pid)
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(descriptor, selectors.EVENT_READ)
+            if not selector.select(5):
+                raise subprocess.TimeoutExpired(process.args, 5)
+        _, status = os.waitpid(process.pid, 0)
+        process.returncode = os.waitstatus_to_exitcode(status)
+    finally:
+        os.close(descriptor)
 
 
 def run(
@@ -33,6 +60,7 @@ def run(
 
     Raises:
         subprocess.SubprocessError: The command left unfinished child processes.
+        ChildProcessError: Another waiter violated exclusive child ownership.
 
     """
     process = subprocess.Popen(
@@ -43,28 +71,53 @@ def run(
         text=True,
         start_new_session=True,
     )
+    owns_child = True
     try:
-        stdout, stderr = process.communicate(input=payload, timeout=timeout)
-        try:
-            os.killpg(process.pid, 0)
-        except ProcessLookupError:
-            return subprocess.CompletedProcess(
-                arguments, process.returncode, stdout, stderr
+        stdout, stderr = communicate(process, input=payload, timeout=timeout)
+        if _unfinished_group(process.pid):
+            raise subprocess.SubprocessError(
+                "Health command left unfinished child processes"
             )
-        raise subprocess.SubprocessError(
-            "Health command left unfinished child processes"
-        )
+    except ChildProcessError:
+        owns_child = False
+        raise
     finally:
-        # Do not call communicate() again after timeout: an escaped child may
-        # retain its pipes. Kill the owned group, reap the leader, close pipes.
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
+        with defer_cancellation():
+            # Do not call communicate() again after timeout: an escaped child may
+            # retain its pipes. Kill the owned group, reap the leader, close pipes.
+            if owns_child:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(process.pid, signal.SIGKILL)
+            try:
+                if owns_child:
+                    _reap(process)
+            finally:
+                for stream in (process.stdin, process.stdout, process.stderr):
+                    if stream is not None:
+                        stream.close()
+    return subprocess.CompletedProcess(arguments, process.returncode, stdout, stderr)
+
+
+def _unfinished_group(leader: int) -> bool:
+    """Inspect one finite group snapshot while the retained leader owns its PID.
+
+    A snapshot is diagnostic evidence. Cleanup kills the owned group before
+    reaping even when racing descendants were absent from this snapshot.
+
+    Returns:
+        Whether another process was observed in the command's process group.
+
+    """
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdecimal() or int(entry.name) == leader:
+            continue
         try:
-            process.wait(timeout=5)
-        finally:
-            for stream in (process.stdin, process.stdout, process.stderr):
-                if stream is not None:
-                    stream.close()
+            fields = (entry / "stat").read_bytes().rsplit(b")", 1)[1].split()
+        except FileNotFoundError, ProcessLookupError:  # ruff: ignore[try-except-continue] - A process may exit during this finite snapshot.
+            continue
+        if int(fields[2]) == leader:
+            return True
+    return False
 
 
 def collect(policy: dict[str, Any]) -> list[str]:

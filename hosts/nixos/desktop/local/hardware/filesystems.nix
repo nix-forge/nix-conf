@@ -6,235 +6,79 @@
   ...
 }:
 let
-  encryptedRoot = config.hardware.storage.encryptedRoot.enable;
-  rootLabel = "nixos";
-  swapDevice = "/dev/disk/by-partuuid/0ac4f78a-c78c-44b7-a754-453a4b9d7a5e";
-  swapDeviceName = lib.replaceStrings [ "\\" ] [ "" ] (utils.escapeSystemdPath swapDevice);
-  bootLabel = "boot";
-  homelabLuksDevice = "/dev/disk/by-uuid/fd63a64b-e779-4557-bc98-cff841faf19b";
-  homelabMapper = "/dev/mapper/homelab";
   homelabMountPoint = "/mnt/homelab";
   homelabScrubService = "btrfs-scrub-${utils.escapeSystemdPath homelabMountPoint}";
   homelabKeyFile = config.hardware.storage.encryptedRoot.homelabKeyFile;
-  homelabKeySource = if encryptedRoot then homelabKeyFile else "none";
-  homelabCryptOptions = lib.concatStringsSep "," (
-    [
-      "luks"
-      "noauto"
-      "nofail"
-      "x-systemd.device-timeout=10s"
-    ]
-    ++ lib.optionals encryptedRoot [ "headless" ]
-  );
-  gamesDevice = "/dev/disk/by-uuid/f4595c1c-d701-45f2-b04a-d33e7ea0e8f6";
-  # The shared Steam library is system storage, not a user's home data. Keep
-  # it at a neutral mount point so any user or launcher can opt into it without
-  # hard-coding a particular account's home directory.
-  gamesMountPoint = "/mnt/games";
-  gamesGroup = "users";
-
-  mkFS = label: fsType: { inherit label fsType; };
-  btrfsOptions = subvol: extra: { options = [ "subvol=${subvol}" ] ++ extra; };
-  defaultBTRFSOptions = [
-    # `compress` applies Btrfs' incompressibility heuristic.  Unlike
-    # `compress-force`, it avoids spending CPU trying to compress game assets,
-    # package archives, and other already-compressed data.
-    "compress=zstd:1"
-    "noatime"
-    # Btrfs otherwise defaults to asynchronous discard on supported devices.
-    # Determinate Nixd can delete many store paths at once, so batch TRIM is
-    # preferable to issuing discards while its collector is active.
-    "nodiscard"
-  ];
-  mkBTRFS =
-    label: subvol: extra:
-    (mkFS label "btrfs") // (btrfsOptions subvol extra);
-  mkBoot =
-    label:
-    (mkFS label "vfat")
-    // {
-      # The ESP is FAT and therefore has no per-file Unix ownership.  Mount it
-      # root-only while Linux is running so systemd-boot's random seed cannot
-      # be read by unprivileged local users.  UEFI firmware ignores these
-      # Linux-only masks when it reads boot files before the kernel starts.
-      options = [
-        "fmask=0077"
-        "dmask=0077"
-      ];
-    };
-  bootMP = config.boot.loader.efi.efiSysMountPoint;
 in
 {
-  config = lib.mkMerge [
-    {
-      boot.initrd.supportedFilesystems = [ "btrfs" ];
+  options.hardware.storage.homelabHdd.enable =
+    lib.mkEnableOption "the separately provisioned encrypted homelab HDD";
 
-      # Provision the removable HDD separately as LUKS2 with Btrfs inside. The
-      # planned Disko migration manages only the internal NVMe drives, so the
-      # mapper and application path stay stable. Before that migration, first
-      # access asks for the recovery passphrase. Afterwards a dedicated key on
-      # encrypted root makes the same optional automount unattended.
-      environment.etc."crypttab".text = lib.mkBefore ''
-        homelab ${homelabLuksDevice} ${homelabKeySource} ${homelabCryptOptions}
+  config = {
+    assertions = [
+      {
+        assertion =
+          !config.hardware.storage.homelabHdd.enable || config.hardware.storage.encryptedRoot.enable;
+        message = "Automatic homelab HDD unlocking requires the encrypted Disko root for its private key.";
+      }
+    ];
+
+    boot.initrd.supportedFilesystems = [ "btrfs" ];
+
+    environment.etc."crypttab" = lib.mkIf config.hardware.storage.homelabHdd.enable {
+      text = lib.mkBefore ''
+        homelab /dev/disk/by-partlabel/HOMELAB-CRYPT ${homelabKeyFile} luks,noauto,nofail,headless,x-systemd.device-timeout=10s
       '';
+    };
 
-      fileSystems.${homelabMountPoint} = {
-        device = homelabMapper;
-        fsType = "btrfs";
-        options = [
-          "subvol=@homelab"
-          "compress=zstd:1"
-          "noatime"
-          "nodiscard"
-          "nofail"
-          "noauto"
-          "x-systemd.automount"
-          "x-systemd.device-timeout=10s"
-          "nodev"
-          "nosuid"
-          "noexec"
-        ];
+    # An automount is a mount point even while the HDD is locked. Inspect the
+    # actual filesystem without accessing the path and triggering an unlock.
+    systemd.services.${homelabScrubService} = lib.mkIf config.hardware.storage.homelabHdd.enable {
+      description = "Scrub the mounted encrypted homelab HDD";
+      serviceConfig = {
+        Type = "oneshot";
+        IOSchedulingClass = "idle";
+        CPUSchedulingPolicy = "idle";
+        Nice = 19;
       };
-
-      # A maintenance timer must not trigger an unattended passphrase prompt.
-      # Scrub a mounted disk monthly and skip an absent or locked disk.
-      systemd.services.${homelabScrubService} = {
-        description = "Scrub the mounted encrypted homelab HDD";
-        unitConfig.ConditionPathIsMountPoint = homelabMountPoint;
-        serviceConfig = {
-          Type = "oneshot";
-          IOSchedulingClass = "idle";
-          CPUSchedulingPolicy = "idle";
-          Nice = 19;
-        };
-        path = [ pkgs.btrfs-progs ];
-        script = "btrfs scrub start -B -d -r ${homelabMountPoint}";
+      path = [
+        pkgs.btrfs-progs
+        pkgs.util-linux
+      ];
+      script = (import ../../../../../lib/templates/text.nix) ./scripts/filesystems-script.sh {
+        inherit homelabMountPoint;
       };
-      systemd.timers.${homelabScrubService} = {
-        description = "Monthly encrypted homelab HDD scrub";
-        wantedBy = [ "timers.target" ];
-        timerConfig = {
-          OnCalendar = "Sun *-*-01..07 03:00:00";
-          Persistent = true;
-          AccuracySec = "1h";
-          RandomizedDelaySec = "2h";
-        };
-      };
-
-      # Btrfs scrub covers all subvolumes on a filesystem, so one root entry
-      # is enough for either storage layout. The games drive is independent.
-      services.btrfs.autoScrub = {
-        enable = true;
-        interval = "Sun *-*-01..07 03:00:00";
-        limit = "800M";
-        fileSystems = [
-          "/"
-          (if encryptedRoot then "/srv/data" else gamesMountPoint)
-        ];
-      };
-
-      # Keep continuous discard off for the Btrfs filesystem that contains
-      # `/nix`; the shared SSD module runs periodic batch TRIM instead.
-      systemd.services.fstrim.unitConfig.ConditionACPower = true;
-
-      # Scrub accepts an ordinary directory and then operates on its containing
-      # filesystem. Require the path selected by the upstream template to be a
-      # mount point so an absent optional volume cannot scrub root instead.
-      systemd.services."btrfs-scrub@".unitConfig.ConditionPathIsMountPoint = "%f";
-
-      # Apply the desktop schedule to every auto-scrub instance, including any
-      # filesystems added later. NixOS supplies OnCalendar on the template.
-      systemd.timers."btrfs-scrub@".timerConfig = {
-        AccuracySec = lib.mkForce "1h";
+    };
+    systemd.timers.${homelabScrubService} = lib.mkIf config.hardware.storage.homelabHdd.enable {
+      description = "Monthly encrypted homelab HDD scrub";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "Sun *-*-01..07 03:00:00";
+        Persistent = true;
+        AccuracySec = "1h";
         RandomizedDelaySec = "2h";
       };
-    }
+    };
 
-    # Disko creates its own Btrfs subvolumes, initrd LUKS mapping, and
-    # encrypted swap. Keep the currently-deployed plaintext root layout behind
-    # an explicit switch so the offline migration does not merge incompatible
-    # mounts or leave a plaintext swap device behind. This defaults to false
-    # and changes nothing on the current live desktop.
-    (lib.mkIf (!encryptedRoot) {
-      # NixOS's built-in `users` group covers normal local accounts without
-      # tying this shared game library to a particular login.  The Btrfs
-      # subvolume is also used from Windows, so make its Steam content
-      # directory group-writable when the volume is available.
-      systemd.tmpfiles.rules = [
-        "d ${gamesMountPoint} 2775 root ${gamesGroup} - -"
-        "d ${gamesMountPoint}/steamapps 2775 root ${gamesGroup} - -"
+    # One scrub per Btrfs filesystem covers all of its subvolumes.
+    services.btrfs.autoScrub = {
+      enable = true;
+      interval = "Sun *-*-01..07 03:00:00";
+      limit = "800M";
+      fileSystems = [
+        "/"
+        "/srv/data"
       ];
+    };
 
-      fileSystems.${gamesMountPoint} = {
-        # Dedicated NVMe Steam library, shared with Windows through WinBtrfs.
-        # Its absence must not block the desktop from booting.
-        device = gamesDevice;
-        fsType = "btrfs";
-        options = [
-          "subvol=games"
-          "compress=zstd:1"
-          "noatime"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    # Batch TRIM avoids continuous discards during large Nix store collections.
+    systemd.services.fstrim.unitConfig.ConditionACPower = true;
 
-      fileSystems = {
-        "/" = mkBTRFS rootLabel "@root" defaultBTRFSOptions;
-        "/var" = mkBTRFS rootLabel "@var" defaultBTRFSOptions;
-        "/tmp" = mkBTRFS rootLabel "@tmp" defaultBTRFSOptions;
-        "/nix" = mkBTRFS rootLabel "@nix" defaultBTRFSOptions;
-        "/home" = mkBTRFS rootLabel "@home" defaultBTRFSOptions;
-        ${bootMP} = mkBoot bootLabel; # should be /boot by default
-      };
-
-      # Encrypt the existing swap partition independently of the root-storage
-      # migration. PARTUUID survives the loss of the plaintext swap label.
-      swapDevices = [
-        {
-          device = swapDevice;
-          priority = 0;
-          randomEncryption = {
-            enable = true;
-            keySize = 512;
-          };
-        }
-      ];
-      boot.resumeDevice = lib.mkForce "";
-      systemd.sleep.settings.Sleep = {
-        AllowHibernation = "no";
-        AllowHybridSleep = "no";
-        AllowSuspendThenHibernate = "no";
-      };
-      # Refuse live conversion of an in-use raw swap device. Boot the new
-      # generation to convert without draining swapped pages during work.
-      systemd.services."mkswap-${swapDeviceName}" = {
-        requires = [ "${utils.escapeSystemdPath swapDevice}.device" ];
-        after = [ "${utils.escapeSystemdPath swapDevice}.device" ];
-        path = [
-          pkgs.coreutils
-          pkgs.util-linux
-        ];
-        preStart = builtins.readFile ./guard-swap.sh;
-      };
-      # switch-to-configuration drains removed swap entries before starting
-      # mkswap. Reject that transition here, before it can call swapoff.
-      system.preSwitchChecks.encryptedSwapTransition = ''
-        set -euo pipefail
-        case "''${2-}" in
-          boot|dry-activate|check) ;;
-          *)
-            current_device=$(${pkgs.coreutils}/bin/readlink -e ${lib.escapeShellArg swapDevice})
-            active_devices=$(${pkgs.util-linux}/bin/swapon --show=NAME --noheadings --raw)
-            while IFS= read -r active_device; do
-              if [[ -n "$active_device" && "$(${pkgs.coreutils}/bin/readlink -e -- "$active_device")" == "$current_device" ]]; then
-                echo 'Refusing live plaintext-swap conversion. Stage with the boot action and reboot later.' >&2
-                exit 1
-              fi
-            done <<< "$active_devices"
-            ;;
-        esac
-      '';
-    })
-  ];
+    # An absent volume must not cause a scrub of its parent filesystem.
+    systemd.services."btrfs-scrub@".unitConfig.ConditionPathIsMountPoint = "%f";
+    systemd.timers."btrfs-scrub@".timerConfig = {
+      AccuracySec = lib.mkForce "1h";
+      RandomizedDelaySec = "2h";
+    };
+  };
 }

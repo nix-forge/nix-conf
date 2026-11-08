@@ -1,5 +1,6 @@
 { config, ... }:
 let
+  network = builtins.fromJSON (builtins.readFile ../../../hosts/shared/local/network.json);
   runtimeFiles = (config.nixSeal.secrets or { }) // (config.nixSeal.templates or { });
   includeCornell =
     if builtins.hasAttr "cornell-net-id-ssh-config" runtimeFiles then
@@ -40,7 +41,7 @@ in
       };
 
       desktop = {
-        HostName = "192.168.10.178";
+        HostName = network.desktopTrustedAddress;
         HostKeyAlias = "desktop";
         User = "ianmh";
         IdentitiesOnly = true;

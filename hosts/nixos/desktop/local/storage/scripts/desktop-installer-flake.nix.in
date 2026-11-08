@@ -1,0 +1,23 @@
+# Generated install-only flake. Keep this directory private.
+{
+  inputs.base.url = BASE_URL;
+  outputs = { self, base }: {
+    nixosConfigurations.desktop = base.nixosConfigurations.desktop.extendModules {
+      modules = [
+        ({ lib, ... }: {
+          hardware.storage.encryptedRoot = {
+            enable = lib.mkForce true;
+            unlockMethod = lib.mkForce "passphrase";
+          };
+          hardware.storage.homelabHdd.enable = lib.mkForce false;
+          security.secureBootLanzaboote = {
+            enable = lib.mkForce false;
+            measuredBoot.enable = lib.mkForce false;
+          };
+          disko.devices.disk.system.device = lib.mkForce SYSTEM_DISK;
+          disko.devices.disk.data.device = lib.mkForce DATA_DISK;
+        })
+      ];
+    };
+  };
+}

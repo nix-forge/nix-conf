@@ -1,0 +1,7 @@
+#!@pkgs_runtimeShell@
+# shellcheck shell=bash disable=SC2239
+set -eu
+@guard_name@
+@pkgs_util_linux@/bin/mountpoint -q /srv/data
+@pkgs_util_linux@/bin/mountpoint -q /srv/data/work
+@python@ @helper@ @helperConfig@ canary
