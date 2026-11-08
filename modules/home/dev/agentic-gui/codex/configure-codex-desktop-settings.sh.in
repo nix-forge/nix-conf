@@ -1,4 +1,5 @@
 #!@shell@
+# shellcheck shell=bash disable=SC2239
 set -euo pipefail
 
 if [ "$#" -gt 0 ]; then
@@ -7,4 +8,4 @@ else
   codex_config=@codexConfig@
 fi
 
-exec @updater@ "$codex_config" @appearanceSettings@
+exec @updater@ "$codex_config" @managedSettings@

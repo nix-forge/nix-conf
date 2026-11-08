@@ -189,6 +189,7 @@ let
     "mattpocock-grill-with-docs"
     "mattpocock-grilling"
     "mattpocock-handoff"
+    "mattpocock-pr"
     "mattpocock-research"
     "mattpocock-setup-matt-pocock-skills"
     "mattpocock-tdd"
@@ -204,6 +205,10 @@ let
   };
 in
 {
+  programs.opencode.context = lib.mkIf (config.programs.dev-worktree.enable or false) (
+    lib.mkAfter config.programs.dev-worktree.instructions
+  );
+
   programs.opencode = {
     enable = true;
     skills = {

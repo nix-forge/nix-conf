@@ -1,0 +1,2 @@
+# shellcheck shell=bash
+ATUIN_NO_BUILTIN_PREEXEC=1 builtin source -- @source@

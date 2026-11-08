@@ -206,14 +206,14 @@ let
 
   settingsJson = pkgs.writeText "libreoffice-managed-settings.json" (builtins.toJSON managedSettings);
 
-  settingsPatcherPython = pkgs.writers.writePython3 "libreoffice-apply-settings.py" {
+  settingsPatcherPython = pkgs.writers.writePython3 "libreoffice_apply_settings.py" {
     # Ruff owns line wrapping; retain the writer's other Flake8 checks.
     flakeIgnore = [ "E501" ];
-  } ./libreoffice-apply-settings.py;
+  } ./libreoffice-assets/libreoffice_apply_settings.py;
 
   settingsPatcher = writeBashTemplate {
     name = "libreoffice-apply-settings";
-    src = ./libreoffice-apply-settings.sh;
+    src = ./libreoffice-assets/libreoffice-apply-settings.sh;
     dir = "bin";
     replacements = {
       profile = lib.escapeShellArg registryFile;

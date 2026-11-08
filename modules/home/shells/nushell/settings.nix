@@ -72,23 +72,6 @@
 
     # These are terminal control sequences on both platforms. Ghostty's macOS
     # Option/Delete bindings send the same Ctrl-W and Ctrl-U bytes.
-    extraConfig = ''
-      $env.config.keybindings ++= [
-        {
-          name: delete_previous_word
-          modifier: control
-          keycode: char_w
-          mode: [emacs vi_insert]
-          event: { edit: backspaceword }
-        }
-        {
-          name: delete_to_line_start
-          modifier: control
-          keycode: char_u
-          mode: [emacs vi_insert]
-          event: { edit: cutfromlinestart }
-        }
-      ]
-    '';
+    extraConfig = builtins.readFile ./scripts/settings-config.nu.in;
   };
 }

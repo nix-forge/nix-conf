@@ -1,0 +1,2 @@
+let nix_paths = @binPaths@
+$env.PATH = ($nix_paths | append ($env.PATH | split row (char esep) | where { |p| $p not-in $nix_paths }))

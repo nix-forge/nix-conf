@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -8,116 +9,110 @@ let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   ghostty = config.programs.ghostty.package;
   # Remove this backport when the pinned release includes upstream #11644.
-  fixBashPrompt = config.programs.bash.enable && lib.getVersion ghostty == "1.3.1";
-  bashIntegration =
-    pkgs.runCommandLocal "ghostty-bash-integration"
-      {
-        nativeBuildInputs = [
-          pkgs.patch
-          config.programs.bash.package
-        ];
-      }
-      ''
-        mkdir -p "$out"
-        cp -r ${ghostty.shell_integration}/bash "$out/bash"
-        chmod -R u+w "$out"
-        patch --directory "$out" -p3 < ${./patches/bash-ble-prompt.patch}
-        bash -n "$out/bash/ghostty.bash"
-      '';
+  fixBashPrompt =
+    config.programs.ghostty.enable
+    && config.programs.bash.enable
+    && ghostty != null
+    && lib.getVersion ghostty == "1.3.1";
+  fixes = import ../../../../overlays/temporary { inherit inputs lib pkgs; };
+  bashIntegration = (fixes.apply "ghostty-bash-prompt" ghostty).shell_integration;
 in
 {
-  # Load the patched copy through Home Manager. Automatic injection would
-  # reload the app's original hook after .bashrc and undo the fix. Keeping the
-  # copy outside Ghostty.app preserves its macOS code signature.
-  programs.bash.initExtra = lib.mkIf fixBashPrompt (
-    lib.mkOrder 101 ''
-      if [[ -n "''${GHOSTTY_RESOURCES_DIR-}" ]]; then
-        builtin source -- "${bashIntegration}/bash/ghostty.bash"
-      fi
-    ''
-  );
+  key = "nix-conf/ghostty/homeManager";
+  config = {
+    # Load the patched copy through Home Manager. Automatic injection would
+    # reload the app's original hook after .bashrc and undo the fix. Keeping the
+    # copy outside Ghostty.app preserves its macOS code signature.
+    programs.bash.initExtra = lib.mkIf fixBashPrompt (
+      lib.mkOrder 101 (
+        (import ../../../../lib/templates/text.nix) ./scripts/load-bash-integration.sh {
+          inherit bashIntegration;
+        }
+      )
+    );
 
-  programs.ghostty = {
-    enable = true;
-    package = lib.mkIf isDarwin pkgs.ghostty-bin;
-    enableBashIntegration = lib.mkIf fixBashPrompt (lib.mkForce false);
+    programs.ghostty = {
+      enable = true;
+      package = lib.mkIf isDarwin (lib.mkDefault pkgs.ghostty-bin);
+      enableBashIntegration = lib.mkIf fixBashPrompt (lib.mkForce false);
 
-    # DOCS: https://ghostty.org/docs/config/reference
-    settings = {
-      shell-integration = if fixBashPrompt then "none" else "detect";
-      # Hosts that need Ghostty's terminfo declare it themselves (notably the
-      # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a
-      # spurious failure even when the remote system already has the entry.
-      # Keep the normal prompt, title, cursor, sudo, and PATH integration.
-      shell-integration-features = "no-ssh-terminfo";
-      cursor-click-to-move = true;
+      # DOCS: https://ghostty.org/docs/config/reference
+      settings = {
+        shell-integration = if fixBashPrompt then "none" else "detect";
+        # Hosts that need Ghostty's terminfo declare it themselves (notably the
+        # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a
+        # spurious failure even when the remote system already has the entry.
+        # Keep the normal prompt, title, cursor, sudo, and PATH integration.
+        shell-integration-features = "no-ssh-terminfo";
+        cursor-click-to-move = true;
 
-      scrollback-limit = 268435456;
+        scrollback-limit = 268435456;
 
-      clipboard-read = "ask";
-      clipboard-write = "allow";
-      clipboard-paste-protection = true;
-      clipboard-trim-trailing-spaces = true;
+        clipboard-read = "ask";
+        clipboard-write = "allow";
+        clipboard-paste-protection = true;
+        clipboard-trim-trailing-spaces = true;
 
-      # Prevent title querying (can be risky). keep it off explicitly.
-      title-report = false;
+        # Prevent title querying (can be risky). keep it off explicitly.
+        title-report = false;
 
-      link-previews = "osc8";
+        link-previews = "osc8";
 
-      right-click-action = "copy-or-paste";
+        right-click-action = "copy-or-paste";
 
-      mouse-hide-while-typing = true;
+        mouse-hide-while-typing = true;
 
-      auto-update = "off";
-    }
-    // lib.optionalAttrs isDarwin {
-      # Treat Option as Alt (recommended if you use terminal apps that rely on Alt bindings)
-      macos-option-as-alt = true;
-      keybind = [
-        # Option+Delete / Option+Backspace => Ctrl-W
-        # Delete previous word in bash/zsh/nushell-style line editors.
-        "option+backspace=text:\\x17"
+        auto-update = "off";
+      }
+      // lib.optionalAttrs isDarwin {
+        # Treat Option as Alt (recommended if you use terminal apps that rely on Alt bindings)
+        macos-option-as-alt = true;
+        keybind = [
+          # Option+Delete / Option+Backspace => Ctrl-W
+          # Delete previous word in bash/zsh/nushell-style line editors.
+          "option+backspace=text:\\x17"
 
-        # Command+Delete / Command+Backspace => Ctrl-U
-        # Delete from cursor to beginning of line.
-        "cmd+backspace=text:\\x15"
-      ];
+          # Command+Delete / Command+Backspace => Ctrl-U
+          # Delete from cursor to beginning of line.
+          "cmd+backspace=text:\\x15"
+        ];
 
-      # macOS secure input: auto-enable on detected password prompts + show indication
-      macos-auto-secure-input = true;
-      macos-secure-input-indication = true;
+        # macOS secure input: auto-enable on detected password prompts + show indication
+        macos-auto-secure-input = true;
+        macos-secure-input-indication = true;
 
-      # macOS app convention: keep app running after last window closed
-      quit-after-last-window-closed = false;
+        # macOS app convention: keep app running after last window closed
+        quit-after-last-window-closed = false;
 
-      # Rendering safety: vsync defaults true on macOS for stability reasons
-      window-vsync = true;
+        # Rendering safety: vsync defaults true on macOS for stability reasons
+        window-vsync = true;
 
-      # Persist window/tab/split layouts between launches
-      window-save-state = "always";
+        # Persist window/tab/split layouts between launches
+        window-save-state = "always";
 
-      # Quick terminal behavior
-      quick-terminal-autohide = true;
-      quick-terminal-space-behavior = "move";
-      quick-terminal-animation-duration = 0.12;
-    }
-    // lib.optionalAttrs isLinux {
-      # Linux convention: quit when last window closes
-      quit-after-last-window-closed = true;
-      quit-after-last-window-closed-delay = "2s";
+        # Quick terminal behavior
+        quick-terminal-autohide = true;
+        quick-terminal-space-behavior = "move";
+        quick-terminal-animation-duration = 0.12;
+      }
+      // lib.optionalAttrs isLinux {
+        # Linux convention: quit when last window closes
+        quit-after-last-window-closed = true;
+        quit-after-last-window-closed-delay = "2s";
 
-      # Quick terminal defaults to staying open on Linux; keep it that way
-      quick-terminal-autohide = false;
+        # Quick terminal defaults to staying open on Linux; keep it that way
+        quick-terminal-autohide = false;
 
-      # GTK: show working directory in the subtitle (nice for many-tab workflows)
-      window-subtitle = "working-directory";
+        # GTK: show working directory in the subtitle (nice for many-tab workflows)
+        window-subtitle = "working-directory";
 
-      # Linux/systemd
-      linux-cgroup = "single-instance";
-      linux-cgroup-hard-fail = false;
+        # Linux/systemd
+        linux-cgroup = "single-instance";
+        linux-cgroup-hard-fail = false;
 
-      # GTK multi-launch behavior (generally leave as detect)
-      gtk-single-instance = "detect";
+        # GTK multi-launch behavior (generally leave as detect)
+        gtk-single-instance = "detect";
+      };
     };
   };
 }

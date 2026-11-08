@@ -7,7 +7,12 @@
 }:
 let
   extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
-  vscode = lib.getExe config.programs.vscode.package;
+  vscode = lib.escapeShellArg (
+    if config.programs.vscode.enable && config.programs.vscode.package != null then
+      lib.getExe config.programs.vscode.package
+    else
+      ""
+  );
   direnvBashInit = pkgs.runCommandLocal "vscode-direnv-bash-init" { } ''
     ${lib.getExe config.programs.direnv.package} hook bash > "$out"
     ${lib.getExe config.programs.bash.package} -n "$out"
@@ -240,7 +245,19 @@ in
         ) { "git.pruneOnFetch" = config.programs.git.settings.fetch.prune; })
 
         # Terminal profiles
-        { "terminal.integrated.shellIntegration.enabled" = true; }
+        {
+          "terminal.integrated.shellIntegration.enabled" = true;
+
+          # Ctrl+J runs a multiline ble.sh command when the terminal has focus.
+          # Elsewhere it retains VS Code's panel toggle. Ctrl+` still toggles
+          # the terminal from either context.
+          "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.togglePanel" ];
+
+          # VS Code otherwise treats Ctrl+K as a chord prefix before Bash can
+          # use it to delete from the cursor to the end of the line. Chords
+          # remain available in editors and other non-terminal views.
+          "terminal.integrated.allowChords" = false;
+        }
         (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
           let
             shellPath = config.home.sessionVariables.SHELL;
@@ -298,33 +315,12 @@ in
   };
 
   programs.bash.initExtra = lib.mkOrder 10 (
-    lib.concatLines [
-      ''
-        # VSCode Copilot Minimal Integration
-        if [[ "''${COPILOT:-}" == "1" ]]; then
-          # Set minimal PS1
-          PS1='copilot:\w\$ '
-
-          # VS Code Shell Integration. Resolve the script with the pinned
-          # executable and only source an existing regular file.
-          if [[ "$TERM_PROGRAM" == "vscode" ]]; then
-            __vscode_shell_integration="$(${vscode} --locate-shell-integration-path bash 2>/dev/null)"
-            if [[ -f "$__vscode_shell_integration" && -r "$__vscode_shell_integration" ]]; then
-              builtin source -- "$__vscode_shell_integration"
-            fi
-            unset __vscode_shell_integration
-          fi
-      ''
-      (lib.optionalString config.programs.direnv.enable (
-        lib.concatLines [
-          "  # Direnv Shell Integration"
-          "  builtin source -- \"${direnvBashInit}\""
-        ]
-      ))
-      ''
-          return
-        fi
-      ''
-    ]
+    (import ../../../lib/templates/text.nix) ./scripts/copilot-shell-integration.sh {
+      inherit vscode;
+      direnvEnabled = lib.boolToString config.programs.direnv.enable;
+      direnvBashInit = lib.escapeShellArg (
+        if config.programs.direnv.enable then "${direnvBashInit}" else ""
+      );
+    }
   );
 }

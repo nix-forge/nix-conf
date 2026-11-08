@@ -1,4 +1,4 @@
-"""Merge managed appearance settings into Codex's writable TOML configuration."""
+"""Merge declarative settings into Codex's writable TOML configuration."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def merge_settings(
 
 
 def configure(path: Path, settings: Mapping[str, Any]) -> bool:
-    """Atomically apply appearance settings.
+    """Atomically apply declarative settings.
 
     Returns:
         Whether the file changed.
@@ -66,20 +66,18 @@ def configure(path: Path, settings: Mapping[str, Any]) -> bool:
     for variant in ("appearanceDarkChromeTheme", "appearanceLightChromeTheme"):
         fonts = settings.get("desktop", {}).get(variant, {}).get("fonts", {})
         for family in ("ui", "code", "content"):
-            if family in fonts:
+            if family in fonts and f"{family}Face" not in fonts:
                 document["desktop"][variant]["fonts"].pop(f"{family}Face", None)
 
     result = tomlkit.dumps(document).encode("utf-8")
     # Validate before touching the original file, including unusual TOML forms.
     if tomllib.loads(result.decode("utf-8")) != document.unwrap():
-        msg = "Appearance update changed TOML structure during serialization"
+        msg = "Settings update changed TOML structure during serialization"
         raise RuntimeError(msg)
     if result == original:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(
-        prefix=".codex-appearance-", dir=path.parent
-    )
+    descriptor, temporary = tempfile.mkstemp(prefix=".codex-settings-", dir=path.parent)
     try:
         with os.fdopen(descriptor, "wb") as output:
             output.write(result)
