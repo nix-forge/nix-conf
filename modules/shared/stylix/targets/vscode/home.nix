@@ -69,6 +69,7 @@
     in
     {
       key = "nix-conf/stylix/vscode/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.vscode.custom.enable = lib.mkEnableOption "the native VS Code theme" // {
         default = true;
@@ -80,7 +81,7 @@
             stylix.targets.vscode.colors.enable = lib.mkDefault false;
             # This fallback is an application dependency, even with no design collection.
             home.packages = lib.optionals (
-              cfg.fonts.enable && cfg.profileNames != [ ] && config.typography.designLibrary == "none"
+              cfg.fonts.enable && cfg.profileNames != [ ] && (config.typography.designLibrary or "none") == "none"
             ) [ (pkgs.google-fonts.override { fonts = [ "Iosevka Charon Mono" ]; }) ];
 
             programs.vscode.profiles = lib.genAttrs cfg.profileNames (_: {

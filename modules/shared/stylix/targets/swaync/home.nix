@@ -16,6 +16,8 @@
 
       key = "nix-conf/stylix/swaync/homeManager";
 
+      imports = [ (import ../../profile.nix).homeManager ];
+
       _file = __curPos.file;
 
       config = lib.optionalAttrs (options ? desktop.notifications) (

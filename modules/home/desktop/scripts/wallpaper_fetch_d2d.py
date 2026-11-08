@@ -18,6 +18,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from notification_process import run as run_command
+
 LICENSE = "Creative Commons Attribution 4.0 International License"
 SOURCE_CATEGORIES = {
     "nebulae": "nebulae",
@@ -129,8 +131,8 @@ def _remaining(maximum: int) -> float:
 
 def _fetch(url: str, destination: Path, limit: int) -> None:
     remaining = _remaining(145)
-    subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - fixed curl flags and validated HTTPS URLs
-        [  # ruff: ignore[start-process-with-partial-path] - executables come from the pinned runtime PATH
+    run_command(
+        [
             "curl",
             "--fail",
             "--silent",
@@ -280,8 +282,8 @@ def _load_state(path: Path, connection: Connection) -> dict:
 
 
 def _render(original: Path, display: Path, width: int, height: int) -> bool:
-    identified = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - bounded local image inspection
-        [  # ruff: ignore[start-process-with-partial-path] - executables come from the pinned runtime PATH
+    identified = run_command(
+        [
             "magick",
             "identify",
             "-ping",
@@ -301,8 +303,8 @@ def _render(original: Path, display: Path, width: int, height: int) -> bool:
         decoded_width, decoded_height = decoded_height, decoded_width
     if not _geometry(decoded_width, decoded_height, width, height):
         return False
-    subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - bounded local image conversion
-        [  # ruff: ignore[start-process-with-partial-path] - executables come from the pinned runtime PATH
+    run_command(
+        [
             "magick",
             "-limit",
             "memory",

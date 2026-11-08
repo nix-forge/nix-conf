@@ -1,4 +1,5 @@
 #!@bash@
+# shellcheck shell=bash disable=SC2239
 set -euo pipefail
 export PATH="@runtimePath@"
 umask 077
@@ -16,6 +17,9 @@ quality_json=@qualityJson@
 user_agent=@userAgent@
 width=@targetWidth@
 height=@targetHeight@
+max_candidate_pages=@maxCandidatePages@
+max_candidate_downloads=@maxCandidateDownloads@
+max_images=@maxImages@
 mkdir -p -- "$cache_directory" "$state_directory"
 chmod 700 -- "$cache_directory" "$state_directory"
 # Manual invocations and the timer share one cursor/history writer.
@@ -160,7 +164,7 @@ accepted=0
 attempts=0
 fetch_failure=0
 pages=0
-while ((pages < @maxCandidatePages@ && attempts < @maxCandidateDownloads@)); do
+while ((pages < max_candidate_pages && attempts < max_candidate_downloads)); do
   api_json="$temporary_directory/page.json"
   query=(--data-urlencode 'generator=categorymembers'
     --data-urlencode "gcmtitle=Category:$category"
@@ -198,11 +202,14 @@ while ((pages < @maxCandidatePages@ && attempts < @maxCandidateDownloads@)); do
     if jq -e --arg id "$id" '.seen | index($id)' <<<"$state_json" >/dev/null; then
       continue
     fi
-    if compgen -G "$cache_directory/wikimedia-commons-$id-${width}x${height}-*.jpg" >/dev/null; then
+    shopt -s nullglob
+    existing=("$cache_directory"/"wikimedia-commons-$id-${width}x${height}-"*.jpg)
+    shopt -u nullglob
+    if ((${#existing[@]} > 0)); then
       remember_id "$id"
       continue
     fi
-    ((attempts < @maxCandidateDownloads@)) || break
+    ((attempts < max_candidate_downloads)) || break
     attempts=$((attempts + 1))
     if download_candidate "$candidate" "$id"; then
       accepted=1
@@ -230,7 +237,7 @@ done
 current_file="$(cat "$state_directory/current" 2>/dev/null || true)"
 mapfile -d "" files < <(find "$cache_directory" -maxdepth 1 -type f -name 'wikimedia-commons-*.jpg' \
   -printf '%T@:%p\0' | sort -z -n)
-excess=$((${#files[@]} - @maxImages@))
+excess=$((${#files[@]} - max_images))
 if ((accepted == 1 && excess > 0)); then
   removed=0
   for entry in "${files[@]}"; do

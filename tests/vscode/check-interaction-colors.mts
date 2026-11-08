@@ -1,12 +1,12 @@
+import { javascriptSource } from "../typescript/source.mts";
 /**
  * Check rendered interaction colors in an isolated VS Code window.
- * Requires Node 22+, a graphical session, and a built Carbon theme extension.
- * Usage: node tests/vscode/check_interaction_colors.mjs EXTENSION_DIRECTORY [THEME]
+ * Requires Node 24+, a graphical session, and a built Carbon theme extension.
+ * Usage: node tests/vscode/check-interaction-colors.mts EXTENSION_DIRECTORY [THEME]
  * Opens a disposable workspace with the supplied theme. VSCODE_SCHEMA_OUTPUT
  * exports its registered schemas through a temporary diagnostic extension.
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import {
   mkdir,
   mkdtemp,
@@ -15,42 +15,60 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { waitForDOM as observeDOM } from "./dom-readiness.mts";
+import { startProbe } from "./probe-process.mts";
+import { pageEndpoint, waitForFileValue } from "./readiness.mts";
 
 assert.ok(
   process.argv[2],
-  "Usage: node check_interaction_colors.mjs EXTENSION_DIRECTORY [THEME]",
+  "Usage: node check-interaction-colors.mts EXTENSION_DIRECTORY [THEME]",
 );
-const extension = resolve(process.argv[2]);
+const extension = resolvePath(process.argv[2]);
 const theme = process.argv[3] ?? "Carbon Neon OLED";
+const schemaOutput = process.env["VSCODE_SCHEMA_OUTPUT"];
 const root = await mkdtemp(join(tmpdir(), "vscode-interaction-colors-"));
-let socket;
+let socket: WebSocket | undefined;
+let stopProbe: (() => Promise<void>) | undefined;
 let sequence = 0;
-const pending = new Map();
-const failures = [];
+type CdpMessage = { id?: number; result?: unknown; error?: unknown };
+type Rgb = [number, number, number];
+const pending = new Map<number, (message: CdpMessage) => void>();
+const failures: string[] = [];
 
-async function call(method, params = {}) {
+async function call<T>(
+  method: string,
+  params: Record<string, unknown> = {},
+  duration = 15000,
+): Promise<T> {
   const id = ++sequence;
-  const result = new Promise((resolve, reject) => {
+  const result = new Promise<T>((resolve, reject) => {
     const timeout = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`${method} timed out`));
-    }, 15000);
+    }, duration);
     pending.set(id, (message) => {
       clearTimeout(timeout);
       if (message.error) reject(new Error(JSON.stringify(message.error)));
-      else resolve(message.result);
+      else if (message.result === undefined)
+        reject(new Error(`${method} returned no result`));
+      // CDP method results are selected by the caller after the envelope check.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      else resolve(message.result as T);
     });
   });
+  assert.ok(socket, "CDP socket is not connected");
   socket.send(JSON.stringify({ id, method, params }));
   return result;
 }
 
-async function evaluate(expression) {
-  const result = await call("Runtime.evaluate", {
+async function evaluate<T>(expression: string): Promise<T> {
+  const result = await call<{
+    exceptionDetails?: unknown;
+    result: { value: T };
+  }>("Runtime.evaluate", {
     expression,
     returnByValue: true,
     awaitPromise: true,
@@ -59,16 +77,16 @@ async function evaluate(expression) {
   return result.result.value;
 }
 
-async function waitFor(callback) {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const value = await callback();
-    if (value) return value;
-    await sleep(200);
-  }
-  throw new Error("VS Code did not become ready");
+async function waitForDOM(
+  selector: string,
+  minimumCount = 1,
+  parentClass: string | null = null,
+): Promise<void> {
+  assert.ok(socket, "CDP socket is not connected");
+  await observeDOM(socket, call, selector, minimumCount, parentClass);
 }
 
-async function key(name, keyCode) {
+async function key(name: string, keyCode: number): Promise<void> {
   for (const type of ["keyDown", "keyUp"]) {
     await call("Input.dispatchKeyEvent", {
       type,
@@ -82,17 +100,56 @@ async function key(name, keyCode) {
 
 // Menus focus rows through mousemove, whereas lists use CSS :hover. Dispatch
 // through the real menu listener even when the compositor focuses another app.
-async function hoverMenu(selector) {
+async function hoverMenu(selector: string): Promise<void> {
   await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(
     new MouseEvent('mousemove', {bubbles: true, movementX: 1, movementY: 1}))`);
-  await waitFor(() =>
-    evaluate(`document.querySelector(${JSON.stringify(selector)})
-    .parentElement.classList.contains('focused')`),
+  await waitForDOM(selector, 1, "focused");
+}
+
+function parseRgba(css: string): [number, number, number, number] {
+  const channels = css.match(/[\d.]+/g)?.map(Number);
+  assert.ok(channels && channels.length >= 3, `Invalid CSS color: ${css}`);
+  const [red, green, blue, alpha = 1] = channels;
+  assert.ok(red !== undefined && green !== undefined && blue !== undefined);
+  return [red, green, blue, alpha];
+}
+
+function composite(stack: string[]): Rgb {
+  return stack.toReversed().reduce(
+    (base: Rgb, css) => {
+      const [r, g, b, a] = parseRgba(css);
+      return [
+        r * a + base[0] * (1 - a),
+        g * a + base[1] * (1 - a),
+        b * a + base[2] * (1 - a),
+      ];
+    },
+    [0, 0, 0] as Rgb,
   );
 }
 
-async function checkRow(name, selector, container) {
-  const colors = await evaluate(`(() => {
+function luminance(rgb: number[]): number {
+  return rgb
+    .slice(0, 3)
+    .map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045
+        ? value / 12.92
+        : ((value + 0.055) / 1.055) ** 2.4;
+    })
+    .reduce(
+      (sum, channel, index) =>
+        sum + channel * ([0.2126, 0.7152, 0.0722][index] ?? 0),
+      0,
+    );
+}
+
+async function checkRow(
+  name: string,
+  selector: string,
+  container: string,
+): Promise<void> {
+  const colors = await evaluate<{ row: string[]; widget: string[] }>(`(() => {
     const row = document.querySelector(${JSON.stringify(selector)});
     const widget = document.querySelector(${JSON.stringify(container)});
     if (!row || !widget) throw new Error('Missing row or widget');
@@ -105,29 +162,20 @@ async function checkRow(name, selector, container) {
     };
     return {row: stack(row), widget: stack(widget)};
   })()`);
-  function composite(stack) {
-    return stack.reverse().reduce(
-      (base, css) => {
-        const [r, g, b, a = 1] = css.match(/[\d.]+/g).map(Number);
-        return [r, g, b].map((channel, i) => channel * a + base[i] * (1 - a));
-      },
-      [0, 0, 0],
-    );
-  }
   const row = composite(colors.row);
   const background = composite(colors.widget);
   // Require a visible fill difference, not just a tiny text-color change.
   // 20/255 separates a usable dark-theme highlight from near-identical fills.
   const difference = Math.max(
-    ...row.map((c, i) => Math.abs(c - background[i])),
+    ...row.map((channel, index) => Math.abs(channel - background[index]!)),
   );
   const pass = difference >= 20;
   console.log(JSON.stringify({ theme, name, row, background, pass }));
-  if (process.env.VSCODE_CHECK_OUTPUT) {
-    await mkdir(process.env.VSCODE_CHECK_OUTPUT, { recursive: true });
-    const screenshot = await call("Page.captureScreenshot");
+  if (process.env["VSCODE_CHECK_OUTPUT"]) {
+    await mkdir(process.env["VSCODE_CHECK_OUTPUT"], { recursive: true });
+    const screenshot = await call<{ data: string }>("Page.captureScreenshot");
     await writeFile(
-      join(process.env.VSCODE_CHECK_OUTPUT, `${theme}-${name}.png`),
+      join(process.env["VSCODE_CHECK_OUTPUT"], `${theme}-${name}.png`),
       Buffer.from(screenshot.data, "base64"),
     );
   }
@@ -136,8 +184,13 @@ async function checkRow(name, selector, container) {
 
 // These pairs are consumed together by their widgets. Check the resolved
 // values because registry aliases can change even when the theme JSON does not.
-async function checkContrast(name, foreground, background, minimum) {
-  const colors = await evaluate(`(() => {
+async function checkContrast(
+  name: string,
+  foreground: string,
+  background: string,
+  minimum: number,
+): Promise<void> {
+  const colors = await evaluate<[string, string]>(`(() => {
     const host = document.querySelector('.monaco-workbench');
     const sample = document.createElement('span');
     const fg = '--vscode-' + ${JSON.stringify(foreground)}.replaceAll('.', '-');
@@ -151,25 +204,11 @@ async function checkContrast(name, foreground, background, minimum) {
     sample.remove();
     return result;
   })()`);
-  const parse = (css) => css.match(/[\d.]+/g).map(Number);
-  const [fg, bg] = colors.map(parse);
+  const fg = parseRgba(colors[0]);
+  const bg = parseRgba(colors[1]);
   const painted = fg
     .slice(0, 3)
-    .map((value, i) => value * (fg[3] ?? 1) + bg[i] * (1 - (fg[3] ?? 1)));
-  const luminance = (rgb) =>
-    rgb
-      .slice(0, 3)
-      .map((channel) => {
-        const value = channel / 255;
-        return value <= 0.04045
-          ? value / 12.92
-          : ((value + 0.055) / 1.055) ** 2.4;
-      })
-      .reduce(
-        (sum, channel, index) =>
-          sum + channel * [0.2126, 0.7152, 0.0722][index],
-        0,
-      );
+    .map((value, i) => value * fg[3] + bg[i]! * (1 - fg[3]));
   const l1 = luminance(painted),
     l2 = luminance(bg);
   const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
@@ -217,8 +256,9 @@ try {
       { key: "f7", command: "editor.action.triggerSuggest" },
     ]),
   );
-  const schemaArguments = [];
-  if (process.env.VSCODE_SCHEMA_OUTPUT) {
+  const schemaArguments: string[] = [];
+  if (schemaOutput) {
+    await mkdir(schemaOutput, { recursive: true });
     const probe = join(root, "schema-probe");
     await mkdir(probe);
     await writeFile(
@@ -234,127 +274,124 @@ try {
     );
     await writeFile(
       join(probe, "extension.cjs"),
-      `
-      const vscode = require('vscode');
-      const fs = require('node:fs/promises');
-      const path = require('node:path');
-      exports.activate = async () => {
-        const output = ${JSON.stringify(resolve(process.env.VSCODE_SCHEMA_OUTPUT))};
-        await fs.mkdir(output, {recursive: true});
-        for (const name of ['color-theme', 'workbench-colors', 'textmate-colors', 'token-styling', 'vscode-extensions']) {
-          const data = await vscode.workspace.fs.readFile(vscode.Uri.parse('vscode://schemas/' + name));
-          await fs.writeFile(path.join(output, name + '.json'), data);
-        }
-        await fs.writeFile(path.join(output, 'version.json'), JSON.stringify({version: vscode.version}));
-      };
-    `,
+      javascriptSource(new URL("./schema-probe.cts", import.meta.url)),
+    );
+    await writeFile(
+      join(probe, "output.json"),
+      JSON.stringify({ output: resolvePath(schemaOutput) }),
     );
     schemaArguments.push(`--extensionDevelopmentPath=${probe}`);
   }
-  const listener = createServer();
-  await new Promise((resolve) => listener.listen(0, "127.0.0.1", resolve));
-  const port = listener.address().port;
-  await new Promise((resolve) => listener.close(resolve));
-  execFileSync(
-    process.env.VSCODE_BINARY ?? "code",
-    [
-      `--user-data-dir=${join(root, "profile")}`,
-      `--extensions-dir=${join(root, "extensions")}`,
-      ...schemaArguments,
-      "--new-window",
-      `--remote-debugging-port=${port}`,
-      workspace,
-      "--goto",
-      `${join(workspace, "example.js")}:1:9`,
-    ],
-    { stdio: "ignore", timeout: 30000 },
+  stopProbe = startProbe(root, [
+    process.env["VSCODE_BINARY"] ?? "code",
+    `--user-data-dir=${join(root, "profile")}`,
+    `--extensions-dir=${join(root, "extensions")}`,
+    ...schemaArguments,
+    "--new-window",
+    "--remote-debugging-port=0",
+    workspace,
+    "--goto",
+    `${join(workspace, "example.js")}:1:9`,
+  ]);
+  const connectedSocket = new WebSocket(
+    await pageEndpoint(join(root, "profile")),
   );
-  const page = await waitFor(async () => {
-    try {
-      const pages = await (
-        await fetch(`http://127.0.0.1:${port}/json/list`, {
-          signal: AbortSignal.timeout(1000),
-        })
-      ).json();
-      return pages.find((page) => page.type === "page");
-    } catch {
-      return null;
-    }
-  });
-  socket = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((resolve, reject) => {
+  socket = connectedSocket;
+  await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(
       () => finish(new Error("CDP WebSocket connection timed out")),
       15000,
     );
     const opened = () => finish();
     const failed = () => finish(new Error("CDP WebSocket connection failed"));
-    function finish(error) {
+    function finish(error?: Error): void {
       clearTimeout(timeout);
-      socket.removeEventListener("open", opened);
-      socket.removeEventListener("error", failed);
-      socket.removeEventListener("close", failed);
+      connectedSocket.removeEventListener("open", opened);
+      connectedSocket.removeEventListener("error", failed);
+      connectedSocket.removeEventListener("close", failed);
       if (error) {
-        socket.close();
+        connectedSocket.close();
         reject(error);
       } else resolve();
     }
-    socket.addEventListener("open", opened, { once: true });
-    socket.addEventListener("error", failed, { once: true });
-    socket.addEventListener("close", failed, { once: true });
+    connectedSocket.addEventListener("open", opened, { once: true });
+    connectedSocket.addEventListener("error", failed, { once: true });
+    connectedSocket.addEventListener("close", failed, { once: true });
   });
-  socket.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    if (pending.has(message.id)) {
-      pending.get(message.id)(message);
-      pending.delete(message.id);
-    }
+  connectedSocket.addEventListener("message", (event) => {
+    if (typeof event.data !== "string") return;
+    const message: unknown = JSON.parse(event.data);
+    if (
+      message === null ||
+      typeof message !== "object" ||
+      !("id" in message) ||
+      typeof message.id !== "number"
+    )
+      return;
+    const receiver = pending.get(message.id);
+    if (!receiver) return;
+    const envelope: CdpMessage = { id: message.id };
+    if ("result" in message) envelope.result = message.result;
+    if ("error" in message) envelope.error = message.error;
+    receiver(envelope);
+    pending.delete(message.id);
   });
-  await waitFor(() =>
-    evaluate("!!document.querySelector('.monaco-workbench')"),
-  );
+  await waitForDOM(".monaco-workbench");
   await sleep(4000);
   await call("Emulation.setFocusEmulationEnabled", { enabled: true });
-  if (process.env.VSCODE_SCHEMA_OUTPUT) {
-    await waitFor(async () => {
+  if (schemaOutput) {
+    await waitForFileValue(schemaOutput, async () => {
       try {
-        return JSON.parse(
-          await readFile(
-            join(process.env.VSCODE_SCHEMA_OUTPUT, "version.json"),
-            "utf8",
-          ),
-        ).version;
-      } catch {
-        return null;
+        const version: unknown = JSON.parse(
+          await readFile(join(schemaOutput, "version.json"), "utf8"),
+        );
+        return version !== null &&
+          typeof version === "object" &&
+          "version" in version &&
+          typeof version.version === "string"
+          ? version.version
+          : null;
+      } catch (error) {
+        if (
+          error instanceof SyntaxError ||
+          (error instanceof Error && "code" in error && error.code === "ENOENT")
+        )
+          return null;
+        throw error;
       }
     });
   }
 
   assert.ok(
-    await evaluate(`document.querySelector('.monaco-workbench').className
+    await evaluate<boolean>(`document.querySelector('.monaco-workbench').className
     .includes('carbon-neon-${theme.endsWith("OLED") ? "oled-" : ""}color-theme-json')`),
     "Carbon theme was not loaded",
   );
 
-  if (process.env.VSCODE_SCHEMA_OUTPUT) {
-    const schema = JSON.parse(
-      await readFile(
-        join(process.env.VSCODE_SCHEMA_OUTPUT, "workbench-colors.json"),
-        "utf8",
-      ),
+  if (schemaOutput) {
+    const schema: unknown = JSON.parse(
+      await readFile(join(schemaOutput, "workbench-colors.json"), "utf8"),
     );
-    const resolvedColors =
-      await evaluate(`Object.fromEntries(${JSON.stringify(Object.keys(schema.properties))}.map(id => {
+    assert.ok(
+      schema !== null &&
+        typeof schema === "object" &&
+        "properties" in schema &&
+        schema.properties !== null &&
+        typeof schema.properties === "object",
+    );
+    const resolvedColors = await evaluate<
+      Record<string, string | null>
+    >(`Object.fromEntries(${JSON.stringify(Object.keys(schema.properties))}.map(id => {
       const name = id.replaceAll('.', '-');
       return [name, getComputedStyle(document.querySelector('.monaco-workbench')).getPropertyValue('--vscode-' + name) || null];
     }))`);
     await writeFile(
-      join(process.env.VSCODE_SCHEMA_OUTPUT, "resolved-colors.json"),
+      join(schemaOutput, "resolved-colors.json"),
       JSON.stringify(resolvedColors),
     );
   }
 
-  for (const [name, foreground, background, minimum] of [
+  const contrastCases: Array<[string, string, string, number]> = [
     [
       "SCM hover label",
       "scmGraph.historyItemHoverDefaultLabelForeground",
@@ -415,21 +452,23 @@ try {
       "editor.background",
       3,
     ],
-  ])
+  ];
+  for (const [name, foreground, background, minimum] of contrastCases)
     await checkContrast(name, foreground, background, minimum);
 
-  await waitFor(() =>
-    evaluate(
-      "!!document.querySelector('.explorer-folders-view .monaco-list-row.selected')",
-    ),
-  );
+  await waitForDOM(".explorer-folders-view .monaco-list-row.selected");
   await checkRow(
     "inactive Explorer selection",
     ".explorer-folders-view .monaco-list-row.selected",
     ".explorer-folders-view",
   );
 
-  const fileMenu = await evaluate(
+  const fileMenu = await evaluate<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>(
     "document.querySelector('.menubar-menu-button[aria-label=File]').getBoundingClientRect().toJSON()",
   );
   for (const type of ["mousePressed", "mouseReleased"]) {
@@ -442,7 +481,7 @@ try {
     });
   }
   const first = ".monaco-menu .action-item:not(.disabled) .action-menu-item";
-  await waitFor(() => evaluate(`!!document.querySelector('${first}')`));
+  await waitForDOM(first);
   await hoverMenu(first);
   await checkRow("menu hover", first, ".monaco-menu > .monaco-action-bar");
   // The widget is the menu's scrollable parent, not its transparent action bar.
@@ -456,20 +495,14 @@ try {
   const submenu = ".monaco-menu .monaco-submenu-item";
   await hoverMenu(submenu);
   await key("ArrowRight", 39);
-  await waitFor(() =>
-    evaluate("document.querySelectorAll('.monaco-menu').length > 1"),
-  );
+  await waitForDOM(".monaco-menu", 2);
   const child = ".monaco-submenu .action-item:not(.disabled) .action-menu-item";
   await hoverMenu(child);
   await checkRow("submenu hover", child, ".monaco-submenu .monaco-menu");
   await key("Escape", 27);
   await key("Escape", 27);
   await key("F6", 117);
-  await waitFor(() =>
-    evaluate(
-      "!!document.querySelector('.quick-input-list .monaco-list-row.focused')",
-    ),
-  );
+  await waitForDOM(".quick-input-list .monaco-list-row.focused");
   await checkRow(
     "command palette selection",
     ".quick-input-list .monaco-list-row.focused",
@@ -480,11 +513,7 @@ try {
     "document.querySelector('.monaco-editor textarea, .monaco-editor .native-edit-context').focus()",
   );
   await key("F7", 118);
-  await waitFor(() =>
-    evaluate(
-      "!!document.querySelector('.suggest-widget.visible .monaco-list-row.focused')",
-    ),
-  );
+  await waitForDOM(".suggest-widget.visible .monaco-list-row.focused");
   await checkRow(
     "completion selection",
     ".suggest-widget.visible .monaco-list-row.focused",
@@ -493,18 +522,28 @@ try {
   await key("Escape", 27);
   assert.deepEqual(failures, [], "Interaction backgrounds must remain visible");
 } finally {
-  if (socket?.readyState === WebSocket.OPEN) {
-    const closed = new Promise((resolve) =>
-      socket.addEventListener("close", resolve, { once: true }),
-    );
-    socket.send(JSON.stringify({ id: ++sequence, method: "Browser.close" }));
-    await Promise.race([closed, sleep(2000)]);
-    socket.close();
+  try {
+    if (socket?.readyState === WebSocket.OPEN) {
+      const closingSocket = socket;
+      const closed = new Promise<void>((resolve) =>
+        closingSocket.addEventListener("close", () => resolve(), {
+          once: true,
+        }),
+      );
+      socket.send(JSON.stringify({ id: ++sequence, method: "Browser.close" }));
+      await Promise.race([closed, sleep(2000)]);
+      socket.close();
+    }
+  } finally {
+    try {
+      await stopProbe?.();
+    } finally {
+      await rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 200,
+      });
+    }
   }
-  await rm(root, {
-    recursive: true,
-    force: true,
-    maxRetries: 10,
-    retryDelay: 200,
-  });
 }

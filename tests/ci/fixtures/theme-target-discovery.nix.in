@@ -1,0 +1,17 @@
+let
+  lib = import NIXPKGS_LIB;
+  inputs.nix-config-framework.lib = import FRAMEWORK_LIB { inherit lib; };
+  evaluated = lib.evalModules {
+    specialArgs = { inherit inputs; };
+    modules = [
+      (import MODULE).homeManager
+      {
+        options.discovered = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+        };
+      }
+    ];
+  };
+in
+evaluated.config.discovered

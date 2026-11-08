@@ -89,6 +89,7 @@
     in
     {
       key = "nix-conf/stylix/spicetify/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.spicetify.custom.enable = lib.mkEnableOption "the native Spotify theme" // {
         default = true;

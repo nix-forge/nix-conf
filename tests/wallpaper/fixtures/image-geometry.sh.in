@@ -1,0 +1,2 @@
+#!/bin/sh
+printf "__fixture_0__ __fixture_1__ __fixture_2__\n"

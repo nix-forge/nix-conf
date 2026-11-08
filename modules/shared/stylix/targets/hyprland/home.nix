@@ -7,6 +7,7 @@
     in
     {
       key = "nix-conf/stylix/hyprland/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.hyprland.custom.enable =
         lib.mkEnableOption "the desktop Hyprland styling"
