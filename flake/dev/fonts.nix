@@ -16,13 +16,21 @@
       catalog = import ../../modules/shared/fonts/packages.nix { };
       roles = catalog.roles pkgs;
       personal = inputs.self.packages.${system};
+      # Hosted checks exercise matching with original geometric fixtures. The
+      # protocol-family names below do not contain any Apple font data.
+      syntheticFonts =
+        pkgs.runCommand "synthetic-font-fixtures"
+          {
+            nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.fonttools ])) ];
+          }
+          ''
+            python ${../../tests/fonts/build_synthetic_fonts.py} "$out/share/fonts/truetype"
+            install -Dm644 ${../../LICENSE} "$out/share/doc/synthetic-font-fixtures/LICENSE"
+          '';
       privateUseProviders = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
         personal.apple-fonts.assets.apple-asset-lucidagrande
       ];
-      applePlatformProviders = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-        # Keep Apple protocol-family fixtures independent of the host profile.
-        personal.apple-fonts
-      ];
+      applePlatformProviders = lib.optionals pkgs.stdenv.hostPlatform.isLinux [ personal.apple-fonts ];
       renderFontconfig = (import ../../modules/shared/fonts/fontconfig.nix).render;
       fontRules = renderFontconfig {
         inherit myLib pkgs;
@@ -52,6 +60,8 @@
         p.uharfbuzz
         p.pillow
         p.selenium
+        p.watchdog
+        (import ../../lib/python/notification-process/package.nix { inherit pkgs; })
       ]);
       core =
         map (r: r.package) (builtins.attrValues roles)
@@ -62,8 +72,7 @@
           pkgs.roboto
           pkgs.dejavu_fonts
         ]
-        ++ privateUseProviders
-        ++ applePlatformProviders;
+        ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ syntheticFonts ];
       families = {
         sans-serif = "sansSerif";
         serif = "serif";
@@ -91,30 +100,27 @@
       '';
       # Keep upstream matching and rendering rules while excluding host/user
       # includes, which would reintroduce the currently activated font profile.
-      defaultRules = pkgs.runCommand "isolated-fontconfig-rules" { } ''
-        mkdir -p "$out"
-        for rule in ${pkgs.fontconfig.out}/etc/fonts/conf.d/*.conf; do
-          name=$(basename "$rule")
-          case "$name" in 50-user.conf|51-local.conf) continue ;; esac
-          ln -s "$(readlink -f "$rule")" "$out/$name"
-        done
-      '';
+      defaultRules = pkgs.runCommand "isolated-fontconfig-rules" { } (
+        (import ../../lib/templates/text.nix) ./scripts/install-isolated-fontconfig-rules.sh {
+          pkgs_fontconfig_out = pkgs.fontconfig.out;
+        }
+      );
       # Fontconfig 2.18 uses a URN for its DTD; libxslt's search path only
       # resolves filenames. Supply the local catalog so validation stays offline.
-      fontconfigCatalog = pkgs.writeText "fontconfig-catalog.xml" ''
-        <?xml version="1.0"?>
-        <catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
-          <system systemId="urn:fontconfig:fonts.dtd" uri="${pkgs.fontconfig.out}/share/xml/fontconfig/fonts.dtd"/>
-        </catalog>
-      '';
+      fontconfigCatalog = pkgs.writeText "fontconfig-catalog.xml" (
+        (import ../../lib/templates/text.nix) ./scripts/fonts-config.xml {
+          pkgs_fontconfig_out = pkgs.fontconfig.out;
+        }
+      );
       makeFontsConf =
         args:
         (pkgs.makeFontsConf args).overrideAttrs (old: {
           # The libxml setup hook resets XML_CATALOG_FILES during setup.
-          buildCommand = ''
-            export XML_CATALOG_FILES=${fontconfigCatalog}
-          ''
-          + old.buildCommand;
+          buildCommand =
+            ((import ../../lib/templates/text.nix) ./scripts/set-fontconfig-xml-catalog.sh {
+              inherit fontconfigCatalog;
+            })
+            + old.buildCommand;
         });
       fontConfig = makeFontsConf {
         fontDirectories = map (p: "${p}/share/fonts") core;
@@ -139,6 +145,7 @@
         catalog.select fontPkgs personal {
           designLibrary = "full";
           optionalEmoji.enable = true;
+          restrictedFonts.enable = true;
         }
         ++ privateUseProviders
         ++ applePlatformProviders;
@@ -166,22 +173,29 @@
         fileset = lib.fileset.unions [
           ../../tests/fonts
           ../../tests/browsers
+          ../../tests/waits.py
+          ../../tests/typescript_sources.py
+          ../../tests/typescript/source.mts
         ];
       };
     in
     {
       checks = {
+        font-catalog-policy = import ../../tests/nix/font-catalog-policy.nix { pkgs = fontPkgs; };
+
         fontconfig-renderer =
           pkgs.runCommand "fontconfig-renderer" { nativeBuildInputs = [ pkgs.gnugrep ]; }
-            ''
-              grep -F -- ${lib.escapeShellArg syntheticSans} ${syntheticRules.cssGenericAlias} >/dev/null
-              grep -F -- ${lib.escapeShellArg syntheticSerif} ${syntheticRules.cssGenericAlias} >/dev/null
-              grep -F -- ${lib.escapeShellArg syntheticMonospace} ${syntheticRules.cssGenericAlias} >/dev/null
-              ! grep -F -- '@sansSerifFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
-              ! grep -F -- '@serifFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
-              ! grep -F -- '@monospaceFamily@' ${syntheticRules.cssGenericAlias} >/dev/null
-              touch "$out"
-            '';
+            (
+              (import ./../../lib/templates/text.nix) ./scripts/font-generic-aliases.sh {
+                sansSerifFamily = null;
+                serifFamily = null;
+                monospaceFamily = null;
+                lib_escapeShellArg_syntheticSans = lib.escapeShellArg syntheticSans;
+                syntheticRules_cssGenericAlias = syntheticRules.cssGenericAlias;
+                lib_escapeShellArg_syntheticSerif = lib.escapeShellArg syntheticSerif;
+                lib_escapeShellArg_syntheticMonospace = lib.escapeShellArg syntheticMonospace;
+              }
+            );
         font-selection =
           pkgs.runCommand "font-selection"
             {
@@ -191,12 +205,13 @@
               ];
               FONTCONFIG_FILE = fontConfig;
             }
-            ''
-              export XDG_CACHE_HOME="$TMPDIR/font-cache"
-              mkdir -p "$out"
-              python ${testSource}/tests/fonts/check_selection.py --providers ${providers} --output "$out/selection.json"
-              python ${testSource}/tests/fonts/check_emoji_coverage.py --emoji-data ${emojiData}
-            '';
+            (
+              (import ../../lib/templates/text.nix) ./scripts/font-selection.sh {
+                inherit testSource;
+                inherit providers;
+                inherit emojiData;
+              }
+            );
       }
       // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         font-browser =
@@ -206,25 +221,17 @@
                 python
                 pkgs.fontconfig
                 pkgs.geckodriver
+                pkgs.nodejs_24
               ];
               FONTCONFIG_FILE = fontConfig;
             }
-            ''
-              export XDG_CACHE_HOME="$TMPDIR/cache"
-              export XDG_CONFIG_HOME="$TMPDIR/config"
-              export XDG_DATA_HOME="$TMPDIR/data"
-              mkdir -p "$out"
-              for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility emoji-presentation; do
-                if ! python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser ${lib.getExe pkgs.firefox} --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$out/$suite"; then
-                  # Failed derivations do not retain outputs; keep measurements
-                  # available for diagnosis without changing the assertions.
-                  for evidence in "$out/$suite"/*.json; do
-                    if test -f "$evidence"; then cat "$evidence"; fi
-                  done
-                  exit 1
-                fi
-              done
-            '';
+            (
+              (import ../../lib/templates/text.nix) ./scripts/font-browser-rendering.sh {
+                inherit testSource;
+                lib_getExe_pkgs_firefox = lib.getExe pkgs.firefox;
+                modules_home_browsers_shared_emoji_presentation_css = ../../modules/home/browsers/shared/emoji-presentation.css;
+              }
+            );
         font-native =
           pkgs.runCommand "font-native-rendering"
             {
@@ -238,18 +245,12 @@
               ];
               FONTCONFIG_FILE = fontConfig;
             }
-            ''
-              export XDG_CACHE_HOME="$TMPDIR/cache"
-              export XDG_RUNTIME_DIR="$TMPDIR/runtime"
-              export QT_QPA_PLATFORM=offscreen
-              export QT_PLUGIN_PATH=${pkgs.qt6.qtbase}/lib/qt-6/plugins
-              mkdir -p "$out" "$XDG_RUNTIME_DIR"
-              chmod 700 "$XDG_RUNTIME_DIR"
-              c++ -fPIC -std=c++17 -Wall -Wextra -Wpedantic -Wconversion \
-                -Wsign-conversion -Werror ${../../tests/fonts/render_native.cpp} \
-                -o render $(pkg-config --cflags --libs Qt6Gui pangocairo)
-              ./render "$out"
-            '';
+            (
+              (import ../../lib/templates/text.nix) ./scripts/font-native-rendering.sh {
+                pkgs_qt6_qtbase = pkgs.qt6.qtbase;
+                tests_fonts_render_native_cpp = ../../tests/fonts/render_native.cpp;
+              }
+            );
       };
       apps.font-check = {
         type = "app";
@@ -260,55 +261,50 @@
               python
               pkgs.fontconfig
               pkgs.geckodriver
+              pkgs.nodejs_24
               pkgs.coreutils
             ];
-            text = ''
-              if [[ "$#" -lt 1 ]]; then
-                echo "Usage: font-check OUTPUT-DIRECTORY [BROWSER-EXECUTABLE]" >&2
-                exit 2
-              fi
-              ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
-                if [[ "$#" -ge 2 ]]; then
-                  echo "Browser collection isolation uses Linux Fontconfig. On macOS, run tests/fonts/check_coretext.swift after activation." >&2
-                  exit 2
-                fi
-              ''}
-              output=$(realpath -m "$1")
-              mkdir -p "$output"
-              export FONTCONFIG_FILE=${collectionConfig}
-              export XDG_CACHE_HOME
-              XDG_CACHE_HOME=$(mktemp -d)
-              trap 'rm -rf "$XDG_CACHE_HOME"' EXIT
-              export XDG_CONFIG_HOME="$XDG_CACHE_HOME/config"
-              export XDG_DATA_HOME="$XDG_CACHE_HOME/data"
-              python ${testSource}/tests/fonts/check_selection.py --providers ${providers} --inventory --output "$output/selection.json"
-              python ${testSource}/tests/fonts/check_emoji_coverage.py --emoji-data ${emojiData}
-              ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
-                cp ${config.checks.font-native}/*.png "$output/"
-                python ${testSource}/tests/fonts/check_emoji_coverage.py --emoji-data ${emojiData} --font ${personal.apple-color-emoji}/share/fonts/truetype/apple-color-emoji/font.ttf
-              ''}
-              mkdir -p "$XDG_CACHE_HOME/fontconfig"
-              du -sb "$XDG_CACHE_HOME/fontconfig" | cut -f1 > "$output/fontconfig-cache-bytes.txt"
-              if [[ "$#" -ge 2 ]]; then
-                browser=$(realpath "$2")
-                for suite in digits multilingual private-use apple-stack apple-platform missing-named-stack compatibility emoji-presentation; do
-                  python ${testSource}/tests/browsers/check_font_rendering.py --suite "$suite" --browser "$browser" --user-content-css ${../../modules/home/browsers/shared/emoji-presentation.css} --output "$output/$suite"
-                done
-                python -m zipfile -e ${personal.mutant-standard-emoji.compiledFont.src} "$XDG_CACHE_HOME/artwork"
-                python ${testSource}/tests/browsers/check_mutant_emoji.py --installed --font ${personal.mutant-standard-emoji}/share/fonts/truetype/MutantStandardEmoji.ttf --artwork "$XDG_CACHE_HOME/artwork/emoji" --browser "$browser" --output "$output/mutant"
-                ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
-                  python ${testSource}/tests/browsers/check_apple_emoji.py --font ${personal.apple-color-emoji}/share/fonts/truetype/apple-color-emoji/font.ttf --emoji-data ${emojiData} --browser "$browser" --output "$output/apple"
-                ''}
-              fi
-            '';
+            text = (import ../../lib/templates/text.nix) ./scripts/font-check.sh {
+              lib_optionalString_pkgs_stdenv_hostPlatform_isDarwin_if_ge_2 = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin (
+                builtins.readFile ./scripts/reject-macos-browser-font-isolation.sh
+              );
+              inherit collectionConfig;
+              inherit testSource;
+              inherit providers;
+              inherit emojiData;
+              lib_optionalString_pkgs_stdenv_hostPlatform_isLinux_cp_confi =
+                lib.optionalString pkgs.stdenv.hostPlatform.isLinux
+                  (
+                    (import ../../lib/templates/text.nix) ./scripts/collect-native-font-results.sh {
+                      config_checks_font_native = config.checks.font-native;
+                      inherit testSource;
+                      inherit emojiData;
+                      personal_apple_color_emoji = personal.apple-color-emoji;
+                    }
+                  );
+              modules_home_browsers_shared_emoji_presentation_css = ../../modules/home/browsers/shared/emoji-presentation.css;
+              personal_mutant_standard_emoji_compiledFont_src = personal.mutant-standard-emoji.compiledFont.src;
+              personal_mutant_standard_emoji = personal.mutant-standard-emoji;
+              lib_optionalString_pkgs_stdenv_hostPlatform_isLinux_python_t =
+                lib.optionalString pkgs.stdenv.hostPlatform.isLinux
+                  (
+                    (import ../../lib/templates/text.nix) ./scripts/check-browser-apple-emoji.sh {
+                      inherit testSource;
+                      personal_apple_color_emoji = personal.apple-color-emoji;
+                      inherit emojiData;
+                    }
+                  );
+            };
           }
         );
       };
       devShells.fonts = pkgs.mkShellNoCC {
+        PYTHONPATH = "${testSource}/tests";
         packages = [
           python
           pkgs.fontconfig
           pkgs.geckodriver
+          pkgs.nodejs_24
         ];
       };
     };
