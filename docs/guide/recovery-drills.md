@@ -5,7 +5,7 @@ services from application-owned hooks. A recipe defines a consistent export,
 backup transport, recovery selection, restore operation and semantic check.
 No production application is stopped until its backup service is explicitly run.
 
-Read the [module and operational guide](https://github.com/nix-forge/nix-conf/blob/main/docs/application-recovery.md)
+Read the [module and operational guide](https://github.com/nix-forge/nix-conf/blob/main/docs/operations/application-recovery.md)
 before declaring a recipe. The [generated options](options.md) describe the
 configuration interface. Keep credentials in protected runtime files and provision
 real backup destinations before enabling a recipe.

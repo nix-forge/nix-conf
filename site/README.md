@@ -34,7 +34,7 @@ The selected built-in theme supplies responsive navigation, local search, and
 keyboard controls. The small stylesheet uses the workstation's dark blue and
 mint colors without requiring external fonts or a frontend package manager.
 
-See [implementation research](../docs/public-guide-implementation-research.md)
+See [implementation research](../docs/research/public-guide-implementation-research.md)
 for the primary sources and [release guidance](../docs/guide/maintaining.md).
 
 Use the Nix `documentation` build when checking the complete release artifact.

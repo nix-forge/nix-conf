@@ -13,7 +13,7 @@ Ignored drafts do not appear automatically in another worktree or machine;
 pass their contents or provide a reviewed copy explicitly.
 
 For desktop evaluation, builds, or checks, pass the
-[workload-runner requirement](../desktop-memory-management.md) to every worker.
+[workload-runner requirement](../operations/desktop-memory-management.md) to every worker.
 Independent worktrees share the desktop user's queue. Coordinate remote/root
 jobs separately because wrapping a local deployment client does not wrap its
 remote evaluation process.

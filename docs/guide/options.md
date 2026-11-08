@@ -4,7 +4,8 @@ The guide build generates this reference from the selected modules through
 `nixosOptionsDoc`. It includes types, descriptions, defaults and declarations.
 Build `.#feature-options` for the corresponding JSON. The current bounded set
 covers Secure Boot preparation, libvirt workstation interfaces, application
-recovery recipes and desktop-local service/backup health.
+recovery recipes. Host-local service and backup health remains documented beside
+its local implementation rather than supplying the reusable option declarations.
 
 A declared default does not establish that a host selected the feature, that its
 external prerequisites exist, or that it passed a native test. Use the

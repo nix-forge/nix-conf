@@ -1,6 +1,6 @@
 # Domain documentation
 
-This repository uses one [root glossary](../../CONTEXT.md). Read its relevant
+This repository uses one [root glossary](../../GLOSSARY.md). Read its relevant
 terms when exploring a domain, diagnosing a bug, designing a feature, or naming
 tests. Implementation layout and module contracts belong in
 [CONTRIBUTING.md](../../CONTRIBUTING.md), not in the glossary.
@@ -22,5 +22,5 @@ an existing ADR explicitly when proposing a change.
 
 The submodules have their own ownership and documentation. Consult those when
 working inside them; their presence alone does not require a root
-`CONTEXT-MAP.md`. Follow the [publication policy](../publication.md) for glossary
+`GLOSSARY-MAP.md`. Follow the [publication policy](../publication.md) for glossary
 and decision updates as well as ordinary research notes.
