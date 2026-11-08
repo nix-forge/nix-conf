@@ -1,6 +1,6 @@
 #!@bash@
 # shellcheck shell=bash
-extension_root="$HOME/Library/Application Support/net.imput.helium/nix-managed-extensions"
+extension_root=@extensionRoot@
 extension_update_url=@extensionUpdateUrl@
 extension_dirs=""
 @mkdir@ -p "$extension_root"

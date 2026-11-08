@@ -46,6 +46,8 @@ in
 
   programs.firefox = {
     enable = true;
+    # Preserve existing Linux profiles when Home Manager changes its default.
+    configPath = lib.mkIf (!isDarwin) ".mozilla/firefox";
     # Policies live in the macOS defaults domain, so Darwin does not need a
     # wrapFirefox rebuild that strips Mozilla's application signature.
     package = lib.mkIf isDarwin pkgs.firefox-bin-unwrapped;

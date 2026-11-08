@@ -17,7 +17,6 @@ in
 }
 // lib.optionalAttrs (customFilterLists != [ ]) {
   toOverwrite = {
-    filters = [ ];
     filterLists = defaultFilterLists ++ customFilterLists;
   };
 }
