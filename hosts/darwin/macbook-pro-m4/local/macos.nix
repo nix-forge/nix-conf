@@ -1,4 +1,6 @@
 {
+  macos.dictation.enable = true;
+
   macos.preferences = {
     enable = true;
     motion = "instant";

@@ -1,0 +1,8 @@
+# shellcheck shell=bash
+command_name=@name@
+alias_name=@alias@
+: "${out:?Nix must provide the output directory}"
+# Case-insensitive stores already resolve case-only aliases to the original.
+if [[ ! -e "$out/bin/$alias_name" ]]; then
+  ln -s "$command_name" "$out/bin/$alias_name"
+fi
