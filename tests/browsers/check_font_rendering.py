@@ -14,6 +14,7 @@ import http.server
 import io
 import json
 import math
+import re
 import shutil
 import socket
 import string
@@ -25,16 +26,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
+from typescript_sources import javascript_source
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 # Optional integration-test dependencies, supplied by the documented Nix command.
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.ttFont import TTLibError
+from notification_process import wait_child
 from PIL import Image, ImageChops
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
+from waits import FileChanges
 
 PIXEL_THRESHOLD = 100
 MIN_PAINTED_PIXELS = 4
@@ -80,6 +85,38 @@ FAMILIES = [
     "serif",
     "monospace",
 ]
+
+
+def _html_fixture(fixture_name: str, /, **values: str) -> str:
+    """Render a native HTML fixture without processing replacement text again.
+
+    Returns:
+        The fixture with each explicitly named value substituted once.
+
+    """
+    source = (
+        (Path(__file__).with_name("fixtures") / fixture_name)
+        .read_text(encoding="utf-8")
+        .removesuffix("\n")
+    )
+    return re.sub(
+        r"__([A-Za-z_][A-Za-z_0-9]*)__", lambda match: values[match[1]], source
+    )
+
+
+def _browser_program(name: str) -> str:
+    """Load a checked browser function and pass the WebDriver arguments through.
+
+    Returns:
+        A script body with the same receiver, arguments, and completion callback.
+
+    """
+    source = javascript_source(Path(__file__).with_name("fixtures") / name)
+    return (
+        "const module = {exports: null};\n"
+        + source
+        + "\nreturn module.exports.apply(this, arguments);"
+    )
 
 
 def _fontconfig_query(pattern: str) -> str:
@@ -297,67 +334,22 @@ def check_font_compatibility(  # ruff: ignore[complex-structure,too-many-branche
         "/shadow.ttf": regular,
     }
     pages = {
-        "/installed.html": f"""<!doctype html><meta charset="utf-8"><style>
-body {{ background:#111; color:white; margin:20px; }}
-.sample {{ display:inline-block; white-space:nowrap; font:400 40px/1.15 {sans_css}; }}
-</style><span id="sample" class="sample">{sample}</span>""".encode(),
-        "/shadow.html": f"""<!doctype html><meta charset="utf-8"><style>
-@font-face {{ font-family:{sans_css}; src:url('/shadow.ttf') format('truetype');
-  font-style:normal; font-weight:400; font-display:block; }}
-body {{ background:#111; color:white; margin:20px; }}
-.sample {{ display:inline-block; white-space:nowrap; font:400 40px/1.15 {sans_css}; }}
-</style><span id="sample" class="sample">{sample}</span>""".encode(),
-        "/local.html": f"""<!doctype html><meta charset="utf-8"><style>
-@font-face {{ font-family:LocalFull; src:local('Roboto'); font-weight:400;
-  font-style:normal; font-display:block; }}
-@font-face {{ font-family:LocalPostScript; src:local('{postscript}');
-  font-weight:400; font-style:normal; font-display:block; }}
-body {{ background:#111; color:white; margin:20px; }}
-.sample {{ display:inline-block; white-space:nowrap; font-size:40px;
-  line-height:1.15; }}
-</style><span id="full" class="sample" style="font-family:LocalFull">{sample}</span>
-<span id="postscript" class="sample" style="font-family:LocalPostScript">{sample}</span>
-<span id="reference" class="sample" style="font-family:Roboto">{sample}</span>""".encode(),
-        "/faces.html": f"""<!doctype html><meta charset="utf-8"><style>
-@font-face {{ font-family:FaceFixture; src:url('/regular.ttf') format('truetype');
-  font-style:normal; font-weight:400; font-display:block; }}
-@font-face {{ font-family:FaceFixture; src:url('/bold.ttf') format('truetype');
-  font-style:normal; font-weight:700; font-display:block; }}
-@font-face {{ font-family:FaceFixture; src:url('/italic.ttf') format('truetype');
-  font-style:italic; font-weight:400; font-display:block; }}
-@font-face {{ font-family:VariableFixture; src:url('/variable.ttf') format('truetype');
-  font-style:normal; font-weight:100 1000; font-stretch:75% 125%;
-  font-display:block; }}
-@font-face {{ font-family:MissingFixture; src:url('/regular.ttf') format('truetype');
-  font-style:normal; font-weight:400; font-display:block; }}
-body {{ background:#111; color:white; margin:20px; }}
-.sample {{ display:inline-block; white-space:nowrap; font-size:40px;
-  line-height:1.15; margin:3px; }}
-.emoji {{ font:400 48px/1 emoji; }}
-.role {{ font-size:32px; }}
-</style>
-<div id="regular" class="sample" style="font:400 40px/1.15 FaceFixture">{sample}</div>
-<div id="bold" class="sample" style="font:700 40px/1.15 FaceFixture">{sample}</div>
-<div id="italic" class="sample" style="font:italic 400 40px/1.15 FaceFixture">{sample}</div>
-<div id="missing" class="sample" style="font:oblique 400 40px/1.15 MissingFixture;font-synthesis:none">{sample}</div>
-<div id="variable-low" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 75">{sample}</div>
-<div id="variable-high" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 125">{sample}</div>
-<div id="role-sans" class="sample role" style='font-family:{sans_css}'>{sample}</div>
-<div id="role-serif" class="sample role" style='font-family:{serif_css}'>{sample}</div>
-<div id="role-mono" class="sample role" style='font-family:{monospace_css}'>{sample}</div>
-<div id="wrap" class="sample role" style='display:block;width:240px;white-space:normal;font-family:{sans_css}'>{sample} {sample}</div>
-<div id="generic-system" class="sample role" style="font-family:system-ui">{sample}</div>
-<div id="generic-sans" class="sample role" style="font-family:sans-serif">{sample}</div>
-<div id="generic-ui-sans" class="sample role" style="font-family:ui-sans-serif">{sample}</div>
-<div id="generic-ui-serif" class="sample role" style="font-family:ui-serif">{sample}</div>
-<div id="generic-ui-mono" class="sample role" style="font-family:ui-monospace">{sample}</div>
-<div id="generic-ui-rounded" class="sample role" style="font-family:ui-rounded">{sample}</div>
-<div id="emoji-text" class="emoji">☕︎</div>
-<div id="emoji-presentation" class="emoji">☕️</div>
-<div id="emoji-keycap" class="emoji">1️⃣</div>
-<div id="emoji-flag" class="emoji">🇨🇦</div>
-<div id="emoji-skin" class="emoji">👍🏽</div>
-<div id="emoji-zwj" class="emoji">👩‍💻</div>""".encode(),
+        "/installed.html": _html_fixture(
+            "installed.html.in", sans_css=f"{sans_css}", sample=f"{sample}"
+        ).encode(),
+        "/shadow.html": _html_fixture(
+            "shadow.html.in", sans_css=f"{sans_css}", sample=f"{sample}"
+        ).encode(),
+        "/local.html": _html_fixture(
+            "local.html.in", postscript=f"{postscript}", sample=f"{sample}"
+        ).encode(),
+        "/faces.html": _html_fixture(
+            "faces.html.in",
+            sample=f"{sample}",
+            sans_css=f"{sans_css}",
+            serif_css=f"{serif_css}",
+            monospace_css=f"{monospace_css}",
+        ).encode(),
     }
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -388,17 +380,7 @@ body {{ background:#111; color:white; margin:20px; }}
 
     def metrics(driver: webdriver.Firefox, identifier: str) -> dict:
         return driver.execute_script(
-            """const node = document.getElementById(arguments[0]);
-            const range = document.createRange();
-            range.selectNodeContents(node);
-            const box = node.getBoundingClientRect();
-            const style = getComputedStyle(node);
-            return {width: box.width, height: box.height,
-              textWidth: range.getBoundingClientRect().width,
-              lineHeight: parseFloat(style.lineHeight),
-              fontFamily: style.fontFamily, fontStyle: style.fontStyle,
-              fontWeight: style.fontWeight,
-              variation: style.fontVariationSettings};""",
+            _browser_program("font-element-metrics.cts"),
             identifier,
         )
 
@@ -419,13 +401,7 @@ body {{ background:#111; color:white; margin:20px; }}
 
         driver.get(base + "/shadow.html")
         shadow_loaded = driver.execute_async_script(
-            """const text = arguments[0], descriptor = arguments[1],
-              done = arguments[arguments.length - 1];
-            document.fonts.load(descriptor, text)
-              .then(faces => done({loaded: faces.length > 0,
-                checked: document.fonts.check(descriptor, text)}))
-              .catch(error => done({loaded: false, checked: false,
-                error: String(error)}));""",
+            _browser_program("font-descriptor-load.cts"),
             sample,
             sans_descriptor,
         )
@@ -437,14 +413,7 @@ body {{ background:#111; color:white; margin:20px; }}
 
         driver.get(base + "/local.html")
         local = driver.execute_async_script(
-            """const text = arguments[0], done = arguments[arguments.length - 1];
-            Promise.all([
-              document.fonts.load('400 40px LocalFull', text),
-              document.fonts.load('400 40px LocalPostScript', text),
-            ].map(promise => promise.catch(() => []))).then(faces => done({full: faces[0].length > 0,
-              postscript: faces[1].length > 0,
-              fullChecked: document.fonts.check('400 40px LocalFull', text),
-              postscriptChecked: document.fonts.check('400 40px LocalPostScript', text)}));""",
+            _browser_program("local-font-name-load.cts"),
             sample,
         )
         local_metrics = {
@@ -455,90 +424,7 @@ body {{ background:#111; color:white; margin:20px; }}
 
         driver.get(base + "/faces.html")
         face_result = driver.execute_async_script(
-            """const text = arguments[0], monoFamily = arguments[1],
-            done = arguments[arguments.length - 1];
-            const faces = [
-              ['regular', '400 40px FaceFixture'],
-              ['bold', '700 40px FaceFixture'],
-              ['italic', 'italic 400 40px FaceFixture'],
-              ['variable', '400 40px VariableFixture'],
-              ['emoji', '400 48px emoji'],
-            ];
-            Promise.all(faces.map(([, descriptor]) =>
-              document.fonts.load(descriptor, descriptor.includes('emoji') ? '👩‍💻' : text)
-                .catch(() => []))).then(loaded => {
-                function canvasMeasure(family, value, weight = '400') {
-                  const canvas = document.createElement('canvas');
-                  const context = canvas.getContext('2d');
-                  context.font = `${weight} 40px ${family}`;
-                  const metrics = context.measureText(value);
-                  const padding = 8;
-                  const left = Math.max(0, metrics.actualBoundingBoxLeft);
-                  const right = Math.max(metrics.width, metrics.actualBoundingBoxRight);
-                  canvas.width = Math.ceil(left + right + padding * 2);
-                  canvas.height = Math.ceil(metrics.actualBoundingBoxAscent +
-                    metrics.actualBoundingBoxDescent + padding * 2);
-                  // Resizing clears the drawing state, including the selected font.
-                  context.font = `${weight} 40px ${family}`;
-                  context.textBaseline = 'alphabetic';
-                  context.fillStyle = '#000';
-                  context.fillText(value, padding + left,
-                    padding + metrics.actualBoundingBoxAscent);
-                  const pixels = context.getImageData(0, 0,
-                    canvas.width, canvas.height).data;
-                  let ink = 0;
-                  for (let index = 3; index < pixels.length; index += 4)
-                    if (pixels[index] > 8) ink += 1;
-                  return {width: metrics.width,
-                    ascent: metrics.actualBoundingBoxAscent,
-                    descent: metrics.actualBoundingBoxDescent,
-                    ink, canvasWidth: canvas.width, canvasHeight: canvas.height};
-                }
-                const emojiCases = {
-                  text: '☕︎', presentation: '☕️', keycap: '1️⃣',
-                  flag: '🇨🇦', skin: '👍🏽', zwj: '👩‍💻',
-                };
-                const emoji = Object.fromEntries(Object.entries(emojiCases).map(
-                  ([name, value]) => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 256; canvas.height = 80;
-                    const context = canvas.getContext('2d', {willReadFrequently:true});
-                    context.font = '48px emoji'; context.fillText(value, 8, 60);
-                    const pixels = context.getImageData(0, 0, 256, 80).data;
-                    let ink = 0;
-                    for (let index = 3; index < pixels.length; index += 4)
-                      if (pixels[index] > 8) ink += 1;
-                    const clusters = [...new Intl.Segmenter(undefined,
-                      {granularity:'grapheme'}).segment(value)].length;
-                    return [name, {ink, clusters, width: context.measureText(value).width}];
-                  }));
-                const ids = ['regular', 'bold', 'italic', 'missing', 'variable-low',
-                  'variable-high', 'role-sans', 'role-serif', 'role-mono',
-                  'wrap',
-                  'generic-system', 'generic-sans', 'generic-ui-sans',
-                  'generic-ui-serif', 'generic-ui-mono', 'generic-ui-rounded'];
-                done({loaded: Object.fromEntries(faces.map(([name], index) =>
-                    [name, loaded[index].length > 0])),
-                  checked: Object.fromEntries(faces.map(([name, descriptor]) =>
-                    [name, document.fonts.check(descriptor, text)])),
-                  metrics: Object.fromEntries(ids.map(id => [id, {
-                    width: document.getElementById(id).getBoundingClientRect().width,
-                    height: document.getElementById(id).getBoundingClientRect().height,
-                    lineHeight: parseFloat(getComputedStyle(document.getElementById(id)).lineHeight),
-                    fontStyle: getComputedStyle(document.getElementById(id)).fontStyle,
-                    fontWeight: getComputedStyle(document.getElementById(id)).fontWeight,
-                    variation: getComputedStyle(document.getElementById(id)).fontVariationSettings,
-                  }])),
-                  variableCanvas: {
-                    low: canvasMeasure('VariableFixture', text, '100'),
-                    high: canvasMeasure('VariableFixture', text, '900'),
-                  },
-                  monoCanvas: {
-                    lower: canvasMeasure(monoFamily, 'iiiiii'),
-                    upper: canvasMeasure(monoFamily, 'WWWWWW'),
-                  },
-                  emoji});
-              });""",
+            _browser_program("font-compatibility-metrics.cts"),
             sample,
             monospace_family,
         )
@@ -653,14 +539,12 @@ def check_emoji_presentation(driver: webdriver.Firefox, output: Path) -> bool:
         "author-text": ("😄", "font-variant-emoji:text"),
     }
     rows = "".join(
-        f'<div id="{name}" class="sample" style="{style}">{glyph}</div>'
+        _html_fixture(
+            "emoji-row.html.in", name=f"{name}", style=f"{style}", glyph=f"{glyph}"
+        )
         for name, (glyph, style) in samples.items()
     )
-    html = f"""<!doctype html><meta charset="utf-8"><style>
-body {{ margin:0; background:#000; color:#fff;
-  font-family:'DejaVu Sans','Noto Color Emoji',sans-serif; }}
-.sample {{ font-size:64px; line-height:90px; width:150px; height:90px; }}
-</style>{rows}""".encode()
+    html = _html_fixture("emoji-presentation.html.in", rows=f"{rows}").encode()
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:
@@ -720,14 +604,7 @@ def check_webfonts(driver: webdriver.Firefox, output: Path) -> bool:
         Whether either font fails to load or icon names fail to form ligatures.
 
     """
-    html = b"""<!doctype html><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&amp;display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Symbols:opsz,wght,FILL,GRAD,ROND@48,100..300,0..1,0,100&amp;display=swap">
-<style>body{background:#111;color:white;padding:32px;font:24px 'Google Sans Flex'}
-.icon{font-family:'Google Symbols';font-size:64px;font-weight:200;font-feature-settings:'liga';margin:20px}</style>
-<p>Third-party web font rendering: 0123456789</p>
-<span class="icon">animation</span><span class="icon">zoom_enhance</span>
-<span class="icon">factory</span><span class="icon">chevron_right</span>"""
+    html = (Path(__file__).with_name("fixtures") / "webfonts.html").read_bytes()
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:
@@ -744,23 +621,9 @@ def check_webfonts(driver: webdriver.Firefox, output: Path) -> bool:
     thread.start()
     try:
         driver.get(f"http://127.0.0.1:{server.server_port}/")
-        results = driver.execute_async_script("""const done = arguments[0];
-            Promise.all([
-                ['Google Sans Flex', '400', '0123456789'],
-                ['Google Symbols', '200', 'animation'],
-            ].map(async ([family, weight, text]) => {
-                try {
-                    const faces = await document.fonts.load(`${weight} 64px "${family}"`, text);
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    ctx.font = `${weight} 64px "${family}"`;
-                    const width = ctx.measureText(text).width;
-                    return {family, loaded: faces.length > 0, width,
-                        ligature: family !== 'Google Symbols' || width <= 65};
-                } catch (error) {
-                    return {family, loaded: false, error: String(error)};
-                }
-            })).then(done);""")
+        results = driver.execute_async_script(
+            _browser_program("webfont-load-and-ligatures.cts")
+        )
         driver.save_screenshot(str(output / "webfonts.png"))
         (output / "webfonts.json").write_text(json.dumps(results, indent=2) + "\n")
         failed = any(not r["loaded"] or not r.get("ligature", False) for r in results)
@@ -777,18 +640,12 @@ def check_webfonts(driver: webdriver.Firefox, output: Path) -> bool:
 def _configure_ublock(driver: webdriver.Firefox, xpi: Path, lists: list[str]) -> None:
     driver.install_addon(str(xpi.resolve()), temporary=True)
     driver.set_context("chrome")
-    host = driver.execute_script("""return JSON.parse(Services.prefs.getStringPref(
-        'extensions.webextensions.uuids'))['uBlock0@raymondhill.net'];""")
+    host = driver.execute_script(_browser_program("ublock-extension-host.cts"))
     driver.set_context("content")
     driver.get(f"moz-extension://{host}/dashboard.html")
     time.sleep(4)
     selected = driver.execute_async_script(
-        """const lists = arguments[0], done = arguments[1];
-        vAPI.messaging.send('dashboard', {
-            what: 'applyFilterListSelection', toImport: lists.join('\\n'),
-        }).then(() => vAPI.messaging.send('dashboard', {what: 'reloadAllFilters'}))
-        .then(() => browser.storage.local.get('selectedFilterLists'))
-        .then(done, error => done({error: String(error)}));""",
+        _browser_program("ublock-filter-list-selection.cts"),
         lists,
     )
     if selected.get("error") or not set(lists).issubset(
@@ -838,34 +695,7 @@ def check_multilingual(driver: webdriver.Firefox, output: Path) -> bool:
         })
     driver.get("data:text/html;charset=utf-8,<meta charset=utf-8>")
     results = driver.execute_script(
-        """return arguments[0].map(({language, text, families}) => {
-        function render(font) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 160; canvas.height = 120;
-            const ctx = canvas.getContext('2d', {willReadFrequently:true});
-            ctx.font = '48px ' + font; ctx.fillText(text, 20, 80);
-            const data = ctx.getImageData(0, 0, 160, 120).data;
-            const ink = [];
-            for (let i = 3; i < data.length; i += 4) ink.push(data[i]);
-            return {canvas, ink};
-        }
-        const generic = render('sans-serif');
-        let best = null;
-        for (const family of families) {
-            const reference = render(JSON.stringify(family));
-            const different = generic.ink.filter((p,i) => Math.abs(p-reference.ink[i]) > 20).length;
-            if (!best || different < best.different) best = {family, reference, different};
-            if (different === 0) break;
-        }
-        const label = document.createElement('p');
-        label.textContent = language + ': ' + (best?.family || 'no installed coverage');
-        document.body.append(label, generic.canvas);
-        if (best) document.body.append(best.reference.canvas);
-        return {language, matched_family: best?.family || null,
-            different_pixels: best?.different ?? null,
-            reference_ink: best?.reference.ink.filter(p => p > 20).length || 0,
-            candidate_families: families};
-    });""",
+        _browser_program("multilingual-fallback-comparison.cts"),
         samples,
     )
     (output / "multilingual.json").write_text(
@@ -894,19 +724,14 @@ def check_digits(driver: webdriver.Firefox, output: Path) -> bool:
     """
     driver.set_window_size(1400, 1200)
     cases = [(f, v) for f in FAMILIES for v in ["normal", "tabular-nums"]]
-    html = """<!doctype html><meta charset="utf-8"><style>
-body { background: #111; color: white; font-size: 24px; }
-.row { display: flex; height: 44px; }
-label { font: 16px sans-serif; width: 280px; flex-shrink: 0; }
-.digit { display: inline-block; min-width: 20px; height: 36px; }
-</style>"""
+    html = _html_fixture("numeric-header.html.in")
     for index, (family, variant) in enumerate(cases):
-        html += (
-            f'<div class="row"><label>{family} {variant}</label>'
-            f"<div style=\"font-family:'{family}';font-variant-numeric:{variant}\">"
+        html += _html_fixture(
+            "numeric-row.html.in", family=f"{family}", variant=f"{variant}"
         )
         html += "".join(
-            f'<span class="digit" id="g{index}-{d}">{d}</span>' for d in string.digits
+            _html_fixture("numeric-digit.html.in", index=f"{index}", d=f"{d}")
+            for d in string.digits
         )
         html += " 1080p HD 12:34 / 56:78</div></div>"
     html += (
@@ -914,10 +739,7 @@ label { font: 16px sans-serif; width: 280px; flex-shrink: 0; }
     )
     driver.get("data:text/html;charset=utf-8," + quote(html))
     driver.execute_async_script("document.fonts.ready.then(() => arguments[0]())")
-    rectangles = driver.execute_script("""return [...document.querySelectorAll('.digit')].map(e => {
-        const r = e.getBoundingClientRect();
-        return {id: e.id, x: r.x, y: r.y, width: r.width, height: r.height};
-    });""")
+    rectangles = driver.execute_script(_browser_program("numeric-digit-rectangles.cts"))
     png = driver.get_screenshot_as_png()
     (output / "rendering.png").write_bytes(png)
     screenshot = Image.open(io.BytesIO(png)).convert("RGB")
@@ -941,9 +763,9 @@ label { font: 16px sans-serif; width: 280px; flex-shrink: 0; }
         json.dumps(results, indent=2) + "\n", encoding="utf-8"
     )
     driver.set_context("chrome")
-    graphics = driver.execute_async_script("""const done = arguments[0];
-        ChromeUtils.importESModule('resource://gre/modules/Troubleshoot.sys.mjs')
-            .Troubleshoot.snapshot().then(s => done(s.graphics));""")
+    graphics = driver.execute_async_script(
+        _browser_program("firefox-graphics-snapshot.cts")
+    )
     (output / "graphics.json").write_text(
         json.dumps(graphics, indent=2) + "\n", encoding="utf-8"
     )
@@ -968,17 +790,16 @@ def check_private_use(  # ruff: ignore[too-many-locals] -- Keep the three-way PU
     fallback_family = _private_use_fallback_family()
     driver.set_window_size(1200, 640)
     rows = "".join(
-        f"""<div class="row"><code>U+{codepoint:04X}</code>
-<span id="target-{codepoint:x}" class="logo" style="font-family:Roboto,Arial,sans-serif">{chr(codepoint)}</span>
-<span id="reference-{codepoint:x}" class="logo" style='font-family:{_css_family(fallback_family)},sans-serif'>{chr(codepoint)}</span>
-<span id="generic-{codepoint:x}" class="logo" style="font-family:sans-serif">{chr(codepoint)}</span></div>"""
+        _html_fixture(
+            "private-use-row.html.in",
+            codepoint_f_04X=f"{codepoint:04X}",
+            codepoint_f_x=f"{codepoint:x}",
+            chr_codepoint=f"{chr(codepoint)}",
+            css_family_fallback_family=f"{_css_family(fallback_family)}",
+        )
         for codepoint in PRIVATE_USE_CODEPOINTS
     )
-    html = f"""<!doctype html><meta charset="utf-8"><style>
-body {{ background: #111; color: white; margin: 20px; font-size: 20px; line-height: 1.2; }}
-.row {{ display: grid; grid-template-columns: 100px 80px 80px 80px; gap: 8px; margin: 8px 0; white-space: nowrap; }}
-.logo {{ display: inline-block; font-size: 48px; line-height: 1; vertical-align: top; }}
-</style><div class="row"><strong>Code point</strong><strong>Named</strong><strong>Reference</strong><strong>Generic</strong></div>{rows}"""
+    html = _html_fixture("private-use.html.in", rows=f"{rows}")
     driver.get("data:text/html;charset=utf-8," + quote(html))
     driver.execute_async_script("document.fonts.ready.then(() => arguments[0]())")
 
@@ -1142,33 +963,14 @@ def check_apple_system_stack(  # ruff: ignore[too-many-locals] -- Keep the compl
 
     sample = "Habi App Habit Tracker & Focus Timer"
     private_use = chr(0xF8FF)
-    html = f"""<!doctype html><meta charset="utf-8"><style>
-@font-face {{
-  font-family: "SF Pro Local";
-  font-style: normal;
-  font-weight: 100 1000;
-                src: url("/role-local.ttf") format("truetype");
-}}
-@font-face {{
-  font-family: "SF Pro";
-  font-style: normal;
-  font-weight: 100 1000;
-                src: url("/apple-web-test.ttf") format("truetype");
-}}
-body {{ background: #111; color: white; margin: 20px; }}
-.sample {{ display: inline-block; white-space: nowrap; font-size: 32px;
-  line-height: 1; font-weight: 400; margin-right: 12px; }}
-.private {{ font-size: 48px; }}
-</style>
-<div id="stack" class="sample" style="font-family:{APPLE_SYSTEM_STACK}">{sample}</div>
-<div id="named-stack" class="sample" style="font-family:{APPLE_WEB_STACK}">{sample}</div>
-<div id="web" class="sample" style="font-family:'SF Pro'">{sample}</div>
-<div id="fallback" class="sample" style='font-family:{_css_family(fallback_family)}'>{sample}</div>
-<div id="system-ui" class="sample" style="font-family:system-ui">{sample}</div>
-<div id="sans-serif" class="sample" style="font-family:sans-serif">{sample}</div>
-<div id="private-stack" class="sample private" style="font-family:{APPLE_SYSTEM_STACK}">{private_use}</div>
-<div id="private-system" class="sample private" style="font-family:'SF Pro Local'">{private_use}</div>
-<div id="private-reference" class="sample private" style='font-family:{_css_family(fallback_family)}'>{private_use}</div>""".encode()
+    html = _html_fixture(
+        "apple-web.html.in",
+        APPLE_SYSTEM_STACK=f"{APPLE_SYSTEM_STACK}",
+        sample=f"{sample}",
+        APPLE_WEB_STACK=f"{APPLE_WEB_STACK}",
+        css_family_fallback_family=f"{_css_family(fallback_family)}",
+        private_use=f"{private_use}",
+    ).encode()
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:
@@ -1203,29 +1005,12 @@ body {{ background: #111; color: white; margin: 20px; }}
         driver.set_window_size(1400, 600)
         driver.get(f"http://127.0.0.1:{server.server_port}/")
         driver.execute_async_script(
-            """const sample = arguments[0], privateUse = arguments[1], done = arguments[2];
-            Promise.all([
-                document.fonts.load('400 48px "SF Pro Local"', privateUse),
-                document.fonts.load('400 32px "SF Pro"', sample),
-                document.fonts.load('400 48px "SF Pro"', privateUse),
-            ]).then(() => done());""",
+            _browser_program("apple-system-stack-font-load.cts"),
             sample,
             private_use,
         )
         result = driver.execute_script(
-            """const ids = ['stack', 'named-stack', 'web', 'fallback', 'system-ui', 'sans-serif',
-              'private-stack', 'private-system', 'private-reference'];
-            return {
-              widths: Object.fromEntries(ids.map(id => [
-                id, document.getElementById(id).getBoundingClientRect().width,
-              ])),
-              fontFaces: [...document.fonts].map(face => ({
-                family: face.family, status: face.status,
-              })),
-              webFontLoaded: [...document.fonts].some(face =>
-                ['SF Pro', '"SF Pro"'].includes(face.family)
-                  && face.status === 'loaded'),
-            };"""
+            _browser_program("apple-system-stack-metrics.cts")
         )
         driver.save_screenshot(str(output / "apple-system-stack.png"))
     finally:
@@ -1352,15 +1137,15 @@ def check_apple_platform_namespace(  # ruff: ignore[too-many-locals] -- Keep mat
         "chatgpt-stack": APPLE_CHATGPT_STACK,
     }
     rows = "".join(
-        f'<span id="{identifier}" class="sample" style=\'font-family:{family}\'>'
-        f"{sample}</span>"
+        _html_fixture(
+            "apple-platform-row.html.in",
+            identifier=f"{identifier}",
+            family=f"{family}",
+            sample=f"{sample}",
+        )
         for identifier, family in browser_cases.items()
     )
-    html = f"""<!doctype html><meta charset="utf-8"><style>
-body {{ background: #111; color: white; margin: 20px; }}
-.sample {{ display: inline-block; white-space: nowrap; font-size: 32px;
-  line-height: 1; margin-right: 12px; }}
-</style>{rows}""".encode()
+    html = _html_fixture("apple-platform.html.in", rows=f"{rows}").encode()
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:
@@ -1380,21 +1165,7 @@ body {{ background: #111; color: white; margin: 20px; }}
         driver.get(f"http://127.0.0.1:{server.server_port}/")
         driver.execute_async_script("document.fonts.ready.then(() => arguments[0]())")
         result = driver.execute_script(
-            """const cases = arguments[0];
-            const metrics = Object.fromEntries(Object.keys(cases).map(id => {
-              const node = document.getElementById(id);
-              const range = document.createRange();
-              range.selectNodeContents(node);
-              return [id, {
-                width: node.getBoundingClientRect().width,
-                textWidth: range.getBoundingClientRect().width,
-              }];
-            }));
-            return {
-              metrics,
-              configuredSansAvailable: document.fonts.check(
-                `400 32px ${cases['configured-sans']}`),
-            };""",
+            _browser_program("apple-platform-namespace-metrics.cts"),
             browser_cases,
         )
         driver.save_screenshot(str(output / "apple-platform-namespace.png"))
@@ -1466,16 +1237,14 @@ def check_missing_named_stack(driver: webdriver.Firefox, output: Path) -> bool:
         "youtube": YOUTUBE_PLAYER_STACK,
         "synthetic": f'"{missing_families[1]}", "Roboto", "Arial", sans-serif',
     }
-    html = f"""<!doctype html><meta charset="utf-8"><style>
-body {{ background: #111; color: white; margin: 20px; }}
-.sample {{ display: inline-block; white-space: nowrap; font-size: 16px;
-  line-height: 1; margin-right: 12px; }}
-</style>
-<span id="reference" class="sample" style='font-family:"Roboto"'>{sample}</span>
-<span id="fallback" class="sample" style='font-family:{_css_family(fallback_family)}'>{sample}</span>
-<span id="configured-sans" class="sample" style='font-family:{_css_family(configured_sans_family)}'>{sample}</span>
-<span id="youtube" class="sample" style='font-family:{stacks["youtube"]}'>{sample}</span>
-<span id="synthetic" class="sample" style='font-family:{stacks["synthetic"]}'>{sample}</span>""".encode()
+    html = _html_fixture(
+        "youtube-synthetic-bold.html.in",
+        sample=f"{sample}",
+        css_family_fallback_family=f"{_css_family(fallback_family)}",
+        css_family_configured_sans_family=f"{_css_family(configured_sans_family)}",
+        stacks_youtube=f"{stacks['youtube']}",
+        stacks_synthetic=f"{stacks['synthetic']}",
+    ).encode()
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:
@@ -1495,14 +1264,7 @@ body {{ background: #111; color: white; margin: 20px; }}
         driver.set_window_size(1200, 400)
         driver.get(f"http://127.0.0.1:{server.server_port}/")
         result = driver.execute_script(
-            """const ids = ['reference', 'fallback', 'configured-sans', 'youtube', 'synthetic'];
-            return Object.fromEntries(ids.map(id => {
-              const node = document.getElementById(id);
-              const range = document.createRange();
-              range.selectNodeContents(node);
-              return [id, {width: range.getBoundingClientRect().width,
-                family: getComputedStyle(node).fontFamily}];
-            }));"""
+            _browser_program("missing-named-stack-metrics.cts")
         )
         driver.save_screenshot(str(output / "missing-named-stack.png"))
     finally:
@@ -1540,27 +1302,19 @@ body {{ background: #111; color: white; margin: 20px; }}
     return failed
 
 
-def _wait_for_browser(browser: subprocess.Popen[bytes], port: int) -> None:
-    """Wait until the isolated browser accepts Marionette connections.
+def _wait_for_browser(log: Path, port: int) -> None:
+    """Observe Marionette's post-listen announcement, then connect once."""
+    marker = f"Listening on port {port}".encode()
 
-    Raises:
-        RuntimeError: The browser exits before accepting connections.
-        TimeoutError: Marionette does not start within thirty seconds.
+    def listening() -> bool:
+        return any(
+            b"Marionette" in line and marker in line
+            for line in log.read_bytes().splitlines()
+        )
 
-    """
-    deadline = time.monotonic() + 30
-    while True:
-        if browser.poll() is not None:
-            message = "Browser exited; inspect browser.log"
-            raise RuntimeError(message)
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
-                break
-        except OSError:
-            if time.monotonic() >= deadline:
-                message = "Marionette did not start; inspect browser.log"
-                raise TimeoutError(message) from None
-            time.sleep(0.1)
+    FileChanges(log.parent).wait(listening, timeout=30)
+    # Gecko announces readiness after asyncListen; the driver makes the real
+    # protocol connection below, without speculative TCP clients.
 
 
 def _write_browser_profile(
@@ -1664,7 +1418,7 @@ def main(
             browser = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)  # ruff: ignore[subprocess-without-shell-equals-true] -- No shell; the caller selects a local browser.
             driver = None
             try:
-                _wait_for_browser(browser, port)
+                _wait_for_browser(args.output / "browser.log", port)
                 # Connecting to the browser avoids geckodriver's Firefox-brand
                 # binary validation, which rejects Zen's launcher.
                 service = Service(
@@ -1698,10 +1452,10 @@ def main(
                 finally:
                     browser.terminate()
                     try:
-                        browser.wait(timeout=5)
+                        wait_child(browser, timeout=5)
                     except subprocess.TimeoutExpired:
                         browser.kill()
-                        browser.wait(timeout=5)
+                        wait_child(browser, timeout=5)
 
 
 if __name__ == "__main__":

@@ -22,17 +22,19 @@ pkgs.runCommand name
     // {
       nativeBuildInputs = [ python ] ++ nativeBuildInputs;
       PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1";
+      # HTTP fixtures bind loopback only; Darwin's build sandbox requires this
+      # explicit permission even when the tests use no external network.
+      __darwinAllowLocalNetworking = true;
+      sandboxProfile = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin (
+        builtins.readFile ../flake/dev/fsevents.sb
+      );
     }
   )
-  ''
-    cp -R ${source}/. .
-    chmod -R u+w .
-    export HOME="$TMPDIR/home"
-    export XDG_CONFIG_HOME="$HOME/.config"
-    export XDG_CACHE_HOME="$HOME/.cache"
-    mkdir -p "$HOME"
-    ${prepare}
-    mkdir -p "$out"
-    python3 -m pytest -m ${pkgs.lib.escapeShellArg selection} \
-      --junitxml="$out/junit.xml" ${pkgs.lib.escapeShellArgs testPaths}
-  ''
+  (
+    (import ../lib/templates/text.nix) ./scripts/run-python-tests.sh {
+      inherit source;
+      inherit prepare;
+      pkgs_lib_escapeShellArg_selection = pkgs.lib.escapeShellArg selection;
+      pkgs_lib_escapeShellArgs_testPaths = pkgs.lib.escapeShellArgs testPaths;
+    }
+  )

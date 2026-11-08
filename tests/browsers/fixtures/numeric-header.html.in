@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><style>
+body { background: #111; color: white; font-size: 24px; }
+.row { display: flex; height: 44px; }
+label { font: 16px sans-serif; width: 280px; flex-shrink: 0; }
+.digit { display: inline-block; min-width: 20px; height: 36px; }
+</style>

@@ -1,0 +1,16 @@
+--- a/cli/src/desktop_app/mac.rs
++++ b/cli/src/desktop_app/mac.rs
+@@ -15,7 +15,12 @@ pub async fn run_mac_app_open_or_install(
+     workspace: PathBuf,
+     download_url_override: Option<String>,
+ ) -> anyhow::Result<()> {
+-    if let Some(app_path) = find_existing_codex_app_path(&codex_app_search_dirs()) {
++    let configured_app = std::env::var_os("CODEX_DESKTOP_APP_PATH")
++        .filter(|path| !path.is_empty())
++        .map(PathBuf::from);
++    if let Some(app_path) = configured_app
++        .or_else(|| find_existing_codex_app_path(&codex_app_search_dirs()))
++    {
+         eprintln!(
+             "Opening Desktop app at {app_path}...",
+             app_path = app_path.display()

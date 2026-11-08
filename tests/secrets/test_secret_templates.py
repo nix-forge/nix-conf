@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 IDENTITY = runpy.run_path(
-    str(ROOT / "modules/home/dev/scripts/write-jujutsu-identity.py")
+    str(ROOT / "modules/home/dev/scripts/write_jujutsu_identity.py")
 )
 
 

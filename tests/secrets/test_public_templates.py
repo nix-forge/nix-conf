@@ -6,7 +6,6 @@ import json
 import netrc
 import os
 import re
-import subprocess
 import tempfile
 import tomllib
 import unittest
@@ -14,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from notification_process import run as run_command
 
 if TYPE_CHECKING:
     from typing import Any
@@ -30,7 +30,7 @@ def cli(*args: str | Path, data: bytes | None = None) -> bytes:
         The command's standard output.
 
     """
-    return subprocess.run(
+    return run_command(
         ["nix-seal", *map(str, args)],
         input=data,
         capture_output=True,
@@ -53,7 +53,7 @@ class PublicTemplateTests(unittest.TestCase):
             "nix-token-github-com": "fixture-token",
             "flakehub-login": "fixture-login",
             "flakehub-password": "fixture-password",
-            "service-private-settings": "EXAMPLE_TOKEN='fixture value'\nEXAMPLE_PORT=8788\n",
+            "refined-github-token": "fixture-refined-token",
         }
         aliases = {"name": "git-user-name", "email": "git-user-email-github"}
         with tempfile.TemporaryDirectory() as temporary:
@@ -143,21 +143,6 @@ class PublicTemplateTests(unittest.TestCase):
                 "json",
                 data=json.dumps(values).encode(),
             )
-            self.assertEqual(
-                cli(
-                    "secret",
-                    "reveal",
-                    "--plan",
-                    policy,
-                    "--repository-root",
-                    root,
-                    "--identity",
-                    key,
-                    "--secret",
-                    "service-private-settings",
-                ).decode(),
-                values["service-private-settings"],
-            )
             cli("template", "check", "--plan", policy)
             rendered = {}
             for source in sources:
@@ -194,8 +179,7 @@ class PublicTemplateTests(unittest.TestCase):
             expected = values["git-user-" + name.removeprefix("gitconfig-user")]
             self.assertEqual(tomllib.loads(rendered[name])["user"][field], expected)
             actual = (
-                subprocess
-                .run(
+                run_command(
                     [
                         "git",
                         "config",
@@ -223,6 +207,13 @@ class PublicTemplateTests(unittest.TestCase):
         self.assertEqual(
             rendered["nix-access-tokens"],
             "access-tokens = github.com=fixture-token\n",
+        )
+        self.assertEqual(
+            json.loads(rendered["refined-github-token-import"]),
+            {
+                "__webextOptionsSync": "Refined GitHub",
+                "personalToken": [values["refined-github-token"]],
+            },
         )
         machines = netrc.netrc(str(root / "flakehub-netrc")).hosts
         self.assertEqual(

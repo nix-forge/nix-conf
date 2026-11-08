@@ -12,7 +12,7 @@ import pytest
 
 SCRIPT = (
     Path(__file__).resolve().parents[2]
-    / "modules/home/helium-browser/scripts/crx-to-zip.py"
+    / "modules/home/browsers/helium/scripts/crx_to_zip.py"
 )
 
 

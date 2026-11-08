@@ -1,0 +1,13 @@
+#!@python@
+"""Model platform detection and immutable launcher storage without Nix work."""
+
+import os
+import sys
+from pathlib import Path
+
+if sys.argv[1:] == ["eval", "--impure", "--raw", "--expr", "builtins.currentSystem"]:
+    print(os.environ["ARM_TEST_BUILD_SYSTEM"])
+elif sys.argv[1:3] == ["store", "add-path"] and len(sys.argv) == 4:
+    print("/nix/store/mock-" + Path(sys.argv[3]).name)
+else:
+    raise SystemExit("Unexpected Nix call outside the workload runner")

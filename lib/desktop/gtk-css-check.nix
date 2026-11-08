@@ -7,8 +7,9 @@ _: {
         nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = [ pkgs.gtk4 ];
       }
-      ''
-        mkdir -p "$out/bin"
-        $CC -Wall -Wextra -Werror ${./check-gtk-css.c} $(pkg-config --cflags --libs gtk4) -o "$out/bin/check-gtk-css"
-      '';
+      (
+        (import ../templates/text.nix) ./scripts/build-gtk-css-checker.sh {
+          check_gtk_css_c = ./check-gtk-css.c;
+        }
+      );
 }

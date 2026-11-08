@@ -17,6 +17,7 @@ let
     };
   evaluated = evaluate inputs.determinate;
   package = evaluated.config.nix.package;
+  expected = (import ../../overlays/permanent/determinate.nix { inherit inputs; }) pkgs pkgs;
   command = "@${
     inputs.determinate.packages.${system}.default
   }/bin/determinate-nixd determinate-nixd --nix-bin ${package}/bin daemon";
@@ -25,7 +26,7 @@ in
 # Determinate owns the package assignment at normal module priority.
 assert evaluated.pkgs.nix.drvPath == pkgs.nix.drvPath;
 assert evaluated.options.nix.package.highestPrio == 100;
-assert package.drvPath == inputs.determinate.inputs.nix.packages.${system}.default.drvPath;
+assert package.drvPath == expected.nix.drvPath;
 assert
   evaluated.config.systemd.services.nix-daemon.serviceConfig.ExecStart == [
     ""

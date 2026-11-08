@@ -1,0 +1,4 @@
+#!@bash@
+# shellcheck shell=bash
+# Only source-file roots may be prepared outside the workload queue.
+[[ $# == 5 && $1 == --add-root && $3 == --indirect && $4 == -r && $5 == /nix/store/mock-* ]]

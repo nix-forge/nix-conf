@@ -131,7 +131,8 @@ assert
   == map (gate: gate.drvPath) (unitGates checkedPackage);
 assert nh.version == "4.4.2" && nhWithRegression.doCheck;
 assert nhWithRegression.checkFlags == pkgs.nh-unwrapped.checkFlags;
-assert !(claude.__noChroot or false) && claude.doInstallCheck;
+assert claude.__noChroot == false && claude.doInstallCheck;
+assert claude.doInstallCheck == claudeUpstream.doInstallCheck;
 assert claude.src.outputHash == claudeUpstream.src.outputHash;
 assert deployWithTests.doCheck;
 assert
@@ -168,8 +169,8 @@ assert
     nhChecksEnabled = nhWithRegression.doCheck;
     claudeVersion = claude.version;
     claudeSourceHash = claude.src.outputHash;
-    claudeStrictSandbox = !(claude.__noChroot or false);
-    claudeInstallCheckEnabled = claude.doInstallCheck;
+    claudeStrictSandbox = !claude.__noChroot;
+    claudeInstallChecksPreserved = claude.doInstallCheck == claudeUpstream.doInstallCheck;
     deployRevision = flake.inputs.deploy-rs.rev;
     deployCheckFlags = deployWithTests.checkFlags;
     deployChecksEnabled = deployWithTests.doCheck;

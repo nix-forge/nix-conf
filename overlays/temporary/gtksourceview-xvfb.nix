@@ -1,6 +1,6 @@
 { lib, ... }: {
   reason = "Xvfb resets between GTK test clients and races the next client.";
-  upstream = "https://github.com/NixOS/nixpkgs";
+  upstream = "https://github.com/NixOS/nixpkgs/pull/566623";
   removal = "The upstream check keeps Xvfb alive between test clients.";
   reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
   inputPath = [ "nixpkgs" ];

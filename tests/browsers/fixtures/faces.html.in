@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><style>
+@font-face { font-family:FaceFixture; src:url('/regular.ttf') format('truetype');
+  font-style:normal; font-weight:400; font-display:block; }
+@font-face { font-family:FaceFixture; src:url('/bold.ttf') format('truetype');
+  font-style:normal; font-weight:700; font-display:block; }
+@font-face { font-family:FaceFixture; src:url('/italic.ttf') format('truetype');
+  font-style:italic; font-weight:400; font-display:block; }
+@font-face { font-family:VariableFixture; src:url('/variable.ttf') format('truetype');
+  font-style:normal; font-weight:100 1000; font-stretch:75% 125%;
+  font-display:block; }
+@font-face { font-family:MissingFixture; src:url('/regular.ttf') format('truetype');
+  font-style:normal; font-weight:400; font-display:block; }
+body { background:#111; color:white; margin:20px; }
+.sample { display:inline-block; white-space:nowrap; font-size:40px;
+  line-height:1.15; margin:3px; }
+.emoji { font:400 48px/1 emoji; }
+.role { font-size:32px; }
+</style>
+<div id="regular" class="sample" style="font:400 40px/1.15 FaceFixture">__sample__</div>
+<div id="bold" class="sample" style="font:700 40px/1.15 FaceFixture">__sample__</div>
+<div id="italic" class="sample" style="font:italic 400 40px/1.15 FaceFixture">__sample__</div>
+<div id="missing" class="sample" style="font:oblique 400 40px/1.15 MissingFixture;font-synthesis:none">__sample__</div>
+<div id="variable-low" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 75">__sample__</div>
+<div id="variable-high" class="sample" style="font:400 40px/1.15 VariableFixture;font-variation-settings:'wght' 400,'wdth' 125">__sample__</div>
+<div id="role-sans" class="sample role" style='font-family:__sans_css__'>__sample__</div>
+<div id="role-serif" class="sample role" style='font-family:__serif_css__'>__sample__</div>
+<div id="role-mono" class="sample role" style='font-family:__monospace_css__'>__sample__</div>
+<div id="wrap" class="sample role" style='display:block;width:240px;white-space:normal;font-family:__sans_css__'>__sample__ __sample__</div>
+<div id="generic-system" class="sample role" style="font-family:system-ui">__sample__</div>
+<div id="generic-sans" class="sample role" style="font-family:sans-serif">__sample__</div>
+<div id="generic-ui-sans" class="sample role" style="font-family:ui-sans-serif">__sample__</div>
+<div id="generic-ui-serif" class="sample role" style="font-family:ui-serif">__sample__</div>
+<div id="generic-ui-mono" class="sample role" style="font-family:ui-monospace">__sample__</div>
+<div id="generic-ui-rounded" class="sample role" style="font-family:ui-rounded">__sample__</div>
+<div id="emoji-text" class="emoji">☕︎</div>
+<div id="emoji-presentation" class="emoji">☕️</div>
+<div id="emoji-keycap" class="emoji">1️⃣</div>
+<div id="emoji-flag" class="emoji">🇨🇦</div>
+<div id="emoji-skin" class="emoji">👍🏽</div>
+<div id="emoji-zwj" class="emoji">👩‍💻</div>

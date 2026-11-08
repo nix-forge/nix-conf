@@ -18,15 +18,15 @@ let
     nativeCheckInputs = (old.nativeCheckInputs or [ ]) ++ [ pkgs.python3 ];
     doCheck = true;
     postCheck = (old.postCheck or "") + ''
-      python3 ${./hypridle-condition-inhibitors.py} ../src/core/Hypridle.cpp \
+      python3 ${./hypridle_condition_inhibitors.py} ../src/core/Hypridle.cpp ${./hypridle-condition-inhibitors.cc} \
         --expect-unsafe-inhibitor
     '';
   });
   hyprshell = apply "hyprshell-modifiers" pkgs.hyprshell;
-  nom = apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
+  nom = apply "nom-named-activities" (apply "nom-quadratic-build-plan" pkgs.nix-output-monitor);
   plugin = pkgs.pkgsCross.wasi32.navidromePlugins.audiomuseai;
-  release = import ../audiomuseai-plugin-release.nix { inherit pkgs lib; };
-  repairedPlugin = apply "audiomuseai-plugin-loopback-host" plugin;
+  repairedPlugin =
+    flake.inputs.nixpkgs-personal.packages.${system}.navidrome-plugin-audiomuseai-personal;
   audioMuse =
     pkgs.runCommand "current-audiomuse-loopback-proof"
       {
@@ -39,7 +39,7 @@ let
       ''
         # Assert the complete source tree, allowing only the requiredHosts repair.
         cp -R ${plugin.src} upstream
-        cp -R ${repairedPlugin.src} repaired
+        cp -R ${repairedPlugin.wasmSource} repaired
         chmod -R u+w upstream repaired
         jq -e '.permissions.http.requiredHosts == ["*"]' upstream/manifest.json
         jq -e '.permissions.http.requiredHosts == ["127.0.0.1"]' repaired/manifest.json
@@ -50,7 +50,7 @@ let
         diff -r upstream repaired
         unzip -p ${repairedPlugin}/share/audiomuseai.ndp manifest.json > packed-manifest.json
         jq -e '.permissions.http.requiredHosts == ["127.0.0.1"]' packed-manifest.json
-        jq -S . ${repairedPlugin.src}/manifest.json > source-manifest.json
+        jq -S . ${repairedPlugin.wasmSource}/manifest.json > source-manifest.json
         jq -S . packed-manifest.json > normalized-packed-manifest.json
         cmp source-manifest.json normalized-packed-manifest.json
         mkdir -p "$out"
@@ -66,8 +66,8 @@ assert
     "hyprshell-windows-lib"
     "event_time_tests"
   ];
-assert !(release.appliesTo plugin);
-assert plugin.version == "10";
+assert plugin.version == repairedPlugin.version;
+assert repairedPlugin.doInstallCheck;
 {
   metadata = {
     nixpkgsRevision = flake.inputs.nixpkgs.rev;
@@ -91,7 +91,6 @@ assert plugin.version == "10";
             ;
           audiomuse = repairedPlugin;
         };
-    audioMuseReleaseFixApplicable = release.appliesTo plugin;
     nomCheckPhase = nom.checkPhase;
     inherit (hyprshell) cargoTestFlags;
   };

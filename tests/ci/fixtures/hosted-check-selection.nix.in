@@ -1,0 +1,62 @@
+let
+  lib = import NIXPKGS_LIB;
+  fixture = import DEPLOY {
+    myLib = { };
+    inputs = {
+      nixpkgs = { inherit lib; };
+      deploy-rs.lib.x86_64-linux.deployChecks = _: {
+        host-only = null;
+        new-deployment-check = null;
+      };
+    };
+    self = {
+      deploy = { };
+      lintChecks = {
+        x86_64-linux = {
+          gitleaks-policy = null;
+          new-portable-check = null;
+        };
+        aarch64-darwin.gitleaks-policy = null;
+      };
+      checks = {
+        x86_64-linux = {
+          cache-policy = null;
+          application-recovery = null;
+          desktop-authentication = null;
+          generated-artifacts = null;
+          git-email-privacy = null;
+          gitleaks-policy = null;
+          ordinary = null;
+          newly-added = null;
+          new-portable-check = null;
+          sentry-crashpad-lock = null;
+          service-command-arguments = null;
+          python-tests = null;
+          secret-templates = null;
+          host-only = null;
+          new-deployment-check = null;
+        };
+        aarch64-darwin = {
+          application-recovery = null;
+          cache-policy = null;
+          desktop-authentication = null;
+          generated-artifacts = null;
+          git-email-privacy = null;
+          gitleaks-policy = null;
+          host-only = null;
+          ordinary = null;
+          sentry-crashpad-lock = null;
+          service-command-arguments = null;
+          public-demo-runtime = null;
+          python-tests = null;
+          secret-templates = null;
+        };
+        aarch64-linux = {
+          ordinary = null;
+          python-tests = null;
+        };
+      };
+    };
+  };
+in
+builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks
