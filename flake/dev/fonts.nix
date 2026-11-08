@@ -20,9 +20,7 @@
       # protocol-family names below do not contain any Apple font data.
       syntheticFonts =
         pkgs.runCommand "synthetic-font-fixtures"
-          {
-            nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.fonttools ])) ];
-          }
+          { nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.fonttools ])) ]; }
           ''
             python ${../../tests/fonts/build_synthetic_fonts.py} "$out/share/fonts/truetype"
             install -Dm644 ${../../LICENSE} "$out/share/doc/synthetic-font-fixtures/LICENSE"
