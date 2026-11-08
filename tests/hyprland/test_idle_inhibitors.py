@@ -2,15 +2,16 @@
 
 import json
 import os
-import subprocess  # ruff: ignore[suspicious-subprocess-import] - invoke the helper against a local fixture
+import re
 import sys
 from pathlib import Path
 
 import pytest
+from notification_process import run as run_command
 
 HELPER = (
     Path(__file__).resolve().parents[2]
-    / "modules/home/desktop/scripts/idle-inhibit-check.py"
+    / "modules/home/desktop/scripts/idle_inhibit_check.py"
 )
 
 
@@ -42,13 +43,20 @@ def test_native_inhibitors(
     """Only background app native inhibitors may bypass screen protection."""
     executable = tmp_path / "hyprctl"
     executable.write_text(
-        f"#!{sys.executable}\nimport sys\n"
-        "assert sys.argv[1:] == ['-j', 'clients']\n"
-        f"print({json.dumps(clients)!r})\n"
+        re.sub(
+            r"__fixture_[0-9]+__",
+            lambda match: {
+                "__fixture_0__": f"{sys.executable}",
+                "__fixture_1__": f"{json.dumps(clients)!r}",
+            }[match[0]],
+            (Path(__file__).with_name("fixtures") / "hyprctl_clients.py.in").read_text(
+                encoding="utf-8"
+            ),
+        )
     )
     executable.chmod(0o755)
     for action, expected in (("screen", screen), ("suspend", suspend)):
-        result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - fixed helper and test fixture arguments
+        result = run_command(
             [sys.executable, str(HELPER), action, "chatgpt"],
             env={**os.environ, "PATH": str(tmp_path)},
             capture_output=True,
@@ -64,15 +72,15 @@ def test_ipc_failure(tmp_path: Path, failure: str) -> None:
     """Unknown state allows locking but does not risk suspending background work."""
     if failure != "missing":
         executable = tmp_path / "hyprctl"
-        body = {
-            "exit": "raise SystemExit(1)",
-            "malformed": "print('not JSON')",
-            "timeout": "import time; time.sleep(10)",
-        }[failure]
-        executable.write_text(f"#!{sys.executable}\n{body}\n")
+        executable.write_text(
+            (Path(__file__).with_name("fixtures") / "hyprctl_failure.py.in")
+            .read_text(encoding="utf-8")
+            .replace("__interpreter__", sys.executable)
+            .replace("__failure__", repr(failure))
+        )
         executable.chmod(0o755)
     for action, expected in (("screen", 0), ("suspend", 1)):
-        result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - fixed helper and test fixture arguments
+        result = run_command(
             [sys.executable, str(HELPER), action, "chatgpt"],
             env={**os.environ, "PATH": str(tmp_path)},
             capture_output=True,

@@ -1,4 +1,4 @@
-#!@bash@
+#!/usr/bin/env bash
 set -euo pipefail
 
 if [ "$#" -gt 0 ] && [ "$1" = "full" ]; then

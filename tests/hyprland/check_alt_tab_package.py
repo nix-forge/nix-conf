@@ -6,7 +6,6 @@ and /dev/uinput access. The runner restores the normal service and focus.
 
 from __future__ import annotations
 
-import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Explicit local test script arguments.
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,6 +17,7 @@ from check_alt_tab_ipc_timeout import (
 from check_alt_tab_timing import (
     _check as _check_timing,  # ruff: ignore[import-private-name] -- Exercise the same timing checks with this keyboard.
 )
+from notification_process import run as run_command
 
 if TYPE_CHECKING:
     from check_alt_tab_ipc_timeout import _Proxy
@@ -31,7 +31,7 @@ def _exercise(binary: str, env: dict[str, str], _proxy: _Proxy, fd: int) -> None
         ("check_alt_tab_release_race.py", [binary]),
         ("check_alt_tab.py", []),
     ):
-        subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed script paths and explicit argv.
+        run_command(
             [sys.executable, str(directory / script), *args],
             env=env,
             check=True,

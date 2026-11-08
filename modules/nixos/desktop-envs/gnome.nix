@@ -1,4 +1,6 @@
 _: {
+  imports = [ ./session.nix ];
+
   services.xserver = {
     enable = true;
 

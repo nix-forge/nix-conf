@@ -7,6 +7,7 @@ import argparse
 import fcntl
 import json
 import os
+import selectors
 import shutil
 import signal
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - This local CLI deliberately supervises test processes.
@@ -15,7 +16,17 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypedDict, cast
+from threading import Condition
+from typing import TYPE_CHECKING, TypedDict, cast
+
+from notification_process import run as run_command
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from watchdog.events import FileSystemEvent
 
 # Match the other local heavy-work runners and keep Wayland socket paths short.
 _TEMP_ROOT = Path("/tmp")  # ruff: ignore[hardcoded-temp-file] - Private children are created with mkdtemp.
@@ -115,12 +126,82 @@ def _record_result(evidence: Path, result: int) -> int:
     return result
 
 
+class _Changes(FileSystemEventHandler):
+    """Subscribe before checking state and block between filesystem changes."""
+
+    def __init__(self, *paths: Path) -> None:
+        super().__init__()
+        self.condition = Condition()
+        self.generation = 0
+        self.observer = Observer()
+        for path in paths:
+            self.observer.schedule(self, str(path), recursive=True)
+
+    def on_any_event(self, event: FileSystemEvent) -> None:
+        # Reads performed by the predicate must not wake the predicate itself.
+        if event.event_type not in {"created", "modified", "deleted", "moved"}:
+            return
+        with self.condition:
+            self.generation += 1
+            self.condition.notify_all()
+
+    def wait(self, predicate: Callable[[], bool], timeout: float) -> bool:
+        """Block between changes under one overall deadline.
+
+        Returns:
+            Whether the predicate became true before the deadline.
+
+        """
+        deadline = time.monotonic() + timeout
+        self.observer.start()
+        try:
+            while time.monotonic() < deadline:
+                with self.condition:
+                    generation = self.generation
+                if predicate():
+                    return True
+                with self.condition:
+                    if not self.condition.wait_for(
+                        lambda generation=generation: self.generation != generation,
+                        timeout=max(0, deadline - time.monotonic()),
+                    ):
+                        return False
+            return False
+        finally:
+            self.observer.stop()
+            self.observer.join()
+
+
+def _wait_child(proc: subprocess.Popen[bytes], timeout: float) -> int:
+    """Wait on Linux child-exit notifications instead of Python's timed polling.
+
+    Returns:
+        The child exit status.
+
+    Raises:
+        subprocess.TimeoutExpired: The child has not exited before the deadline.
+
+    """
+    if proc.returncode is not None:
+        return proc.returncode
+    descriptor = os.pidfd_open(proc.pid)
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(descriptor, selectors.EVENT_READ)
+            if not selector.select(timeout):
+                raise subprocess.TimeoutExpired(proc.args, timeout)
+        return proc.wait()
+    finally:
+        os.close(descriptor)
+
+
 @dataclass
 class _Runner:
     options: _Options
     runtime: Path
     env: dict[str, str]
     processes: list[subprocess.Popen[bytes]] = field(default_factory=list)
+    configured_instance: str | None = None
 
     def _start(
         self,
@@ -142,13 +223,15 @@ class _Runner:
         return proc
 
     def _ctl(self, *command: str) -> str:
-        return subprocess.check_output(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed local hyprctl executable, no shell.
+        return run_command(
             [str(self.options.tree / "build/hyprctl/hyprctl"), *command],
             env=self.env,
             timeout=0.5,
             stderr=subprocess.DEVNULL,
             text=True,
-        )
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
 
     def _start_parent(self) -> None:
         cage_env = self.env | {
@@ -159,34 +242,37 @@ class _Runner:
         cage = self._start(
             [self.options.cage, "--", "sleep", "1800"], "cage.log", cage_env
         )
-        deadline = time.monotonic() + 10
-        while time.monotonic() < deadline:
+
+        def ready() -> bool:
             sockets = [p for p in self.runtime.glob("wayland-*") if p.is_socket()]
             if sockets:
                 self.env["WAYLAND_DISPLAY"] = str(sockets[0])
-                return
+                return True
             if cage.poll() is not None:
                 message = "Headless parent exited"
                 raise RuntimeError(message)
-            time.sleep(0.05)
-        message = "No headless parent socket"
-        raise TimeoutError(message)
+            return False
+
+        if not _Changes(self.runtime, self.options.evidence).wait(ready, 10):
+            message = "No headless parent socket"
+            raise TimeoutError(message)
 
     def _verify_once(self) -> bool:
         instances = cast("list[_Instance]", json.loads(self._ctl("instances", "-j")))
         if len(instances) != 1:
-            time.sleep(0.05)
             return False
         instance = instances[0]
         if (
             Path(f"/proc/{instance['pid']}/exe").resolve()
-            != self.options.tree / "build/Hyprland"
+            != (self.options.tree / "build/Hyprland").resolve()
         ):
             message = "Unexpected compositor executable"
             raise RuntimeError(message)
-        self._ctl(
-            "-i", instance["instance"], "output", "create", "headless", "HEADLESS-2"
-        )
+        if self.configured_instance != instance["instance"]:
+            self._ctl(
+                "-i", instance["instance"], "output", "create", "headless", "HEADLESS-2"
+            )
+            self.configured_instance = instance["instance"]
         monitors = cast(
             "list[_Monitor]",
             json.loads(self._ctl("-i", instance["instance"], "monitors", "all", "-j")),
@@ -225,20 +311,17 @@ class _Runner:
         try:
             return self._verify_once()
         except subprocess.SubprocessError, json.JSONDecodeError, FileNotFoundError:
-            time.sleep(0.05)
             return False
 
     def _verify(self) -> None:
         # hyprtester waits ten seconds before loading its plugin or running tests.
         # Verify its sole private instance and outputs within eight seconds.
-        deadline = time.monotonic() + 8
-        while time.monotonic() < deadline:
-            if self._try_verify():
-                print(  # ruff: ignore[print] - CLI progress.
-                    "Verified private instance, client socket, and headless/nested outputs",
-                    flush=True,
-                )
-                return
+        if _Changes(self.runtime, self.options.evidence).wait(self._try_verify, 8):
+            print(  # ruff: ignore[print] - CLI progress.
+                "Verified private instance, client socket, and headless/nested outputs",
+                flush=True,
+            )
+            return
         message = "Could not verify isolation before test startup"
         raise TimeoutError(message)
 
@@ -250,7 +333,7 @@ class _Runner:
                 ["bash", str(script), str(self.options.tree / "build/Hyprland")],
                 "test.log",
             )
-            return proc.wait(timeout=240)
+            return _wait_child(proc, 240)
         config = self.options.evidence / "test.lua"
         shutil.copytree(
             self.options.tree / "hyprtester/lua-require",
@@ -273,7 +356,7 @@ class _Runner:
         )
         proc = self._start(command, "test.log")
         self._verify()
-        return proc.wait(timeout=1500 if not self.options.tests else 180)
+        return _wait_child(proc, 1500 if not self.options.tests else 180)
 
     def _stop(self) -> None:
         test_log = self.options.evidence / "test.log"
@@ -290,7 +373,7 @@ class _Runner:
         for proc in reversed(self.processes):
             with suppress(ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGKILL)
-            proc.wait(timeout=5)
+            _wait_child(proc, 5)
 
     def run(self) -> int:
         """Run the isolated tests and retain logs after stopping the children.

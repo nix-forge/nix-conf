@@ -9,6 +9,19 @@ let
   inherit (pkgs.stdenv.hostPlatform) isLinux;
 in
 {
+  imports = [
+    ./launcher.nix
+    ./bar.nix
+    ./notifications.nix
+    ./osd.nix
+    ./idle.nix
+    ./clipboard.nix
+    ./capture.nix
+    ./applications.nix
+    ./workflow.nix
+    ./wallpaper.nix
+  ];
+
   options.desktop.enable = lib.mkEnableOption "a complete, Wayland-native interactive desktop layer";
 
   config = lib.mkIf cfg.enable {

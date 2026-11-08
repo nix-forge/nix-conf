@@ -1,0 +1,442 @@
+diff --git a/src/render/ElementRenderer.cpp b/src/render/ElementRenderer.cpp
+--- a/src/render/ElementRenderer.cpp
++++ b/src/render/ElementRenderer.cpp
+@@ -259,7 +259,7 @@
+ 
+     const float ALPHA         = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier : 1.F);
+     const float OVERALL_ALPHA = PSURFACE ? PSURFACE->m_overallOpacity : 1.F;
+-    const bool  BLUR          = m_data.blur && (!TEXTURE->m_opaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
++    const bool  BLUR          = m_data.blur && !m_renderData.renderingSurfaceGroup && (!TEXTURE->m_opaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
+ 
+     auto        windowBox = element->getTexBox();
+ 
+@@ -313,7 +313,7 @@
+ 
+     rounding -= 1; // to fix a border issue
+ 
+-    if (m_data.dontRound) {
++    if (m_data.dontRound || m_renderData.renderingSurfaceGroup) {
+         rounding      = 0;
+         roundingPower = 2.0f;
+     }
+@@ -344,6 +344,7 @@
+                             .overallA              = OVERALL_ALPHA,
+                             .round                 = rounding,
+                             .roundingPower         = roundingPower,
++                            .roundingBox           = m_renderData.renderingSurfaceGroup ? std::nullopt : m_data.roundingBox,
+                             .blur                  = true,
+                             .blurPatternBox        = blurPatternBox,
+                             .blockBlurOptimization = m_data.blockBlurOptimization,
+@@ -368,6 +369,7 @@
+                             .a                     = ALPHA * OVERALL_ALPHA,
+                             .round                 = rounding,
+                             .roundingPower         = roundingPower,
++                            .roundingBox           = m_renderData.renderingSurfaceGroup ? std::nullopt : m_data.roundingBox,
+                             .discardActive         = false,
+                             .allowCustomUV         = true,
+                             .surface               = m_data.surface,
+@@ -391,6 +393,7 @@
+                             .overallA              = OVERALL_ALPHA,
+                             .round                 = rounding,
+                             .roundingPower         = roundingPower,
++                            .roundingBox           = m_renderData.renderingSurfaceGroup ? std::nullopt : m_data.roundingBox,
+                             .blur                  = true,
+                             .blockBlurOptimization = true,
+                             .allowCustomUV         = true,
+@@ -412,6 +415,7 @@
+                             .a                     = ALPHA * OVERALL_ALPHA,
+                             .round                 = rounding,
+                             .roundingPower         = roundingPower,
++                            .roundingBox           = m_renderData.renderingSurfaceGroup ? std::nullopt : m_data.roundingBox,
+                             .discardActive         = false,
+                             .allowCustomUV         = true,
+                             .surface               = m_data.surface,
+@@ -644,7 +648,8 @@
+         return;
+ 
+     const auto      PWINDOW           = element->m_data.window.lock();
+-    bool            applyTransformers = PWINDOW && !element->m_data.standalone && !element->m_data.renderingSnapshot;
++    bool            applyTransformers =
++        element->m_data.allowTransformers && PWINDOW && PWINDOW->effects().hasActiveTransformers() && !element->m_data.standalone && !element->m_data.renderingSnapshot;
+     const CBox      MONITORBOX        = CBox{{}, pMonitor->m_size};
+ 
+     SMotionBlurData motionBlur         = applyTransformers ? element->m_data.motionBlur : SMotionBlurData{};
+@@ -671,6 +676,7 @@
+         renderData.surface.reset();
+         renderData.clipBox                    = {};
+         renderData.renderingTransformedSource = false;
++        renderData.renderingSurfaceGroup      = false;
+         element->m_data.pass->render(ctx, damage);
+     };
+ 
+@@ -749,6 +755,7 @@
+         renderData.renderModif.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, CANVASTRANSLATION));
+         renderData.noSimplify                 = true;
+         renderData.renderingTransformedSource = true;
++        renderData.renderingSurfaceGroup      = element->m_data.roundingBox.has_value();
+         element->m_data.pass->render(ctx, CANVASDAMAGE);
+ 
+         renderData.renderModif = {};
+@@ -822,6 +829,10 @@
+     data.box                   = outputBox;
+     data.a                     = 1.F;
+     data.motionBlur            = motionBlur;
++    data.roundingBox           = element->m_data.roundingBox;
++    data.allowDim              = !element->m_data.roundingBox.has_value();
++    data.round                 = element->m_data.roundingRadius;
++    data.roundingPower         = element->m_data.roundingPower;
+     data.workspacePresentation = element->m_data.workspacePresentation;
+ 
+     CRegion outputRegion{outputBox};
+diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
+--- a/src/render/OpenGL.cpp
++++ b/src/render/OpenGL.cpp
+@@ -1427,7 +1427,9 @@
+         case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
+ 
+         // TODO set correct features
+-        case TEXTURE_EXTERNAL: shader = getShaderVariant(SH_FRAG_EXT, SH_FEAT_ROUNDING | SH_FEAT_DISCARD | SH_FEAT_TINT | globalFeatures(ctx)); break; // might be unused
++        case TEXTURE_EXTERNAL:
++            shader = getShaderVariant(SH_FRAG_EXT, SH_FEAT_ROUNDING | SH_FEAT_DISCARD | SH_FEAT_TINT | (data.roundingBox ? SH_FEAT_WINDOW_ROUNDING : 0) | globalFeatures(ctx));
++            break; // might be unused
+         default: RASSERT(false, "tex->m_iTarget unsupported!");
+     }
+ 
+@@ -1504,6 +1506,8 @@
+ 
+     if (data.round > 0)
+         shaderFeatures |= SH_FEAT_ROUNDING;
++    if (data.roundingBox)
++        shaderFeatures |= SH_FEAT_WINDOW_ROUNDING;
+ 
+     if (!skipCM) {
+         const auto settings = g_pHyprRenderer->getCMSettings(ctx, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, surface.valid() ? surface.lock() : nullptr, true,
+@@ -1565,8 +1569,11 @@
+         shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
+     }
+ 
+-    const auto TOPLEFT  = newBox.pos();
+-    const auto FULLSIZE = newBox.size();
++    CBox roundingBox = data.roundingBox.value_or(newBox);
++    if (data.roundingBox)
++        m_renderData.renderModif.applyToBox(roundingBox);
++    const auto TOPLEFT  = roundingBox.pos();
++    const auto FULLSIZE = roundingBox.size();
+     // Rounded corners
+     shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
+     shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
+@@ -1891,8 +1898,10 @@
+                               .a                           = data.a,
+                               .round                       = data.round,
+                               .roundingPower               = data.roundingPower,
++                              .roundingBox                 = data.roundingBox,
+                               .discardActive               = true,
+                               .allowCustomUV               = true,
++                              .allowDim                    = data.allowDim,
+                               .wrapX                       = data.wrapX,
+                               .wrapY                       = data.wrapY,
+                               .discardMode                 = data.discardMode,
+@@ -1940,8 +1949,10 @@
+                                   .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
+                                   .round          = data.round,
+                                   .roundingPower  = data.roundingPower,
++                                  .roundingBox    = data.roundingBox,
+                                   .discardActive  = false,
+                                   .allowCustomUV  = true,
++                                  .allowDim       = data.allowDim,
+                                   .noAA           = false,
+                                   .wrapX          = data.wrapX,
+                                   .wrapY          = data.wrapY,
+@@ -1970,9 +1981,10 @@
+                               .a              = data.a * data.overallA,
+                               .round          = data.round,
+                               .roundingPower  = data.roundingPower,
++                              .roundingBox    = data.roundingBox,
+                               .discardActive  = SHADERBLEND && NEEDS_STENCIL,
+                               .allowCustomUV  = true,
+-                              .allowDim       = true,
++                              .allowDim       = data.allowDim,
+                               .noAA           = false,
+                               .wrapX          = data.wrapX,
+                               .wrapY          = data.wrapY,
+diff --git a/src/render/OpenGL.hpp b/src/render/OpenGL.hpp
+--- a/src/render/OpenGL.hpp
++++ b/src/render/OpenGL.hpp
+@@ -158,6 +158,7 @@
+             float                  a             = 1.F;
+             int                    round         = 0;
+             float                  roundingPower = 2.F;
++            std::optional<CBox>    roundingBox; // Shared window geometry in monitor pixels.
+             bool                   discardActive = false;
+             bool                   allowCustomUV = false;
+             bool                   allowDim      = true;
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -724,22 +724,87 @@
+         }
+ 
+         renderdata.surfaceCounter = 0;
++        std::vector<UP<CSurfacePassElement>> surfaces;
++        std::optional<CBox>                  parentBox;
++        CRegion                              treeBounds;
++        bool                                 overlapsCorner = false;
++        // Include the shader's antialias band in the overlap test. The main
++        // surface still owns the window geometry; child buffers have no radius.
++        const double cornerBand = std::max(0, renderdata.rounding - 1) + 2;
+         pWindow->wlSurface()->resource()->breadthfirst(
+-            [this, &ctx, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+-                if (!s->m_current.texture)
+-                    return;
+-
+-                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
++            [&renderdata, &pWindow, &surfaces, &parentBox, &treeBounds](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
++                if (!s->m_current.texture || s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                     return;
+ 
+                 renderdata.localPos    = offset;
+                 renderdata.texture     = s->m_current.texture;
+                 renderdata.surface     = s;
+                 renderdata.mainSurface = s == pWindow->wlSurface()->resource();
+-                addPassElement(ctx, makeUnique<CSurfacePassElement>(renderdata));
++                auto surfaceData       = renderdata;
++                auto element           = makeUnique<CSurfacePassElement>(surfaceData);
++                auto box               = element->getTexBox().scale(renderdata.pMonitor->m_scale).round();
++                if (box.w <= 1 || box.h <= 1)
++                    return;
++                treeBounds.add(box);
++                if (surfaceData.mainSurface)
++                    parentBox = box;
++                surfaces.emplace_back(std::move(element));
+                 renderdata.surfaceCounter++;
+             },
+             nullptr);
++
++        // Below-parent subsurfaces can be visited before the main surface.
++        // Classify only after finding its geometry, preserving traversal order.
++        if (parentBox && !renderdata.dontRound && renderdata.rounding > 1) {
++            for (auto& surface : surfaces) {
++                if (surface->m_data.mainSurface)
++                    continue;
++                const auto box = surface->getTexBox().scale(pMonitor->m_scale).round();
++                for (const auto x : {parentBox->x, parentBox->x + parentBox->w - cornerBand}) {
++                    for (const auto y : {parentBox->y, parentBox->y + parentBox->h - cornerBand}) {
++                        if (box.overlaps(CBox{x, y, cornerBand, cornerBand}))
++                            overlapsCorner = true;
++                    }
++                }
++            }
++        }
++
++        if (overlapsCorner && parentBox) {
++            auto pass = makeUnique<CRenderPass>();
++            for (auto& surface : surfaces) {
++                // These per-surface masks are used only if framebuffer
++                // allocation fails. They prevent corner leaks in that fallback.
++                surface->m_data.roundingBox = parentBox;
++                pass->add(std::move(surface));
++            }
++            const CBox canvas = treeBounds.getExtents().scale(1.0 / pMonitor->m_scale);
++            addPassElement(ctx,
++                           makeUnique<CTransformedWindowPassElement>(CTransformedWindowPassElement::SData{
++                               .pass                  = std::move(pass),
++                               .window                = pWindow,
++                               .currentBox            = canvas,
++                               .blurBox               = *parentBox,
++                               .blur                  = renderdata.blur,
++                               .blurUsesLive          = !shouldUseNewBlurOptimizations(ctx, nullptr, pWindow),
++                               .blurA                 = renderdata.fadeAlpha,
++                               .blurRound             = std::max(0, renderdata.rounding - 1),
++                               .blurRoundingPower     = renderdata.roundingPower,
++                               .transformedBox        = canvas,
++                               .standalone            = standalone,
++                               .renderingSnapshot     = ctx.m_renderingSnapshot,
++                               .allowTransformers     = false,
++                               .roundingBox           = parentBox,
++                               .roundingRadius        = std::max(0, renderdata.rounding - 1),
++                               .roundingPower         = renderdata.roundingPower,
++                               .workspacePresentation = presentation,
++                           }));
++        } else {
++            for (auto& surface : surfaces) {
++                if (!surface->m_data.mainSurface)
++                    surface->m_data.dontRound = true;
++                addPassElement(ctx, std::move(surface));
++            }
++        }
+ 
+         renderdata.useNearestNeighbor = false;
+ 
+diff --git a/src/render/ShaderLoader.cpp b/src/render/ShaderLoader.cpp
+--- a/src/render/ShaderLoader.cpp
++++ b/src/render/ShaderLoader.cpp
+@@ -70,6 +70,7 @@
+         {"USE_DISCARD", SH_FEAT_DISCARD},
+         {"USE_TINT", SH_FEAT_TINT},
+         {"USE_ROUNDING", SH_FEAT_ROUNDING},
++        {"USE_WINDOW_ROUNDING", SH_FEAT_WINDOW_ROUNDING},
+         {"USE_CM", SH_FEAT_CM},
+         {"USE_TONEMAP", SH_FEAT_TONEMAP},
+         {"USE_SDR_MOD", SH_FEAT_SDR_MOD},
+diff --git a/src/render/ShaderLoader.hpp b/src/render/ShaderLoader.hpp
+--- a/src/render/ShaderLoader.hpp
++++ b/src/render/ShaderLoader.hpp
+@@ -27,6 +27,8 @@
+         SH_FEAT_BLUR_ALPHA_MASK = (1 << 11), // condition: transformed-window shader blur blend
+         SH_FEAT_BLUR_MATTE      = (1 << 12), // condition: transformed-window blur matte
+         SH_FEAT_ALT_TONEMAP     = (1 << 13), // condition: tonemapMode == 3
++
++        SH_FEAT_WINDOW_ROUNDING = (1 << 14), // Mask shared window corners after compositing.
+ 
+         // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
+     };
+diff --git a/src/render/gl/GLElementRenderer.cpp b/src/render/gl/GLElementRenderer.cpp
+--- a/src/render/gl/GLElementRenderer.cpp
++++ b/src/render/gl/GLElementRenderer.cpp
+@@ -101,8 +101,10 @@
+                                      .a              = m_data.a,
+                                      .round          = m_data.round,
+                                      .roundingPower  = m_data.roundingPower,
++                                     .roundingBox    = m_data.roundingBox,
+                                      .discardActive  = m_data.discardActive,
+                                      .allowCustomUV  = m_data.allowCustomUV,
++                                     .allowDim       = m_data.allowDim,
+                                      .wrapX          = m_data.wrapX,
+                                      .wrapY          = m_data.wrapY,
+                                      .cmBackToSRGB   = m_data.cmBackToSRGB,
+diff --git a/src/render/pass/SurfacePassElement.cpp b/src/render/pass/SurfacePassElement.cpp
+--- a/src/render/pass/SurfacePassElement.cpp
++++ b/src/render/pass/SurfacePassElement.cpp
+@@ -67,7 +67,9 @@
+         }
+     }
+ 
+-    if (m_data.squishOversized) {
++    // Native window subsurfaces may legally overflow their parent. Keep the
++    // animation scaling above, but never trim their right/bottom edges here.
++    if (m_data.squishOversized && !(m_data.pWindow && !m_data.mainSurface && !m_data.popup)) {
+         if (m_data.localPos.x + windowBox.width > m_data.w)
+             windowBox.width = m_data.w - m_data.localPos.x;
+         if (m_data.localPos.y + windowBox.height > m_data.h)
+diff --git a/src/render/pass/SurfacePassElement.hpp b/src/render/pass/SurfacePassElement.hpp
+--- a/src/render/pass/SurfacePassElement.hpp
++++ b/src/render/pass/SurfacePassElement.hpp
+@@ -26,6 +26,7 @@
+         int                    rounding      = 0;
+         bool                   dontRound     = true;
+         float                  roundingPower = 2.0F;
++        std::optional<CBox>    roundingBox; // Shared window geometry in monitor pixels.
+         bool                   decorate      = false;
+         float                  alpha = 1.F, fadeAlpha = 1.F;
+         bool                   blur                  = false;
+diff --git a/src/render/pass/TexPassElement.hpp b/src/render/pass/TexPassElement.hpp
+--- a/src/render/pass/TexPassElement.hpp
++++ b/src/render/pass/TexPassElement.hpp
+@@ -43,6 +43,7 @@
+         bool                              useProvidedDamage = false;
+         int                               round             = 0;
+         float                             roundingPower     = 2.0f;
++        std::optional<CBox>               roundingBox; // Shared window geometry in monitor pixels.
+         CBox                              clipBox;
+         bool                              blur           = false;
+         bool                              forceBlurBlend = false;
+@@ -53,6 +54,7 @@
+         bool                              cmBackToSRGB = false;
+ 
+         bool                              discardActive = false;
++        bool                              allowDim      = true;
+         bool                              allowCustomUV = false;
+         SP<CWLSurfaceResource>            surface       = nullptr;
+ 
+diff --git a/src/render/pass/TransformedWindowPassElement.hpp b/src/render/pass/TransformedWindowPassElement.hpp
+--- a/src/render/pass/TransformedWindowPassElement.hpp
++++ b/src/render/pass/TransformedWindowPassElement.hpp
+@@ -20,6 +20,10 @@
+         SMotionBlurData                   motionBlur;
+         bool                              standalone        = false;
+         bool                              renderingSnapshot = false;
++        bool                              allowTransformers = true;
++        std::optional<CBox>               roundingBox;
++        int                               roundingRadius = 0;
++        float                             roundingPower  = 2.F;
+         Render::SWindowRenderPresentation workspacePresentation;
+     };
+ 
+diff --git a/src/render/shaders/glsl/defines.h b/src/render/shaders/glsl/defines.h
+--- a/src/render/shaders/glsl/defines.h
++++ b/src/render/shaders/glsl/defines.h
+@@ -16,3 +16,7 @@
+ #define USE_BLUR_MATTE  0
+ #define SOURCE_TF       9 // eTransferFunction, compiled in per variant. 9 is CM_TRANSFER_FUNCTION_SRGB
+ #define TARGET_TF       9
++
++#ifndef USE_WINDOW_ROUNDING
++#define USE_WINDOW_ROUNDING 0
++#endif
+diff --git a/src/render/shaders/glsl/rounding.glsl b/src/render/shaders/glsl/rounding.glsl
+--- a/src/render/shaders/glsl/rounding.glsl
++++ b/src/render/shaders/glsl/rounding.glsl
+@@ -10,6 +10,12 @@
+ 
+ vec4 rounding(vec4 color, float radius, float roundingPower, vec2 topLeft, vec2 fullSize) {
+     vec2 pixCoord = vec2(gl_FragCoord);
++#if USE_WINDOW_ROUNDING
++    // wl_subsurface permits content outside its parent. Only remove the
++    // corner cutouts inside the parent rectangle, preserving that overflow.
++    if (any(lessThan(pixCoord, topLeft)) || any(greaterThanEqual(pixCoord, topLeft + fullSize)))
++        return color;
++#endif
+     pixCoord -= topLeft + fullSize * 0.5;
+     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+     pixCoord -= fullSize * 0.5 - radius;
+diff --git a/src/render/shaders/glsl/surface.frag b/src/render/shaders/glsl/surface.frag
+--- a/src/render/shaders/glsl/surface.frag
++++ b/src/render/shaders/glsl/surface.frag
+@@ -132,7 +132,7 @@
+     pixColor.rgb = pixColor.rgb * tint;
+ #endif
+ 
+-#if USE_ROUNDING && !USE_MOTION_BLUR
++#if USE_ROUNDING && !USE_MOTION_BLUR && !USE_WINDOW_ROUNDING
+     pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
+ #endif
+ #if !USE_CM
+@@ -169,13 +169,16 @@
+ #endif
+ #endif
+ 
++#if USE_ROUNDING && USE_WINDOW_ROUNDING
++    pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
++#endif
+     fragColor = pixColor;
+ #if USE_MIRROR
+ #if USE_TINT
+     mirrorColor.rgb = mirrorColor.rgb * tint;
+ #endif
+ 
+-#if USE_ROUNDING && !USE_MOTION_BLUR
++#if USE_ROUNDING && !USE_MOTION_BLUR && !USE_WINDOW_ROUNDING
+     mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
+ #endif
+ #if !USE_CM
+@@ -210,5 +213,9 @@
+ #endif
+ #endif
+ 
++#if USE_ROUNDING && USE_WINDOW_ROUNDING
++    mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
++#endif
++
+ #endif
+ }
+diff --git a/src/render/types.hpp b/src/render/types.hpp
+--- a/src/render/types.hpp
++++ b/src/render/types.hpp
+@@ -118,6 +118,7 @@
+         bool                   transformDamage            = true;
+         bool                   noSimplify                 = false;
+         bool                   renderingTransformedSource = false;
++        bool                   renderingSurfaceGroup      = false;
+     };
+ 
+     struct STFRange {

@@ -5,6 +5,8 @@ import json
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - fixed IPC command, without a shell
 import sys
 
+from notification_process import run as run_command
+
 
 def main() -> int:
     """Run the native inhibitor check.
@@ -18,8 +20,8 @@ def main() -> int:
     parser.add_argument("background_classes", nargs="*")
     args = parser.parse_args()
     try:
-        result = subprocess.run(
-            ["hyprctl", "-j", "clients"],  # ruff: ignore[start-process-with-partial-path] - Nix wrapper pins PATH
+        result = run_command(
+            ["hyprctl", "-j", "clients"],
             check=True,
             capture_output=True,
             text=True,

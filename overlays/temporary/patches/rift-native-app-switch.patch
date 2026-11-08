@@ -1,0 +1,94 @@
+--- a/src/actor/input.rs
++++ b/src/actor/input.rs
+@@ -1071,6 +1071,12 @@
+         self.refresh_disable_hotkey_state(state);
+ 
+         if event_type == CGEventType::KeyDown {
++            // Unbound native shortcuts are real interaction too. Publish only
++            // intent, never the key itself, before macOS activates another app.
++            // on_event has already excluded Rift's own synthetic key events.
++            if CGEvent::integer_value_field(Some(event), CGEventField::KeyboardEventAutorepeat) == 0 {
++                self.events_tx.send(Event::UserInput);
++            }
+             if let Some(key_code) = key_code_opt {
+                 let hotkey = Hotkey::new(
+                     modifiers_from_flags_with_keys(state.current_flags, &state.pressed_keys),
+@@ -2018,6 +2024,28 @@
+     }
+ 
+     #[test]
++    fn native_app_switch_keys_are_forwarded_as_user_input_without_being_consumed() {
++        let (input, mut wm_rx, mut events) = input();
++        input.hotkeys_active.set(true);
++        input.rebuild_binding_maps();
++        for flags in [CGEventFlags::MaskCommand, CGEventFlags::MaskCommand | CGEventFlags::MaskShift] {
++            let event = CGEvent::new_keyboard_event(None, 48, true).unwrap();
++            CGEvent::set_flags(Some(&event), flags);
++            assert!(input.on_event(CGEventType::KeyDown, &event, None));
++            assert!(matches!(events.try_recv().unwrap().1, Event::UserInput));
++            assert!(events.try_recv().is_err());
++            assert!(wm_rx.try_recv().is_err(), "native app switching must not run a Rift command");
++            CGEvent::set_integer_value_field(Some(&event), CGEventField::KeyboardEventAutorepeat, 1);
++            assert!(input.on_event(CGEventType::KeyDown, &event, None));
++            assert!(events.try_recv().is_err(), "key repeats must not flood the reactor");
++            CGEvent::set_integer_value_field(Some(&event), CGEventField::KeyboardEventAutorepeat, 0);
++            CGEvent::set_integer_value_field(Some(&event), CGEventField::EventSourceUserData, 0x5249_4654);
++            assert!(input.on_event(CGEventType::KeyDown, &event, None));
++            assert!(events.try_recv().is_err(), "Rift's synthetic keys are not user input");
++        }
++    }
++
++    #[test]
+     fn hotkeys_suppress_repeats_but_do_not_intercept_rift_synthetic_keys() {
+         let (input, mut wm_rx, _) = input();
+         input.hotkeys_active.set(true);
+--- a/src/actor/reactor.rs
++++ b/src/actor/reactor.rs
+@@ -259,6 +259,10 @@
+     ApplicationDeactivated(pid_t),
+     ApplicationGloballyActivated(pid_t),
+     ApplicationGloballyDeactivated(pid_t),
++    /// Hardware keyboard interaction, including shortcuts left to macOS.
++    /// Carries no key data and never requests focus or layout changes.
++    #[serde(skip)]
++    UserInput,
+     ApplicationMainWindowChanged(pid_t, Option<WindowId>, Quiet),
+     /// Authoritative focus resolved from WindowServer's key-focus process and
+     /// the z-ordered windows on the active native space.
+@@ -1069,6 +1073,12 @@
+     }
+ 
+     fn handle_loop_event(&mut self, event: Event) {
++        // Intent is valid even while topology is quarantined. It must not
++        // trigger a presentation, native query, focus change, or a command.
++        if matches!(event, Event::UserInput) {
++            self.suppress_auto_workspace_switch_until_input = false;
++            return;
++        }
+         Self::note_windowserver_activity(&event);
+         // Check before fast paths (mouse, gestures, queries that commit a
+         // presentation) and before queued invalidation reaches this thread.
+--- a/src/actor/reactor/tests.rs
++++ b/src/actor/reactor/tests.rs
+@@ -10814,3 +10814,21 @@
+         );
+     }
+ }
++
++#[test]
++fn native_keyboard_input_clears_resume_guard_without_changing_focus_or_layout() {
++    let mut reactor = test_reactor();
++    reactor.handle_event(Event::SessionDidBecomeActive);
++    assert!(reactor.suppress_auto_workspace_switch_until_input);
++    let focus = reactor.main_window();
++    let command_space = reactor.space_state.command_space;
++
++    reactor.handle_loop_event(Event::UserInput);
++
++    assert!(!reactor.suppress_auto_workspace_switch_until_input);
++    assert_eq!(reactor.main_window(), focus);
++    assert_eq!(reactor.space_state.command_space, command_space);
++    // A later lifecycle transition still quarantines synthetic activations.
++    reactor.handle_event(Event::SessionDidBecomeActive);
++    assert!(reactor.suppress_auto_workspace_switch_until_input);
++}

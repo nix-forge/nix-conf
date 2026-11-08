@@ -2,6 +2,7 @@
 # Dependencies: a running Wayland session, Hyprland/hyprctl, cc, pkg-config,
 # wayland-scanner, wayland development headers, wayland-protocols, and jq.
 # Set HYPRLAND_TEST_HEADLESS=1 to create a headless output after IPC starts.
+# Run through nix develop for the declared Python notification dependencies.
 # Usage: bash tests/hyprland/check-subsurface-teardown.sh /path/to/Hyprland
 set -euo pipefail
 
@@ -57,10 +58,7 @@ cc "${cflags[@]}" "$work_directory/subsurface-parent-teardown.o" \
   "$work_directory/xdg-shell-protocol.c" "$work_directory/color-management-v1-protocol.c" \
   "${ldflags[@]}" -o "$work_directory/client"
 
-cat >"$work_directory/test.lua" <<'EOF'
-hl.config({ animations = { enabled = false }, misc = { disable_watchdog_warning = true }, debug = { disable_logs = false } })
-hl.monitor({ output = "", mode = "1280x720@60", position = "0x0", scale = 1 })
-EOF
+cp "$test_directory/subsurface-teardown.lua" "$work_directory/test.lua"
 
 # Use a render node, which cannot control physical outputs, and prevent the nested compositor from
 # changing the real session's systemd/D-Bus activation environment or targets.
@@ -71,29 +69,15 @@ env AQ_DRM_DEVICES="$render_device" HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_SD_TARGET=
   XDG_CACHE_HOME="$work_directory/cache" XDG_STATE_HOME="$work_directory/state" \
   setsid "$binary" --config "$work_directory/test.lua" >"$work_directory/compositor.log" 2>&1 &
 compositor_pid=$!
-instance=
-ready=0
-headless_created=0
-startup_deadline=$((SECONDS + 120))
-while ((SECONDS < startup_deadline)); do
-  instance=$(timeout 2 hyprctl instances -j 2>/dev/null | jq -r --argjson pid "$compositor_pid" '.[] | select(.pid == $pid) | .instance' 2>/dev/null) || instance=
-  if [[ ${HYPRLAND_TEST_HEADLESS:-0} == 1 && -n $instance && $headless_created == 0 ]]; then
-    if response=$(timeout 2 hyprctl -i "$instance" output create headless HEADLESS-TEST 2>/dev/null) && [[ $response == ok ]]; then
-      headless_created=1
-    fi
-  fi
-  if [[ -n $instance ]] && timeout 2 hyprctl -i "$instance" monitors -j 2>/dev/null | jq -e 'length > 0 and all(.[]; .name | startswith("WAYLAND-") or startswith("HEADLESS-"))' >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
-  kill -0 "$compositor_pid"
-  sleep 0.1
-done
-[[ $ready == 1 ]] || {
-  echo 'FAIL: nested compositor did not start'
-  exit 1
-}
-socket=$(timeout 2 hyprctl instances -j | jq -r --arg instance "$instance" '.[] | select(.instance == $instance) | .wl_socket')
+observer=(python3 "$test_directory/compositor_lifecycle.py")
+export PYTHONPATH="$test_directory/..${PYTHONPATH:+:$PYTHONPATH}"
+startup_args=(startup "$compositor_pid" --runtime "$runtime_directory" --evidence "$work_directory")
+if [[ ${HYPRLAND_TEST_HEADLESS:-0} == 1 ]]; then
+  startup_args+=(--headless)
+fi
+instance_json=$("${observer[@]}" "${startup_args[@]}")
+instance=$(jq -r '.instance' <<<"$instance_json")
+socket=$(jq -r '.wl_socket' <<<"$instance_json")
 [[ -n $socket && $socket != "$WAYLAND_DISPLAY" ]]
 timeout 2 hyprctl -i "$instance" monitors -j | jq -e 'length > 0 and all(.[]; .name | startswith("WAYLAND-") or startswith("HEADLESS-"))' >/dev/null
 
@@ -114,15 +98,7 @@ done
 
 # Confirm the compositor can also complete an orderly shutdown after the
 # teardown scenarios. Keep the EXIT trap as a bounded fallback.
-timeout 2 hyprctl -i "$instance" dispatch 'hl.dsp.exit()' >/dev/null
-shutdown_deadline=$((SECONDS + 10))
-while kill -0 "$compositor_pid" 2>/dev/null && ((SECONDS < shutdown_deadline)); do
-  sleep 0.1
-done
-if kill -0 "$compositor_pid" 2>/dev/null; then
-  echo 'FAIL: compositor did not exit within 10 seconds'
-  exit 1
-fi
+"${observer[@]}" exit "$compositor_pid" --instance "$instance"
 set +e
 wait "$compositor_pid"
 shutdown_status=$?

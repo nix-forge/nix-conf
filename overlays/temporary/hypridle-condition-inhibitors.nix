@@ -10,8 +10,11 @@
       patches = (old.patches or [ ]) ++ [ ./patches/hypridle-condition-inhibitors.patch ];
       nativeCheckInputs = (old.nativeCheckInputs or [ ]) ++ [ pkgs.python3 ];
       doCheck = true;
-      postCheck = (old.postCheck or "") + ''
-        python3 ${./tests/hypridle-condition-inhibitors.py} ../src/core/Hypridle.cpp
-      '';
+      postCheck =
+        (old.postCheck or "")
+        + ((import ../../lib/templates/text.nix) ./scripts/check-hypridle-condition-inhibitors.sh {
+          tests_hypridle_condition_inhibitors_cc = ./tests/hypridle-condition-inhibitors.cc;
+          tests_hypridle_condition_inhibitors_py = ./tests/hypridle_condition_inhibitors.py;
+        });
     });
 }

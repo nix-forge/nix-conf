@@ -5,6 +5,8 @@
   ...
 }:
 {
+  imports = [ ./session.nix ];
+
   programs.hyprland = {
     enable = true;
 

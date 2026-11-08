@@ -3,11 +3,13 @@
   lib,
   myLib,
   pkgs,
+  osConfig ? null,
   ...
 }:
 let
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.osd;
+  hyprlandPackage = myLib.desktop.resolveHyprlandPackage { inherit config pkgs osConfig; };
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   client = lib.getExe' pkgs.swayosd "swayosd-client";
   focusedClient = writeBashTemplate {
@@ -15,14 +17,16 @@ let
     src = ./scripts/swayosd-focused.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
-      hyprctl = lib.getExe' pkgs.hyprland "hyprctl";
+      hyprctl = lib.getExe' hyprlandPackage "hyprctl";
       jq = lib.getExe pkgs.jq;
       swayosdClient = client;
     };
   };
   targetedClient =
-    if cfg.targetFocusedMonitor then lib.getExe' focusedClient "desktop-swayosd-focused" else client;
+    if cfg.targetFocusedMonitor && config.wayland.windowManager.hyprland.enable then
+      lib.getExe' focusedClient "desktop-swayosd-focused"
+    else
+      client;
   hyprBind = key: command: {
     _args = [
       key
@@ -57,8 +61,10 @@ in
       pkgs.brightnessctl
       pkgs.playerctl
       pkgs.swayosd
-      focusedClient
-    ];
+    ]
+    ++ lib.optional (
+      cfg.targetFocusedMonitor && config.wayland.windowManager.hyprland.enable
+    ) focusedClient;
 
     xdg.configFile = {
       "swayosd/config.toml".source = (pkgs.formats.toml { }).generate "swayosd-config.toml" {

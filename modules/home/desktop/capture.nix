@@ -9,14 +9,12 @@ let
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.capture;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
-  picturesDirectory = config.xdg.userDirs.pictures;
   grimblastRegion = pkgs.grimblast-region;
   screenshot = writeBashTemplate {
     name = "desktop-screenshot";
     src = ./scripts/screenshot.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       grimblast = lib.getExe grimblastRegion;
     };
   };
@@ -25,8 +23,7 @@ let
     src = ./scripts/screenshot-annotate.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
-      outputDirectory = lib.escapeShellArg "${picturesDirectory}/Screenshots";
+      outputDirectory = lib.escapeShellArg cfg.directory;
       mkdir = lib.getExe' pkgs.coreutils "mkdir";
       date = lib.getExe' pkgs.coreutils "date";
       grim = lib.getExe pkgs.grim;
@@ -43,7 +40,20 @@ let
   };
 in
 {
-  options.desktop.capture.enable = lib.mkEnableOption "portal-safe screenshots, recording, and streaming tools";
+  options.desktop.capture = {
+    enable = lib.mkEnableOption "portal-safe screenshots, recording, and streaming tools";
+    directory = lib.mkOption {
+      type = lib.types.str;
+      default = "${
+        if config.xdg.userDirs.pictures != null then
+          config.xdg.userDirs.pictures
+        else
+          "${config.home.homeDirectory}/Pictures"
+      }/Screenshots";
+      defaultText = "The configured XDG Pictures directory, falling back to ~/Pictures, plus /Screenshots.";
+      description = "Directory for annotated screenshots, independent of whether XDG user directories are managed.";
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     assertions = [
@@ -52,8 +62,8 @@ in
         message = "desktop.capture is supported on Linux only.";
       }
       {
-        assertion = config.xdg.userDirs.enable;
-        message = "desktop.capture requires xdg.userDirs so it can save screenshots predictably.";
+        assertion = lib.hasPrefix "/" cfg.directory;
+        message = "desktop.capture.directory must be an absolute path.";
       }
     ];
 

@@ -1,5 +1,5 @@
-{ inputs, ... }: {
-  imports = [ inputs.cosmic.nixosModules.default ];
+{
+  imports = [ ./session.nix ];
 
   services.displayManager.cosmic-greeter.enable = true;
 

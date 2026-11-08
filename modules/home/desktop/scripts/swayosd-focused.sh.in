@@ -1,4 +1,4 @@
-#!@bash@
+#!/usr/bin/env bash
 set -euo pipefail
 
 # SwayOSD otherwise mirrors feedback onto every connected output. Querying the
