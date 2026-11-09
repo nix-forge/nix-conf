@@ -22,7 +22,7 @@ class CIInventoryTests(unittest.TestCase):
             (Path(__file__).with_name("fixtures") / "hosted-check-selection.nix.in")
             .read_text(encoding="utf-8")
             .replace("NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib"))
-            .replace("DEPLOY", str(ROOT / "flake/deploy.nix"))
+            .replace("DEPLOY", str(ROOT / "hosts/shared/local/flake/deploy.nix"))
         )
         result = json.loads(
             subprocess.check_output(

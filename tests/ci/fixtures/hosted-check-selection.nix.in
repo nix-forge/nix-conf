@@ -3,7 +3,13 @@ let
   fixture = import DEPLOY {
     myLib = { };
     inputs = {
-      nixpkgs = { inherit lib; };
+      nixpkgs = {
+        inherit lib;
+        outPath = builtins.dirOf NIXPKGS_LIB;
+      };
+      deploy-rs.overlays.default = _: _: {
+        deploy-rs.lib.deployChecks = _: { darwin-deployment-check = null; };
+      };
       deploy-rs.lib.x86_64-linux.deployChecks = _: {
         host-only = null;
         new-deployment-check = null;
@@ -37,6 +43,7 @@ let
           new-deployment-check = null;
         };
         aarch64-darwin = {
+          darwin-deployment-check = null;
           application-recovery = null;
           cache-policy = null;
           desktop-authentication = null;
