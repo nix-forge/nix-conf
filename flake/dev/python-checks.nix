@@ -60,6 +60,7 @@ _: {
         ../../hosts/nixos/desktop/local/storage/health.py
         ../../hosts/nixos/desktop/local/homelab/actual/scripts/actual-vault-open.sh
         ../../hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py
+        ../../hosts/nixos/desktop/local/homelab/stirling-pdf/ollama_chat_proxy.py
         ../../hosts/nixos/desktop/local/homelab/music/scripts/rescan_shared_music_library.py
         ../../hosts/nixos/desktop/local/homelab/scripts/bootstrap_books.py
         ../../hosts/nixos/desktop/local/homelab/music/scripts/configure_audiomuse.py

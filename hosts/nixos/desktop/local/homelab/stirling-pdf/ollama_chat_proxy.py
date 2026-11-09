@@ -10,6 +10,22 @@ UPSTREAM_HOST = "127.0.0.1"
 UPSTREAM_PORT = 11434
 
 
+def _upstream_content_type(response: http.client.HTTPResponse) -> str | None:
+    """Read the media type while enforcing the response header boundary.
+
+    Returns:
+        The unchanged upstream value, or None when absent.
+
+    Raises:
+        http.client.HTTPException: If the parsed value contains a line break.
+
+    """
+    content_type = response.getheader("Content-Type")
+    if content_type and ("\r" in content_type or "\n" in content_type):
+        raise http.client.HTTPException
+    return content_type
+
+
 class Handler(BaseHTTPRequestHandler):
     """Forward chat requests while suppressing reasoning output and private logs."""
 
@@ -51,9 +67,9 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
             response = upstream.getresponse()
+            content_type = _upstream_content_type(response)
             self.send_response(response.status)
             started_response = True
-            content_type = response.getheader("Content-Type")
             if content_type:
                 self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
