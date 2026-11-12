@@ -95,7 +95,7 @@ let
     Subsonic.EnableAverageRating = false;
   };
   # Reuse the merged settings so bootstrap sees module-provided values such as
-  # the plugin directory from services.navidrome.plugins.
+  # the plugin directory from services.navidrome.withPlugins.
   navidromeConfig =
     (pkgs.formats.json { }).generate "navidrome.json"
       config.services.navidrome.settings;
@@ -227,10 +227,10 @@ in
 
   services.navidrome = {
     enable = true;
-    plugins = [
+    withPlugins = plugins: [
       pkgs.navidrome-plugin-audiomuseai-personal
-      pkgs.pkgsCross.wasi32.navidromePlugins.listenbrainz-daily-playlist
-      pkgs.nd-lyrics
+      plugins.listenbrainz-daily-playlist
+      plugins.lyrics-plugin
     ];
     settings = navidromeSettings;
   };

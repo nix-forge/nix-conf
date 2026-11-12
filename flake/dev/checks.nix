@@ -166,6 +166,11 @@
             }
           );
 
+        navidrome-plugins = import ../../tests/nix/navidrome-plugins.nix {
+          inherit pkgs;
+          package = self.nixosConfigurations.desktop.config.services.navidrome.finalPackage;
+        };
+
         book-discovery = import ../../tests/nix/homelab/book-discovery.nix {
           inherit pkgs;
           desktop = self.nixosConfigurations.desktop;
