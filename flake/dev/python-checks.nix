@@ -15,6 +15,7 @@ _: {
         ../../overlays/temporary/tests/test_darwin_package_result.py
         ../../overlays/temporary/tests/actual-css-result.py
         ../../overlays/temporary/tests/actual-runtime.py
+        ../../overlays/temporary/tests/actual_log_redaction.py
         ../../overlays/temporary/tests/test_actual_proof.py
         ../../overlays/temporary/tests/test_prism_watch_result.py
         (pkgs.lib.fileset.fileFilter (
