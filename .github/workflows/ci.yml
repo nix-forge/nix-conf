@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
+          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -34,8 +34,10 @@ jobs:
           git rev-parse HEAD > .scratch/input-receipt/source.txt
           git submodule status --recursive >> .scratch/input-receipt/source.txt
       - name: Check portable repository contracts
+        if: inputs.scope != 'preflight'
         run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
       - name: Verify moved CI ownership and isolated clocks
+        if: inputs.scope != 'preflight'
         run: |
           nix develop .#tests --command pytest -q \
             tests/ci/test_ci_inventory.py \
@@ -73,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
+          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -95,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
+          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
