@@ -2,7 +2,7 @@
   reason = "Activation resets App Management consent automatically instead of failing for a native user decision.";
   upstream = "https://github.com/nix-darwin/nix-darwin/blob/bb0b90dbd54e207100de72b5dcbe3188c98a4b69/modules/system/applications.nix";
   removal = "Upstream App Management checks retain permission failures without resetting TCC and report the required native consent.";
-  reviewedRevision = "bb0b90dbd54e207100de72b5dcbe3188c98a4b69";
+  reviewedRevision = "ff0e21a414d4547183396da1b44a66f2577b65e9";
   inputPath = [ "nix-darwin" ];
   apply =
     upstream:

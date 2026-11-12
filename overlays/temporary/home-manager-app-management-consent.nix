@@ -2,7 +2,7 @@
   reason = "Activation resets App Management consent automatically instead of failing for a native user decision.";
   upstream = "https://github.com/nix-community/home-manager/blob/6750249c69969d09d952efaf3fab88a2bdac7ec6/modules/targets/darwin/copyapps.nix";
   removal = "Upstream App Management checks retain permission failures without resetting TCC and report the required native consent.";
-  reviewedRevision = "6750249c69969d09d952efaf3fab88a2bdac7ec6";
+  reviewedRevision = "b787c48e2ec57a9d098f5c2721882a3bc1e16f97";
   inputPath = [ "home-manager" ];
   apply =
     value:

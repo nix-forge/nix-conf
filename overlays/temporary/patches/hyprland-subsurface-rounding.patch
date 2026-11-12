@@ -147,29 +147,30 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
                                    .noAA           = false,
                                    .wrapX          = data.wrapX,
                                    .wrapY          = data.wrapY,
-@@ -1970,9 +1981,10 @@
-                               .a              = data.a * data.overallA,
-                               .round          = data.round,
-                               .roundingPower  = data.roundingPower,
-+                              .roundingBox    = data.roundingBox,
-                               .discardActive  = SHADERBLEND && NEEDS_STENCIL,
-                               .allowCustomUV  = true,
--                              .allowDim       = true,
-+                              .allowDim       = data.allowDim,
-                               .noAA           = false,
-                               .wrapX          = data.wrapX,
-                               .wrapY          = data.wrapY,
+@@ -1985,10 +1985,11 @@
+                               .a                = data.a * data.overallA,
+                               .round            = data.round,
+                               .roundingPower    = data.roundingPower,
++                              .roundingBox      = data.roundingBox,
+                               .blurProportional = *PPROPORTIONAL,
+                               .discardActive    = SHADERBLEND && NEEDS_STENCIL,
+                               .allowCustomUV    = true,
+-                              .allowDim         = true,
++                              .allowDim         = data.allowDim,
+                               .noAA             = false,
+                               .wrapX            = data.wrapX,
+                               .wrapY            = data.wrapY,
 diff --git a/src/render/OpenGL.hpp b/src/render/OpenGL.hpp
 --- a/src/render/OpenGL.hpp
 +++ b/src/render/OpenGL.hpp
 @@ -158,6 +158,7 @@
-             float                  a             = 1.F;
-             int                    round         = 0;
-             float                  roundingPower = 2.F;
+             float                  a                = 1.F;
+             int                    round            = 0;
+             float                  roundingPower    = 2.F;
 +            std::optional<CBox>    roundingBox; // Shared window geometry in monitor pixels.
-             bool                   discardActive = false;
-             bool                   allowCustomUV = false;
-             bool                   allowDim      = true;
+             bool                   blurProportional = false;
+             bool                   discardActive    = false;
+             bool                   allowCustomUV    = false;
 diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
 --- a/src/render/Renderer.cpp
 +++ b/src/render/Renderer.cpp
@@ -281,15 +282,19 @@ diff --git a/src/render/ShaderLoader.cpp b/src/render/ShaderLoader.cpp
 diff --git a/src/render/ShaderLoader.hpp b/src/render/ShaderLoader.hpp
 --- a/src/render/ShaderLoader.hpp
 +++ b/src/render/ShaderLoader.hpp
-@@ -27,6 +27,8 @@
-         SH_FEAT_BLUR_ALPHA_MASK = (1 << 11), // condition: transformed-window shader blur blend
-         SH_FEAT_BLUR_MATTE      = (1 << 12), // condition: transformed-window blur matte
-         SH_FEAT_ALT_TONEMAP     = (1 << 13), // condition: tonemapMode == 3
-+
-+        SH_FEAT_WINDOW_ROUNDING = (1 << 14), // Mask shared window corners after compositing.
+@@ -28,9 +28,12 @@
+         SH_FEAT_BLUR_MATTE        = (1 << 12), // condition: transformed-window blur matte
+         SH_FEAT_ALT_TONEMAP       = (1 << 13), // condition: tonemapMode == 3
+         SH_FEAT_BLUR_PROPORTIONAL = (1 << 14), // condition: decoration:blur:proportional
++        SH_FEAT_WINDOW_ROUNDING   = (1 << 15), // Mask shared window corners after compositing.
  
          // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
      };
++
++    static_assert((SH_FEAT_WINDOW_ROUNDING & SH_FEAT_BLUR_PROPORTIONAL) == 0, "Window rounding must not overlap proportional blur");
+ 
+     using ShaderFeatureFlags = uint16_t;
+ 
 diff --git a/src/render/gl/GLElementRenderer.cpp b/src/render/gl/GLElementRenderer.cpp
 --- a/src/render/gl/GLElementRenderer.cpp
 +++ b/src/render/gl/GLElementRenderer.cpp

@@ -32,7 +32,7 @@ package set. The GtkSourceView repair remains confined to Virt Manager's depende
 `pkgs.grimblast` retains its normal behavior.
 
 The overlay also owns the Determinate Nix package selection, its scoped Darwin
-test repair, Actual secret-log redaction on both platforms, and the Linux Zen
+test repair and the Linux Zen
 wrapper repair. The
 Determinate modules configure the service and daemon settings.
 
@@ -169,14 +169,13 @@ Home Manager portal adapter and separate Zoom input remain retired.
 | --- | --- |
 | `home-manager-protected-apps` | Upstream copyApps still lacks exclusions for independently managed bundles. |
 | `darwin-application-signatures` | Vendor bundle preservation and final bundle sealing remain necessary. Only Signal needs the added signing tool; AeroSpace and Zoom retain their vendor bundles without it. |
-| `nu-scripts-pytest-lists` | The selected completion still contains both invalid semicolon-separated choice lists. |
 | `nixf-flake-builtins` | The selected metadata generator still registers expression builtins without the flake primops. |
 | `jellyfin-caption-defaults` | Jellyfin 12.2 still mutates shared defaults; the existing regression fails against unmodified source and passes after the repair. |
-| `prowlarr-torrentdownload`, `microsocks-credential-files`, `actual-redact-secret-log` | The selected sources still lack the title/search normalization, credential-file interface and log redaction respectively. |
+| `prowlarr-torrentdownload`, `microsocks-credential-files` | The selected sources still lack the title/search normalization and credential-file interface respectively. |
 | `deploy-rs-confirmation-path`, `deploy-rs-darwin-tests` | The pinned helper retains the lexical-path comparison and native FSEvents dependency. Keep the runtime correction separate from the three sandbox test exclusions. |
 | `determinate-libgit2-trailing-slash`, `determinate-libgit2-module`, `determinate-darwin-tests` | The owning dependency sources lack the cleanup fix, the module still needs factory routing, and the Darwin functional suite still registers the sandbox-incompatible Sentry case. |
-| `ghostty-bash-prompt`, `gtksourceview-xvfb`, `hypridle-condition-inhibitors` | Their selected sources retain the prompt marker conflict, Xvfb reset race and inhibitor bypass. |
-| `nom-quadratic-build-plan`, `nom-named-activities` | Monitor 2.2.0 retains linear root deletion and lacks named activity type 10113. |
+| `gtksourceview-xvfb`, `hypridle-condition-inhibitors` | Their selected sources retain the Xvfb reset race and inhibitor bypass. |
+| `nom-quadratic-build-plan` | Monitor 2.2.0 retains linear root deletion. Upstream now accepts unknown activity types, including 10113. |
 | `hyprland-subsurface`, `hyprland-subsurface-rounding` | Both complete repairs still apply to the selected compositor source. |
 | `hyprshell-modifiers`, `hyprshell-workspace-schema`, `hyprshell-workspace-identity` | All three repairs remain absent from 4.10.8; the identity patch depends on applying the other two first. |
 | `nh-darwin-home`, `prismlauncher-darwin-tests` | nh 4.4.2 still sets empty elevated HOME; Prism 11.1.1 still assumes native watcher availability. |
@@ -520,14 +519,20 @@ suites. Retire the repair when the selected dependencies supply compatible
 Fabric/Invoke, and their Darwin tests have the required local networking and
 deterministic timeout fixtures.
 
-The temporary `nvidia-bin-patchelf` repair rebuilds the NVIDIA command-line
-executables from the driver's retained originals, applying RPATH and interpreter
-edits separately. The combined invocation can map `.dynamic` read-only and crash
-the loader before any library loads ([upstream issue #576412](https://github.com/NixOS/nixpkgs/issues/576412)).
-It preserves the selected driver, libraries, kernel modules and upstream checks,
-and adds a real `nvidia-smi --help` install check that needs no GPU. Remove the
-repair when the upstream builder passes that check without it; deployment also
-verifies a live GPU query.
+Nixpkgs `1d060086d60cb76a40cf37109f979d88a5bd6396` separates the NVIDIA
+builder's interpreter and RPATH edits; the unmodified `nvidia-smi --help` loader
+probe passes without a GPU. The `nvidia-bin-patchelf` repair is retired and the
+native loader probe remains in the declared checks. Live GPU queries remain
+separate deployment evidence.
+
+This pin also contains the Nu pytest choice-list correction, Actual 26.11's
+ordinary log redaction, and nix-output-monitor's unknown activity handling.
+Ghostty 1.4 contains the Bash prompt repair for ble.sh. Their production patches
+are retired; native completion choices, Bash prompt markers, and monitor parser
+regressions remain under `tests/nix`. The monitor's independent build-plan
+performance repair remains. Actual's opt-in `actual-sensitive:*` debug channels
+must remain disabled; a service startup/asset check alone does not prove log
+redaction for every error path.
 
 The upstream LinearMouse 0.12 recipe remains selected. Its temporary APFS
 extraction repair only excludes alternate streams: otherwise 7zz creates an

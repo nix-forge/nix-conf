@@ -56,6 +56,10 @@
           )
         );
       }
+      // (import ../../tests/nix/upstream-fix-regressions.nix {
+        pkgs = configurationPkgs;
+        inherit inputs;
+      })
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
         swift-hardening = import ../../tests/nix/swift-hardening.nix {
           pkgs = configurationPkgs.extend (import ../../overlays { inherit inputs; });

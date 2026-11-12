@@ -2,7 +2,7 @@
   reason = "Azure CLI needs compatible Invoke and hermetic, deterministic Darwin dependency tests.";
   upstream = "https://github.com/fabric/fabric/issues/2376";
   removal = "The selected Azure CLI dependencies supply compatible Fabric/Invoke and hermetic, deterministic Darwin tests.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

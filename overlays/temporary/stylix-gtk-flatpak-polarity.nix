@@ -2,7 +2,7 @@
   reason = "Stylix's Flatpak GTK_THEME bypasses GTK 3's variant preference and its flattened dark stylesheet lacks the generated palette.";
   upstream = "https://github.com/nix-community/stylix/blob/abff36bfab11cbdcd0723f41c1b0921e211be6ac/modules/gtk/hm.nix";
   removal = "Stylix's Flatpak theme selects the configured polarity and applies generated colors to both base and dark stylesheets.";
-  reviewedRevision = "2856c4c6a845b9bec98828ef197abe176e4806bb";
+  reviewedRevision = "3e27b6c499e507df6e3bb8eca3614f5c95e28140";
   inputPath = [ "stylix" ];
   apply =
     stylix:

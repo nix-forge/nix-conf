@@ -1,44 +1,21 @@
 {
-  config,
-  inputs,
   lib,
   pkgs,
   ...
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
-  ghostty = config.programs.ghostty.package;
-  # Remove this backport when the pinned release includes upstream #11644.
-  fixBashPrompt =
-    config.programs.ghostty.enable
-    && config.programs.bash.enable
-    && ghostty != null
-    && lib.getVersion ghostty == "1.3.1";
-  fixes = import ../../../../overlays/temporary { inherit inputs lib pkgs; };
-  bashIntegration = (fixes.apply "ghostty-bash-prompt" ghostty).shell_integration;
 in
 {
   key = "nix-conf/ghostty/homeManager";
   config = {
-    # Load the patched copy through Home Manager. Automatic injection would
-    # reload the app's original hook after .bashrc and undo the fix. Keeping the
-    # copy outside Ghostty.app preserves its macOS code signature.
-    programs.bash.initExtra = lib.mkIf fixBashPrompt (
-      lib.mkOrder 101 (
-        (import ../../../../lib/templates/text.nix) ./scripts/load-bash-integration.sh {
-          inherit bashIntegration;
-        }
-      )
-    );
-
     programs.ghostty = {
       enable = true;
       package = lib.mkIf isDarwin (lib.mkDefault pkgs.ghostty-bin);
-      enableBashIntegration = lib.mkIf fixBashPrompt (lib.mkForce false);
 
       # DOCS: https://ghostty.org/docs/config/reference
       settings = {
-        shell-integration = if fixBashPrompt then "none" else "detect";
+        shell-integration = "detect";
         # Hosts that need Ghostty's terminfo declare it themselves (notably the
         # desktop).  Avoid Ghostty's per-user SSH upload helper: it can emit a
         # spurious failure even when the remote system already has the entry.

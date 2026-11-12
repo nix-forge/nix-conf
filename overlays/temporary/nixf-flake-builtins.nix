@@ -9,10 +9,10 @@ let
   };
   repairedNixf =
     assert lib.assertMsg (
-      nixf.version == "2.9.3"
+      nixf.version == "2.9.4"
       &&
         (nixf.src.hash or nixf.src.outputHash or null)
-        == "sha256-ud2XcAxUUYenNrGyrh4B9LrDcMZ6eJfPkL60lDcanDI="
+        == "sha256-iBoajmSfgWQ7dJGrL8I2qgK+TsS1lDTnGSTo/qwsfbc="
     ) "Temporary upstream fix 'nixf-flake-builtins' needs review: frontend source changed.";
     assert lib.assertMsg (
       nixExpr != null && nixExpr.version == "2.35.3" && nixFlake.version == nixExpr.version
@@ -38,7 +38,7 @@ in
   reason = "nixf's expression-only builtin table omits the supported flake primops and rejects valid getFlake calls.";
   upstream = "https://github.com/nix-community/nixd/issues/762";
   removal = "The unmodified nixf frontend registers the selected Nix flake primop metadata and passes the valid-flake and unknown-builtin install checks.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   affectedVersions = {
     from = "0.1.4";

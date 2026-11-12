@@ -2,7 +2,7 @@
   reason = "Determinate's NixOS module must receive its owning Nix input with the libgit2 cleanup repair.";
   upstream = "https://github.com/DeterminateSystems/determinate/blob/35e914102d4992b10bac4c12e94ec606d109633d/modules/nixos.nix";
   removal = "The unmodified owning libgit2 passes symlink cleanup regressions and complete native main and utility suites.";
-  reviewedRevision = "c362c7c911ecf67570b2f19565b1bacc37de9ce8";
+  reviewedRevision = "558e026d9d3c78351170d8f8a797fa0fac541ccf";
   inputPath = [ "determinate" ];
   apply =
     determinate: _:

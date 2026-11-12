@@ -222,11 +222,11 @@ This inventory includes regression scaffolding; it does not imply one upstream P
 
 | Artifact | Registered repair or acceptance owner |
 | --- | --- |
-| [actual-redact-secret-log.patch](../../overlays/temporary/patches/actual-redact-secret-log.patch) | `actual-redact-secret-log` |
+| [actual-redact-secret-log.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/actual-redact-secret-log.patch) | `actual-redact-secret-log` |
 | [deploy-confirmation-directory-tests.patch](../../overlays/temporary/patches/deploy-confirmation-directory-tests.patch) | `deploy-rs-confirmation-path / deploy-rs-darwin-tests regression scaffolding` |
 | [deploy-confirmation-parent-path.patch](../../overlays/temporary/patches/deploy-confirmation-parent-path.patch) | `deploy-rs-confirmation-path` |
 | [determinate-darwin-sentry-registration.patch](../../overlays/temporary/patches/determinate-darwin-sentry-registration.patch) | `determinate-darwin-tests` |
-| [ghostty-bash-ble-prompt.patch](../../overlays/temporary/patches/ghostty-bash-ble-prompt.patch) | `ghostty-bash-prompt` |
+| [ghostty-bash-ble-prompt.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/ghostty-bash-ble-prompt.patch) | `ghostty-bash-prompt` |
 | [hypridle-condition-inhibitors.patch](../../overlays/temporary/patches/hypridle-condition-inhibitors.patch) | `hypridle-condition-inhibitors` |
 | [hyprland-subsurface-parent-lifetime.patch](../../overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch) | `hyprland-subsurface` |
 | [hyprland-subsurface-rounding.patch](../../overlays/temporary/patches/hyprland-subsurface-rounding.patch) | `hyprland-subsurface-rounding` |
@@ -238,10 +238,10 @@ This inventory includes regression scaffolding; it does not imply one upstream P
 | [microsocks-credential-files.patch](../../overlays/temporary/patches/microsocks-credential-files.patch) | `microsocks-credential-files` |
 | [nh-darwin-home.patch](../../overlays/temporary/patches/nh-darwin-home.patch) | `nh-darwin-home` |
 | [nixf-flake-builtins.patch](../../overlays/temporary/patches/nixf-flake-builtins.patch) | `nixf-flake-builtins` |
-| [nom-named-activities-tests.patch](../../overlays/temporary/patches/nom-named-activities-tests.patch) | `nom-named-activities` |
-| [nom-named-activities.patch](../../overlays/temporary/patches/nom-named-activities.patch) | `nom-named-activities` |
+| [nom-named-activities-tests.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities-tests.patch) | `nom-named-activities` |
+| [nom-named-activities.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities.patch) | `nom-named-activities` |
 | [nom-quadratic-build-plan.patch](../../overlays/temporary/patches/nom-quadratic-build-plan.patch) | `nom-quadratic-build-plan` |
-| [nu-scripts-pytest-lists.patch](../../overlays/temporary/patches/nu-scripts-pytest-lists.patch) | `nu-scripts-pytest-lists` |
+| [nu-scripts-pytest-lists.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nu-scripts-pytest-lists.patch) | `nu-scripts-pytest-lists` |
 | [prismlauncher-watch-test-capability.patch](../../overlays/temporary/patches/prismlauncher-watch-test-capability.patch) | `prismlauncher-darwin-tests` |
 | [prowlarr-torrentdownload.patch](../../overlays/temporary/patches/prowlarr-torrentdownload.patch) | `prowlarr-torrentdownload` |
 | [archived sentry-crashpad-lock.patch](https://github.com/nix-forge/nix-conf/blob/e42dbd9ba7bd5c74d4be1294ea37a09c9de3ee4d/overlays/temporary/patches/sentry-crashpad-lock.patch) | `sentry-crashpad-lock` |

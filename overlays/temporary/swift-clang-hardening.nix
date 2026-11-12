@@ -6,7 +6,7 @@ in
   reason = "The unwrapped Swift driver does not forward cc-wrapper hardening flags to its Clang importer.";
   upstream = "https://github.com/NixOS/nixpkgs/pull/566624";
   removal = "The pinned Swift compiler forwards cc-wrapper hardening flags to Clang and passes the native probe.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

@@ -2,7 +2,7 @@
   reason = "Stripping invalidates AeroSpace and Zoom vendor signatures; Signal packaging leaves completed bundles unsealed.";
   upstream = "https://github.com/NixOS/nixpkgs/tree/7fd4004d0511991fff3a0524856a9be09e28c5f0/pkgs/by-name";
   removal = "The pinned recipes preserve AeroSpace and Zoom signatures and seal the final Signal bundle with its required entitlements; all pass native strict deep verification.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

@@ -23,7 +23,7 @@ let
     '';
   });
   hyprshell = apply "hyprshell-modifiers" pkgs.hyprshell;
-  nom = apply "nom-named-activities" (apply "nom-quadratic-build-plan" pkgs.nix-output-monitor);
+  nom = apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   plugin = pkgs.pkgsCross.wasi32.navidromePlugins.audiomuseai;
   repairedPlugin =
     flake.inputs.nixpkgs-personal.packages.${system}.navidrome-plugin-audiomuseai-personal;

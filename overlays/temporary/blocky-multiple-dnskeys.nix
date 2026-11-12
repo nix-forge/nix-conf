@@ -2,7 +2,7 @@ _: {
   reason = "Blocky selects only the first DS-matched DNSKEY and rejects valid zones when another trusted key signs the DNSKEY RRset.";
   upstream = "https://github.com/0xERR0R/blocky/pull/2293";
   removal = "The selected Blocky source includes ef95d592b323a06ad95ce10daeb53b534a8a8e79 and passes the multiple-key and verification-limit regressions without this patch.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   affectedVersions = {
     from = "0.35.0";

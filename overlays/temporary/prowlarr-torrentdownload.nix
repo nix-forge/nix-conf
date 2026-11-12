@@ -4,7 +4,7 @@
   removal = "The pinned definition normalizes apostrophe searches and returns parseable music release titles; repeat the Lidarr release-search regression before removal.";
   # Review Cardigann parser changes with nixpkgs. The definition itself remains
   # independently pinned by its fetch hash, and patch application fails on drift.
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     source:

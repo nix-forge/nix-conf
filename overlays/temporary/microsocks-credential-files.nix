@@ -2,7 +2,7 @@
   reason = "MicroSocks accepts authentication only through argv, exposing decrypted systemd credentials during process startup.";
   upstream = "https://github.com/rofl0r/microsocks/blob/v1.0.5/sockssrv.c";
   removal = "Upstream supports private username/password files and passes the credential-file authentication regression.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

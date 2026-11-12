@@ -1,13 +1,7 @@
 {
   config,
-  inputs,
-  lib,
-  pkgs,
   ...
 }:
-let
-  fixes = import ../../../../../overlays/temporary { inherit inputs lib pkgs; };
-in
 {
   services.xserver.videoDrivers = [ "nvidia" ];
 
@@ -42,7 +36,7 @@ in
       open = true;
       nvidiaSettings = true;
       videoAcceleration = true;
-      package = fixes.apply "nvidia-bin-patchelf" config.boot.kernelPackages.nvidiaPackages.production;
+      package = config.boot.kernelPackages.nvidiaPackages.production;
     };
   };
 }

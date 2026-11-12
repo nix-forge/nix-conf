@@ -2,7 +2,7 @@
   reason = "copyApps mutates running signed bundles in place and cannot exclude independently transacted applications.";
   upstream = "https://github.com/nix-community/home-manager/blob/master/modules/targets/darwin/copyapps.nix";
   removal = "Home Manager supports exclusions for applications managed by a verified, running-app-aware transaction.";
-  reviewedRevision = "6750249c69969d09d952efaf3fab88a2bdac7ec6";
+  reviewedRevision = "b787c48e2ec57a9d098f5c2721882a3bc1e16f97";
   inputPath = [ "home-manager" ];
   apply =
     upstream:

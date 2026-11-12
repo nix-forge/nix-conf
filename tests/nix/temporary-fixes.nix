@@ -16,17 +16,6 @@ let
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
   accepts = version: succeeds (guard fixture "reviewed" { inherit version; });
   fixes = import ../../overlays/temporary { inherit pkgs inputs; };
-  nvidiaFixture =
-    hooks: fixes.apply "nvidia-bin-patchelf" (pkgs.runCommand "nvidia-hook-fixture" hooks "touch $out");
-  nvidiaNullHooks = nvidiaFixture {
-    postInstall = null;
-    postInstallCheck = null;
-  };
-  nvidiaExistingHooks = nvidiaFixture {
-    postInstall = "echo existing-install-hook";
-    postInstallCheck = "echo existing-check-hook";
-  };
-
   changed = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -211,9 +200,7 @@ let
   packages = {
     codex = [ selected.codex ];
     ghostty-bash = [
-      (fixes.apply "ghostty-bash-prompt" (
-        if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty
-      )).shell_integration
+      (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty).shell_integration
     ];
     actual = [ selected.actual-server ];
     helium-darwin = map (system: inputs.helium-browser-darwin.packages.${system}.default) (
@@ -233,7 +220,7 @@ let
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     nvidia = lib.optional (pkgs.stdenv.hostPlatform.system == "x86_64-linux") (
-      fixes.apply "nvidia-bin-patchelf" pkgs.linuxPackages.nvidiaPackages.production
+      pkgs.linuxPackages.nvidiaPackages.production
     );
     jellyfin-web = [ selected.jellyfin-web ];
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
@@ -352,8 +339,6 @@ assert succeeds (guard (fixture // { affectedVersions = null; }) "reviewed" { })
 # The registry checks disabled fixes without depending on lazy module consumers.
 assert !(succeeds changed.review);
 assert !(succeeds changedStylix.review);
-assert !(succeeds (changed.apply "ghostty-bash-prompt" { version = "1.3.1"; }));
-assert (changed.apply "ghostty-bash-prompt" { version = "1.3.2"; }).version == "1.3.2";
 assert !(succeeds changedAnywhere.review.nixos-anywhere-ssh-host-check);
 assert
   !(succeeds
@@ -496,54 +481,15 @@ assert
       }
     )).drvPath
   );
-# Keep the upstream completion corpus and hooks; repair only the invalid lists.
-assert selected.nu_scripts.version == pkgs.nu_scripts.version;
-assert selected.nu_scripts.src.drvPath == pkgs.nu_scripts.src.drvPath;
-assert
-  (builtins.length selected.nu_scripts.patches)
-  == (builtins.length (pkgs.nu_scripts.patches or [ ])) + 1;
-assert selected.nu_scripts.doInstallCheck;
-assert !(succeeds (changed.apply "nu-scripts-pytest-lists" pkgs.nu_scripts).drvPath);
-assert
-  !(succeeds
-    (fixes.apply "nu-scripts-pytest-lists" (pkgs.nu_scripts // { version = "0-unstable-2026-10-03"; }))
-    .drvPath
-  );
-assert
-  !(succeeds
-    (fixes.apply "nu-scripts-pytest-lists" (
-      pkgs.nu_scripts
-      // {
-        src = pkgs.nu_scripts.src // {
-          hash = "unreviewed";
-          outputHash = "unreviewed";
-        };
-      }
-    )).drvPath
-  );
+# The corrected completion corpus resolves directly to upstream.
+assert selected.nu_scripts.drvPath == pkgs.nu_scripts.drvPath;
 # These release and cache fixes now resolve directly to upstream.
 assert selected.typescript-language-server.drvPath == pkgs.typescript-language-server.drvPath;
 assert !pkgs.stdenv.hostPlatform.isLinux || selected.qemu-user.drvPath == pkgs.qemu-user.drvPath;
 assert selected.qemu.drvPath == pkgs.qemu.drvPath;
-# NVIDIA's upstream recipe explicitly declares null hooks. Check both null and
-# existing hooks so appending the repair never blocks evaluation or loses work.
-assert succeeds (nvidiaFixture { }).drvPath;
-assert succeeds nvidiaNullHooks.postInstall;
-assert succeeds nvidiaNullHooks.postInstallCheck;
-assert nvidiaNullHooks.doInstallCheck;
-assert lib.hasPrefix "echo existing-install-hook" nvidiaExistingHooks.postInstall;
-assert lib.hasPrefix "echo existing-check-hook" nvidiaExistingHooks.postInstallCheck;
-assert
-  !(succeeds
-    (changed.apply "nvidia-bin-patchelf" (pkgs.runCommand "nvidia-hook-fixture" { } "touch $out"))
-    .drvPath
-  );
-
-# The release backport is retired; the independent secret-log repair remains.
+# NVIDIA and Actual now use the repaired upstream packages.
 assert selected.actual-server.version == pkgs.actual-server.version;
-assert
-  selected.actual-server.drvPath == (fixes.apply "actual-redact-secret-log" pkgs.actual-server)
-  .drvPath;
+assert selected.actual-server.drvPath == pkgs.actual-server.drvPath;
 assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
 assert selected.nh.drvPath != pkgs.nh.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
@@ -565,12 +511,9 @@ assert
 assert !(succeeds (fixes.apply "nom-quadratic-build-plan" (nomAt "2.2.1")).drvPath);
 assert !(succeeds (changed.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath);
 assert
-  selected.nix-output-monitor.drvPath == (fixes.apply "nom-named-activities" (
-    fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor
-  )).drvPath;
+  selected.nix-output-monitor.drvPath
+  == (fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath;
 assert selected.nix-output-monitor.doCheck;
-assert !(succeeds (fixes.apply "nom-named-activities" (nomAt "2.2.1")).drvPath);
-assert !(succeeds (changed.apply "nom-named-activities" pkgs.nix-output-monitor).drvPath);
 assert !(succeeds (changed.apply "swift-clang-hardening" pkgs.swift).drvPath);
 assert
   if pkgs.stdenv.hostPlatform.isDarwin then

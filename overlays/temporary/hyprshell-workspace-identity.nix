@@ -9,7 +9,7 @@ in
   reason = "Hyprland's current workspace and client schema requires complete named and special workspace identity when collecting and dispatching switcher selections.";
   upstream = "https://github.com/H3rmt/hyprshell/blob/v4.10.8/dep-crates/hyprland-rs/src/data/regular.rs";
   removal = "The unmodified Hyprshell release preserves numbered, named and special workspace identity, rejects unsupported selectors before IPC, and passes the parser, dispatch, wire-contract and live modifier/identity regressions.";
-  reviewedRevision = "76edafffc68951a66b094806659ac4823e22c624";
+  reviewedRevision = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
   inputPath = [ "hyprland" ];
   affectedVersions = {
     from = "4.10.8";

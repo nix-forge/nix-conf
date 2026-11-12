@@ -2,7 +2,7 @@
   reason = "Rift does not count unbound keyboard activity as user input after wake or unlock, leaving native app switching suppressed.";
   upstream = "https://github.com/acsandmann/rift/blob/2bb6647a18cde9ac44470d296988298c1093460d/src/actor/reactor.rs";
   removal = "The selected unpatched source recognizes native keyboard interaction after wake/unlock and passes the native Command+Tab reproduction.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   packageName = "rift";
   affectedVersions = {

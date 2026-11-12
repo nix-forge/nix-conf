@@ -64,7 +64,7 @@ only that the selected input has not changed since its last review. The
 The [permanent overlay](../../overlays/default.nix) selects Determinate Nix,
 exposes the personal package set, and selects region-only Grimblast from
 `nixpkgs-personal`. Those choices encode intended configuration behavior. The local
-[Ghostty Bash patch](../../overlays/temporary/patches/ghostty-bash-ble-prompt.patch)
+[Ghostty Bash patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/ghostty-bash-ble-prompt.patch)
 remains outside the overlay: [upstream PR #11644](https://github.com/ghostty-org/ghostty/pull/11644)
 merged, but this configuration still selects Ghostty 1.3.1 and the patch is
 version-gated to that release. Patch files

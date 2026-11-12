@@ -2,7 +2,7 @@
   reason = "libgit2 cleanup on Linux and Darwin follows trailing-slash symlinks or rejects parent cleanup, and utility fixtures hard-code executables absent from the Nix sandbox.";
   upstream = "https://github.com/libgit2/libgit2";
   removal = "The selected libgit2 preserves symlink target files for one and multiple trailing slashes, and its complete upstream suites pass natively.";
-  reviewedRevision = "9993a12bd434f653d5081b9b35f50900412fece8";
+  reviewedRevision = "f43bee4f45c2d42e7d1f4e37908ec5c7bb0fdba1";
   inputPath = [
     "determinate"
     "inputs"

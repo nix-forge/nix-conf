@@ -31,9 +31,7 @@ let
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
   swift = fixes.apply "swift-clang-hardening" pkgs.swift;
-  nom = fixes.apply "nom-named-activities" (
-    fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor
-  );
+  nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
     nix-output-monitor = nom;
     nh-unwrapped =
@@ -43,7 +41,6 @@ in
 {
   azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   blocky = fixes.apply "blocky-multiple-dnskeys" pkgs.blocky;
-  nu_scripts = fixes.apply "nu-scripts-pytest-lists" pkgs.nu_scripts;
   # Keep the official CLI/server; select the signed vendor GUI only on ARM Darwin.
   t3code =
     if system == "aarch64-darwin" then
@@ -54,7 +51,6 @@ in
       )
     else
       officialT3code;
-  actual-server = fixes.apply "actual-redact-secret-log" pkgs.actual-server;
   nix-output-monitor = nom;
   inherit nh;
   deploy-rs =
