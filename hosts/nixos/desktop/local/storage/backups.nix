@@ -71,6 +71,7 @@ let
       coldUnmounts = cfg.backup.coldUnmounts;
       coldPrepareCommand = cfg.backup.coldPrepareCommand;
       coldRestic = lib.getExe guardedRestic;
+      coldRestoreScratch = if cfg.capacity.enable then "/srv/data/cache/restic/tmp" else null;
       inherit destinations;
     }
   );

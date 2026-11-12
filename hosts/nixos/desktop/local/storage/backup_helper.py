@@ -585,7 +585,10 @@ def native_cold_backup(policy: dict[str, Any], name: str) -> None:
                     "Native source changed while its writers were stopped"
                 )
         stamp(policy, name, "cold-backup")
-        cache = Path(os.environ.get("CACHE_DIRECTORY", "/var/cache"))
+        cache = Path(
+            policy.get("coldRestoreScratch")
+            or os.environ.get("CACHE_DIRECTORY", "/var/cache")
+        )
         with tempfile.TemporaryDirectory(
             prefix="native-restore-", dir=cache
         ) as temporary:

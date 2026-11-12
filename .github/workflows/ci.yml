@@ -659,6 +659,12 @@ jobs:
           test -x "$app/Contents/MacOS/$executable"
           /usr/bin/lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
           /usr/bin/codesign --verify --deep --strict "$app"
+      - name: Verify repaired Handy microphone identity and Apple signatures
+        if: matrix.system == 'aarch64-darwin'
+        run: |
+          artifact=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.handy-artifact)
+          export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
+          nix develop .#tests --command python3 tests/macos/test_handy_signature.py
       - name: Verify upstream LinearMouse and nested helper signatures
         if: matrix.system == 'aarch64-darwin'
         run: |

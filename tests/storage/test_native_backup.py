@@ -146,8 +146,9 @@ def test_native_guard_conflict_refuses_before_stopping_any_writer(
     assert path.read_text(encoding="utf-8") == "operator guard\n"
 
 
+@pytest.mark.parametrize("configured_scratch", [False, True])
 def test_native_restic_roundtrip_checks_real_application_files(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, configured_scratch: bool
 ) -> None:
     """Restore actual Restic data with file, ownership and symlink verification."""
     restic = shutil.which("restic")
@@ -178,7 +179,22 @@ def test_native_restic_roundtrip_checks_real_application_files(
         },
     )
     monkeypatch.setitem(HELPER["cold_backup"].__globals__, "guard", lambda _: None)
+    scratch = tmp_path / ("data-volume-scratch" if configured_scratch else "restore")
+    scratch.mkdir(exist_ok=True)
+    if configured_scratch:
+        cfg["coldRestoreScratch"] = str(scratch)
+    original_run = HELPER["run"]
+    restore_targets: list[Path] = []
+
+    def record_run(arguments: list[str]) -> str:
+        if "restore" in arguments and "--target" in arguments:
+            restore_targets.append(Path(arguments[arguments.index("--target") + 1]))
+        return original_run(arguments)
+
+    monkeypatch.setitem(HELPER["cold_backup"].__globals__, "run", record_run)
     HELPER["cold_backup"](cfg, "remote")
+    assert restore_targets
+    assert all(target.is_relative_to(scratch) for target in restore_targets)
     assert HELPER["read_stamp"](cfg, "remote", "cold-backup") > 0
     assert HELPER["read_stamp"](cfg, "remote", "cold-restore") > 0
     assert ["systemctl", "start", "writer.service"] in calls

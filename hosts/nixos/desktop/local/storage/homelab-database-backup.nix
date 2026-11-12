@@ -65,7 +65,7 @@ let
         lib.optional config.services.postgresql.enable (
           cluster "postgresql" "postgres" "/run/postgresql" config.services.postgresql.package
         )
-        ++ lib.optional (config.homelab.apps.bookorbit.enable && config.homelab.apps.bookorbit.native) (
+        ++ lib.optional config.homelab.apps.bookorbit.enable (
           cluster "bookorbit" "bookorbit" "/run/bookorbit-postgres" pkgs.postgresql_18
         );
     }

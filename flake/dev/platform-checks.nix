@@ -126,6 +126,8 @@ in
       gaming-selection = import ../../tests/nix/gaming-selection.nix { inherit inputs pkgs; };
     }
     // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+      handy-artifact =
+        (configurationPkgs.extend (import ../../overlays { inputs = configurationInputs; })).handy;
       linearmouse-artifact =
         (configurationPkgs.extend (import ../../overlays { inputs = configurationInputs; })).linearmouse;
       finder-favorites-swift =
