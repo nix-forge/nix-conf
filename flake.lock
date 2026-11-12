@@ -1008,6 +1008,9 @@
         "nixpkgs": [
           "nixpkgs"
         ],
+        "nixpkgs-apps": [
+          "nixpkgs-apps"
+        ],
         "nixpkgs-personal": [
           "nixpkgs-personal"
         ],
