@@ -167,6 +167,28 @@ function Install-VirtioDriver {
         Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\pnputil.exe" -ArgumentList @('/add-driver', $driver, '/install') -SuccessExitCodes @(0, 259, 3010)
     }
 
+    # The balloon INF installs the kernel driver, not its statistics service.
+    # Install the service from the same pinned media into protected persistent
+    # storage, so ejecting the ISO cannot strand a CD-ROM service path.
+    $balloonDirectory = Join-Path $env:ProgramFiles 'Virtio-Win\Balloon'
+    $balloonExecutable = Join-Path $balloonDirectory 'blnsvr.exe'
+    $balloonService = Get-CimInstance Win32_Service -Filter "Name='BalloonService'" -ErrorAction SilentlyContinue
+    if ($null -eq $balloonService) {
+        $balloonSource = Join-Path $MediaRoot 'Balloon\w11\amd64\blnsvr.exe'
+        if (-not (Test-Path -LiteralPath $balloonSource -PathType Leaf)) {
+            throw 'The pinned VirtIO media does not contain the balloon statistics service'
+        }
+        New-Item -ItemType Directory -Path $balloonDirectory -Force | Out-Null
+        Copy-Item -LiteralPath $balloonSource -Destination $balloonExecutable -Force
+        Invoke-CheckedProcess -FilePath $balloonExecutable -ArgumentList @('-i')
+        $balloonService = Get-CimInstance Win32_Service -Filter "Name='BalloonService'" -ErrorAction SilentlyContinue
+    }
+    if ($null -eq $balloonService -or $balloonService.PathName.Trim('"') -ine $balloonExecutable) {
+        throw 'BalloonService is missing or belongs to another installation; refusing to replace it'
+    }
+    Set-Service -Name 'BalloonService' -StartupType Automatic
+    Start-Service -Name 'BalloonService'
+
     $guestAgentInstaller = Join-Path $MediaRoot 'guest-agent\qemu-ga-x86_64.msi'
     if (-not (Get-Service -Name 'qemu-ga' -ErrorAction SilentlyContinue)) {
         Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList @('/i', $guestAgentInstaller, '/qn', '/norestart') -SuccessExitCodes @(0, 1641, 3010)

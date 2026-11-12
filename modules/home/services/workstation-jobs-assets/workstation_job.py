@@ -400,15 +400,58 @@ def _vm_available(text: str) -> int:
     )
 
 
-def _group_usage(pgid: int) -> int:
-    text = subprocess.check_output(
-        ["/bin/ps", "-axo", "pid=,pgid=,rss="], text=True, timeout=1
+def _group_exists(pgid: int) -> bool:
+    """Observe an owned positive process group without relying on its RSS.
+
+    Returns:
+        Whether a group still exists; denied observation remains an error.
+
+    """
+    if pgid <= 1:
+        _fail("Native sampler requires an owned positive process group")
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+async def _group_usage(
+    pgid: int, cancelled: asyncio.Event, sample_seconds: float, *, ps: str = "/bin/ps"
+) -> int:
+    """Sample one owned group without blocking cancellation or querying other RSS.
+
+    Returns:
+        Sampled group RSS in bytes; group absence is checked independently.
+
+    """
+    if pgid <= 1:
+        _fail("Native sampler requires an owned positive process group")
+    # Darwin -g selects process groups. Linux fixtures retain the portable full
+    # snapshot because procps -g selects sessions instead; filter exact PGIDs.
+    selection = ["-g", str(pgid)] if platform.system() == "Darwin" else ["-A"]
+    text = await _memory_sample(
+        [ps, *selection, "-o", "pid=,pgid=,rss="],
+        cancelled,
+        sample_seconds,
+        allow_empty_selection=True,
     )
-    return sum(
-        int(rss) * 1024
-        for _, group, rss in (line.split() for line in text.splitlines())
-        if int(group) == pgid
-    )
+    seen = set()
+    usage = 0
+    observed = False
+    for line in text.splitlines():
+        pid, group, rss = map(int, line.split())
+        if pid <= 0 or group < 0 or rss < 0 or pid in seen:
+            _fail("Invalid native RSS observation")
+        seen.add(pid)
+        if group == pgid:
+            observed = True
+            usage += rss * 1024
+    if not observed:
+        if _group_exists(pgid):
+            _fail("Empty RSS observation for a live process group")
+        return 0
+    return usage
 
 
 def _owner_unit(cfg: Json) -> str:
@@ -572,6 +615,7 @@ def _reconcile_darwin(
             "cancelled",
             "failed",
             "memory-limit-observed",
+            "host-memory-headroom-lost",
             "unresolved-descendants",
             "unproven-native-drain",
             "cleanup-error",
@@ -870,7 +914,11 @@ def _execution_environment(recipe: Json, directory: Path) -> dict[str, str]:
 
 
 async def _memory_sample(
-    command: list[str], cancelled: asyncio.Event, sample_seconds: float
+    command: list[str],
+    cancelled: asyncio.Event,
+    sample_seconds: float,
+    *,
+    allow_empty_selection: bool = False,
 ) -> str:
     """Capture a fixed native sampler while cancellation and deadlines stay active.
 
@@ -898,11 +946,15 @@ async def _memory_sample(
         if cancelled.is_set() or output not in done:
             raise TimeoutError
         data, _ = output.result()
-        if process.returncode:
+        if process.returncode and not (
+            allow_empty_selection and process.returncode == 1 and not data.strip()
+        ):
             _fail("Native memory sampling failed")
         return data.decode()
     finally:
         cancellation.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await cancellation
         if not output.done():
             with contextlib.suppress(ProcessLookupError):
                 os.killpg(process.pid, signal.SIGTERM)
@@ -1167,6 +1219,8 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
             options = ["--feedback"]
         elif recipe["memoryMiB"] % 1024:
             _fail("Desktop bounded budgets must be whole GiB")
+        if _mode(profile, recipe["profile"]) == "host-bounded":
+            options += ["--host-preserving"]
         if "memoryController" in cfg:
             options += ["--admission-timeout", str(recipe["timeout"])]
         environment["WORKSTATION_QUEUE_OWNER_UNIT"] = _owner_unit(cfg)
@@ -1393,8 +1447,18 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                 break
             if backend == "darwin":
                 try:
-                    usage = _group_usage(process.pid)
-                except subprocess.TimeoutExpired:
+                    usage = await _group_usage(
+                        process.pid,
+                        cancelled,
+                        min(
+                            1,
+                            max(
+                                0.001, recipe["timeout"] - (time.monotonic() - started)
+                            ),
+                        ),
+                        ps=cfg["ps"],
+                    )
+                except TimeoutError:
                     sampling_timeouts += 1
                     consecutive_sampling_timeouts += 1
                     if consecutive_sampling_timeouts > 1:
@@ -1420,6 +1484,26 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                         break
                     if waiter.done() and usage == 0 and output.done():
                         break
+                    # Admission is a snapshot. Recheck host headroom while the
+                    # owned client runs; its RSS excludes the shared Nix daemon.
+                    available = await _darwin_available(
+                        cancelled,
+                        min(
+                            1,
+                            max(
+                                0.001, recipe["timeout"] - (time.monotonic() - started)
+                            ),
+                        ),
+                    )
+                    reserve = cfg["reserveMiB"] * MIB
+                    receipt["hostMemoryObservation"] = {
+                        "availableBytes": available,
+                        "reserveBytes": reserve,
+                        "observedAt": time.time(),
+                    }
+                    if available < reserve:
+                        reason = "host-memory-headroom-lost"
+                        break
             elif waiter.done():
                 break
             # macOS has no process-group RSS notification; bounded 2s sampling is
@@ -1436,6 +1520,7 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
         OSError,
         ValueError,
         subprocess.SubprocessError,
+        TimeoutError,
         asyncio.CancelledError,
     ) as error:
         reason = "supervision-error"
@@ -1738,7 +1823,7 @@ def _check_interrupted(cfg: Json) -> None:
         if (
             platform.system() == "Darwin"
             and receipt.get("pid")
-            and _group_usage(receipt["pid"])
+            and _group_exists(receipt["pid"])
         ):
             _fail(
                 "Interrupted process group still contains descendants; owner reconciliation required"
@@ -1995,7 +2080,9 @@ def _reconciled_receipt(
     return {"receipt": receipt, "reconciliation": proof}
 
 
-def _inspect(cfg: Json, identifier: str | None = None) -> None:
+def _inspect(
+    cfg: Json, identifier: str | None = None, *, history_limit: int = HISTORY_LIMIT
+) -> None:
     state = _snapshot(cfg)
     root = _paths(cfg)
     result = {
@@ -2069,8 +2156,8 @@ def _inspect(cfg: Json, identifier: str | None = None) -> None:
         (unfinished if unresolved else history).append(record)
     unfinished.sort(key=operator.itemgetter("created", "id"), reverse=True)
     history.sort(key=operator.itemgetter("created", "id"), reverse=True)
-    result["jobs"] = unfinished + (history if identifier else history[:HISTORY_LIMIT])
-    result["historyTruncated"] = not identifier and len(history) > HISTORY_LIMIT
+    result["jobs"] = unfinished + (history if identifier else history[:history_limit])
+    result["historyTruncated"] = not identifier and len(history) > history_limit
     sys.stdout.write(json.dumps(result, sort_keys=True) + "\n")
 
 
@@ -2119,7 +2206,13 @@ def main() -> int:  # ruff: ignore[complex-structure, too-many-branches, too-man
             sub.add_argument("--timeout", type=int, default=1200)
     commands.add_parser("init")
     commands.add_parser("serve")
-    commands.add_parser("doctor")
+    doctor = commands.add_parser("doctor")
+    doctor.add_argument(
+        "--history-limit",
+        type=int,
+        default=HISTORY_LIMIT,
+        help="maximum completed records; 0 keeps only active or unresolved jobs",
+    )
     commands.add_parser("activation-check")
     commands.add_parser("activation-finish")
     recover = commands.add_parser("resume-queued")
@@ -2140,6 +2233,8 @@ def main() -> int:  # ruff: ignore[complex-structure, too-many-branches, too-man
         execute = commands.add_parser(name)
         execute.add_argument("directory")
     args = parser.parse_args()
+    if args.action == "doctor" and args.history_limit < 0:
+        parser.error("history limit must be non-negative")
     cfg = _read(args.config)
     root = _paths(cfg)
     if args.action == "submit":
@@ -2178,7 +2273,11 @@ def main() -> int:  # ruff: ignore[complex-structure, too-many-branches, too-man
     elif args.action == "init":
         _initialise(cfg)
     elif args.action in {"status", "doctor"}:
-        _inspect(cfg, getattr(args, "id", None))
+        _inspect(
+            cfg,
+            getattr(args, "id", None),
+            history_limit=getattr(args, "history_limit", HISTORY_LIMIT),
+        )
     elif args.action == "activation-check":
         _activation_check(cfg)
     elif args.action == "activation-finish":

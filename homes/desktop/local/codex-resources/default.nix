@@ -88,12 +88,24 @@ let
     cgroup = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-codex.slice";
     systemPressure = "/proc/pressure/memory";
     state = "${config.xdg.stateHome}/codex-resources/pressure.json";
-    history = "${config.xdg.stateHome}/codex-resources/pressure-history.jsonl";
-    # Append small records; rotate rather than rewriting the history per sample.
-    historyMaxBytes = 1024 * 1024;
+    database = "${config.xdg.stateHome}/codex-resources/pressure-history.sqlite";
+    # Leave the two legacy 1 MiB JSONL files intact. New database plus rollback
+    # journal stay within 30 MiB, for a combined maximum of 32 MiB.
+    historyTotalBytes = 30 * 1024 * 1024;
+    rawSeconds = 24 * 60 * 60;
+    summarySeconds = 14 * 24 * 60 * 60;
     observedGroups = {
+      zen = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-zen.slice";
+      t3-agents = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-t3code.slice";
+      t3-server = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/t3code.service";
+      virtual-machines = "/sys/fs/cgroup/machine.slice";
+      desktop-portal = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/session.slice/xdg-desktop-portal.service";
       nix-daemon = "/sys/fs/cgroup/system.slice/nix-daemon.service";
       queued-work = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/background.slice/background-workload.slice";
+    };
+    observedPatterns.t3-desktop = {
+      root = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-graphical.slice";
+      pattern = "app-Hyprland-*t3code*.scope";
     };
     notify = lib.getExe pkgs.libnotify;
     policy = {
@@ -111,7 +123,15 @@ in
 {
   programs.chatgpt.package = desktop;
   programs.codex.context = lib.mkAfter (builtins.readFile ./lifecycle.md);
-  home.packages = [ task ];
+  home.packages = [
+    task
+    (pkgs.writeShellApplication {
+      name = "workstation-memory-history";
+      text = ''
+        exec ${monitor} ${monitorConfig} --history "$@"
+      '';
+    })
+  ];
 
   # A scoped rollout can temporarily expose these two commands in the user's
   # Nix profile. Retire that bridge when the normal managed packages take over,

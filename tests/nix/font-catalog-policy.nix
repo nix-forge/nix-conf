@@ -30,7 +30,7 @@ let
   };
   names = policy: map toString (catalog.select pkgs personal policy);
   # Missing restricted attributes must remain unevaluated under default policy.
-  withoutRestricted = removeAttrs personal [
+  withoutRestricted = builtins.removeAttrs personal [
     "ttf-ms-win11-auto"
     "apple-color-emoji"
   ];

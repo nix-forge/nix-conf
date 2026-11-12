@@ -96,9 +96,19 @@ lines. Full acceptance artifacts belong in the project's output files and roots;
 a truncated console log is not complete evidence. State/history are retained on
 disk; they are not active compiler processes.
 
+For a short current-state diagnosis, use `workstation-job doctor --history-limit 0`.
+This omits resolved historical jobs while retaining every active or unresolved
+record, including missing receipts or unproven drainage. A positive limit selects
+that many recent resolved records; the default remains 100. `historyTruncated`
+reports omitted history, and `status JOB_ID` still returns the exact job. These
+output controls do not change admission, job state, or recovery requirements.
+
 `wait` is a bounded observer. Its exit 124 means the observer deadline expired and
-the durable job is still preserved. A job's own deadline is separate and includes
-its executor's queue/admission wait. `cancel JOB_ID` addresses only the matching
+the durable job is still preserved. A job's immutable executor timeout starts
+when Pueue launches its wrapper. It covers the executor's lock/admission wait and
+payload supervision; time spent queued or stashed in Pueue before wrapper launch
+is separate and recorded as `schedulerQueueWaitSeconds`. It is not a total
+submission-to-completion deadline. `cancel JOB_ID` addresses only the matching
 stable native identity: queued jobs are stashed with a cancellation receipt;
 running jobs receive TERM so their executor can drain its owned scope. It never
 calls an empty native kill or a group-wide cancel. Native queue state updates
@@ -111,6 +121,7 @@ a still-Queued or Running record correctly blocks activation.
 | Host/profile | Execution and admission |
 | --- | --- |
 | Desktop `bounded` | Default 4 GiB, reviewed 1–8 GiB whole-GiB requests. Existing bulk/root-backup/feedback locks; fixed or elastic RAM plus 2 GiB host reserve; capacity waiting; cgroup high 90%, hard cap, zero swap, maximum 1800 s. Shared Nix daemon hidden. |
+| Desktop `host-check` | Explicit bounded host-identity checks, using the bounded RAM range, reserve, zero swap and deadline. A fixed privileged namespace helper preserves root/caller filesystem IDs, creates a private PID/proc view, masks the daemon and drops UID/GID/capabilities before reading invocation data. Same queue locks and cgroup; never automatically selected. |
 | Desktop `feedback` | Existing 2 GiB hard cap, 1.75 GiB pressure threshold, 256 MiB swap, 120 s ceiling and original feedback admission. Tiny scoped feedback only. |
 | Desktop `daemon` | Ordinary `workstation-task`, capacity waiting at the 14 GiB guard and separately accounted Nix daemon budget. Large Nix/system builds remain here. |
 | Native macOS `bounded` | One serial queue, default 2 GiB, reviewed 256 MiB–4 GiB requests plus 3 GiB conservative host reserve and normal OS pressure. Process-group watchdog samples every 2 s; 3600 s maximum for explicitly budgeted jobs, with the existing 1200 s default. |
@@ -130,13 +141,14 @@ ancestor policy. Native Linux jobs use actual cgroup v2 limits; the small host
 is not advertised as a large compiler worker. Admission is a snapshot, so the
 kernel caps and host headroom remain necessary.
 
-All managed desktop lanes, including feedback and root backup work, acquire the
-same exclusive bulk lock before checking admission and retain it until their
-owned execution drains. This deliberately serializes managed memory allocations
-across Pueue groups; there is no independent per-group reservation budget. A
-feedback waiter takes that shared lock before its private feedback lock, avoiding
-a cycle with older bounded executors. Active older executions keep their original
-locking behavior until they finish.
+All managed desktop lanes share the exclusive bulk execution lock with root
+backup work. Memory admission waits do not hold execution reservations. Once
+capacity is healthy, the controller attempts every existing lane lock without
+blocking and rechecks capacity while holding them. Partial acquisition or lost
+capacity releases every acquired lock before another wait. Granted allocations
+remain serialized through descendant cleanup; a queue slot is not a reservation
+for unrelated processes. Existing runners retain their original behavior until
+they exit, and a root backup may still hold the shared lock while it waits.
 
 This is not a global memory reservation ledger for every process on the host.
 Direct daemon clients, virtual machines and other services have separate native
@@ -147,13 +159,38 @@ below 14 GiB available can be admitted by its smaller reviewed profile; daemon
 builds retain their distinct 14 GiB requirement. New capacity waits use one finite deadline. Admission requires a healthy
 interval; growth uses a longer interval and a lower pressure reopen threshold.
 These controls reduce oscillation without turning payload failures into retries.
-The serial shared lock remains held while a desktop executor waits, so larger
-requests can delay smaller requests behind them. Backfill requires a separate
-reservation/fairness design.
+Receipts distinguish `waiting-capacity` from `waiting-execution`. A capacity-
+blocked development waiter no longer prevents a fitting contender in another
+queue group from executing. There is no FIFO or starvation guarantee: old
+executors, per-group queues, and root backup reservations can still delay work.
+The host/ancestor thresholds, healthy intervals, hard caps and reserves remain
+unchanged; cache estimates are not substituted for measured ancestor charges.
+
+For filesystem ownership tests that reject the ordinary user namespace's anonymous
+ancestor IDs, use the explicit desktop `host-check` profile after its system helper
+is installed. It keeps the bounded allocation rather than selecting the shared
+daemon tier. The helper refuses other users/scopes and missing, swappable or
+oversized limits. Its privileged entrypoint decodes only fixed Nix configuration;
+command, cwd and environment are decoded after dropping privilege. The payload
+gets a fresh session within its private PID namespace; all descendants retain the
+outer cgroup and deadline. stdin/stdout and the original command exit remain
+owned by that invocation. This is trusted finite host work, not an adversarial
+network sandbox. Shared Nix builds remain on the daemon profile.
+
+Read-only Nix queries need the explicit local store and, on clients that gate it,
+`--extra-experimental-features read-only-local-store`. A hidden daemon socket is
+not a local-store selection. Freeze and realize dependencies before host checks;
+do not grant daemon access or change the daemon reserve to fit these tests.
 
 Native macOS has no equivalent aggregate kernel memory ceiling. The watchdog
-accounts only its owned process group and is best effort; it excludes daemon
-builders and deliberately detached processes. If output remains held outside the
+queries RSS only for its owned process group, using a cancellable native sampler.
+A sampler timeout is an observation failure, not evidence of memory exhaustion;
+two consecutive missed samples still fail closed and drain the owned group.
+The same normal-pressure/headroom check used for admission runs during execution;
+loss of the host reserve stops the client as `host-memory-headroom-lost`, even
+when its own RSS is below budget. Sampling cannot prevent every transient spike.
+The watchdog is best effort; it excludes shared daemon builders and deliberately
+detached processes. If output remains held outside the
 observed group after cleanup, the receipt reports `drained=false`. Never accept
 that as a complete check or silently resume ambiguous descendants. Jobs needing
 strict RAM containment require a qualified Linux allocation with adequate real
@@ -281,9 +318,10 @@ Desktop daemon receipts identify client cgroup enforcement and explicitly exclud
 the separately capped shared daemon from the observed client peak. The requested
 daemon budget describes the shared daemon ceiling, not an aggregate job peak.
 
-`status` and `doctor` include every unfinished or unresolved job, then up to 100
-completed jobs ordered by recipe creation time. Random job IDs never determine
-which active work is visible. `historyTruncated` identifies omitted completed
+`status` and `doctor` include every unfinished or unresolved job, followed by
+recent completed jobs ordered by recipe creation time. `status` includes up to
+100 completed jobs; `doctor` uses `--history-limit`, defaulting to 100. Random
+job IDs never determine which active work is visible. `historyTruncated` identifies omitted completed
 history; `status ID` always addresses its exact job. The `executor` record shows
 available/required bytes and the capacity decision before payload admission,
 plus native lifecycle transitions as they arrive. A successful capacity snapshot

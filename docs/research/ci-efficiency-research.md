@@ -5,6 +5,9 @@ organization and the current `nix-conf` check graph. Local analysis used the
 working trees and revisions present on the review date. Timing analysis used the
 GitHub Actions API and completed runs available on that date.
 
+The [2026-11-09 follow-up](#development-follow-up) distinguishes the current
+publication blocker from the historical timing sample below.
+
 ## Answer
 
 Before this change, `nix-conf` spent almost all of its CI time in one
@@ -191,3 +194,74 @@ The scheduling estimates need one completed pull-request or merge-queue run
 before they become measured evidence. Package build time remains workload-driven;
 v2.5.4 skips unchanged checks, but a genuinely changed large package can still
 consume most of a native build cell.
+
+## Development follow-up
+
+Reviewed: 2026-11-09 PST. Current-source observations include uncommitted root
+and package-submodule work; they are not claims that those bytes are deployed.
+GitHub run metadata is separate evidence about the published candidate.
+
+### Current blocker and evidence boundary
+
+At 2026-11-10 04:39 UTC, [package PR 212](https://github.com/nix-forge/nixpkgs-personal/pull/212)
+was open and six native build jobs in [run 42728215078](https://github.com/nix-forge/nixpkgs-personal/actions/runs/42728215078)
+were still in progress. Each had completed its declared native CI-check step
+and was running the affected-package build step. This identifies the phase
+holding up downstream publication. It does not prove a stall, OOM, failed
+substitution, or a particular expensive dependency; those need package logs or
+terminal reports. Cancelling a healthy build would discard progress.
+
+The existing source already selects affected derivations, preserves conservative
+base-history fallback and partitions native work. Recommending those features as
+new work would duplicate completed engineering. The remaining evaluator opportunity
+is process reuse: the package working-tree runner evaluates base derivations as
+a map but obtains current derivations per package. Shared CI also evaluates
+current/base check derivations separately per check.
+[Package runner](../../pkgs/.github/scripts/build-affected.sh),
+[pinned shared runner](https://github.com/nix-forge/ci/blob/1a6dfe0b851c69ad30169977e014bd45029e9c55/scripts/run-flake-checks.py).
+
+### Implementation-ready next steps
+
+1. Keep queued local acceptance bound to an immutable root/submodule manifest.
+   Archive the intended source, retain required roots and validate exact source
+   identity before executing checks. Include intended dirty changes explicitly;
+   archiving commits alone must not silently omit them. This avoids source
+   churn invalidating an expensive wait.
+   [Nix flake archive](https://nix.dev/manual/nix/2.35/command-ref/new-cli/nix3-flake-archive.html).
+2. In the package repository, evaluate the current package derivation map once,
+   mirroring its existing base map. Preserve exact package selection, licensing
+   exclusions, failed/missing-base fallback and native check ownership. Test
+   invocation count, identical selected derivations, empty selection and malformed
+   evaluation output before measuring elapsed time. A bulk evaluation failure
+   must remain explicit; it cannot turn omitted entries into unchanged packages.
+3. Propose the analogous change separately in the shared CI repository. Retain
+   per-check failure reporting and bounded evaluation; one expression forced
+   across every check can fail as a whole or require more peak memory. A smaller
+   bounded batch may be preferable. Measure process count, evaluation duration
+   and peak memory rather than assuming a single giant map is faster.
+4. Use existing comparable reports to identify expensive repeated dependency
+   builds before changing caches. Root cache benchmarking is opt-in; package
+   native CI remains cache-disabled. Any future pilot needs an agreed compute
+   budget, trusted writes, exact platform/lock identity, licensing review and
+   restore/save overhead measurements. Do not upload private or excluded outputs.
+   Nix signed substitution and GitHub dependency caches have different trust
+   boundaries; neither proves a required native runtime test passed.
+   [Nix cache trust](https://nix.dev/guides/recipes/add-binary-cache.html),
+   [GitHub cache security](https://docs.github.com/en/actions/concepts/workflows-and-actions/dependency-caching).
+5. Preserve required check names and merge-group coverage. Use internal affected
+   selection rather than skipping an entire required workflow by path. Changing
+   a workflow trigger can leave a required check pending and block merges.
+   [Required-check troubleshooting](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
+
+The root owns integration and the source manifest; the package repository owns
+its affected-package runner; shared CI owns common evaluation behavior. Keep
+those changes in their owning repositories and update gitlinks only after the
+matching revision passes. Do not copy shared runner code into this repository.
+
+### Validation and limits
+
+This follow-up read source, primary documentation and GitHub metadata. It started
+no hosted run, local build, cache benchmark, deployment or merge. It does not
+claim that any proposed batching/cache change has saved time. The
+[queue follow-up](build-queue-efficiency-research.md#development-efficiency-follow-up)
+records local admission, deadline and preflight improvements.

@@ -280,9 +280,12 @@ let
     flakeIgnore = [ "E501" ];
   } ./scripts/windows_vm_render_seed.py;
 
+  # Keep file-backed disks on buffered I/O, matching the running desktop guest.
+  # O_DIRECT can race guest buffer changes with Btrfs checksum validation.
+  # writeback honors guest flushes; threads also supports buffered installer I/O.
   runtimeDiskDevices = ''
     <disk type="file" device="disk">
-      <driver name="qemu" type="qcow2" cache="none" io="native" discard="unmap" detect_zeroes="unmap"/>
+      <driver name="qemu" type="qcow2" cache="writeback" io="threads" discard="unmap" detect_zeroes="unmap"/>
       <source file="${diskPath}"/>
       <target dev="sda" bus="scsi" rotation_rate="1"/>
       <serial>${cfg.diskSerial}</serial>
@@ -292,14 +295,14 @@ let
 
   installerDiskDevices = ''
     <disk type="file" device="disk">
-      <driver name="qemu" type="qcow2" cache="none" io="native" discard="unmap" detect_zeroes="unmap"/>
+      <driver name="qemu" type="qcow2" cache="writeback" io="threads" discard="unmap" detect_zeroes="unmap"/>
       <source file="${diskPath}"/>
       <target dev="sda" bus="sata" rotation_rate="1"/>
       <serial>${cfg.diskSerial}</serial>
       <boot order="2"/>
     </disk>
     <disk type="file" device="disk">
-      <driver name="qemu" type="raw" cache="none" io="native"/>
+      <driver name="qemu" type="raw" cache="writeback" io="threads"/>
       <source file="${primeDisk}"/>
       <target dev="sde" bus="scsi"/>
       <readonly/>

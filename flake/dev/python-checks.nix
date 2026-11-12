@@ -54,9 +54,15 @@ _: {
         ../../homes/desktop/local/codex-resources/scripts
         ../../hosts/shared/local/network.json
         ../../hosts/nixos/desktop/local/storage/backup_helper.py
+        ../../hosts/nixos/desktop/local/storage/root_scrub.py
         ../../hosts/nixos/desktop/local/storage/scripts/export_homelab_databases.py
         ../../hosts/nixos/desktop/local/storage/scripts/restic-lock-wait.sh
         ../../hosts/nixos/desktop/local/storage/health.py
+        ../../hosts/nixos/desktop/local/storage/capacity.py
+        ../../hosts/nixos/desktop/local/storage/retention.py
+        ../../hosts/nixos/desktop/local/storage/task_retention.py
+        ../../hosts/nixos/desktop/local/storage/scripts/retire-preview.py
+        ../../modules/shared/nix-settings-assets/install-root-credentials.sh
         ../../hosts/nixos/desktop/local/homelab/actual/scripts/actual-vault-open.sh
         ../../hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py
         ../../hosts/nixos/desktop/local/homelab/music/scripts/verify_listenbrainz_identity.py

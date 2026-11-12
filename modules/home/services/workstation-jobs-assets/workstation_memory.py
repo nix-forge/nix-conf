@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import contextlib
+import fcntl
 import json
 import math
 import os
@@ -23,6 +24,7 @@ from dbus_next.errors import DBusError
 MIB = 1024**2
 PERCENT = 100
 UNIT_DISCOVERY_SECONDS = 10
+FIRST_LOCK_FD = 3
 
 
 def invalid(message: str) -> None:
@@ -173,6 +175,61 @@ class Notifications:
             stream.close()
 
 
+def reserve_execution(descriptors: list[int]) -> bool:
+    """Try the inherited execution reservations without sleeping on any lock.
+
+    Locks belong to the shell's open file descriptions and survive controller
+    exit. Partial acquisition is always released, including mixed-version peers.
+
+    Returns:
+        Whether all execution locks are held by the invoking supervisor.
+
+    """
+    acquired = []
+    try:
+        for descriptor in descriptors:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            acquired.append(descriptor)
+    except BlockingIOError:
+        for descriptor in reversed(acquired):
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        return False
+    except BaseException:
+        for descriptor in reversed(acquired):
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        raise
+    return True
+
+
+def locked_capacity(
+    args: argparse.Namespace, locks: list[int]
+) -> tuple[dict | None, int]:
+    """Acquire reservations and resample capacity, releasing all on refusal.
+
+    Returns:
+        The locked sample and grant, or no sample when another task owns a lock.
+
+    """
+    if not reserve_execution(locks):
+        return None, 0
+    selected = 0
+    try:
+        sample = snapshot(args.meminfo, args.group, args.root, args.pressure)
+        selected = grant(
+            sample,
+            args.minimum * MIB,
+            args.maximum * MIB,
+            args.reserve * MIB,
+            args.quantum * MIB,
+            args.pressure_limit,
+        )
+        return sample, selected
+    finally:
+        if not selected:
+            for descriptor in reversed(locks):
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+
+
 def admit(args: argparse.Namespace) -> int:
     """Wait within one deadline and persist a grant before returning it.
 
@@ -184,6 +241,9 @@ def admit(args: argparse.Namespace) -> int:
     deadline = started + args.timeout
     healthy = None
     delay = 0.25
+    locks = getattr(args, "lock_fd", [])
+    reserved = False
+    admitted = False
     notices = Notifications(args.pressure, args.group, args.root)
     try:
         while True:
@@ -203,6 +263,17 @@ def admit(args: argparse.Namespace) -> int:
                 and healthy is not None
                 and now - healthy >= args.healthy_seconds
             )
+            waiting_execution = False
+            if ready and locks:
+                locked_sample, selected = locked_capacity(args, locks)
+                waiting_execution = locked_sample is None
+                if locked_sample is not None:
+                    sample = locked_sample
+                ready = selected > 0
+                reserved = ready
+                if not ready and not waiting_execution:
+                    healthy = None
+                now = time.monotonic()
             record = {
                 "phase": "admitted" if ready else "waiting-capacity",
                 "minimumMiB": args.minimum,
@@ -212,6 +283,8 @@ def admit(args: argparse.Namespace) -> int:
                 "sample": sample,
                 "changes": [],
             }
+            if waiting_execution:
+                record["phase"] = "waiting-execution"
             if now >= deadline:
                 record.update(
                     phase="admission-expired", payloadLaunched=False, grantMiB=None
@@ -222,10 +295,14 @@ def admit(args: argparse.Namespace) -> int:
             if ready:
                 sys.stdout.write(str(selected // MIB) + "\n")
                 sys.stdout.flush()
+                admitted = True
                 return 0
             notices.wait(min(delay, deadline - now))
             delay = min(5, delay * 2)
     finally:
+        if reserved and not admitted:
+            for descriptor in reversed(locks):
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
         notices.close()
 
 
@@ -421,6 +498,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["admit", "grow"])
     parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--lock-fd", type=int, action="append", default=[])
     parser.add_argument("--minimum", type=int, default=1)
     parser.add_argument("--maximum", type=int, default=1)
     parser.add_argument("--reserve", type=int, default=0)
@@ -449,6 +527,8 @@ def main() -> int:
         and 0 < args.pressure_hysteresis < args.pressure_limit <= PERCENT
         and args.step >= args.quantum
         and 0 < args.high_percent < PERCENT
+        and all(descriptor >= FIRST_LOCK_FD for descriptor in args.lock_fd)
+        and len(set(args.lock_fd)) == len(args.lock_fd)
     ):
         parser.error("Invalid memory allocation policy")
     for number in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):

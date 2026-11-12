@@ -9,6 +9,8 @@ let
   destinations = cfg.backup.destinations;
   defaultExcludes = [
     "**/.snapshots"
+    "/srv/data/cache"
+    "/srv/data/work/scratch"
     "/home/*/.cache"
     "/home/*/.local/share/docker"
     "/var/lib/docker"
@@ -40,10 +42,20 @@ let
   };
   # Backups and verification can overlap with exclusive repository maintenance.
   # Let Restic wait for the lock instead of recording a spurious failed attempt.
+  guardedRestic = pkgs.writeShellApplication {
+    name = "restic-data-cache";
+    text =
+      lib.optionalString cfg.capacity.enable ''
+        ${lib.getExe config.system.build.desktopStorageCapacity} cache >/dev/null
+      ''
+      + ''
+        exec ${lib.getExe pkgs.restic} "$@"
+      '';
+  };
   restic = pkgs.writeShellApplication {
     name = "restic";
     text = (import ../../../../../lib/templates/text.nix) ./scripts/restic-lock-wait.sh {
-      restic = lib.getExe pkgs.restic;
+      restic = lib.getExe guardedRestic;
       flock = lib.getExe' pkgs.util-linux "flock";
       inherit bulkLock;
     };
@@ -55,6 +67,10 @@ let
     builtins.toJSON {
       stateDirectory = "/var/lib/desktop-storage";
       coldPaths = cfg.backup.coldPaths;
+      coldUnits = cfg.backup.coldUnits;
+      coldUnmounts = cfg.backup.coldUnmounts;
+      coldPrepareCommand = cfg.backup.coldPrepareCommand;
+      coldRestic = lib.getExe guardedRestic;
       inherit destinations;
     }
   );
@@ -117,7 +133,11 @@ let
   verifyJob = name: destination: {
     description = "Read and restore-test desktop backup ${name}";
     wants = [ "network-online.target" ];
-    after = [ "network-online.target" ];
+    requires = lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+    after = [
+      "network-online.target"
+    ]
+    ++ lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
     path = [
       restic
       pkgs.coreutils
@@ -127,7 +147,8 @@ let
     environment = removeAttrs config.systemd.services."restic-backups-${jobName name}".environment [
       "PATH"
     ];
-    unitConfig.RequiresMountsFor = destination.requiredMounts;
+    unitConfig.RequiresMountsFor =
+      destination.requiredMounts ++ lib.optional cfg.capacity.enable "/srv/data";
     serviceConfig =
       memoryBudget
       // {
@@ -155,9 +176,13 @@ let
     };
   };
   coldJob = name: destination: {
-    description = "Attended rescue-mode backup of durable VM and container data to ${name}";
-    # Deliberately no timer and no automatic workload stop/start. The operator
-    # enters rescue mode and keeps application writers stopped for this job.
+    requires = lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+    after = lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+    unitConfig.RequiresMountsFor =
+      destination.requiredMounts ++ lib.optional cfg.capacity.enable "/srv/data";
+    description = "Consistent application backup and verified restore to ${name}";
+    # Native applications declare their complete guarded writer set. With no
+    # such declaration, the legacy VM/container path still requires rescue mode.
     path = [
       restic
       pkgs.coreutils
@@ -166,9 +191,12 @@ let
       config.systemd.package
       config.programs.ssh.package
     ];
-    environment = removeAttrs config.systemd.services."restic-backups-${jobName name}".environment [
-      "PATH"
-    ];
+    environment =
+      removeAttrs config.systemd.services."restic-backups-${jobName name}".environment [ "PATH" ]
+      // {
+        GOMEMLIMIT = "6GiB";
+        RESTIC_PROGRESS_FPS = "0.016666";
+      };
     serviceConfig =
       memoryBudget
       // {
@@ -178,7 +206,12 @@ let
         PrivateTmp = true;
         CacheDirectory = "desktop-backup-cold-${name}";
         CacheDirectoryMode = "0700";
-        ExecStopPost = [ (finish name "cold") ];
+        KillMode = "mixed";
+        TimeoutStartSec = "2h";
+        ExecStopPost = [
+          "${python} ${helper} ${helperConfig} recover-native"
+          (finish name "cold")
+        ];
       }
       // lib.optionalAttrs (destination.environmentFile != null) {
         EnvironmentFile = destination.environmentFile;
@@ -193,6 +226,21 @@ let
 in
 {
   options.hardware.storage.encryptedRoot.backup = {
+    coldUnits = lib.mkOption {
+      type = lib.types.listOf (lib.types.strMatching "[a-zA-Z0-9@_.:-]+\\.(service|mount|timer|socket)");
+      default = [ ];
+      description = "Complete native writer and activation unit set, ordered consumers before dependencies. Original active states are restored. Empty retains attended rescue mode for legacy cold paths.";
+    };
+    coldUnmounts = lib.mkOption {
+      type = lib.types.listOf credentialPath;
+      default = [ ];
+      description = "Filesystems which must be unmounted before their backing images are captured.";
+    };
+    coldPrepareCommand = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Consistent native database export command run after declared writers stop and before file capture.";
+    };
     coldPaths = lib.mkOption {
       type = lib.types.listOf credentialPath;
       default = [
@@ -320,7 +368,38 @@ in
     # Option defaults disappear when any caller defines a list, even mkAfter.
     # Make the baseline a composable definition so host additions retain it.
     hardware.storage.encryptedRoot.backup.exclude = lib.mkBefore defaultExcludes;
-    assertions = lib.concatLists (
+    assertions = [
+      {
+        assertion =
+          builtins.length cfg.backup.coldUnits == builtins.length (lib.unique cfg.backup.coldUnits);
+        message = "Native backup writer and activation units must be unique.";
+      }
+      {
+        assertion =
+          cfg.backup.coldUnits == [ ]
+          || !(lib.any (
+            path:
+            lib.any (prefix: lib.hasPrefix prefix path) [
+              "/etc/libvirt"
+              "/var/lib/libvirt"
+              "/var/lib/docker"
+              "/var/lib/containerd"
+              "/var/lib/containers"
+              "/var/lib/lxc"
+              "/var/lib/incus"
+            ]
+            || builtins.match "/home/[^/]+/\\.local/share/(docker|containers)(/.*)?" path != null
+          ) cfg.backup.coldPaths);
+        message = "Native writer quiescence cannot certify VM or container cold paths; retain rescue mode for those datasets.";
+      }
+      {
+        assertion =
+          cfg.backup.coldPrepareCommand == [ ]
+          || lib.hasPrefix "/" (builtins.head cfg.backup.coldPrepareCommand);
+        message = "Native backup preparation needs an absolute executable.";
+      }
+    ]
+    ++ lib.concatLists (
       lib.mapAttrsToList (name: destination: [
         {
           assertion = builtins.match "[a-z][a-z0-9-]*" name != null;
@@ -374,6 +453,12 @@ in
       lib.mapAttrs' (
         name: destination:
         lib.nameValuePair "restic-backups-${jobName name}" {
+          requires = lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+          after = lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+          environment = lib.mkIf cfg.capacity.enable {
+            RESTIC_CACHE_DIR = lib.mkForce "/srv/data/cache/restic/${name}";
+            TMPDIR = "/srv/data/cache/restic/tmp";
+          };
           path = [
             pkgs.util-linux
             config.programs.ssh.package
@@ -416,7 +501,7 @@ in
       pkgs.restic
       checkPackage
     ];
-    system.build.desktopBackupCheck = checkPackage;
     environment.etc."desktop-storage/backup-policy.json".source = helperConfig;
+    system.build.desktopBackupCheck = checkPackage;
   };
 }

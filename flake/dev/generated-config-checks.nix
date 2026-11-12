@@ -17,9 +17,13 @@
         (import ../../tests/nix/bash-writers.nix { inherit pkgs myLib; })
         // (import ../../tests/nix/non-bash-writers.nix { inherit pkgs inputs myLib; })
         // {
+          vscode-configuration = import ../../tests/nix/vscode-configuration.nix { inherit pkgs inputs; };
           vscode-shell-integration = import ../../tests/nix/vscode-shell-integration.nix {
             inherit pkgs inputs;
           };
+          t3code = import ../../tests/nix/t3code.nix { inherit pkgs inputs myLib; };
+          agent-skills = import ../../tests/nix/agent-skills.nix { inherit pkgs inputs myLib; };
+          rea = import ../../tests/nix/rea.nix { inherit pkgs inputs myLib; };
           codex-home = import ../../tests/nix/codex-home.nix { inherit pkgs inputs myLib; };
           activation-conflicts = import ../../tests/nix/activation-conflicts.nix {
             inherit pkgs inputs myLib;

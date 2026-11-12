@@ -30,7 +30,6 @@
     security
     yubikey
     macos
-    dictation
     stylix
     fonts
     ssh

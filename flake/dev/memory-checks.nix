@@ -12,6 +12,7 @@
           name = "codex-resource-behavior";
           files = [
             ../../homes/desktop/local/codex-resources/scripts
+            ../../homes/desktop/local/browsers/scripts/zen-session.sh.in
             ../../tests/codex/test_resources.py
             ../../tests/codex/fixtures/resource_app.py
             ../../tests/codex/fixtures/resource_notify.py

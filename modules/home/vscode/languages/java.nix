@@ -1,22 +1,17 @@
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
+{ config, pkgs, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
+    extensions = catalogExtensions [
       "redhat.java"
       "vscjava.vscode-java-debug"
       "vscjava.vscode-java-test"
       "vscjava.vscode-maven"
       "vscjava.vscode-java-dependency"
 
-      "shengchen.vscode-checkstyle"
     ];
 
     userSettings = {
@@ -25,29 +20,18 @@ in
         "editor.tabSize" = 4;
       };
 
-      "java.configuration.updateBuildConfiguration" = "automatic";
+      "java.configuration.updateBuildConfiguration" = "interactive";
       "java.import.gradle.enabled" = true;
       "java.import.maven.enabled" = true;
 
       "java.referencesCodeLens.enabled" = true;
-      "java.implementationsCodeLens.enabled" = true;
+      "java.implementationCodeLens" = "types";
       "java.completion.guessMethodArguments" = "auto";
 
-      "java.jdt.ls.java.home" = "${pkgs.temurin-bin}";
+      "java.jdt.ls.java.home" = "${pkgs.temurin-bin-25}";
 
-      "java.configuration.runtimes" = [
-        # Latest JDK
-        {
-          name = "JavaSE-${lib.versions.major pkgs.temurin-bin.version}";
-          path = "${pkgs.temurin-bin}";
-          default = true;
-        }
-        # JDK 8
-        {
-          name = "JavaSE-1.8";
-          path = "${pkgs.jdk8}";
-        }
-      ];
+      # The tooling JDK runs JDT LS. Project build files/dev shells select
+      # target runtimes; do not install unrelated legacy JDKs globally.
     };
   };
 }

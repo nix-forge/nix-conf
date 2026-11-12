@@ -218,3 +218,7 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [Noctalia tray icon selection review](noctalia-tray-icon-selection-research.md)
 - [Resource-aware queues across Linux and macOS](workload-scheduler-research.md)
 - [Adaptive memory admission for workstation jobs](elastic-workstation-memory-research.md)
+
+- [Modular VS Code configuration](vscode-configuration-research.md)
+
+- [VS Code extension sources and dependency ownership](vscode-extension-sources-research.md)

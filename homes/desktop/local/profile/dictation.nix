@@ -1,0 +1,1 @@
+{ programs.voiceDictation.enable = true; }

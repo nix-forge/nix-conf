@@ -2,7 +2,12 @@
 
 Reviewed: 2026-11-07. Scope: the current queue and desktop executor, Pueue 4.0.4,
 Linux cgroup v2 and PSI, systemd 262, upstream Nix 2.34.8/2.35.4, and native
-macOS constraints. This is an implementation proposal; the queue has not changed.
+macOS constraints. This is the historical implementation proposal, not a description of the current
+queue. Waiting admission, explicit memory ranges and upward growth now exist in
+the working-tree implementation; the [job runbook](../operations/workstation-jobs.md)
+and [efficiency follow-up](build-queue-efficiency-research.md#development-efficiency-follow-up)
+describe the current interface and next steps. Activation remains host- and
+revision-specific and needs separate runtime evidence.
 
 ## Answer
 

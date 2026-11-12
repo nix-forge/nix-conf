@@ -7,6 +7,7 @@ let
   storage = config.homelab.storage;
   vpn = config.homelab.vpn.namespace;
   secretNames = [
+    "postgres-password"
     "jwt-secret"
     "setup-token"
     "request-key"
@@ -51,6 +52,8 @@ in
 
       homelab.apps.bookorbit = {
         enable = true;
+        native = true;
+        databaseMajor = 18;
         uid = 910;
         gid = 910;
         port = 13006;

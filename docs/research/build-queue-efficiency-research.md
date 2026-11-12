@@ -101,8 +101,8 @@ queue. A check that did not run must not be reported as passed.
 ## Implication for this repository
 
 Use the shared workload queue for heavy desktop work, submit each package
-separately, and select the build and host platforms explicitly. Keep four
-compiler jobs, one derivation at a time and the current memory limits. Reuse
+separately, and select the build and host platforms explicitly. Keep the configured host compiler parallelism, one derivation at a time,
+and the current memory limits. Reuse
 completed results instead of restarting successful work. The
 [desktop memory operations guide](../operations/desktop-memory-management.md)
 owns queue and activation policy.
@@ -213,3 +213,104 @@ additional cases cover the eight-job default, a lower configured limit,
 restricted affinity and automatic settings. All 24 focused cases passed; the
 changed launcher and tests passed Ruff lint and formatting checks. This verifies
 budget selection and helper behavior, without measuring a compilation speedup.
+
+## Development efficiency follow-up
+
+Reviewed: 2026-11-09. Scope: current working-tree queue and workflow sources,
+Pueue 4.0.4, and the native package publication dependency. This section supersedes
+older implementation-status and fixed compiler-count recommendations above;
+older measurements remain dated evidence, not current performance estimates.
+
+### Fix the limiting phase
+
+Distinguish four outcomes before changing resources:
+
+- A queued wrapper can wait on the shared execution lock without running a build.
+- Admission can wait on host reserve, an ancestor limit, or pressure; enough
+  host-wide available memory does not establish ancestor headroom.
+- A payload can fail because its tool invocation, environment, source snapshot,
+  or namespace is wrong. More RAM does not repair these failures.
+- A build can spend time compiling or substituting. A long running status alone
+  does not establish a stall or a cache failure.
+
+The [job runbook](../operations/workstation-jobs.md) owns the installed contract.
+The [adapter](../../modules/home/services/workstation-jobs-assets/workstation_job.py)
+and [memory controller](../../modules/home/services/workstation-jobs-assets/workstation_memory.py)
+already support waiting admission and explicit memory ranges. Keep the existing
+implementation; do not reimplement adaptive scheduling from the historical
+[proposal](elastic-workstation-memory-research.md).
+
+### Prioritized improvements
+
+1. Validate the frozen launcher before submitting expensive work: interpreter
+   and required plugins, supported command flags, source/hash manifest, output
+   existence, selected Nix installable and namespace ownership requirements.
+   Use the repository's declared test environment; disabling automatic pytest
+   plugin discovery follows [the existing check builder](../../tests/python-check.nix)
+   and avoids conflicts with explicitly selected plugins. Preflight must not
+   run the payload's financial, publication or deployment side effects.
+2. Select a whole-job minimum from comparable observed peaks at the configured
+   compiler parallelism. Use a qualified minimum/maximum request when supported;
+   do not use the generic profile floor as proof that a workload fits there.
+   Keep daemon work separate from confined tests and retain the host reserve,
+   pressure, swap and ancestor checks.
+3. Reuse compatible accepted outputs and toolchains, with exact lock/source/
+   platform identity and retained roots. Evaluate the needed platform attributes
+   together instead of repeating broad host or cross-system evaluation. Do not
+   replace mandatory rebuild/reproducibility checks with cache hits.
+4. Use the existing staged remote-realization path above for suitable package
+   work: freeze/evaluate/transfer in the local allocation, then release it before
+   waiting on the destination's own finite allocation. Desktop system closures
+   retain their dedicated desktop placement. Darwin output does not qualify a
+   Linux package.
+5. Diagnose the current publication dependency at its owner. Native package
+   materialization and platform verification remain required even when the
+   downstream configuration edit is only a gitlink. Keep one owner and use
+   check-completion notifications instead of repeatedly polling the same state.
+6. Keep scheduler backfill as a separate design, rather than an emergency lock
+   change. A large admitted wrapper waiting for capacity can delay smaller jobs.
+   Safe overlap needs a shared reservation authority, bounded fairness, atomic
+   admission and preserved launch/drain proofs; raising Pueue group parallelism
+   or dropping a shared lock alone does not provide them.
+
+### Deadline scope and blocked-state diagnosis
+
+The [supervisor](../../modules/home/services/workstation-jobs-assets/workstation_job.py)
+starts its monotonic timeout at wrapper execution and records earlier scheduler
+queue time separately. A Pueue-queued or deliberately stashed request therefore
+has not consumed that executor budget yet. Clarify this before estimating a
+release window. A future total-deadline feature needs a distinct immutable field,
+backward compatibility, clock-anomaly handling, and tests proving that an expired
+request never launches. Do not silently reinterpret existing recipes.
+
+The daemon guard remains present: the desktop runner expresses its required host
+headroom as a one-MiB sentinel allocation plus the remaining reserve. The absence
+of a direct shell comparison against the full guard is not evidence it vanished.
+Read the runner and memory controller together when diagnosing admission.
+
+A useful next diagnostic increment would expose the current lock/capacity phase,
+the finite ancestor limiting room, frozen deadline scope and launch-claim state.
+It must remain read-only and retain every unresolved job. Historical missing
+receipts belong to their original owner; neither age nor low CPU justifies deleting
+claims, replaying a payload or calling the host globally clean.
+
+Pueue's scheduler orders queued tasks using group slots, priority and dependencies;
+it does not inspect this runner's memory or locks.
+[Pueue 4.0.4 scheduler](https://github.com/Nukesor/pueue/blob/v4.0.4/pueue/src/daemon/process_handler/spawn.rs).
+A backfill scheduler can protect older reservations while admitting smaller work,
+but it needs defensible resource and runtime estimates.
+[Slurm backfill model](https://slurm.schedmd.com/sched_config.html#backfill).
+These sources explain why more queue groups alone would not solve admission.
+
+### Acceptance and evidence
+
+Record submission, admission, payload start/end and scope drainage separately.
+Compare queue delay, setup failure frequency, evaluation time, build time and
+closeout overhead only for comparable immutable increments. Missing memory
+peaks remain unknown; do not invent a safe minimum from an absent measurement.
+A faster launcher or shorter diagnostic response is not proof of a faster build.
+
+This follow-up inspected source, existing receipts, GitHub check metadata and
+primary documentation. It launched no check, build or workflow, changed no
+scheduler/service settings, and established no new throughput benchmark. Runtime
+telemetry is needed before selecting a capacity or cache redesign.

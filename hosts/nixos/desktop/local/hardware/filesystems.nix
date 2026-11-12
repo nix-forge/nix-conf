@@ -9,6 +9,29 @@ let
   homelabMountPoint = "/mnt/homelab";
   homelabScrubService = "btrfs-scrub-${utils.escapeSystemdPath homelabMountPoint}";
   homelabKeyFile = config.hardware.storage.encryptedRoot.homelabKeyFile;
+  rootScrubPolicy = pkgs.writeText "desktop-root-scrub.json" (
+    builtins.toJSON {
+      stateDirectory = "/var/lib/desktop-storage";
+      bulkLock = "/run/workstation-workloads/bulk.lock";
+      swapfile = "/swap/workstation";
+      swapUnit = "swap-workstation.swap";
+    }
+  );
+  rootScrubProgram = pkgs.writers.writePython3 "desktop-root-scrub" {
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ../storage/root_scrub.py;
+  rootScrub = pkgs.writeShellApplication {
+    name = "desktop-root-scrub";
+    runtimeInputs = [
+      pkgs.btrfs-progs
+      pkgs.util-linux
+      config.systemd.package
+    ];
+    text = ''exec ${rootScrubProgram} ${rootScrubPolicy} "$@"'';
+  };
 in
 {
   options.hardware.storage.homelabHdd.enable =
@@ -69,6 +92,25 @@ in
         "/"
         "/srv/data"
       ];
+    };
+    system.build.desktopRootScrub = rootScrub;
+    # The existing monthly root timer uses this guarded instance. The data
+    # volume retains the upstream template because it has no active swapfile.
+    systemd.services."btrfs-scrub@-" = lib.mkIf config.hardware.storage.encryptedRoot.enable {
+      description = "Complete root Btrfs scrub with guarded temporary swapfile suspension";
+      unitConfig.ConditionPathIsMountPoint = "/";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe rootScrub} run";
+        ExecStopPost = "${lib.getExe rootScrub} recover";
+        TimeoutStartSec = "3h";
+        TimeoutStopSec = "5min";
+        KillMode = "mixed";
+        MemoryMax = "512M";
+        UMask = "0077";
+        Nice = 19;
+        IOSchedulingClass = "idle";
+      };
     };
 
     # Batch TRIM avoids continuous discards during large Nix store collections.

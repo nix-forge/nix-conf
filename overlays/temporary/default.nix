@@ -11,6 +11,7 @@ let
     home-manager-protected-apps = ./home-manager-protected-apps.nix;
     home-manager-app-management-consent = ./home-manager-app-management-consent.nix;
     darwin-app-management-consent = ./darwin-app-management-consent.nix;
+    handy-darwin-signature = ./handy-darwin-signature.nix;
     darwin-application-signatures = ./darwin-application-signatures.nix;
     nixf-flake-builtins = ./nixf-flake-builtins.nix;
     nvidia-bin-patchelf = ./nvidia-bin-patchelf.nix;

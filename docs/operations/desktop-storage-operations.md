@@ -165,32 +165,45 @@ Live database files need application-consistent exports. VM disk images, firmwar
 vTPM state and persistent container volumes need the separate cold backup path;
 the weekly file job is not evidence that those workloads are recoverable.
 
-The manual `desktop-backup-cold-<destination>` service captures `/etc/libvirt`,
-all of `/var/lib/libvirt`, Docker/containerd state and every configured normal
-user's rootless Docker directory. It also restores a canary from that separate
-backup set.
-Missing application directories are skipped. Add custom VM disk locations and
-container bind-mounted data to `backup.coldPaths` when they are introduced.
+The desktop's `desktop-backup-cold-homelab.service` now captures its declared
+native application set nightly at 03:30, with up to 15 minutes of jitter. It
+briefly stops only declared application writers, timers, and dependencies;
+Windows and the desktop session remain running. Activation conditions prevent
+those units restarting during capture. An interrupted job retains a private
+recovery journal; its independent service cleanup removes only owned guards and
+resumes every unit that was originally active. Originally inactive applications
+remain inactive.
 
-Run this from the physical console during an attended maintenance window. Verify
-root console authentication and recovery media first. Stop VMs and applications
-cleanly, enter `rescue.target`, and ensure user managers, Docker, containerd and
-VM processes are stopped. Rescue mode ends the desktop and remote sessions.
-Keep required data mounts and the external backup disk mounted. Start networking
-manually if the selected repository requires it. Then run:
+The encrypted application filesystem is unmounted before its backing image is
+captured. Fresh native database exports are created while related file writers
+are stopped. The backup then captures application files, queue state, ciphertext,
+and completed exports together. After source stability is verified, applications
+resume. A full restore to private temporary storage checks every captured file,
+symlink, mode, owner and group against the source manifest. Temporary plaintext
+restores are removed afterward. A passing receipt establishes this dataset's
+byte and metadata recovery; it does not attest an application startup or replace
+independent recovery credentials.
 
 ```sh
-systemctl start desktop-backup-cold-rotated.service
-systemctl status desktop-backup-cold-rotated.service
+sudo systemctl start desktop-backup-cold-homelab.service
+sudo systemctl status desktop-backup-cold-homelab.service
 ```
 
-The service refuses multi-user operation and checks for application writers
-before and after capture. It does not stop workloads automatically. Return to
-normal operation only after the job completes. Full status requires a cold
-backup and sample restore within `maxColdAgeDays`, which defaults to seven days.
-That recovery window is separate from the daily file backup window. An empty
-initial application set still needs its first checked cold capture to establish
-coverage; setup does not assume there are no important workloads.
+`backup.coldUnits` must enumerate the complete native writer and activation set,
+ordered consumers before dependencies. `coldUnmounts` declares backing-image
+mounts that must be inactive. `coldPrepareCommand` provides consistent exports.
+Native mode rejects legacy VM/container paths. Without a native declaration,
+the generic cold service retains its attended rescue-mode guard; it never stops
+VMs, user managers, or containers implicitly. Custom applications need their own
+complete consistency boundary before joining an unattended backup.
+
+For a legacy VM/container capture, use the physical console, verify recovery
+access, stop writers cleanly, enter `rescue.target`, and keep required storage
+mounted. Rescue mode terminates desktop and remote sessions. Start the selected
+cold service only after establishing that boundary. The desktop's native set
+excludes Windows and container engines. Full status requires current cold backup
+and restore receipts within `maxColdAgeDays`; unavailable independent destinations
+remain visible even after local recovery checks pass.
 
 For a recovery drill, restore a `desktop-cold` snapshot into an isolated directory,
 then recover the application or VM with its disk, definition, firmware and vTPM
@@ -200,8 +213,10 @@ application startup before recording the drill.
 Snapper takes independent hourly snapshots of home, general data and work.
 Hourly cleanup normally keeps up to 24 hourly, 7 daily and 4 weekly snapshots.
 When filesystem free space drops below 20%, range limits allow cleanup to remove
-more old timeline snapshots, down to zero subject to Snapper's minimum age.
-This shortens recovery history under pressure; it cannot guarantee free space
+more old timeline snapshots, preserving configured floors of 2 hourly, 1 daily
+and 1 weekly recovery points, subject to Snapper's classification and minimum
+age. Timeline creation defers below the capacity policy's critical threshold;
+cleanup still runs. This shortens recovery history under pressure; it cannot guarantee free space
 when live data fills the filesystem. This free-space policy needs no quotas.
 [Snapper cleanup rules](https://github.com/openSUSE/snapper/blob/master/doc/snapper.xml.in)
 
@@ -219,6 +234,186 @@ sudo systemctl start desktop-snapshot-home-cleanup.service
 Restore selected files from a known snapshot after inspecting it. A NixOS boot
 rollback changes the system generation; it does not rewind home or application
 databases.
+
+## Capacity, collection and admission
+
+`storage/headroom.nix` owns the desktop's available-space policy. Its typed
+options render the native Nix build guard, idle collection, job admission and
+health reporting. The initial system-SSD thresholds are:
+
+| Action | Available space |
+| --- | ---: |
+| Start Nix collection | Below 200 GiB |
+| Collection target | 250 GiB |
+| Ordinary job remaining-space floor / warning | 150 GiB |
+| Clear warning | 175 GiB |
+| Critical warning / stop new snapshots | Below 75 GiB |
+| Leave critical state | 100 GiB |
+
+The target is best effort. Compressed/shared extents, other writers and protected
+roots can prevent a collection from reaching it. A collection that restores the
+trigger margin records whether the higher target was reached. Nix-reported
+logical deletions and actual filesystem availability are different measurements.
+No threshold is a filesystem reservation or a guarantee against exhaustion.
+
+Only the desktop capacity policy owns automatic collection. It disables Nixd's
+independent collector while retaining Determinate's daemon and other services.
+Do not enable `nix.gc.automatic` or `nh` cleaning alongside it. Native build-time
+collection and the conditional `desktop-storage-collect.timer` use one policy
+and Nix's GC lock. The timer checks every 15 minutes, yields when another managed
+workload owns the bulk lock, and respects the configured daemon RAM headroom.
+A failed/no-progress scan backs off; further space loss or explicit operator
+recovery can cause a new attempt. Output and receipt history are bounded.
+
+```sh
+sudo systemctl start desktop-storage-collect.service
+desktop-storage-status
+```
+
+Inspect `/var/lib/desktop-storage/collection.json` and the bounded collection log
+as root when collection cannot restore its margin. Retire appropriate roots or
+move verified regenerable data; never delete arbitrary store paths, live task
+roots or backups to silence a capacity warning.
+
+`workstation-task` checks disk space after obtaining the execution reservation.
+It combines requests by filesystem UUID, so Btrfs subvolume aliases cannot each
+spend the same free bytes. An undeclared ordinary job initially budgets 32 GiB
+of additional system-SSD writes. Declare expected additional peaks using existing
+absolute directory paths:
+
+```sh
+workstation-task --disk-mib /=32768 --disk-mib /srv/data/work=65536 -- COMMAND ARGS
+```
+
+A refusal exits 75 before the payload. It is a failed preflight, not permission
+to retry a non-idempotent job automatically. Adjust the cause and use a new
+attempt key. For durable desktop submissions, the existing explicit environment
+interface can retain a JSON array of declarations:
+
+```sh
+export WORKSTATION_DISK_REQUESTS='["/=32768","/srv/data/work=65536"]'
+workstation-job submit --owner example-task --key reviewed-attempt-1 \
+  --source IMMUTABLE_REFERENCE --profile auto --memory-mib 4096 --timeout 1200 \
+  --env WORKSTATION_DISK_REQUESTS -- COMMAND ARGS
+```
+
+The disk receipt is stored beside the memory allocation receipt. Queued work
+rechecks current capacity; admission is not a reservation against arbitrary
+applications. New ordinary work leaves 200 GiB on the data SSD. The homelab HDD
+retains its separate media headroom policy.
+
+Use `--storage-recovery` only for explicitly space-releasing maintenance or
+low-write diagnostics. It preserves the memory and execution policy while
+removing the ordinary disk floor; declare any additional writes honestly.
+Feedback diagnostics use this recovery admission. Do not use the flag to make an
+ordinary build bypass capacity policy.
+
+Health records Btrfs allocator headroom and emergency reserve use separately
+from file sizes. A nearly full allocated block group is not itself a full
+filesystem when new groups can still be allocated. Device counters distinguish
+new errors, historical totals, decreased/reset counters and inspection failures.
+They are never reset automatically. Keep evidence and investigate before
+establishing a new baseline.
+
+## OS and task retention
+
+The weekly `desktop-generation-retention.timer` retains the union of the latest
+10 system generations, the last 14 days, the running and booted systems, and
+externally rooted systems. It recognizes activatable wrappers around a protected
+system. It also pins the last booted system under its own GC-root directory.
+The settled-activation check compares that same resolved system identity, so an
+activatable profile wrapper around the running system does not prevent scheduled
+retention. A profile pointing to different system binaries still refuses cleanup.
+User profiles and unrelated task roots are not retired by this service. Existing
+signed ESP limits and booted-system protection remain separate.
+
+Review exact candidates or apply an unchanged reviewed plan:
+
+```sh
+sudo desktop-storage-retention plan
+sudo desktop-storage-retention apply \
+  --plan /var/lib/desktop-storage/generation-plan.json
+```
+
+A changed profile, recovery root or observed target invalidates the plan. Native
+profile retirement removes rollback generations; later Nix collection can remove
+their unreferenced objects. Never substitute `nix-collect-garbage -d` for this
+reviewed policy.
+
+For new regenerable dependencies and intermediates, `desktop-task-cache` creates
+a private directory on a provisioned, snapshot-excluded data-SSD subvolume:
+
+```sh
+desktop-task-cache example-task
+```
+
+Use a unique owner matching the task's durable jobs. Keep source edits, frozen
+inputs needed for reproducibility and required results in protected locations.
+The helper does not move durable clones, active checkouts or existing task state.
+
+Place private writable Nix stores and large build intermediates in that task cache,
+for example by selecting a cache child as `workstation-nix --state`. Preserve its
+receipts and required outputs externally before explicit retirement. Stores under
+snapshotted home state can remain physically retained by older snapshots after
+ordinary GC; deleting their live paths does not remove those snapshot references.
+
+`desktop-task-retire --owner example-task` reviews an owner's job roots without
+releasing them. Explicit completion additionally requires preserved external
+results and terminal, drained native jobs:
+
+```sh
+workstation-task --bounded-memory 1 --storage-recovery -- \
+  desktop-task-retire --owner example-task --complete-task \
+  --preserved-result "$HOME/task-results/example-task.json" --remove-cache
+```
+
+Omit `--remove-cache` to retain the cache. Cache removal refuses symlinked trees,
+unexpected ownership, nested mounts/subvolumes, results inside the cache and a
+current working directory inside the cache. The queue metadata lock is retained
+during explicit finalization; schedule a very large cleanup as finite maintenance.
+A terminal job is not task completion. Failed/interrupted or missing executions
+without proven drainage must be reconciled by their owner first. Unknown legacy
+roots remain for explicit review; no age-based task cleanup runs. Recipes,
+claims, receipts and native queue history remain preserved.
+
+## Cache placement and credentials
+
+`desktop-storage-cache-ready.service` creates `/srv/data/cache` and
+`/srv/data/work/scratch` as Btrfs subvolumes only after the real data mounts are
+ready. An existing ordinary directory causes refusal. These boundaries exclude
+regenerable content from parent snapshots; file-backup exclusions independently
+omit those paths. A directory name alone supplies neither exclusion nor quota.
+
+File/database backup wrappers share a root-private cache per destination under
+`/srv/data/cache/restic`. Temporary Restic files also use that guarded volume.
+Services require readiness and never intentionally write a replacement cache
+into the system SSD's unmounted fallback directory. Verification retains its
+existing repository-read and restore-canary semantics. An active-cache warning
+starts at 64 GiB; this is a monitored budget, not an eviction cap. Restic's
+stale-directory cleanup cannot bound a frequently used repository cache.
+
+Migrate a warm cache only while its writers are idle and the shared workload
+reservation is held. Copy and check it before changing users of the cache;
+verify a real backup and restore sample before retiring the old copy. Client
+cache cleanup is unrelated to repository pruning. Important source data stays
+on its existing storage until a separately verified migration.
+
+Public Nix configuration contains no root-private credential includes. Root,
+daemon and user credentials have separate private loading paths. The managed
+root installer refuses an existing unmanaged root configuration. Normal users
+receive only their own nix-seal template include, including Determinate's
+`nix.package = null` Home Manager mode. Verify selected non-secret settings as
+both identities; do not print complete configuration JSON or token values.
+Nix-seal activation does not automatically restart an active daemon for token
+rotation. Perform a deliberately idle fresh daemon start when required.
+
+A scoped preview retains its generated tools/units with an explicit GC root.
+Before retiring that preview, verify the normal system/home generations own
+the installed commands, public configuration and units. Preserve live queues and
+applications; normal configuration activation is separate from a package build.
+The broader weekly file schedule and daily database exports remain unchanged.
+Choose a shorter file recovery objective and an independent backup destination
+explicitly; caches and local snapshots do not supply off-site recovery.
 
 ## Drive roles and subvolume boundaries
 
@@ -272,7 +467,8 @@ files still need an attended cold copy to regain checksums. See the
 ## Health and recovery boundaries
 
 The system polls capacity, Btrfs device error counters, failed storage services
-and backup freshness. It warns at 80% usage. A desktop notification appears when
+and backup freshness. Capacity warnings use the absolute watermarks below when
+the coordinated capacity policy is enabled. A desktop notification appears when
 warnings change, and SMART events have their own notification path. A missing
 data drive cannot stop home snapshot creation or cleanup. Its scrub job requires
 the actual mount, so it cannot silently scrub root instead. The ordinary backup
@@ -290,6 +486,54 @@ keys in memory, and a compromised running account can access its available data.
 Use the screen lock and shut down for a stronger offline boundary. This desktop
 currently disables suspend through its existing compatibility policy. Hibernation
 is also disabled because swap is randomly encrypted each boot.
+
+## Investigate Btrfs integrity warnings
+
+Device error counters persist across mounts and successful scrubs. A historical
+total alone does not establish current corruption. Compare saved samples with
+kernel timestamps, resolve affected inodes, inspect SMART health, and check the
+latest completed scrub for each filesystem. Preserve raw evidence in a root-only
+directory outside this repository. Increasing counters or an uncorrectable scrub
+require investigation and recovery from a verified independent copy.
+
+The managed Windows guest uses `cache="writeback"` and `io="threads"` for its
+file-backed disks in both installation and runtime definitions. This preserves
+buffered I/O and guest flush handling while retaining Btrfs data checksums.
+Keep those settings when recreating a guest; changing only its live XML leaves
+the declarative definition able to undo the mitigation. Direct-I/O checksum
+hazards and the kernel's newer buffered-write fallback are described in
+[Btrfs checksumming](https://btrfs.readthedocs.io/en/latest/Checksumming.html);
+[QEMU documents cache and flush behavior](https://www.qemu.org/docs/master/system/qemu-manpage.html).
+A clean host scrub cannot prove the guest filesystem or application data is
+consistent; guest recovery and cold backups remain separate checks.
+
+Only after preserving the counters and logs, confirming a completed clean scrub,
+and reviewing the cause should an operator reset historical device statistics
+with `btrfs device stats --reset <mount>`. Save its output and immediately run
+`desktop-storage-health.service` again. New errors must alert independently of
+the acknowledged history. Never automate counter resets, disable data checksums,
+or use `btrfs check --repair` to silence an alert.
+See [device statistics](https://btrfs.readthedocs.io/en/latest/btrfs-device.html)
+and [scrub limitations](https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html).
+
+An active Btrfs swapfile causes scrub to skip its block groups. The desktop's
+monthly `btrfs-scrub@-.service` reserves the shared maintenance lane and requires
+six GiB of RAM beyond the swapfile's used pages plus eight GiB of free non-zram
+swap before temporarily stopping the fallback swapfile. Activation is guarded
+until the scrub finishes. It cancels to restore swap if available RAM falls below
+three GiB or remaining disk swap below two GiB, sampling headroom every 30 seconds.
+Failure and cancellation have an independent recovery action; the original swap
+state resumes before success is recorded. The encrypted swap partition and zram
+remain active throughout. An insufficient-capacity refusal is not a complete
+scrub, and its failed unit remains visible. Never bypass the admission guard or
+permanently remove fallback swap to silence a warning.
+
+```sh
+sudo systemctl start btrfs-scrub@-.service
+```
+
+A successful `/var/lib/desktop-storage/checks/root-scrub.json` records a completed
+root scrub without active swapfiles. The ordinary data-volume scrub is unchanged.
 
 ## Shared media and backup disk
 

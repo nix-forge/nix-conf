@@ -18,6 +18,8 @@ indent_size = 4
 indent_size = 4
 
 [*.md]
+# Preserve Markdown hard-break spaces when the editor applies this policy.
+trim_trailing_whitespace = false
 # Markdown list continuations must align beneath the marker; their indentation
 # therefore varies with the number of digits in the list marker. Rumdl owns
 # Markdown formatting and linting, so do not impose a fixed EditorConfig width.

@@ -5,22 +5,29 @@ let
   };
 in
 {
-  nixos = { inputs, ... }: {
-    imports = [ inputs.determinate.nixosModules.default ];
-
-    # NixOS exposes the Determinate integration as `determinate`, whereas
-    # nix-darwin calls the corresponding option `determinateNix`.
-    determinate.enable = true;
-
-    nix = { inherit settings; };
-
-    # Determinate Nixd is the Nix daemon on NixOS and owns garbage
-    # collection.  Keep its documented default explicit so host modules do
-    # not add a competing `nix.gc` or `nix-collect-garbage` schedule.
-    environment.etc."determinate/config.json".text = builtins.toJSON {
-      garbageCollector.strategy = "automatic";
+  nixos =
+    {
+      config,
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
+    {
+      imports = [ inputs.determinate.nixosModules.default ];
+      options.nix.determinateNixdSettings = lib.mkOption {
+        inherit ((pkgs.formats.json { })) type;
+        default = { };
+        description = "Host additions to Determinate Nixd configuration; one collector must own reclamation.";
+      };
+      config = {
+        determinate.enable = true;
+        nix = { inherit settings; };
+        environment.etc."determinate/config.json".text = builtins.toJSON (
+          lib.recursiveUpdate { garbageCollector.strategy = "automatic"; } config.nix.determinateNixdSettings
+        );
+      };
     };
-  };
 
   darwin =
     {

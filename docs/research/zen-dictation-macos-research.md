@@ -1,12 +1,16 @@
 # Zen Browser dictation on macOS
 
+Superseded on 2026-11-08 by [system-wide offline dictation](../operations/voice-dictation.md).
+The Zen-specific recorder and native Fn configuration described below have been
+retired. Keep this note as historical research; follow the shared runbook for setup.
+
 Reviewed: 2026-09-22. Scope: entering a spoken search in Zen's address bar on
 the Apple-silicon Darwin profile. This is a source review of macOS Tahoe-era
 documentation, the pinned Nix inputs, and upstream releases. The companion
 configuration adds the supported Fn/Globe setting; this review did not test a
 microphone or Zen session.
 
-## Answer
+## Historical answer
 
 Use macOS Dictation first if sending address-bar speech to Apple's Dictation
 service is acceptable. It is the smallest and least intrusive choice: macOS
@@ -188,18 +192,9 @@ latency, battery use, or thermal behavior. Apple and upstream documentation can
 change after this review. The Voxtype macOS documentation differs on whether
 Intel is supported, although that does not affect the selected arm64 profile.
 
-## Implication for this repository
+## Current configuration
 
-The selected Darwin profile now enables a small optional
-[dictation module](../../modules/darwin/dictation.nix) that assigns Fn/Globe through
-the typed nix-darwin option. Dictation enablement, language selection, and
-privacy consent remain a user setup step in System Settings. The Fn/Globe
-setting takes effect after restarting the Mac.
-
-If local-only address-bar dictation is required, create a separate decision and
-package-review task for Voxtype v1.0.1. Prefer local Whisper first because it
-has the simpler dependency path. Test Parakeet only as a measured alternative.
-Bind its toggle command through the already configured AeroSpace module where
-possible, so the app need not own a global Input Monitoring hotkey. Direct text
-delivery still needs Accessibility approval. Require manual review and Enter
-submission for every search.
+The implementation described in this historical note has been retired. Zen and
+T3 Code use the same system-wide Parakeet service and shortcuts. Follow the
+[shared dictation runbook](../operations/voice-dictation.md) for current setup,
+permissions, and validation limits.

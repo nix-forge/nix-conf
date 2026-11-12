@@ -101,10 +101,32 @@ in
   # uploaded images go through the attended cold copy after services stop.
   hardware.storage.encryptedRoot.backup = {
     coldPaths = lib.mkAfter (
-      [ "/var/lib/pocket-id" ] ++ lib.optional (identityReady && wardrowbeReady) "/var/lib/wardrowbe"
+      lib.optional (config.systemd.services.pocket-id.enable or false) "/var/lib/pocket-id"
+      ++ lib.optionals (identityReady && wardrowbeReady) [
+        "/var/lib/wardrowbe"
+        "/var/lib/redis-wardrowbe"
+      ]
+    );
+    coldUnits = lib.mkAfter (
+      lib.optional (config.systemd.services.pocket-id.enable or false) "pocket-id.service"
+      ++ lib.optionals (identityReady && wardrowbeReady) [
+        "wardrowbe-backup.timer"
+        "wardrowbe-backup.service"
+        "wardrowbe-frontend.service"
+        "wardrowbe-backend.service"
+        "wardrowbe-worker.service"
+        "wardrowbe-image-worker.service"
+        "wardrowbe-codex.service"
+        "wardrowbe-migrate.service"
+        "redis-wardrowbe.service"
+      ]
     );
     exclude = lib.mkAfter (
-      [ "/var/lib/pocket-id" ] ++ lib.optional (identityReady && wardrowbeReady) "/var/lib/wardrowbe"
+      lib.optional (config.systemd.services.pocket-id.enable or false) "/var/lib/pocket-id"
+      ++ lib.optionals (identityReady && wardrowbeReady) [
+        "/var/lib/wardrowbe"
+        "/var/lib/redis-wardrowbe"
+      ]
     );
   };
 

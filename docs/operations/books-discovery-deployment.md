@@ -8,27 +8,27 @@ explains the software choice and the request feature's beta status.
 ## Configured boundary
 
 [The desktop policy](../../hosts/nixos/desktop/local/homelab/book-discovery.nix)
-supplies sealed credentials, media paths and client access rules to the reusable
+supplies digest-pinned BookOrbit 3.2.0 and PostgreSQL 18/pgvector images,
+sealed credentials, media paths, and client access rules to the reusable
 [Nix Home Lab BookOrbit module](../../nix-homelab/modules/services/bookorbit.nix).
-BookOrbit and PostgreSQL 18 with pgvector use native packages. The app runs in
-the enforced VPN namespace with the VPN resolver and blocked host resolver IPC.
-The database uses only a private Unix socket, with service-account authentication.
-The app listens on the namespace's host link and is
+Rootless Podman runs both inside the homelab's enforced VPN namespace.
+Image pulls use that namespace too. The namespace uses the VPN resolver and
+forbids host resolver IPC. The app listens on the namespace's host link and is
 served only by the existing private HTTPS proxy. Its native port is not opened
 on the LAN or WAN firewall. The HTTPS rule currently admits the approved home
 LAN and WireGuard client CIDRs; a real phone client trial is still required.
 
 Only the ebook/comic and audiobook folders are mounted at `/books` when
 fulfillment is enabled. Host-managed bind mounts make those selected folders
-writable in the native service mount namespace so approved imports can be filed.
+writable inside rootless Podman so approved imports can be filed.
 A mount-aware startup unit grants the BookOrbit account write ACLs only on those
 two folders and the dedicated book intake. It verifies that the download category,
 Book Dock, and libraries share a filesystem. App data and the dedicated
 PostgreSQL data directory live under `/var/lib/bookorbit` with a private service
-account. Application keys and administrator credentials are encrypted with
-nix-seal; the native database requires no password. Systemd delivers them to the units as
+account. Eight credentials, including the database password and administrator
+login, are encrypted with nix-seal. Systemd delivers them to the units as
 temporary credentials; plaintext is not stored in the Nix store or persistent
-BookOrbit state. The app receives
+BookOrbit state. OCI image storage is outside that backup tree. The app receives
 only the book category of the VPN-confined qBittorrent client. Its sealed Web UI
 credentials enter through systemd, and BookOrbit encrypts its stored copy. The
 bootstrap checks the category save path, client connection, and hardlink import
@@ -98,9 +98,7 @@ provide curated bestseller recommendations.
 1. Finish the existing [book reader credential installation](books-audiobooks-deployment.md),
    then build and activate the reviewed desktop configuration from the
    desktop host. The BookOrbit units depend on the reader bootstrap, mounted
-   media, the VPN namespace and signed-secret preparation. Initialize or restore
-   the native PostgreSQL cluster before activation as described in the
-   [BookOrbit module guide](../../nix-homelab/docs/bookorbit.md).
+   media, the VPN namespace, and the image and signed-secret preparation units.
 2. Verify `bookorbit-bootstrap.service` completed and open
    `https://bookorbit.<homelab-domain>` on the desktop. The first superuser is
    created automatically. Read its login from nix-seal or the approved password
@@ -115,7 +113,7 @@ provide curated bestseller recommendations.
    grouping and per-file ebook/comic grouping. Scan a small representative
    collection before a full scan. Local folder watching keeps owned status
    fresh without online enrichment. Only the two intended library subfolders
-   have writable service bind mounts.
+   have writable container mounts.
 5. Create restricted reader accounts with **Request books** permission only.
    Give the moderator **Manage book requests**. Do not grant readers **Auto-approve
    requests**, **Download books directly**, **App settings**, or source plugin
@@ -129,33 +127,29 @@ provide curated bestseller recommendations.
 
 ## Checks before relying on the service
 
-- Verify `bookorbit.service`, `bookorbit-native-db.service` and both Prowlarr
-  bridge services are active, and `bookorbit-migrate.service`,
-  `bookorbit-metadata-policy.service` and `bookorbit-bootstrap.service` completed.
-  The policy and bootstrap units check the database policy and sealed administrator
+- Verify `podman-bookorbit.service`, `podman-bookorbit-db.service`,
+  `bookorbit-metadata-policy.service`, both Prowlarr bridge services, and
+  `bookorbit-bootstrap.service` have
+  succeeded. The last two check the database policy and sealed administrator
   and reconcile vetted sources and the download client before the private HTTPS
-  URL opens. Confirm the database has no host TCP listener. Inspect the service bind
+  URL opens. Confirm the database has no host TCP listener. Inspect the container
   mounts: only the two book subfolders are present under `/books` and writable.
 - Test EPUB, CBZ/CBR, M4B, and a multi-file audiobook, and confirm the same
   title is recognized as already owned before accepting the request workflow.
 - Capture DNS, IPv4, and IPv6 traffic while idle, while searching Open Library,
-  while searching Prowlarr releases, and after forcing the VPN down. No BookOrbit process should
+  while searching Prowlarr releases, and after forcing the VPN down. No BookOrbit process or container should
   reach public destinations or the host resolver outside the VPN. Capture a
   client browser's network requests too; the server-side VPN does not protect
   browser-originated requests.
 - Restore `/var/lib/bookorbit` into an isolated copy before depending on the
   request history. Test database and app updates together; PostgreSQL major
-  upgrades need an explicit migration and verified restore.
+  upgrades need an explicit dump and restore, not an image tag change.
 
-A NixOS build verifies declarative units and builds the native packages. It
-does not prove application startup, database migration,
+The BookOrbit image is fetched on service start, so a NixOS build verifies the
+declarative units but does not prove image startup, database migration,
 metadata quality, tunnel-failure behavior, or a working backup destination.
 
-## Historical OCI deployment verification
-
-These observations cover the earlier OCI deployment. They do not validate the
-native implementation now selected. Repeat the deployment and recovery checks
-before relying on the native service.
+## Deployment verification
 
 The isolated desktop build and focused configuration checks passed on
 2026-10-01. After activation, BookOrbit, its database and bootstrap, Prowlarr,

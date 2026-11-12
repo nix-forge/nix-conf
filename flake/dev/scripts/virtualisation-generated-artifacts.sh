@@ -8,6 +8,13 @@ grep -Fq '@desktop_security_wrapperDir@/sudo --non-interactive -- ' @windowsVmPa
 
 xmllint --noout @runtimeDomain@ @installerDomain@
 
+# Every file-backed disk must retain checksummed Btrfs-compatible buffered I/O,
+# including the installer helper disk. CD-ROM devices use separate defaults.
+for domain in @runtimeDomain@ @installerDomain@; do
+  test "$(xmllint --xpath 'count(/domain/devices/disk[@type="file" and @device="disk"])' "$domain")" -gt 0
+  test "$(xmllint --xpath 'count(/domain/devices/disk[@type="file" and @device="disk"]/driver[not(@cache="writeback") or not(@io="threads")])' "$domain")" -eq 0
+done
+
 ! grep -Eq '__[A-Z0-9_]+__' @windowsBootstrap@
 ! grep -Eq '__[A-Z0-9_]+__' @windowsBaseline@
 grep -Eq "^[$]RecipeFingerprint = '[0-9a-f]{64}'$" @windowsBootstrap@

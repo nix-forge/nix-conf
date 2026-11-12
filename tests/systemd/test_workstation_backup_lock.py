@@ -32,7 +32,9 @@ def executable(path: Path, source: str) -> str:
     return str(path)
 
 
-def fixtures(work: Path) -> tuple[str, str, str, dict[str, str]]:
+def fixtures(
+    work: Path, disk_admission: str = "true"
+) -> tuple[str, str, str, dict[str, str]]:
     """Render private queue paths and launcher fixtures.
 
     Returns:
@@ -59,6 +61,7 @@ def fixtures(work: Path) -> tuple[str, str, str, dict[str, str]]:
             sys.executable,
             str(ROOT / "homes/desktop/local/workstation_task_events.py"),
         ]),
+        "@diskAdmission@": disk_admission,
         "@admissionSeconds@": "30",
         "@admissionHealthySeconds@": "0",
         "@admissionPressureLimit@": "100",
@@ -120,6 +123,44 @@ def fixtures(work: Path) -> tuple[str, str, str, dict[str, str]]:
 )
 class SharedBulkLockTests(unittest.TestCase):
     """Verify both consumers serialize and a cancelled waiter releases ownership."""
+
+    def test_disk_refusal_happens_under_the_lock_before_payload(self) -> None:
+        """Capacity refusal cannot race a queued write or execute the payload."""
+        asyncio.run(self.disk_refusal())
+
+    async def disk_refusal(self) -> None:
+        """Use a recording disk gate with the real runner and shared flock."""
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            gate = executable(
+                work / "disk-gate",
+                "#!/usr/bin/env python3\n"
+                "import fcntl, pathlib, sys\n"
+                f"lock = open({str(work / 'shared.lock')!r}, 'r+')\n"
+                "try:\n fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
+                "except BlockingIOError:\n pass\n"
+                "else:\n raise RuntimeError('disk admission ran outside shared reservation')\n"
+                f"pathlib.Path({str(work / 'disk-arguments')!r}).write_text('\\n'.join(sys.argv[1:]))\n"
+                "sys.exit(75)\n",
+            )
+            bulk, _, worker, environment = fixtures(work, shlex.quote(gate))
+            declaration = str(work / "path with spaces") + "=42"
+            process = await asyncio.create_subprocess_exec(
+                bulk,
+                "--disk-mib",
+                declaration,
+                worker,
+                env=environment,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await asyncio.wait_for(process.communicate(), 5)
+            self.assertEqual(process.returncode, 75)
+            self.assertEqual(stdout, b"")
+            self.assertEqual(
+                (work / "disk-arguments").read_text().splitlines()[:3],
+                ["admit", "--disk-mib", declaration],
+            )
 
     def test_private_controller_owns_its_scope(self) -> None:
         """An audit controller must bind its scope to itself."""

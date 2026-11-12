@@ -45,6 +45,11 @@ let
       # A smaller admission snapshot still allowed a global OOM during builds.
       # This is conservative admission, not a physical memory reservation.
       memoryController = lib.escapeShellArg (toString memoryController);
+      diskAdmission =
+        if osConfig.hardware.storage.encryptedRoot.capacity.enable then
+          lib.escapeShellArg (lib.getExe osConfig.system.build.desktopStorageCapacity)
+        else
+          "true";
       admissionSeconds = toString policy.admission.maximumSeconds;
       admissionHealthySeconds = toString policy.admission.healthySeconds;
       admissionPressureLimit = toString policy.admission.pressureLimit;
@@ -59,6 +64,9 @@ let
       feedbackReserve = toString (policy.feedback.reserveMiB * 1024 * 1024);
       feedbackRuntimeSeconds = toString policy.feedback.maximumSeconds;
       bubblewrap = lib.escapeShellArg (lib.getExe pkgs.bubblewrap);
+      hostCheckClient = lib.escapeShellArg (
+        lib.getExe' osConfig.system.build.workstationHostCheck "workstation-host-check-client"
+      );
       taskEvents = lib.escapeShellArg (toString taskEvents);
       bulkLock = lib.escapeShellArg "/run/workstation-workloads/bulk.lock";
       # Measured feedback jobs stalled near 1 GiB despite a 2 GiB hard budget.
@@ -84,6 +92,13 @@ in
       nixProfileRemove workstation-policy-preview
       nixProfileRemove workstation-task-preview
       nixProfileRemove workstation-task
+      # A home-only switch must retain the scoped storage bridge until the
+      # running system supplies this exact capacity policy and tools.
+      ${lib.optionalString osConfig.hardware.storage.encryptedRoot.capacity.enable ''
+        if [[ "$(readlink -f /run/current-system/sw/bin/desktop-storage-capacity)" == "${osConfig.system.build.desktopStorageCapacity}/bin/desktop-storage-capacity" ]]; then
+          nixProfileRemove desktop-storage-preview
+        fi
+      ''}
     '';
 
     # Home Manager's backupCommand skips foreign symlinks. Preserve known

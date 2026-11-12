@@ -69,8 +69,12 @@ def test_native_terminal_variants() -> None:
     )
 
 
+@pytest.mark.parametrize("history_limit", [None, 0, 2])
 def test_inspect_keeps_active_and_unresolved_jobs_before_recent_history(
-    tmp_path: Path, monkeypatch: MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    history_limit: int | None,
 ) -> None:
     """Random IDs cannot hide active work, and history follows creation time."""
     tasks = {}
@@ -109,11 +113,42 @@ def test_inspect_keeps_active_and_unresolved_jobs_before_recent_history(
         },
     )
     monkeypatch.setattr(jobs, "_snapshot", lambda _: {"groups": {}, "tasks": tasks})
-    jobs._inspect({"stateDirectory": str(tmp_path)})
-    reported = json.loads(capsys.readouterr().out)["jobs"]
+    config = tmp_path / "config.json"
+    jobs._save(config, {"stateDirectory": str(tmp_path)})
+    arguments = ["workstation-job", "--config", str(config), "doctor"]
+    if history_limit is not None:
+        arguments += ["--history-limit", str(history_limit)]
+    monkeypatch.setattr(sys, "argv", arguments)
+    assert jobs.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["historyTruncated"] is True
+    reported = result["jobs"]
     identifiers = [job["id"] for job in reported]
     assert identifiers[:3] == [f"{0:032x}", f"{1:032x}", f"{104:032x}"]
-    assert identifiers[3:] == [f"{index:032x}" for index in range(2, 102)]
+    expected = 100 if history_limit is None else history_limit
+    assert identifiers[3:] == [f"{index:032x}" for index in range(2, 2 + expected)]
+
+
+def test_doctor_rejects_negative_history_before_reading_state(
+    tmp_path: Path, monkeypatch: MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An invalid output bound cannot reach queue state or change a job."""
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "workstation-job",
+            "--config",
+            str(tmp_path / "missing.json"),
+            "doctor",
+            "--history-limit",
+            "-1",
+        ],
+    )
+    with pytest.raises(SystemExit) as caught:
+        jobs.main()
+    assert caught.value.code == 2
+    assert "history limit must be non-negative" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -469,7 +504,18 @@ def test_inherited_pipe_cannot_outlive_deadline(
     if ps is None:
         pytest.skip("native ps is required for this process supervision fixture")
     monkeypatch.setattr(jobs, "_available", lambda: 1024**4)
-    monkeypatch.setattr(jobs, "_group_usage", lambda _: 0)
+
+    async def zero(*_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
+        return 0
+
+    monkeypatch.setattr(jobs, "_group_usage", zero)
+
+    async def capacity(*_args: object) -> int:
+        await asyncio.sleep(0)
+        return 1024**4
+
+    monkeypatch.setattr(jobs, "_darwin_available", capacity)
     child_code = "import time; time.sleep(20)"
     code = f"import subprocess,sys,pathlib; child=subprocess.Popen([sys.executable,'-c',{child_code!r}],start_new_session=True); pathlib.Path('child.pid').write_text(str(child.pid))"
     recipe = {
@@ -524,11 +570,12 @@ def test_native_sampling_preserves_observations_and_fails_closed(
     measurements = iter(samples)
     calls = []
 
-    def measure(pid: int) -> int:
+    async def measure(pid: int, *_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
         calls.append(pid)
         sample = next(measurements, 0)
         if sample == "timeout":
-            raise jobs.subprocess.TimeoutExpired(["/bin/ps"], 1)
+            raise TimeoutError
         if sample == "invalid":
             message = "invalid fixture RSS"
             raise ValueError(message)
@@ -550,7 +597,7 @@ def test_native_sampling_preserves_observations_and_fails_closed(
     assert receipt["memorySamplingConsecutiveTimeouts"] == consecutive
     if phase == "supervision-error":
         assert receipt["supervisionErrorType"] == (
-            "ValueError" if samples == ["invalid"] else "TimeoutExpired"
+            "ValueError" if samples == ["invalid"] else "TimeoutError"
         )
 
 
@@ -561,11 +608,12 @@ def test_missed_native_sample_preserves_deadline_and_cancellation(
     """A missed measurement does not defer a real deadline or cancellation."""
     calls = []
 
-    def measure(pid: int) -> int:
+    async def measure(pid: int, *_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
         calls.append(pid)
         if cancel:
             asyncio.get_running_loop().call_soon(os.kill, os.getpid(), signal.SIGTERM)
-        raise jobs.subprocess.TimeoutExpired(["/bin/ps"], 1)
+        raise TimeoutError
 
     monkeypatch.setattr(jobs, "_group_usage", measure)
     started = time.monotonic()
@@ -595,13 +643,14 @@ class SamplingReceipt(TypedDict):
     pid: int
 
 
-def _native_sampling_child(
+def _native_sampling_child(  # ruff: ignore[too-many-arguments] - explicit native fault-injection inputs
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
     *,
     timeout: int = 15,
     sleep: int = 0,
     expected_drained: bool = True,
+    available: int = 1024**4,
 ) -> SamplingReceipt:
     """Run real owned children while injecting only native accounting outcomes.
 
@@ -614,6 +663,12 @@ def _native_sampling_child(
         pytest.skip("native ps is required for this process supervision fixture")
     monkeypatch.setattr(jobs, "_available", lambda: 1024**4)
     monkeypatch.setattr(jobs, "_host_memory_pressure", lambda: "fixture-normal")
+
+    async def capacity(*_args: object) -> int:
+        await asyncio.sleep(0)
+        return available
+
+    monkeypatch.setattr(jobs, "_darwin_available", capacity)
     recipe = {
         "id": "sampling-fixture",
         "profile": "bounded",
@@ -1023,7 +1078,8 @@ def test_native_cleanup_permission_error_keeps_terminal_receipt(
             raise PermissionError(1, "fixture permission denied")
         original_killpg(group, sig)
 
-    def invalid(_pid: int) -> int:
+    async def invalid(*_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
         message = "fixture invalid accounting"
         raise ValueError(message)
 
@@ -1128,3 +1184,83 @@ def test_growth_cleanup_denial_cannot_override_successful_native_payload(
     assert receipt["phase"] == "cleanup-error"
     assert receipt["drained"] is False
     assert receipt["nativeCleanupErrorTypes"] == ["PermissionError"]
+
+
+def test_group_sampler_cancellation_is_responsive(tmp_path: Path) -> None:
+    """Cancellation interrupts a stalled native RSS query and reaps the sampler."""
+    marker = tmp_path / "sampler.pid"
+    sampler = tmp_path / "ps"
+    sampler.write_text(
+        f"#!/bin/sh\necho $$ > '{marker}'\nexec sleep 20\n", encoding="utf-8"
+    )
+    sampler.chmod(0o700)
+
+    async def run() -> None:
+        cancelled = asyncio.Event()
+        asyncio.get_running_loop().call_later(0.1, cancelled.set)
+        started = time.monotonic()
+        with pytest.raises(TimeoutError):
+            await jobs._group_usage(os.getpgrp(), cancelled, 1, ps=str(sampler))
+        assert time.monotonic() - started < 0.8
+
+    asyncio.run(run())
+    pid = int(marker.read_text(encoding="utf-8"))
+    with pytest.raises(ProcessLookupError):
+        os.kill(pid, 0)
+
+
+@pytest.mark.parametrize(
+    "body", ["echo '1 2 -1'", "echo '1 2 3'; echo '1 2 4'", "exit 1"]
+)
+def test_group_sampler_rejects_invalid_or_missing_live_observation(
+    tmp_path: Path, body: str
+) -> None:
+    """Invalid counters and an absent observation cannot hide a live group's RSS."""
+    sampler = tmp_path / "ps"
+    sampler.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    sampler.chmod(0o700)
+    with pytest.raises(jobs.JobError, match=r"Invalid native RSS|Empty RSS"):
+        asyncio.run(
+            jobs._group_usage(os.getpgrp(), asyncio.Event(), 1, ps=str(sampler))
+        )
+
+
+def test_native_running_job_stops_when_host_headroom_is_lost(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """A below-budget client still drains when host headroom disappears."""
+
+    async def usage(*_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
+        return jobs.MIB
+
+    monkeypatch.setattr(jobs, "_group_usage", usage)
+    receipt = _native_sampling_child(tmp_path, monkeypatch, sleep=20, available=0)
+    assert receipt["phase"] == "host-memory-headroom-lost"
+    assert receipt["exitCode"] == 1
+    assert receipt["observedGroupPeakBytes"] == jobs.MIB
+    assert receipt["drained"]
+
+
+@pytest.mark.parametrize("present", [False, True])
+def test_legacy_darwin_recovery_checks_group_presence(
+    tmp_path: Path, monkeypatch: MonkeyPatch, *, present: bool
+) -> None:
+    """Legacy recovery proves group absence independently of RSS sampling."""
+    cfg = {"stateDirectory": str(tmp_path)}
+    directory = jobs._job_path(tmp_path, "b" * 32)
+    directory.mkdir(parents=True)
+    jobs._save(directory / "result.json", {"drained": False, "pid": 12345})
+    monkeypatch.setattr(jobs.platform, "system", lambda: "Darwin")
+
+    def signal_zero(group: int, sig: int) -> None:
+        assert (group, sig) == (12345, 0)
+        if not present:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(jobs.os, "killpg", signal_zero)
+    if present:
+        with pytest.raises(jobs.JobError, match="still contains descendants"):
+            jobs._check_interrupted(cfg)
+    else:
+        jobs._check_interrupted(cfg)

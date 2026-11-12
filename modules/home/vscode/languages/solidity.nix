@@ -1,11 +1,15 @@
-{ pkgs, inputs, ... }:
+{ config, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [ "nomicfoundation.hardhat-solidity" ];
+    extensions = catalogExtensions [ "nomicfoundation.hardhat-solidity" ];
 
-    userSettings = { };
+    userSettings = {
+      "[solidity]"."editor.defaultFormatter" = "NomicFoundation.hardhat-solidity";
+      "solidity.telemetry" = false;
+    };
   };
 }

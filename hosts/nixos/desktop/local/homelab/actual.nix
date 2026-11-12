@@ -227,13 +227,13 @@ in
     (lib.mapAttrs' (
       name: _:
       lib.nameValuePair "desktop-backup-cold-${name}" {
-        preStart =
-          (import ../../../../../lib/templates/text.nix) ./actual/scripts/require-locked-backup.sh
-            {
-              inherit image;
-              pkgs_cryptsetup = pkgs.cryptsetup;
-              inherit mapper;
-            };
+        preStart = lib.optionalString (config.hardware.storage.encryptedRoot.backup.coldUnits == [ ]) (
+          (import ../../../../../lib/templates/text.nix) ./actual/scripts/require-locked-backup.sh {
+            inherit image;
+            pkgs_cryptsetup = pkgs.cryptsetup;
+            inherit mapper;
+          }
+        );
       }
     ) backupDestinations)
   ];
@@ -255,9 +255,17 @@ in
     }
   ];
 
-  # Copy the closed ciphertext image as a unit.
+  # Native capture guards activation and unmounts the filesystem before copying
+  # its ciphertext image. Legacy rescue-mode capture still requires locking it.
   hardware.storage.encryptedRoot.backup = {
     coldPaths = lib.mkAfter [ image ];
+    coldUnits = lib.mkAfter [
+      "actual.timer"
+      "actual.service"
+      "actual-vault-ready.service"
+      "srv-actual.mount"
+    ];
+    coldUnmounts = [ mount ];
     exclude = lib.mkAfter [
       image
       mount

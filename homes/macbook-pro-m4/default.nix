@@ -33,6 +33,7 @@
 
     fonts
     desktop-optional-emoji-fonts
+    desktop-dictation
     dev
     xdg
     cli

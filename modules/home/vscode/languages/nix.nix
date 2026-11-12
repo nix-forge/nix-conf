@@ -1,15 +1,16 @@
 {
+  config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
+    extensions = catalogExtensions [
       "jnoortheen.nix-ide"
       "ionutvmi.path-autocomplete"
     ];
@@ -20,7 +21,6 @@ in
       "nix.serverSettings".nixd = {
         formatting.command = [
           "${lib.getExe pkgs.nixfmt}"
-          "--filename={file}"
           "--width=100"
           "--indent=2"
           "--strict"

@@ -26,6 +26,63 @@ HELPER = runpy.run_path(
 )
 
 
+@pytest.mark.parametrize("real_mounted", [False, True])
+def test_optional_automount_failure_preserves_other_health(
+    monkeypatch: pytest.MonkeyPatch,
+    real_mounted: bool,
+) -> None:
+    """Inspect every real volume without traversing autofs or losing later checks."""
+    visited = []
+
+    def run(arguments: list[str]) -> subprocess.CompletedProcess[str]:
+        if arguments[0] == "findmnt":
+            path = arguments[arguments.index("--mountpoint") + 1]
+            if path == "/missing":
+                message = "inspection timeout"
+                raise subprocess.SubprocessError(message)
+            return subprocess.CompletedProcess(
+                arguments,
+                0,
+                json.dumps({
+                    "filesystems": [
+                        {
+                            "target": path,
+                            "fstype": "autofs" if path == "/optional" else "btrfs",
+                        }
+                    ]
+                    + (
+                        [{"target": path, "fstype": "btrfs"}]
+                        if path == "/optional" and real_mounted
+                        else []
+                    )
+                }),
+                "",
+            )
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    def usage(path: str) -> object:
+        assert path != "/missing"
+        assert path != "/optional" or real_mounted
+        visited.append(path)
+        return type("Usage", (), {"total": 100, "free": 50})()
+
+    namespace = HELPER["collect"].__globals__
+    monkeypatch.setitem(namespace, "run", run)
+    for name in ("btrfs_messages", "allocation_messages", "probe_messages"):
+        monkeypatch.setitem(namespace, name, lambda *_: [])
+    monkeypatch.setattr(namespace["shutil"], "disk_usage", usage)
+    warnings = HELPER["collect"]({
+        "encrypted": True,
+        "mounts": ["/optional", "/missing", "/"],
+        "units": [],
+        "warningPercent": 80,
+    })
+    assert visited == (["/optional", "/"] if real_mounted else ["/"])
+    assert warnings == (
+        [] if real_mounted else ["Storage is not mounted: /optional"]
+    ) + ["Storage inspection failed: /missing"]
+
+
 def test_group_snapshot_accepts_arbitrary_process_name_bytes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -203,3 +260,52 @@ def test_delivery_cleans_up_children_and_retains_pending(
     assert not (tmp_path / "delivery/delivered.json").exists()
     time.sleep(0.7)
     assert not marker.exists()
+
+
+def test_btrfs_history_is_distinct_from_increasing_or_reset_counters() -> None:
+    """Historical totals must not masquerade as fresh errors or read failures."""
+    key = "[/dev/fixture].corruption_errs"
+    current = {key: 12}
+    assert "Historical" in HELPER["counter_messages"]("/data", current, {})[0]
+    assert "New" in HELPER["counter_messages"]("/data", current, {key: 11})[0]
+    assert "reset" in HELPER["counter_messages"]("/data", {key: 0}, current)[0]
+    assert HELPER["counter_messages"]("/data", {key: 0}, {key: 0}) == []
+
+
+def test_capacity_helper_failure_does_not_become_a_healthy_sample(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Malformed or failed capacity output produces its own actionable warning."""
+    namespace = HELPER["capacity_messages"].__globals__
+    monkeypatch.setitem(
+        namespace,
+        "run",
+        lambda _: subprocess.CompletedProcess([], 0, '{"messages": "invalid"}'),
+    )
+    assert HELPER["capacity_messages"](["fixture"]) == [
+        "Storage capacity policy could not be checked"
+    ]
+
+
+def test_allocator_group_fullness_does_not_imply_exhausted_filesystem(
+    tmp_path: Path,
+) -> None:
+    """A mostly full metadata group can expand when unallocated device space exists."""
+    values = HELPER["allocation_values"]("""
+Device unallocated: 2147483648
+Global reserve: 536870912 (used: 0)
+Metadata,DUP: Size:1073741824, Used:1073741823 (99.99%)
+""")
+    assert (
+        HELPER["save_allocation"]({"stateDirectory": str(tmp_path)}, "/", values) == []
+    )
+    values["unallocatedDeviceBytes"] = 0
+    assert (
+        "headroom is low"
+        in HELPER["save_allocation"]({"stateDirectory": str(tmp_path)}, "/", values)[0]
+    )
+    values["globalReserveUsedBytes"] = 1
+    assert (
+        "emergency metadata reserve"
+        in HELPER["save_allocation"]({"stateDirectory": str(tmp_path)}, "/", values)[0]
+    )

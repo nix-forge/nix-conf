@@ -31,6 +31,21 @@ environment, working directory, stdin, stdout, stderr, and the foreground
 command's exit status. Independent callers queue. Nested calls reuse their
 existing workload scope after checking the policy.
 
+Memory admission waits do not hold execution reservations. Once the host and
+ancestor checks are healthy, the controller tries all existing execution locks
+without blocking, then repeats the capacity check under those locks. A busy
+lock releases every partial acquisition; lost capacity releases every lock and
+returns to waiting within the original deadline. This lets a fitting request
+proceed past a capacity-blocked request without allowing concurrent payloads.
+The supervisor retains the granted locks through descendant cleanup. Existing
+runner processes retain their previous behavior until they exit.
+
+Receipts distinguish `waiting-capacity` from `waiting-execution`. Page cache is
+still charged against finite ancestors: neither an empty process group nor
+inactive file pages guarantee reclaimability. Admission does not drop caches,
+discount those charges, reduce host reserves, or enlarge hard limits.
+
+
 Each command and its ordinary child processes enter a separate systemd scope
 under `background-workload.slice`. The queue stays held until all descendants
 exit, including children left in the background. Use ordinary user services for
@@ -592,3 +607,83 @@ only its disposable launcher to check abrupt-failure cleanup, and verifies that
 one task owner cannot clean another owner's service. It opens no Codex window
 and performs no memory-exhaustion test. Full desktop interaction after the next
 normal application restart remains a separate runtime check.
+
+## Application placement and retained memory evidence
+
+Zen desktop entries, URL launches and window actions use `zen-session`, which
+places the real browser executable in `app-zen.slice` through a systemd scope.
+Explicitly disabling systemd environment expansion preserves literal dollar
+characters in URLs. The shared
+slice retains the reviewed 8 GiB high, 12 GiB maximum and 8 GiB swap limits.
+Use `zen-session` for explicit terminal launches as well. The raw `zen-beta`
+package executable remains available, but bypasses this placement helper.
+A browser singleton already running under the portal keeps its original
+membership when another invocation forwards a URL. After finishing active
+browser work, exit normally and start fresh; verify root and content children
+through `/proc/<PID>/cgroup` and inspect `systemctl --user show app-zen.slice`.
+Do not restart the desktop portal to release its apparent browser memory.
+
+The pressure monitor now observes Zen, T3 providers/server/desktop, VMs, the
+portal, Nix and queued work independently. Parent and child figures must not be
+added together. Missing groups remain unavailable. Scope discovery is limited
+to 32 matching desktop groups and explicitly records truncation. Paging rates
+are pages or faults per second; `pageBytes` converts swap pages to bytes. These
+host rates include zram and do not by themselves identify disk swap I/O.
+Zram original, compressed and allocator byte counts remain separate.
+
+Private `pressure-history.sqlite` under the existing `codex-resources` state
+directory stores compressed raw samples for up to one day and five-minute
+summaries for up to fourteen days. Summaries preserve peaks, available-memory
+minima, observed stall durations and independent event deltas, rather than
+averaging cumulative counters. Reboots, missing groups, recreated groups,
+clock reversals and long sample gaps start new interval baselines.
+
+The new database and its rollback journal have a 30 MiB allowance; the two
+legacy 1 MiB JSONL histories are left intact, for a combined bound of 32 MiB.
+Capacity eviction removes oldest raw detail before summaries, so retention
+periods are upper bounds. Query actual coverage and the latest records:
+
+```sh
+workstation-memory-history summary --limit 20
+workstation-memory-history raw --limit 5
+```
+
+The reader opens the database read-only. Current warnings and private latest
+state still work if history storage fails; the latest sample then exposes
+`historyError`. No process arguments, tab titles or URLs are collected. History
+inspection and notifications do not terminate applications or alter limits.
+
+For a job killed under a fixed allocation, inspect its complete immutable
+receipt and the owning task before changing its request. A censored peak near
+`MemoryHigh` does not establish its unconstrained working set. Qualify an
+appropriate fixed candidate with complete acceptance cases and configured
+compiler parallelism; use a range only after its minimum is demonstrated.
+A successful admission is not a passing execution. Preserve failed attempts,
+use explicit new keys, and do not replay another task's workload automatically.
+
+## Browser and guest qualification
+
+Manual unloading of reloadable inactive tabs is the initial browser-memory
+experiment. Installed Zen builds may ship automatic low-memory unloading off;
+a ten-minute eligibility preference does not establish a periodic unloader.
+Keep active forms, media, calls and background work. No automatic discard
+extension is enabled by this policy. An extension trial requires checking its
+exact package, broad site permissions and protections across workspaces.
+
+The managed Windows bootstrap now installs the balloon statistics service from
+the pinned VirtIO media into protected persistent program storage; its baseline
+requires `BalloonService` to be automatic and running. Existing foreign service
+paths are preserved and rejected rather than silently replaced. This is a
+provisioning change, not a repair executed inside an already-running guest.
+Apply through the existing guest maintenance/provisioning workflow and verify
+advancing `virsh dommemstat` timestamps and usable guest memory statistics.
+Configured polling alone does not establish that the guest is responding.
+
+The existing domain reconciler owns autostart and stages persistent definitions
+without resizing a running guest. Before reconciling source-disabled/live-enabled
+autostart, establish ownership of any runtime override. Keep 8 GiB guest memory
+until representative Windows applications, paging, update/reboot and recovery
+qualify a smaller profile. A possible 6 GiB profile uses the existing
+`currentMemoryMiB` option with the 8 GiB ceiling; nominal allocation reduction
+is not guaranteed physical host savings. Global swap tuning remains a separate
+measured comparison after application placement and job sizing are validated.

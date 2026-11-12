@@ -27,6 +27,16 @@ in
           maximumSeconds
           ;
       };
+      host-check = {
+        backend = "desktop";
+        executionMode = "host-bounded";
+        inherit (policy.bounded)
+          memoryMiB
+          minimumMiB
+          maximumMiB
+          maximumSeconds
+          ;
+      };
       feedback = {
         backend = "desktop";
         executionMode = "feedback";
@@ -49,7 +59,12 @@ in
         profile:
         if profile.backend != "desktop" then
           true
-        else if profile.executionMode == "bounded" then
+        else if
+          lib.elem profile.executionMode [
+            "bounded"
+            "host-bounded"
+          ]
+        then
           profile.minimumMiB >= policy.bounded.minimumMiB
           && profile.maximumMiB <= policy.bounded.maximumMiB
           && profile.maximumSeconds <= policy.bounded.maximumSeconds

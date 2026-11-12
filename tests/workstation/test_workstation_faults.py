@@ -65,6 +65,17 @@ def _cleanup_payload(directory: Path, ps: str, marker_name: str = "owned.json") 
             os.killpg(owned["pid"], signal.SIGKILL)
 
 
+async def _normal_capacity(*_args: object) -> int:
+    """Keep fault fixtures independent of native pressure.
+
+    Returns:
+        Ample fixture headroom; pressure behavior is exercised separately.
+
+    """
+    await asyncio.sleep(0)
+    return 1024**4
+
+
 def _fault_worker(directory: Path, fault: str, ps: str) -> None:
     """Run the real supervisor with one injected post-spawn infrastructure error."""
     descriptor = os.open(directory / "ready", os.O_RDWR | os.O_NONBLOCK)
@@ -125,7 +136,7 @@ def _fault_worker(directory: Path, fault: str, ps: str) -> None:
             raise OSError(message)
         original_save(path, value)
 
-    def usage(group: int) -> int:
+    async def usage(group: int, *_args: object, **_kwargs: object) -> int:
         """Read native RSS with one selected accounting outage.
 
         Returns:
@@ -135,12 +146,15 @@ def _fault_worker(directory: Path, fault: str, ps: str) -> None:
             OSError: RSS accounting is unavailable.
 
         """
+        await asyncio.sleep(0)
         nonlocal triggered
         if fault == "rss" and not triggered:
             triggered = True
             message = "Injected RSS read failure"
             raise OSError(message)
-        output = subprocess.check_output([ps, "-axo", "pid=,pgid=,rss="], text=True)
+        output = await asyncio.to_thread(
+            subprocess.check_output, [ps, "-axo", "pid=,pgid=,rss="], text=True
+        )
         return sum(
             int(rss) * 1024
             for _, pgid, rss in (line.split() for line in output.splitlines())
@@ -153,6 +167,7 @@ def _fault_worker(directory: Path, fault: str, ps: str) -> None:
         _save=save,
         _available=lambda: 1024**4,
         _group_usage=usage,
+        _darwin_available=_normal_capacity,
     )
     payload = (
         "import os,signal; "
@@ -294,7 +309,12 @@ def test_v2_unresolved_claim_blocks_resume_after_worker_disappears(
         jobs._save(directory / "result.json", receipt)
     commands = []
     monkeypatch.setattr(jobs, "_process_identity", lambda *_: "")
-    monkeypatch.setattr(jobs, "_group_usage", lambda *_: 0)
+
+    async def zero(*_args: object, **_kwargs: object) -> int:
+        await asyncio.sleep(0)
+        return 0
+
+    monkeypatch.setattr(jobs, "_group_usage", zero)
     monkeypatch.setattr(jobs, "_native", lambda _, *args: commands.append(args))
     with pytest.raises(jobs.JobError, match="reconciliation"):
         jobs._resume({"stateDirectory": str(tmp_path), "profiles": {"bounded": {}}})

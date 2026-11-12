@@ -4,6 +4,7 @@ Runbooks describe setup, deployment, recovery, and diagnosis for the configured 
 
 [Repository layout](../layout.md) · [Public guide](../README.md)
 
+- [Free offline voice dictation](voice-dictation.md)
 - [Application recovery and service health](application-recovery.md)
 - [Darwin application readiness and signing recovery](darwin-application-readiness.md)
 - [Verified Mac source exports](mac-source-exports.md)
@@ -26,6 +27,7 @@ Runbooks describe setup, deployment, recovery, and diagnosis for the configured 
 - [Secure Boot and measured boot on `desktop`](secure-boot-lanzaboote.md)
 - [Quiet Crashpad report-lock contention](sentry-crashpad-lock.md)
 - [Spotify and MetaBrainz](spotify-metabrainz.md)
+- [T3 Code desktop and persistent server](t3-code.md)
 - [VS Code nh stopwatch](vscode-stopwatch-font.md)
 - [Wardrowbe deployment](wardrowbe-deployment.md)
 - [Garment reviews and wardrobe planning](wardrowbe-planning.md)

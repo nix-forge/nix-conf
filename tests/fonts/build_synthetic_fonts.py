@@ -59,7 +59,8 @@ def build_font(
     builder.setupPost()
     builder.setupMaxp()
     builder.font.recalcTimestamp = False
-    builder.setupHead(unitsPerEm=1000, created=2082844800, modified=2082844800)
+    builder.font["head"].created = 2082844800
+    builder.font["head"].modified = 2082844800
     builder.save(output)
 
 

@@ -61,9 +61,9 @@ let
     TIMELINE_CLEANUP = true;
     # Ranges permit a second cleanup pass under space pressure. FREE_LIMIT
     # uses filesystem free space and does not require Btrfs quota accounting.
-    TIMELINE_LIMIT_HOURLY = "0-24";
-    TIMELINE_LIMIT_DAILY = "0-7";
-    TIMELINE_LIMIT_WEEKLY = "0-4";
+    TIMELINE_LIMIT_HOURLY = "2-24";
+    TIMELINE_LIMIT_DAILY = "1-7";
+    TIMELINE_LIMIT_WEEKLY = "1-4";
     FREE_LIMIT = 0.2;
     TIMELINE_LIMIT_MONTHLY = 0;
     TIMELINE_LIMIT_YEARLY = 0;
@@ -268,8 +268,13 @@ in
                       RequiresMountsFor = [ path ];
                       ConditionPathIsMountPoint = path;
                     };
-                    serviceConfig.Type = "oneshot";
-                    serviceConfig.ExecStartPre = "${pkgs.coreutils}/bin/chmod 0700 ${path}/.snapshots";
+                    serviceConfig = {
+                      Type = "oneshot";
+                      ExecStartPre = "${pkgs.coreutils}/bin/chmod 0700 ${path}/.snapshots";
+                      ExecCondition = lib.mkIf (
+                        cfg.capacity.enable && phase == "timeline"
+                      ) "${lib.getExe config.system.build.desktopStorageCapacity} snapshot ${lib.escapeShellArg path}";
+                    };
                     script =
                       if phase == "timeline" then
                         ''

@@ -5,6 +5,8 @@
   ...
 }:
 {
+  imports = [ ./agent-skills.nix ];
+
   programs.claude-code.context = lib.mkIf (config.programs.dev-worktree.enable or false) (
     lib.mkAfter config.programs.dev-worktree.instructions
   );

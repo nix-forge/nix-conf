@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[2]
 RUNNER = (
     Path(sys.argv.pop(1))
-    if len(sys.argv) > 1 and not sys.argv[1].startswith("-")
+    if __name__ == "__main__" and len(sys.argv) > 1 and not sys.argv[1].startswith("-")
     else None
 )
 
@@ -52,6 +52,7 @@ class BoundedTests(unittest.TestCase):
             "taskEvents": shlex.quote(str(shutil.which("python3")))
             + " "
             + shlex.quote(str(ROOT / "homes/desktop/local/workstation_task_events.py")),
+            "diskAdmission": "true",
             "admissionSeconds": "1",
             "admissionHealthySeconds": "0",
             "admissionPressureLimit": "100",

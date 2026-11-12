@@ -4,11 +4,10 @@
       config,
       lib,
       pkgs,
-      inputs,
       ...
     }:
     let
-      extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+      catalogExtensions = config.lib.vscode.catalogExtensions;
       palette = config.appearance.palette;
       cfg = config.stylix.targets.vscode;
       carbonNeonThemeSource = pkgs.linkFarm "carbon-neon-vscode-theme-source" {
@@ -69,7 +68,10 @@
     in
     {
       key = "nix-conf/stylix/vscode/homeManager";
-      imports = [ (import ../../profile.nix).homeManager ];
+      imports = [
+        (import ../../profile.nix).homeManager
+        ../../../../home/vscode/catalog.nix
+      ];
       _file = __curPos.file;
       options.stylix.targets.vscode.custom.enable = lib.mkEnableOption "the native VS Code theme" // {
         default = true;
@@ -85,7 +87,7 @@
             ) [ (pkgs.google-fonts.override { fonts = [ "Iosevka Charon Mono" ]; }) ];
 
             programs.vscode.profiles = lib.genAttrs cfg.profileNames (_: {
-              extensions = theme.localExtensions ++ extensions.forVscode theme.extensionIds;
+              extensions = theme.localExtensions ++ catalogExtensions theme.extensionIds;
               userSettings = {
                 ## Appearances ##
                 "editor.cursorSmoothCaretAnimation" = "explicit";

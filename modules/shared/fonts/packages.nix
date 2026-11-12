@@ -142,7 +142,7 @@ let
         ]
       else
         [ pkgs.mplus-outline-fonts.githubRelease ];
-    optionalEmoji = _pkgs: personal: [
+    optionalEmoji = pkgs: personal: [
       personal.firefox-emoji
       personal.emojione-legacy
       personal.mutant-standard-emoji

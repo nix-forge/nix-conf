@@ -64,5 +64,17 @@
                 ]
           );
         };
+        # Native writers are explicitly guarded and resumed by this job. No VM
+        # or desktop session shutdown is part of the nightly application set.
+        systemd.timers.desktop-backup-cold-homelab =
+          lib.mkIf (config.hardware.storage.encryptedRoot.backup.coldUnits != [ ])
+            {
+              wantedBy = [ "timers.target" ];
+              timerConfig = {
+                OnCalendar = "*-*-* 03:30:00";
+                RandomizedDelaySec = "15m";
+                Persistent = true;
+              };
+            };
       };
 }

@@ -31,6 +31,7 @@
 
     fonts
     desktop-optional-emoji-fonts
+    desktop-dictation
     dev
     xdg-portal
 
@@ -59,7 +60,6 @@
 
     wm-hyprland
     desktop
-    browsers-zen-dictation
     ssh
     services-ssh-forwards
     services-workstation-jobs

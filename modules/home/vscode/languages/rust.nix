@@ -1,13 +1,12 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
 }:
 let
   cfg = config.programs.vscode.rust;
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
   key = "nix-conf/vscode/rust/homeManager";
@@ -30,11 +29,11 @@ in
     };
   };
   config.programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [ "rust-lang.rust-analyzer" ];
+    extensions = catalogExtensions [ "rust-lang.rust-analyzer" ];
     userSettings = {
       "[rust]" = {
         "editor.defaultFormatter" = lib.mkDefault "rust-lang.rust-analyzer";
-        "editor.formatOnSave" = lib.mkDefault true;
+        "editor.formatOnSave" = lib.mkDefault false;
       };
       "rust-analyzer.server.path" = lib.mkDefault (lib.getExe cfg.analyzerPackage);
       "rust-analyzer.check.command" = lib.mkDefault "clippy";

@@ -1,37 +1,31 @@
 {
+  config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
-      "mads-hartmann.bash-ide-vscode"
-      "timonwong.shellcheck"
-      "foxundermoon.shell-format"
-    ];
+    extensions = catalogExtensions [ "mads-hartmann.bash-ide-vscode" ];
 
     userSettings = {
       "[shellscript]" = {
         "editor.tabSize" = 2;
-        "editor.insertSpaces" = false;
-        "editor.defaultFormatter" = "foxundermoon.shell-format";
+        "editor.insertSpaces" = true;
+        "editor.defaultFormatter" = "mads-hartmann.bash-ide-vscode";
       };
 
-      "shellcheck.executablePath" = lib.getExe pkgs.shellcheck;
-      "shellformat.path" = lib.getExe pkgs.shfmt;
-      "shellformat.flag" = lib.concatStringsSep " " [
-        "--indent 0"
-        "--binary-next-line"
-        "--case-indent"
-        "--space-redirects"
-        "--keep-padding"
-        "--simplify"
-      ];
+      "bashIde.shellcheckPath" = lib.getExe pkgs.shellcheck;
+      "bashIde.shfmt.path" = lib.getExe pkgs.shfmt;
+      # Respect project .editorconfig; these options match the existing shell style.
+      "bashIde.shfmt.binaryNextLine" = true;
+      "bashIde.shfmt.caseIndent" = true;
+      "bashIde.shfmt.spaceRedirects" = true;
+      "bashIde.shfmt.simplifyCode" = true;
     };
   };
 }

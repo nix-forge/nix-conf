@@ -65,7 +65,7 @@ let
         lib.optional config.services.postgresql.enable (
           cluster "postgresql" "postgres" "/run/postgresql" config.services.postgresql.package
         )
-        ++ lib.optional config.homelab.apps.bookorbit.enable (
+        ++ lib.optional (config.homelab.apps.bookorbit.enable && config.homelab.apps.bookorbit.native) (
           cluster "bookorbit" "bookorbit" "/run/bookorbit-postgres" pkgs.postgresql_18
         );
     }
@@ -81,6 +81,13 @@ let
 in
 {
   config = lib.mkIf (cfg.enable && config.hardware.storage.homelabHdd.enable) {
+    hardware.storage.encryptedRoot.backup = {
+      coldPaths = lib.mkAfter [ directory ];
+      coldPrepareCommand = [
+        (toString exporter)
+        (toString policy)
+      ];
+    };
     # The daily set contains complete logical exports only. The weekly job
     # excludes this staging tree, including any interrupted pending generation.
     services.restic.backups.desktop-homelab-databases = {
@@ -120,13 +127,25 @@ in
         pkgs.util-linux
         config.programs.ssh.package
       ];
-      requires = [ "nix-seal-activate.service" ];
-      after = [ "nix-seal-activate.service" ];
+      requires = [
+        "nix-seal-activate.service"
+      ]
+      ++ lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
+      after = [
+        "nix-seal-activate.service"
+      ]
+      ++ lib.optional cfg.capacity.enable "desktop-storage-cache-ready.service";
       unitConfig.RequiresMountsFor = [
         "/var/lib/desktop-storage"
       ]
       ++ cfg.backup.destinations.homelab.requiredMounts;
-      environment.GOMEMLIMIT = "8GiB";
+      environment = {
+        GOMEMLIMIT = "8GiB";
+      }
+      // lib.optionalAttrs cfg.capacity.enable {
+        RESTIC_CACHE_DIR = lib.mkForce "/srv/data/cache/restic/homelab";
+        TMPDIR = "/srv/data/cache/restic/tmp";
+      };
       serviceConfig = {
         inherit (mainService)
           MemoryAccounting

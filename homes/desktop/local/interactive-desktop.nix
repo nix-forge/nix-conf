@@ -81,22 +81,7 @@
   xdg.configFile."noctalia/config.toml".force = true;
   xdg.configFile."systemd/user/noctalia.service".force = true;
 
-  # Bound Zen's main process and content children together. On this 30 GiB
-  # host, an unbounded browser exhausted RAM and swap and the global OOM
-  # killer selected unrelated desktop applications. Match UWSM's escaped
-  # executable name so the policy survives new application scope IDs.
-  # Keep surviving browser processes running if a content process hits the
-  # ceiling; this cannot preserve a process selected directly by the kernel.
-  # A later global OOM occurred below the old 12 GiB pressure threshold,
-  # with browser swap near its 4 GiB ceiling while disk swap remained free.
-  # Reclaim earlier and allow cold pages to spill into disk-backed swap.
-  xdg.configFile."systemd/user/app-Hyprland-zen\\x2dbeta-.scope.d/50-memory-budget.conf".text = ''
-    [Scope]
-    MemoryHigh=8G
-    MemoryMax=12G
-    MemorySwapMax=8G
-    OOMPolicy=continue
-  '';
+  # Zen launch placement and its shared budget live in browsers/session.nix.
 
   # ChatGPT splits its processes between Chromium and UWSM scopes. Bound the
   # Chromium group because the measured scope retained nearly 8 GiB resident

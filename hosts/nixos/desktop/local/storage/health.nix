@@ -11,7 +11,7 @@ let
   cfg = config.hardware.storage.encryptedRoot;
   destinations = cfg.backup.destinations;
   inherit (cfg) health;
-  mounts =
+  primaryMounts =
     if cfg.enable then
       [
         "/"
@@ -22,11 +22,19 @@ let
         "/"
         "/mnt/games"
       ];
+  mounts =
+    primaryMounts ++ lib.optional (config.hardware.storage.homelabHdd.enable or false) "/mnt/homelab";
   units = [
     "smartd.service"
     "fstrim.service"
   ]
-  ++ map (path: "btrfs-scrub@${utils.escapeSystemdPath path}.service") mounts
+  ++ lib.optionals cfg.capacity.enable [
+    "desktop-storage-collect.service"
+    "desktop-generation-retention.service"
+  ]
+  ++ map (path: "btrfs-scrub@${utils.escapeSystemdPath path}.service") primaryMounts
+  ++ lib.optional (config.hardware.storage.homelabHdd.enable or false
+  ) "btrfs-scrub-mnt-homelab.service"
   ++ lib.optionals cfg.enable [ "desktop-data-ready.service" ]
   ++ lib.optionals cfg.enable (
     lib.concatMap
@@ -53,6 +61,10 @@ let
       inherit (health) probes notificationCommand;
       encrypted = cfg.enable;
       warningPercent = 80;
+      capacityCommand = lib.optionals cfg.capacity.enable [
+        (lib.getExe config.system.build.desktopStorageCapacity)
+        "status"
+      ];
       stateDirectory = "/var/lib/desktop-storage";
       backupPolicy = "/etc/desktop-storage/backup-policy.json";
     }

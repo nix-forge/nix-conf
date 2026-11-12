@@ -1,326 +1,177 @@
-{
-  lib,
-  pkgs,
-  config,
-  inputs,
-  ...
-}:
+{ config, lib, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
-  vscode = lib.escapeShellArg (
-    if config.programs.vscode.enable && config.programs.vscode.package != null then
-      lib.getExe config.programs.vscode.package
-    else
-      ""
-  );
-  direnvBashInit = pkgs.runCommandLocal "vscode-direnv-bash-init" { } ''
-    ${lib.getExe config.programs.direnv.package} hook bash > "$out"
-    ${lib.getExe config.programs.bash.package} -n "$out"
-  '';
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [
+    ./catalog.nix
+    ./base/terminal.nix
+    ./base/structured-data.nix
+    ./base/security.nix
+    ./base/performance.nix
+  ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode (
+    extensions = catalogExtensions (
       [
-        ## Intelligence ##
+        "editorconfig.editorconfig"
         "usernamehw.errorlens"
-        "christian-kohler.path-intellisense"
         "streetsidesoftware.code-spell-checker"
-
-        ## Version Control ##
-        "github.vscode-github-actions"
-        "mhutchie.git-graph"
-
-        ## Collaboration Features
-        "ms-vsliveshare.vsliveshare"
-
-        ## Editor Extension ##
-        "sleistner.vscode-fileutils"
-        "aaron-bond.better-comments"
-        "kevinkyang.auto-comment-blocks"
-
-        ## Base Language Support ##
-        "redhat.vscode-yaml"
-        "tamasfe.even-better-toml"
-        "mechatroner.rainbow-csv"
-        "janisdd.vscode-edit-csv"
-        "tomoki1207.pdf"
-        "nefrob.vscode-just-syntax"
-
-        # Extra
         "ms-vscode-remote.remote-ssh"
       ]
-      # Direnv integration
       ++ lib.optionals config.programs.direnv.enable [ "mkhl.direnv" ]
     );
+    userSettings = lib.mkMerge [
+      {
+        # popups are really annoying
+        "editor.hover.delay" = 700;
 
-    userSettings =
-      let
-        os = if pkgs.stdenv.hostPlatform.isLinux then "linux" else "osx";
-      in
-      lib.mkMerge [
-        {
-          # popups are really annoying
-          "editor.hover.delay" = 700;
+        # title
+        "window.titleSeparator" = " - ";
+        "window.title" = lib.concatMapStrings (s: "\${${s}}") [
+          "rootName"
+          "separator"
+          "activeEditorMedium"
+          "separator"
+          "appName"
+        ];
 
-          # title
-          "window.titleSeparator" = " - ";
-          "window.title" = lib.concatMapStrings (s: "\${${s}}") [
-            "rootName"
-            "separator"
-            "activeEditorMedium"
-            "separator"
-            "appName"
-          ];
+        # Set the window tile bar to use VScode custom title bar
+        "window.titleBarStyle" = "custom";
+        # hide the menu bar unless alt is pressed
+        # "window.menuBarVisibility" = "toggle";
+        # the minimap gets in the way
+        "editor.minimap.enabled" = false;
+        # scroll with an animation
+        "editor.smoothScrolling" = true;
+        "workbench.list.smoothScrolling" = true;
+        "terminal.integrated.smoothScrolling" = true;
+        # blink the cursor in terminal
+        "terminal.integrated.cursorBlinking" = true;
+        # line style cursor in terminal
+        "terminal.integrated.cursorStyle" = "line";
+        # fix fuzzy text in integrated terminal
+        "terminal.integrated.gpuAcceleration" = "on";
+        # Add editor inline suggestions
+        "editor.inlineSuggest.enabled" = true;
 
-          # Set the window tile bar to use VScode custom title bar
-          "window.titleBarStyle" = "custom";
-          # hide the menu bar unless alt is pressed
-          # "window.menuBarVisibility" = "toggle";
-          # the minimap gets in the way
-          "editor.minimap.enabled" = false;
-          # scroll with an animation
-          "editor.smoothScrolling" = true;
-          "workbench.list.smoothScrolling" = true;
-          "terminal.integrated.smoothScrolling" = true;
-          # blink the cursor in terminal
-          "terminal.integrated.cursorBlinking" = true;
-          # line style cursor in terminal
-          "terminal.integrated.cursorStyle" = "line";
-          # fix fuzzy text in integrated terminal
-          "terminal.integrated.gpuAcceleration" = "on";
-          # Add editor inline suggestions
-          "editor.inlineSuggest.enabled" = true;
+        # top is the smallest other than hidden
+        "workbench.activityBar.location" = "top";
+        # put the sidebar on the right so that text doesn't jump
+        "workbench.sideBar.location" = "right";
+        # no delay when automatically hiding the sidebar or panels
 
-          # top is the smallest other than hidden
-          "workbench.activityBar.location" = "top";
-          # put the sidebar on the right so that text doesn't jump
-          "workbench.sideBar.location" = "right";
-          # no delay when automatically hiding the sidebar or panels
+        # show vcs changes and staged changes as a tree
+        "scm.defaultViewMode" = "tree";
 
-          # show vcs changes and staged changes as a tree
-          "scm.defaultViewMode" = "tree";
+        ## Saving and Formatting ##
 
-          ## Saving and Formatting ##
+        # auto-save when the active editor loses focus
+        "files.autoSave" = "onFocusChange";
+        # formatting runs via explicit save keybindings, not implicit save hooks
+        "editor.formatOnSave" = false;
+        # format pasted code if the formatter supports a range
+        "editor.formatOnPaste" = true;
+        # Highlight bad ASCII characters
+        "editor.unicodeHighlight.nonBasicASCII" = true;
+        # insert a newline at the end of a file when saved
+        "files.insertFinalNewline" = true;
+        # trim whitespace trailing at the ends of lines on save
+        "files.trimTrailingWhitespace" = true;
+        # Let each selected theme opt into semantic highlighting. Carbon opts in
+        # in its theme file, so lexical and semantic rules have the same owner.
+        "editor.semanticHighlighting.enabled" = "configuredByTheme";
 
-          # auto-save when the active editor loses focus
-          "files.autoSave" = "onFocusChange";
-          # formatting runs via explicit save keybindings, not implicit save hooks
-          "editor.formatOnSave" = false;
-          # format pasted code if the formatter supports a range
-          "editor.formatOnPaste" = true;
-          # Highlight bad ASCII characters
-          "editor.unicodeHighlight.nonBasicASCII" = true;
-          # insert a newline at the end of a file when saved
-          "files.insertFinalNewline" = true;
-          # trim whitespace trailing at the ends of lines on save
-          "files.trimTrailingWhitespace" = true;
-          # Let each selected theme opt into semantic highlighting. Carbon opts in
-          # in its theme file, so lexical and semantic rules have the same owner.
-          "editor.semanticHighlighting.enabled" = "configuredByTheme";
+        ## VCS Behavior ##
+        "git.enableSmartCommit" = false;
+        "git.terminalAuthentication" = false;
+        "git.openRepositoryInParentFolders" = "prompt";
+        "git.autofetch" = true;
+        "git.confirmSync" = true;
 
-          "[yaml]" = {
-            "editor.tabSize" = 2;
-            "editor.defaultFormatter" = "redhat.vscode-yaml";
-          };
-          "yaml.format.printWidth" = 80;
-          "yaml.format.proseWrap" = "always";
-          "yaml.disableSchemaDetection" = [
-            "**/.github/workflows/*.yml"
-            "**/.github/workflows/*.yaml"
-            "**/.gitea/workflows/*.yml"
-            "**/.gitea/workflows/*.yaml"
-            "**/.forgejo/workflows/*.yml"
-            "**/.forgejo/workflows/*.yaml"
-          ];
-          "[json]" = {
-            "editor.tabSize" = 2;
-            "editor.defaultFormatter" = "vscode.json-language-features";
-          };
-          "[jsonc]" = {
-            "editor.tabSize" = 2;
-            "editor.defaultFormatter" = "vscode.json-language-features";
-          };
-          "[github-actions-workflow]" = {
-            "editor.defaultFormatter" = "redhat.vscode-yaml";
-          };
-          "[toml]" = {
-            "editor.tabSize" = 2;
-            "editor.defaultFormatter" = "tamasfe.even-better-toml";
-          };
-          "evenBetterToml.formatter.allowedBlankLines" = 2;
-          "evenBetterToml.formatter.columnWidth" = 80;
-          "evenBetterToml.taplo.bundled" = false;
-          "evenBetterToml.taplo.path" = lib.getExe pkgs.taplo;
+        # prevent pollute history with whitespace changes
+        "diffEditor.ignoreTrimWhitespace" = false;
+        "diffEditor.renderSideBySide" = false;
 
-          ## VCS Behavior ##
-          "git.enableSmartCommit" = false;
-          "git.terminalAuthentication" = false;
-          "git.openRepositoryInParentFolders" = "always";
-          "git.autofetch" = true;
-          "git.confirmSync" = false;
-          "githubIssues.issueCompletions.enabled" = false;
+        ## Navigation Behavior ##
 
-          # prevent pollute history with whitespace changes
-          "diffEditor.ignoreTrimWhitespace" = false;
-          "diffEditor.renderSideBySide" = false;
+        # scrolling in tab bar switches
+        "workbench.editor.scrollToSwitchTabs" = true;
+        # name of current scope sticks to top of editor pane
+        "editor.stickyScroll.enabled" = true;
+        # larger indent
+        "workbench.tree.indent" = 16;
 
-          ## Navigation Behavior ##
+        ## Intelligence Features ##
 
-          # scrolling in tab bar switches
-          "workbench.editor.scrollToSwitchTabs" = true;
-          # name of current scope sticks to top of editor pane
-          "editor.stickyScroll.enabled" = true;
-          # larger indent
-          "workbench.tree.indent" = 16;
+        # Debounce live diagnostics; delayMode is inactive when delay is zero.
+        "errorLens.delay" = 500;
+        # space between EOL and error
+        "errorLens.margin" = "1em";
+        # do not show error messages on lines in merge conflict blocks
+        "errorLens.enabledInMergeConflict" = false;
+        # diagnostic levels to show, removed "info"
+        "errorLens.enabledDiagnosticLevels" = [
+          "error"
+          "warning"
+        ];
+        # slower updates but less buggy
+        "errorLens.delayMode" = "debounce";
 
-          ## Intelligence Features ##
+        ## Miscellaneous ##
 
-          # show the errors shortly after saving
-          "errorLens.onSaveTimeout" = 200;
-          # space between EOL and error
-          "errorLens.margin" = "1em";
-          # do not show error messages on lines in merge conflict blocks
-          "errorLens.enabledInMergeConflict" = false;
-          # diagnostic levels to show, removed "info"
-          "errorLens.enabledDiagnosticLevels" = [
-            "error"
-            "warning"
-          ];
-          # slower updates but less buggy
-          "errorLens.delayMode" = "debounce";
+        # disable automatic update checking
+        "update.mode" = "none";
+        # don't re-open everything on start
+        "window.restoreWindows" = "none";
+        # don't show the welcome page
+        "workbench.startupEditor" = "none";
+        # unsaved files will be "untitled"
+        "workbench.editor.untitled.labelFormat" = "name";
+        # default hard and soft rulers
+        "editor.rulers" = [
+          80
+          120
+        ];
+        # files can be recovered with undo
+        "explorer.confirmDelete" = false;
+        # remove recommendations for extensions
+        "extensions.ignoreRecommendations" = true;
+        # remove popup out moving files
+        "explorer.confirmDragAndDrop" = false;
 
-          ## Miscellaneous ##
+        # spell checker settings
+        "cSpell.ignorePaths" = [
+          "node_modules"
+          "**/node_modules"
+          "**/node_modules/**"
+          "node_modules/**"
+          ".git"
+          "*.dll"
+          "**/*.dll"
+        ];
 
-          # disable automatic update checking
-          "update.mode" = "none";
-          # don't re-open everything on start
-          "window.restoreWindows" = "none";
-          # don't show the welcome page
-          "workbench.startupEditor" = "none";
-          # unsaved files will be "untitled"
-          "workbench.editor.untitled.labelFormat" = "name";
-          # default hard and soft rulers
-          "editor.rulers" = [
-            80
-            120
-          ];
-          # files can be recovered with undo
-          "explorer.confirmDelete" = false;
-          # remove recommendations for extensions
-          "extensions.ignoreRecommendations" = true;
-          # remove popup out moving files
-          "explorer.confirmDragAndDrop" = false;
+        # remove telemetry
+        "redhat.telemetry.enabled" = false;
+        "telemetry.telemetryLevel" = "off";
+      }
+      # Git
+      (lib.mkIf (config.programs.git.enable && config.programs.git.signing.signByDefault == true) {
+        "git.enableCommitSigning" = true;
+      })
+      (lib.mkIf (
+        config.programs.git.enable
+        && lib.hasAttr "pull" config.programs.git.settings
+        && lib.hasAttr "rebase" config.programs.git.settings.pull
+      ) { "git.rebaseWhenSync" = config.programs.git.settings.pull.rebase; })
+      (lib.mkIf (
+        config.programs.git.enable
+        && lib.hasAttr "fetch" config.programs.git.settings
+        && lib.hasAttr "prune" config.programs.git.settings.fetch
+      ) { "git.pruneOnFetch" = config.programs.git.settings.fetch.prune; })
 
-          # spell checker settings
-          "cSpell.ignorePaths" = [
-            "node_modules"
-            "**/node_modules"
-            "**/node_modules/**"
-            "node_modules/**"
-            ".git"
-            "*.dll"
-            "**/*.dll"
-          ];
-
-          # remove telemetry
-          "redhat.telemetry.enabled" = false;
-          "telemetry.enableTelemetry" = false;
-          "telemetry.feedback.enabled" = false;
-          "telemetry.telemetryLevel" = "off";
-        }
-        # Git
-        (lib.mkIf (config.programs.git.enable && config.programs.git.signing.signByDefault != null) {
-          "git.enableCommitSigning" = true;
-        })
-        (lib.mkIf (
-          config.programs.git.enable
-          && lib.hasAttr "pull" config.programs.git.settings
-          && lib.hasAttr "rebase" config.programs.git.settings.pull
-        ) { "git.rebaseWhenSync" = config.programs.git.settings.pull.rebase; })
-        (lib.mkIf (
-          config.programs.git.enable
-          && lib.hasAttr "fetch" config.programs.git.settings
-          && lib.hasAttr "prune" config.programs.git.settings.fetch
-        ) { "git.pruneOnFetch" = config.programs.git.settings.fetch.prune; })
-
-        # Terminal profiles
-        {
-          "terminal.integrated.shellIntegration.enabled" = true;
-
-          # Ctrl+J runs a multiline ble.sh command when the terminal has focus.
-          # Elsewhere it retains VS Code's panel toggle. Ctrl+` still toggles
-          # the terminal from either context.
-          "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.togglePanel" ];
-
-          # VS Code otherwise treats Ctrl+K as a chord prefix before Bash can
-          # use it to delete from the cursor to the end of the line. Chords
-          # remain available in editors and other non-terminal views.
-          "terminal.integrated.allowChords" = false;
-        }
-        (lib.mkIf (lib.hasAttr "SHELL" config.home.sessionVariables) (
-          let
-            shellPath = config.home.sessionVariables.SHELL;
-            # Attribute names cannot carry Nix store-path context, while the
-            # executable path needs to retain it for the generated JSON.
-            shellName = builtins.unsafeDiscardStringContext (lib.last (lib.splitString "/" shellPath));
-          in
-          {
-            # Define terminal profiles for all enabled shells
-            "terminal.integrated.profiles.${os}" = {
-              ${shellName} = {
-                path = shellPath;
-                icon = if shellName == "nu" then "chevron-right" else "terminal-bash";
-                overrideName = true;
-                args = [
-                  "--login"
-                  "-i"
-                ];
-              };
-            };
-
-            "terminal.integrated.defaultProfile.${os}" = shellName;
-          }
-        ))
-        {
-          # Automation needs a deterministic Bash without login files, prompts,
-          # aliases, or interactive hooks.
-          "terminal.integrated.automationProfile.${os}" = {
-            path = lib.getExe pkgs.bashInteractive;
-            args = [
-              "--noprofile"
-              "--norc"
-            ];
-          };
-        }
-        {
-          # set the default shell for Copilot
-          "chat.tools.terminal.terminalProfile.${os}" = {
-            path = lib.getExe' pkgs.bashInteractive "bash";
-            args = [
-              "--login"
-              "-i"
-            ];
-            env = {
-              COPILOT = "1";
-            };
-          };
-        }
-
-        # Direnv settings
-        (lib.mkIf config.programs.direnv.enable {
-          "direnv.path.executable" = lib.getExe config.programs.direnv.package;
-        })
-      ];
+      (lib.mkIf config.programs.direnv.enable {
+        "direnv.path.executable" = lib.getExe config.programs.direnv.package;
+      })
+    ];
   };
-
-  programs.bash.initExtra = lib.mkOrder 10 (
-    (import ../../../lib/templates/text.nix) ./scripts/copilot-shell-integration.sh {
-      inherit vscode;
-      direnvEnabled = lib.boolToString config.programs.direnv.enable;
-      direnvBashInit = lib.escapeShellArg (
-        if config.programs.direnv.enable then "${direnvBashInit}" else ""
-      );
-    }
-  );
 }

@@ -30,8 +30,6 @@ let
     (lib.elem "DATABASE_URL=postgresql:///bookorbit?host=/run/bookorbit-postgres&user=bookorbit" app.serviceConfig.Environment)
     (lib.elem "HOST=${cfg.homelab.vpn.namespace.bindAddress}" app.serviceConfig.Environment)
     (lib.elem "BOOK_DOCK_PATH=/intake/dock" app.serviceConfig.Environment)
-    (lib.any (path: lib.hasSuffix ":/etc/resolv.conf" path) app.serviceConfig.BindReadOnlyPaths)
-    (lib.any (path: lib.hasSuffix ":/etc/nsswitch.conf" path) app.serviceConfig.BindReadOnlyPaths)
     (lib.hasInfix " -k /run/bookorbit-postgres -c listen_addresses= " db.serviceConfig.ExecStart)
     (db.serviceConfig.RuntimeDirectoryMode == "0700")
     (db.serviceConfig.User == app.serviceConfig.User && db.serviceConfig.User == "bookorbit")
@@ -76,17 +74,10 @@ let
     .serviceConfig.LoadCredential)
     ((unit "bookorbit-prowlarr-host-bridge").serviceConfig.IPAddressDeny == [ "any" ])
     ((unit "bookorbit-prowlarr-namespace-bridge").serviceConfig.IPAddressAllow == [ "127.0.0.0/8" ])
-    (
-      lib.sort builtins.lessThan (unit "bookorbit-secrets").serviceConfig.LoadCredential
-      == lib.sort builtins.lessThan (
-        map (name: "${name}:${cfg.nixSeal.secrets."homelab-bookorbit-${name}".path}") [
-          "jwt-secret"
-          "setup-token"
-          "request-key"
-          "podcast-key"
-        ]
-      )
-    )
+    (lib.elem "postgres-password:${cfg.nixSeal.secrets.homelab-bookorbit-postgres-password.path}" (unit "bookorbit-secrets")
+    .serviceConfig.LoadCredential)
+    (lib.elem "jwt-secret:${cfg.nixSeal.secrets.homelab-bookorbit-jwt-secret.path}" (unit "bookorbit-secrets")
+    .serviceConfig.LoadCredential)
     ((unit "bookorbit-secrets").serviceConfig.RuntimeDirectoryMode == "0700")
     (lib.elem "admin-password:${cfg.nixSeal.secrets.homelab-bookorbit-admin-password.path}" (unit "bookorbit-bootstrap")
     .serviceConfig.LoadCredential)

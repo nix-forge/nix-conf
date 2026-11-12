@@ -11,12 +11,6 @@ in
     ../../../shared/local/browsers/zen.nix
   ];
 
-  programs.zenSearchDictation = {
-    enable = true;
-    linux.delivery = "hyprland-urlbar";
-    linux.hyprlandShortcut = true;
-  };
-
   # Blocky and Unbound own encrypted DNS on this host. Avoid sending a second,
   # conflicting DNS policy through each browser.
   programs.browserSuite.systemResolverPolicy.DNSOverHTTPS = {

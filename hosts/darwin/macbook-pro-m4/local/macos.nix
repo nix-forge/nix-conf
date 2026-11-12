@@ -1,5 +1,6 @@
 {
-  macos.dictation.enable = true;
+  # Handy owns dictation globally; Fn must not launch a second recognizer.
+  system.defaults.hitoolbox.AppleFnUsageType = "Do Nothing";
 
   macos.preferences = {
     enable = true;

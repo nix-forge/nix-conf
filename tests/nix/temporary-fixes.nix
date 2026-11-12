@@ -197,6 +197,7 @@ let
     pkgs = selected;
     modules = [
       ../../modules/home/dev/agentic-tui/claude.nix
+      { programs.agent-skills.clients.claude.bundles = [ ]; }
       {
         home = {
           username = "module-check";

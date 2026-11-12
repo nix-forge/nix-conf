@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 # ruff: file-ignore[suspicious-subprocess-import, subprocess-without-shell-equals-true, magic-value-comparison] -- Subprocess fixtures and literal expected statuses exercise the command contract.
+import contextlib
 import json
 import os
+import random
 import runpy
+import shutil
+import sqlite3
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
@@ -338,3 +343,256 @@ def test_recreated_codex_group_starts_its_own_warning_window(
     assert not (tmp_path / "notices").exists()
     PRESSURE["run"](config)
     assert len((tmp_path / "notices").read_text().splitlines()) == 1
+
+
+def history_rows(path: Path, table: str) -> list[dict]:
+    """Decode retained records for behavioral assertions.
+
+    Returns:
+        Chronologically ordered diagnostic records.
+
+    """
+    with contextlib.closing(sqlite3.connect(path)) as db:
+        rows = db.execute(f"SELECT data FROM {table} ORDER BY time").fetchall()  # ruff: ignore[hardcoded-sql-expression] -- Test-selected constant table names.
+    return [json.loads(zlib.decompress(row[0])) for row in rows]
+
+
+def history_sample(now: float, **extra: object) -> dict:
+    """Create an independent host snapshot without live process data.
+
+    Returns:
+        Minimal valid retained sample.
+
+    """
+    return {
+        "time": now,
+        "boot": "boot-a",
+        "systemPressure": 0,
+        "availableMemory": 1000,
+        "codex": None,
+        "groups": {},
+        "eventDeltas": {},
+        **extra,
+    }
+
+
+def test_transactional_history_expiry_clock_and_peaks(tmp_path: Path) -> None:
+    """Raw expiry preserves summaries; clock rollback removes future evidence."""
+    path = tmp_path / "history.sqlite"
+    config = {"database": str(path), "rawSeconds": 60, "summarySeconds": 600}
+    retain = PRESSURE["retain_history"]
+    old = history_sample(1000, systemPressure=8)
+    retain(config, old, {}, False)
+    newer = history_sample(1030, systemPressure=2, availableMemory=500)
+    retain(config, newer, old, True)
+    bucket = history_rows(path, "summary")[0]
+    assert bucket["samples"] == 2
+    assert bucket["hostFullMax"] == 8
+    assert bucket["availableMin"] == 500
+    retain(config, history_sample(1100), newer, True)
+    assert [r["time"] for r in history_rows(path, "raw")] == [1100]
+    assert len(history_rows(path, "summary")) == 1
+    retain(config, history_sample(1700), {}, False)
+    assert len(history_rows(path, "summary")) == 1
+    retain(config, history_sample(1000, systemPressure=1), {"time": 1700}, False)
+    assert [r["time"] for r in history_rows(path, "raw")] == [1000]
+    assert history_rows(path, "summary")[0]["hostFullMax"] == 1
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_history_capacity_retains_newest_and_bounded_database(tmp_path: Path) -> None:
+    """Compression and capacity eviction keep new evidence within the allowance."""
+    path = tmp_path / "history.sqlite"
+    allowance = 256 * 1024
+    config = {"database": str(path), "historyTotalBytes": allowance}
+    generator = random.Random(0)  # ruff: ignore[suspicious-non-cryptographic-random-usage] -- Deterministic incompressible test fixture.
+    for number in range(30):
+        sample = history_sample(1000 + number, fixture=generator.randbytes(8192).hex())
+        PRESSURE["retain_history"](config, sample, {}, False)
+    rows = history_rows(path, "raw")
+    assert rows[-1]["time"] == 1029
+    assert len(rows) < 30
+    assert sum(p.stat().st_size for p in tmp_path.iterdir()) <= allowance
+    assert not Path(str(path) + "-journal").exists()
+    assert history_rows(path, "summary")[0]["samples"] == 30
+
+
+def test_summary_deltas_do_not_cross_group_generations() -> None:
+    """Restarts retain peaks without inventing stall duration or summing counters."""
+    group = {
+        "identity": 1,
+        "memory": 100,
+        "swap": 10,
+        "pressure": 3,
+        "psi": {"someTotal": 100, "fullTotal": 50},
+    }
+    old = history_sample(1000, groups={"app": group})
+    sample = history_sample(
+        1030,
+        groups={"app": {**group, "psi": {"someTotal": 200, "fullTotal": 80}}},
+        eventDeltas={"app": {"events": {"high": 9}, "events.local": {"high": 2}}},
+    )
+    row = PRESSURE["summary"](sample, old, True, {})["groups"]["app"]
+    assert row["fullMicroseconds"] == 30
+    assert row["fullObservedSeconds"] == 30
+    assert row["events"]["high"] == 9
+    assert row["events.local"]["high"] == 2
+    sample["groups"]["app"]["identity"] = 2
+    row = PRESSURE["summary"](sample, old, True, {})["groups"]["app"]
+    assert "fullMicroseconds" not in row
+
+
+def test_paging_and_zram_use_physical_units_and_reset_baselines(tmp_path: Path) -> None:
+    """Paging rates reset with counters; zram physical cost stays distinct."""
+    vmstat = tmp_path / "vmstat"
+    vmstat.write_text("pswpin 20\npswpout 40\npgmajfault 8\n")
+    zram = tmp_path / "mm_stat"
+    zram.write_text("3000 900 1000 0 2000\n")
+    config = {"vmstat": str(vmstat), "zramStat": str(zram)}
+    old = {
+        "time": 10,
+        "paging": {"counters": {"pswpin": 10, "pswpout": 20, "pgmajfault": 4}},
+    }
+    assert PRESSURE["paging"](config, old, True, 20)["perSecond"] == {
+        "pswpin": 1,
+        "pswpout": 2,
+        "pgmajfault": 0.4,
+    }
+    assert PRESSURE["paging"](config, old, False, 20)["perSecond"] is None
+    vmstat.write_text("pswpin 0\npswpout 0\npgmajfault 0\n")
+    assert PRESSURE["paging"](config, old, True, 20)["perSecond"] is None
+    assert PRESSURE["zram"](config) == {
+        "originalBytes": 3000,
+        "compressedBytes": 900,
+        "allocatedBytes": 1000,
+    }
+
+
+def test_unwritable_history_does_not_suppress_pressure_notifications(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Storage failure remains visible while current host warnings still work."""
+    config = pressure_config(tmp_path, monkeypatch)
+    config["database"] = str(tmp_path / "directory")
+    Path(config["database"]).mkdir()
+    (tmp_path / "system.pressure").write_text(
+        "full avg10=9 avg60=6 avg300=1 total=100\n"
+    )
+    for _ in range(2):
+        PRESSURE["run"](config)
+    assert (tmp_path / "notices").exists()
+    state = json.loads(Path(config["state"]).read_text(encoding="utf-8"))
+    assert state["sample"]["historyError"] == "IsADirectoryError"
+
+
+def test_zen_session_preserves_arguments_and_uses_shared_slice(tmp_path: Path) -> None:
+    """A portal launch uses the real executable and preserves URL data literally."""
+    source = ROOT / "homes/desktop/local/browsers/scripts/zen-session.sh.in"
+    sink = tmp_path / "args.json"
+    uwsm = tmp_path / "systemd-run"
+    uwsm.write_text(
+        "#!"
+        + sys.executable
+        + "\nimport json,sys\nfrom pathlib import Path\nPath("
+        + repr(str(sink))
+        + ").write_text(json.dumps(sys.argv[1:]))\n"
+    )
+    uwsm.chmod(0o700)
+    script = tmp_path / "zen-session"
+    script.write_text(
+        source
+        .read_text()
+        .replace("@bash@", "/bin/bash")
+        .replace("@systemdRun@", str(uwsm))
+        .replace("@browser@", "/fixture/zen-beta")
+    )
+    args = [
+        "--private-window",
+        "https://example.test/?q=$value&x=`literal`&home=${HOME}&cash=$$",
+        "two words",
+    ]
+    result = subprocess.run([shutil.which("bash"), str(script), *args], check=False)
+    assert result.returncode == 0
+    assert json.loads(sink.read_text()) == [
+        "--user",
+        "--scope",
+        "--collect",
+        "--quiet",
+        "--expand-environment=no",
+        "--slice=app-zen.slice",
+        "--property=OOMPolicy=continue",
+        "--property=PartOf=graphical-session.target",
+        "--property=After=graphical-session.target",
+        "--",
+        "/fixture/zen-beta",
+        *args,
+    ]
+
+
+def test_pattern_discovery_drops_old_missing_scopes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A vanished application is unavailable for one sample, never immortal state."""
+    config = pressure_config(tmp_path, monkeypatch)
+    root = tmp_path / "apps"
+    root.mkdir()
+    group = root / "app-fixture.scope"
+    shutil.copytree(tmp_path / "cgroup", group)
+    config["observedPatterns"] = {"gui": {"root": str(root), "pattern": "app-*.scope"}}
+    first = PRESSURE["collect"](config, {}, False)
+    assert first["groups"]["gui/app-fixture.scope"] is not None
+    shutil.rmtree(group)
+    second = PRESSURE["collect"](config, first, True)
+    assert second["groups"]["gui/app-fixture.scope"] is None
+    third = PRESSURE["collect"](config, second, True)
+    assert "gui/app-fixture.scope" not in third["groups"]
+    assert third["groups"]["gui"] is None
+
+
+def test_history_keeps_fourteen_days_of_representative_summaries(
+    tmp_path: Path,
+) -> None:
+    """Serialized eight-group history fits the documented default retention budget."""
+    config = {
+        "database": str(tmp_path / "history.sqlite"),
+        "historyTotalBytes": 30 * 1024 * 1024,
+    }
+    group = {
+        "identity": 1,
+        "memory": 123456789,
+        "swap": 23456789,
+        "pressure": 2,
+        "psi": {"someTotal": 100, "fullTotal": 50},
+    }
+    previous = {}
+    # Thirteen days of five-minute summaries, followed by one day of raw detail.
+    times = [*range(0, 13 * 86400, 300), *range(13 * 86400, 14 * 86400, 30)]
+    for now in times:
+        sample = history_sample(
+            now,
+            groups={f"group-{n}": group for n in range(8)},
+            zram={"originalBytes": 8000000, "allocatedBytes": 3000000},
+        )
+        PRESSURE["retain_history"](config, sample, previous, bool(previous))
+        previous = sample
+    rows = history_rows(Path(config["database"]), "summary")
+    assert len(rows) == 14 * 24 * 12
+    assert rows[0]["first"] == 0
+    assert rows[-1]["last"] == 14 * 86400 - 30
+    assert len(history_rows(Path(config["database"]), "raw")) >= 2880
+    assert (
+        sum(p.stat().st_size for p in tmp_path.iterdir()) <= config["historyTotalBytes"]
+    )
+
+
+def test_history_rejects_symlink_without_modifying_target(tmp_path: Path) -> None:
+    """A history pathname cannot redirect writes into another file."""
+    target = tmp_path / "keep"
+    target.write_text("preserve")
+    link = tmp_path / "history.sqlite"
+    link.symlink_to(target)
+    with pytest.raises(OSError, match="Too many levels"):
+        PRESSURE["retain_history"](
+            {"database": str(link)}, history_sample(1000), {}, False
+        )
+    assert target.read_text() == "preserve"

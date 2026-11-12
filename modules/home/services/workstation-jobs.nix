@@ -142,6 +142,7 @@ in
               executionMode = lib.mkOption {
                 type = lib.types.enum [
                   "bounded"
+                  "host-bounded"
                   "feedback"
                   "daemon"
                 ];

@@ -182,7 +182,7 @@ else {
     }
 }
 
-foreach ($serviceName in @('qemu-ga', 'sshd')) {
+foreach ($serviceName in @('qemu-ga', 'sshd', 'BalloonService')) {
     $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
     if (-not $service -or $service.StartType -ne 'Automatic' -or $service.Status -ne 'Running') {
         $failures.Add("$serviceName is not running with automatic startup")

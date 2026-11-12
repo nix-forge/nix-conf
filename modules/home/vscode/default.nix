@@ -49,6 +49,11 @@ in
     mutableExtensionsDir = false;
     profiles.default = {
       enableExtensionUpdateCheck = false;
+      # Home Manager still emits the retired boolean. VS Code 1.142 migrates
+      # it on every startup, attempting to edit our immutable settings file.
+      userSettings = lib.mkIf (lib.versionAtLeast cfg.extensionCompatibilityVersion "1.142.0") {
+        "extensions.autoUpdate" = lib.mkForce "off";
+      };
       enableUpdateCheck = false;
     };
   };

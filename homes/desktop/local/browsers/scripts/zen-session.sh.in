@@ -1,0 +1,8 @@
+#!@bash@
+# shellcheck shell=bash
+set -euo pipefail
+# Scope placement happens before browser exec, including portal launches. Do
+# not expand URL dollars as environment variables in systemd-run (or UWSM).
+exec @systemdRun@ --user --scope --collect --quiet --expand-environment=no \
+  --slice=app-zen.slice --property=OOMPolicy=continue --property=PartOf=graphical-session.target \
+  --property=After=graphical-session.target -- @browser@ "$@"

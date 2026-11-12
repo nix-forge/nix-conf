@@ -5,9 +5,10 @@ from the user's request to a focused check and review; it needs no interview,
 specification ceremony, or new issue.
 
 For substantial work across sessions or parallel writers, use
-[coordination guidance](coordination.md). The shared `agent-workflow` skill is
-available in Codex, Claude Code, and OpenCode; it maintains task briefs and
-handoffs without requiring client-specific tools.
+[coordination guidance](coordination.md). The optional user-managed
+`engineering-workflow` skill supports task briefs and handoffs where installed.
+The [harness integration guide](harnesses.md) describes the shared catalog,
+specialist bundles, invocation controls and client-specific tool ownership.
 
 The installed skill files are authoritative for their processes. Their upstream
 text sometimes uses names such as `/research` or `/domain-modeling`. In this
@@ -39,7 +40,7 @@ The router, setup, two interview wrappers, and handoff are explicitly
 user-invoked in the installed frontmatter. Mention their full names when
 requesting them. The router also describes skills such as `implement`,
 `implement-spec`, `to-spec`, `to-tickets`, `retro`, `prototype`, and `wayfinder`
-that are not selected for either client. Do not promise those workflows are
+that are not selected for these clients. Do not promise those workflows are
 available. Their absence does not prevent ordinary implementation from an
 agreed task. Upstream retired `resolving-merge-conflicts`; resolve an active
 conflict from its Git state and each side's intent.

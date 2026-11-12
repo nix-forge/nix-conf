@@ -13,6 +13,9 @@ admission_timeout=@admissionSeconds@
 memory_min_mib=''
 memory_max_mib=''
 elastic=0
+disk_requests=()
+storage_recovery=0
+host_preserving=0
 
 if [[ $# == 0 || $1 == --help ]]; then
   echo 'Usage: workstation-task [--feedback | --bounded-memory GiB] [--] COMMAND [ARGUMENT...]'
@@ -20,9 +23,12 @@ if [[ $# == 0 || $1 == --help ]]; then
   echo "Use --bounded-memory $bounded_min_gib..$bounded_max_gib for finite host work with a hard RAM cap, no swap,"
   echo 'a @boundedRuntimeSeconds@ second deadline and configured host reserve. Local Nix daemon access is blocked;'
   echo 'Nix evaluation is allowed, but daemon builds use the ordinary bulk mode.'
+  echo 'Use --host-preserving with a bounded budget for filesystem-identity tests.'
   echo 'Use --status to inspect private scheduler lifecycle records.'
   echo 'Use --memory-min-mib L --memory-max-mib U for an elastic bounded allocation.'
   echo 'Use --admission-timeout SECONDS to bound lock and memory waits.'
+  echo 'Use --storage-recovery only for explicit diagnostics or space-releasing maintenance.'
+  echo 'Use --disk-mib /ABSOLUTE/PATH=MiB for each additional peak disk allocation.'
   echo 'Queue a development command in a bounded background systemd scope.'
   echo 'The queue stays held until all children exit; cancellation stops this task scope.'
   exit 0
@@ -34,9 +40,25 @@ lane=bulk
 bounded_memory=0
 while (($#)); do
   case "$1" in
+  --host-preserving)
+    host_preserving=1
+    shift
+    ;;
   --feedback)
     lane=feedback
     shift
+    ;;
+  --storage-recovery)
+    storage_recovery=1
+    shift
+    ;;
+  --disk-mib)
+    if [[ $# -lt 2 ]]; then
+      echo 'workstation-task: missing disk request' >&2
+      exit 2
+    fi
+    disk_requests+=(--disk-mib "$2")
+    shift 2
     ;;
   --bounded-memory)
     requested_memory=${2:-}
@@ -84,6 +106,10 @@ if [[ $lane == feedback ]] && ((bounded_memory)); then
   echo 'workstation-task: feedback and bounded modes conflict' >&2
   exit 2
 fi
+if ((host_preserving)) && { [[ $lane == feedback ]] || ((bounded_memory == 0)); }; then
+  echo 'workstation-task: host identity requires an explicit bounded allocation' >&2
+  exit 2
+fi
 admission_deadline=$((SECONDS + admission_timeout))
 if [[ ${1:-} == -- ]]; then shift; fi
 if [[ $# == 0 ]]; then
@@ -119,6 +145,9 @@ if [[ $(</proc/self/cgroup) == *'/background-workload.slice/'* ]]; then
     echo 'workstation-task: select a bounded budget on the outermost invocation' >&2
     exit 2
   fi
+  # Explicit nested declarations still need checking against current space.
+  # The outer invocation owns the shared allocation; do not take its lock again.
+  if ((${#disk_requests[@]})); then @diskAdmission@ admit "${disk_requests[@]}" >/dev/null; fi
   exec "$@"
 fi
 
@@ -173,39 +202,25 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-# Only this supervisor owns the lock. Waiting asynchronously permits signal
-# handling while queued. The workload never inherits the lock descriptor.
-lock_fd() {
-  local remaining=$((admission_deadline - SECONDS)) status=0
-  if ((remaining <= 0)); then return 124; fi
-  flock --exclusive --wait "$remaining" "$1" &
-  locker=$!
-  wait "$locker" || status=$?
-  locker=''
-  if ((status)); then return 124; fi
-}
-reserve_bulk_lane() {
+# Open the existing reservations in their established mixed-version order.
+# The controller takes them nonblocking only after capacity is healthy, and
+# rechecks capacity under all locks. A waiting job must not own execution.
+execution_locks=()
+if [[ $lane == feedback ]]; then
   exec 8>@bulkLock@
-  lock_fd 8
-}
-# Feedback must take the shared reservation before its private lane lock.
-# Older bounded runners hold the shared reservation while waiting on feedback;
-# reversing this order would deadlock a mixed-version rollout.
-if [[ $lane == feedback ]]; then reserve_bulk_lane; fi
+  execution_locks+=(--lock-fd 8)
+fi
 lock="$XDG_RUNTIME_DIR/workstation-background.lock"
 if [[ $lane == feedback ]]; then lock="$XDG_RUNTIME_DIR/workstation-feedback.lock"; fi
 exec 9>"$lock"
-lock_fd 9
-# Every managed lane shares the root-owned execution reservation with backups.
-# A current-use sample cannot reserve the future growth of an ordinary bulk
-# scope. Serializing feedback with bulk avoids over-admitting that growth under
-# the common ancestor cap. Keep this lock until descendants and cleanup drain.
-if [[ $lane == bulk ]]; then reserve_bulk_lane; fi
+execution_locks+=(--lock-fd 9)
+if [[ $lane == bulk ]]; then
+  exec 8>@bulkLock@
+  execution_locks+=(--lock-fd 8)
+fi
 if ((bounded_memory)); then
-  # This profile reserves its headroom without concurrent feedback allocations.
-  # Acquire the same feedback lock; never cancel an already running check.
   exec 7>"$XDG_RUNTIME_DIR/workstation-feedback.lock"
-  lock_fd 7
+  execution_locks+=(--lock-fd 7)
 fi
 validate_policy
 allocation_root="$XDG_RUNTIME_DIR/workstation-task-allocations"
@@ -217,6 +232,8 @@ if [[ ${WORKSTATION_JOB_ID:-} =~ ^[0-9a-f]{32}$ &&
   -d ${WORKSTATION_JOB_DIRECTORY:-/nonexistent} ]]; then
   allocation="$WORKSTATION_JOB_DIRECTORY/memory-allocation.json"
 fi
+disk_mode=()
+if [[ $lane == feedback ]] || ((storage_recovery)); then disk_mode=(--recovery); fi
 minimum=1
 maximum=1
 reserve=$((bulk_available / 1024 / 1024 - 1))
@@ -244,13 +261,19 @@ if ((remaining <= 0)); then exit 124; fi
 @memoryController@ admit --receipt "$allocation" --minimum "$minimum" --maximum "$maximum" \
   --reserve "$reserve" --quantum "$((elastic ? 1024 : 1))" --timeout "$remaining" \
   --healthy-seconds @admissionHealthySeconds@ --pressure-limit @admissionPressureLimit@ \
-  --meminfo /proc/meminfo --root /sys/fs/cgroup "${capacity_group[@]}" >"$allocation.grant" &
+  --meminfo /proc/meminfo --root /sys/fs/cgroup "${capacity_group[@]}" "${execution_locks[@]}" >"$allocation.grant" &
 controller=$!
 status=0
 wait "$controller" || status=$?
 controller=''
 if ((status)); then exit "$status"; fi
 if ((bounded_memory)); then bounded_memory=$(($(<"$allocation.grant") * 1024 * 1024)); fi
+validate_policy
+
+# Recheck only after taking the shared execution lock. Durable submissions may
+# retain WORKSTATION_DISK_REQUESTS through their existing explicit --env option.
+@diskAdmission@ admit "${disk_requests[@]}" "${disk_mode[@]}" \
+  --receipt "${allocation%.json}.disk.json" >/dev/null
 
 if [[ $lane == bulk ]] && ((bounded_memory == 0)); then
   available=$(awk '$1 == "MemAvailable:" { printf "%.0f\n", $2 * 1024 }' /proc/meminfo) || available=unknown
@@ -297,7 +320,11 @@ if [[ $lane == feedback ]]; then
   )
 fi
 
-if [[ $lane == feedback ]] || ((bounded_memory)); then
+if ((host_preserving)); then
+  # The fixed privileged helper retains this scope and drops to the caller
+  # before decoding the environment. The shared daemon stays inaccessible.
+  set -- @hostCheckClient@ "$@"
+elif [[ $lane == feedback ]] || ((bounded_memory)); then
   # Both confined profiles must exclude the separately accounted shared daemon.
   # Namespace setup fails closed; ordinary daemon builds retain bulk admission.
   set -- @bubblewrap@ --die-with-parent --bind / / --dev-bind /dev /dev \

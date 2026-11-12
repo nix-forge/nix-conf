@@ -1,11 +1,15 @@
 # Zen Browser voice-dictation research
 
+Superseded on 2026-11-08 by [system-wide offline dictation](../operations/voice-dictation.md).
+The Zen-specific recorder and native Fn configuration described below have been
+retired. Keep this note as historical research; follow the shared runbook for setup.
+
 Reviewed: 2026-09-22. Scope: practical text dictation into Zen Browser on the
 NixOS desktop (Wayland/Hyprland), with the macOS profile considered where it
 changes the choice. This note assesses upstream documentation and the pinned
 Nixpkgs source; it does not install, configure, or benchmark a dictation tool.
 
-## Answer
+## Historical answer
 
 Use **desktop-level local speech-to-text** for Zen on Linux, rather
 than waiting for a native Zen/Firefox feature or making an extension the primary
@@ -203,36 +207,9 @@ the focused package evaluation, inspect the exact source and dependency closure,
 and test press-to-talk, cancellation, clipboard clearing, non-ASCII text,
 password fields, Zen textareas, and a terminal in an isolated profile.
 
-## Implication for this repository
+## Current configuration
 
-For the requested Zen search workflow, the Linux implementation is a smaller
-local-only command in [the Zen dictation module](../../modules/home/browsers/zen/dictation.nix).
-It uses the pinned Nixpkgs `whisper-cpp` package, a
-[pinned `small.en-q5_1` model](https://huggingface.co/ggerganov/whisper.cpp/blob/c521a4b02f422512d734391fdf08bb08c0862f68/ggml-small.en-q5_1.bin),
-PipeWire capture, and either an editable review dialog followed by Zen's search
-command or `wtype` on Hyprland to put text directly in Zen's address bar. This
-avoids a resident model, third-party transcription endpoint, browser-wide
-extension permission, and clipboard history. It is limited to English and
-Zen's address bar; the best current general-purpose option remains hyprwhspr
-once it has a reviewed, pinned package. The selected model is a reasoned
-starting point, not a measured accuracy winner. Measure `base` and `small`
-with representative speech before tuning GPU acceleration or model size.
-
-In the Hyprland delivery mode, the search remains unsubmitted so the user can
-correct errors. In the portable Linux mode, the user edits the question in a
-review dialog and confirms before Zen searches. Recording has a
-60-second limit, and audio and transcript files are removed from the private
-session runtime directory after each run. The command compares the focused Zen
-window before typing to reduce wrong-window entry risk. These choices are
-visible in [the command source](../../modules/home/browsers/zen/scripts/zen-dictate-linux.sh.in).
-On the selected desktop profile, focus Zen and press `Super+Alt+D` to start,
-press it again to finish, or press `Super+Alt+Shift+D` to cancel. Review the
-question in Zen's address bar and press Enter to search.
-Other Linux profiles can select `browsers-zen-dictation` and enable
-`programs.zenSearchDictation.enable` without Hyprland. The default
-`review-dialog` delivery works on graphical Linux desktops; bind
-`zen-dictate toggle` and `zen-dictate cancel` through that desktop's shortcut
-settings if desired.
-The Darwin profile assigns Fn/Globe to native Dictation through an opt-in
-[system module](../../modules/darwin/dictation.nix). The user must still enable
-Dictation and choose its privacy settings in System Settings.
+The implementation described in this historical note has been retired. Zen and
+T3 Code use the same system-wide Parakeet service and shortcuts. Follow the
+[shared dictation runbook](../operations/voice-dictation.md) for current setup,
+permissions, and validation limits.

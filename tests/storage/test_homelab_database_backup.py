@@ -58,7 +58,7 @@ def test_wal_snapshot_restores_from_restic(
     shutil.rmtree(directory)
     target = tmp_path / "restored"
     subprocess.run(
-        [restic, "restore", "latest", "--target", str(target)],
+        [restic, "restore", f"latest:{directory}", "--target", str(target)],
         check=True,
         capture_output=True,
         shell=False,

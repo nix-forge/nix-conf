@@ -64,6 +64,7 @@ in
       deploy;
 }
 // pkgs.lib.optionalAttrs isDarwin {
+  handy = fixes.apply "handy-darwin-signature" pkgs.handy;
   rift = fixes.apply "rift-native-app-switch" pkgs.rift;
   aerospace = fixes.apply "darwin-application-signatures" pkgs.aerospace;
   signal-desktop = fixes.apply "darwin-application-signatures" pkgs.signal-desktop;

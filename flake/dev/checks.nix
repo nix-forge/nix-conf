@@ -15,6 +15,16 @@
     {
       checks = {
         workstation-policy = import ../../tests/nix/workstation-policy.nix { inherit pkgs; };
+        nix-credential-loading = import ../../tests/nix/nix-credential-loading.nix {
+          inherit pkgs inputs;
+          # Exercise the desktop's selected client; avoid building a different
+          # upstream Nix merely to inspect its configuration parser.
+          nix =
+            if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
+              self.nixosConfigurations.desktop.config.nix.package
+            else
+              pkgs.nix;
+        };
         # Validate the selected release artifacts without building a host closure.
         zen-beta-artifact = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.beta-unwrapped;
 
