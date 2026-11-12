@@ -183,7 +183,7 @@ def test_native_restic_roundtrip_checks_real_application_files(
     scratch.mkdir(exist_ok=True)
     if configured_scratch:
         cfg["coldRestoreScratch"] = str(scratch)
-    original_run = HELPER["run"]
+    original_run = HELPER["cold_backup"].__globals__["run"]
     restore_targets: list[Path] = []
 
     def record_run(arguments: list[str]) -> str:
