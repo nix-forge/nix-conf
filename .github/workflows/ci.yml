@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
+          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -35,6 +35,14 @@ jobs:
           git submodule status --recursive >> .scratch/input-receipt/source.txt
       - name: Check portable repository contracts
         run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
+      - name: Verify moved CI ownership and isolated clocks
+        run: |
+          nix develop .#tests --command pytest -q \
+            tests/ci/test_ci_inventory.py \
+            tests/workstation/test_workstation_memory.py \
+            tests/hyprland/test_upstream_local_runner.py
+      - name: Evaluate the complete desktop configuration without building it
+        run: nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath
       - name: Verify all guarded interfaces and retired-fix behavior
         if: "!cancelled()"
         run: |
@@ -63,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
+          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -84,12 +92,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
+          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
+      - name: Evaluate the complete native configuration without building it
+        run: nix eval --raw .#darwinConfigurations.macbook-pro-m4.config.system.build.toplevel.drvPath
       - name: Exercise the installed upstream service and its log privacy
         run: nix build --no-link -L .#checks.aarch64-darwin.actual-runtime
