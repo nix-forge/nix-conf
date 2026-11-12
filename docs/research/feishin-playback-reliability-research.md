@@ -1,5 +1,7 @@
 # Feishin playback reliability on macOS
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-08. Scope: Feishin 1.17.0, its pinned Node-MPV fork,
 and the managed Darwin package.
 
@@ -28,7 +30,7 @@ replacement player after a concurrent initialization.
 
 ## Correction
 
-The [managed lifecycle patch](../../pkgs/pkgs/by-name/fe/feishin-managed/mpv_lifecycle.py)
+The [managed lifecycle patch](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/mpv_lifecycle.py)
 serializes device discovery and player quit with initialization and restart.
 Temporary cleanup completes before a playback child can reuse the socket.
 Device queries have a three-second timeout and clear their timer afterward.
@@ -56,7 +58,7 @@ received their first 64 KiB in 0.212–1.180 seconds. These measurements disting
 the confirmed client race from server availability; they do not rule out
 intermittent network delays.
 
-The [regression tests](../../pkgs/pkgs/by-name/fe/feishin-managed/mpv-lifecycle.test.mts)
+The [regression tests](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/mpv-lifecycle.test.mts)
 execute the packaged main-process handlers with controlled child-process timing.
 The original socket and quit races failed before the correction. Seven cases
 cover both initialization/discovery orders, restart, quit, playback events,

@@ -490,7 +490,7 @@ in
           [
             "aurral-http-vpn"
             "aurral-lidarr-vpn"
-            "aurral-navidrome-vpn"
+            "aurral-listenbrainz-identity"
           ]
         &&
           lib.all
@@ -504,7 +504,6 @@ in
             [
               "aurral-http-host"
               "aurral-lidarr-host"
-              "aurral-navidrome-host"
               "aurral-library-rescan"
             ];
       message = "Aurral API bridges must preserve VPN confinement and loopback-only host access.";

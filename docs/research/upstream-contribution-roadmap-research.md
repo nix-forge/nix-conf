@@ -1,5 +1,7 @@
 # Upstream contribution and retirement roadmap
 
+> Historical roadmap: later package retirement supersedes its recommendations to retain the personal Codex and ChatGPT channels. Current consumers select official Nixpkgs applications.
+
 Reviewed: 2026-10-16. Scope: **38 registered temporary fixes, 84 personal recipe directories and 106 patch artifacts**: 24 under root overlays and 82 under personal recipes. The matrices distinguish software bugs, missing packaging, optional product features and deliberate distribution policy. Counts describe this source snapshot, not the number of PRs required.
 
 ## Answer

@@ -1,5 +1,7 @@
 # ListenBrainz connections in Aurral
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-09-26. Scope: Aurral 2.9.1 with this repository's MusicBrainz,
 ListenBrainz discovery and connection patches, and Navidrome's documented APIs.
 
@@ -111,8 +113,8 @@ of MetaBrainz write APIs are not validated by this repair.
 
 ## Implementation references
 
-- [Connection patch](../../pkgs/pkgs/by-name/au/aurral/listenbrainz-connect.patch)
-- [API regressions](../../pkgs/pkgs/by-name/au/aurral/listenbrainz-connect.test.mts)
+- [Connection patch](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/listenbrainz-connect.patch)
+- [API regressions](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/listenbrainz-connect.test.mts)
 - [Bootstrap](../../hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py)
 - [Music discovery investigation](media-music-discovery-research.md)
 - [Spotify and MetaBrainz](../operations/spotify-metabrainz.md)

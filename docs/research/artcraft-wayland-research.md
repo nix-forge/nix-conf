@@ -1,5 +1,7 @@
 # Native Wayland support for ArtCraft
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-08. Scope: all twelve revisions pinned by current package recipes.
 
 ## Answer
@@ -8,7 +10,7 @@ All twelve desktop manifests already explicitly enable `eframe/wayland` and `efr
 
 ## Findings and sources
 
-Local observation: all twelve Cargo.lock files pin eframe and egui-winit 0.36.2, winit 0.30.13, rfd 0.17.2, arboard 3.6.1 and smithay-clipboard 0.7.3. Their current recipes, for example [CADCraft](../../pkgs/pkgs/by-name/ca/cadcraft/package.nix), already wrap Wayland and libxkbcommon runtime libraries. [Eframe documentation](https://docs.rs/eframe/0.36.2/eframe/) describes its native Wayland feature.
+Local observation: all twelve Cargo.lock files pin eframe and egui-winit 0.36.2, winit 0.30.13, rfd 0.17.2, arboard 3.6.1 and smithay-clipboard 0.7.3. Their current recipes, for example [CADCraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ca/cadcraft/package.nix), already wrap Wayland and libxkbcommon runtime libraries. [Eframe documentation](https://docs.rs/eframe/0.36.2/eframe/) describes its native Wayland feature.
 
 [Winit 0.30.13 backend selection](https://github.com/rust-windowing/winit/blob/v0.30.13/src/platform_impl/linux/mod.rs#L680-L720) chooses nonempty `WAYLAND_DISPLAY` or `WAYLAND_SOCKET` ahead of `DISPLAY`, unless application code forces a backend. It does not read the old `WINIT_UNIX_BACKEND` variable in this path. CADCraft, EffectCraft, FilmCraft, GridCraft, LightCraft, PdfCraft, PhotoCraft, SoundCraft, VectorCraft and WordCraft use normal Linux selection. The event-loop hooks in EffectCraft and FilmCraft only affect macOS activation behavior.
 

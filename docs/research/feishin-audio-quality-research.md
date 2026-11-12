@@ -1,5 +1,7 @@
 # Feishin audio fidelity on a shared Linux desktop
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-13. Scope: Feishin 1.17.0 at `5c169aca8d550032c9aa6e8e2b9f624d03d42fec`, mpv 0.41.0, Navidrome 0.64.2 at `101145742f4762164202cb4858c9126258bdc463`, and a PipeWire desktop using a 48 kHz hardware clock.
 
 ## Answer
@@ -20,7 +22,7 @@ OpenSubsonic defines `format=raw` as disabling transcoding and bitrate zero as u
 
 The mpv backend also needs correct child-process ownership. In Feishin 1.17.0, device discovery can create a temporary player concurrently with playback initialization. Both use the process-wide socket; temporary cleanup can unlink it and advance the global event generation, causing the persistent player's progress events to be dropped. This code is shared by Linux and macOS. A query made after a healthy player is running can reuse it safely, so the failure is a startup/restart race rather than an inevitable outcome of every query. Sources: [main player ownership and progress handling](https://github.com/jeffvli/feishin/blob/5c169aca8d550032c9aa6e8e2b9f624d03d42fec/src/main/features/core/player/index.ts) and the [existing native reproduction](feishin-playback-reliability-research.md).
 
-The volume control uses the device-discovery hook, so this can affect ordinary startup. The managed package's existing correction previously ran only on Darwin. Apply the same lifecycle serialization to Linux, install its readiness and message helpers on both platforms, and run the existing regression tests against each patched bundle. Sources: [volume control](https://github.com/jeffvli/feishin/blob/5c169aca8d550032c9aa6e8e2b9f624d03d42fec/src/renderer/features/player/components/right-controls.tsx), [lifecycle correction](../../pkgs/pkgs/by-name/fe/feishin-managed/mpv_lifecycle.py), and [regression suite](../../pkgs/pkgs/by-name/fe/feishin-managed/mpv-lifecycle.test.mts).
+The volume control uses the device-discovery hook, so this can affect ordinary startup. The managed package's existing correction previously ran only on Darwin. Apply the same lifecycle serialization to Linux, install its readiness and message helpers on both platforms, and run the existing regression tests against each patched bundle. Sources: [volume control](https://github.com/jeffvli/feishin/blob/5c169aca8d550032c9aa6e8e2b9f624d03d42fec/src/renderer/features/player/components/right-controls.tsx), [lifecycle correction](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/mpv_lifecycle.py), and [regression suite](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/mpv-lifecycle.test.mts).
 
 ### Audio processing and output
 

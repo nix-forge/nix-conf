@@ -1,5 +1,7 @@
 # Curated news discovery and reading
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-03. Scope: personal, self-hosted news reading on the NixOS homelab. The original Miniflux trial and the visual-reader follow-up are summarized below; source quality remains an editorial choice.
 
 ## Current reader decision
@@ -103,7 +105,7 @@ the stored proxy URL again. Custom media proxies are rejected for this optional
 upgrade. [Miniflux 2.3.3 API implementation](https://github.com/miniflux/v2/blob/2.3.3/internal/api/entry_handlers.go),
 [proxy rewriting](https://github.com/miniflux/v2/blob/2.3.3/internal/mediaproxy/rewriter.go).
 
-The [ReactFlux package](../../pkgs/pkgs/by-name/re/reactflux/README.md) now selects
+The [ReactFlux package](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/re/reactflux/README.md) now selects
 responsive publisher image renditions, recognizes WebP and AVIF enclosures,
 and reads dimension metadata through standard Miniflux proxy URLs without
 altering the URLs it requests. Image enclosures appear as visible figures after

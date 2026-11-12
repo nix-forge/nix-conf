@@ -1,5 +1,7 @@
 # Which configuration files should Nix generate and validate?
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-09-08. Scope: nix-conf and its nix-forge repositories, following
 [the Noogle function review](noogle-function-research.md). The implementation
 follow-up below records the adopted changes and their checks.
@@ -211,7 +213,7 @@ An exact parsed-JSON comparison using distinct palette values passed for both
 themes before removing the templates. Ordered rules, alpha suffixes and the
 OLED include path are preserved. The editor still receives the same JSON filenames.
 
-LinearMouse's [package metadata](../../pkgs/pkgs/by-name/li/linearmouse/source.nix)
+LinearMouse's [package metadata](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/li/linearmouse/source.nix)
 pins the v0.11.4 configuration schema by content hash alongside the application.
 The updater changes both pins atomically and leaves the previous file intact if
 fetching the schema fails. The module validates its generated JSON before staging

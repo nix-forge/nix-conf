@@ -1,5 +1,7 @@
 # Shared music metadata, lyrics, and artwork
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-03. Scope: Navidrome 0.64.2, Jellyfin 12.1 at runtime with the compatible library API,
 Lidarr source revision `da7b4dfb1a9e7e1d6625c2dbc3fff96971ab26bd`,
 Aurral 2.9.1 with the repository's existing metadata patches, and AudioMuse-AI
@@ -135,7 +137,7 @@ configuration: no dedicated lyric feature was found in the inspected upstream
 source tree. Its discovery and acquisition roles benefit from correct shared
 tags and covers, while Navidrome and Jellyfin supply lyric playback.
 [Aurral 2.9.1](https://github.com/lklynet/aurral/tree/v2.9.1),
-[local native tag patch](../../pkgs/pkgs/by-name/au/aurral/native-audio-tags.patch).
+[local native tag patch](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/native-audio-tags.patch).
 
 AudioMuse 3.6.0 can consume media-server lyrics for semantic search. Its
 `MUSICSERVER_LYRICS_TIMEOUT` default is 2.5 seconds. The installed adapter

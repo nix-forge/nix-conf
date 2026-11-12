@@ -48,14 +48,6 @@ four CommonJS loader fixtures and map ReactFlux sources to their application
 build paths. Invalid types, uncovered sources, and weakened compiler policy have
 regression tests.
 
-The package repository's `reactflux-typescript` Nix check builds the real
-application and checks its maintained TypeScript and TSX against its locked
-React, Vite, parser, and nanostores declarations. This dependency-bound check
-also runs type-aware lint and image regressions. Standalone `npm run check`
-does not supply those application dependencies. Git hooks use the same pinned
-compiler and lint configuration as the sandbox checks without installing
-anything into the checkout.
-
 Default pytest discovery selects `tests/**/test_*.py`. It excludes two explicit
 markers:
 

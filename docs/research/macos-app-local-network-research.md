@@ -1,5 +1,7 @@
 # macOS app local-network access: prevention and recovery
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-15. Scope: macOS local-network privacy, app registration,
 and Codex command-network controls; configuration baseline
 `21237bdb8974bda44d4a8c591b50e542dd7dc6c3`.
@@ -221,7 +223,7 @@ Before a code change, capture a recurrence in the desktop app's own runner:
 The existing [application reconciler](../../modules/home/macos/application_registry.py)
 registers the canonical app without recursively registering helpers. The
 [Home Manager integration](../../modules/home/macos/applications.nix) uses copied
-applications; the [packaging documentation](../../pkgs/pkgs/by-name/ch/chatgpt-latest/README.md)
+applications; the [packaging documentation](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ch/chatgpt-latest/README.md)
 explains preservation of the vendor-signed macOS bundle. Current checks do not
 establish a defect in those choices.
 

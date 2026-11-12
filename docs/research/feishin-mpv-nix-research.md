@@ -1,5 +1,7 @@
 # Feishin mpv integration with Nix
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-09-28. Scope: Feishin 1.17.0, pinned Home Manager and Nixpkgs revisions.
 
 ## Answer
@@ -18,7 +20,7 @@ Declare an app-specific Home Manager symlink to unwrapped mpv beside Feishin's s
 
 ### Alternatives considered
 
-The Nixpkgs `bin/feishin` wrapper's `PATH` is sufficient for a Linux launch with `mpv_path` unset, but macOS LaunchServices bypasses that wrapper, and Feishin's Homebrew candidates precede `PATH`. A package-level source or asar patch could set a Nix-built absolute mpv fallback inside Feishin; that path would be a legitimate package dependency and update with each derivation. It would, however, tie this local integration to Feishin's internal player code and add maintenance to the existing [package overlay](../../pkgs/pkgs/by-name/fe/feishin-managed/package.nix). A symlink under Home Manager's general profile would work technically, but the sidecar belongs to Feishin and avoids exposing another command in the user's general `bin` directory.
+The Nixpkgs `bin/feishin` wrapper's `PATH` is sufficient for a Linux launch with `mpv_path` unset, but macOS LaunchServices bypasses that wrapper, and Feishin's Homebrew candidates precede `PATH`. A package-level source or asar patch could set a Nix-built absolute mpv fallback inside Feishin; that path would be a legitimate package dependency and update with each derivation. It would, however, tie this local integration to Feishin's internal player code and add maintenance to the existing [package overlay](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/package.nix). A symlink under Home Manager's general profile would work technically, but the sidecar belongs to Feishin and avoids exposing another command in the user's general `bin` directory.
 
 ## Validation and limits
 

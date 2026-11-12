@@ -1,5 +1,7 @@
 # Upstream contribution roadmap: personal packages
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-16. Scope: **69 non-Craft recipes and 35 patch artifacts**, comprising the 68-recipe matrix below plus Aurral and its seven patches. See the [decision roadmap](upstream-contribution-roadmap-research.md). Package adoption and product-patch retirement are separate decisions.
 
 ## General package matrix: 68 recipes
@@ -321,28 +323,28 @@ The 84 recipes in the reviewed snapshot are listed here; the Craft decisions are
 | [apple-color-emoji](../../pkgs/pkgs/by-name/ap/apple-color-emoji/package.nix) | 0 | Personal / Aurral |
 | [apple-fonts](../../pkgs/pkgs/by-name/ap/apple-fonts/package.nix) | 0 | Personal / Aurral |
 | [audiomuse-ai](../../pkgs/pkgs/by-name/au/audiomuse-ai/package.nix) | 0 | Personal / Aurral |
-| [aurral](../../pkgs/pkgs/by-name/au/aurral/package.nix) | 7 | Personal / Aurral |
+| [aurral](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/package.nix) | 7 | Personal / Aurral |
 | [bibata-cursors-hyprcursor](../../pkgs/pkgs/by-name/bi/bibata-cursors-hyprcursor/package.nix) | 0 | Personal / Aurral |
-| [bitwarden-desktop](../../pkgs/pkgs/by-name/bi/bitwarden-desktop/package.nix) | 0 | Personal / Aurral |
-| [bookorbit](../../pkgs/pkgs/by-name/bo/bookorbit/package.nix) | 0 | Personal / Aurral |
-| [cadcraft](../../pkgs/pkgs/by-name/ca/cadcraft/package.nix) | 0 | Craft |
-| [chatgpt-latest](../../pkgs/pkgs/by-name/ch/chatgpt-latest/package.nix) | 0 | Personal / Aurral |
-| [claude-desktop](../../pkgs/pkgs/by-name/cl/claude-desktop/package.nix) | 0 | Personal / Aurral |
-| [codex-latest](../../pkgs/pkgs/by-name/co/codex-latest/package.nix) | 0 | Personal / Aurral |
+| [bitwarden-desktop](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/bi/bitwarden-desktop/package.nix) | 0 | Personal / Aurral |
+| [bookorbit](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/bo/bookorbit/package.nix) | 0 | Personal / Aurral |
+| [cadcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ca/cadcraft/package.nix) | 0 | Craft |
+| [chatgpt-latest](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ch/chatgpt-latest/package.nix) | 0 | Personal / Aurral |
+| [claude-desktop](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/cl/claude-desktop/package.nix) | 0 | Personal / Aurral |
+| [codex-latest](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/co/codex-latest/package.nix) | 0 | Personal / Aurral |
 | [craft-fonts](../../pkgs/pkgs/by-name/cr/craft-fonts/package.nix) | 0 | Craft |
 | [craft-launcher](../../pkgs/pkgs/by-name/cr/craft-launcher/package.nix) | 13 | Craft |
-| [darktable-app-personal](../../pkgs/pkgs/by-name/da/darktable-app-personal/package.nix) | 0 | Personal / Aurral |
-| [deckcraft](../../pkgs/pkgs/by-name/de/deckcraft/package.nix) | 2 | Craft |
+| [darktable-app-personal](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/da/darktable-app-personal/package.nix) | 0 | Personal / Aurral |
+| [deckcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/de/deckcraft/package.nix) | 2 | Craft |
 | [designcraft](../../pkgs/pkgs/by-name/de/designcraft/package.nix) | 3 | Craft |
 | [effectcraft](../../pkgs/pkgs/by-name/ef/effectcraft/package.nix) | 5 | Craft |
 | [emojione-legacy](../../pkgs/pkgs/by-name/em/emojione-legacy/package.nix) | 0 | Personal / Aurral |
-| [feishin-managed](../../pkgs/pkgs/by-name/fe/feishin-managed/package.nix) | 0 | Personal / Aurral |
+| [feishin-managed](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/fe/feishin-managed/package.nix) | 0 | Personal / Aurral |
 | [figcraft](../../pkgs/pkgs/by-name/fi/figcraft/package.nix) | 3 | Craft |
 | [filmcraft](../../pkgs/pkgs/by-name/fi/filmcraft/package.nix) | 3 | Craft |
 | [finder-favorites](../../pkgs/pkgs/by-name/fi/finder-favorites/package.nix) | 0 | Personal / Aurral |
 | [firefox-emoji](../../pkgs/pkgs/by-name/fi/firefox-emoji/package.nix) | 0 | Personal / Aurral |
 | [google-fonts-design](../../pkgs/pkgs/by-name/go/google-fonts-design/package.nix) | 0 | Personal / Aurral |
-| [gridcraft](../../pkgs/pkgs/by-name/gr/gridcraft/package.nix) | 1 | Craft |
+| [gridcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/gr/gridcraft/package.nix) | 1 | Craft |
 | [grimblast-region](../../pkgs/pkgs/by-name/gr/grimblast-region/package.nix) | 0 | Personal / Aurral |
 | [homebridge-blueair-purifier](../../pkgs/pkgs/by-name/ho/homebridge-blueair-purifier/package.nix) | 1 | Personal / Aurral |
 | [homebridge-lg-thinq-mp](../../pkgs/pkgs/by-name/ho/homebridge-lg-thinq-mp/package.nix) | 0 | Personal / Aurral |
@@ -354,9 +356,9 @@ The 84 recipes in the reviewed snapshot are listed here; the Craft decisions are
 | [jellyfin-plugin-moonbase](../../pkgs/pkgs/by-name/je/jellyfin-plugin-moonbase/package.nix) | 0 | Personal / Aurral |
 | [jellyfin-plugin-subtitle-extract](../../pkgs/pkgs/by-name/je/jellyfin-plugin-subtitle-extract/package.nix) | 0 | Personal / Aurral |
 | [jellyfin-web-personal](../../pkgs/pkgs/by-name/je/jellyfin-web-personal/package.nix) | 2 | Personal / Aurral |
-| [libreoffice](../../pkgs/pkgs/by-name/li/libreoffice/package.nix) | 0 | Personal / Aurral |
-| [lightcraft](../../pkgs/pkgs/by-name/li/lightcraft/package.nix) | 3 | Craft |
-| [linearmouse](../../pkgs/pkgs/by-name/li/linearmouse/package.nix) | 0 | Personal / Aurral |
+| [libreoffice](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/li/libreoffice/package.nix) | 0 | Personal / Aurral |
+| [lightcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/li/lightcraft/package.nix) | 3 | Craft |
+| [linearmouse](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/li/linearmouse/package.nix) | 0 | Personal / Aurral |
 | [maintainerr](../../pkgs/pkgs/by-name/ma/maintainerr/package.nix) | 0 | Personal / Aurral |
 | [mattpocock-skills](../../pkgs/pkgs/by-name/ma/mattpocock-skills/package.nix) | 0 | Personal / Aurral |
 | [metabrainz-spicetify-extension](../../pkgs/pkgs/by-name/me/metabrainz-spicetify-extension/package.nix) | 0 | Personal / Aurral |
@@ -373,29 +375,29 @@ The 84 recipes in the reviewed snapshot are listed here; the Craft decisions are
 | [notification-process](../../pkgs/pkgs/by-name/no/notification-process/package.nix) | 0 | Personal / Aurral |
 | [ocr-capture](../../pkgs/pkgs/by-name/oc/ocr-capture/package.nix) | 0 | Personal / Aurral |
 | [openai-skills](../../pkgs/pkgs/by-name/op/openai-skills/package.nix) | 0 | Personal / Aurral |
-| [pdfcraft](../../pkgs/pkgs/by-name/pd/pdfcraft/package.nix) | 7 | Craft |
-| [photocraft](../../pkgs/pkgs/by-name/ph/photocraft/package.nix) | 3 | Craft |
+| [pdfcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/pd/pdfcraft/package.nix) | 7 | Craft |
+| [photocraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ph/photocraft/package.nix) | 3 | Craft |
 | [psscriptanalyzer](../../pkgs/pkgs/by-name/ps/psscriptanalyzer/package.nix) | 0 | Personal / Aurral |
 | [pstack-skills](../../pkgs/pkgs/by-name/ps/pstack-skills/package.nix) | 0 | Personal / Aurral |
 | [rea](../../pkgs/pkgs/by-name/re/rea/package.nix) | 1 | Personal / Aurral |
-| [reactflux](../../pkgs/pkgs/by-name/re/reactflux/package.nix) | 2 | Personal / Aurral |
-| [remindctl](../../pkgs/pkgs/by-name/re/remindctl/package.nix) | 0 | Personal / Aurral |
+| [reactflux](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/re/reactflux/package.nix) | 2 | Personal / Aurral |
+| [remindctl](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/re/remindctl/package.nix) | 0 | Personal / Aurral |
 | [scrypted-plugin-arlo](../../pkgs/pkgs/by-name/sc/scrypted-plugin-arlo/package.nix) | 0 | Personal / Aurral |
 | [scrypted-plugin-homekit](../../pkgs/pkgs/by-name/sc/scrypted-plugin-homekit/package.nix) | 0 | Personal / Aurral |
 | [scrypted-server](../../pkgs/pkgs/by-name/sc/scrypted-server/package.nix) | 0 | Personal / Aurral |
 | [soularr](../../pkgs/pkgs/by-name/so/soularr/package.nix) | 1 | Personal / Aurral |
-| [soundcraft](../../pkgs/pkgs/by-name/so/soundcraft/package.nix) | 2 | Craft |
+| [soundcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/so/soundcraft/package.nix) | 2 | Craft |
 | [spotify-spotx](../../pkgs/pkgs/by-name/sp/spotify-spotx/package.nix) | 0 | Personal / Aurral |
 | [steam](../../pkgs/pkgs/by-name/st/steam/package.nix) | 0 | Personal / Aurral |
 | [steam-cef-scale-override](../../pkgs/pkgs/by-name/st/steam-cef-scale-override/package.nix) | 0 | Personal / Aurral |
-| [stirling-pdf-engine](../../pkgs/pkgs/by-name/st/stirling-pdf-engine/package.nix) | 3 | Personal / Aurral |
-| [stirling-pdf-v3](../../pkgs/pkgs/by-name/st/stirling-pdf-v3/package.nix) | 0 | Personal / Aurral |
+| [stirling-pdf-engine](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/st/stirling-pdf-engine/package.nix) | 3 | Personal / Aurral |
+| [stirling-pdf-v3](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/st/stirling-pdf-v3/package.nix) | 0 | Personal / Aurral |
 | `t3-code` (retired; now [official `t3code`](../../overlays/packages.nix)) | 0 | Personal / Aurral |
 | [ttf-ms-win11-auto](../../pkgs/pkgs/by-name/tt/ttf-ms-win11-auto/package.nix) | 0 | Personal / Aurral |
 | [twemoji-color-font-optional](../../pkgs/pkgs/by-name/tw/twemoji-color-font-optional/package.nix) | 0 | Personal / Aurral |
-| [vectorcraft](../../pkgs/pkgs/by-name/ve/vectorcraft/package.nix) | 0 | Craft |
+| [vectorcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ve/vectorcraft/package.nix) | 0 | Craft |
 | [vorssaint](../../pkgs/pkgs/by-name/vo/vorssaint/package.nix) | 0 | Personal / Aurral |
 | [wardrowbe-backend](../../pkgs/pkgs/by-name/wa/wardrowbe-backend/package.nix) | 3 | Personal / Aurral |
 | [wardrowbe-frontend](../../pkgs/pkgs/by-name/wa/wardrowbe-frontend/package.nix) | 4 | Personal / Aurral |
-| [wootility](../../pkgs/pkgs/by-name/wo/wootility/package.nix) | 0 | Personal / Aurral |
-| [wordcraft](../../pkgs/pkgs/by-name/wo/wordcraft/package.nix) | 2 | Craft |
+| [wootility](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/wo/wootility/package.nix) | 0 | Personal / Aurral |
+| [wordcraft](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/wo/wordcraft/package.nix) | 2 | Craft |

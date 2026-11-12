@@ -1,5 +1,7 @@
 # Duplicate macOS application results in Spotlight
 
+> Historical snapshot: personal package recipes referenced here have since been retired or renamed. These audit findings describe the cited source, not the current package selection.
+
 Reviewed: 2026-10-14. Scope: macOS 27.0.1, live application metadata and
 registrations, Home Manager pin `c58f54c733a7894d84fa2fdff26cc12088c4b78c`, and
 nix-darwin pin `4cff07de74b50e64bdd68cd4e722ab5b6b35ee48`.
@@ -171,7 +173,7 @@ on macOS 26 and later; no launchd timing workaround was added to the repository.
 The complete system build also exposed an independent ChatGPT packaging issue:
 executing the signed GUI app for `--version` caused output finalization to fail
 with an operation-not-permitted error. The package's
-[version probe](../../pkgs/pkgs/by-name/ch/chatgpt-latest/bundle_version.py)
+[version probe](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ch/chatgpt-latest/bundle_version.py)
 now reads `CFBundleShortVersionString` using packaged Python. This retains the
 version check without executing or modifying the bundle. An initial native
 `plutil` probe was denied by the build sandbox and was replaced. The corrected
