@@ -74,8 +74,10 @@ let
     .serviceConfig.LoadCredential)
     ((unit "bookorbit-prowlarr-host-bridge").serviceConfig.IPAddressDeny == [ "any" ])
     ((unit "bookorbit-prowlarr-namespace-bridge").serviceConfig.IPAddressAllow == [ "127.0.0.0/8" ])
-    (lib.elem "postgres-password:${cfg.nixSeal.secrets.homelab-bookorbit-postgres-password.path}" (unit "bookorbit-secrets")
-    .serviceConfig.LoadCredential)
+    # Native PostgreSQL uses the private Unix socket; app secrets never need a DB password.
+    (lib.all (credential: !(lib.hasPrefix "postgres-password:" credential))
+      (unit "bookorbit-secrets").serviceConfig.LoadCredential
+    )
     (lib.elem "jwt-secret:${cfg.nixSeal.secrets.homelab-bookorbit-jwt-secret.path}" (unit "bookorbit-secrets")
     .serviceConfig.LoadCredential)
     ((unit "bookorbit-secrets").serviceConfig.RuntimeDirectoryMode == "0700")
