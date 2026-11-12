@@ -372,6 +372,8 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "30s";
       User = "aurral";
       Group = "aurral";
       RuntimeDirectory = "aurral-listenbrainz-identity";
@@ -405,8 +407,10 @@ in
   systemd.services.aurral-bootstrap = {
     description = "Configure Aurral with Lidarr and ListenBrainz history";
     wantedBy = [ "multi-user.target" ];
+    # A failed provider lookup must not prevent the bootstrap process from
+    # starting and retrying while identity validation recovers independently.
+    wants = [ "aurral-listenbrainz-identity.service" ];
     requires = [
-      "aurral-listenbrainz-identity.service"
       "aurral.service"
       "aurral-http-host.service"
       "aurral-quality-profile.service"
