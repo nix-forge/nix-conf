@@ -659,6 +659,11 @@ jobs:
           test -x "$app/Contents/MacOS/$executable"
           /usr/bin/lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
           /usr/bin/codesign --verify --deep --strict "$app"
+      - name: Verify upstream LinearMouse and nested helper signatures
+        if: matrix.system == 'aarch64-darwin'
+        run: |
+          app=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.linearmouse-artifact)
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$app/Applications/LinearMouse.app"
       - name: Verify configured Deploy confirmation and cancellation on Darwin
         if: matrix.system == 'aarch64-darwin'
         env:

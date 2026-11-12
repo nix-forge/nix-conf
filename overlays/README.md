@@ -528,3 +528,11 @@ It preserves the selected driver, libraries, kernel modules and upstream checks,
 and adds a real `nvidia-smi --help` install check that needs no GPU. Remove the
 repair when the upstream builder passes that check without it; deployment also
 verifies a live GPU query.
+
+The upstream LinearMouse 0.12 recipe remains selected. Its temporary APFS
+extraction repair only excludes alternate streams: otherwise 7zz creates an
+`Info.plist:com.apple.quarantine` file inside the signed login helper. Apple's
+deep strict signature verifier rejects that extra sealed resource. The required
+Darwin check verifies the entire resulting upstream bundle, including the helper;
+no bundle contents are patched or re-signed. Retire the repair when the official
+recipe extracts the same archive without these extra files and passes that check.

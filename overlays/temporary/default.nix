@@ -16,6 +16,7 @@ let
     nvidia-bin-patchelf = ./nvidia-bin-patchelf.nix;
     jellyfin-caption-defaults = ./jellyfin-caption-defaults.nix;
     prowlarr-torrentdownload = ./prowlarr-torrentdownload.nix;
+    linearmouse-apfs-streams = ./linearmouse-apfs-streams.nix;
     rift-native-app-switch = ./rift-native-app-switch.nix;
     microsocks-credential-files = ./microsocks-credential-files.nix;
     actual-redact-secret-log = ./actual-redact-secret-log.nix;
