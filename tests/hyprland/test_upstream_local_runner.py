@@ -60,10 +60,10 @@ class UpstreamRunnerTests(unittest.TestCase):
                 patch.object(type(runner), "_start_parent"),
                 patch.object(type(runner), "_run_tests", side_effect=failure),
                 patch("os.killpg") as kill,
-                patch("time.sleep"),
                 patch.dict(
                     _MODULE["_Runner"].run.__globals__,
                     _wait_child=lambda child, _timeout: child.wait(),
+                    sleep=lambda _seconds: None,
                 ),
                 self.assertRaises(RuntimeError),
             ):

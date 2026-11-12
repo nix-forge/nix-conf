@@ -12,8 +12,8 @@ import select
 import signal
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - fixed native manager argv
 import sys
-import time
 from pathlib import Path
+from time import monotonic, time
 
 from dbus_next.aio import MessageBus
 from dbus_next.constants import BusType
@@ -237,7 +237,7 @@ def admit(args: argparse.Namespace) -> int:
         Zero after admission, or 124 after admission expires without launch.
 
     """
-    started = time.monotonic()
+    started = monotonic()
     deadline = started + args.timeout
     healthy = None
     delay = 0.25
@@ -256,7 +256,7 @@ def admit(args: argparse.Namespace) -> int:
                 args.quantum * MIB,
                 args.pressure_limit,
             )
-            now = time.monotonic()
+            now = monotonic()
             healthy = (healthy if healthy is not None else now) if selected else None
             ready = (
                 selected > 0
@@ -273,7 +273,7 @@ def admit(args: argparse.Namespace) -> int:
                 reserved = ready
                 if not ready and not waiting_execution:
                     healthy = None
-                now = time.monotonic()
+                now = monotonic()
             record = {
                 "phase": "admitted" if ready else "waiting-capacity",
                 "minimumMiB": args.minimum,
@@ -417,7 +417,7 @@ def grow(args: argparse.Namespace) -> int:  # ruff: ignore[too-many-statements, 
                 "demand": demand,
             }
             save(args.receipt, record)
-            now = time.monotonic()
+            now = monotonic()
             healthy = (
                 (healthy if healthy is not None else now)
                 if increment and demand
@@ -467,7 +467,7 @@ def grow(args: argparse.Namespace) -> int:  # ruff: ignore[too-many-statements, 
                 record["changes"].append({
                     "fromMiB": initial,
                     "toMiB": target,
-                    "time": time.time(),
+                    "time": time(),
                     "sample": sample,
                 })
                 record["grantMiB"] = target

@@ -105,7 +105,7 @@ def verify(log: Path) -> None:
         ValueError: A canary leaks or expected logging evidence is absent.
 
     """
-    text = log.read_text()
+    text = log.read_text(encoding="utf-8")
     for canary in [*_CANARIES.values(), _SECRET, _ERROR, _PASSWORD]:
         if canary in text:
             message = "Installed Actual leaked a synthetic secret into ordinary logs"

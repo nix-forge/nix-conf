@@ -193,7 +193,7 @@ def test_expired_admission_never_returns_a_late_grant(
 ) -> None:
     """Even recovered capacity is too late once the overall deadline expires."""
     clocks = iter([0, 2])
-    monkeypatch.setattr(memory.time, "monotonic", lambda: next(clocks))
+    monkeypatch.setattr(memory, "monotonic", lambda: next(clocks))
     monkeypatch.setattr(memory, "snapshot", lambda *_: {"availableBytes": 10 * MIB})
     monkeypatch.setattr(
         memory,

@@ -12,11 +12,11 @@ import shutil
 import signal
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - This local CLI deliberately supervises test processes.
 import tempfile
-import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Condition
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, TypedDict, cast
 
 from notification_process import run as run_command
@@ -152,10 +152,10 @@ class _Changes(FileSystemEventHandler):
             Whether the predicate became true before the deadline.
 
         """
-        deadline = time.monotonic() + timeout
+        deadline = monotonic() + timeout
         self.observer.start()
         try:
-            while time.monotonic() < deadline:
+            while monotonic() < deadline:
                 with self.condition:
                     generation = self.generation
                 if predicate():
@@ -163,7 +163,7 @@ class _Changes(FileSystemEventHandler):
                 with self.condition:
                     if not self.condition.wait_for(
                         lambda generation=generation: self.generation != generation,
-                        timeout=max(0, deadline - time.monotonic()),
+                        timeout=max(0, deadline - monotonic()),
                     ):
                         return False
             return False
@@ -365,11 +365,11 @@ class _Runner:
         ):
             # hyprtester requests compositor exit and immediately sends SIGKILL.
             # Give its crash reporter time to finish before terminating the group.
-            time.sleep(3)
+            sleep(3)
         for proc in reversed(self.processes):
             with suppress(ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGTERM)
-        time.sleep(0.3)
+        sleep(0.3)
         for proc in reversed(self.processes):
             with suppress(ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGKILL)
