@@ -31,11 +31,19 @@ jobs:
       - name: Exercise vanilla integration and token owner behavior
         if: ${{ !cancelled() }}
         run: |
-          nix develop .#tests --command pytest -q             tests/homelab/music/test_bootstrap_aurral.py             tests/homelab/music/test_listenbrainz_identity.py
+          nix develop .#tests --command pytest -q \
+            tests/homelab/music/test_bootstrap_aurral.py \
+            tests/homelab/music/test_listenbrainz_identity.py
       - name: Build affected generated configuration contracts
         if: ${{ !cancelled() }}
         run: |
-          nix build --no-link -L             .#checks.x86_64-linux.codex-home             .#checks.x86_64-linux.module-independence             .#checks.x86_64-linux.linearmouse-config             .#checks.x86_64-linux.linearmouse-invalid-config             .#checks.x86_64-linux.linearmouse-external-schema             .#checks.x86_64-linux.temporary-package-fixes
+          nix build --no-link -L \
+            .#checks.x86_64-linux.codex-home \
+            .#checks.x86_64-linux.module-independence \
+            .#checks.x86_64-linux.linearmouse-config \
+            .#checks.x86_64-linux.linearmouse-invalid-config \
+            .#checks.x86_64-linux.linearmouse-external-schema \
+            .#checks.x86_64-linux.temporary-package-fixes
       - name: Check repository hooks
         if: ${{ !cancelled() }}
         run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
@@ -62,7 +70,8 @@ jobs:
           cache: 'false'
       - name: Build and strictly verify the official application
         run: |
-          out=$(nix build --no-link --print-out-paths -L             github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0#linearmouse)
+          out=$(nix build --no-link --print-out-paths -L \
+            github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0#linearmouse)
           test -d "$out/Applications/LinearMouse.app"
           /usr/bin/codesign --verify --deep --strict --verbose=2 "$out/Applications/LinearMouse.app"
   bookorbit:
@@ -105,4 +114,8 @@ jobs:
       - name: Exercise upstream service startup and HTTP health
         if: matrix.system == 'x86_64-linux'
         run: |
-          nix build --no-link -L --impure --expr             'let pkgs = import (builtins.getFlake "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0") { system = builtins.currentSystem; }; in pkgs.nixosTests.aurral'
+          nix build --no-link -L --impure --expr \
+            'let pkgs = import
+              (builtins.getFlake "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0")
+              { system = builtins.currentSystem; };
+            in pkgs.nixosTests.aurral'
