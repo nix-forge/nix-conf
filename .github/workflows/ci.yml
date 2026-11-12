@@ -2,6 +2,10 @@ name: Reviewed input qualification
 on:
   workflow_dispatch:
     inputs:
+      source_ref:
+        description: Immutable full source commit to qualify.
+        type: string
+        required: true
       scope:
         description: Recheck repaired probes without repeating the active Handy proof.
         type: choice
@@ -19,9 +23,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Require an immutable source commit
+        env:
+          REQUESTED_SOURCE: ${{ inputs.source_ref }}
+        run: '[[ "$REQUESTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
+          ref: ${{ inputs.source_ref }}
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -74,9 +82,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Require an immutable source commit
+        env:
+          REQUESTED_SOURCE: ${{ inputs.source_ref }}
+        run: '[[ "$REQUESTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
+          ref: ${{ inputs.source_ref }}
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -96,9 +108,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Require an immutable source commit
+        env:
+          REQUESTED_SOURCE: ${{ inputs.source_ref }}
+        run: '[[ "$REQUESTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
+          ref: ${{ inputs.source_ref }}
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
