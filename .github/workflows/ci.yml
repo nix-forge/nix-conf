@@ -1,12 +1,19 @@
 name: Upstream consumer qualification
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Qualify all consumers or retry only the repaired BookOrbit service.
+        type: choice
+        default: all
+        options: [all, bookorbit]
 permissions: {}
 concurrency:
   group: upstream-consumers-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   consumers:
+    if: inputs.scope == 'all'
     name: Consumer contracts and hooks
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -59,6 +66,7 @@ jobs:
           name: upstream-consumer-receipt
           path: receipt
   linearmouse:
+    if: inputs.scope == 'all'
     name: Unmodified upstream LinearMouse signature
     runs-on: macos-26
     timeout-minutes: 30
@@ -92,6 +100,7 @@ jobs:
       - name: Build and exercise startup, restart and restored database
         run: nix build --no-link -L ./nix-homelab#checks.x86_64-linux.bookorbit-native-recovery
   aurral:
+    if: inputs.scope == 'all'
     name: Upstream Aurral (${{ matrix.system }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
