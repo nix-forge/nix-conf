@@ -138,7 +138,10 @@ in
         message = "security.secureBootLanzaboote requires boot.loader.efi.canTouchEfiVariables so signed loader updates and recovery entries reach UEFI NVRAM.";
       }
       {
-        assertion = !cfg.measuredBoot.enable || config.boot.initrd.systemd.enable;
+        assertion =
+          !cfg.measuredBoot.enable
+          || lib.versionAtLeast (lib.versions.majorMinor lib.version) "26.11"
+          || config.boot.initrd.systemd.enable;
         message = "security.secureBootLanzaboote requires the systemd initrd for the supported measured-boot and future TPM2-unlock path.";
       }
       {

@@ -104,7 +104,10 @@ in
       {
         environment.systemPackages = [ enrollment ];
         system.build.desktopStorageEnroll = enrollment;
-        boot.initrd.systemd.enable = true;
+        # The legacy switch was removed when systemd became the only initrd.
+        boot.initrd.systemd =
+          lib.optionalAttrs (lib.versionOlder (lib.versions.majorMinor lib.version) "26.11")
+            { enable = true; };
         boot.initrd.availableKernelModules = [
           "usbhid"
           "hid_generic"

@@ -91,7 +91,6 @@ diskoLib.testLib.makeDiskoTest {
     systemd.timers.restic-backups-desktop-fixture.enable = false;
     systemd.timers.desktop-backup-verify-fixture.enable = false;
     systemd.timers."btrfs-scrub@".timerConfig.Persistent = lib.mkForce false;
-    boot.initrd.systemd.enable = true;
     users.users.ianmh = {
       isNormalUser = true;
       uid = 1000;
