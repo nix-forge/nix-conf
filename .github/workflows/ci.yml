@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
+          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -47,6 +47,7 @@ jobs:
         run: |
           nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath
           nix eval --raw .#checks.x86_64-linux.book-discovery.drvPath
+          test "$(nix eval --json .#nixosConfigurations.raspberry-pi.config.boot.initrd.systemd.enable)" = true
       - name: Verify all guarded interfaces and retired-fix behavior
         if: inputs.scope != 'preflight' && !cancelled()
         run: |
@@ -75,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
+          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -97,7 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 7844d08c17c01ae19c58a30d32d32b195e1fb533
+          ref: 52ea9034aae1c6900d8b0ca76871075c8b25003c
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
