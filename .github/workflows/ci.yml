@@ -6,7 +6,7 @@ on:
         description: Qualify all consumers or retry only the repaired BookOrbit service.
         type: choice
         default: all
-        options: [all, bookorbit, migration]
+        options: [all, bookorbit, migration, metadata]
 permissions: {}
 concurrency:
   group: upstream-consumers-${{ github.ref }}-${{ inputs.scope }}
@@ -134,3 +134,27 @@ jobs:
               (builtins.getFlake "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0")
               { system = builtins.currentSystem; };
             in pkgs.nixosTests.aurral'
+  metadata:
+    if: inputs.scope == 'metadata'
+    name: Freeze merged personal package input
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+        with:
+          cache: 'false'
+      - name: Lock the immutable merged collection
+        working-directory: nix-homelab
+        run: |
+          nix flake lock --override-input nixpkgs-personal github:nix-forge/nixpkgs-personal/53a39abbdb9f6455af81b2a694b2beeefc9a1165
+          python3 -c 'import json,pathlib; p=pathlib.Path("flake.lock"); v=json.loads(p.read_text()); v["nodes"]["nixpkgs-personal"]["original"]={"owner":"nix-forge","repo":"nixpkgs-personal","type":"github"}; p.write_text(json.dumps(v,indent=2)+"\n")'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: merged-personal-homelab-lock
+          path: nix-homelab/flake.lock
