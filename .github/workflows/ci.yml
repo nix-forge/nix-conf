@@ -1,86 +1,71 @@
-name: Recovered root qualification
+name: Reviewed input qualification
 on:
   workflow_dispatch:
 permissions: {}
 concurrency:
-  group: recovered-root-qualification
+  group: reviewed-root-inputs
   cancel-in-progress: false
 jobs:
-  recovered:
-    name: Recovered source formatting and behavior
+  linux:
+    name: Reviewed input interfaces and upstream regressions
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ac25d4952fcc432a49a838fd3ba4e48a913fd00b
+          ref: 26a772f65a1ed1623a916b9a238c68b4da36fa8b
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
-      - name: Capture the exact source and formatter changes
+      - name: Record exact source and all owned input revisions
         run: |
-          mkdir -p .scratch/recovered-receipt
-          git rev-parse HEAD > .scratch/recovered-receipt/source.txt
-          git submodule status --recursive >> .scratch/recovered-receipt/source.txt
-          nix fmt -- --no-cache --tree-root "$PWD"
-      - name: Exercise recovered operational behavior
-        if: "!cancelled()"
-        run: |
-          nix develop .#tests --command pytest -q \
-            tests/storage tests/workstation tests/codex tests/dictation tests/vscode
-      - name: Build focused generated interface contracts
+          mkdir -p .scratch/input-receipt
+          git rev-parse HEAD > .scratch/input-receipt/source.txt
+          git submodule status --recursive >> .scratch/input-receipt/source.txt
+      - name: Check portable repository contracts
+        run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
+      - name: Verify all guarded interfaces and retired-fix behavior
         if: "!cancelled()"
         run: |
           nix build --no-link -L \
-            .#checks.x86_64-linux.vscode-configuration \
-            .#checks.x86_64-linux.agent-skills \
-            .#checks.x86_64-linux.t3code \
-            .#checks.x86_64-linux.codex-home \
-            .#checks.x86_64-linux.module-independence
-      - name: Check all repository hooks
-        if: "!cancelled()"
-        run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
-      - name: Record final changes
+            .#checks.x86_64-linux.temporary-package-fixes \
+            .#checks.x86_64-linux.nu-scripts-pytest \
+            .#checks.x86_64-linux.nushell-generated-config \
+            .#checks.x86_64-linux.ghostty-bash-upstream \
+            .#checks.x86_64-linux.nom-upstream-activities \
+            .#checks.x86_64-linux.actual-runtime
+      - name: Capture formatter changes without modifying published source
         if: always()
-        run: git diff --binary > .scratch/recovered-receipt/formatting.patch
+        run: git diff --binary > .scratch/input-receipt/formatting.patch
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: recovered-root-receipt
-          path: .scratch/recovered-receipt
+          name: root-reviewed-input-receipt
+          path: .scratch/input-receipt
           include-hidden-files: true
   handy:
-    name: Unmodified proposed Handy strict Apple signature
+    name: Repaired Handy strict Apple signature
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 26a772f65a1ed1623a916b9a238c68b4da36fa8b
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
-      - name: Verify the unmodified application before retiring its repair
+      - name: Build the selected repair and verify actual app identity and signatures
         run: |
-          out=$(nix build --no-link --print-out-paths -L \
-            github:NixOS/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396#handy)
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "$out/Applications/Handy.app"
-  nvidia:
-    name: Unmodified proposed NVIDIA loader
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
-        with:
-          cache: 'false'
-      - name: Exercise the actual unpatched ELF loader without a GPU
-        run: |
-          out=$(nix build --no-link --print-out-paths -L --impure --expr \
-            'let p = import (builtins.getFlake "github:NixOS/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396") { system = builtins.currentSystem; config.allowUnfree = true; }; in p.linuxPackages.nvidiaPackages.production.bin')
-          "$out/bin/nvidia-smi" --help
+          artifact=$(nix build --no-link --print-out-paths -L .#checks.aarch64-darwin.handy-artifact)
+          export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
+          nix develop .#tests --command python3 tests/macos/test_handy_signature.py
