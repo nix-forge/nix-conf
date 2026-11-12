@@ -12,14 +12,13 @@ let
       (
         final: prev:
         prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
-          handy = (
+          handy =
             (import ../../overlays/temporary {
-              inputs = flake.inputs;
+              inherit (flake) inputs;
               pkgs = final;
             }).apply
               "handy-darwin-signature"
-              prev.handy
-          );
+              prev.handy;
         }
       )
     ];

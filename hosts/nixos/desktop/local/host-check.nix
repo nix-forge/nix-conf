@@ -10,7 +10,7 @@ let
   package = import ../../../../modules/home/services/workstation-jobs-assets/host-check-package.nix {
     inherit pkgs;
     inherit (policy) minimumMiB maximumMiB;
-    uid = user.uid;
+    inherit (user) uid;
     gid = config.users.groups.${user.group}.gid;
   };
 in

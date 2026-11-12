@@ -511,7 +511,9 @@ def test_zen_session_preserves_arguments_and_uses_shared_slice(tmp_path: Path) -
         "https://example.test/?q=$value&x=`literal`&home=${HOME}&cash=$$",
         "two words",
     ]
-    result = subprocess.run([shutil.which("bash"), str(script), *args], check=False)
+    bash = shutil.which("bash")
+    assert bash is not None
+    result = subprocess.run([bash, str(script), *args], check=False)
     assert result.returncode == 0
     assert json.loads(sink.read_text()) == [
         "--user",

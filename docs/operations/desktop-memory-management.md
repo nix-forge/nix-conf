@@ -45,7 +45,6 @@ still charged against finite ancestors: neither an empty process group nor
 inactive file pages guarantee reclaimability. Admission does not drop caches,
 discount those charges, reduce host reserves, or enlarge hard limits.
 
-
 Each command and its ordinary child processes enter a separate systemd scope
 under `background-workload.slice`. The queue stays held until all descendants
 exit, including children left in the background. Use ordinary user services for
