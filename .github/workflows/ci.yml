@@ -1,9 +1,15 @@
 name: Reviewed input qualification
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Recheck repaired probes without repeating the active Handy proof.
+        type: choice
+        default: all
+        options: [all, repairs]
 permissions: {}
 concurrency:
-  group: reviewed-root-inputs
+  group: reviewed-root-inputs-${{ inputs.scope }}
   cancel-in-progress: false
 jobs:
   linux:
@@ -15,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 26a772f65a1ed1623a916b9a238c68b4da36fa8b
+          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -37,8 +43,7 @@ jobs:
             .#checks.x86_64-linux.nu-scripts-pytest \
             .#checks.x86_64-linux.nushell-generated-config \
             .#checks.x86_64-linux.ghostty-bash-upstream \
-            .#checks.x86_64-linux.nom-upstream-activities \
-            .#checks.x86_64-linux.actual-runtime
+            .#checks.x86_64-linux.nom-upstream-activities
       - name: Capture formatter changes without modifying published source
         if: always()
         run: git diff --binary > .scratch/input-receipt/formatting.patch
@@ -49,6 +54,7 @@ jobs:
           path: .scratch/input-receipt
           include-hidden-files: true
   handy:
+    if: inputs.scope == 'all'
     name: Repaired Handy strict Apple signature
     runs-on: macos-26
     timeout-minutes: 35
@@ -57,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 26a772f65a1ed1623a916b9a238c68b4da36fa8b
+          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -69,3 +75,21 @@ jobs:
           artifact=$(nix build --no-link --print-out-paths -L .#checks.aarch64-darwin.handy-artifact)
           export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
           nix develop .#tests --command python3 tests/macos/test_handy_signature.py
+  actual:
+    name: Unmodified upstream Actual installed log privacy
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: e426e46ee77a26bb83b3236a017b8560ff125f2e
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+        with:
+          cache: 'false'
+      - name: Exercise the installed upstream service and its log privacy
+        run: nix build --no-link -L .#checks.aarch64-darwin.actual-runtime
