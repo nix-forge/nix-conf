@@ -1,8 +1,4 @@
-{
-  config,
-  ...
-}:
-{
+{ config, ... }: {
   services.xserver.videoDrivers = [ "nvidia" ];
 
   # Aquamarine separates AQ_DRM_DEVICES entries with colons, which makes the

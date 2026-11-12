@@ -219,9 +219,9 @@ let
     nu-scripts = [ selected.nu_scripts ];
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-    nvidia = lib.optional (pkgs.stdenv.hostPlatform.system == "x86_64-linux") (
-      pkgs.linuxPackages.nvidiaPackages.production
-    );
+    nvidia = lib.optional (
+      pkgs.stdenv.hostPlatform.system == "x86_64-linux"
+    ) pkgs.linuxPackages.nvidiaPackages.production;
     jellyfin-web = [ selected.jellyfin-web ];
     determinate-module = [ (import ./determinate-module.nix { inherit pkgs inputs; }) ];
     microsocks = [ selected.microsocks ];

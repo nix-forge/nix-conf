@@ -7,10 +7,10 @@ trap - DEBUG
 PROMPT_COMMAND=()
 _ghostty_executing=0
 _ghostty_last_reported_cwd=$PWD
-BLE_VERSION=diagnostic
+export BLE_VERSION=diagnostic
 with_ble=$(__ghostty_precmd 0)
-[[ "$with_ble" == *$'\e]133;P;k=i\a'* ]]
-[[ "$with_ble" != *$'\e]133;A;'* ]]
+[[ $with_ble == *$'\e]133;P;k=i\a'* ]]
+[[ $with_ble != *$'\e]133;A;'* ]]
 unset BLE_VERSION
 without_ble=$(__ghostty_precmd 0)
-[[ "$without_ble" == *$'\e]133;A;'* ]]
+[[ $without_ble == *$'\e]133;A;'* ]]

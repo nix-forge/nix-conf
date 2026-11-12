@@ -21,10 +21,7 @@ in
     touch "$out"
   '';
   ghostty-bash-upstream =
-    pkgs.runCommand "upstream-ghostty-bash-prompt"
-      {
-        nativeBuildInputs = [ pkgs.bash ];
-      }
+    pkgs.runCommand "upstream-ghostty-bash-prompt" { nativeBuildInputs = [ pkgs.bash ]; }
       ''
         export GHOSTTY_CHECK_SOURCE=${ghostty.shell_integration}/bash/ghostty.bash
         bash --noprofile --norc -i ${./scripts/ghostty-bash-prompt.sh}

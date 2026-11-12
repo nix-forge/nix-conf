@@ -13,27 +13,40 @@ _CANARIES = {
     "state": "canary-actual-state-7f598c",
     "token": "canary-actual-token-7f598c",
 }
-_SECRET = "canary-actual-secret-value-7f598c"
+_SECRET = "canary-actual-secret-value-7f598c"  # ruff: ignore[hardcoded-password-string] -- Public synthetic canary.
 _ERROR = "canary-actual-provider-error-7f598c"
-_PASSWORD = "canary-actual-password-7f598c"
+_PASSWORD = "canary-actual-password-7f598c"  # ruff: ignore[hardcoded-password-string] -- Public synthetic canary.
 
 
 def request(
     port: int, path: str, payload: dict[str, str] | None = None, token: str = ""
 ) -> tuple[int, bytes]:
-    """Call the isolated packaged server and return its status and body."""
+    """Call the isolated packaged server.
+
+    Returns:
+        HTTP status and response body from the loopback fixture.
+
+    """
     headers = {"Content-Type": "application/json"}
     if token:
         headers["X-Actual-Token"] = token
     body = None if payload is None else json.dumps(payload).encode()
     query = urlencode(_CANARIES)
     req = Request(f"http://127.0.0.1:{port}/{path}?{query}", data=body, headers=headers)
-    with urlopen(req, timeout=10) as response:
+    with urlopen(req, timeout=10) as response:  # ruff: ignore[suspicious-url-open-usage] -- Fixed HTTP loopback URL above.
         return response.status, response.read()
 
 
 def expect_ok(response: tuple[int, bytes]) -> dict[str, object]:
-    """Require a completed successful API operation, not a skipped error path."""
+    """Require a completed successful API operation.
+
+    Returns:
+        Parsed successful API response.
+
+    Raises:
+        ValueError: The installed API rejects the fixture operation.
+
+    """
     status, body = response
     parsed = json.loads(body)
     if not isinstance(parsed, dict) or status != 200 or parsed.get("status") != "ok":
@@ -43,17 +56,23 @@ def expect_ok(response: tuple[int, bytes]) -> dict[str, object]:
 
 
 def probe(port: int) -> None:
-    """Exercise real request logging, persisted secrets and a local bank error."""
+    """Exercise real request logging, persisted secrets and a local bank error.
+
+    Raises:
+        TypeError: The login response lacks typed session data.
+        ValueError: The API does not exercise the expected fixture paths.
+
+    """
     expect_ok(request(port, "account/bootstrap", {"password": _PASSWORD}))
     login = expect_ok(request(port, "account/login", {"password": _PASSWORD}))
     data = login["data"]
     if not isinstance(data, dict):
         message = "Installed Actual did not return login data"
-        raise ValueError(message)
+        raise TypeError(message)
     token = data.get("token")
     if not isinstance(token, str):
         message = "Installed Actual did not return an authenticated session"
-        raise ValueError(message)
+        raise TypeError(message)
     expect_ok(
         request(port, "secret/", {"name": "simplefin_token", "value": _SECRET}, token)
     )
@@ -80,7 +99,12 @@ def probe(port: int) -> None:
 
 
 def verify(log: Path) -> None:
-    """Inspect fully drained real stdout/stderr, with useful-path positive controls."""
+    """Inspect fully drained real stdout/stderr, with positive controls.
+
+    Raises:
+        ValueError: A canary leaks or expected logging evidence is absent.
+
+    """
     text = log.read_text()
     for canary in [*_CANARIES.values(), _SECRET, _ERROR, _PASSWORD]:
         if canary in text:
