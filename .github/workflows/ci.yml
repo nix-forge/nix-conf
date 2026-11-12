@@ -9,7 +9,7 @@ on:
         options: [all, bookorbit]
 permissions: {}
 concurrency:
-  group: upstream-consumers-${{ github.ref }}
+  group: upstream-consumers-${{ github.ref }}-${{ inputs.scope }}
   cancel-in-progress: false
 jobs:
   consumers:
