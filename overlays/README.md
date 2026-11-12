@@ -1,8 +1,9 @@
 # Overrides and overlays
 
 Temporary package and upstream module fixes live in [`temporary/`](temporary/default.nix).
-Long-lived package selection lives in [`permanent/`](permanent/). Reusable Feishin
-and Jellyfin variants live in `nixpkgs-personal`; `packages.nix` selects them.
+Long-lived package selection lives in [`permanent/`](permanent/). The reusable Jellyfin variant
+lives in `nixpkgs-personal`; `packages.nix` selects it. Feishin uses the official
+Nixpkgs application.
 [`default.nix`](default.nix) is a Nixpkgs overlay. Each target installs it through
 `nixpkgsArgs.overlays`; attached Home Manager configurations share their host's
 package set through `useGlobalPkgs`.
