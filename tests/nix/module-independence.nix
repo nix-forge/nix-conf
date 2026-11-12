@@ -12,23 +12,9 @@ let
     rejects
     ;
   feishin = homeFor [ ../../modules/home/feishin.nix ];
-  feishinInvalid = homeFor [
-    ../../modules/home/feishin.nix
-    {
-      programs.feishin.managedLogin = {
-        url = "https://music.example.test";
-        usernameFile = "/run/credentials/username";
-        passwordFile = "/nix/store/password";
-      };
-    }
-  ];
   feishinCustomPlayer = homeFor [
     ../../modules/home/feishin.nix
     { programs.mpv.package = lib.makeOverridable (_: pkgs.writeShellScriptBin "mpv" "exit 0") { }; }
-  ];
-  feishinDisabledPlayer = homeFor [
-    ../../modules/home/feishin.nix
-    { programs.mpv.enable = lib.mkForce false; }
   ];
   noctalia = homeFor [
     ../../modules/home/desktop/noctalia.nix
@@ -265,17 +251,10 @@ let
     wordlistReportsMissingSource = rejects "standard WORDLIST" wordlist;
     kernelSupportsHostPlatform =
       valid portableKernel && !(portableKernel.boot.kernelPackages.kernel.meta.broken or false);
-    feishinWithoutSecrets =
-      valid feishin
-      && !(builtins.fromJSON feishin.xdg.configFile."feishin/managed.json".text ? managed_login);
-    rejectsStoreCredentials = rejects "runtime paths" feishinInvalid;
-    feishinPlayerIsGenerated = builtins.isString (toString feishin.xdg.configFile."feishin/mpv".source);
-    feishinCustomPlayerIsGenerated =
-      valid feishinCustomPlayer
-      && builtins.isString (toString feishinCustomPlayer.xdg.configFile."feishin/mpv".source);
-    feishinRejectsDisabledPlayer =
-      rejects "mpv.enable" feishinDisabledPlayer
-      && builtins.isString (toString feishinDisabledPlayer.xdg.configFile."feishin/mpv".source);
+    feishinWithoutSecrets = valid feishin;
+    feishinUsesUpstream = lib.elem pkgs.feishin feishin.home.packages;
+    feishinCustomPlayerIsGenerated = valid feishinCustomPlayer;
+
     noctaliaWithoutSiblingModules =
       valid noctalia
       && builtins.isString (

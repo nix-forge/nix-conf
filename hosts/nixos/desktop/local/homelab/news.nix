@@ -1,28 +1,6 @@
-# The primary news UI is ReactFlux over the Go Miniflux backend.
-{ config, pkgs, ... }: {
+# Use Miniflux directly; no alternate ReactFlux frontend is installed.
+{ config, ... }: {
   homelab.optional = {
-    reactflux = {
-      enable = true;
-      package = pkgs.reactflux.override {
-        defaultServerUrl = "https://news.${config.homelab.operations.lanHttps.domain}";
-        readerDefaults = {
-          articleListLayout = "card";
-          coverDisplayMode = "banner";
-          orderBy = "published_at";
-          orderDirection = "desc";
-          pageSize = 30;
-          showCardSummary = true;
-          summaryLines = 3;
-          showEstimatedReadingTime = true;
-          titleAlignment = "left";
-          themeMode = "system";
-          fontFamily = "system-ui";
-          markReadOnScroll = false;
-          openSourceOnCardClick = false;
-          removeDuplicates = "url";
-        };
-      };
-    };
     apps.miniflux.enable = true;
     miniflux = {
       adminCredentialsFile = config.nixSeal.templates.homelab-miniflux-admin-env.path;
@@ -109,12 +87,12 @@
 
   homelab.operations.endpoints.news = {
     url = "https://news.${config.homelab.operations.lanHttps.domain}";
-    healthUrl = "http://127.0.0.1:${toString config.homelab.optional.reactflux.port}/";
+    healthUrl = "http://${config.services.miniflux.config.LISTEN_ADDR}/healthcheck";
     description = "News reader with image cards, search and focused article reading";
   };
 
   services.miniflux.config = {
-    BASE_URL = "https://miniflux.${config.homelab.operations.lanHttps.domain}";
+    BASE_URL = "https://news.${config.homelab.operations.lanHttps.domain}";
     HTTPS = 1;
     TRUSTED_REVERSE_PROXY_NETWORKS = "127.0.0.1/32";
     WEBAUTHN = 1;

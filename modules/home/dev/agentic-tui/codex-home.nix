@@ -7,13 +7,8 @@
 }:
 let
   cfg = config.programs.codex;
-  base = pkgs.codex-latest;
+  base = pkgs.codex;
   codexHome = config.programs.chatgpt.codexHome;
-  desktopApp =
-    if pkgs.stdenv.hostPlatform.isDarwin && config.programs.chatgpt ? darwinBundle then
-      "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${config.programs.chatgpt.darwinBundle}"
-    else
-      "";
   launcher = (myLib.writers.writeBashTemplate { inherit pkgs; }) {
     name = "codex";
     dir = "bin";
@@ -21,7 +16,6 @@ let
     replacements = {
       codex = lib.escapeShellArg (lib.getExe base);
       defaultHome = lib.escapeShellArg codexHome;
-      desktopApp = lib.escapeShellArg desktopApp;
     };
   };
 in

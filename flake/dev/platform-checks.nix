@@ -90,7 +90,6 @@ let
           self.packages.${system} = packages;
         };
         modules = [
-          ../../modules/home/cli/remindctl.nix
           ../../modules/home/microsoft-teams.nix
           (import ../../modules/shared/fonts).homeManager
           {

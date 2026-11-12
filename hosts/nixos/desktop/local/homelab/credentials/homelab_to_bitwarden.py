@@ -557,7 +557,7 @@ def updated_item(item: dict | None, account: dict) -> dict:
     if account["url"]:
         ensure_login_uri(uris, account["url"], match)
     if account["name"] == "Miniflux":
-        # ReactFlux signs in with this same sealed Miniflux account.
+        # The news reader signs in with this sealed Miniflux account.
         reader_url = f"https://news.{DOMAIN}"
         ensure_login_uri(uris, reader_url, 1)
     if account["name"] == "Wardrowbe":

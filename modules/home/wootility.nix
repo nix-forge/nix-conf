@@ -1,1 +1,1 @@
-{ pkgs, ... }: { home.packages = [ pkgs.wootility ]; }
+{ pkgs, ... }: { home.packages = [ pkgs.wootility-bin ]; }

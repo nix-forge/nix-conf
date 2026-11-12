@@ -18,8 +18,10 @@ let
         }
       ];
     };
-  # Read the package's schema metadata without building the Darwin application.
-  package = pkgs.callPackage ../../pkgs/pkgs/by-name/li/linearmouse/package.nix { };
+  # Check generated settings without building the Darwin application on Linux.
+  schemaSource = import ../../modules/home/linearmouse-assets/schema-source.nix;
+  schema = pkgs.fetchurl schemaSource.src;
+  package = (import inputs.nixpkgs-apps { system = pkgs.stdenv.hostPlatform.system; }).linearmouse;
   mouseFor =
     settings:
     homeFor [
@@ -49,12 +51,12 @@ let
   };
   invalid = mouseFor { settings.schemes = "not an array"; };
   mismatchedPackage = package // {
-    configurationSchemaVersion = "0.0.0";
+    version = "0.0.0";
   };
   mismatched = mouseFor { package = mismatchedPackage; };
   explicit = mouseFor {
     package = mismatchedPackage;
-    settingsSchema = package.configurationSchema;
+    settingsSchema = schema;
   };
   external = mouseFor {
     settingsSchema = pkgs.writeText "external-schema.json" (
@@ -98,7 +100,7 @@ in
   );
   linearmouse-config =
     assert !(builtins.tryEval mismatched.config.programs.linearmouse.settingsSchema).success;
-    assert explicit.config.programs.linearmouse.settingsSchema == package.configurationSchema;
+    assert explicit.config.programs.linearmouse.settingsSchema == schema;
     mouse.config.programs.linearmouse.settingsFile;
   linearmouse-invalid-config = pkgs.testers.testBuildFailure' {
     drv = invalid.config.programs.linearmouse.settingsFile;

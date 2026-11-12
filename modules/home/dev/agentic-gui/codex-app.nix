@@ -6,7 +6,7 @@
 }:
 let
   cfg = config.programs.chatgpt;
-  supported = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt-latest;
+  supported = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt;
   inherit (cfg) package;
   darwinCommand = package.meta.mainProgram or "chatgpt";
   bundle = cfg.darwinBundle;
@@ -26,7 +26,7 @@ in
     };
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.chatgpt-latest.override { codex = pkgs.codex-latest; };
+      default = pkgs.chatgpt;
       description = "Desktop package, including its launcher and desktop entry.";
     };
     extraPackages = lib.mkOption {

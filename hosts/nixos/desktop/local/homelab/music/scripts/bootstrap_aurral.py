@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import pathlib
-import shlex
 import sys
 import urllib.error
 import urllib.request
@@ -231,40 +230,24 @@ def configure_import_webhook(api_key: str, auth: Mapping[str, str]) -> None:
         )
 
 
-def configure_navidrome(auth: Mapping[str, str]) -> None:
-    """Connect the playback server using its dedicated non-admin account."""
-    url = os.environ.get("NAVIDROME_URL")
-    if not url:
-        return
-    username = (CREDENTIALS / "navidrome-service-username").read_text().strip()
-    password = None
-    for line in (CREDENTIALS / "navidrome-settings").read_text().splitlines():
-        name, separator, value = line.partition("=")
-        if separator and name.strip() == "NAVIDROME_SERVICE_PASSWORD":
-            values = shlex.split(value)
-            if len(values) == 1:
-                password = values[0]
-    if not username or not password:
-        raise RuntimeError("Navidrome service credentials are missing")
-    payload = {"url": url, "username": username, "password": password}
-    request(
-        f"{BASE}/api/settings/navidrome/test",
-        method="POST",
-        payload=payload,
-        headers=auth,
-    )
-    fingerprint = hashlib.sha256(
-        json.dumps(payload, sort_keys=True).encode()
-    ).hexdigest()
-    marker = STATE / "navidrome-profile"
-    if not marker.exists() or marker.read_text().strip() != fingerprint:
+def retire_navidrome_publishing(auth: Mapping[str, str], settings: dict) -> None:
+    """Clear only Aurral's obsolete publishing credentials, preserving Navidrome."""
+    fields = ("url", "username", "password")
+    saved = settings.get("integrations", {}).get("navidrome", {})
+    if any(saved.get(field) for field in fields):
         request(
             f"{BASE}/api/settings",
             method="POST",
-            payload={"integrations": {"navidrome": payload}},
+            payload={"integrations": {"navidrome": dict.fromkeys(fields, "")}},
             headers=auth,
         )
-        marker.write_text(fingerprint + "\n")
+        confirmed = request(f"{BASE}/api/settings", headers=auth)
+        current = confirmed.get("integrations", {}).get("navidrome", {})
+        if any(current.get(field) for field in fields):
+            raise RuntimeError(
+                "Aurral Navidrome publishing credentials were not cleared"
+            )
+    (STATE / "navidrome-profile").unlink(missing_ok=True)
 
 
 def lidarr_music_root(api_key: str) -> str:
@@ -326,6 +309,49 @@ def slskd_api_key() -> str:
     raise RuntimeError("slskd API key is missing from its sealed settings")
 
 
+def configure_lidarr_connection(
+    api_key: str, music_root: str, current: dict, auth: Mapping[str, str]
+) -> dict:
+    """Apply vanilla Aurral's authenticated integration contract after onboarding."""
+    roots = current.get("rootFolderPaths") or []
+    desired = {
+        "url": LIDARR,
+        "apiKey": api_key,
+        "enabled": True,
+        "rootFolderPaths": [
+            music_root,
+            *(root for root in roots if root != music_root),
+        ],
+        "qualityProfileId": current.get("qualityProfileId")
+        or preferred_profile(api_key, "qualityprofile"),
+        "metadataProfileId": current.get("metadataProfileId")
+        or preferred_profile(api_key, "metadataprofile"),
+        "defaultMonitorOption": current.get(
+            "defaultMonitorOption", QUALITY_POLICY["onboarding"]["defaultMonitorOption"]
+        ),
+        "searchOnAdd": current.get(
+            "searchOnAdd", QUALITY_POLICY["onboarding"]["searchOnAdd"]
+        ),
+    }
+    if any(current.get(key) != value for key, value in desired.items()):
+        request(
+            f"{BASE}/api/settings",
+            method="POST",
+            payload={"integrations": {"lidarr": desired}},
+            headers=auth,
+        )
+        confirmed = request(f"{BASE}/api/settings", headers=auth)
+        selected = confirmed.get("integrations", {}).get("lidarr", {})
+        # Secret fields may be redacted by the server; confirm every public field.
+        if any(
+            selected.get(key) != value
+            for key, value in desired.items()
+            if key != "apiKey"
+        ):
+            raise RuntimeError("Aurral Lidarr integration settings were not confirmed")
+    return {**current, **desired}
+
+
 def configure_listening_history(username: str, auth: Mapping[str, str]) -> None:
     """Save only this history provider and verify the server acknowledgement."""
     history = request(
@@ -350,6 +376,14 @@ def configure_listenbrainz_scrobbling(
     marker = STATE / "listenbrainz-scrobbling-profile"
     identity_bytes = (username + "\0" + token).encode()
     fingerprint = hashlib.sha256(identity_bytes).hexdigest()
+    receipt_path = os.environ.get("LISTENBRAINZ_IDENTITY_RECEIPT")
+    if not receipt_path:
+        raise RuntimeError("ListenBrainz verification receipt is missing")
+    receipt = json.loads(pathlib.Path(receipt_path).read_text())
+    if receipt.get("username") != username or receipt.get("fingerprint") != fingerprint:
+        raise RuntimeError(
+            "ListenBrainz verification receipt does not match the configured identity"
+        )
     connections = request(f"{BASE}/api/scrobbling/status", headers=auth)
     status = connections.get("listenbrainz", {})
     if (
@@ -362,7 +396,7 @@ def configure_listenbrainz_scrobbling(
     linked = request(
         f"{BASE}/api/scrobbling/listenbrainz/link",
         method="PUT",
-        payload={"token": token, "expectedUsername": username},
+        payload={"token": token},
         headers=auth,
     )
     if not linked.get("connected") or linked.get("displayName") != username:
@@ -390,26 +424,12 @@ def main() -> None:
         or metadata_marker.read_text().strip() != LIBRARY_METADATA_VERSION
     )
     if onboarding_required:
-        quality_profile = preferred_profile(api_key, "qualityprofile")
-        metadata_profile = preferred_profile(api_key, "metadataprofile")
         request(
             f"{BASE}/api/onboarding/complete",
             method="POST",
             payload={
                 "authUser": admin_username(),
                 "authPassword": admin_password(),
-                "lidarr": {
-                    "url": LIDARR,
-                    "apiKey": api_key,
-                    "rootFolderPath": music_root,
-                    "rootFolderPaths": [music_root],
-                    "qualityProfileId": quality_profile,
-                    "metadataProfileId": metadata_profile,
-                    "defaultMonitorOption": QUALITY_POLICY["onboarding"][
-                        "defaultMonitorOption"
-                    ],
-                    "searchOnAdd": QUALITY_POLICY["onboarding"]["searchOnAdd"],
-                },
                 "security": {
                     "localNetworkBypass": {
                         "enabled": QUALITY_POLICY["onboarding"]["localNetworkBypass"]
@@ -446,9 +466,9 @@ def main() -> None:
         )
         auth = {"Authorization": f"Bearer {login['token']}"}
         settings = request(f"{BASE}/api/settings", headers=auth)
-        if os.environ.get("NAVIDROME_URL"):
+        if os.environ.get("AURRAL_LIDARR_WEBHOOK") == "1":
             configure_import_webhook(api_key, auth)
-            configure_navidrome(auth)
+        retire_navidrome_publishing(auth, settings)
         if settings.get("downloadFolderPath") != str(DOWNLOADS):
             request(
                 f"{BASE}/api/settings",
@@ -458,18 +478,14 @@ def main() -> None:
             )
             refresh_library = True
         integrations = settings.get("integrations", {})
-        lidarr_settings = integrations.get("lidarr", {})
+        previous_lidarr = integrations.get("lidarr", {})
+        lidarr_settings = configure_lidarr_connection(
+            api_key, music_root, previous_lidarr, auth
+        )
         configure_lidarr_quality(api_key, lidarr_settings, auth)
-        saved_roots = lidarr_settings.get("rootFolderPaths") or []
-        if music_root not in saved_roots:
-            roots = [music_root, *saved_roots]
-            root_settings = {"lidarr": {"rootFolderPaths": roots}}
-            request(
-                f"{BASE}/api/settings",
-                method="POST",
-                payload={"integrations": root_settings},
-                headers=auth,
-            )
+        if previous_lidarr.get("rootFolderPaths") != lidarr_settings.get(
+            "rootFolderPaths"
+        ):
             refresh_library = True
         if configure_history:
             configure_listening_history(listenbrainz_user, auth)
@@ -497,7 +513,14 @@ def main() -> None:
             )
             slskd_marker.write_text(slskd_fingerprint + "\n")
         if refresh_library:
-            request(f"{BASE}/api/library/refresh", method="POST", headers=auth)
+            refreshed = request(
+                f"{BASE}/api/library/refresh",
+                method="POST",
+                payload={"mode": "full"},
+                headers=auth,
+            )
+            if not isinstance(refreshed, dict) or refreshed.get("queued") is not True:
+                raise RuntimeError("Aurral library refresh was not queued")
             metadata_marker.write_text(LIBRARY_METADATA_VERSION + "\n")
     print("Aurral onboarding and music integrations are ready")
 

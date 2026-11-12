@@ -8,7 +8,6 @@ let
   files = {
     azure-cli-invoke = ./azure-cli-invoke.nix;
     blocky-multiple-dnskeys = ./blocky-multiple-dnskeys.nix;
-    codex-managed-app = ./codex-managed-app.nix;
     home-manager-protected-apps = ./home-manager-protected-apps.nix;
     home-manager-app-management-consent = ./home-manager-app-management-consent.nix;
     darwin-app-management-consent = ./darwin-app-management-consent.nix;
@@ -39,7 +38,6 @@ let
     nh-darwin-home = ./nh-darwin-home.nix;
     nu-scripts-pytest-lists = ./nu-scripts-pytest-lists.nix;
     prismlauncher-darwin-tests = ./prismlauncher-darwin-tests.nix;
-    stirling-embedpdf-font-fallback = ./stirling-embedpdf-font-fallback.nix;
     stylix-gtk-flatpak-polarity = ./stylix-gtk-flatpak-polarity.nix;
     stylix-nvf = ./stylix-nvf.nix;
     stylix-rofi = ./stylix-rofi.nix;

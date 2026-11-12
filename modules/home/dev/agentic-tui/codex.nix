@@ -7,8 +7,6 @@
   ...
 }:
 let
-  supportsRemindctl = self.packages.${system} ? remindctl;
-  remindctl = self.packages.${system}.remindctl;
   mattpocockSkills = self.packages.${system}.mattpocock-skills;
   pstackSkills = self.packages.${system}.pstack-skills;
   skillPath = package: name: "${package}/share/agent-skills/${name}";
@@ -37,9 +35,7 @@ in
   imports = [ ./codex-home.nix ];
 
   # Terminal Codex needs the same Linux sandbox helper as the desktop app.
-  home.packages =
-    lib.optional supportsRemindctl remindctl
-    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.bubblewrap ];
+  home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.bubblewrap ];
 
   programs.codex.context = lib.mkIf (config.programs.dev-worktree.enable or false) (
     lib.mkAfter config.programs.dev-worktree.instructions
@@ -47,9 +43,6 @@ in
 
   programs.codex = {
     enable = true;
-    skills =
-      lib.optionalAttrs supportsRemindctl { apple-reminders = remindctl.agentSkill; }
-      // skillSet mattpocockSkills mattpocockCodexSkills
-      // skillSet pstackSkills pstackCodexSkills;
+    skills = skillSet mattpocockSkills mattpocockCodexSkills // skillSet pstackSkills pstackCodexSkills;
   };
 }

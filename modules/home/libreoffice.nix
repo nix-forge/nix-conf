@@ -3,8 +3,6 @@
   lib,
   myLib,
   pkgs,
-  self,
-  system,
   ...
 }:
 let
@@ -16,8 +14,7 @@ let
   };
 
   cfg = config.programs.libreoffice;
-  libreofficePackage =
-    if isDarwin then self.packages.${system}.libreoffice else pkgs.libreoffice-stable;
+  libreofficePackage = pkgs.libreoffice;
   profileDir =
     if isDarwin then
       "${config.home.homeDirectory}/Library/Application Support/LibreOffice/4/user"
@@ -259,7 +256,7 @@ in
     package = lib.mkOption {
       type = lib.types.package;
       default = libreofficePackage;
-      defaultText = lib.literalExpression "if pkgs.stdenv.hostPlatform.isDarwin then self.packages.\${system}.libreoffice else pkgs.libreoffice-stable";
+      defaultText = lib.literalExpression "pkgs.libreoffice";
       description = "LibreOffice package to install.";
     };
 

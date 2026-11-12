@@ -17,7 +17,6 @@ let
   mediaGroup = config.homelab.storage.group;
   namespace = config.homelab.vpn.namespace.name;
   bridgeDirectory = "/run/aurral-network";
-  navidromePort = toString config.services.navidrome.settings.Port;
   lidarrPort = toString config.services.lidarr.settings.server.port;
   bridge = confined: command: {
     requires = [ "systemd-tmpfiles-setup.service" ];
@@ -127,20 +126,6 @@ in
           "aurral-lidarr-host.service"
         ];
       };
-  systemd.services.aurral-navidrome-host = bridge false "UNIX-LISTEN:${bridgeDirectory}/navidrome.sock,fork,unlink-early TCP:127.0.0.1:${navidromePort}";
-  systemd.services.aurral-navidrome-vpn =
-    lib.recursiveUpdate
-      (bridge true "TCP-LISTEN:${navidromePort},bind=127.0.0.1,reuseaddr,fork UNIX-CONNECT:${bridgeDirectory}/navidrome.sock")
-      {
-        requires = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-navidrome-host.service"
-        ];
-        after = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-navidrome-host.service"
-        ];
-      };
   systemd.services.aurral-http-vpn =
     lib.recursiveUpdate
       (bridge true "UNIX-LISTEN:${bridgeDirectory}/http.sock,fork,unlink-early TCP:127.0.0.1:3001")
@@ -229,12 +214,10 @@ in
     requires = [
       "aurral-directories.service"
       "aurral-lidarr-vpn.service"
-      "aurral-navidrome-vpn.service"
     ];
     after = [
       "aurral-directories.service"
       "aurral-lidarr-vpn.service"
-      "aurral-navidrome-vpn.service"
       "network-online.target"
     ];
     wants = [ "network-online.target" ];
@@ -248,9 +231,6 @@ in
       AURRAL_QUALITY_POLICY = toString qualityPolicy;
       AURRAL_DATA_DIR = "/var/lib/aurral";
       AURRAL_HOST = "127.0.0.1";
-      # Navidrome's library and automatic scanner are owned by this host. The
-      # dedicated playback account must not need administrator privileges.
-      AURRAL_NAVIDROME_MANAGED_LIBRARY = "true";
       PORT = "3001";
       DOWNLOAD_FOLDER = downloadFolder;
       # Only the local reverse proxy may supply client IP headers.
@@ -269,7 +249,7 @@ in
         "slskd"
       ];
       ExecStart = lib.getExe pkgs.aurral;
-      WorkingDirectory = "${pkgs.aurral}/libexec/aurral";
+      WorkingDirectory = "${pkgs.aurral}/lib/aurral";
       StateDirectory = "aurral";
       StateDirectoryMode = "0700";
       UMask = "0007";
@@ -377,10 +357,56 @@ in
     after = [ "aurral-quality-profile.service" ];
   };
 
+  systemd.services.aurral-listenbrainz-identity = {
+    description = "Validate Aurral's ListenBrainz identity without changing an account";
+    requires = [ "nix-seal-activate.service" ];
+    after = [
+      "nix-seal-activate.service"
+      "network-online.target"
+    ];
+    wants = [ "network-online.target" ];
+    vpn = {
+      enable = true;
+      inherit namespace;
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "aurral";
+      Group = "aurral";
+      RuntimeDirectory = "aurral-listenbrainz-identity";
+      RuntimeDirectoryMode = "0700";
+      UMask = "0077";
+      LoadCredential = [
+        "listenbrainz-identity:${config.nixSeal.secrets.music-discovery-listenbrainz-identity.path}"
+      ];
+      ExecStart = "${
+        pkgs.writers.writePython3 "verify-listenbrainz-identity" {
+          flakeIgnore = [
+            "E501"
+            "W503"
+          ];
+        } (builtins.readFile ./scripts/verify_listenbrainz_identity.py)
+      } /run/aurral-listenbrainz-identity/validated.json";
+      TimeoutStartSec = "30s";
+      NoNewPrivileges = true;
+      CapabilityBoundingSet = [ ];
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+        "AF_UNIX"
+      ];
+    };
+  };
+
   systemd.services.aurral-bootstrap = {
     description = "Configure Aurral with Lidarr and ListenBrainz history";
     wantedBy = [ "multi-user.target" ];
     requires = [
+      "aurral-listenbrainz-identity.service"
       "aurral.service"
       "aurral-http-host.service"
       "aurral-quality-profile.service"
@@ -388,6 +414,7 @@ in
       "nix-seal-activate.service"
     ];
     after = [
+      "aurral-listenbrainz-identity.service"
       "aurral.service"
       "aurral-http-host.service"
       "aurral-quality-profile.service"
@@ -395,7 +422,8 @@ in
       "nix-seal-activate.service"
     ];
     environment = {
-      NAVIDROME_URL = "http://127.0.0.1:${navidromePort}";
+      LISTENBRAINZ_IDENTITY_RECEIPT = "/run/aurral-listenbrainz-identity/validated.json";
+      AURRAL_LIDARR_WEBHOOK = "1";
       AURRAL_URL = "http://127.0.0.1:3001";
       LIDARR_URL = "http://127.0.0.1:${toString config.services.lidarr.settings.server.port}";
       SLSKD_URL = "http://${config.homelab.vpn.namespace.bindAddress}:${toString config.homelab.apps.slskd.webPort}";
@@ -413,8 +441,6 @@ in
         "aurral-admin-username:${config.nixSeal.secrets.homelab-aurral-admin-username.path}"
         "aurral-admin-password:${config.nixSeal.secrets.homelab-aurral-admin-password.path}"
         "lidarr-api-key:${config.nixSeal.secrets.homelab-lidarr-api-key.path}"
-        "navidrome-service-username:${config.nixSeal.secrets.homelab-navidrome-service-username.path}"
-        "navidrome-settings:${config.nixSeal.secrets.music-discovery-navidrome-settings.path}"
         "listenbrainz-identity:${config.nixSeal.secrets.music-discovery-listenbrainz-identity.path}"
         "slskd-settings:${config.nixSeal.secrets.music-discovery-slskd-settings.path}"
       ];

@@ -16,11 +16,6 @@ let
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
   accepts = version: succeeds (guard fixture "reviewed" { inherit version; });
   fixes = import ../../overlays/temporary { inherit pkgs inputs; };
-  codexFixture = version: revision: {
-    inherit version;
-    overrideAttrs = change: builtins.deepSeq (change { src.rev = revision; }) true;
-  };
-  codexRevision = "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a";
   nvidiaFixture =
     hooks: fixes.apply "nvidia-bin-patchelf" (pkgs.runCommand "nvidia-hook-fixture" hooks "touch $out");
   nvidiaNullHooks = nvidiaFixture {
@@ -32,14 +27,6 @@ let
     postInstallCheck = "echo existing-check-hook";
   };
 
-  changedPersonalCodex = import ../../overlays/temporary {
-    inherit pkgs;
-    inputs = inputs // {
-      nixpkgs-personal = inputs.nixpkgs-personal // {
-        rev = "unreviewed";
-      };
-    };
-  };
   changed = import ../../overlays/temporary {
     inherit pkgs;
     inputs = inputs // {
@@ -221,7 +208,7 @@ let
   };
   # Exercise the public selection interface and its module consumers.
   packages = {
-    codex = [ selected.codex-latest ];
+    codex = [ selected.codex ];
     ghostty-bash = [
       (fixes.apply "ghostty-bash-prompt" (
         if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty
@@ -317,17 +304,6 @@ assert
     (fixes.apply "blocky-multiple-dnskeys" (pkgs.blocky // { version = "0.35.1"; })).drvPath
   );
 assert !(succeeds (changed.apply "blocky-multiple-dnskeys" pkgs.blocky).drvPath);
-assert fixes.apply "codex-managed-app" (codexFixture "0.167.0" codexRevision);
-assert !(succeeds (fixes.apply "codex-managed-app" (codexFixture "0.166.0" codexRevision)));
-assert !(succeeds (fixes.apply "codex-managed-app" (codexFixture "0.168.0" codexRevision)));
-assert !(succeeds (fixes.apply "codex-managed-app" (codexFixture "0.167.0" "changed-source")));
-assert
-  !(succeeds (changedPersonalCodex.apply "codex-managed-app" (codexFixture "0.167.0" codexRevision)));
-assert !(succeeds changedPersonalCodex.review.codex-managed-app);
-assert
-  (lib.elem ../../overlays/temporary/patches/codex-managed-app.patch (
-    selected.codex-latest.patches or [ ]
-  )) == pkgs.stdenv.hostPlatform.isDarwin;
 assert (import ./crashpad-lock-parameter.nix).defaultFalse;
 assert import ../../overlays/temporary/tests/darwin-functional-contract.nix;
 assert
@@ -568,18 +544,6 @@ assert
   selected.actual-server.drvPath == (fixes.apply "actual-redact-secret-log" pkgs.actual-server)
   .drvPath;
 assert selected.nix-output-monitor.drvPath != pkgs.nix-output-monitor.drvPath;
-assert
-  pkgs.stdenv.hostPlatform.isDarwin
-  || (
-    selected.stirling-pdf.version == "3.1.0"
-    && selected.stirling-pdf.drvPath != pkgs.stirling-pdf.drvPath
-  );
-assert !(succeeds (changed.apply "stirling-embedpdf-font-fallback" pkgs.stirling-pdf).drvPath);
-assert
-  !(succeeds
-    (fixes.apply "stirling-embedpdf-font-fallback" (pkgs.stirling-pdf // { version = "3.1.1"; }))
-    .drvPath
-  );
 assert selected.nh.drvPath != pkgs.nh.drvPath;
 # Later nh versions must bypass both the patch and this fix's revision review.
 assert (fixes.apply "nh-darwin-home" (nhAt "4.4.2")).drvPath != (nhAt "4.4.2").drvPath;

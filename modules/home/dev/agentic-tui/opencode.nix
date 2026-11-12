@@ -151,8 +151,6 @@ let
   openaiSkills = self.packages.${system}.openai-skills;
   mattpocockSkills = self.packages.${system}.mattpocock-skills;
   pstackSkills = self.packages.${system}.pstack-skills;
-  supportsRemindctl = self.packages.${system} ? remindctl;
-  remindctl = self.packages.${system}.remindctl;
   skillPath = package: name: "${package}/share/agent-skills/${name}";
   skillSet = package: names: lib.genAttrs names (name: skillPath package name);
 
@@ -214,7 +212,6 @@ in
     skills = {
       typst = "${typstSkillSrc}/skills/typst";
     }
-    // lib.optionalAttrs supportsRemindctl { apple-reminders = remindctl.agentSkill; }
     // skillSet anthropicSkills anthropicOpenCodeSkills
     // skillSet openaiSkills openaiOpenCodeSkills
     // skillSet mattpocockSkills mattpocockOpenCodeSkills
@@ -330,8 +327,7 @@ in
     // lib.optionalAttrs isLinux { linux.grouping = true; }
   );
 
-  home.packages =
-    lib.optional supportsRemindctl remindctl ++ lib.optionals isLinux [ pkgs.libnotify ];
+  home.packages = lib.optionals isLinux [ pkgs.libnotify ];
 
   home.sessionVariables = {
     # LSP code intelligence (docs use the singular TOOL name; the old plural

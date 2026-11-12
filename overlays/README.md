@@ -166,7 +166,6 @@ Home Manager portal adapter and separate Zoom input remain retired.
 
 | Fixes | Why they remain |
 | --- | --- |
-| `codex-managed-app` | The selected CLI still needs explicit managed-bundle discovery. |
 | `home-manager-protected-apps` | Upstream copyApps still lacks exclusions for independently managed bundles. |
 | `darwin-application-signatures` | Vendor bundle preservation and final bundle sealing remain necessary. Only Signal needs the added signing tool; AeroSpace and Zoom retain their vendor bundles without it. |
 | `nu-scripts-pytest-lists` | The selected completion still contains both invalid semicolon-separated choice lists. |
@@ -181,7 +180,6 @@ Home Manager portal adapter and separate Zoom input remain retired.
 | `hyprshell-modifiers`, `hyprshell-workspace-schema`, `hyprshell-workspace-identity` | All three repairs remain absent from 4.10.8; the identity patch depends on applying the other two first. |
 | `nh-darwin-home`, `prismlauncher-darwin-tests` | nh 4.4.2 still sets empty elevated HOME; Prism 11.1.1 still assumes native watcher availability. |
 | `nixos-anywhere-ssh-host-check` | The pinned installer still disables host-key verification before argument parsing. |
-| `stirling-embedpdf-font-fallback` | The selected upstream 3.1.0 recipe still needs the EmbedPDF fallback repair. |
 | `stylix-gtk-flatpak-polarity`, `stylix-nvf`, `stylix-rofi` | The selected modules retain incomplete Flatpak polarity handling and both deprecated option assignments. |
 | `swift-clang-hardening`, `zen-wrapper-copy` | The selected compiler wrapper and Firefox wrapper still lack the required hardening forwarding and compatible copy command. |
 
@@ -356,9 +354,9 @@ The October 2026 retirement review found that Nixpkgs
 recipe previously imported through a separate input. The desktop now uses the
 upstream module's default package, retaining its portal configuration. Maintainerr
 also uses the incoming libvips when it meets sharp's 8.18.7 minimum; only older
-standalone consumers need its source backport. The independently updated
-`codex-latest` and `chatgpt-latest` packages remain intentional selections, even
-when a Nixpkgs release temporarily catches up with their versions.
+standalone consumers need its source backport. Codex and ChatGPT now use the unmodified upstream packages. Their former personal
+release pins and managed-app source patch are retired. Host configuration retains
+its state-directory and resource-management policy.
 
 The TypeScript language-server cache correction is now in the selected Nixpkgs
 recipe. The redundant fix, its guard and its obsolete negative fixtures have

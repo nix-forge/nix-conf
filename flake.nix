@@ -25,6 +25,11 @@
 
     # Core
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Use maintained application recipes without changing the system package set.
+    nixpkgs-apps = {
+      url = "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0";
+      flake = false;
+    };
     # Track the official T3 Code package without downgrading existing app data.
     nixpkgs-t3code = {
       url = "github:NixOS/nixpkgs/master";
@@ -100,6 +105,7 @@
       url = "path:./nix-homelab";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        nixpkgs-apps.follows = "nixpkgs-apps";
         nixpkgs-personal.follows = "nixpkgs-personal";
         flake-parts.follows = "flake-parts";
         git-hooks-nix.inputs.flake-compat.follows = "flake-compat";

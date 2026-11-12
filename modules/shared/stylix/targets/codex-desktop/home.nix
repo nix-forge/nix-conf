@@ -7,7 +7,7 @@
       ...
     }:
     let
-      supportsDesktop = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt-latest;
+      supportsDesktop = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt;
       appearanceSettings = {
         desktop = {
           appearanceTheme = "dark";

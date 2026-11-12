@@ -42,7 +42,6 @@ _: {
         ../../modules/home/desktop/scripts/session-lock.sh
         ../../modules/home/desktop/scripts/desktop-session-lock.sh
         ../../modules/home/spotify-assets/configure-spotify-quality.sh
-        ../../modules/home/feishin-assets/build-mpv-bundle.sh
         ../../modules/home/browsers/helium/scripts/apply-preference-defaults.sh
         ../../homes/desktop/local/workstation-task.sh
         ../../homes/desktop/local/workstation_task_events.py
@@ -60,7 +59,7 @@ _: {
         ../../hosts/nixos/desktop/local/storage/health.py
         ../../hosts/nixos/desktop/local/homelab/actual/scripts/actual-vault-open.sh
         ../../hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py
-        ../../hosts/nixos/desktop/local/homelab/stirling-pdf/ollama_chat_proxy.py
+        ../../hosts/nixos/desktop/local/homelab/music/scripts/verify_listenbrainz_identity.py
         ../../hosts/nixos/desktop/local/homelab/music/scripts/rescan_shared_music_library.py
         ../../hosts/nixos/desktop/local/homelab/scripts/bootstrap_books.py
         ../../hosts/nixos/desktop/local/homelab/music/scripts/configure_audiomuse.py

@@ -10,7 +10,7 @@ let
   homeForWithHost =
     hostArgs: extra:
     inputs.home-manager.lib.homeManagerConfiguration {
-      pkgs = pkgs.extend (_final: prev: { chatgpt-latest = prev.chatgpt; });
+      inherit pkgs;
       extraSpecialArgs = {
         inherit inputs myLib system;
         self.packages.${system} = {

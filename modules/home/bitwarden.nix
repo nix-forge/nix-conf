@@ -23,7 +23,11 @@ in
     package = lib.mkOption {
       type = lib.types.package;
       internal = true;
-      default = pkgs.bitwarden-desktop;
+      default =
+        if isDarwin && pkgs ? bitwarden-desktop-bin then
+          pkgs.bitwarden-desktop-bin
+        else
+          pkgs.bitwarden-desktop;
       description = "Bitwarden desktop package used by the app and browser-integration bridge.";
     };
 

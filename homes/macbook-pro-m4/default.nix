@@ -63,7 +63,6 @@
     mpv
     moonfin
     feishin
-    libreoffice
     vorssaint
     linearmouse
 
@@ -78,7 +77,7 @@
     spotify
     notion
     bitwarden
-    darktable
+    lightcraft
     wootility
 
     steam-darwin

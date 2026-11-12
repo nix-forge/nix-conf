@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -127,6 +128,7 @@ def test_first_run_creates_admin_and_links_personal_history(
             priority=20, preferredFormat="mp3", preferredFormatStrict=True
         )
     calls = []
+    lidarr_state: dict[str, Any] = {}
     monkeypatch.setattr(module, "configure_lidarr_quality", lambda *args: None)
 
     def fake_request(
@@ -162,15 +164,9 @@ def test_first_run_creates_admin_and_links_personal_history(
         if path == "/api/v1/rootfolder":
             return [{"path": str(module.MUSIC_ROOT)}]
         if path == "/api/onboarding/complete":
-            assert payload["lidarr"]["qualityProfileId"] == 8
-            assert payload["lidarr"]["metadataProfileId"] == 3
-            assert payload["lidarr"]["rootFolderPaths"] == [str(module.MUSIC_ROOT)]
+            assert "lidarr" not in payload
             assert payload["downloadFolderPath"] == str(downloads)
             assert payload["security"]["localNetworkBypass"]["enabled"] == custom_policy
-            assert payload["lidarr"]["searchOnAdd"] == (not custom_policy)
-            assert payload["lidarr"]["defaultMonitorOption"] == (
-                "all" if custom_policy else "future"
-            )
             return {"success": True}
         if path == "/api/auth/login":
             assert payload["username"] == "reader-admin"
@@ -190,10 +186,22 @@ def test_first_run_creates_admin_and_links_personal_history(
             if method == "GET":
                 return {
                     "downloadFolderPath": str(downloads),
-                    "integrations": {
-                        "lidarr": {"rootFolderPaths": [str(module.MUSIC_ROOT)]}
-                    },
+                    "integrations": {"lidarr": dict(lidarr_state)},
                 }
+            if "lidarr" in payload["integrations"]:
+                desired = payload["integrations"]["lidarr"]
+                assert desired["url"] == module.LIDARR
+                assert desired["apiKey"] == "sealed-key"
+                assert desired["enabled"] is True
+                assert desired["qualityProfileId"] == 8
+                assert desired["metadataProfileId"] == 3
+                assert desired["rootFolderPaths"] == [str(module.MUSIC_ROOT)]
+                assert desired["searchOnAdd"] == (not custom_policy)
+                assert desired["defaultMonitorOption"] == (
+                    "all" if custom_policy else "future"
+                )
+                lidarr_state.update(desired)
+                return {"success": True}
             assert payload["integrations"]["slskd"] == {
                 "enabled": True,
                 "url": "http://169.254.202.94:5030",
@@ -203,6 +211,7 @@ def test_first_run_creates_admin_and_links_personal_history(
             return {"success": True}
         if path == "/api/library/refresh":
             assert method == "POST"
+            assert payload == {"mode": "full"}
             return {"queued": True}
         raise AssertionError(f"Unexpected request: {path}")
 
@@ -213,19 +222,11 @@ def test_first_run_creates_admin_and_links_personal_history(
     assert (state / "listenbrainz-profile").read_text() == "listener\n"
     assert (state / "slskd-profile").exists()
     assert (state / "library-metadata-version").read_text() == "shared-music-root-v2\n"
-    assert [call[0] for call in calls] == [
-        "/api/v1/rootfolder",
-        "/api/health/bootstrap",
-        "/api/v1/qualityprofile",
-        "/api/v1/qualityprofile",
-        "/api/v1/metadataprofile",
-        "/api/onboarding/complete",
-        "/api/auth/login",
-        "/api/settings",
-        "/api/users/me/listening-history",
-        "/api/settings",
-        "/api/library/refresh",
-    ]
+    paths = [call[0] for call in calls]
+    assert paths.index("/api/onboarding/complete") < paths.index("/api/auth/login")
+    assert paths.index("/api/auth/login") < paths.index("/api/v1/metadataprofile")
+    assert paths[-1] == "/api/library/refresh"
+    assert paths.count("/api/settings") == 4
 
 
 def test_existing_setup_does_not_reset_credentials(
@@ -243,6 +244,7 @@ def test_existing_setup_does_not_reset_credentials(
     (state / "slskd-profile").write_text(fingerprint + "\n")
     calls = []
     monkeypatch.setattr(module, "configure_lidarr_quality", lambda *args: None)
+    monkeypatch.setattr(module, "configure_lidarr_connection", lambda *args: args[2])
 
     def fake_request(
         url: str,
@@ -290,7 +292,6 @@ def test_existing_setup_does_not_reset_credentials(
         ("/api/auth/login", "POST"),
         ("/api/settings", "GET"),
         ("/api/settings", "POST"),
-        ("/api/settings", "POST"),
         ("/api/library/refresh", "POST"),
     ]
 
@@ -301,8 +302,19 @@ def test_scrobbling_validates_identity_and_skips_unchanged_token(
     """Verify scrobbling validates identity and skips unchanged token."""
     module, state, _ = load_bootstrap(monkeypatch, tmp_path)
     identity = {"listenbrainzUsername": "listener", "token": "private-fixture-token"}
+    receipt = tmp_path / "validated.json"
+    receipt.write_text(
+        json.dumps({
+            "username": "listener",
+            "fingerprint": hashlib.sha256(
+                b"listener\0private-fixture-token"
+            ).hexdigest(),
+        })
+    )
+    monkeypatch.setenv("LISTENBRAINZ_IDENTITY_RECEIPT", str(receipt))
     calls = []
     monkeypatch.setattr(module, "configure_lidarr_quality", lambda *args: None)
+    monkeypatch.setattr(module, "configure_lidarr_connection", lambda *args: args[2])
 
     def fake_request(url: str, **kwargs: Any) -> Any:
         calls.append((urlparse(url).path, kwargs))
@@ -310,7 +322,6 @@ def test_scrobbling_validates_identity_and_skips_unchanged_token(
             return {"listenbrainz": {"connected": True, "displayName": "listener"}}
         assert kwargs["payload"] == {
             "token": "private-fixture-token",
-            "expectedUsername": "listener",
         }
         return {"connected": True, "displayName": "listener"}
 
@@ -337,6 +348,14 @@ def test_scrobbling_does_not_mark_wrong_identity_ready(
 ) -> None:
     """Verify scrobbling does not mark wrong identity ready."""
     module, state, _ = load_bootstrap(monkeypatch, tmp_path)
+    receipt = tmp_path / "validated.json"
+    receipt.write_text(
+        json.dumps({
+            "username": "listener",
+            "fingerprint": hashlib.sha256(b"listener\0fixture").hexdigest(),
+        })
+    )
+    monkeypatch.setenv("LISTENBRAINZ_IDENTITY_RECEIPT", str(receipt))
 
     def fake_request(url: str, **kwargs: Any) -> Any:
         return (
@@ -550,27 +569,57 @@ def test_import_webhook_uses_persistent_key_and_is_idempotent(
     )
 
 
-def test_navidrome_connection_validated_before_saving(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+@pytest.mark.parametrize("confirmed_empty", [True, False])
+def test_navidrome_publishing_retirement_requires_confirmation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, confirmed_empty: bool
 ) -> None:
-    """Verify navidrome connection validated before saving."""
+    """Clear saved publishing access through vanilla settings without admin calls."""
     module, state, _ = load_bootstrap(monkeypatch, tmp_path)
-    monkeypatch.setenv("NAVIDROME_URL", "http://127.0.0.1:4533")
-    (module.CREDENTIALS / "navidrome-service-username").write_text("music-service")
-    (module.CREDENTIALS / "navidrome-settings").write_text(
-        "NAVIDROME_SERVICE_PASSWORD='private password'\n"
-    )
+    marker = state / "navidrome-profile"
+    marker.write_text("previous-profile\n")
+    saved = {
+        "integrations": {
+            "navidrome": {
+                "url": "http://navidrome.invalid",
+                "username": "playback",
+                "password": "fixture",
+            }
+        }
+    }
     calls = []
 
-    def failing(url: str, **kwargs: Any) -> None:
-        calls.append(url)
-        raise URLError("unreachable")
+    def api(url: str, **kwargs: Any) -> dict:
+        assert url == module.BASE + "/api/settings"
+        calls.append(kwargs)
+        if kwargs.get("method") == "POST":
+            assert kwargs["payload"] == {
+                "integrations": {
+                    "navidrome": {"url": "", "username": "", "password": ""}
+                }
+            }
+            return {}
+        return {"integrations": {"navidrome": {}}} if confirmed_empty else saved
 
-    monkeypatch.setattr(module, "request", failing)
-    with pytest.raises(URLError):
-        module.configure_navidrome({})
-    assert len(calls) == 1
-    assert not (state / "navidrome-profile").exists()
+    monkeypatch.setattr(module, "request", api)
+    if confirmed_empty:
+        module.retire_navidrome_publishing({}, saved)
+        assert not marker.exists()
+    else:
+        with pytest.raises(RuntimeError, match="were not cleared"):
+            module.retire_navidrome_publishing({}, saved)
+        assert marker.read_text() == "previous-profile\n"
+    assert len(calls) == 2
+
+
+def test_navidrome_publishing_retirement_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An already disabled integration never contacts Navidrome or saves settings."""
+    module, _, _ = load_bootstrap(monkeypatch, tmp_path)
+    api = Mock(side_effect=AssertionError("must not send a request"))
+    monkeypatch.setattr(module, "request", api)
+    module.retire_navidrome_publishing({}, {"integrations": {}})
+    api.assert_not_called()
 
 
 def test_quality_initialization_uses_service_readiness_without_aurral(
@@ -768,6 +817,7 @@ def test_slskd_connection_refresh_preserves_ui_settings(
     }
     writes = []
     monkeypatch.setattr(module, "configure_lidarr_quality", lambda *args: None)
+    monkeypatch.setattr(module, "configure_lidarr_connection", lambda *args: args[2])
 
     def api(url: str, **kwargs: Any) -> Any:
         path = urlparse(url).path
@@ -816,3 +866,18 @@ def test_history_requires_confirmed_account_before_ready_marker(
             "listener", {"Authorization": "Bearer session"}
         )
     assert not (state / "listenbrainz-profile").exists()
+
+
+def test_scrobbling_cannot_mutate_without_matching_validation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """No status or link request occurs with an unvalidated or changed token."""
+    module, _, _ = load_bootstrap(monkeypatch, tmp_path)
+    monkeypatch.delenv("LISTENBRAINZ_IDENTITY_RECEIPT", raising=False)
+    api = Mock(side_effect=AssertionError("must not mutate account"))
+    monkeypatch.setattr(module, "request", api)
+    with pytest.raises(RuntimeError, match="receipt is missing"):
+        module.configure_listenbrainz_scrobbling(
+            {"listenbrainzUsername": "listener", "token": "unvalidated"}, {}
+        )
+    api.assert_not_called()

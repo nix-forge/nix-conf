@@ -2,6 +2,31 @@
 let
   fixes = import ./temporary { inherit inputs pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux system;
+  upstreamApps = import inputs.nixpkgs-apps {
+    inherit system;
+    config.allowUnfree = true;
+  };
+  upstreamNames = [
+    "aurral"
+    "bookorbit"
+    "cadcraft"
+    "deckcraft"
+    "gridcraft"
+    "lightcraft"
+    "pdfcraft"
+    "photocraft"
+    "soundcraft"
+    "vectorcraft"
+    "wordcraft"
+    "codex"
+    "chatgpt"
+    "feishin"
+    "stirling-pdf"
+    "linearmouse"
+  ];
+  upstreamSelections = pkgs.lib.filterAttrs (
+    _: package: pkgs.lib.meta.availableOn pkgs.stdenv.hostPlatform package
+  ) (pkgs.lib.genAttrs upstreamNames (name: upstreamApps.${name}));
   officialT3code = (import inputs.nixpkgs-t3code { inherit system; }).t3code;
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
@@ -19,7 +44,6 @@ in
   azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   blocky = fixes.apply "blocky-multiple-dnskeys" pkgs.blocky;
   nu_scripts = fixes.apply "nu-scripts-pytest-lists" pkgs.nu_scripts;
-  feishin = pkgs.feishin-managed;
   # Keep the official CLI/server; select the signed vendor GUI only on ARM Darwin.
   t3code =
     if system == "aarch64-darwin" then
@@ -40,7 +64,6 @@ in
       deploy;
 }
 // pkgs.lib.optionalAttrs isDarwin {
-  codex-latest = fixes.apply "codex-managed-app" pkgs.codex-latest;
   rift = fixes.apply "rift-native-app-switch" pkgs.rift;
   aerospace = fixes.apply "darwin-application-signatures" pkgs.aerospace;
   signal-desktop = fixes.apply "darwin-application-signatures" pkgs.signal-desktop;
@@ -56,7 +79,6 @@ in
 // pkgs.lib.optionalAttrs isLinux {
   jellyfin-web = fixes.apply "jellyfin-caption-defaults" pkgs.jellyfin-web-personal;
   microsocks = fixes.apply "microsocks-credential-files" pkgs.microsocks;
-  stirling-pdf = fixes.apply "stirling-embedpdf-font-fallback" pkgs.stirling-pdf;
   wrapFirefox = fixes.apply "zen-wrapper-copy" pkgs.wrapFirefox;
   # Keep the dependency repair local to the selected Virt Manager package.
   virt-manager = pkgs.virt-manager.override {
@@ -75,3 +97,5 @@ in
   );
   inherit (hyprlandPackages) xdg-desktop-portal-hyprland;
 }
+
+// upstreamSelections

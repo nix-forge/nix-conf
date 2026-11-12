@@ -6,10 +6,4 @@ if [[ -z ${CODEX_HOME:-} ]]; then
   # shellcheck disable=SC2016
   export CODEX_HOME=@defaultHome@
 fi
-# The selected bundle path is literal, including dollar signs.
-# shellcheck disable=SC2016
-desktop_app=@desktopApp@
-if [[ -n $desktop_app ]]; then
-  export CODEX_DESKTOP_APP_PATH="$desktop_app"
-fi
 exec @codex@ "$@"

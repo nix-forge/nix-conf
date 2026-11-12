@@ -160,7 +160,7 @@ in
       slskd.upstream = "http://${config.homelab.vpn.namespace.bindAddress}:${toString config.homelab.apps.slskd.webPort}";
       navidrome.upstream = "http://127.0.0.1:${toString config.services.navidrome.settings.Port}";
       miniflux.upstream = "http://${config.services.miniflux.config.LISTEN_ADDR}";
-      news.upstream = "http://127.0.0.1:${toString config.homelab.optional.reactflux.port}";
+      news.upstream = "http://${config.services.miniflux.config.LISTEN_ADDR}";
       aurral.upstream = "http://127.0.0.1:3001";
       actual = {
         upstream = "http://127.0.0.1:${toString config.services.actual.settings.port}";

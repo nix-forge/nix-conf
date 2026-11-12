@@ -5,18 +5,13 @@
 }:
 let
   inherit (pkgs) lib;
-  managedFix = import ../../overlays/temporary/codex-managed-app.nix { inherit lib; };
-  sourceFixture = revision: {
-    overrideAttrs = change: builtins.deepSeq (change { src.rev = revision; }) true;
-  };
-  acceptsSource = revision: (builtins.tryEval (managedFix.apply (sourceFixture revision))).success;
   backend =
     (pkgs.writeShellApplication {
       name = "codex";
       text = "exec ${lib.getExe pkgs.python3} ${../codex/fixtures/home-backend.py} \"$@\"";
     }).overrideAttrs
       { version = "999.0"; };
-  fixturePkgs = pkgs.extend (_: _: { codex-latest = backend; });
+  fixturePkgs = pkgs.extend (_: _: { codex = backend; });
   homeFor =
     {
       prefer,
@@ -73,19 +68,12 @@ let
         binary = if home.programs.codex.enable then lib.getExe home.programs.codex.package else "";
         raw = lib.getExe backend;
         home = home.programs.chatgpt.codexHome;
-        desktopApp =
-          if pkgs.stdenv.hostPlatform.isDarwin then
-            "${home.home.homeDirectory}/${home.targets.darwin.copyApps.directory}/${home.programs.chatgpt.darwinBundle}"
-          else
-            null;
+        desktopApp = null;
         policy = home.programs.chatgpt.settings.shell_environment_policy;
       }) variants
     )
   );
 in
-assert acceptsSource "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a";
-assert !acceptsSource "changed-source";
-assert !acceptsSource "83086188ae0614bd882818ff1aa23f3194962012";
 assert variants.xdg.programs.chatgpt.codexHome == "/fixture/custom config 'quoted' $literal/codex";
 assert variants.legacy.programs.chatgpt.codexHome == "/fixture/home 'quoted' $literal/.codex";
 assert variants.xdg.programs.codex.settings == { };

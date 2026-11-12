@@ -88,10 +88,6 @@ strict = true
   # The local HTTP fixture stores several API record shapes in one state mapping.
   "any-type",
 ]
-"hosts/nixos/desktop/local/homelab/stirling-pdf/ollama_chat_proxy.py" = [
-  # The proxy owns the stream and closes its upstream connection in one finally block.
-  "too-many-statements-in-try-clause",
-]
 "tests/homelab/music/test_bootstrap_aurral.py" = [
   # Mocks preserve the API signatures and return heterogeneous JSON fixture data.
   "any-type",

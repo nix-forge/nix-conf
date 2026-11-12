@@ -19,7 +19,7 @@ let
     # allow bounded spill instead of making those pages compete with builds.
     MemorySwapMax = 22 * 1024 * 1024 * 1024;
   };
-  original = pkgs.chatgpt-latest.override { codex = pkgs.codex-latest; };
+  original = pkgs.chatgpt;
   supervisor = pkgs.writers.writePython3 "codex-desktop-supervisor" {
     flakeIgnore = [
       "E501"

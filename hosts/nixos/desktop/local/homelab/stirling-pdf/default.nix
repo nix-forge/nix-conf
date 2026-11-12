@@ -38,6 +38,7 @@ in
       SYSTEM_TEMPFILEMANAGEMENT_CLEANUPINTERVALMINUTES = 15;
       SYSTEMFILEUPLOADLIMIT = "100MB";
       STIRLING_BILLING_ACCOUNT_LINK_ENABLED = false;
+      AIENGINE_ENABLED = false;
       AIENGINE_CLOUDDOCUMENTINDEXING = false;
       SPRINGDOC_API_DOCS_ENABLED = false;
       SPRINGDOC_SWAGGER_UI_ENABLED = false;
@@ -120,8 +121,8 @@ in
       message = "The desktop Stirling PDF service must keep login enabled and listen only on loopback.";
     }
     {
-      assertion = port != config.homelab.optional.reactflux.port;
-      message = "Stirling PDF and the news frontend must use different loopback ports.";
+      assertion = config.services.miniflux.config.LISTEN_ADDR != "127.0.0.1:${toString port}";
+      message = "Stirling PDF and Miniflux must use different loopback ports.";
     }
   ];
 }

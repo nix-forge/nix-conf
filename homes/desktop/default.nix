@@ -44,7 +44,6 @@
     cli-nh
     cli-pandoc
     cli-pdf
-    cli-remindctl
     cli-ripgrep
 
     shells-aliases
@@ -83,7 +82,6 @@
     mpv
     moonfin
     feishin
-    libreoffice
 
     stylix
     stylix-targets-zen-browser
@@ -93,7 +91,7 @@
     zoom
     spotify
     bitwarden
-    darktable
+    lightcraft
     prismlauncher
 
   ];

@@ -7,6 +7,7 @@
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   cfg = config.programs.linearmouse;
+  schemaSource = import ./linearmouse-assets/schema-source.nix;
   jsonFormat = pkgs.formats.json { };
   appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/LinearMouse.app";
   legacyConfigFile = "${config.home.homeDirectory}/Library/Application Support/linearmouse/linearmouse.json";
@@ -57,18 +58,20 @@ in
     settingsSchema = lib.mkOption {
       type = lib.types.path;
       default =
-        if
-          cfg.package ? configurationSchema
-          && (cfg.package.configurationSchemaVersion or null) == lib.getVersion cfg.package
-        then
-          cfg.package.configurationSchema
+        if cfg.package ? configurationSchema then
+          if (cfg.package.configurationSchemaVersion or null) == lib.getVersion cfg.package then
+            cfg.package.configurationSchema
+          else
+            throw "programs.linearmouse: the selected package schema version does not match"
+        else if lib.getVersion cfg.package == schemaSource.version then
+          pkgs.fetchurl schemaSource.src
         else
-          throw "programs.linearmouse: the selected package must provide a matching configurationSchema or settingsSchema must be set explicitly";
-      defaultText = lib.literalExpression "config.programs.linearmouse.package.configurationSchema";
+          throw "programs.linearmouse: review the schema for the selected upstream version or set settingsSchema explicitly";
+      defaultText = lib.literalExpression "the version-matched upstream configuration schema";
       description = ''
         Pinned, self-contained JSON Schema for the selected LinearMouse version.
-        The nixpkgs-personal package supplies the matching schema. Override this
-        explicitly when selecting another package without matching schema metadata.
+        The module pins the matching schema independently of the upstream package.
+        Override this explicitly when selecting a different application version.
         Generated settings must validate against this schema before installation.
         External schema references are rejected so validation remains offline.
       '';

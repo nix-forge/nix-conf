@@ -184,7 +184,6 @@ app_rules = [
   { app_id = "com.apple.Pages", workspace = "D", focus = false },
   { app_id = "com.apple.Numbers", workspace = "D", focus = false },
   { app_id = "com.apple.Keynote", workspace = "D", focus = false },
-  { app_id = "org.libreoffice.script", workspace = "D", focus = false },
   { app_id = "com.apple.TextEdit", workspace = "D", focus = false },
 
   { app_id = "com.spotify.client", workspace = "M", focus = false },
@@ -202,7 +201,6 @@ app_rules = [
   { app_id = "com.apple.iBooksX", workspace = "N", focus = false },
   { app_id = "com.apple.news", workspace = "N", focus = false },
 
-  { app_id = "org.darktable", workspace = "P", focus = false },
   { app_id = "com.apple.Photos", workspace = "P", focus = false },
   { app_id = "com.apple.Image_Capture", workspace = "P", focus = false },
   { app_id = "com.apple.PhotoBooth", workspace = "P", focus = false },
