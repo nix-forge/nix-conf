@@ -1,20 +1,13 @@
-name: Upstream consumer qualification
+name: Recovered root qualification
 on:
   workflow_dispatch:
-    inputs:
-      scope:
-        description: Qualify all consumers or retry only the repaired BookOrbit service.
-        type: choice
-        default: all
-        options: [all, bookorbit, migration, metadata]
 permissions: {}
 concurrency:
-  group: upstream-consumers-${{ github.ref }}-${{ inputs.scope }}
+  group: recovered-root-qualification
   cancel-in-progress: false
 jobs:
-  consumers:
-    if: inputs.scope == 'all' || inputs.scope == 'migration'
-    name: Consumer contracts and hooks
+  recovered:
+    name: Recovered source formatting and behavior
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -22,140 +15,72 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ac25d4952fcc432a49a838fd3ba4e48a913fd00b
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
-      - name: Freeze source identity and refresh path input hashes
+      - name: Capture the exact source and formatter changes
         run: |
-          mkdir receipt
-          git rev-parse HEAD > receipt/source.txt
-          git submodule status --recursive >> receipt/source.txt
-          nix flake lock
-          cp flake.lock receipt/flake.lock
-      - name: Exercise vanilla integration and token owner behavior
-        if: ${{ !cancelled() }}
+          mkdir -p .scratch/recovered-receipt
+          git rev-parse HEAD > .scratch/recovered-receipt/source.txt
+          git submodule status --recursive >> .scratch/recovered-receipt/source.txt
+          nix fmt -- --no-cache --tree-root "$PWD"
+      - name: Exercise recovered operational behavior
+        if: "!cancelled()"
         run: |
           nix develop .#tests --command pytest -q \
-            tests/homelab/music/test_bootstrap_aurral.py \
-            tests/homelab/music/test_listenbrainz_identity.py
-      - name: Build affected generated configuration contracts
-        if: ${{ !cancelled() }}
+            tests/storage tests/workstation tests/codex tests/dictation tests/vscode
+      - name: Build focused generated interface contracts
+        if: "!cancelled()"
         run: |
           nix build --no-link -L \
+            .#checks.x86_64-linux.vscode-configuration \
+            .#checks.x86_64-linux.agent-skills \
+            .#checks.x86_64-linux.t3code \
             .#checks.x86_64-linux.codex-home \
-            .#checks.x86_64-linux.module-independence \
-            .#checks.x86_64-linux.linearmouse-config \
-            .#checks.x86_64-linux.linearmouse-invalid-config \
-            .#checks.x86_64-linux.linearmouse-external-schema \
-            .#checks.x86_64-linux.temporary-package-fixes
-      - name: Check repository hooks
-        if: ${{ !cancelled() }}
+            .#checks.x86_64-linux.module-independence
+      - name: Check all repository hooks
+        if: "!cancelled()"
         run: nix develop .#ci --command prek run --all-files --show-diff-on-failure
-      - name: Record formatter edits and refreshed lock
+      - name: Record final changes
         if: always()
-        run: |
-          mkdir -p receipt
-          git diff --binary > receipt/qualification.patch
-          cp flake.lock receipt/flake.lock
+        run: git diff --binary > .scratch/recovered-receipt/formatting.patch
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: upstream-consumer-receipt
-          path: receipt
-  linearmouse:
-    if: inputs.scope == 'all' || inputs.scope == 'migration'
-    name: Unmodified upstream LinearMouse signature
+          name: recovered-root-receipt
+          path: .scratch/recovered-receipt
+          include-hidden-files: true
+  handy:
+    name: Unmodified proposed Handy strict Apple signature
     runs-on: macos-26
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+        with:
+          cache: 'false'
+      - name: Verify the unmodified application before retiring its repair
+        run: |
+          out=$(nix build --no-link --print-out-paths -L \
+            github:NixOS/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396#handy)
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$out/Applications/Handy.app"
+  nvidia:
+    name: Unmodified proposed NVIDIA loader
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-          fetch-depth: 0
-          persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
-      - name: Build and strictly verify the upstream extraction repair
+      - name: Exercise the actual unpatched ELF loader without a GPU
         run: |
-          out=$(nix build --no-link --print-out-paths -L \
-            .#checks.aarch64-darwin.linearmouse-artifact)
-          test -d "$out/Applications/LinearMouse.app"
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "$out/Applications/LinearMouse.app"
-  bookorbit:
-    if: inputs.scope == 'all' || inputs.scope == 'bookorbit'
-    name: Upstream BookOrbit native recovery VM
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
-        with:
-          cache: 'false'
-      - name: Build and exercise startup, restart and restored database
-        run: nix build --no-link -L ./nix-homelab#checks.x86_64-linux.bookorbit-native-recovery
-  aurral:
-    if: inputs.scope == 'all'
-    name: Upstream Aurral (${{ matrix.system }})
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - system: x86_64-linux
-            runner: ubuntu-24.04
-          - system: aarch64-linux
-            runner: ubuntu-24.04-arm
-    steps:
-      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
-        with:
-          cache: 'false'
-      - name: Build official application with original upstream test suites
-        run: nix build --no-link -L github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0#aurral
-      - name: Exercise upstream service startup and HTTP health
-        if: matrix.system == 'x86_64-linux'
-        run: |
-          nix build --no-link -L --impure --expr \
-            'let pkgs = import
-              (builtins.getFlake "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0")
-              { system = builtins.currentSystem; };
-            in pkgs.nixosTests.aurral'
-  metadata:
-    if: inputs.scope == 'metadata'
-    name: Freeze merged personal package input
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
-        with:
-          cache: 'false'
-      - name: Lock the immutable merged collection
-        working-directory: nix-homelab
-        run: |
-          nix flake lock --override-input nixpkgs-personal github:nix-forge/nixpkgs-personal/53a39abbdb9f6455af81b2a694b2beeefc9a1165
-          python3 -c 'import json,pathlib; p=pathlib.Path("flake.lock"); v=json.loads(p.read_text()); v["nodes"]["nixpkgs-personal"]["original"]={"owner":"nix-forge","repo":"nixpkgs-personal","type":"github"}; p.write_text(json.dumps(v,indent=2)+"\n")'
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: merged-personal-homelab-lock
-          path: nix-homelab/flake.lock
+          out=$(nix build --no-link --print-out-paths -L --impure --expr \
+            'let p = import (builtins.getFlake "github:NixOS/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396") { system = builtins.currentSystem; config.allowUnfree = true; }; in p.linuxPackages.nvidiaPackages.production.bin')
+          "$out/bin/nvidia-smi" --help
