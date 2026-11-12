@@ -6,7 +6,7 @@ on:
         description: Recheck repaired probes without repeating the active Handy proof.
         type: choice
         default: all
-        options: [all, repairs]
+        options: [all, repairs, preflight]
 permissions: {}
 concurrency:
   group: reviewed-root-inputs-${{ inputs.scope }}
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
+          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -42,9 +42,11 @@ jobs:
             tests/workstation/test_workstation_memory.py \
             tests/hyprland/test_upstream_local_runner.py
       - name: Evaluate the complete desktop configuration without building it
-        run: nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath
+        run: |
+          nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath
+          nix eval --raw .#checks.x86_64-linux.book-discovery.drvPath
       - name: Verify all guarded interfaces and retired-fix behavior
-        if: "!cancelled()"
+        if: inputs.scope != 'preflight' && !cancelled()
         run: |
           nix build --no-link -L \
             .#checks.x86_64-linux.temporary-package-fixes \
@@ -71,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
+          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
@@ -84,6 +86,7 @@ jobs:
           export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
           nix develop .#tests --command python3 tests/macos/test_handy_signature.py
   actual:
+    if: inputs.scope != 'preflight'
     name: Unmodified upstream Actual installed log privacy
     runs-on: macos-26
     timeout-minutes: 90
@@ -92,7 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: b08fdb6357ef0871f1cb2a289221cecc01e8896e
+          ref: fef3b1ab8108354cfa5b132da4872f8849a974de
           submodules: recursive
           fetch-depth: 0
           persist-credentials: false
