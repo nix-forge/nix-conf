@@ -392,7 +392,8 @@ in
       } /run/aurral-listenbrainz-identity/validated.json";
       TimeoutStartSec = "30s";
       NoNewPrivileges = true;
-      CapabilityBoundingSet = [ ];
+      CapabilityBoundingSet = "";
+      AmbientCapabilities = "";
       ProtectSystem = "strict";
       ProtectHome = true;
       PrivateTmp = true;
