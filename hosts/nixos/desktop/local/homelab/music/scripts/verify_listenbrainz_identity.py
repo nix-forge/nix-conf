@@ -58,7 +58,7 @@ def verify(credentials: Path, receipt: Path) -> None:
 
     """
     receipt.unlink(missing_ok=True)
-    identity = json.loads(credentials.read_text())
+    identity = json.loads(credentials.read_text(encoding="utf-8"))
     token = str(identity.get("token") or "").strip()
     username = str(identity.get("listenbrainzUsername") or "").strip()
     if not token:

@@ -259,7 +259,7 @@ including the `.github` repository's GitHub tree.
 | `hypridle.conf.in` | [Idle module](../../modules/home/desktop/idle.nix), using `lib.hm.generators.toHyprconf` with ordered listener blocks. |
 | `hyprpaper.conf.in` and `hyprpaper-wallpaper-entry.conf.in` | [Wallpaper module](../../modules/home/desktop/wallpaper.nix), using the same generator with repeated monitor blocks. |
 | `cliphist.conf.in` | [Clipboard module](../../modules/home/desktop/clipboard.nix), using `lib.generators.toKeyValue` with the application's space separator. |
-| `darktable-Info.plist.in` | [Darktable module](../../modules/home/darktable.nix), using `pkgs.formats.plist` and a native boolean for Retina support. |
+| `darktable-Info.plist.in` | [Darktable module](https://github.com/nix-forge/nix-conf/blob/7e18d0ccf5b298df272e7255a9974d57257d9933/modules/home/darktable.nix), using `pkgs.formats.plist` and a native boolean for Retina support. |
 | `languagetool-http-server.properties.in` | [LibreOffice module](../../modules/home/libreoffice.nix), using `pkgs.formats.javaProperties` for LanguageTool's numeric settings. |
 | `walker-config.toml.in` | Initially renamed to literal TOML. The writer follow-up below replaces it with [Nix settings](../../modules/home/desktop/walker.nix), TOML generation without a locally maintained schema. |
 

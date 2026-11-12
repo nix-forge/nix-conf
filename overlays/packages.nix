@@ -99,3 +99,7 @@ in
 }
 
 // upstreamSelections
+
+// pkgs.lib.optionalAttrs (isDarwin && upstreamSelections ? linearmouse) {
+  linearmouse = fixes.apply "linearmouse-apfs-streams" upstreamSelections.linearmouse;
+}

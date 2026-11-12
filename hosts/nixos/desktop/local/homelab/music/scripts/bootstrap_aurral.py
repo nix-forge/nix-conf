@@ -312,7 +312,12 @@ def slskd_api_key() -> str:
 def configure_lidarr_connection(
     api_key: str, music_root: str, current: dict, auth: Mapping[str, str]
 ) -> dict:
-    """Apply vanilla Aurral's authenticated integration contract after onboarding."""
+    """Apply vanilla Aurral's authenticated integration contract after onboarding.
+
+    Returns:
+        Existing options merged with the confirmed connection settings.
+
+    """
     roots = current.get("rootFolderPaths") or []
     desired = {
         "url": LIDARR,
@@ -379,7 +384,7 @@ def configure_listenbrainz_scrobbling(
     receipt_path = os.environ.get("LISTENBRAINZ_IDENTITY_RECEIPT")
     if not receipt_path:
         raise RuntimeError("ListenBrainz verification receipt is missing")
-    receipt = json.loads(pathlib.Path(receipt_path).read_text())
+    receipt = json.loads(pathlib.Path(receipt_path).read_text(encoding="utf-8"))
     if receipt.get("username") != username or receipt.get("fingerprint") != fingerprint:
         raise RuntimeError(
             "ListenBrainz verification receipt does not match the configured identity"

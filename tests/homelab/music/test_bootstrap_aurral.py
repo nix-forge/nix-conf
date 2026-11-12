@@ -190,16 +190,16 @@ def test_first_run_creates_admin_and_links_personal_history(
                 }
             if "lidarr" in payload["integrations"]:
                 desired = payload["integrations"]["lidarr"]
-                assert desired["url"] == module.LIDARR
-                assert desired["apiKey"] == "sealed-key"
-                assert desired["enabled"] is True
-                assert desired["qualityProfileId"] == 8
-                assert desired["metadataProfileId"] == 3
-                assert desired["rootFolderPaths"] == [str(module.MUSIC_ROOT)]
-                assert desired["searchOnAdd"] == (not custom_policy)
-                assert desired["defaultMonitorOption"] == (
-                    "all" if custom_policy else "future"
-                )
+                assert desired == {
+                    "url": module.LIDARR,
+                    "apiKey": "sealed-key",
+                    "enabled": True,
+                    "qualityProfileId": 8,
+                    "metadataProfileId": 3,
+                    "rootFolderPaths": [str(module.MUSIC_ROOT)],
+                    "searchOnAdd": not custom_policy,
+                    "defaultMonitorOption": "all" if custom_policy else "future",
+                }
                 lidarr_state.update(desired)
                 return {"success": True}
             assert payload["integrations"]["slskd"] == {
