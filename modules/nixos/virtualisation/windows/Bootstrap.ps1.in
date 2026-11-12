@@ -183,7 +183,7 @@ function Install-VirtioDriver {
         Invoke-CheckedProcess -FilePath $balloonExecutable -ArgumentList @('-i')
         $balloonService = Get-CimInstance Win32_Service -Filter "Name='BalloonService'" -ErrorAction SilentlyContinue
     }
-    if ($null -eq $balloonService -or $balloonService.PathName.Trim('"') -ine $balloonExecutable) {
+    if ($null -eq $balloonService -or $balloonService.PathName.Trim('"') -ne $balloonExecutable) {
         throw 'BalloonService is missing or belongs to another installation; refusing to replace it'
     }
     Set-Service -Name 'BalloonService' -StartupType Automatic
