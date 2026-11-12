@@ -53,9 +53,11 @@ jobs:
             tests/hyprland/test_upstream_local_runner.py
       - name: Evaluate the complete desktop configuration without building it
         run: |
-          nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath
-          nix eval --raw .#checks.x86_64-linux.book-discovery.drvPath
-          test "$(nix eval --json .#nixosConfigurations.raspberry-pi.config.boot.initrd.systemd.enable)" = true
+          nix eval --raw .#nixosConfigurations.desktop.config.system.build.toplevel.drvPath > .scratch/input-receipt/desktop.drv
+          nix eval --raw .#checks.x86_64-linux.book-discovery.drvPath > .scratch/input-receipt/book-policy.drv
+          nix eval --json .#nixosConfigurations.raspberry-pi.config.system.nixos.release > .scratch/input-receipt/pi-release.json
+          nix eval --raw .#nixosConfigurations.raspberry-pi.config.system.build.initialRamdisk.drvPath > .scratch/input-receipt/pi-initrd.drv
+          test "$(nix eval --json .#nixosConfigurations.raspberry-pi.config.boot.initrd.systemd.emergencyAccess)" = false
       - name: Verify all guarded interfaces and retired-fix behavior
         if: inputs.scope != 'preflight' && !cancelled()
         run: |
