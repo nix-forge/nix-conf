@@ -11,6 +11,7 @@
     "hyprland-subsurface-lifetime": 64,
     "jellyfin-plugin-compatibility": 16,
     "native-application-services": 4,
+    "navidrome-plugins": 16,
     "nixos-configuration-desktop": 16,
     "public-guide-recipes": 3,
     "python-tests": 6,
