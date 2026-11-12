@@ -6,14 +6,14 @@ on:
         description: Qualify all consumers or retry only the repaired BookOrbit service.
         type: choice
         default: all
-        options: [all, bookorbit]
+        options: [all, bookorbit, migration]
 permissions: {}
 concurrency:
   group: upstream-consumers-${{ github.ref }}-${{ inputs.scope }}
   cancel-in-progress: false
 jobs:
   consumers:
-    if: inputs.scope == 'all'
+    if: inputs.scope == 'all' || inputs.scope == 'migration'
     name: Consumer contracts and hooks
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -66,23 +66,29 @@ jobs:
           name: upstream-consumer-receipt
           path: receipt
   linearmouse:
-    if: inputs.scope == 'all'
+    if: inputs.scope == 'all' || inputs.scope == 'migration'
     name: Unmodified upstream LinearMouse signature
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           cache: 'false'
-      - name: Build and strictly verify the official application
+      - name: Build and strictly verify the upstream extraction repair
         run: |
           out=$(nix build --no-link --print-out-paths -L \
-            github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0#linearmouse)
+            .#checks.aarch64-darwin.linearmouse-artifact)
           test -d "$out/Applications/LinearMouse.app"
           /usr/bin/codesign --verify --deep --strict --verbose=2 "$out/Applications/LinearMouse.app"
   bookorbit:
+    if: inputs.scope == 'all' || inputs.scope == 'bookorbit'
     name: Upstream BookOrbit native recovery VM
     runs-on: ubuntu-24.04
     timeout-minutes: 120
