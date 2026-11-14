@@ -17,7 +17,7 @@ jobs:
       - uses: DeterminateSystems/determinate-nix-action@4d65ea9cab522b6d9f29a170aed23ededc1b27af
         with:
           extra-conf: |
-            extra-experimental-features = auto-allocate-uids
+            extra-experimental-features = auto-allocate-uids cgroups
             auto-allocate-uids = true
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55
       - name: Record immutable source
