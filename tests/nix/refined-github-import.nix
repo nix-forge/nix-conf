@@ -16,8 +16,13 @@ let
   ruleFile = pkgs.writeText "refined-github-import.conf" (lib.concatStringsSep "\n" rules + "\n");
 in
 assert !disabled.condition;
-pkgs.runCommand "refined-github-import" { } ''
-  ${lib.getExe pkgs.python3} ${../secrets/check_refined_github_import.py} \
-    --rules ${ruleFile} --tmpfiles ${lib.getExe' pkgs.systemd "systemd-tmpfiles"}
-  touch "$out"
-''
+pkgs.runCommand "refined-github-import" {
+  # A real namespace root avoids Nix's unmapped-owner / → /build transition.
+  # Drop to an ordinary user before exercising systemd's unchanged path checks.
+  requiredSystemFeatures = [ "uid-range" ];
+  SETPRIV = lib.getExe' pkgs.util-linux "setpriv";
+  PYTHON = lib.getExe pkgs.python3;
+  CHECK = ../secrets/check_refined_github_import.py;
+  RULES = ruleFile;
+  TMPFILES = lib.getExe' pkgs.systemd "systemd-tmpfiles";
+} (builtins.readFile ../secrets/run-refined-github-import.sh)

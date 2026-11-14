@@ -15,6 +15,7 @@ PRIVATE_FILE_MODE = 0o400
 
 def check(rules: Path, tmpfiles: str) -> None:
     """Exercise creation, generation changes and reboot recreation."""
+    assert os.getuid() != 0, "The import fixture must run as an ordinary user"
     with tempfile.TemporaryDirectory(prefix="refined-import-") as temporary:
         runtime = Path(temporary)
         sealed = runtime / "sealed fixture"
@@ -29,14 +30,28 @@ def check(rules: Path, tmpfiles: str) -> None:
         current.symlink_to("generation-1")
         alias = sealed / "refined-github-token-import.json"
         assert not alias.exists(), "The original missing-path failure must reproduce"
-        environment = os.environ | {"XDG_RUNTIME_DIR": str(runtime)}
+        environment = os.environ | {
+            "XDG_RUNTIME_DIR": str(runtime),
+            "SYSTEMD_LOG_TARGET": "console",
+            "SYSTEMD_LOG_LEVEL": "debug",
+            "SYSTEMD_LOG_COLOR": "0",
+        }
 
         def create() -> None:
-            subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Argument vector, synthetic fixture, no shell.
-                [tmpfiles, "--user", "--create", str(rules)],
-                env=environment,
-                check=True,
-            )
+            try:
+                subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Argument vector, synthetic fixture, no shell.
+                    [tmpfiles, "--user", "--create", str(rules)],
+                    env=environment,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except subprocess.CalledProcessError as error:
+                error.add_note(
+                    f"Synthetic rules: {rules.read_text(encoding='utf-8')!r}"
+                )
+                error.add_note(f"stdout={error.stdout!r}; stderr={error.stderr!r}")
+                raise
 
         create()
         assert alias.is_symlink(), "The import must not duplicate plaintext"

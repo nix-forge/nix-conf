@@ -7,7 +7,7 @@
       patchedHyprland =
         (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
           hyprlandPackages.hyprland;
-      # Keep upstream gtests confined to native VM check packages.
+      # Keep upstream gtests confined to native regression check packages.
       roundingHyprland =
         (configurationPkgs.extend (import ../../overlays { inherit inputs; })).hyprland.override
           { withTests = true; };
@@ -21,6 +21,13 @@
             hyprlandPackages.hyprland
         ).override
           { withTests = true; };
+      nativeRoundingTests =
+        name: package:
+        assert package.withTests;
+        pkgs.runCommand name {
+          nativeBuildInputs = [ pkgs.gnugrep ];
+          HYPRLAND_GTESTS = "${package}/bin/hyprland_gtests";
+        } (builtins.readFile ../../tests/hyprland/scripts/check-native-gtests.sh);
       determinatePackage = import ../../tests/nix/determinate-module.nix {
         pkgs = configurationPkgs;
         inherit inputs;
@@ -77,6 +84,17 @@
             == inputs.hyprland.packages.x86_64-linux.xdg-desktop-portal-hyprland.drvPath;
           assert hyprlandPackages.xdg-desktop-portal-hyprland.stdenv.cc.isGNU;
           hyprlandPackages.xdg-desktop-portal-hyprland;
+        sentry-crashpad-lock = builtins.seq determinatePackage (
+          (import ../../tests/nix/sentry/crashpad-lock.nix { inherit (pkgs) python3; }) sentryPackage
+        );
+      }
+      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
+        # Hosted ARM runners have no KVM. Preserve native builds and upstream
+        # gtests here; the renderer VMs below run on the KVM-capable desktop ISA.
+        hyprland-subsurface-rounding-build = nativeRoundingTests "hyprland-rounding-native" roundingHyprland;
+        hyprland-subsurface-rounding-baseline-build = nativeRoundingTests "hyprland-rounding-baseline-native" roundingBaseline;
+      }
+      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
         hyprland-subsurface-rounding = import ../../tests/hyprland/subsurface-rounding-vm.nix {
           inherit pkgs;
           hyprland =
@@ -90,11 +108,6 @@
             assert roundingBaseline.withTests;
             roundingBaseline;
         };
-        sentry-crashpad-lock = builtins.seq determinatePackage (
-          (import ../../tests/nix/sentry/crashpad-lock.nix { inherit (pkgs) python3; }) sentryPackage
-        );
-      }
-      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
         jellyfin-plugin-compatibility = import ../../tests/nix/jellyfin-plugins.nix {
           inherit pkgs;
           desktop = self.nixosConfigurations.desktop;
