@@ -21,7 +21,7 @@ jobs:
         run: |
           nix build --option sandbox true --no-link --print-build-logs --impure --expr '
             let
-              flake = builtins.getFlake ("git+file://" + builtins.getEnv "PWD" + "?submodules=1&rev=afb0d46dd92b95a8e0a75375812b374d75167b27");
+              flake = builtins.getFlake ("git+file://" + builtins.getEnv "PWD" + "?shallow=1&submodules=1&rev=afb0d46dd92b95a8e0a75375812b374d75167b27");
             in flake.checks.x86_64-linux.refined-github-import.overrideAttrs {
               SYSTEMD_LOG_TARGET = "console";
               SYSTEMD_LOG_LEVEL = "debug";
