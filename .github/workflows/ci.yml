@@ -17,14 +17,34 @@ jobs:
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55
       - name: Record immutable source
         run: git rev-parse HEAD
-      - name: Run only the import fixture with systemd diagnostics
+      - name: Capture exact systemd diagnostics from the original fixture
         run: |
-          nix build --option sandbox true --no-link --print-build-logs --impure --expr '
-            let
-              flake = builtins.getFlake ("git+file://" + builtins.getEnv "PWD" + "?shallow=1&submodules=1&rev=afb0d46dd92b95a8e0a75375812b374d75167b27");
-            in flake.checks.x86_64-linux.refined-github-import.overrideAttrs {
-              SYSTEMD_LOG_TARGET = "console";
-              SYSTEMD_LOG_LEVEL = "debug";
-              SYSTEMD_LOG_COLOR = "0";
-            }
-          '
+          cat > /tmp/refined-diagnostic.nix <<'NIX'
+          let
+            flake = builtins.getFlake ("git+file://" + builtins.getEnv "PWD" + "?shallow=1&submodules=1&rev=afb0d46dd92b95a8e0a75375812b374d75167b27");
+            pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux;
+            wrapper = pkgs.writeText "capture-tmpfiles.py" ''
+              import runpy, subprocess, sys
+              from pathlib import Path
+              original_run = subprocess.run
+              def capture(*args, **kwargs):
+                  kwargs.update(capture_output=True, text=True, check=False)
+                  result = original_run(*args, **kwargs)
+                  print("COMMAND", repr(args), "STDOUT", repr(result.stdout), "STDERR", repr(result.stderr), flush=True)
+                  result.check_returncode()
+                  return result
+              subprocess.run = capture
+              sys.argv = sys.argv[1:]
+              print("RULES", repr(Path(sys.argv[2]).read_text()), flush=True)
+              runpy.run_path(sys.argv[0], run_name="__main__")
+            '';
+          in flake.checks.x86_64-linux.refined-github-import.overrideAttrs (old: {
+            SYSTEMD_LOG_TARGET = "console";
+            SYSTEMD_LOG_LEVEL = "debug";
+            SYSTEMD_LOG_COLOR = "0";
+            buildCommand = builtins.replaceStrings
+              [ "${pkgs.lib.getExe pkgs.python3} " ]
+              [ "${pkgs.lib.getExe pkgs.python3} ${wrapper} " ] old.buildCommand;
+          })
+          NIX
+          nix build --option sandbox true --no-link --print-build-logs --impure --file /tmp/refined-diagnostic.nix
