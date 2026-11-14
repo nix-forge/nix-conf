@@ -1,4 +1,4 @@
-name: REA upstream cache availability
+name: REA upstream cache substitution
 on:
   workflow_dispatch:
 permissions: {}
@@ -38,4 +38,17 @@ jobs:
             cache_hash=${cache_hash%%-*}
             curl --fail --silent --show-error "https://cache.nixos.org/$cache_hash.narinfo" > "$system.narinfo"
             grep -E '^(StorePath|NarHash|Sig):' "$system.narinfo"
+            # Refuse compilation and remote builders: only trusted-cache substitution can pass.
+            cached_node=$(nix build --impure --no-link --print-out-paths --max-jobs 0 \
+              --option builders '' --option substituters https://cache.nixos.org \
+              --option require-sigs true --expr '
+                let
+                  flake = builtins.getFlake ("git+file://" + builtins.getEnv "PWD" + "?submodules=1&rev=2c7c56eb5a1d3078ef4e31bb2a22509bff2504bc");
+                  pkgs = import flake.inputs.nixpkgs-apps { system = builtins.getEnv "CACHE_PROBE_SYSTEM"; };
+                in pkgs.nodejs_24')
+            test "$cached_node" = "$node_path"
+            echo "SIGNATURE_VERIFIED_SUBSTITUTION=$system:$cached_node"
+            if [[ $system == x86_64-linux ]]; then
+              "$cached_node/bin/node" -p 'JSON.stringify({node:process.versions.node,brotli:process.versions.brotli})'
+            fi
           done
