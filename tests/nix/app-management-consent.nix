@@ -66,6 +66,8 @@ pkgs.runCommand "darwin-app-management-consent"
     APP_MANAGEMENT_BASH = lib.getExe pkgs.bash;
   }
   ''
-    pytest --override-ini addopts= -q ${../macos/test_app_management_consent.py}
+    cp ${../macos/test_app_management_consent.py} ./test_app_management_consent.py
+    pytest --rootdir="$PWD" --confcutdir="$PWD" \
+      --override-ini addopts= -q ./test_app_management_consent.py
     touch "$out"
   ''

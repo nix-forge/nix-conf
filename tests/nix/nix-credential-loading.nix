@@ -15,9 +15,12 @@ let
     };
     config.nixSeal.templates.nix-access-tokens.path = path;
   };
-  system = inputs.nixpkgs.lib.nixosSystem {
+  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
+  evaluateSystem =
+    if isDarwin then inputs.nix-darwin.lib.darwinSystem else inputs.nixpkgs.lib.nixosSystem;
+  system = evaluateSystem {
     modules = [
-      modules.nixos
+      (if isDarwin then modules.darwin else modules.nixos)
       (fixture secretPath)
       {
         nixpkgs.pkgs = pkgs;
@@ -28,7 +31,7 @@ let
             max-free = 268435456000;
           };
         };
-        system.stateVersion = "26.05";
+        system.stateVersion = if isDarwin then 6 else "26.05";
       }
     ];
   };
@@ -42,7 +45,7 @@ let
         {
           home = {
             username = "fixture";
-            homeDirectory = "/home/fixture";
+            homeDirectory = if isDarwin then "/Users/fixture" else "/home/fixture";
             stateVersion = "25.05";
           };
           nix = {
@@ -59,8 +62,12 @@ let
 in
 assert !(lib.hasInfix secretPath system.config.nix.extraOptions);
 assert
-  system.config.systemd.services.nix-daemon.environment.NIX_USER_CONF_FILES
-  == "/root/.config/nix/nix.conf";
+  if isDarwin then
+    lib.hasInfix "/var/root" system.config.system.activationScripts.postActivation.text
+    && lib.hasInfix (toString script) system.config.system.activationScripts.postActivation.text
+  else
+    system.config.systemd.services.nix-daemon.environment.NIX_USER_CONF_FILES
+    == "/root/.config/nix/nix.conf";
 assert lib.hasInfix userSecretPath nullHome.xdg.configFile."nix/nix.conf".text;
 assert lib.hasInfix userSecretPath ordinaryHome.nix.extraOptions;
 (pkgs.runCommand "nix-credential-loading"

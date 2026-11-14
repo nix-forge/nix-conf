@@ -656,10 +656,11 @@ jobs:
             echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
           } >>"${GITHUB_STEP_SUMMARY}"
       - name: Build assigned native CI checks
+        # Darwin needs declared native profiles (Node/FSEvents); Linux stays strict.
         # Fixed upstream cache policy, downloading without publication credentials.
         env:
           NIX_CONFIG: |
-            sandbox = true
+            sandbox = ${{ runner.os == 'macOS' && 'relaxed' || 'true' }}
             sandbox-fallback = false
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
