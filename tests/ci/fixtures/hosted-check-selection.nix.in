@@ -10,6 +10,7 @@ let
         outPath = builtins.toFile "ci-inventory-nixpkgs.nix" ''
           _: {
             deploy-rs.lib.deployChecks = _: { darwin-deployment-check = null; };
+            linkFarm = name: entries: { inherit name entries; };
           }
         '';
       };
@@ -30,6 +31,8 @@ let
       };
       checks = {
         x86_64-linux = {
+          desktop-workload = "/fixture/desktop-workload";
+          nix-credential-loading = "/fixture/nix-credential-loading";
           cache-policy = null;
           application-recovery = null;
           desktop-authentication = null;
@@ -70,4 +73,7 @@ let
     };
   };
 in
-builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks
+{
+  inventory = builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks;
+  sharedRuntime = fixture.flake.ciChecks.x86_64-linux.determinate-runtime-consumers;
+}

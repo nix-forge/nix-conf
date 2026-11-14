@@ -30,10 +30,11 @@ class CIInventoryTests(unittest.TestCase):
             )
         )
         self.assertEqual(
-            result,
+            result["inventory"],
             {
                 "x86_64-linux": [
                     "cache-policy",
+                    "determinate-runtime-consumers",
                     "git-email-privacy",
                     "newly-added",
                     "ordinary",
@@ -46,6 +47,20 @@ class CIInventoryTests(unittest.TestCase):
                     "python-tests",
                 ],
                 "aarch64-linux": ["ordinary"],
+            },
+        )
+
+        self.assertEqual(
+            result["sharedRuntime"],
+            {
+                "name": "determinate-runtime-consumers",
+                "entries": [
+                    {"name": "desktop-workload", "path": "/fixture/desktop-workload"},
+                    {
+                        "name": "nix-credential-loading",
+                        "path": "/fixture/nix-credential-loading",
+                    },
+                ],
             },
         )
 
