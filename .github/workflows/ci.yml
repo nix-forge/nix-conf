@@ -43,9 +43,13 @@ jobs:
             SYSTEMD_LOG_TARGET = "console";
             SYSTEMD_LOG_LEVEL = "debug";
             SYSTEMD_LOG_COLOR = "0";
-            buildCommand = builtins.replaceStrings
+            buildCommand = ''
+              chmod 0711 "$TMPDIR"
+              mkdir -m 0700 "$TMPDIR/fixture-user"
+              chown 1000:1000 "$TMPDIR/fixture-user"
+            '' + builtins.replaceStrings
               [ "${pkgs.lib.getExe pkgs.python3} " ]
-              [ "${pkgs.lib.getExe pkgs.python3} ${wrapper} " ] old.buildCommand;
+              [ "TMPDIR=$TMPDIR/fixture-user HOME=$TMPDIR/fixture-user ${pkgs.lib.getExe' pkgs.util-linux "setpriv"} --reuid 1000 --regid 1000 --clear-groups -- ${pkgs.lib.getExe pkgs.python3} ${wrapper} " ] old.buildCommand;
           })
           NIX
           nix build --option sandbox true --no-link --print-build-logs --impure --file /tmp/refined-diagnostic.nix
