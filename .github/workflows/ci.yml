@@ -14,6 +14,11 @@ jobs:
           ref: afb0d46dd92b95a8e0a75375812b374d75167b27
           submodules: recursive
           persist-credentials: false
+      - uses: DeterminateSystems/determinate-nix-action@4d65ea9cab522b6d9f29a170aed23ededc1b27af
+        with:
+          extra-conf: |
+            extra-experimental-features = auto-allocate-uids
+            auto-allocate-uids = true
       - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55
       - name: Record immutable source
         run: git rev-parse HEAD
