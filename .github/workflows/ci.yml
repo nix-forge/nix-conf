@@ -39,6 +39,7 @@ jobs:
               runpy.run_path(sys.argv[0], run_name="__main__")
             '';
           in flake.checks.x86_64-linux.refined-github-import.overrideAttrs (old: {
+            requiredSystemFeatures = [ "uid-range" ];
             SYSTEMD_LOG_TARGET = "console";
             SYSTEMD_LOG_LEVEL = "debug";
             SYSTEMD_LOG_COLOR = "0";
