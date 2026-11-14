@@ -368,7 +368,7 @@ The 84 recipes in the reviewed snapshot are listed here; the Craft decisions are
 | [msdl-cli](../../pkgs/pkgs/by-name/ms/msdl-cli/package.nix) | 0 | Personal / Aurral |
 | [mutant-standard-emoji](../../pkgs/pkgs/by-name/mu/mutant-standard-emoji/package.nix) | 0 | Personal / Aurral |
 | [navidrome-plugin-audiomuseai-personal](../../pkgs/pkgs/by-name/na/navidrome-plugin-audiomuseai-personal/package.nix) | 0 | Personal / Aurral |
-| [nd-lyrics](../../pkgs/pkgs/by-name/nd/nd-lyrics/package.nix) | 0 | Personal / Aurral |
+| [nd-lyrics](https://github.com/nix-forge/nixpkgs-personal/blob/9480e8289a212b9f0979b8a0983dd85c8a2cd1cc/pkgs/by-name/nd/nd-lyrics/package.nix) | 0 | Personal / Aurral |
 | [noctalia-dark-app-icons](../../pkgs/pkgs/by-name/no/noctalia-dark-app-icons/package.nix) | 0 | Personal / Aurral |
 | [noctalia-greeter-personal](../../pkgs/pkgs/by-name/no/noctalia-greeter-personal/package.nix) | 1 | Personal / Aurral |
 | [noctalia-personal](../../pkgs/pkgs/by-name/no/noctalia-personal/package.nix) | 6 | Personal / Aurral |
