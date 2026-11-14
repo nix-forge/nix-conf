@@ -91,13 +91,11 @@ done
 fingerprint=$(openssl x509 -in "$AFFECTED_CERTIFICATE" -noout -fingerprint -sha256 | cut -d= -f2)
 test "$fingerprint" = "$affected"
 openssl verify -no-CApath -no-CAstore -purpose any -CAfile "$AFFECTED_CERTIFICATE" "$AFFECTED_CERTIFICATE"
-for purpose in any sslserver; do
-  if openssl verify -no-CApath -no-CAstore -purpose "$purpose" -CAfile "$FILTERED_BUNDLE" "$AFFECTED_CERTIFICATE" >"$TMPDIR/affected-output" 2>&1; then
-    echo "The removed G3 root remains trusted for $purpose." >&2
-    exit 1
-  fi
-  grep -Eq 'self-signed certificate|unable to get local issuer certificate|certificate rejected' "$TMPDIR/affected-output"
-done
+if openssl verify -no-CApath -no-CAstore -purpose any -CAfile "$FILTERED_BUNDLE" "$AFFECTED_CERTIFICATE" >"$TMPDIR/affected-output" 2>&1; then
+  echo 'The removed G3 root remains trusted.' >&2
+  exit 1
+fi
+grep -Eq 'self-signed certificate|unable to get local issuer certificate|certificate rejected' "$TMPDIR/affected-output"
 
 # ISRG X1 and emSign G1 remain public roots in this NSS release. C1 and C3
 # are deliberately not positive controls: upstream removed those as well.
@@ -114,14 +112,14 @@ for fingerprint in "${controls[@]}"; do
   fi
   control=$(certificate_for_fingerprint "$TMPDIR/filtered" "$fingerprint")
   openssl x509 -in "$control" -out "$TMPDIR/control.pem"
+  # These targets are CA roots, not end-entity server certificates. Check
+  # anchor trust with purpose any; TLS rejection metadata is checked above.
   for bundle in "$BASE_BUNDLE" "$FILTERED_BUNDLE"; do
-    for purpose in any sslserver; do
-      if ! openssl verify -no-CApath -no-CAstore -purpose "$purpose" -CAfile "$bundle" "$TMPDIR/control.pem" >/dev/null 2>"$TMPDIR/control-error"; then
-        echo "An unaffected public root failed OpenSSL $purpose trust verification: $fingerprint" >&2
-        cat "$TMPDIR/control-error" >&2
-        exit 1
-      fi
-    done
+    if ! openssl verify -no-CApath -no-CAstore -purpose any -CAfile "$bundle" "$TMPDIR/control.pem" >/dev/null 2>"$TMPDIR/control-error"; then
+      echo "An unaffected public root failed OpenSSL trust verification: $fingerprint" >&2
+      cat "$TMPDIR/control-error" >&2
+      exit 1
+    fi
   done
 done
 test -s "$P11_SOURCE/ca-bundle.trust.p11-kit"
