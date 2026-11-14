@@ -973,6 +973,7 @@ jobs:
       - legacy-secret-manager-symbols
       - flake-lock
       - lint
+      - submodule-hooks
       - flake
       - guide-changes
       - public-guide
