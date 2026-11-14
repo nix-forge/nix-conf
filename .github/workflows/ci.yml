@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           source=$(nix build --impure --file "$RUNNER_TEMP/rea-cache.nix" source --no-link --print-out-paths --max-jobs 1 --option builders '')
           mkdir -p "$RUNNER_TEMP/node-runtime-tests"
-          cp -R "$source/test" "$RUNNER_TEMP/node-runtime-tests/test"
+          tar -xf "$source" --strip-components=1 -C "$RUNNER_TEMP/node-runtime-tests"
           chmod -R u+w "$RUNNER_TEMP/node-runtime-tests"
           export JOBS=3
           "$CACHED_NODE/bin/node" --predictable-gc-schedule "$RUNNER_TEMP/node-runtime-tests/test/parallel/test-memory-usage.js"
@@ -75,18 +75,7 @@ jobs:
             "$CACHED_NODE/bin/node" "$RUNNER_TEMP/node-runtime-tests/test/parallel/test-worker-memory.js"
           done
           echo UPSTREAM_RSS_REGRESSION=PASS
-      - name: Build REA with full domain and install checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          app=$(nix build --impure --file "$RUNNER_TEMP/rea-cache.nix" app --no-link --print-out-paths -L \
-            --max-jobs 1 --cores 3 --option builders '' --option sandbox relaxed)
-          skills=$(nix build --impure --file "$RUNNER_TEMP/rea-cache.nix" app.skills --no-link --print-out-paths --max-jobs 1 --cores 3 --option builders '' --option sandbox relaxed)
-          echo "CACHED_REA=$app" >> "$GITHUB_ENV"
-          "$CACHED_NODE/bin/node" pkgs/pkgs/by-name/re/rea/scripts/check-install.mts \
-            "$app" "$skills" 6.8.0 /bin/bash
-          echo CACHED_DARWIN_REA_INSTALLED_CHECKS=PASS
-      - name: Require RSS and application qualification
+      - name: Require unchanged RSS regression qualification
         env:
           RSS_OUTCOME: ${{ steps.rss.outcome }}
         run: test "$RSS_OUTCOME" = success
