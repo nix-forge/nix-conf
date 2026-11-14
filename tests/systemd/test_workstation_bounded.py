@@ -284,6 +284,8 @@ class BoundedTests(unittest.TestCase):
             + json.dumps(str(bash))
             + ') + "/bin/bash"; args = [ "-c" "echo bounded-proof > $out" ]; }'
         )
+        # VM registration includes unsigned local paths. Import only this known
+        # fixture closure into the disposable private store, never the daemon.
         command = (
             "set -euo pipefail\n"
             + shlex.join([
@@ -291,6 +293,7 @@ class BoundedTests(unittest.TestCase):
                 "--extra-experimental-features",
                 "read-only-local-store",
                 "copy",
+                "--no-check-sigs",
                 "--from",
                 "local?read-only=true",
                 "--to",
