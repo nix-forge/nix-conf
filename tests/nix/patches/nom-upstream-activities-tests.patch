@@ -1,0 +1,37 @@
+--- a/test/UnitTests.hs
++++ b/test/UnitTests.hs
+@@ -1,5 +1,8 @@
+ import Data.ByteString.Char8 qualified as ByteString
++import Data.Hermes qualified as JSON
+ import Data.Set (singleton)
++import NOM.NixMessage.JSON qualified as JSONMessage
++import NOM.Parser.JSON (parseJSONLine)
+ import NOM.Builds
+ import NOM.NixMessage.OldStyle (NixOldStyleMessage (..))
+ import NOM.Parser
+@@ -21,7 +24,24 @@
+   counts <-
+     runTestTT
+       $ test
+-        [ "Parse Plan" ~: do
++        [ "Parse named activity without legacy fields" ~: JSON.withHermesEnv_ \env -> do
++            let input = "@nix {\"action\":\"start\",\"id\":42,\"level\":5,\"type\":10113,\"name\":\"CopySourcePath\",\"payload\":{\"nix.source.path\":\"/tmp/source\"},\"text\":\"copying source\",\"parent\":0}"
++            assertEqual "retain activity identity and text"
++              (JSONMessage.Start (JSONMessage.MkStartAction (JSONMessage.MkId 42) JSONMessage.Chatty "copying source" JSONMessage.Unknown))
++              (parseJSONLine env input)
++        , "Parse legacy activity" ~: JSON.withHermesEnv_ \env -> do
++            assertEqual "retain legacy activity handling"
++              (JSONMessage.Start (JSONMessage.MkStartAction (JSONMessage.MkId 43) JSONMessage.Info "building" JSONMessage.Builds))
++              (parseJSONLine env "@nix {\"action\":\"start\",\"id\":43,\"level\":3,\"type\":104,\"text\":\"building\"}")
++        , "Reject malformed named activity" ~: JSON.withHermesEnv_ \env -> do
++            case parseJSONLine env "@nix {\"action\":\"start\",\"id\":42,\"level\":5,\"type\":10113}" of
++              JSONMessage.ParseError _ -> pure ()
++              other -> assertFailure ("expected parse error, got " <> show other)
++        , "Retain unknown activity identity and text" ~: JSON.withHermesEnv_ \env -> do
++            assertEqual "unknown activity remains observable"
++              (JSONMessage.Start (JSONMessage.MkStartAction (JSONMessage.MkId 42) JSONMessage.Chatty "unsupported" JSONMessage.Unknown))
++              (parseJSONLine env "@nix {\"action\":\"start\",\"id\":42,\"level\":5,\"type\":99999,\"text\":\"unsupported\"}")
++        , "Parse Plan" ~: do
+             (rest, result) <-
+               assertOldStyleParse
+                 "these derivations will be built:\n  /nix/store/7n05q79qhrgvnfmvv2v3cnj3yqf4d1hf-haskell-language-server-0.4.0.0.drv\nthese paths will be fetched (134.19 MiB download, 1863.82 MiB unpacked):\n  /nix/store/60zb5dndaw1fzir3s69sy3xhy19gll1p-ghc-8.8.2\ngarbage"

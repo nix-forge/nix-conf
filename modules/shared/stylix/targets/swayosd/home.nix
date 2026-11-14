@@ -14,6 +14,7 @@
     in
     {
       key = "nix-conf/stylix/swayosd/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.swayosd.enable = config.lib.stylix.mkEnableTarget "swayosd" true;
       config = lib.optionalAttrs (options ? desktop.osd) (

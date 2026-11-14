@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 SCRIPT = (
-    Path(__file__).resolve().parents[2] / "modules/home/dev/scripts/git-privacy-hook.py"
+    Path(__file__).resolve().parents[2] / "modules/home/dev/scripts/git_privacy_hook.py"
 )
 SPEC = importlib.util.spec_from_file_location("privacy_inspection", SCRIPT)
 assert SPEC is not None

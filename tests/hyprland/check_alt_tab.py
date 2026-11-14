@@ -18,6 +18,8 @@ import time
 from operator import itemgetter
 from typing import Literal, overload
 
+from compositor_events import CompositorEvents, command_output
+
 TAB, ALT, SHIFT, ESC, RALT = 15, 56, 42, 1, 100
 MIN_WINDOWS = 3
 
@@ -39,15 +41,20 @@ def _require(condition: bool, message: str) -> None:
 
 
 @overload
-def _hypr(command: Literal["clients"]) -> list[dict]: ...
+def _hypr(
+    command: Literal["clients"], observer: CompositorEvents | None = None
+) -> list[dict]: ...
 
 
 @overload
-def _hypr(command: Literal["activewindow", "layers"]) -> dict: ...
+def _hypr(
+    command: Literal["activewindow", "layers"], observer: CompositorEvents | None = None
+) -> dict: ...
 
 
-def _hypr(command: str) -> dict | list[dict]:
-    result = json.loads(subprocess.check_output([HYPRCTL, "-j", command], timeout=5))  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed IPC arguments without a shell.
+def _hypr(command: str, observer: CompositorEvents | None = None) -> dict | list[dict]:
+    execute = observer.command if observer is not None else command_output
+    result = json.loads(execute(HYPRCTL, "-j", command))
     if command == "clients":
         if isinstance(result, list) and all(
             isinstance(client, dict) for client in result
@@ -59,8 +66,8 @@ def _hypr(command: str) -> dict | list[dict]:
     raise TypeError(message)
 
 
-def _active() -> str:
-    return str(_hypr("activewindow").get("address", ""))
+def _active(observer: CompositorEvents | None = None) -> str:
+    return str(_hypr("activewindow", observer).get("address", ""))
 
 
 def _focus(address: str) -> None:
@@ -92,12 +99,9 @@ def _tap(code: int = TAB, delay: float = 0.03) -> None:
 
 
 def _expect(address: str, label: str) -> None:
-    time.sleep(0.25)
-    deadline = time.monotonic() + 1
+    with CompositorEvents() as changes:
+        changes.wait(lambda: _active(changes) == address, timeout=1.25)
     actual = _active()
-    while actual != address and time.monotonic() < deadline:
-        time.sleep(0.02)
-        actual = _active()
     _require(actual == address, f"{label}: expected {address}, got {actual}")
     _require(
         "hyprshell" not in json.dumps(_hypr("layers")),

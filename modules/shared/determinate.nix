@@ -5,22 +5,29 @@ let
   };
 in
 {
-  nixos = { inputs, ... }: {
-    imports = [ inputs.determinate.nixosModules.default ];
-
-    # NixOS exposes the Determinate integration as `determinate`, whereas
-    # nix-darwin calls the corresponding option `determinateNix`.
-    determinate.enable = true;
-
-    nix = { inherit settings; };
-
-    # Determinate Nixd is the Nix daemon on NixOS and owns garbage
-    # collection.  Keep its documented default explicit so host modules do
-    # not add a competing `nix.gc` or `nix-collect-garbage` schedule.
-    environment.etc."determinate/config.json".text = builtins.toJSON {
-      garbageCollector.strategy = "automatic";
+  nixos =
+    {
+      config,
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
+    {
+      imports = [ inputs.determinate.nixosModules.default ];
+      options.nix.determinateNixdSettings = lib.mkOption {
+        inherit ((pkgs.formats.json { })) type;
+        default = { };
+        description = "Host additions to Determinate Nixd configuration; one collector must own reclamation.";
+      };
+      config = {
+        determinate.enable = true;
+        nix = { inherit settings; };
+        environment.etc."determinate/config.json".text = builtins.toJSON (
+          lib.recursiveUpdate { garbageCollector.strategy = "automatic"; } config.nix.determinateNixdSettings
+        );
+      };
     };
-  };
 
   darwin =
     {
@@ -57,20 +64,19 @@ in
       # legacy multi-user installer plist is unmanaged once `nix.enable` is
       # disabled, so nix-darwin intentionally preserves it.  Remove that
       # redundant daemon after its activation step has completed.
-      system.activationScripts.postActivation.text = lib.mkAfter ''
-        legacyNixDaemonPlist=/Library/LaunchDaemons/org.nixos.nix-daemon.plist
-        determinateNixDaemonPlist=/Library/LaunchDaemons/systems.determinate.nix-daemon.plist
-
-        if [ -e "$legacyNixDaemonPlist" ] && [ -e "$determinateNixDaemonPlist" ]; then
-          launchctl bootout system/org.nixos.nix-daemon 2>/dev/null || true
-          rm -f "$legacyNixDaemonPlist"
-        fi
-      '';
+      system.activationScripts.postActivation.text = lib.mkAfter (
+        builtins.readFile ./determinate-assets/remove-legacy-nix-daemon.sh
+      );
 
     };
 
   homeManager =
-    { inputs, pkgs, ... }:
+    {
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       inherit (pkgs.stdenv.hostPlatform) isDarwin isAarch64;
     in
@@ -83,6 +89,11 @@ in
       ];
 
       imports = [ inputs.determinate.homeManagerModules.default ];
+
+      # Determinate owns Darwin's Nix configuration and leaves HM's package
+      # null. Do not ask Home Manager to generate a second nix.conf without
+      # a corresponding package; the host's customSettings remain authoritative.
+      nix.enable = lib.mkIf isDarwin false;
 
       # Workaround: Disable HM manual to suppress Determinate Nix warning
       # about options.json referencing store paths without proper context.

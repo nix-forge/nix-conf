@@ -1,6 +1,6 @@
 # Implementation plan: Dual-profile Firefox
 
-This plan is superseded by the [Zen Shopping decision](../../browser-shopping-profile-research.md).
+This plan is superseded by the [Zen Shopping decision](../../research/browser-shopping-profile-research.md).
 The implemented profile lives in Zen and includes the Rakuten extension. The
 Firefox design below is retained as the record of the earlier choice.
 

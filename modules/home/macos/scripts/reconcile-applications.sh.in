@@ -1,0 +1,3 @@
+# shellcheck shell=bash
+@lifecycleCheck@
+exec @helper@ @args@ "$@"

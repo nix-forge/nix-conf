@@ -8,9 +8,26 @@
     }:
     let
       desktop = self.nixosConfigurations.desktop.config;
+      memoryVariant =
+        (self.nixosConfigurations.desktop.extendModules {
+          modules = [
+            { virtualisation.libvirtWorkstation.windowsVm.resources.currentMemoryMiB = lib.mkForce 6144; }
+          ];
+        }).config;
+      invalidMemoryVariant =
+        (self.nixosConfigurations.desktop.extendModules {
+          modules = [
+            { virtualisation.libvirtWorkstation.windowsVm.resources.currentMemoryMiB = lib.mkForce 12288; }
+          ];
+        }).config;
+      memoryVariantTriggers = memoryVariant.systemd.services.libvirt-windows-vm-setup.restartTriggers;
       setupScript = desktop.systemd.services.libvirt-workstation-setup.serviceConfig.ExecStart;
       profileGuard = desktop.virtualisation.libvirtd.hooks.qemu."10-workstation-profile-guard";
       sleepInhibitorHook = desktop.virtualisation.libvirtd.hooks.qemu."20-workstation-sleep-inhibitor";
+      sleepInhibitorLauncher = builtins.head (
+        lib.splitString " "
+          desktop.systemd.services."libvirt-workstation-sleep-inhibit@".serviceConfig.ExecStart
+      );
       windowsSetupScript = desktop.systemd.services.libvirt-windows-vm-setup.serviceConfig.ExecStart;
       windowsTriggers = desktop.systemd.services.libvirt-windows-vm-setup.restartTriggers;
       runtimeDomain = builtins.elemAt windowsTriggers 0;
@@ -36,18 +53,32 @@
     in
     {
       checks = lib.optionalAttrs (system == "x86_64-linux") {
+        windows-vm-memory =
+          assert
+            desktop.virtualisation.libvirtWorkstation.windowsVm.resources.currentMemoryMiB
+            == desktop.virtualisation.libvirtWorkstation.windowsVm.resources.memoryMiB;
+          assert lib.any (
+            item:
+            !item.assertion && item.message == "windowsVm.resources.currentMemoryMiB must not exceed memoryMiB."
+          ) invalidMemoryVariant.assertions;
+          pkgs.runCommand "windows-vm-memory" { nativeBuildInputs = [ pkgs.libxml2 ]; } ''
+            test "$(xmllint --xpath 'string(/domain/memory)' ${builtins.elemAt memoryVariantTriggers 0})" = 8192
+            test "$(xmllint --xpath 'string(/domain/currentMemory)' ${builtins.elemAt memoryVariantTriggers 0})" = 6144
+            test "$(xmllint --xpath 'string(/domain/currentMemory)' ${builtins.elemAt memoryVariantTriggers 1})" = 8192
+            touch "$out"
+          '';
         native-application-services =
-          pkgs.runCommand "native-application-services" { nativeBuildInputs = [ pkgs.ripgrep ]; }
-            ''
-              if rg --line-number \
-                --glob '!**/modules/home/dev/containers.nix' \
-                '(oci-containers|docker-compose|docker[[:space:]]+(compose|run)|podman[[:space:]]+(compose|run)|\bimage[[:space:]]*=[[:space:]]*")' \
-                ${runtimeConfiguration}; then
-                echo 'Application and host modules must use native packages and service modules, not container images or orchestration.' >&2
-                exit 1
-              fi
-              touch "$out"
-            '';
+          assert !desktop.virtualisation.docker.enable;
+          assert !desktop.virtualisation.docker.rootless.enable;
+          assert !desktop.virtualisation.podman.enable;
+          assert !desktop.virtualisation.containerd.enable;
+          assert desktop.virtualisation.oci-containers.containers == { };
+          assert desktop.containers == { };
+          pkgs.runCommand "native-application-services" { nativeBuildInputs = [ pkgs.ripgrep ]; } (
+            (import ../../lib/templates/text.nix) ./scripts/native-application-services.sh {
+              inherit runtimeConfiguration;
+            }
+          );
         virtualisation-generated-artifacts =
           pkgs.runCommand "virtualisation-generated-artifacts"
             {
@@ -58,51 +89,24 @@
                 pkgs.shellcheck
               ];
             }
-            ''
-              # Nix store sudo has no setuid bit. Exercise the generated entry
-              # points that must call the wrapper installed by NixOS activation.
-              grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${vmPackage}/bin/vm
-              grep -Fq '${desktop.security.wrapperDir}/sudo --non-interactive -- ' ${windowsVmPackage}/bin/windows-vm
-
-              xmllint --noout ${runtimeDomain} ${installerDomain}
-
-              ! grep -Eq '__[A-Z0-9_]+__' ${windowsBootstrap}
-              ! grep -Eq '__[A-Z0-9_]+__' ${windowsBaseline}
-              grep -Eq "^[$]RecipeFingerprint = '[0-9a-f]{64}'$" ${windowsBootstrap}
-              grep -Eq "^[$]RecipeFingerprint = '[0-9a-f]{64}'$" ${windowsBaseline}
-              test "$(grep -E "^[$]RecipeFingerprint = '[0-9a-f]{64}'$" ${windowsBootstrap})" = \
-                "$(grep -E "^[$]RecipeFingerprint = '[0-9a-f]{64}'$" ${windowsBaseline})"
-
-              pwsh -NoLogo -NoProfile -NonInteractive -Command '
-                $failed = $false
-                foreach ($path in @(
-                  "${windowsBootstrap}",
-                  "${windowsBaseline}"
-                )) {
-                  $tokens = $null
-                  $errors = $null
-                  [System.Management.Automation.Language.Parser]::ParseFile(
-                    $path,
-                    [ref]$tokens,
-                    [ref]$errors
-                  ) | Out-Null
-                  if ($errors.Count -gt 0) {
-                    $failed = $true
-                    $errors | ForEach-Object { Write-Error "''${path}:$($_.Message)" }
-                  }
-                }
-                if ($failed) { exit 1 }
-              '
-
-              shellcheck -s bash ${setupScript}
-              shellcheck -s bash ${profileGuard}
-              shellcheck -s bash ${sleepInhibitorHook}
-              shellcheck -s bash ${vmPackage}/bin/vm
-              shellcheck -s bash ${windowsSetupScript}
-              shellcheck -s bash ${windowsVmPackage}/bin/windows-vm
-              shellcheck -s bash -e SC2034 ${setupWindowsVmPackage}/bin/setup-windows-vm
-              touch "$out"
-            '';
+            (
+              (import ./../../lib/templates/text.nix) ./scripts/virtualisation-generated-artifacts.sh {
+                parserScript = ./scripts/parse-generated-artifacts.ps1;
+                desktop_security_wrapperDir = desktop.security.wrapperDir;
+                inherit vmPackage;
+                inherit windowsVmPackage;
+                inherit runtimeDomain;
+                inherit installerDomain;
+                inherit windowsBootstrap;
+                inherit windowsBaseline;
+                inherit setupScript;
+                inherit profileGuard;
+                inherit sleepInhibitorHook;
+                inherit sleepInhibitorLauncher;
+                inherit windowsSetupScript;
+                inherit setupWindowsVmPackage;
+              }
+            );
       };
     };
 }

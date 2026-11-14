@@ -7,6 +7,6 @@
       );
     in
     pkgs.runCommand "noctalia-stylix-palette.json" { } ''
-      ${pkgs.python3}/bin/python ${./prepare-palette.py} ${rawPalette} "$out"
+      ${pkgs.python3}/bin/python ${./prepare_palette.py} ${rawPalette} "$out"
     '';
 }

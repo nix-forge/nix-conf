@@ -1,5 +1,5 @@
-# The RTX 4070 drives the physical gaming monitor and supplies Sunshine's
-# NVENC device. Keep the compositor on the same GPU to avoid a cross-GPU copy.
+# The RTX 4070 drives the physical gaming monitor. Keep the compositor on
+# that GPU for the local desktop.
 # AQ_DRM_DEVICES is intentionally host-local: multi-GPU ordering is a hardware
 # policy, not a reusable Hyprland default. The host udev policy gives the PCI
 # device a stable alias without colons: Aquamarine reserves colons as the

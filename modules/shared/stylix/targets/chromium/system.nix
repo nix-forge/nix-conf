@@ -39,6 +39,16 @@ let
     };
 in
 {
-  nixos = module;
-  darwin = module;
+  nixos = {
+    imports = [
+      (import ../../profile.nix).nixos
+      module
+    ];
+  };
+  darwin = {
+    imports = [
+      (import ../../profile.nix).darwin
+      module
+    ];
+  };
 }

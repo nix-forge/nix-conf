@@ -18,81 +18,23 @@ class CIInventoryTests(unittest.TestCase):
 
     def test_hosted_runner_exclusions_apply_on_every_system(self) -> None:
         """Keep ordinary additions while excluding workstation checks everywhere."""
-        expression = """
-                    let
-                        lib = import NIXPKGS_LIB;
-                        fixture = import DEPLOY {
-                            myLib = {};
-                            inputs = {
-                                nixpkgs = { inherit lib; };
-                                deploy-rs.lib.x86_64-linux.deployChecks = _: {
-                                    host-only = null;
-                                    new-deployment-check = null;
-                                };
-                            };
-                            self = {
-                                deploy = {};
-                                lintChecks = {
-                                    x86_64-linux = {
-                                        gitleaks-policy = null;
-                                        new-portable-check = null;
-                                    };
-                                    aarch64-darwin.gitleaks-policy = null;
-                                };
-                                checks = {
-                                    x86_64-linux = {
-                                        cache-policy = null;
-                                        application-recovery = null;
-                                        desktop-authentication = null;
-                                        generated-artifacts = null;
-                                        git-email-privacy = null;
-                                        gitleaks-policy = null;
-                                        ordinary = null;
-                                        newly-added = null;
-                                        new-portable-check = null;
-                                        sentry-crashpad-lock = null;
-                                        service-command-arguments = null;
-                                        python-tests = null;
-                                        secret-templates = null;
-                                        host-only = null;
-                                        new-deployment-check = null;
-                                    };
-                                    aarch64-darwin = {
-                                        application-recovery = null;
-                                        cache-policy = null;
-                                        desktop-authentication = null;
-                                        generated-artifacts = null;
-                                        git-email-privacy = null;
-                                        gitleaks-policy = null;
-                                        host-only = null;
-                                        ordinary = null;
-                                        sentry-crashpad-lock = null;
-                                        service-command-arguments = null;
-                                        public-demo-runtime = null;
-                                        python-tests = null;
-                                        secret-templates = null;
-                                    };
-                                    aarch64-linux = {
-                                        ordinary = null;
-                                        python-tests = null;
-                                    };
-                                };
-                            };
-                        };
-                    in builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks
-        """.replace(
-            "NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib")
-        ).replace("DEPLOY", str(ROOT / "flake/deploy.nix"))
+        expression = (
+            (Path(__file__).with_name("fixtures") / "hosted-check-selection.nix.in")
+            .read_text(encoding="utf-8")
+            .replace("NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib"))
+            .replace("DEPLOY", str(ROOT / "hosts/shared/local/flake/deploy.nix"))
+        )
         result = json.loads(
             subprocess.check_output(
                 ["nix", "eval", "--impure", "--json", "--expr", expression], text=True
             )
         )
         self.assertEqual(
-            result,
+            result["inventory"],
             {
                 "x86_64-linux": [
                     "cache-policy",
+                    "determinate-runtime-consumers",
                     "git-email-privacy",
                     "newly-added",
                     "ordinary",
@@ -108,52 +50,30 @@ class CIInventoryTests(unittest.TestCase):
             },
         )
 
+        self.assertEqual(
+            result["sharedRuntime"],
+            {
+                "name": "determinate-runtime-consumers",
+                "entries": [
+                    {"name": "desktop-workload", "path": "/fixture/desktop-workload"},
+                    {
+                        "name": "nix-credential-loading",
+                        "path": "/fixture/nix-credential-loading",
+                    },
+                ],
+            },
+        )
+
     def test_configurations_follow_additions_and_removals_without_building_hosts(
         self,
     ) -> None:
         """Discover host checks while leaving foreign closures unevaluated."""
-        expression = """
-            let
-                lib = import NIXPKGS_LIB;
-                closure = builtins.derivation {
-                    name = "configuration-fixture";
-                    system = "x86_64-linux";
-                    builder = "/never-executed";
-                };
-                evaluate = names:
-                    let
-                        module = import MODULE {
-                            self = {
-                                nixosConfigurations = builtins.listToAttrs (map (name: {
-                                    inherit name;
-                                    value = {
-                                        pkgs.stdenv.hostPlatform.system = "x86_64-linux";
-                                        config.system.build.toplevel = closure;
-                                    };
-                                }) names);
-                                darwinConfigurations.foreign = {
-                                    pkgs.stdenv.hostPlatform.system = "aarch64-darwin";
-                                    system = throw "foreign closure was evaluated";
-                                };
-                            };
-                        };
-                        checks = (module.perSystem {
-                            inherit lib;
-                            system = "x86_64-linux";
-                            pkgs.runCommand = _: attrs: _: attrs;
-                        }).checks;
-                    in builtins.mapAttrs (_: check: {
-                        report = builtins.fromJSON check.report;
-                        hasContext = builtins.hasContext check.report;
-                    }) checks;
-            in {
-                before = evaluate [ "first" ];
-                added = evaluate [ "first" "new" ];
-                removed = evaluate [ "new" ];
-            }
-        """.replace(
-            "NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib")
-        ).replace("MODULE", str(ROOT / "flake/dev/configurations.nix"))
+        expression = (
+            (Path(__file__).with_name("fixtures") / "configuration-inventory.nix.in")
+            .read_text(encoding="utf-8")
+            .replace("NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib"))
+            .replace("MODULE", str(ROOT / "flake/dev/configurations.nix"))
+        )
         result = json.loads(
             subprocess.check_output(
                 ["nix", "eval", "--impure", "--json", "--expr", expression], text=True

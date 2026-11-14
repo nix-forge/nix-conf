@@ -1,21 +1,60 @@
-{ inputs, myLib, ... }: {
+{
+  inputs,
+  configurationInputs,
+  myLib,
+  ...
+}:
+{
   perSystem =
-    { pkgs, config, ... }:
+    {
+      pkgs,
+      configurationPkgs,
+      config,
+      ...
+    }:
     let
       portable =
         (import ../../tests/nix/bash-writers.nix { inherit pkgs myLib; })
-        // (import ../../tests/nix/non-bash-writers.nix { inherit pkgs inputs myLib; });
+        // (import ../../tests/nix/non-bash-writers.nix { inherit pkgs inputs myLib; })
+        // {
+          vscode-configuration = import ../../tests/nix/vscode-configuration.nix { inherit pkgs inputs; };
+          vscode-shell-integration = import ../../tests/nix/vscode-shell-integration.nix {
+            inherit pkgs inputs;
+          };
+          t3code = import ../../tests/nix/t3code.nix { inherit pkgs inputs myLib; };
+          agent-skills = import ../../tests/nix/agent-skills.nix { inherit pkgs inputs myLib; };
+          rea = import ../../tests/nix/rea.nix { inherit pkgs inputs myLib; };
+          codex-home = import ../../tests/nix/codex-home.nix { inherit pkgs inputs myLib; };
+          activation-conflicts = import ../../tests/nix/activation-conflicts.nix {
+            inherit pkgs inputs myLib;
+          };
+          text-rendering = import ../../tests/nix/text-rendering.nix { inherit pkgs; };
+          tmux-config = import ../../tests/nix/tmux-config.nix { inherit pkgs inputs; };
+        };
       linux = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (
         (import ../../tests/nix/generated-configs.nix { inherit pkgs inputs myLib; })
-        // (import ../../tests/nix/template-configs.nix { inherit pkgs inputs myLib; })
+        // (import ../../tests/nix/template-configs.nix {
+          pkgs = configurationPkgs;
+          inputs = configurationInputs;
+          inherit myLib;
+        })
         // (import ../../tests/nix/writer-configs.nix { inherit pkgs myLib; })
       );
-      artifactChecks = portable // linux;
+      darwin = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+        helium-startup = import ../../tests/nix/helium-startup.nix { inherit pkgs inputs myLib; };
+      };
+      artifactChecks = portable // linux // darwin;
       integrationChecks = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (
-        removeAttrs (import ../../tests/nix/noogle.nix { inherit pkgs inputs myLib; }) [
-          # This boots a VM and remains a separate integration check.
-          "service-command-arguments"
-        ]
+        removeAttrs
+          (import ../../tests/nix/noogle.nix {
+            pkgs = configurationPkgs;
+            inputs = configurationInputs;
+            inherit myLib;
+          })
+          [
+            # This boots a VM and remains a separate integration check.
+            "service-command-arguments"
+          ]
       );
     in
     {

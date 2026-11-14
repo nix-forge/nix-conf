@@ -7,14 +7,27 @@
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   cfg = config.programs.bitwardenDesktop;
+  render = import ../../lib/templates/text.nix;
   darwinAppPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/Bitwarden.app";
+  waitForApp = render ./bitwarden-assets/wait-for-app.sh.in {
+    app = lib.escapeShellArg darwinAppPath;
+  };
+  startApp = pkgs.writeShellScript "bitwarden-start" (
+    render ./bitwarden-assets/start-app.sh.in { app = lib.escapeShellArg darwinAppPath; }
+  );
+
 in
 {
+  imports = [ ./macos/application-capabilities.nix ];
   options.programs.bitwardenDesktop = {
     package = lib.mkOption {
       type = lib.types.package;
       internal = true;
-      default = pkgs.bitwarden-desktop;
+      default =
+        if isDarwin && pkgs ? bitwarden-desktop-bin then
+          pkgs.bitwarden-desktop-bin
+        else
+          pkgs.bitwarden-desktop;
       description = "Bitwarden desktop package used by the app and browser-integration bridge.";
     };
 
@@ -22,6 +35,20 @@ in
   };
 
   config = {
+
+    macos.applicationCapabilities.apps.bitwarden = lib.mkIf isDarwin {
+      enable = lib.mkDefault true;
+      bundle = "Bitwarden.app";
+      bundleId = "com.bitwarden.desktop";
+      features.browserIntegration = {
+        enable = lib.mkDefault true;
+        service = "browser-integration";
+        reason = "Unlock the selected browser extension using the desktop biometric bridge";
+        source = "https://contributing.bitwarden.com/getting-started/clients/browser/biometric/";
+        instruction = "Enable the desktop/native-messaging integration and user biometrics, then unlock the chosen extension using Touch ID. Do not grant Full Disk Access or Accessibility for this feature.";
+      };
+    };
+
     home.packages = [
       pkgs.bitwarden-cli
       cfg.package
@@ -48,20 +75,14 @@ in
     targets.darwin.copyApps.enable = lib.mkIf isDarwin (lib.mkDefault true);
 
     home.activation.waitForCopiedBitwardenApp = lib.mkIf (isDarwin && cfg.startAtLogin) (
-      lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "copyApps" ] ''
-        run /bin/wait4path ${lib.escapeShellArg darwinAppPath}
-      ''
+      lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "copyApps" ] waitForApp
     );
 
     launchd.agents.bitwarden = lib.mkIf (isDarwin && cfg.startAtLogin) {
       enable = true;
       domain = "gui";
       config = {
-        ProgramArguments = [
-          "/bin/sh"
-          "-c"
-          "/bin/wait4path ${lib.escapeShellArg darwinAppPath} && exec /usr/bin/open -gj -a ${lib.escapeShellArg darwinAppPath}"
-        ];
+        ProgramArguments = [ (toString startApp) ];
         RunAtLoad = true;
         KeepAlive = false;
         ProcessType = "Interactive";

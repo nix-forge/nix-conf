@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import shutil
-import subprocess  # ruff: ignore[suspicious-subprocess-import] - Exercise the helper in disposable cache directories.
 from pathlib import Path
 
 import pytest
+from notification_process import run as run_command
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "modules/nixos/display-managers/scripts/prepare-tuigreet-cache.sh"
@@ -38,7 +38,7 @@ def _prepare(cache: Path, session_root: Path) -> None:
     bash = shutil.which("bash")
     if bash is None:
         pytest.fail("Bash is required to run the cache helper")
-    result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed script and disposable paths, without a shell.
+    result = run_command(
         [
             bash,
             "-euo",

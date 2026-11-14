@@ -1,0 +1,31 @@
+# Moonfin caption backgrounds in mpv
+
+Reviewed: 2026-10-06. Scope: Moonfin Core 2.6.0 at `b86bbe6021eff5befdf311134bf3e831c032f21f`, upstream `main` at `e508fb8258d49aeba18396c7fc5d9ac7f7703556`, and mpv's subtitle style options. The question is whether the local [caption patch](https://github.com/Moonfin-Client/Moonfin-Core/pull/1758) repairs an upstream defect that warrants a focused pull request.
+
+Update: Moonfin 3.0.0 at `eb43b626f6f9239e1dd050e529de28702b08038c`
+contains the upstream repair. The unmodified Linux package builds and its actual
+style writer passes the retained transition regression. An exact broken-property
+control fails with `missing box`. The temporary overlay is retired; these checks
+do not establish a live playback session in the updated application.
+
+## Answer
+
+Yes. Moonfin offers a subtitle background color, but its mpv backend writes that color to `sub-back-color` without selecting a background box. In mpv's default `outline-and-shadow` style, that property colors the text shadow. The setting therefore cannot produce the box its name promises on the native mpv path. The [local patch](https://github.com/Moonfin-Client/Moonfin-Core/pull/1758) selects `background-box` for a nontransparent color, gives the box padding, and restores `outline-and-shadow` when the color becomes transparent. The same omission remains on upstream `main`. A small upstream fix is warranted, with a regression test for switching both ways.
+
+## Findings and sources
+
+- [Moonfin 2.6.0's native style writer](https://github.com/Moonfin-Client/Moonfin-Core/blob/b86bbe6021eff5befdf311134bf3e831c032f21f/lib/playback/media_kit_player_backend.dart#L2352-L2413) sends `sub-back-color` but does not send `sub-border-style` or `sub-shadow-offset`. The [current upstream writer](https://github.com/Moonfin-Client/Moonfin-Core/blob/e508fb8258d49aeba18396c7fc5d9ac7f7703556/lib/playback/media_kit_player_backend.dart) still does this. These are source observations, not a report of a live Moonfin playback test.
+- [mpv's option reference](https://github.com/mpv-player/mpv/blob/master/DOCS/man/options.rst) defines `outline-and-shadow` as the default: `sub-back-color` colors the shadow there. In `background-box`, it colors a box around all lines, while `sub-shadow-offset` sets the box margin. [mpv's built-in `sub-box` profile](https://github.com/mpv-player/mpv/blob/master/etc/builtin.conf) uses `background-box` with offset 4. This supports the local patch's property values. mpv also documents that many `sub-` styling options do not affect authored ASS unless ASS styling is overridden; Moonfin's [ASS mode writer](https://github.com/Moonfin-Client/Moonfin-Core/blob/e508fb8258d49aeba18396c7fc5d9ac7f7703556/lib/playback/media_kit_player_backend.dart) sets `sub-ass-override=no` when ASS direct play is enabled.
+- [Moonfin PR #1606](https://github.com/Moonfin-Client/Moonfin-Core/pull/1606), merged on 2026-09-21, expanded the subtitle color choices and made live style updates reach the native backend. It introduced the shared style writer and cached values used here. It did not select an mpv background style, so its dynamic update work makes the omission repeatable rather than resolving it.
+- [Moonfin PR #1697](https://github.com/Moonfin-Client/Moonfin-Core/pull/1697), merged on 2026-09-30, fixes external subtitle loading and selection. A [review revision](https://github.com/Moonfin-Client/Moonfin-Core/commit/f59b31516768) says it dropped an unrelated caption change. The merged PR does not contain this background-box fix. [PR #1599](https://github.com/Moonfin-Client/Moonfin-Core/pull/1599) only shares Flutter subtitle-view configuration between screens; it does not change mpv rendering.
+- Earlier reports concern other paths. [Issue #110](https://github.com/Moonfin-Client/Moonfin-Core/issues/110) reports incorrect colors and stroke on Android 1.4.0. [Issue #504](https://github.com/Moonfin-Client/Moonfin-Core/issues/504) asks for native mpv rendering of text subtitles on iOS instead of a Flutter overlay. Neither verifies this Linux/Windows mpv box defect. An upstream issue and PR search on 2026-10-06 found no open work specifically selecting `sub-border-style` for Moonfin's background setting. That search result can change.
+
+## Validation and limits
+
+I compared the local patch, its [source-level regression harness](../../overlays/temporary/tests/moonfin_caption_background.py), both Moonfin revisions, mpv's reference, and the linked upstream work. The harness failed on unmodified upstream `main` with `missing box`. An adapted copy passed against the actual style writer in [upstream PR #1758](https://github.com/Moonfin-Client/Moonfin-Core/pull/1758), checking a nontransparent box, padding, transparent reset, low opacity, text weight, color alpha, and ASS override behavior. The PR's three Flutter regression tests passed. The full app suite passed with 3,900 tests and one skip; six nested package suites passed 166 tests. Focused analysis found no issues in the changed Dart files, and Moonfin's CI-style analyzer scan found no errors. A Linux release app build completed.
+
+On Linux, mpv rendered a generated video and external SRT twice with the same color. The [synthetic captures](https://github.com/IanHollow/Moonfin-Core/blob/7b6403b3337cd66720accb5c89dd6f43b99d49f4/docs/pr-evidence/subtitle-background/README.md) show the box only when `background-box` is selected. This tests mpv's renderer, not a Moonfin playback session. The [existing media caption research](media-captions-research.md) records earlier installed mpv property and transition checks on Linux and macOS. I have not confirmed how a custom `mpv.conf` interacts with this setting or tested Android's optional mpv engine.
+
+## Implication for this repository
+
+An upstream PR should stay within the native mpv style writer, set the background style and margin when a color is supplied, and explicitly reset both when the color becomes transparent. It should test successive style changes because mpv retains properties across titles. Keep authored ASS behavior intact. Once a released Moonfin source includes the fix, remove the [temporary overlay](../../overlays/README.md) after checking its revision guard and package build.

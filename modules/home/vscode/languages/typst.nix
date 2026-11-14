@@ -1,18 +1,20 @@
 {
+  config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [ "myriad-dreamin.tinymist" ];
+    extensions = catalogExtensions [ "myriad-dreamin.tinymist" ];
 
     userSettings = {
       "[typst]" = {
+        "editor.defaultFormatter" = "myriad-dreamin.tinymist";
         "editor.tabSize" = 2;
       };
 
@@ -21,11 +23,11 @@ in
       "tinymist.formatterPrintWidth" = 80;
 
       "tinymist.lint.enabled" = true;
-      "tinymist.lint.when" = "onType";
+      "tinymist.lint.when" = "onSave";
 
       "tinymist.outputPath" = "$root/target/$dir/$name";
 
-      "tinymist.exportPdf" = "onSave";
+      "tinymist.exportPdf" = "never";
 
       "tinymist.serverPath" = lib.getExe pkgs.tinymist;
     };

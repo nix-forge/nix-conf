@@ -1,0 +1,26 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+set -eu
+out=''
+api=0
+for arg in "$@"; do
+  case "$arg" in
+  *w/api.php) api=1 ;;
+  gcmtitle=Category:Featured*) touch "@__value1@" ;;
+  pageids=*) exit 99 ;;
+  esac
+done
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = '--output' ]; then
+    out="$2"
+    shift
+  fi
+  shift
+done
+if [ "$api" -eq 1 ]; then
+  cp "@__value2@" "$out"
+else
+  cp "@__value3@" "$out"
+fi

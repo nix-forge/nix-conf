@@ -5,7 +5,7 @@ profile. It imports the local target layer automatically. Application modules
 own installation, service behavior, keybindings, and security policy. Theme
 modules own palettes, fonts, CSS, theme extensions, and appearance updates.
 
-The [research and design rationale](stylix-target-layer-research.md) records the
+The [research and design rationale](research/stylix-target-layer-research.md) records the
 pinned Stylix contracts used by this layer.
 
 ## Choose a theme

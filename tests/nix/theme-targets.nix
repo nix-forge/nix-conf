@@ -14,8 +14,10 @@ let
       extraSpecialArgs = {
         inherit inputs myLib system;
         self.packages.${system} = {
-          openai-codex-desktop = pkgs.emptyDirectory;
           noctalia-personal = pkgs.noctalia;
+          noctalia-dark-app-icons = pkgs.runCommand "test-noctalia-dark-icons" {
+            passthru.iconThemeName = "test-noctalia-dark-icons";
+          } "mkdir -p $out/share/icons/test-noctalia-dark-icons";
         };
       }
       // hostArgs;
@@ -74,6 +76,11 @@ let
   shell = shellFor { };
   shellOff = shellFor { stylix.targets.noctalia.enable = false; };
   shellUpstream = shellFor { stylix.targets.noctalia.custom.enable = false; };
+  shellDarkIcons = shellFor {
+    desktop.noctalia.darkAppIcons.enable = true;
+    stylix.icons.dark = lib.mkForce "test-noctalia-dark-icons";
+    stylix.icons.light = lib.mkForce "test-noctalia-dark-icons";
+  };
   chromiumFor =
     extra:
     (inputs.nixpkgs.lib.nixosSystem {
@@ -139,9 +146,32 @@ let
       desktop.bar.enable = lib.mkForce false;
       desktop.walker.enable = lib.mkForce false;
     }).config;
+  workspaceWithoutTheme =
+    (homeFor {
+      stylix.enable = false;
+      programs.chatgpt.settings.desktop.git-worktree-root = "/tasks/codex";
+    }).config;
+  supportsCodexDesktop = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt;
+  codexAppearance =
+    c:
+    lib.filterAttrs (
+      name: _:
+      builtins.elem name [
+        "appearanceTheme"
+        "appearanceLightCodeThemeId"
+        "appearanceDarkCodeThemeId"
+        "appearanceDiffMarkerStyle"
+        "appearanceDarkChromeTheme"
+        "sansFontSize"
+        "codeFontSize"
+        "useFontSmoothing"
+        "usePointerCursors"
+      ]
+    ) (c.programs.chatgpt.settings.desktop or { });
+  hasCodexAppearance = c: ((codexAppearance c).appearanceTheme or null) == "dark";
   noCustom =
     c:
-    !(c.home.activation ? configureCodexDesktopAppearance)
+    codexAppearance c == { }
     && !(c.programs.ghostty.settings ? selection-background)
     && !(c.xdg.configFile ? "ironbar/style.css")
     && !(c.xdg.configFile ? "swaync/style.css")
@@ -162,22 +192,30 @@ assert
 assert
   !linux
   || (
+    shellDarkIcons.gtk.iconTheme.name == "test-noctalia-dark-icons"
+    && !(shellDarkIcons.programs.noctalia.settings ? hooks)
+    && shellDarkIcons.xdg.dataFile ? "icons/test-noctalia-dark-icons"
+  );
+assert
+  !linux
+  || (
     chromium.programs.chromiumPolicies.heliumExtensions ? catppuccinMocha
     && !(chromiumOff.programs.chromiumPolicies.heliumExtensions ? catppuccinMocha)
     && chromiumOff.programs.chromiumPolicies.heliumExtensions ? bitwarden
   );
-assert enabled.home.activation ? configureCodexDesktopAppearance;
+assert (hasCodexAppearance enabled) == supportsCodexDesktop;
 assert !linux || !(disabled.desktop.walker.settings ? theme);
-assert
-  duplicated.home.activation.configureCodexDesktopAppearance.data
-  == enabled.home.activation.configureCodexDesktopAppearance.data;
+assert codexAppearance duplicated == codexAppearance enabled;
+assert workspaceWithoutTheme.home.activation ? configureCodexDesktopSettings;
+assert workspaceWithoutTheme.programs.chatgpt.settings.desktop.git-worktree-root == "/tasks/codex";
+assert !(workspaceWithoutTheme.programs.chatgpt.settings.desktop ? appearanceTheme);
 assert noCustom disabled;
 assert noCustom manual;
 assert noCustom optOut;
-assert optIn.home.activation ? configureCodexDesktopAppearance;
+assert (hasCodexAppearance optIn) == supportsCodexDesktop;
 assert !(optIn.programs.ghostty.settings ? selection-background);
 assert !(nativeOff.programs.ghostty.settings ? selection-background);
-assert !(absent.home.activation ? configureCodexDesktopAppearance);
+assert codexAppearance absent == { };
 assert !(absent.xdg.configFile ? "ironbar/style.css");
 assert !(absent.xdg.configFile ? "walker/themes/stylix/style.css");
 assert (enabled.xdg.configFile ? "ironbar/style.css") == linux;

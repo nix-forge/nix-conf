@@ -1,7 +1,9 @@
 # Overrides and overlays
 
 Temporary package and upstream module fixes live in [`temporary/`](temporary/default.nix).
-Long-lived package selection and behavior live in [`permanent/`](permanent/).
+Long-lived package selection lives in [`permanent/`](permanent/). The reusable Jellyfin variant
+lives in `nixpkgs-personal`; `packages.nix` selects it. Feishin uses the official
+Nixpkgs application.
 [`default.nix`](default.nix) is a Nixpkgs overlay. Each target installs it through
 `nixpkgsArgs.overlays`; attached Home Manager configurations share their host's
 package set through `useGlobalPkgs`.
@@ -25,12 +27,53 @@ No custom module argument or package-selection helper is needed.
 
 The overlay applies the selected package definitions throughout the configured
 package set. The GtkSourceView repair remains confined to Virt Manager's dependency;
-`pkgs.gtksourceview4` itself keeps its upstream definition. `pkgs.grimblast-region`
-is a separate permanent variant, while `pkgs.grimblast` retains its normal behavior.
+`pkgs.gtksourceview4` itself keeps its upstream definition. The
+`pkgs.grimblast-region` variant is defined in `nixpkgs-personal`, while
+`pkgs.grimblast` retains its normal behavior.
 
 The overlay also owns the Determinate Nix package selection, its scoped Darwin
-test repair, and the Linux Zen wrapper repair. The
+test repair and the Linux Zen
+wrapper repair. The
 Determinate modules configure the service and daemon settings.
+
+The developer formatter selects `nixf-flake-builtins` for its diagnostic tool.
+The frontend's metadata generator links the same selected Nix flake library and
+registers its three real flake primops. This retains unknown-builtin diagnostics
+and the ordinary Nix expression calls. Native install checks require the valid
+flake names to pass and a misspelled builtin to fail. Retire the repair when the
+unmodified frontend provides that metadata and passes those checks.
+
+T3 Code uses the official Nixpkgs package at its separately locked release pin.
+The Darwin-only `t3code-darwin-workspace-shims` repair extends the standard
+shebang patching to generated workspace executables after upstream preparation.
+The native reproduction fails with the system shell and succeeds with the Nix
+shell while preserving every shim body, mode and link. Retire this repair when
+the official recipe or pnpm's helper lookup handles those workspace shims.
+
+The ARM Darwin-only `t3code-darwin-vendor-gui` integration selects the unmodified,
+Developer ID signed official 0.1.6 Beta app archive. It replaces only the GUI
+application and external desktop launcher; the official Nixpkgs CLI, persistent
+server, unwrapped payload, resource monitor and provider configuration remain
+selected. No signed bundle file is patched, stripped, wrapped or re-signed. The
+old outer-plist repair and its regression are retired together because the
+vendor app already supplies the canonical identifier and usage description.
+
+The integration is restricted to the reviewed release and input revision. Retire
+it when the selected official Nixpkgs Darwin package provides the same signed
+vendor bundle and passes native identity, notarization, provider and data
+continuity checks. A successful package build is not Local Network consent or a
+connection fix. Switching from shared Electron to the signed app requires a
+separate no-initialization catalog/Keychain and user-data migration review;
+preserve encrypted data and stop on unexpected initialization or mutation.
+
+Rift 0.7.2 keeps automatic workspace following suppressed after wake or unlock
+until it sees mouse activity or a Rift command. The temporary native app-switch
+repair forwards keyboard interaction as a key-free intent event, so unbound macOS
+shortcuts such as Command+Tab can clear that guard. The shortcut remains native;
+Rift's own synthetic keys and repeats do not count as fresh input. Native input
+and lifecycle regressions cover forwarding and guard release without changing
+focus or layout. Retire the repair when unmodified Rift passes those checks and
+the native wake/unlock reproduction.
 
 ## Which repository owns an override?
 
@@ -57,14 +100,24 @@ variants belong in nixpkgs-personal. Keep repairs needed to build such a variant
 with its recipe and validate them in that repository. Do not introduce a
 dependency from nixpkgs-personal back into this configuration.
 
-The permanent Determinate overlay selects the Nix implementation. Its Darwin
-test workaround is a separate temporary fix. Linux uses the unmodified
-Determinate module and package after its selected Sentry dependency incorporated
-the report-lock repair. The [upstream regression check](../docs/sentry-crashpad-lock.md)
-retains quiet-contention and visible-filesystem-error coverage.
-Region-only Grimblast behavior is
-a permanent override. Module-specific Git options and browser flags stay with
-the module that owns those options.
+The permanent Determinate overlay selects the actual owning Nix component scope
+and repairs its libgit2 trailing-slash cleanup on Linux and Darwin. The repair
+retains the upstream main suite and adds the complete utility suite, including
+single- and multiple-slash symlink target preservation. Other libgit2 packages
+keep their upstream definitions. The Darwin functional-test workaround remains
+a separate temporary fix and preserves the combined package's unit gates.
+
+Determinate's NixOS module factory receives the libgit2 cleanup repair. Its
+global Sentry dependency remains unchanged, and the upstream module still owns
+`nix.package` and the daemon command. Retain factory routing until the libgit2
+repair is retired. Sentry now uses its upstream report-lock implementation,
+covered by the retained native regression.
+
+The [Sentry investigation and regression checks](../docs/operations/sentry-crashpad-lock.md)
+describe the retained upstream regression and retirement evidence. The upstream regression retains strict output handling by default; noisy-contention
+acceptance requires an explicit argument in an isolated baseline fixture.
+Region-only Grimblast behavior is a personal package variant. Module-specific
+Git options and browser flags stay with the module that owns those options.
 
 Use `prev` for the incoming package in an overlay. Preserve the existing scope
 when moving a local override. The GtkSourceView fix here still applies only to
@@ -78,7 +131,74 @@ registry with `{ inherit inputs lib; }` so import resolution does not depend on
 When a fix replaces an exported upstream module, apply it at the flake's input boundary so
 the consuming configuration does not need patch-specific imports.
 
+The QEMU user-mode release backport is retired: the selected Nixpkgs already
+provides 11.1.2 with the same release source. The binfmt wrapper and interpreter
+sandbox configuration remain with their owning modules.
+
 ## Temporary fix lifecycle
+
+OpenCode 2.2.5 backports the upstream Nixpkgs platform-specific Bun dependency
+hashes from [c399e1b](https://github.com/NixOS/nixpkgs/commit/c399e1b7fb90789e3e032784ef8ad98ba9907169).
+Its source, dependency installation and normalization steps, CLI build and native
+version check remain unchanged. The agent-skill integration uses the same
+registered repair and validates configuration against the real CLI schema.
+Retire this backport when the selected recipe includes these hashes and passes
+those native checks. Revision, version, source and original-hash guards require
+review when the upstream recipe changes.
+
+The Blocky multiple-DNSKEY backport applies upstream
+[PR #2293](https://github.com/0xERR0R/blocky/pull/2293) to 0.35.0. The validator
+previously selected the first DS-matched key and rejected a valid DNSKEY RRset
+when another trusted key signed it. The fix tries the trusted candidates while
+bounding validation attempts. Its package check runs the offline validator suite,
+including second-key acceptance, untrusted-key rejection, and verification-limit
+regressions. Encrypted upstreams, filtering, rebinding protection, and DNSSEC
+settings remain with their existing owners. Retire the backport when the selected
+source includes the fix and passes those regressions without it.
+
+Moonfin's caption background repair is retired at 3.0.0, revision
+`eb43b626f6f9239e1dd050e529de28702b08038c`. Its unmodified style writer
+selects and clears the background box and padding. The retained Dart check
+passes opacity transitions, omitted values, color alpha, bold and authored ASS
+handling; an exact broken-property control reproduces `missing box`.
+The unmodified Linux package also builds with its install checks.
+
+### October 2026 audit of the current pins
+
+The integration retires the Claude sandbox, Sentry report-lock, TypeScript
+dependency-hash, QEMU user-mode release and Stirling PDF 3 backports. Their
+selected upstream recipes now provide those repairs. The remaining audit uses
+Nixpkgs `02c087f3fe673c9e317f206a627cb6b910336dbe` and the
+independently guarded input revisions recorded in each fix. A merged upstream
+change alone does not retire a repair: the selected source must contain it.
+The already retired Actual and Rclone release backports, portal compiler repair,
+Home Manager portal adapter and separate Zoom input remain retired.
+
+| Fixes | Why they remain |
+| --- | --- |
+| `home-manager-protected-apps` | Upstream copyApps still lacks exclusions for independently managed bundles. |
+| `darwin-application-signatures` | Vendor bundle preservation and final bundle sealing remain necessary. Only Signal needs the added signing tool; AeroSpace and Zoom retain their vendor bundles without it. |
+| `nixf-flake-builtins` | The selected metadata generator still registers expression builtins without the flake primops. |
+| `jellyfin-caption-defaults` | Jellyfin 12.2 still mutates shared defaults; the existing regression fails against unmodified source and passes after the repair. |
+| `prowlarr-torrentdownload`, `microsocks-credential-files` | The selected sources still lack the title/search normalization and credential-file interface respectively. |
+| `deploy-rs-confirmation-path`, `deploy-rs-darwin-tests` | The pinned helper retains the lexical-path comparison and native FSEvents dependency. Keep the runtime correction separate from the three sandbox test exclusions. |
+| `determinate-libgit2-trailing-slash`, `determinate-libgit2-module`, `determinate-darwin-tests` | The owning dependency sources lack the cleanup fix, the module still needs factory routing, and the Darwin functional suite still registers the sandbox-incompatible Sentry case. |
+| `gtksourceview-xvfb`, `hypridle-condition-inhibitors` | Their selected sources retain the Xvfb reset race and inhibitor bypass. |
+| `nom-quadratic-build-plan` | Monitor 2.2.0 retains linear root deletion. Upstream now accepts unknown activity types, including 10113. |
+| `hyprland-subsurface`, `hyprland-subsurface-rounding` | Both complete repairs still apply to the selected compositor source. |
+| `hyprshell-modifiers`, `hyprshell-workspace-schema`, `hyprshell-workspace-identity` | All three repairs remain absent from 4.10.8; the identity patch depends on applying the other two first. |
+| `nh-darwin-home`, `prismlauncher-darwin-tests` | nh 4.4.2 still sets empty elevated HOME; Prism 11.1.1 still assumes native watcher availability. |
+| `nixos-anywhere-ssh-host-check` | The pinned installer still disables host-key verification before argument parsing. |
+| `stylix-gtk-flatpak-polarity`, `stylix-nvf`, `stylix-rofi` | The selected modules retain incomplete Flatpak polarity handling and both deprecated option assignments. |
+| `swift-clang-hardening`, `zen-wrapper-copy` | The selected compiler wrapper and Firefox wrapper still lack the required hardening forwarding and compatible copy command. |
+
+Keep both permanent overlays: the personal package collection supplies intentional
+variants, and Determinate selects its owning Nix component scope. Neither is a
+temporary release backport. This audit inspected pinned recipes and available
+sources and reused the recorded native evidence below; it did not repeat every
+package build or interactive regression.
+
+### Guard and retirement procedure
 
 Every registered fix records its reason, upstream link, removal condition, input
 path, and an explicitly reviewed input revision. Do not derive
@@ -86,9 +206,9 @@ path, and an explicitly reviewed input revision. Do not derive
 the check accept every update automatically.
 
 The guard throws a review error when that input changes. This catches recipe
-changes and backports even when a package keeps the same version. Track the
-input that owns the affected source or recipe. A nested input can change
-independently of its parent, so record that nested input path when needed.
+changes and backports even when a package keeps the same version. The portal fix
+tracks `hyprland.inputs.xdph`; tracking only the outer Hyprland revision would
+miss an independent portal input update.
 
 When a release boundary is known, add `affectedVersions`:
 
@@ -221,6 +341,14 @@ The required Darwin `actual-runtime` check preserves those runtime checks using
 the configured service's package and its selected Node dependency, with only
 loopback networking allowed in the strict sandbox.
 
+The Actual 26.10 release backport and Rclone 1.75.1 security backport were
+retired at Nixpkgs `7fd4004d0511991fff3a0524856a9be09e28c5f0`.
+The incoming Actual recipe already selects the same source, translations, Node 24
+and dependency cache covered by the unmodified native proof above. Rclone selects
+the same 1.75.1 source and dependency hash as its former backport. Package consumers
+now use those upstream recipes; Actual's independent secret-log repair and required
+runtime check remain in place.
+
 The nh Darwin HOME fix was reviewed at Nixpkgs
 `e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its version 4.4.2 recipe and
 fixed source selection remain unchanged. The
@@ -229,6 +357,19 @@ preserves the upstream Cargo test selection and passes those Rust suites. The
 exact absolute-HOME regression passes in the normal suite and an additional
 named invocation. The existing version predicate still bypasses this fix for
 newer upstream releases.
+
+The October 2026 retirement review found that Nixpkgs
+`7fd4004d0511991fff3a0524856a9be09e28c5f0` already contains the exact Zoom
+recipe previously imported through a separate input. The desktop now uses the
+upstream module's default package, retaining its portal configuration. Maintainerr
+also uses the incoming libvips when it meets sharp's 8.18.7 minimum; only older
+standalone consumers need its source backport. Codex and ChatGPT now use the unmodified upstream packages. Their former personal
+release pins and managed-app source patch are retired. Host configuration retains
+its state-directory and resource-management policy.
+
+The TypeScript language-server cache correction is now in the selected Nixpkgs
+recipe. The redundant fix, its guard and its obsolete negative fixtures have
+been removed; ordinary package selection resolves directly to upstream.
 
 The Prism Launcher Darwin watcher test fix was reviewed at Nixpkgs
 `e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected package is 11.1.1;
@@ -252,14 +393,22 @@ Its actual unmodified compositor then reproduces the precise parent-position
 failure; the repaired compositor passes orphan, disconnect, color-feedback and
 child-first lifecycle scenarios with clean exit. The production patch is unchanged.
 
-The Claude Code packaging repair is retired at Nixpkgs
-`02c087f3fe673c9e317f206a627cb6b910336dbe`. Upstream removed its
-unsandboxed-build setting. The [native unmodified-package proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890275)
-builds vendor version 2.1.303 under the strict Darwin sandbox with its original
-install checks enabled. The version hook executes `claude --version` and
-successfully reports 2.1.303. The proof also inspects the executable entrypoints,
-architecture and preserved signature. This establishes the override's removal
-condition; it does not establish every application feature or certificate trust.
+The parent-lifetime repair was subsequently reviewed at Hyprland
+`1bd31aaa579a40680ce876e1547e371b60c45522`, with Nixpkgs
+`7fd4004d0511991fff3a0524856a9be09e28c5f0`. The current native paired VM
+uses an isolated direct DRM software renderer. After protocol and renderer
+preflight, the unmodified compositor reproduces the precise parent-position
+crash and manager-confirmed core dump. The unchanged patch passes all four
+lifecycle scenarios five times each and exits cleanly, as confirmed by both the
+original process descriptor and final manager properties. The maintained VM
+port preserves those gates. Its separate parent-display check also requires a
+real unmodified child-first control and manager-confirmed clean exit; that port
+must be validated on the selected native driver and VM after integration.
+
+The Claude Code packaging repair is retired. The selected upstream recipe no
+longer requests an unsandboxed build. The [native unmodified-package proof](https://github.com/nix-forge/nix-conf/actions/runs/41228607280/job/124617890275)
+builds version 2.1.303 in the strict Darwin sandbox and preserves its original
+install checks, executable architecture and vendor signature.
 
 The Determinate Darwin test repair was reviewed at its nested Nix input
 `1ef903401b3426fbca74a692e158cca82d7c98ab`, version 3.23.1. The
@@ -378,3 +527,26 @@ passes all 81 telemetry tests and CLI integration alongside the SSH and HTTPX2
 suites. Retire the repair when the selected dependencies supply compatible
 Fabric/Invoke, and their Darwin tests have the required local networking and
 deterministic timeout fixtures.
+
+Nixpkgs `1d060086d60cb76a40cf37109f979d88a5bd6396` separates the NVIDIA
+builder's interpreter and RPATH edits; the unmodified `nvidia-smi --help` loader
+probe passes without a GPU. The `nvidia-bin-patchelf` repair is retired and the
+native loader probe remains in the declared checks. Live GPU queries remain
+separate deployment evidence.
+
+This pin also contains the Nu pytest choice-list correction, Actual 26.11's
+ordinary log redaction, and nix-output-monitor's unknown activity handling.
+Ghostty 1.4 contains the Bash prompt repair for ble.sh. Their production patches
+are retired; native completion choices, Bash prompt markers, and monitor parser
+regressions remain under `tests/nix`. The monitor's independent build-plan
+performance repair remains. Actual's opt-in `actual-sensitive:*` debug channels
+must remain disabled; a service startup/asset check alone does not prove log
+redaction for every error path.
+
+The upstream LinearMouse 0.12 recipe remains selected. Its temporary APFS
+extraction repair only excludes alternate streams: otherwise 7zz creates an
+`Info.plist:com.apple.quarantine` file inside the signed login helper. Apple's
+deep strict signature verifier rejects that extra sealed resource. The required
+Darwin check verifies the entire resulting upstream bundle, including the helper;
+no bundle contents are patched or re-signed. Retire the repair when the official
+recipe extracts the same archive without these extra files and passes that check.

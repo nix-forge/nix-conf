@@ -16,13 +16,13 @@ let
     runtimeInputs = lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ''
-          exec ${lib.getExe pkgs.colima} start
-        ''
+        ((import ../../../lib/templates/text.nix) ./scripts/start-colima.sh {
+          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
+        })
       else
-        ''
-          exec ${lib.getExe' pkgs.systemd "systemctl"} --user start docker.service
-        '';
+        ((import ../../../lib/templates/text.nix) ./scripts/start-docker-service.sh {
+          lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
+        });
   };
 
   dockerDown = pkgs.writeShellApplication {
@@ -30,21 +30,14 @@ let
     runtimeInputs = [ pkgs.docker ] ++ lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ''
-          exec ${lib.getExe pkgs.colima} stop
-        ''
+        ((import ../../../lib/templates/text.nix) ./scripts/stop-colima.sh {
+          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
+        })
       else
-        ''
-          if ${lib.getExe' pkgs.systemd "systemctl"} --user is-active --quiet docker.service; then
-            mapfile -t container_ids < <(${lib.getExe pkgs.docker} container ls --quiet)
-            if [ "''${#container_ids[@]}" -gt 0 ]; then
-              ${lib.getExe pkgs.docker} container stop "''${container_ids[@]}"
-            fi
-            ${lib.getExe' pkgs.systemd "systemctl"} --user stop docker.service
-          else
-            printf '%s\n' 'Docker is already stopped.'
-          fi
-        '';
+        ((import ../../../lib/templates/text.nix) ./scripts/stop-docker-service.sh {
+          lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
+          lib_getExe_pkgs_docker = lib.getExe pkgs.docker;
+        });
   };
 
   dockerStatus = pkgs.writeShellApplication {
@@ -52,9 +45,9 @@ let
     runtimeInputs = lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ''
-          exec ${lib.getExe pkgs.colima} status
-        ''
+        ((import ../../../lib/templates/text.nix) ./scripts/show-colima-status.sh {
+          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
+        })
       else
         ''
           ${lib.getExe' pkgs.systemd "systemctl"} --user status docker.service || true
@@ -64,24 +57,9 @@ let
   dockerClean = pkgs.writeShellApplication {
     name = "docker-clean";
     runtimeInputs = [ pkgs.docker ];
-    text = ''
-      case "''${1-}" in
-        "")
-          ${lib.getExe pkgs.docker} system df
-          printf '%s\n' 'Pass --images to prune unused images and build cache, or --volumes to include unused volumes.'
-          ;;
-        --images)
-          exec ${lib.getExe pkgs.docker} system prune --all --force
-          ;;
-        --volumes)
-          exec ${lib.getExe pkgs.docker} system prune --all --volumes --force
-          ;;
-        *)
-          printf '%s\n' 'usage: docker-clean [--images|--volumes]' >&2
-          exit 64
-          ;;
-      esac
-    '';
+    text = (import ../../../lib/templates/text.nix) ./scripts/docker-clean.sh {
+      lib_getExe_pkgs_docker = lib.getExe pkgs.docker;
+    };
   };
 in
 {

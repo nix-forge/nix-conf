@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><style>
+@font-face { font-family:LocalFull; src:local('Roboto'); font-weight:400;
+  font-style:normal; font-display:block; }
+@font-face { font-family:LocalPostScript; src:local('__postscript__');
+  font-weight:400; font-style:normal; font-display:block; }
+body { background:#111; color:white; margin:20px; }
+.sample { display:inline-block; white-space:nowrap; font-size:40px;
+  line-height:1.15; }
+</style><span id="full" class="sample" style="font-family:LocalFull">__sample__</span>
+<span id="postscript" class="sample" style="font-family:LocalPostScript">__sample__</span>
+<span id="reference" class="sample" style="font-family:Roboto">__sample__</span>

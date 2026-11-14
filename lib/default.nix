@@ -3,7 +3,14 @@
 { lib }: {
   dir = { inherit (import ./dir/collect.nix { inherit lib; }) collectBySuffix; };
 
-  desktop = { inherit (import ./desktop/gtk-css-check.nix { inherit lib; }) mkGtkCssChecker; };
+  desktop = {
+    inherit (import ./desktop/gtk-css-check.nix { inherit lib; }) mkGtkCssChecker;
+    resolveHyprlandPackage = import ./desktop/hyprland-package.nix;
+  };
+
+  python = {
+    notificationProcess = import ./python/notification-process/package.nix;
+  };
 
   writers = {
     inherit (import ./writers/bash.nix { inherit lib; }) writeBashTemplate;

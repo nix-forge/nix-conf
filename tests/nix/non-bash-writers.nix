@@ -8,25 +8,26 @@ let
   checkLua = myLib.writers.checkLuaFile { inherit pkgs; };
   checkNu = myLib.writers.checkNuFile { inherit pkgs; };
   lua = pkgs.mpv.unwrapped.lua;
-  crx =
-    pkgs.writers.writePython3Bin "helium-crx-to-zip" { }
-      ../../modules/home/helium-browser/scripts/crx-to-zip.py;
+  crx = pkgs.writers.writePython3Bin "helium-crx-to-zip" {
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ../../modules/home/browsers/helium/scripts/crx_to_zip.py;
   preferences = pkgs.writers.writePython3Bin "helium-preference-defaults" {
     # Match the project formatter: long lines and leading binary operators.
     flakeIgnore = [
       "E501"
       "W503"
     ];
-  } ../../modules/home/helium-browser/scripts/preference-defaults.py;
-  resolver = pkgs.writers.writePython3Bin "dev-vm-resolve-host" {
+  } ../../modules/home/browsers/helium/scripts/preference_defaults.py;
+  identity = pkgs.writers.writePython3Bin "write-jujutsu-identity" {
+    libraries = [ (myLib.python.notificationProcess { inherit pkgs; }) ];
     flakeIgnore = [
       "E501"
       "W503"
     ];
-  } ../../homes/macbook-pro-m4/local/dev_vm_host.py;
-  identity = pkgs.writers.writePython3Bin "write-jujutsu-identity" {
-    flakeIgnore = [ "E501" ];
-  } ../../modules/home/dev/scripts/write-jujutsu-identity.py;
+  } ../../modules/home/dev/scripts/write_jujutsu_identity.py;
   plugin = checkLua {
     name = "mpv-anime-toggle.lua";
     src = ../../modules/home/mpv/mpv-anime-toggle.lua;
@@ -38,23 +39,16 @@ let
     src = pkgs.writeText "parse-only-source.lua" "error('validation must not execute this')";
     inherit lua;
   };
-  nuImport = pkgs.writeText "fixture-module.nu" ''
-    export const fixture = "imported"
-    export-env { error make {msg: "must not execute imported code"} }
-  '';
+  nuImport = pkgs.writeText "fixture-module.nu" (builtins.readFile ./scripts/fixture-module.nu);
   nuParseOnly = checkNu {
     name = "parse-only.nu";
     src = pkgs.replaceVarsWith {
       name = "rendered-nu.nu";
-      src = pkgs.writeText "template.nu.in" ''
-        use @module@ *
-        error make {msg: "must not execute configuration"}
-      '';
+      src = pkgs.writeText "template.nu.in" (builtins.readFile ./scripts/nushell-parse-only-config.nu.in);
       replacements.module = nuImport;
     };
   };
   home = inputs.home-manager.lib.homeManagerConfiguration {
-    # Real homes consume the root package repairs, including nu_scripts syntax.
     pkgs = pkgs.extend (import ../../overlays { inherit inputs; });
     extraSpecialArgs = { inherit myLib; };
     modules = [
@@ -84,22 +78,23 @@ in
 {
   non-bash-python-helpers =
     pkgs.runCommand "non-bash-python-helpers" { nativeBuildInputs = [ pkgs.python3 ]; }
-      ''
-        export HOME="$TMPDIR/home"
-        mkdir -p "$HOME"
-        ${lib.getExe resolver} --help > /dev/null
-        ${lib.getExe identity} --help > /dev/null
-        CRX_PROGRAM=${lib.getExe crx} PREFERENCES_PROGRAM=${lib.getExe preferences} \
-          python3 ${./check-python-helpers.py}
-        touch "$out"
-      '';
-  lua-plugin-validation = pkgs.runCommand "lua-plugin-validation" { } ''
-    cmp ${plugin} ${../../modules/home/mpv/mpv-anime-toggle.lua}
-    test ! -x ${plugin}
-    test -f ${luaParseOnly}
-    ${lua.interpreter} ${../lua/check-mpv-anime-toggle.lua} ${plugin}
-    touch "$out"
-  '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/non-bash-python-helpers.sh {
+          lib_getExe_identity = lib.getExe identity;
+          lib_getExe_crx = lib.getExe crx;
+          lib_getExe_preferences = lib.getExe preferences;
+          check_python_helpers_py = ./check_python_helpers.py;
+        }
+      );
+  lua-plugin-validation = pkgs.runCommand "lua-plugin-validation" { } (
+    (import ./../../lib/templates/text.nix) ./scripts/check-mpv-lua-writer.sh {
+      inherit plugin;
+      modules_home_mpv_mpv_anime_toggle_lua = ../../modules/home/mpv/mpv-anime-toggle.lua;
+      inherit luaParseOnly;
+      lua_interpreter = lua.interpreter;
+      lua_check_mpv_anime_toggle_lua = ../lua/check-mpv-anime-toggle.lua;
+    }
+  );
   lua-invalid-syntax = pkgs.testers.testBuildFailure' {
     drv = checkLua {
       name = "invalid.lua";
@@ -129,36 +124,24 @@ in
   nushell-invalid-import = pkgs.testers.testBuildFailure' {
     drv = checkNu {
       name = "invalid-import.nu";
-      src = pkgs.writeText "import-source.nu" ''
-        use ${pkgs.writeText "broken-module.nu" "export def broken ["} *
-      '';
+      src = pkgs.writeText "import-source.nu" (
+        (import ../../lib/templates/text.nix) ./scripts/nushell-broken-import-config.nu.in {
+          pkgs_writeText_broken_module_nu_export_def_broken = pkgs.writeText "broken-module.nu" "export def broken [";
+        }
+      );
     };
     expectedBuilderLogEntries = [ "Failed to parse content" ];
   };
   nushell-generated-config =
     pkgs.runCommand "nushell-generated-config" { checkedFiles = home.config.home.extraDependencies; }
-      ''
-        test -f ${nuParseOnly}
-        export HOME="$TMPDIR/home" XDG_CONFIG_HOME="$TMPDIR/config"
-        mkdir -p "$HOME" "$XDG_CONFIG_HOME"
-        ${lib.getExe pkgs.nushell} --no-config-file --commands '
-          use std/assert
-          source ${envFile}
-          source ${configFile}
-          assert equal $env.LITERAL "quote\" slash\\ newline\n dollar$literal"
-          assert equal $env.PREPEND "tail"
-          assert equal $env.APPEND "head"
-          assert ("/tmp/path with spaces" in $env.PATH)
-          assert ("/tmp/quote\"and$sign" in $env.PATH)
-        '
-        PREPEND=prior APPEND=after ${lib.getExe pkgs.nushell} --no-config-file --commands '
-          use std/assert
-          source ${envFile}
-          assert equal $env.PREPEND "prior:tail"
-          assert equal $env.APPEND "head:after"
-        '
-        touch "$out"
-      '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/nushell-generated-config.sh {
+          inherit nuParseOnly;
+          lib_getExe_pkgs_nushell = lib.getExe pkgs.nushell;
+          inherit envFile;
+          inherit configFile;
+        }
+      );
   nushell-invalid-syntax = pkgs.testers.testBuildFailure' {
     drv = checkNu {
       name = "invalid.nu";

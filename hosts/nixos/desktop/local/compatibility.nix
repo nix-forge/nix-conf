@@ -4,9 +4,8 @@
   services = {
     xserver.enable = true;
     desktopManager.gnome.enable = true;
-    # Greetd starts the Hyprland session defined in headless-remote-play.nix
-    # instead of leaving a separate GDM login screen that Sunshine cannot
-    # capture.
+    # Greetd owns graphical login on this host. A separate GDM login screen
+    # would compete with the selected greeter for graphical login.
     displayManager.gdm.enable = lib.mkForce false;
   };
 

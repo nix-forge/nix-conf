@@ -1,0 +1,15 @@
+# shellcheck shell=bash
+set -euo pipefail
+
+# TypeScript resolves imports beside the source. Provide the declared typings
+# without installing dependencies or modifying the developer's checkout.
+lint_directory=$(mktemp -d)
+trap 'rm -rf "$lint_directory"' EXIT
+cp .oxlintrc.json tsconfig.json package.json package-lock.json "$lint_directory/"
+for directory in tests overlays modules lib flake scripts; do
+  cp -R "$directory" "$lint_directory/$directory"
+done
+ln -s @javascript_tools@/lib/node_modules "$lint_directory/node_modules"
+cd "$lint_directory"
+@node@ tests/typescript/check-projects.mts
+@oxlint@ --type-aware --deny-warnings --config .oxlintrc.json tests overlays/temporary/patches/*-test.cts

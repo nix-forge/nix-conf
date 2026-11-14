@@ -3,7 +3,7 @@
 Use the framework that exercises the behavior at its owning repository. Root
 Python tests run through pytest. Nix evaluation, generated-file validation, and
 NixOS VM tests remain Nix checks. Package tests, Cargo tests, and Swift XCTest
-retain their own runners. The [framework research](testing-frameworks-research.md)
+retain their own runners. The [framework research](research/testing-frameworks-research.md)
 explains the choice and alternatives.
 
 ## Commands
@@ -19,6 +19,7 @@ just test-ci
 workstation-task nix build --no-link .#checks.x86_64-linux.python-tests
 workstation-task nix build --no-link .#checks.x86_64-linux.secret-templates
 workstation-task nix build --no-link .#checks.x86_64-linux.git-email-privacy
+workstation-task nix build --no-link .#checks.x86_64-linux.javascript-quality
 just generated-checks
 ```
 
@@ -30,6 +31,22 @@ installing hooks. Both local and sandbox runs use the dependencies in
 [pyproject.toml](../pyproject.toml). Tests time out after 120 seconds; a documented
 longer bound belongs on a specific test, rather than disabling the limit globally.
 Unexpected passes of tests marked `xfail` fail the suite.
+
+The JavaScript check type-checks root-owned JavaScript and TypeScript tests,
+checks the caption regression source, and runs the Spotify integration
+suite against the compiled extension from the package repository. For a direct
+`npm test` invocation, set `METABRAINZ_EXTENSION` to that package's `metabrainz.js`;
+the root no longer owns or compiles a second copy of the extension.
+
+Run `npm run check` at the root and `npm --prefix pkgs run check` for the
+package repository after installing each repository's locked development
+dependencies with `npm ci`. Both commands run strict compiler checks,
+type-aware lint, formatting, and their portable Node tests. `typecheck` discovers
+all standalone compiler projects in the owning source directories and rejects
+maintained source files outside their inputs. Coverage manifests explain the
+four CommonJS loader fixtures and map ReactFlux sources to their application
+build paths. Invalid types, uncovered sources, and weakened compiler policy have
+regression tests.
 
 Default pytest discovery selects `tests/**/test_*.py`. It excludes two explicit
 markers:
@@ -48,22 +65,30 @@ platform-specific checks. The CI workflow runs daemon tests separately.
 
 ## Layout and ownership
 
-| Location | Contract and execution |
-| --- | --- |
-| `tests/browsers`, `tests/codex`, `tests/macos` | Public helper commands, unmanaged settings, permissions, and idempotence. Included in `python-tests`. |
-| `tests/fonts` | Composition examples in pytest; real selection, shaping, and native rendering remain font checks. |
-| `tests/hyprland/test_*.py` | Isolated runner environment, cleanup, and crash reporting. No compositor connection. |
-| `tests/storage/test_*.py` | Recovery receipts, backup preconditions, and real disposable Restic backup/restore. Included in `python-tests`. |
-| `tests/virtualisation` | Installer rendering and libvirt command contracts using temporary state. Real XML and JSON tools, with explicit guest adapters. Included in `python-tests`. |
-| `tests/maintenance` | Root command delegation against disposable package scripts. Included in `python-tests`. |
-| `tests/secrets`, `tests/git_privacy` | Identity rollback, policy evaluation, generated templates and generated Git hooks. Rollback is portable; generated inputs have dedicated checks. |
-| `tests/ci` | Build selection, target discovery, and deployment exclusions using real Git/Nix. |
-| `tests/nix` | Evaluated configuration, generated artifacts, writer rejection tests, and the ClamAV VM. |
-| `tests/storage/install.nix` | Disposable disk installation, boot and restoration. Requires native x86 Linux with virtualization. |
-| `flake/dev/local-control-checks.nix` | Local-control process, filesystem, proof and activation checks. Darwin-only checks are absent on Linux, rather than successful placeholder builds. |
-| `tests/{browsers,hyprland,noctalia,systemd,terminals,codex,vscode}/check_*` | Explicit rendering and operator probes with their own arguments and environment requirements. Some run from dedicated Nix checks; none are implicitly collected by pytest. |
-| `tests/lua`, native font sources | Native-language checks invoked by their owning Nix derivations. |
-| Submodule `tests`, package-local `Tests`, Rust test modules and fuzz targets | Owned and validated in the submodule. Root pytest does not recurse into them. |
+| Location                                                                     | Contract and execution                                                                                                                                                     |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/browsers`, `tests/codex`, `tests/macos`                               | Public helper commands, unmanaged settings, permissions, and idempotence. Included in `python-tests`.                                                                      |
+| `tests/fonts`                                                                | Composition examples in pytest; real selection, shaping, and native rendering remain font checks.                                                                          |
+| `tests/hyprland/test_*.py`                                                   | Isolated runner environment, cleanup, and crash reporting. No compositor connection.                                                                                       |
+| `tests/storage/test_*.py`                                                    | Recovery receipts, backup preconditions, and real disposable Restic backup/restore. Included in `python-tests`.                                                            |
+| `tests/virtualisation`                                                       | Installer rendering and libvirt command contracts using temporary state. Real XML and JSON tools, with explicit guest adapters. Included in `python-tests`.                |
+| `tests/maintenance`                                                          | Root command delegation against disposable package scripts. Included in `python-tests`.                                                                                    |
+| `tests/secrets`, `tests/git_privacy`                                         | Identity rollback, policy evaluation, generated templates and generated Git hooks. Rollback is portable; generated inputs have dedicated checks.                           |
+| `tests/ci`                                                                   | Build selection, target discovery, and deployment exclusions using real Git/Nix.                                                                                           |
+| `tests/nix`                                                                  | Evaluated configuration, generated artifacts, writer rejection tests, and the ClamAV VM.                                                                                   |
+| `tests/storage/install.nix`                                                  | Disposable disk installation, boot and restoration. Requires native x86 Linux with virtualization.                                                                         |
+| `tests/{browsers,hyprland,noctalia,systemd,terminals,codex,vscode}/check_*`  | Explicit rendering and operator probes with their own arguments and environment requirements. Some run from dedicated Nix checks; none are implicitly collected by pytest. |
+| `tests/lua`, native font sources                                             | Native-language checks invoked by their owning Nix derivations.                                                                                                            |
+| Submodule `tests`, package-local `Tests`, Rust test modules and fuzz targets | Owned and validated in the submodule. Root pytest does not recurse into them.                                                                                              |
+
+Run manual Python probes from the repository root with
+`nix develop --command env PYTHONPATH=tests python3 <probe.py> <arguments>`.
+The declared interpreter includes their notification, browser and image libraries.
+The development shell also supplies Node 24 for emitting the TypeScript browser
+and host probe sources as JavaScript. The Python sandbox check declares the same
+Node runtime and includes the TypeScript fixture sources.
+Use the same environment for Node probes because their application supervisor is
+Python: `nix develop --command node <probe.mts> <arguments>`.
 
 `flake/dev/python-checks.nix` defines the portable sandbox source and dependencies.
 The common [Python check builder](../tests/python-check.nix) copies selected
@@ -75,6 +100,9 @@ them. New Python tests under `tests/` are discovered automatically.
 Python lint and type checks use a separate, broader import environment in
 [`quality-python.nix`](../flake/dev/quality-python.nix). The sandbox check and
 local Git hook share it, including the documentation builder's dependencies.
+On Darwin, build `javascript-quality` with `--option sandbox relaxed` to permit
+its declared FSEvents service lookup. Nix still sandboxes the check; this command
+allows its narrow native profile without changing machine-wide configuration.
 
 Keep fixtures next to their feature. Use a local `conftest.py` only for shared
 setup with a real consumer. The CI Git fixture clears inherited identity,
@@ -131,9 +159,8 @@ missing input, and unreadable files.
 ## Review decisions
 
 The September 2026 review retained behavior tests for writers, schema rejection,
-privacy hooks, backup restoration, native rendering, local-control validation,
-and VM integration. These test distinct contracts. Operational probes remain
-explicit because they require native applications, hardware, or a live session.
+privacy hooks, backup restoration, native rendering, and VM integration. These
+test distinct contracts. Operational probes remain explicit because they require native applications, hardware, or a live session.
 
 The revision removed separate root unittest launchers and duplicate portable
 execution from font, generated-file and deployment checks. CI tests and the

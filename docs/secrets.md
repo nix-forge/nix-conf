@@ -2,9 +2,9 @@
 
 This repository uses the pinned `nix-seal` submodule for secret policy,
 administrator-to-target rekeying, signed artifacts, and runtime activation. The
-canonical ciphertext lives under shared or target-local home, host, and module directories;
-target artifacts live only
-in the ignored `.nix-seal/` workspace or an exported ciphertext cache.
+canonical ciphertext lives under shared or target-local home and host directories.
+Target artifacts live only in the ignored `.nix-seal/` workspace or an exported
+ciphertext cache.
 
 ## Public policy and local credentials
 
@@ -66,14 +66,73 @@ the administrator machine. See the
 [preparation workflow](../nix-seal/README.md#prepare-a-configuration-before-switching)
 for complete commands and retries.
 
+### Homelab logins and Bitwarden
+
+Managed application usernames and passwords are encrypted with nix-seal.
+Services resolve usernames at runtime through systemd credentials, including
+FreshRSS, Jellyfin, Seerr, music accounts, and indexer authentication. API keys
+remain distinct from website passwords. Passwordless applications keep their
+existing passkey or OIDC authentication.
+
+After preparing and activating the configuration, use the
+[homelab vault importer](../hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py)
+from the desktop terminal:
+
+```sh
+python hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py --dry-run
+python hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py
+python hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py --apply
+```
+
+The first command validates the deployed credentials without opening the vault.
+The second unlocks Bitwarden locally and prints the vault reconciliation plan
+without making changes. The third saves and verifies each managed login. Review
+the plan before applying it. The script reads desktop and Raspberry Pi secrets,
+including Homebridge, Scrypted, and VeSync, through the administrator host's
+root SSH route. Override that route with
+`--credential-via-host your-admin-host`.
+Sign in with `bw login` first. If the vault is locked, the script prompts locally
+for its master password. Credentials and session tokens are never printed.
+
+The importer resolves all target items before making changes, preserves existing
+passkeys, TOTP secrets, notes, and custom fields, then reads back each saved login
+and syncs the vault. Ambiguous matches require manual cleanup before retrying.
+Homepage's dashboard uses a password-only login, so its Bitwarden item has a
+blank username and the exact HTTPS dashboard URL. The runtime authentication
+secret is not copied into Bitwarden.
+Other vault items are left untouched, including unclaimed logins for the same
+domain. The indexer proxy's sealed username and password become a login item
+without a website URI because MicroSocks has no browser sign-in. `--only` updates
+selected logins.
+An encrypted application whose password is unavailable is not assigned an
+invented password. Website passkeys must be registered through the browser or
+an iPhone; Bitwarden CLI cannot perform website passkey enrollment.
+
 NixOS checks readiness before stopping services, and Home Manager checks before
 writing its environment. An error from the default configuration includes the
 stable preparation command; an older or non-default generation includes its
-exact recovery input. `doctor` now exits nonzero when a
-valid plan lacks required artifacts; it distinguishes policy validity from
-readiness in its JSON output.
+exact recovery input. `doctor` exits nonzero when a valid plan lacks required
+artifacts and distinguishes policy validity from readiness in its JSON output.
 
 ## Config templates
+
+The desktop Prowlarr provider selection lives in the encrypted
+`homelab-prowlarr-indexers` JSON secret. The public host module declares only
+its runtime path, proxy, and route policy. The reconciler checks each private
+indexer's route before contacting Prowlarr; update the secret with nix-seal
+when changing providers. The Cloudflare DNS zone ID is likewise a separate
+runtime secret from the DNS API token. Both values remain outside Nix strings
+and generated store files. The desktop HTTPS certificate covers the domain
+apex and wildcard. The DNS helper creates one DNS-only wildcard A record and
+removes matching per-application A records after verifying that the wildcard
+exists. An exact CAA policy suppresses wildcard DNS, so the helper retains
+that name's matching A record alongside its CAA record. Other application
+names disappear from live public DNS unless independently hosted. The Raspberry
+Pi's HTTPS site has its own DNS-only exact A record for its private address;
+the desktop helper does not manage that site. New certificate requests use only
+the apex and wildcard. Earlier DNS observations and certificate logs cannot be
+withdrawn. The host module still names its enabled applications, so
+publishing this repository discloses that inventory even after the DNS change.
 
 Small templates are defined inline in the Nix modules that configure them.
 The complete public format, ordinary settings, and secret markers are visible
@@ -83,7 +142,7 @@ remain the only canonical secret inputs.
 Git identity, allowed signers, and the SSH include are in the shared home
 nix-seal module. FlakeHub and Nix token configuration are in the shared host or
 home declarations. Each local Jujutsu module owns its small identity template,
-and [the Wi-Fi module](../hosts/nixos/desktop/local/wifi-profile.nix) owns the
+and [the Wi-Fi module](../hosts/nixos/desktop/local/network/wifi-profile.nix) owns the
 complete IWD profile. Each output still renders as one protected file at activation.
 
 This repository needs no separate secret-template directories. nix-seal continues
@@ -92,8 +151,8 @@ file is useful, keep it beside its owning module and use the format suffix befor
 `.template`, such as `app.toml.template`. Avoid splitting one output into public
 and secret-only fragments.
 
-[Shared home declarations](../homes/shared/nix-seal.nix) and
-[shared host declarations](../hosts/shared/nix-seal.nix) own common configuration.
+[Shared home declarations](../homes/shared/local/nix-seal.nix) and
+[shared host declarations](../hosts/shared/local/nix-seal.nix) own common configuration.
 Each target imports the appropriate module and declares its `publicKey` and local
 exceptions. Name lists replace `lib.genAttrs`; named entries carry individual
 options. Declarations enable nix-seal. The framework adapter supplies the repository
@@ -123,11 +182,15 @@ Ciphertext storage follows the consumers' scope:
 
 | Scope | Ciphertext directory |
 | --- | --- |
-| Both homes | `homes/shared/secrets/` |
-| Both hosts | `hosts/shared/secrets/` |
-| Systems and homes | `modules/shared/secrets/` |
+| Both homes | `homes/shared/local/secrets/` |
+| Both hosts | `hosts/shared/local/secrets/` |
 | One home | `homes/<target>/local/secrets/` |
 | One host | `hosts/<platform>/<target>/local/secrets/` |
+
+When a credential serves both a host and a home, each scope keeps a ciphertext
+copy in its own tree. The host and home declarations retain distinct runtime
+ownership and signed artifacts. Reuse the same encrypted bytes only when both
+scopes intentionally use the same credential.
 
 The desktop-only API credential, local service settings, Wi-Fi credentials,
 and host-specific system token live with their targets. Shared directories
@@ -182,19 +245,10 @@ before deploying policy or ciphertext changes. Template and consumer changes
 must be activated together. Keep existing signed caches and system generations
 until rollback is no longer needed.
 
-The service settings remain one encrypted bundle because they share a consumer
-and access policy, and their variable names are private metadata. The service
-reads `config.nixSeal.secrets.service-private-settings.path` directly as its
-environment file. No pass-through template or duplicate rendered copy is needed.
-Its `0600` permissions, services phase, and proxy restart action remain on the
-secret declaration. See the
-[migration review](secret-template-review.md) for historical verification and
-current layout notes.
-
 ## Shared FlakeHub authentication
 
-Both hosts reuse `hosts/shared/secrets/flakehub-login.age` and
-`hosts/shared/secrets/flakehub-password.age`. The four public netrc machine
+Both hosts reuse `hosts/shared/local/secrets/flakehub-login.age` and
+`hosts/shared/local/secrets/flakehub-password.age`. The four public netrc machine
 entries repeat these same two fields. Consolidation rejects differing login or
 password values instead of silently discarding them.
 

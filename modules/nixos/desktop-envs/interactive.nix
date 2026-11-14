@@ -8,6 +8,8 @@ let
   cfg = config.desktop.system;
 in
 {
+  imports = [ ./session.nix ];
+
   options.desktop.system.enable = lib.mkEnableOption "services needed by an interactive standalone Wayland desktop";
 
   config = lib.mkIf cfg.enable {

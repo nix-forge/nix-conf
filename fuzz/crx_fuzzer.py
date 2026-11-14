@@ -18,7 +18,7 @@ METADATA_SIZE = 32
 
 SCRIPT = (
     pathlib.Path(__file__).resolve().parents[1]
-    / "modules/home/helium-browser/scripts/crx-to-zip.py"
+    / "modules/home/browsers/helium/scripts/crx_to_zip.py"
 )
 with atheris.instrument_imports():
     spec = importlib.util.spec_from_file_location("crx_to_zip", SCRIPT)

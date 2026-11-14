@@ -51,23 +51,8 @@ class ThemeDiscoveryTests(unittest.TestCase):
     @staticmethod
     def _discover(root: Path) -> list[str]:
         expression = (
-            """
-            let
-                lib = import NIXPKGS_LIB;
-                inputs.nix-config-framework.lib = import FRAMEWORK_LIB { inherit lib; };
-                evaluated = lib.evalModules {
-                    specialArgs = { inherit inputs; };
-                    modules = [
-                        (import MODULE).homeManager
-                        { options.discovered = lib.mkOption {
-                                type = lib.types.listOf lib.types.str;
-                                default = [ ];
-                            };
-                        }
-                    ];
-                };
-            in evaluated.config.discovered
-        """
+            (Path(__file__).with_name("fixtures") / "theme-target-discovery.nix.in")
+            .read_text(encoding="utf-8")
             .replace("NIXPKGS_LIB", json.dumps(os.environ["NIX_TEST_NIXPKGS"] + "/lib"))
             .replace(
                 "FRAMEWORK_LIB", json.dumps(os.environ["NIX_TEST_FRAMEWORK"] + "/lib")

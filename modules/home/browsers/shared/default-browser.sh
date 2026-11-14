@@ -2,6 +2,7 @@
 # shellcheck shell=bash
 
 readonly DEFAULTBROWSER_EXE='@defaultBrowserExe@'
+readonly SET_DEFAULT_BROWSER_EXE='@setDefaultBrowserExe@'
 # These substitutions are shell-escaped literals supplied by Nix.
 # shellcheck disable=SC2016
 readonly APP_PATH=@appPath@
@@ -19,33 +20,7 @@ fail() {
 }
 
 extract_registered_entry() {
-  # shellcheck disable=SC2016
-  "${AWK_EXE}" -v app_path="${APP_PATH}" '
-    BEGIN {
-      app_path_re = app_path
-      gsub(/[][\\.^$*+?(){}|]/, "\\\\&", app_path_re)
-    }
-    $0 ~ /^-+$/ {
-      if (block != "" && found) {
-        print block
-        exit
-      }
-      block = $0 ORS
-      found = 0
-      next
-    }
-    {
-      block = block $0 ORS
-      if ($0 ~ ("path:[[:space:]]+" app_path_re " \\(")) {
-        found = 1
-      }
-    }
-    END {
-      if (block != "" && found) {
-        print block
-      }
-    }
-  ' < <("${LSREGISTER_EXE}" -dump)
+  "${AWK_EXE}" -v app_path="${APP_PATH}" -f '@registeredBrowserAwk@' < <("${LSREGISTER_EXE}" -dump)
 }
 
 if [ ! -d "${APP_PATH}" ]; then
@@ -86,17 +61,11 @@ if [ "${registered_bundle_version}" != "${expected_bundle_version}" ]; then
 fi
 
 printf 'setting %s as the default browser...\n' "${APP_LABEL}" >&2
-"${DEFAULTBROWSER_EXE}" "${HANDLER}"
+"${SET_DEFAULT_BROWSER_EXE}" "${APP_PATH}"
 
 is_default_browser() {
   "${DEFAULTBROWSER_EXE}" | grep -Eq "^\\*[[:space:]]+${HANDLER}$"
 }
-
-retries=0
-while ! is_default_browser && [ "${retries}" -lt 10 ]; do
-  retries=$((retries + 1))
-  sleep 1
-done
 
 if ! is_default_browser; then
   available_handlers="$("${DEFAULTBROWSER_EXE}")"

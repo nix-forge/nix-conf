@@ -59,6 +59,8 @@ let
         )
         export NODE_ENV=production ACTUAL_DATA_DIR="$data/server-data"
         export ACTUAL_PORT="$port" ACTUAL_HOSTNAME=127.0.0.1
+        # Ordinary debug is exercised; opt-in sensitive namespaces stay disabled.
+        export DEBUG='actual:*' NO_COLOR=1
         mkdir -p "$ACTUAL_DATA_DIR"
         ${actualPackage}/bin/actual-server > "$out/server.log" 2>&1 &
         process=$!
@@ -68,7 +70,15 @@ let
           cat "$out/server.log"
           exit 1
         fi
+        python3 ${../../overlays/temporary/tests/actual_log_redaction.py} probe "$port"
         test -s "$ACTUAL_DATA_DIR/server-files/account.sqlite"
+        # Drain the server before reading its real stdout/stderr; no log polling.
+        kill "$process"
+        server_status=0
+        wait "$process" || server_status=$?
+        trap - EXIT
+        test "$server_status" -eq 0 || test "$server_status" -eq 143
+        python3 ${../../overlays/temporary/tests/actual_log_redaction.py} verify "$out/server.log"
         printf '%s\n' 'Installed server and web assets passed; packaged Node SQLite persisted a write.' > "$out/result.txt"
       '';
 in

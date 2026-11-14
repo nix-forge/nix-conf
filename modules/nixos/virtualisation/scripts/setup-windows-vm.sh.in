@@ -13,10 +13,19 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────────────────
 
 if [[ -t 1 ]] && command -v tput >/dev/null 2>&1 && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]]; then
-  BOLD=$(tput bold); DIM=$(tput dim); RESET=$(tput sgr0)
-  BLUE=$(tput setaf 4); GREEN=$(tput setaf 2); YELLOW=$(tput setaf 3)
+  BOLD=$(tput bold)
+  DIM=$(tput dim)
+  RESET=$(tput sgr0)
+  BLUE=$(tput setaf 4)
+  GREEN=$(tput setaf 2)
+  YELLOW=$(tput setaf 3)
 else
-  BOLD=""; DIM=""; RESET=""; BLUE=""; GREEN=""; YELLOW=""
+  BOLD=""
+  DIM=""
+  RESET=""
+  BLUE=""
+  GREEN=""
+  YELLOW=""
 fi
 
 # Author sets this at the top of the stages section.
@@ -56,7 +65,7 @@ stage() {
 }
 
 # say "..." prints a plain instruction line.
-say()  { printf '  %s\n' "$1"; }
+say() { printf '  %s\n' "$1"; }
 # step "..." is a numbered-feeling action the human takes in the browser.
 step() { printf '  %s•%s %s\n' "$BLUE" "$RESET" "$1"; }
 note() { printf '  %s%s%s\n' "$DIM" "$1" "$RESET"; }
@@ -66,10 +75,15 @@ warn() { printf '  %s⚠ %s%s\n' "$YELLOW" "$1" "$RESET"; }
 open_url() {
   local url="$1"
   printf '  %s↗ opening%s %s\n' "$GREEN" "$RESET" "$url"
-  { if   command -v wslview     >/dev/null 2>&1; then wslview "$url"
-    elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$url"
-    elif command -v xdg-open    >/dev/null 2>&1; then xdg-open "$url"
-    elif command -v open        >/dev/null 2>&1; then open "$url"
+  {
+    if command -v wslview >/dev/null 2>&1; then
+      wslview "$url"
+    elif command -v explorer.exe >/dev/null 2>&1; then
+      explorer.exe "$url"
+    elif command -v xdg-open >/dev/null 2>&1; then
+      xdg-open "$url"
+    elif command -v open >/dev/null 2>&1; then
+      open "$url"
     else warn "couldn't open a browser; visit it manually: $url"; fi
   } >/dev/null 2>&1 || warn "couldn't open a browser, so visit it manually: $url"
 }
@@ -85,13 +99,14 @@ confirm() {
   local reply=""
   printf '  %s? %s [y/N] ' "$YELLOW" "$1"
   read -r reply || true
-  [[ "$reply" =~ ^[Yy] ]]
+  [[ $reply =~ ^[Yy] ]]
 }
 
 # _existing KEY: current value of KEY in ENV_FILE, if any.
 _existing() {
-  [[ -f "$ENV_FILE" ]] || return 1
-  local line; line=$(grep -E "^${1}=" "$ENV_FILE" | tail -n1) || return 1
+  [[ -f $ENV_FILE ]] || return 1
+  local line
+  line=$(grep -E "^${1}=" "$ENV_FILE" | tail -n1) || return 1
   printf '%s' "${line#*=}"
 }
 
@@ -100,13 +115,13 @@ _existing() {
 ask() {
   local key="$1" prompt="$2" current input
   current=$(_existing "$key" || true)
-  if [[ -n "$current" ]]; then
+  if [[ -n $current ]]; then
     printf '  %s%s%s %s[Enter keeps current]%s ' "$BOLD" "$prompt" "$RESET" "$DIM" "$RESET"
   else
     printf '  %s%s%s ' "$BOLD" "$prompt" "$RESET"
   fi
   read -r input || true
-  [[ -z "$input" && -n "$current" ]] && input="$current"
+  [[ -z $input && -n $current ]] && input="$current"
   printf -v "$key" '%s' "$input"
 }
 
@@ -114,14 +129,14 @@ ask() {
 ask_secret() {
   local key="$1" prompt="$2" current input
   current=$(_existing "$key" || true)
-  if [[ -n "$current" ]]; then
+  if [[ -n $current ]]; then
     printf '  %s%s%s %s[Enter keeps current]%s ' "$BOLD" "$prompt" "$RESET" "$DIM" "$RESET"
   else
     printf '  %s%s%s ' "$BOLD" "$prompt" "$RESET"
   fi
   read -rs input || true
   printf '\n'
-  [[ -z "$input" && -n "$current" ]] && input="$current"
+  [[ -z $input && -n $current ]] && input="$current"
   printf -v "$key" '%s' "$input"
 }
 
@@ -131,8 +146,8 @@ write_env() {
   local key="$1" value="$2" tmp
   touch "$ENV_FILE"
   tmp=$(mktemp)
-  grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
-  printf '%s=%s\n' "$key" "$value" >> "$tmp"
+  grep -vE "^${key}=" "$ENV_FILE" >"$tmp" || true
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
   mv "$tmp" "$ENV_FILE"
   WRITTEN_ENV+=("$key")
   printf '  %s✓ wrote%s %s → %s\n' "$GREEN" "$RESET" "$key" "$ENV_FILE"
@@ -170,10 +185,11 @@ set_var() {
 finish() {
   _clear
   printf '\n%s%s  ✓ Setup complete%s\n' "$BOLD" "$GREEN" "$RESET"
-  (( ${#WRITTEN_ENV[@]} ))    && note "wrote ${#WRITTEN_ENV[@]} value(s) to $ENV_FILE: ${WRITTEN_ENV[*]}"
-  (( ${#WRITTEN_SECRET[@]} )) && note "set ${#WRITTEN_SECRET[@]} GitHub secret(s): ${WRITTEN_SECRET[*]}"
-  if (( ${#SKIPPED[@]} )); then
-    printf '\n'; warn "still to do by hand:"
+  ((${#WRITTEN_ENV[@]})) && note "wrote ${#WRITTEN_ENV[@]} value(s) to $ENV_FILE: ${WRITTEN_ENV[*]}"
+  ((${#WRITTEN_SECRET[@]})) && note "set ${#WRITTEN_SECRET[@]} GitHub secret(s): ${WRITTEN_SECRET[*]}"
+  if ((${#SKIPPED[@]})); then
+    printf '\n'
+    warn "still to do by hand:"
     for s in "${SKIPPED[@]}"; do note "  - $s"; done
   fi
   printf '\n'
@@ -186,34 +202,28 @@ finish() {
 
 TOTAL_STAGES=6
 
-download_page=@downloadPage@
 image_name=@imageName@
 iso_file_name=@isoFileName@
 iso_sha256=@isoSha256@
 media_description=@mediaDescription@
 private_directory=@privateDirectory@
-release=@release@
 
 banner "Managed Windows VM setup"
 
 stage "Pinned Windows installation media"
-say "Download the declared production media: $media_description."
-open_url "$download_page"
-step "Under Download Windows 11 Disk Image, choose the multi-edition x64 ISO and English (United States)."
-step "Download $iso_file_name for release $release. Windows Setup will select $image_name from that ISO."
-warn "Microsoft's generated ISO link expires after 24 hours. The release and SHA-256 below are the durable declaration; retain the verified ISO locally."
-step "Microsoft-published SHA-256: $iso_sha256"
-ask ISO_SOURCE "Absolute path to the downloaded ISO:"
-windows-vm stage-iso "$ISO_SOURCE"
+say "Fetch $media_description directly from Microsoft's CDN."
+say "The generated link expires after 24 hours, so this command requests a fresh one."
+step "Declared ISO: $iso_file_name; image: $image_name; SHA-256: $iso_sha256"
+windows-vm fetch-iso
 
 stage "Administrator SSH keys"
 say "The VM accepts Ed25519 keys only. Password-based SSH stays disabled."
 DEFAULT_KEY="$HOME/.ssh/libvirt-dev.pub"
-if [[ -f "$DEFAULT_KEY" ]] && confirm "Authorize $DEFAULT_KEY?"; then
+if [[ -f $DEFAULT_KEY ]] && confirm "Authorize $DEFAULT_KEY?"; then
   windows-vm authorize "$DEFAULT_KEY"
 fi
 ask ADDITIONAL_KEY "Optional additional public-key path, or Enter to skip:"
-if [[ -n "$ADDITIONAL_KEY" ]]; then
+if [[ -n $ADDITIONAL_KEY ]]; then
   windows-vm authorize "$ADDITIONAL_KEY"
 fi
 

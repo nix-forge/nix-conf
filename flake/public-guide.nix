@@ -31,7 +31,7 @@
           inputs.home-manager.nixosModules.home-manager
           ../tests/public-guide/graphical-vm.nix
         ];
-        testScript = import ../tests/public-guide/graphical-vm-test.nix;
+        testScript = builtins.readFile ../tests/public-guide/graphical_vm_test.py;
       };
     };
     packages = lib.optionalAttrs (system == "x86_64-linux") {

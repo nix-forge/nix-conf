@@ -2,9 +2,11 @@
   config,
   lib,
   pkgs,
+  myLib,
   ...
 }:
 let
+  python = pkgs.python3.withPackages (_: [ (myLib.python.notificationProcess { inherit pkgs; }) ]);
   cfg = config.services.applicationRecovery;
   commandOption =
     description:
@@ -43,7 +45,7 @@ let
     path = [ pkgs.systemd ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${lib.getExe pkgs.python3} ${./runner.py} ${policyFor name application} ${action}";
+      ExecStart = "${lib.getExe python} ${./runner.py} ${policyFor name application} ${action}";
       StateDirectory = "application-recovery/${name}";
       StateDirectoryMode = "0700";
       UMask = "0077";

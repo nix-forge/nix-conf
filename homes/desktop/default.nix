@@ -17,20 +17,9 @@
     publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
-  nixpkgsArgs = {
-    overlays = [ (import ../../overlays { inherit inputs; }) ];
-    config = {
-      allowUnfree = true;
-      allowUnfreePredicate = _: true;
-    };
-  };
+  nixpkgsArgs = (import ./local/package-policy.nix { }).lib.targetPackagePolicy inputs;
 
   modules = with modules; [
-    # Full design library remains a user choice, independent of font roles.
-    { typography.designLibrary = "full"; }
-    # Compatibility value for this Home Manager installation; do not raise it
-    # merely to follow the current Nixpkgs/Home Manager release.
-    { home.stateVersion = "25.05"; }
 
     ## Base
     determinate
@@ -39,10 +28,10 @@
     cache
     xdg
     nixSeal
-    ./nix-seal.nix
 
     fonts
     desktop-optional-emoji-fonts
+    desktop-dictation
     dev
     xdg-portal
 
@@ -56,7 +45,6 @@
     cli-nh
     cli-pandoc
     cli-pdf
-    cli-remindctl
     cli-ripgrep
 
     shells-aliases
@@ -73,7 +61,11 @@
     wm-hyprland
     desktop
     ssh
+    services-ssh-forwards
+    services-workstation-jobs
+    dev-jj-identity
 
+    firefox
     zen-browser
     helium-browser
     chrome
@@ -88,16 +80,8 @@
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
+    moonfin
     feishin
-    libreoffice
-    {
-      programs.libreoffice = {
-        enable = true;
-        # The matching NixOS policy is declared in the desktop-local
-        # AppArmor module; other hosts deliberately remain unconfined.
-        languageTool.appArmorProfile = "nixos-languagetool";
-      };
-    }
 
     stylix
     stylix-targets-zen-browser
@@ -107,7 +91,7 @@
     zoom
     spotify
     bitwarden
-    darktable
+    lightcraft
     prismlauncher
 
   ];

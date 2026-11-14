@@ -2,7 +2,7 @@
 minversion = "9.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-pythonpath = ["tests/fonts"]
+pythonpath = ["tests", "tests/fonts"]
 addopts = [
   "--import-mode=importlib",
   "--strict-config",
@@ -22,7 +22,7 @@ markers = [
 
 [tool.ruff]
 target-version = "py314"
-# Submodules own their Python checks in their independent repositories.
+# Submodules own their Ruff configurations and checks.
 extend-exclude = ["nix-config-framework", "nix-homelab", "nix-seal", "pkgs"]
 fix = false
 preview = true
@@ -80,16 +80,188 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.ruff.lint.per-file-ignores]
-"fuzz/*.py" = [
-  # Fuzzer properties deliberately use assertions to signal a crash.
-  "assert",
+"tests/homelab/music/test_listenbrainz_identity.py" = [
+  # Disposable provider tokens are explicit fixtures, never real credentials.
+  "hardcoded-password-string",
 ]
-"tests/macos/check_secure_files_release.py" = [
-  # The CLI fixture drives an installed binary and reports assertions to Nix.
+"hosts/nixos/desktop/local/homelab/scripts/bootstrap_books.py" = [
+  # The object/list validators check JSON shapes; API fields remain heterogeneous.
+  "any-type",
+]
+"tests/homelab/test_books_bootstrap.py" = [
+  # The local HTTP fixture stores several API record shapes in one state mapping.
+  "any-type",
+]
+"tests/homelab/music/test_bootstrap_aurral.py" = [
+  # Mocks preserve the API signatures and return heterogeneous JSON fixture data.
+  "any-type",
+  "unused-function-argument",
+  "unused-lambda-argument",
+  "magic-value-comparison",
+  "hardcoded-password-string",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "f-string-in-exception",
+  "complex-structure",
+  "too-many-return-statements",
+]
+"tests/homelab/music/test_*users.py" = [
+  # Native filesystem fixtures invoke only the repository entrypoint.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+]
+"tests/homelab/music/test_discovery_directories.py" = [
+  # Native filesystem fixtures invoke only the repository entrypoint.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+]
+"tests/virtualisation/test_windows_iso_fetch.py" = [
+  # Pinned command fixtures exercise the download refusal paths.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+]
+"overlays/temporary/tests/prowlarr_torrentdownload.py" = [
+  # Offline indexer fixtures compare literal apostrophe variants and known filters.
+  "assert",
+  "ambiguous-unicode-character-string",
+  "print",
+]
+"hosts/nixos/desktop/local/homelab/credentials/miniflux_*.py" = [
+  # Operator commands use argument lists, sanitized diagnostics and dynamic API JSON.
+  "any-type",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+  "suspicious-url-open-usage",
+  "print",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "f-string-in-exception",
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "docstring-missing-exception",
+]
+"hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py" = [
+  # Fixed configured service endpoints return dynamic JSON; diagnostics omit credentials.
+  # One ordered bootstrap groups the integration updates and fails for systemd retry.
+  "any-type",
+  "suspicious-url-open-usage",
+  "print",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "f-string-in-exception",
+  "docstring-missing-exception",
+  "complex-structure",
+  "too-many-branches",
+  "too-many-statements",
+  "too-many-locals",
+  "magic-value-comparison",
+]
+
+"templates/*/tests/scripts/*.py" = [
+  # Template integration checks execute only their generated launchd command.
+  "assert",
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+]
+"tests/nix/scripts/check_*.py" = [
+  # Names match Nix derivation attributes; inputs are generated fixture outputs.
+  "uncapitalized-environment-variables",
+  "magic-value-comparison",
+  "suspicious-xml-etree-import",
+  "suspicious-xml-element-tree-usage",
+]
+"tests/nix/scripts/generated_configs_check.py" = [
+  # The environment attribute belongs to the Nix fixture API.
+  "uncapitalized-environment-variables",
+]
+"tests/public-guide/graphical_vm_test.py" = [
+  # Sway's JSON tree is heterogeneous; assert the two-window guide behavior.
+  "any-type",
+  "magic-value-comparison",
+]
+
+"tests/hyprland/scripts/*_test.py" = [
+  # These temporary paths exist only inside a disposable VM.
+  "hardcoded-temp-file",
+]
+
+"hosts/nixos/desktop/local/homelab/music/scripts/*.py" = [
+  # Dynamic JSON responses from fixed local APIs; diagnostics never include credentials.
+  "any-type",
+  "suspicious-url-open-usage",
+  "print",
+  "blind-except",
+  "raise-within-try",
+  "magic-value-comparison",
+]
+
+"homes/desktop/local/cloud/google_drive.py" = [
+  # Operator CLI invokes immutable commands as argument lists and reports only
+  # sanitized failures. Public refusal messages carry no credential values.
   "suspicious-subprocess-import",
   "subprocess-without-shell-equals-true",
   "print",
-  "magic-value-comparison",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "too-many-statements-in-try-clause",
+]
+"tests/storage/test_google_drive.py" = [
+  # Standard-library test cases also run with pytest's repository runner.
+  "pytest-unittest-assertion",
+]
+"modules/home/dev/scripts/dev_worktree.py" = [
+  # Operator CLI executes explicit argument lists and reports actionable refusals.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "print",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+]
+"tests/worktrees/*.py" = [
+  # Real Git and Python subprocesses operate only on disposable fixture clones.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
+"hosts/nixos/desktop/local/storage/scripts/prepare_desktop_installer.py" = [
+  # Operator CLI invokes Git without a shell and reports only public status.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+  "print",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+]
+"hosts/nixos/desktop/local/homelab/actual/scripts/actual_*.py" = [
+  # Fixed deployment endpoints, dynamic Keycloak JSON and sanitized CLI failures.
+  # Exceptions never print credential-bearing URLs or response content.
+  "suspicious-url-open-usage",
+  "print",
+  "blind-except",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+  "any-type",
+]
+"tests/homelab/test_actual_vault.py" = [
+  # Execute only the repository script and disposable fixture commands.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
+"hosts/nixos/desktop/local/homelab/credentials/identity_to_bitwarden.py" = [
+  # Operator CLI reports only status; its credential transport suppresses output.
+  # Realm construction groups the account and OIDC credential inputs.
+  "print",
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "raise-vanilla-args",
+  "raw-string-in-exception",
+]
+
+"fuzz/*.py" = [
+  # Fuzzer properties deliberately use assertions to signal a crash.
+  "assert",
 ]
 "scripts/workstation_evidence.py" = [
   # Explicit operator CLI: immutable wrappers supply Git; Nix uses the host client.
@@ -109,6 +281,26 @@ strict = true
   "start-process-with-partial-path",
   "magic-value-comparison",
 ]
+"tests/systemd/{check_workstation_processes,check_workstation_oom,workstation_task_child}.py" = [
+  # Native contract scenarios invoke fixed local commands and fixture files.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "magic-value-comparison",
+  "any-type",
+  "too-many-statements",
+  "too-many-locals",
+  "raise-vanilla-args",
+]
+"hosts/nixos/desktop/local/homelab/credentials/identity_reveal_worker.py" = [
+  # The SSH worker invokes nix-seal from the administrator's configured PATH.
+  "suspicious-subprocess-import",
+  "subprocess-without-shell-equals-true",
+  "start-process-with-partial-path",
+]
+"tests/systemd/check_chatgpt_oom.py" = [
+  # Native OOM regression uses resolved command lists and temporary output files.
+  "subprocess-without-shell-equals-true",
+]
 "tests/**/*.py" = [
   # Pytest also runs the retained TestCase suites. Keep useful assertions while
   # using plain pytest functions for new tests and substantial rewrites.
@@ -116,7 +308,7 @@ strict = true
   "pytest-unittest-assertion",
   "pytest-unittest-raises-assertion",
 ]
-"modules/home/dev/scripts/git-privacy-hook.py" = [
+"modules/home/dev/scripts/git_privacy_hook.py" = [
   # Invoke pinned Git/gh and executable repository hooks directly, without a shell.
   "subprocess-without-shell-equals-true",
 ]
@@ -144,12 +336,12 @@ strict = true
   "raise-vanilla-args",
   "raw-string-in-exception",
 ]
-"tests/nix/check-python-helpers.py" = [
+"tests/nix/check_python_helpers.py" = [
   # Sandbox fixture assertions use literal protocol and configuration values.
   "assert",
   "magic-value-comparison",
 ]
-"tests/nix/check-template-configs.py" = [
+"tests/nix/check_template_configs.py" = [
   # This sandbox check runs with ordinary Python and compares generated output.
   "assert",
 ]
@@ -203,7 +395,7 @@ strict = true
   "start-process-with-partial-path",
 ]
 
-"modules/nixos/virtualisation/scripts/windows-vm-render-seed.py" = [
+"modules/nixos/virtualisation/scripts/windows_vm_render_seed.py" = [
   "hardcoded-password-string",         # The flagged value is a public placeholder token, not a credential.
   "suspicious-xml-element-tree-usage", # The immutable template is trusted and all variable text is escaped first.
   "suspicious-xml-etree-import",       # ElementTree only proves that the locally generated answer file is well-formed.
@@ -227,17 +419,12 @@ strict = true
   "subprocess-without-shell-equals-true", # The test invokes a generated fixture path without a shell.
   "suspicious-subprocess-import",         # The subprocess is the script under test.
 ]
-"tests/macos/test_dev_vm_host.py" = [
-  # Keep TestCase fixtures while running through the shared pytest configuration.
-  "pytest-unittest-assertion",
-  "pytest-unittest-raises-assertion",
-]
-"scripts/update-packages.py" = [
+"scripts/update_packages.py" = [
   "suspicious-subprocess-import",         # Uses subprocess intentionally in a local CLI orchestrator.
   "subprocess-without-shell-equals-true", # Command args are constrained to local script paths and CLI flags.
 ]
 
-"modules/nixos/virtualisation/scripts/libvirt-xml.py" = [
+"modules/nixos/virtualisation/scripts/libvirt_xml.py" = [
   # UTF-8-only input is size-bounded; DTDs and entities are rejected before parsing.
   "suspicious-xml-etree-import",
   "suspicious-xml-element-tree-usage",
@@ -257,12 +444,18 @@ strict = true
 # native module opaque; font shaping is exercised by the native font checks.
 replace-imports-with-any = ["uharfbuzz"]
 # lxml.etree is also a compiled extension without shipped Python type stubs.
-# pyudev is installed only on Linux; Darwin still checks the shared Python tree.
+# libvirt and pyudev are installed only on Linux; Darwin checks the shared tree.
 # Atheris is installed only in the fuzz job.
-allowed-unresolved-imports = ["atheris", "lxml.etree", "pyudev"]
+allowed-unresolved-imports = [
+  "test_driver.*",
+  "atheris",
+  "libvirt",
+  "lxml.etree",
+  "pyudev",
+]
 
 [tool.ty.environment]
-extra-paths = ["tests/fonts", "site"]
+extra-paths = ["tests", "tests/fonts", "site"]
 # Pin the target independently of a developer's active virtual environment so
 # editor, pre-commit, and pure Nix checks analyse the same Python language and
 # standard-library surface.
@@ -288,14 +481,6 @@ exclude = [
   "nix-seal",
   "pkgs",
 ]
-
-[[tool.ty.overrides]]
-include = ["nix-seal/nix/tests/scripts/runtime-vm-test.py"]
-
-[tool.ty.overrides.rules]
-# NixOS test drivers inject these globals. The nix-seal VM check executes the
-# script in that DSL and remains the authority for those runtime names.
-unresolved-reference = "ignore"
 
 [tool.ty.terminal]
 error-on-warning = true

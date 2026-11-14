@@ -1,11 +1,73 @@
-{ self, lib, ... }:
+{
+  self,
+  lib,
+  inputs,
+  myLib,
+  ...
+}:
 let
-  systems = [
-    "x86_64-linux"
-    "aarch64-linux"
-    "aarch64-darwin"
-  ];
+  systems = import ./supported-systems.nix;
   features = [
+    {
+      name = "Supervised SSH forwards";
+      source = "modules/home/services/ssh-forwards.nix";
+      platforms = systems;
+      interface = "services.sshForwards";
+      dependencies = "Home Manager; provisioned SSH authentication and host keys";
+      state = "Forward processes and private logs; endpoints remain target-owned";
+      validation = "local-feature-reuse";
+      guide = "runtime-features.md";
+    }
+    {
+      name = "Protected Jujutsu identity";
+      source = "modules/home/dev/jj-identity.nix";
+      platforms = systems;
+      interface = "programs.jujutsu.runtimeIdentity";
+      dependencies = "Home Manager; myLib; runtime credential producer or enabled Git";
+      state = "Private runtime identity fragment; signing policy remains independent";
+      validation = "local-feature-reuse; python-tests; non-bash-python-helpers";
+      guide = "runtime-features.md";
+    }
+    {
+      name = "Rust editor support";
+      source = "modules/home/vscode/languages/rust.nix";
+      platforms = systems;
+      interface = "programs.vscode.rust";
+      dependencies = "Home Manager; nix4vscode input; project-owned Cargo toolchain";
+      state = "Editor configuration; remote editor installation paths remain target-owned";
+      validation = "local-feature-reuse";
+      guide = "runtime-features.md";
+    }
+    {
+      name = "Activation safety";
+      source = "modules/nixos/system/activation-safety.nix";
+      platforms = lib.filter (lib.hasSuffix "-linux") systems;
+      interface = "system.activationSafety";
+      dependencies = "NixOS native pre-switch checks; nvd";
+      state = "No persistent application state; intentional hostname migrations are explicit";
+      validation = "local-feature-reuse; python-tests";
+      guide = "runtime-features.md";
+    }
+    {
+      name = "Runtime IWD profiles";
+      source = "modules/nixos/network/iwd-profiles.nix";
+      platforms = lib.filter (lib.hasSuffix "-linux") systems;
+      interface = "networking.wireless.iwd.runtimeProfiles";
+      dependencies = "NixOS; myLib; protected root-owned runtime credential files";
+      state = "Mutable IWD profiles; SSIDs and credentials remain outside the store";
+      validation = "local-feature-reuse; iwd-runtime-profiles; python-tests";
+      guide = "runtime-features.md";
+    }
+    {
+      name = "Adaptive I/O cost";
+      source = "modules/nixos/hardware/iocost.nix";
+      platforms = lib.filter (lib.hasSuffix "-linux") systems;
+      interface = "hardware.ioCost";
+      dependencies = "NixOS; cgroup v2 I/O cost kernel support; selected whole disks";
+      state = "Kernel controller state; measured operator policies take precedence";
+      validation = "local-feature-reuse; python-tests; x86 desktop-iocost VM";
+      guide = "runtime-features.md";
+    }
     {
       name = "Independent Home Manager starter";
       source = "templates/starter/flake.nix";
@@ -126,33 +188,67 @@ in
       schema = 1;
       inherit features;
     };
-  perSystem = { pkgs, ... }: {
-    packages.feature-catalog = pkgs.writeText "feature-catalog.json" (
-      builtins.toJSON self.featureCatalog
-    );
-    packages.feature-options =
-      (pkgs.nixosOptionsDoc {
-        options = {
-          security.secureBootLanzaboote =
-            self.nixosConfigurations.desktop.options.security.secureBootLanzaboote;
-          services.applicationRecovery =
-            self.nixosConfigurations.desktop.options.services.applicationRecovery;
-          hardware.storage.encryptedRoot.health =
-            self.nixosConfigurations.desktop.options.hardware.storage.encryptedRoot.health;
-          virtualisation.libvirtWorkstation =
-            self.nixosConfigurations.desktop.options.virtualisation.libvirtWorkstation;
-        };
-        warningsAreErrors = true;
-        transformOptions =
-          option:
-          option
-          // {
-            declarations = map (
-              declaration:
-              "https://github.com/nix-forge/nix-conf/blob/main/"
-              + lib.removePrefix (toString self.outPath + "/") (toString declaration)
-            ) option.declarations;
+  perSystem =
+    { pkgs, ... }:
+    let
+      documented = inputs.nixpkgs.lib.nixosSystem {
+        system = pkgs.stdenv.hostPlatform.system;
+        specialArgs = { inherit inputs myLib; };
+        modules = [
+          ../modules/nixos/system/activation-safety.nix
+          ../modules/nixos/network/iwd-profiles.nix
+          ../modules/nixos/hardware/iocost.nix
+          ../modules/nixos/boot/secure-boot.nix
+          ../modules/nixos/services/application-recovery
+          ../modules/nixos/virtualisation/libvirt.nix
+        ];
+      };
+      documentedHome = inputs.home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        extraSpecialArgs = { inherit inputs myLib; };
+        modules = [
+          ../modules/home/services/ssh-forwards.nix
+          ../modules/home/dev/jj-identity.nix
+          ../modules/home/vscode/languages/rust.nix
+          {
+            home = {
+              username = "reference";
+              homeDirectory = "/tmp/reference";
+              stateVersion = "26.05";
+            };
+          }
+        ];
+      };
+    in
+    {
+      packages.feature-catalog = pkgs.writeText "feature-catalog.json" (
+        builtins.toJSON self.featureCatalog
+      );
+      packages.feature-options =
+        (pkgs.nixosOptionsDoc {
+          options = {
+            system.activationSafety = documented.options.system.activationSafety;
+            hardware.ioCost = documented.options.hardware.ioCost;
+            networking.wireless.iwd.runtimeProfiles =
+              documented.options.networking.wireless.iwd.runtimeProfiles;
+            services.sshForwards = documentedHome.options.services.sshForwards;
+            programs.jujutsu.runtimeIdentity = documentedHome.options.programs.jujutsu.runtimeIdentity;
+            programs.vscode.rust = documentedHome.options.programs.vscode.rust;
+            security.secureBootLanzaboote = documented.options.security.secureBootLanzaboote;
+            services.applicationRecovery = documented.options.services.applicationRecovery;
+            virtualisation.libvirtWorkstation = documented.options.virtualisation.libvirtWorkstation;
           };
-      }).optionsJSON;
-  };
+          warningsAreErrors = true;
+          transformOptions =
+            option:
+            option
+            // {
+              declarations = map (
+                declaration:
+                "https://github.com/nix-forge/nix-conf/blob/main/"
+                + lib.removePrefix (toString self.outPath + "/") (toString declaration)
+              ) option.declarations;
+            };
+        }).optionsJSON;
+    };
 }

@@ -6,12 +6,14 @@ import argparse
 import copy
 import json
 import os
+import re
 import runpy
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from notification_process import run as run_command
 
 TOOL_PATH = Path(__file__).resolve().parents[2] / "scripts/workstation_evidence.py"
 TOOL = runpy.run_path(str(TOOL_PATH))
@@ -109,7 +111,13 @@ def test_successful_command_writes_private_evidence(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "print('fixture output')"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "successful_capture_command.py"
+                ),
+            ],
         )
     )
     assert record["status"] == "passed"
@@ -133,7 +141,10 @@ def test_failure_is_not_hidden_by_partial_benchmark(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "raise SystemExit(7)"],
+            [
+                sys.executable,
+                str(Path(__file__).with_name("fixtures") / "failed_capture_command.py"),
+            ],
             runs=3,
         )
     )
@@ -150,7 +161,12 @@ def test_timeout_terminates_command_and_records_failure(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "import time; time.sleep(30)"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures") / "timeout_capture_command.py"
+                ),
+            ],
             timeout=0.05,
         )
     )
@@ -167,8 +183,7 @@ def test_source_change_invalidates_success(repository: Path, tmp_path: Path) -> 
             tmp_path / "evidence",
             [
                 sys.executable,
-                "-c",
-                "from pathlib import Path; Path('flake.lock').write_text('changed')",
+                str(Path(__file__).with_name("fixtures") / "mutate_lock_command.py"),
             ],
         )
     )
@@ -184,7 +199,12 @@ def test_runtime_requires_matching_build_evidence(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "raise SystemExit(99)"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures") / "unmatched_build_command.py"
+                ),
+            ],
             phase="runtime",
         )
     )
@@ -420,15 +440,11 @@ def test_identity_matches_nix_git_filtering(submodule_repository: Path) -> None:
     """Use a dependency-free flake to compare Nix's real Git source selection."""
     root = submodule_repository
     (root / "flake.lock").unlink()
-    (root / "flake.nix").write_text("""{
-        inputs.self.submodules = true;
-        outputs = { self }: { observed = {
-            tracked = builtins.pathExists (self + "/added");
-            hidden = builtins.pathExists (self + "/untracked");
-            childHidden = builtins.pathExists (self + "/child/untracked");
-            childLock = builtins.readFile (self + "/child/flake.lock");
-        }; };
-    }""")
+    (root / "flake.nix").write_text(
+        (
+            Path(__file__).with_name("fixtures") / "source-filtering-flake.nix.in"
+        ).read_text(encoding="utf-8")
+    )
     git_fixture(root, "add", "-A")
     git_fixture(root, "commit", "-m", "dependency-free filtering fixture")
     before = TOOL["source_identity"](root)
@@ -439,7 +455,7 @@ def test_identity_matches_nix_git_filtering(submodule_repository: Path) -> None:
     git_fixture(root, "add", "-N", "added")
     (root / "child/flake.lock").write_text("dirty child\n")
     observed = json.loads(
-        subprocess.check_output(
+        run_command(
             [
                 "nix",
                 "--extra-experimental-features",
@@ -451,7 +467,9 @@ def test_identity_matches_nix_git_filtering(submodule_repository: Path) -> None:
             ],
             text=True,
             timeout=60,
-        )
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
     )
     assert observed == {
         "tracked": True,
@@ -472,8 +490,9 @@ def test_background_child_is_rejected_and_killed(
             tmp_path / "evidence",
             [
                 sys.executable,
-                "-c",
-                "import subprocess,sys; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); print(p.pid,flush=True)",
+                str(
+                    Path(__file__).with_name("fixtures") / "background_child_command.py"
+                ),
             ],
             timeout=0.2,
         )
@@ -604,7 +623,12 @@ def build_receipt(repository: Path, tmp_path: Path) -> Path:
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "pass"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures") / "candidate_build_command.py"
+                ),
+            ],
             phase="build",
             check="full-system",
             installable="nixosConfigurations.fixture.config.system.build.toplevel",
@@ -626,7 +650,10 @@ def test_system_phases_reuse_matching_build(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "pass"],
+            [
+                sys.executable,
+                str(Path(__file__).with_name("fixtures") / "system_phase_command.py"),
+            ],
             phase=phase,
             build_receipt=built,
         )
@@ -653,8 +680,9 @@ def test_system_transition_away_from_candidate_is_invalid(
             tmp_path / "evidence",
             [
                 sys.executable,
-                "-c",
-                "from pathlib import Path; import sys; Path(sys.argv[1]).unlink()",
+                str(
+                    Path(__file__).with_name("fixtures") / "remove_candidate_command.py"
+                ),
                 str(candidate_generation),
             ],
             phase=phase,
@@ -676,7 +704,13 @@ def test_build_receipt_cannot_bind_changed_source(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "raise SystemExit(99)"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "stale_build_receipt_command.py"
+                ),
+            ],
             phase="runtime",
             build_receipt=built,
         )
@@ -705,7 +739,13 @@ def test_verification_timeout_preserves_failed_receipt(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "pass"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "verification_timeout_command.py"
+                ),
+            ],
             phase="build",
             check="full-system",
             installable="packages.fixture",
@@ -725,7 +765,13 @@ def test_full_build_without_output_cannot_pass(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "pass"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "missing_build_output_command.py"
+                ),
+            ],
             phase="build",
             check="full-system",
         )
@@ -818,7 +864,15 @@ def test_real_verification_timeout_cleans_owned_process(
 ) -> None:
     """Exercise the verification deadline with an actual sleeping command adapter."""
     command = tmp_path / "nix"
-    command.write_text(f"#!{sys.executable}\nimport time\ntime.sleep(30)\n")
+    command.write_text(
+        re.sub(
+            r"__fixture_[0-9]+__",
+            lambda match: {"__fixture_0__": f"{sys.executable}"}[match[0]],
+            (
+                Path(__file__).with_name("fixtures") / "slow_verification_command.py.in"
+            ).read_text(encoding="utf-8"),
+        )
+    )
     command.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
     monkeypatch.setitem(GLOBALS, "VERIFICATION_TIMEOUT", 0.05)
@@ -856,8 +910,7 @@ def test_cli_rejects_nonfinite_timeout(
         timeout,
         "--",
         sys.executable,
-        "-c",
-        "pass",
+        str(Path(__file__).with_name("fixtures") / "nonfinite_timeout_command.py"),
     ])
     with pytest.raises(ValueError, match="positive"):
         TOOL["dispatch"](args)
@@ -867,15 +920,32 @@ def test_desktop_build_requires_canonical_recipe(
     repository: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A desktop full-system record cannot bypass the repository's build recipe."""
-    monkeypatch.setattr(GLOBALS["platform"], "node", lambda: "desktop")
+    monkeypatch.setattr(GLOBALS["platform"], "node", lambda: "workstation")
+    policy = tmp_path / "placement.json"
+    policy.write_text(
+        json.dumps({
+            "workstation": {
+                "host": "workstation",
+                "command": ["just", "os-build", "workstation"],
+                "cgroup": "/background-workload.slice/",
+            }
+        })
+    )
     with pytest.raises(ValueError, match="just os-build"):
         TOOL["capture"](
             arguments(
                 repository,
                 tmp_path / "evidence",
-                [sys.executable, "-c", "pass"],
+                [
+                    sys.executable,
+                    str(
+                        Path(__file__).with_name("fixtures")
+                        / "noncanonical_build_command.py"
+                    ),
+                ],
                 phase="build",
-                target="desktop",
+                target="workstation",
+                build_policy=policy,
                 check="full-system",
             )
         )
@@ -970,7 +1040,17 @@ def test_effective_configuration_change_invalidates_capture(
     ])
     monkeypatch.setitem(GLOBALS, "nix_configuration", lambda _root: next(observations))
     receipt, record = TOOL["capture"](
-        arguments(repository, tmp_path / "evidence", [sys.executable, "-c", "pass"])
+        arguments(
+            repository,
+            tmp_path / "evidence",
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "configuration_change_command.py"
+                ),
+            ],
+        )
     )
     assert record["status"] == "invalid"
     assert record["nix_configuration"] != record["nix_configuration_after"]
@@ -1057,7 +1137,12 @@ def test_candidate_failure_keeps_private_bounded_diagnostics(
         arguments(
             repository,
             tmp_path / "evidence",
-            [sys.executable, "-c", "pass"],
+            [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures") / "failed_candidate_command.py"
+                ),
+            ],
             phase="build",
             installable="packages.fixture",
         )

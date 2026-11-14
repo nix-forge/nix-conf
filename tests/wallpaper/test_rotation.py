@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - isolated command fixtures
@@ -36,10 +37,29 @@ def _chooser_action(
         binaries.mkdir()
         # The decoder boundary reports fixture geometry; no Wayland session.
         (binaries / "magick").write_text(
-            f'#!/bin/sh\nprintf "{width} {height} {orientation}\\n"\n'
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {
+                    "__fixture_0__": f"{width}",
+                    "__fixture_1__": f"{height}",
+                    "__fixture_2__": f"{orientation}",
+                }[match[0]],
+                (
+                    Path(__file__).with_name("fixtures") / "image-geometry.sh.in"
+                ).read_text(encoding="utf-8"),
+            )
         )
         (binaries / "awww").write_text(
-            f'#!/bin/sh\nprintf "%s\\n" "$@" > {shlex.quote(str(root / "displayed"))}\n'
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {
+                    "__fixture_0__": f"{shlex.quote(str(root / 'displayed'))}"
+                }[match[0]],
+                (
+                    Path(__file__).with_name("fixtures")
+                    / "record-wallpaper-arguments.sh.in"
+                ).read_text(encoding="utf-8"),
+            )
         )
         for binary in binaries.iterdir():
             binary.chmod(0o700)
@@ -55,7 +75,7 @@ def _chooser_action(
             shlex.quote(str(value))
             for value in [
                 shutil.which("python3"),
-                ROOT / "modules/home/desktop/scripts/wallpaper-policy.py",
+                ROOT / "modules/home/desktop/scripts/wallpaper_policy.py",
                 "--catalog",
                 ROOT / "modules/home/desktop/wallpaper-catalog.json",
                 "--config",

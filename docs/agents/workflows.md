@@ -5,9 +5,10 @@ from the user's request to a focused check and review; it needs no interview,
 specification ceremony, or new issue.
 
 For substantial work across sessions or parallel writers, use
-[coordination guidance](coordination.md). The shared `agent-workflow` skill is
-available in Codex, Claude Code, and OpenCode; it maintains task briefs and
-handoffs without requiring client-specific tools.
+[coordination guidance](coordination.md). The optional user-managed
+`engineering-workflow` skill supports task briefs and handoffs where installed.
+The [harness integration guide](harnesses.md) describes the shared catalog,
+specialist bundles, invocation controls and client-specific tool ownership.
 
 The installed skill files are authoritative for their processes. Their upstream
 text sometimes uses names such as `/research` or `/domain-modeling`. In this
@@ -29,6 +30,7 @@ or filesystem tools; a tool literally named `Skill` is not required.
 | Diagnose a hard bug or regression | `mattpocock-diagnosing-bugs` | Build a reproduction for the exact symptom; keep raw captures private. |
 | Build requested behavior test-first | `mattpocock-tdd` | Agree the public interface to test, then work one behavior at a time. |
 | Review against a fixed point | `mattpocock-code-review` | Use the standards and requirements sources below. |
+| Write a pull request body | `mattpocock-pr` | Use the repository's evidence and publication rules. |
 | Investigate a source-backed question | `mattpocock-research` | Follow [research guidance](research.md), including for its background agent. |
 | Transfer work to a new environment | `mattpocock-handoff` | Write a redacted handoff outside the repository and link existing artifacts. |
 | Guide steps only a human can perform | `mattpocock-wizard` | Use its installed template; keep one-off scripts and captured values private. |
@@ -37,9 +39,11 @@ or filesystem tools; a tool literally named `Skill` is not required.
 The router, setup, two interview wrappers, and handoff are explicitly
 user-invoked in the installed frontmatter. Mention their full names when
 requesting them. The router also describes skills such as `implement`,
-`to-spec`, `to-tickets`, `prototype`, and `wayfinder` that are not in this
-installation. Do not promise those workflows are available. Their absence
-does not prevent ordinary implementation from an agreed task.
+`implement-spec`, `to-spec`, `to-tickets`, `retro`, `prototype`, and `wayfinder`
+that are not selected for these clients. Do not promise those workflows are
+available. Their absence does not prevent ordinary implementation from an
+agreed task. Upstream retired `resolving-merge-conflicts`; resolve an active
+conflict from its Git state and each side's intent.
 
 ## Review inputs
 

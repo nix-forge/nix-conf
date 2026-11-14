@@ -31,14 +31,11 @@
       focusBorder = pixels design.focusWidth;
       # Hyprlang treats a single hash as a comment, including inside markup.
       passwordHint = sizedText design.fontSizes.body ''<span foreground="#${design.greeterPalette.on_surface}">Type password</span>'';
-      avatarSvg = pkgs.writeText "authentication-user.svg" ''
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24"
-          fill="none" stroke="${design.colors.base05}" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="7" r="4"/>
-          <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
-        </svg>
-      '';
+      avatarSvg = pkgs.writeText "authentication-user.svg" (
+        (import ../../../../../lib/templates/text.nix) ./scripts/user-icon.svg {
+          design_colors_base05 = design.colors.base05;
+        }
+      );
       # Hyprlock's path loader does not supply the size required for SVGs.
       # Rasterize once in the build, keeping image decoding at lock time tiny.
       avatar = pkgs.runCommand "authentication-user.png" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
@@ -50,13 +47,9 @@
       arrow =
         color:
         let
-          svg = pkgs.writeText "authentication-submit.svg" ''
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="${color}" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14m-6-6 6 6-6 6"/>
-            </svg>
-          '';
+          svg = pkgs.writeText "authentication-submit.svg" (
+            (import ../../../../../lib/templates/text.nix) ./scripts/submit-arrow.svg { inherit color; }
+          );
         in
         pkgs.runCommand "authentication-submit.png" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
           rsvg-convert --width ${toString (pixels 16)} --height ${toString (pixels 16)} \
@@ -82,6 +75,7 @@
     in
     {
       key = "nix-conf/stylix/hyprlock/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.hyprlock.custom.enable =
         lib.mkEnableOption "the desktop Hyprlock styling"
@@ -120,7 +114,7 @@
                   valign = "center";
                   # Native password submission keeps the same PAM and busy guards
                   # as Enter. The control owns both its fill and arrow state.
-                  submit_input = true;
+                  submit_on_click = true;
                   submit_icon = toString (arrow design.greeterPalette.on_primary);
                   submit_icon_hover = toString (arrow design.greeterPalette.on_hover);
                   submit_icon_size = pixels 16;

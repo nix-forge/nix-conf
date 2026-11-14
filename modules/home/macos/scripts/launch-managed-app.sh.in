@@ -1,0 +1,18 @@
+# shellcheck shell=bash
+app=@app@
+executable=@executable@
+
+if [[ ! -d "$app/Contents" ]]; then
+  printf 'Managed application is missing; activate Home Manager first: %s\n' "$app" >&2
+  exit 1
+fi
+
+if [[ -n $executable ]]; then
+  if [[ ! -x "$app/$executable" ]]; then
+    printf 'Managed application CLI is missing: %s/%s\n' "$app" "$executable" >&2
+    exit 1
+  fi
+  exec "$app/$executable" "$@"
+fi
+
+exec @open@ -a "$app" --args "$@"

@@ -1,0 +1,16 @@
+set timeout 30
+log_user 0
+set command [list navidrome \
+    --configfile @navidromeConfig@ \
+    user create --username $env(MUSIC_DISCOVERY_USERNAME)]
+if {$env(MUSIC_DISCOVERY_ROLE) eq "admin"} {
+    lappend command --admin
+}
+spawn -noecho {*}$command
+expect "Enter new password*"
+send -- "$env(MUSIC_DISCOVERY_PASSWORD)\r"
+expect "Confirm new password*"
+send -- "$env(MUSIC_DISCOVERY_PASSWORD)\r"
+expect eof
+catch wait result
+exit [lindex $result 3]

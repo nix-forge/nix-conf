@@ -1,10 +1,11 @@
-{ pkgs, inputs, ... }:
+{ config, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
+    extensions = catalogExtensions [
       "ms-azuretools.vscode-containers"
       "ms-vscode-remote.remote-containers"
     ];

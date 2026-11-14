@@ -4,10 +4,11 @@
   nixSeal,
   owner,
   group,
+  expectedSource,
+  originalSource ? expectedSource,
 }:
 let
   name = "nix-access-tokens";
-  original = "secrets/ianhollow/users/ianmh/nix-access-tokens.age";
   runtimeFiles = nixSeal.secrets // nixSeal.templates;
   runtime = runtimeFiles.${name} or null;
   private = file: file.owner == owner && file.group == group && file.mode == "0400";
@@ -16,7 +17,7 @@ runtime != null
 && private runtime
 && (
   if builtins.hasAttr name nixSeal.secrets then
-    nixSeal.secrets.${name}.source == original
+    originalSource != null && nixSeal.secrets.${name}.source == originalSource
   else
     builtins.hasAttr name nixSeal.templates
     && lib.all (
@@ -24,7 +25,7 @@ runtime != null
       let
         field = nixSeal.secrets.${placeholderDef.secret};
       in
-      private field && field.source == "modules/shared/secrets/${placeholderDef.secret}.age"
+      private field && field.source == expectedSource
     ) (builtins.attrValues nixSeal.templates.${name}.placeholders)
     && nixSeal.templates.${name}.placeholders != { }
 )

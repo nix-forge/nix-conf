@@ -37,7 +37,7 @@ recipe_fingerprint=@recipeFingerprint@
 autologon_archive=@autologonArchive@
 autostart=@autostart@
 candidate_cleanup=
-media_mount=
+media_image=
 
 cleanup_candidate() {
   if [[ -n $candidate_cleanup && -f $candidate_cleanup && ! -L $candidate_cleanup ]]; then
@@ -55,19 +55,16 @@ run_as_media_inspector() {
     -- @env@ --chdir="$media_inspection_dir" PATH=/run/wrappers/bin LC_ALL=C "$@"
 }
 
-release_media_mount() {
-  if [[ -z $media_mount ]]; then
+release_media_image() {
+  if [[ -z $media_image ]]; then
     return
   fi
-  if @mountpoint@ --quiet -- "$media_mount"; then
-    @umount@ -- "$media_mount" || return 1
-  fi
-  @rmdir@ -- "$media_mount" || return 1
-  media_mount=
+  @rm@ -f -- "$media_image" || return 1
+  media_image=
 }
 
 cleanup_temporary_state() {
-  release_media_mount 2>/dev/null || true
+  release_media_image 2>/dev/null || true
   cleanup_candidate
 }
 trap cleanup_temporary_state EXIT
@@ -175,25 +172,29 @@ verify_media() {
   printf 'PASS  Windows ISO matches SHA-256 %s\n' "$expected"
 
   @mkdir@ -p -- "$media_inspection_dir"
-  media_mount="$(@mktemp@ --directory "$media_inspection_dir/.windows-media.XXXXXX")"
-  @chown@ "$media_inspector_user:$media_inspector_group" "$media_mount"
-  @chmod@ 0700 "$media_mount"
-  run_as_media_inspector @fuseArchive@ \
-    -o nocache,noexternal,nospecials,nosymlinks,notrim,quiet \
-    "$iso_path" \
-    "$media_mount" || die "could not inspect the verified Windows ISO through read-only FUSE"
-  install_image="$(run_as_media_inspector @find@ "$media_mount" -maxdepth 2 -type f \
-    \( -iname 'install.wim' -o -iname 'install.esd' \) -print -quit 2>/dev/null)"
-  if [[ -z $install_image ]]; then
+  media_image="$(@mktemp@ "$media_inspection_dir/.windows-install.XXXXXX")"
+  @chown@ "$media_inspector_user:$media_inspector_group" "$media_image"
+  # Microsoft's ISO has a one-file ISO9660 stub and a separate UDF filesystem.
+  # Extract only the fixed WIM path through a userspace UDF reader. The
+  # short-lived image lives on disk, since it is too large for /run tmpfs.
+  install_image='sources/install.wim'
+  run_as_media_inspector @sevenZip@ e -so -tudf "$iso_path" "$install_image" >"$media_image" ||
+    die "could not inspect the verified Windows ISO as UDF"
+  if [[ ! -s $media_image ]]; then
+    install_image='sources/install.esd'
+    run_as_media_inspector @sevenZip@ e -so -tudf "$iso_path" "$install_image" >"$media_image" ||
+      die "could not inspect the verified Windows ISO as UDF"
+  fi
+  if [[ ! -s $media_image ]]; then
     die "the Windows ISO has no sources/install.wim or sources/install.esd"
   fi
-  if ! run_as_media_inspector @wiminfo@ "$install_image" "$image_name" >/dev/null 2>&1; then
+  if ! run_as_media_inspector @wiminfo@ "$media_image" "$image_name" >/dev/null 2>&1; then
     printf 'error: configured Windows image is absent: %s\n' "$image_name" >&2
-    printf 'Images available in %s:\n' "${install_image#"$media_mount/"}" >&2
-    run_as_media_inspector @wiminfo@ "$install_image" >&2 || true
+    printf 'Images available in %s:\n' "$install_image" >&2
+    run_as_media_inspector @wiminfo@ "$media_image" >&2 || true
     die "stage released production media containing the configured image"
   fi
-  release_media_mount || die "could not unmount the verified Windows ISO"
+  release_media_image || die "could not remove the temporary Windows image"
   printf 'PASS  Windows ISO contains image %s\n' "$image_name"
 
   [[ -f @virtioIso@ && ! -L @virtioIso@ ]] || die "pinned VirtIO ISO is missing: @virtioIso@"
@@ -332,7 +333,7 @@ verify_install_marker() {
 }
 
 start_install() {
-  local mode=$1 candidate_disk
+  local mode=$1 candidate_disk boot_attempt
   verify_installer_topology
   verify_media
   require_inactive_domain
@@ -368,6 +369,17 @@ start_install() {
   @virsh@ --connect "$libvirt_uri" define "$installer_definition" --validate >/dev/null
   @virsh@ --connect "$libvirt_uri" autostart "$guest_name" --disable >/dev/null
   @virsh@ --connect "$libvirt_uri" start "$guest_name"
+  if [[ $mode == fresh ]]; then
+    # Microsoft's DVD bootloader waits for a key before loading Setup from an
+    # empty disk. A resume must leave the DVD prompt unanswered so a partially
+    # installed Windows system can boot without wiping its disk again.
+    for ((boot_attempt = 0; boot_attempt < 6; boot_attempt++)); do
+      @sleep@ 2
+      domain_active || die "the Windows installer stopped during boot"
+      @virsh@ --connect "$libvirt_uri" send-key "$guest_name" KEY_SPACE >/dev/null ||
+        die "could not confirm the Windows installer boot prompt"
+    done
+  fi
   printf 'Windows installation started. Keep the host running until baseline status reports PASS.\n'
 }
 
@@ -474,21 +486,15 @@ host_key() {
 }
 
 finalize_install() {
-  local deadline status
+  local status
   [[ -f $install_marker && ! -L $install_marker ]] || die "there is no installation to finalize"
   [[ -f $disk_path && ! -L $disk_path ]] || die "the installation disk is missing or is a symlink"
   status="$(baseline_status)"
   @grep@ -Fqx 'state=PASS' <<<"$status" || die "Windows baseline has not reported PASS"
   require_current_recipe_status "$status"
 
-  @virsh@ --connect "$libvirt_uri" shutdown "$guest_name" --mode agent >/dev/null 2>&1 ||
-    @virsh@ --connect "$libvirt_uri" shutdown "$guest_name" --mode acpi >/dev/null ||
-    die "could not request a graceful Windows shutdown"
-  deadline=$((SECONDS + 300))
-  while domain_active; do
-    ((SECONDS < deadline)) || die "Windows did not shut down within five minutes; the installer definition remains intact"
-    @sleep@ 2
-  done
+  @shutdownGuest@ "$libvirt_uri" "$guest_name" --timeout 300 ||
+    die "Windows did not shut down gracefully; the installer definition remains intact"
 
   @virsh@ --connect "$libvirt_uri" define "$runtime_definition" --validate >/dev/null
   if ((autostart == 1)); then

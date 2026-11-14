@@ -1,0 +1,6 @@
+#!__fixture_0__
+# shellcheck shell=bash
+# Interpreter path is provided by the fixture renderer.
+# shellcheck disable=SC2239
+printf x >>__fixture_1__
+exec __fixture_2__ "$@"

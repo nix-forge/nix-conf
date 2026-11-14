@@ -33,7 +33,6 @@ let
       };
       heliumUblockOriginId = "blockjmkbacgjkknlgpkjjiijinjdanf";
       bitwardenExtensionId = "nngceckbapebfimnlniiiahkandclblb";
-      heliumUblockAssetsBootstrapLocation = "https://services.helium.imput.net/ubo/assets.json";
 
       extensionIds = builtins.attrValues heliumExtensions;
 
@@ -51,8 +50,6 @@ let
           (if builtins.isBool value then lib.boolToString value else toString value)
         ]) attrs;
 
-      ublockCustomRules = builtins.readFile ./ublock-dynamic-filtering.txt;
-
       defaultFilterLists = [
         "user-filters"
 
@@ -64,60 +61,24 @@ let
         "ublock-filters"
         "ublock-badware"
         "ublock-privacy"
-        "ublock-quick-fixes"
         "ublock-unbreak"
-
+        "ublock-quick-fixes"
         "easylist"
-        "adguard-generic"
-
         "easyprivacy"
-        "adguard-spyware-url"
-
         "urlhaus-1"
-
         "plowe-0"
-
-        "fanboy-cookiemonster"
-
-        "adguard-cookies"
-        "ublock-cookies-easylist"
-        "easylist-newsletters"
-        "easylist-notifications"
-        "ublock-annoyances"
       ];
 
-      ublockAdminSettings = {
-        assetsBootstrapLocation = heliumUblockAssetsBootstrapLocation;
-        dynamicFilteringString = ublockCustomRules;
-        selectedFilterLists = defaultFilterLists ++ customFilterLists;
-        userSettings = {
-          prefetchingDisabled = true;
-          hyperlinkAuditingDisabled = true;
-          cnameUncloakEnabled = true;
-          autoUpdate = true;
-          advancedUserEnabled = true;
-          dynamicFilteringEnabled = true;
-          importedLists = customFilterLists;
-        };
-      };
-
       ublockOriginPolicy = {
-        # uBO's Chromium managed-storage schema requires a JSON string in backup
-        # format. The backup still carries Helium's assets bootstrap URL for uBO's
-        # admin restore path while keeping chrome://policy validation clean.
-        adminSettings = builtins.toJSON ublockAdminSettings;
-
         userSettings = toUblockPairList {
           prefetchingDisabled = true;
           hyperlinkAuditingDisabled = true;
-          cnameUncloakEnabled = true;
           autoUpdate = true;
-          advancedUserEnabled = true;
-          dynamicFilteringEnabled = true;
+          advancedUserEnabled = false;
+          dynamicFilteringEnabled = false;
         };
 
         toOverwrite = {
-          filters = [ ];
           filterLists = defaultFilterLists ++ customFilterLists;
         };
       };
@@ -316,10 +277,16 @@ let
             "/Library/Application Support/net.imput.helium/External Extensions"
           ];
 
-      darwinActivation = concatMapStringsSep "\n" (target: ''
-        install -m 0644 ${target.source} "${darwinPolicyDirectory}/${target.bundleId}.plist"
-        chown root:wheel "${darwinPolicyDirectory}/${target.bundleId}.plist"
-      '') (attrValues darwinPolicyPlists);
+      darwinActivation = concatMapStringsSep "\n" (
+        target:
+        ((import ../../lib/templates/text.nix) ./chromium-policies-assets/install-darwin-extension-policy.sh
+          {
+            target_source = target.source;
+            inherit darwinPolicyDirectory;
+            target_bundleId = target.bundleId;
+          }
+        )
+      ) (attrValues darwinPolicyPlists);
 
       darwinExtensionManagedPreferencesActivation =
         lib.optionalString (darwinExtensionPolicyTargets != [ ])
@@ -419,15 +386,16 @@ let
         }
         (mkIf (cfg.enable && isLinux) { environment.etc = nixosEtcEntries; })
         (mkIf (cfg.enable && isDarwin && darwinPolicyPlists != { }) {
-          system.activationScripts.extraActivation.text = lib.mkAfter ''
-            install -d -m 0755 "${darwinPolicyDirectory}"
-            ${darwinLegacyManagedPolicyCleanup}
-            ${darwinLegacyExternalExtensionCleanup}
-            ${darwinExtensionPolicyCleanup}
-            ${darwinActivation}
-            ${darwinExtensionManagedPreferencesActivation}
-            killall cfprefsd 2>/dev/null || true
-          '';
+          system.activationScripts.extraActivation.text = lib.mkAfter (
+            (import ../../lib/templates/text.nix) ./chromium-policies-assets/activate-darwin-policies.sh {
+              inherit darwinPolicyDirectory;
+              inherit darwinLegacyManagedPolicyCleanup;
+              inherit darwinLegacyExternalExtensionCleanup;
+              inherit darwinExtensionPolicyCleanup;
+              inherit darwinActivation;
+              inherit darwinExtensionManagedPreferencesActivation;
+            }
+          );
         })
       ];
     };

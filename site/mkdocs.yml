@@ -51,6 +51,7 @@ nav:
       - Update and recover: guide/update-and-recover.md
       - Application recovery: guide/recovery-drills.md
       - Add secrets: guide/secrets.md
+      - Runtime features: guide/runtime-features.md
   - Reference:
       - Public examples: guide/public-examples.md
       - Feature catalog: guide/features.md

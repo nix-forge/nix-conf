@@ -1,0 +1,907 @@
+{
+  "version": 15,
+  "target": {
+    "device": 10,
+    "layout": 0
+  },
+  "remap": [
+    [
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 0
+        },
+        "value": 38
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 1
+        },
+        "value": 55
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 2
+        },
+        "value": 56
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 3
+        },
+        "value": 57
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 4
+        },
+        "value": 58
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 5
+        },
+        "value": 59
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 6
+        },
+        "value": 60
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 7
+        },
+        "value": 61
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 8
+        },
+        "value": 62
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 10
+        },
+        "value": 63
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 11
+        },
+        "value": 64
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 12
+        },
+        "value": 65
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 13
+        },
+        "value": 66
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 14
+        },
+        "value": 107
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 15
+        },
+        "value": 67
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 16
+        },
+        "value": 69
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 0
+        },
+        "value": 50
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 1
+        },
+        "value": 27
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 2
+        },
+        "value": 28
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 3
+        },
+        "value": 29
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 4
+        },
+        "value": 30
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 5
+        },
+        "value": 31
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 6
+        },
+        "value": 32
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 7
+        },
+        "value": 33
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 8
+        },
+        "value": 34
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 9
+        },
+        "value": 35
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 10
+        },
+        "value": 36
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 11
+        },
+        "value": 42
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 12
+        },
+        "value": 43
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 13
+        },
+        "value": 244
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 14
+        },
+        "value": 39
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 15
+        },
+        "value": 70
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 16
+        },
+        "value": 72
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 0
+        },
+        "value": 40
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 1
+        },
+        "value": 17
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 2
+        },
+        "value": 23
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 3
+        },
+        "value": 5
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 4
+        },
+        "value": 18
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 5
+        },
+        "value": 20
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 6
+        },
+        "value": 25
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 7
+        },
+        "value": 21
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 8
+        },
+        "value": 9
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 9
+        },
+        "value": 15
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 10
+        },
+        "value": 16
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 11
+        },
+        "value": 44
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 12
+        },
+        "value": 45
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 14
+        },
+        "value": 46
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 15
+        },
+        "value": 73
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 16
+        },
+        "value": 75
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 0
+        },
+        "value": 54
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 1
+        },
+        "value": 1
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 2
+        },
+        "value": 19
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 3
+        },
+        "value": 4
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 4
+        },
+        "value": 6
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 5
+        },
+        "value": 7
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 6
+        },
+        "value": 8
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 7
+        },
+        "value": 10
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 8
+        },
+        "value": 11
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 9
+        },
+        "value": 12
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 10
+        },
+        "value": 48
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 11
+        },
+        "value": 49
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 12
+        },
+        "value": 46
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 14
+        },
+        "value": 37
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 18
+        },
+        "value": 90
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 19
+        },
+        "value": 91
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 20
+        },
+        "value": 92
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 0
+        },
+        "value": 100
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 1
+        },
+        "value": 97
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 2
+        },
+        "value": 26
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 3
+        },
+        "value": 24
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 4
+        },
+        "value": 3
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 5
+        },
+        "value": 22
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 6
+        },
+        "value": 2
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 7
+        },
+        "value": 14
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 8
+        },
+        "value": 13
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 9
+        },
+        "value": 51
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 10
+        },
+        "value": 52
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 11
+        },
+        "value": 53
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 13
+        },
+        "value": 242
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 14
+        },
+        "value": 104
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 15
+        },
+        "value": 79
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 0
+        },
+        "value": 99
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 1
+        },
+        "value": 102
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 2
+        },
+        "value": 101
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 3
+        },
+        "value": 246
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 6
+        },
+        "value": 41
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 9
+        },
+        "value": 245
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 10
+        },
+        "value": 105
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 11
+        },
+        "value": 103
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 12
+        },
+        "value": 231
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 14
+        },
+        "value": 77
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 15
+        },
+        "value": 78
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 16
+        },
+        "value": 76
+      }
+    ],
+    [
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 12
+        },
+        "value": 225
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 13
+        },
+        "value": 224
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 14
+        },
+        "value": 195
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 15
+        },
+        "value": 197
+      },
+      {
+        "index": {
+          "rowNr": 0,
+          "colNr": 16
+        },
+        "value": 196
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 1
+        },
+        "value": 229
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 2
+        },
+        "value": 226
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 3
+        },
+        "value": 227
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 4
+        },
+        "value": 228
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 15
+        },
+        "value": 193
+      },
+      {
+        "index": {
+          "rowNr": 1,
+          "colNr": 16
+        },
+        "value": 192
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 15
+        },
+        "value": 206
+      },
+      {
+        "index": {
+          "rowNr": 2,
+          "colNr": 16
+        },
+        "value": 194
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 7
+        },
+        "value": 193
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 8
+        },
+        "value": 194
+      },
+      {
+        "index": {
+          "rowNr": 3,
+          "colNr": 9
+        },
+        "value": 192
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 0
+        },
+        "value": 100
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 8
+        },
+        "value": 195
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 9
+        },
+        "value": 197
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 10
+        },
+        "value": 196
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 14
+        },
+        "value": 104
+      },
+      {
+        "index": {
+          "rowNr": 4,
+          "colNr": 15
+        },
+        "value": 72
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 0
+        },
+        "value": 99
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 1
+        },
+        "value": 232
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 2
+        },
+        "value": 101
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 10
+        },
+        "value": 105
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 11
+        },
+        "value": 103
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 12
+        },
+        "value": 231
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 14
+        },
+        "value": 71
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 15
+        },
+        "value": 75
+      },
+      {
+        "index": {
+          "rowNr": 5,
+          "colNr": 16
+        },
+        "value": 74
+      }
+    ]
+  ],
+  "rgb": {
+    "capsColor": {
+      "red": 255,
+      "green": 171,
+      "blue": 0
+    },
+    "fnLockColor": {
+      "red": 255,
+      "green": 171,
+      "blue": 0
+    },
+    "scrollLockColor": {
+      "red": 255,
+      "green": 255,
+      "blue": 255
+    },
+    "numLockColor": {
+      "red": 255,
+      "green": 255,
+      "blue": 255
+    }
+  },
+  "matrix": {
+    "rows": 6,
+    "columns": 21
+  }
+}

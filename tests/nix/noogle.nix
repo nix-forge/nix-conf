@@ -5,6 +5,7 @@
 }:
 let
   inherit (pkgs) lib;
+  wallpaperConfigHome = "/tmp/tester's home/configured wallpaper %literal$dollar";
   literalPath = "/tmp/tester's wallpapers%literal$dollar";
   homeFor =
     wallpaper:
@@ -21,7 +22,8 @@ let
             homeDirectory = "/tmp/tester's home";
             stateVersion = "26.05";
           };
-          xdg.userDirs.enable = true;
+          xdg.userDirs.enable = false;
+          xdg.configHome = wallpaperConfigHome;
           desktop = {
             wallpaper = {
               enable = true;
@@ -122,9 +124,13 @@ let
   iconTheme = "theme with \"quotes\" and \\slashes";
   recorder =
     name:
-    pkgs.writeShellScriptBin name ''
-      exec ${lib.getExe pkgs.python3} -c 'import json, sys; json.dump(sys.argv[1:], open("/run/${name}.json", "w"))' "$@"
-    '';
+    pkgs.writeShellScriptBin name (
+      (import ../../lib/templates/text.nix) ./scripts/noogle-run.sh {
+        lib_getExe_pkgs_python3 = lib.getExe pkgs.python3;
+        inherit name;
+        recorderSource = ./scripts/noogle_record_args.py;
+      }
+    );
   serviceHome = inputs.home-manager.lib.homeManagerConfiguration {
     inherit pkgs;
     extraSpecialArgs = {
@@ -204,6 +210,7 @@ let
     definitions:
     (inputs.nix-darwin.lib.darwinSystem {
       system = "aarch64-darwin";
+      specialArgs = { inherit inputs; };
       modules = [
         ../../modules/darwin/macos.nix
         {
@@ -236,10 +243,6 @@ let
         ../../modules/home/browsers/firefox
         ../../modules/home/browsers/zen
         {
-          options.appearance.theme = lib.mkOption {
-            type = lib.types.str;
-            default = "none";
-          };
           config.home = {
             username = "tester";
             homeDirectory = "/tmp/tester";
@@ -289,30 +292,26 @@ in
       orderingHome.config.systemd.user.services.desktop-wallpaper-directories.Service.RemainAfterExit;
     assert
       orderingHome.config.systemd.user.services.desktop-wallpaper-rotate.Unit.StartLimitIntervalSec == 0;
-    pkgs.runCommand "wallpaper-service-ordering" { nativeBuildInputs = [ pkgs.systemd ]; } ''
-      mkdir -p units/graphical-session.target.wants runtime
-      ${lib.concatMapStringsSep "\n"
-        (name: ''
-          cp ${orderingHome.config.xdg.configFile."systemd/user/${name}.service".source} units/${name}.service
-              ln -s ../${name}.service units/graphical-session.target.wants/${name}.service
-        '')
-        [
-          "awww"
-          "desktop-wallpaper-directories"
-          "desktop-wallpaper-rotate"
-        ]
+    pkgs.runCommand "wallpaper-service-ordering" { nativeBuildInputs = [ pkgs.systemd ]; } (
+      (import ../../lib/templates/text.nix) ./scripts/wallpaper-service-ordering.sh {
+        lib_concatMapStringsSep_n_name_cp_orderingHome_config_xdg_co =
+          lib.concatMapStringsSep "\n"
+            (
+              name:
+              ((import ../../lib/templates/text.nix) ./scripts/stage-wallpaper-ordering-unit.sh {
+                orderingHome_config_xdg_configFile_systemd_user_name_service =
+                  orderingHome.config.xdg.configFile."systemd/user/${name}.service".source;
+                inherit name;
+              })
+            )
+            [
+              "awww"
+              "desktop-wallpaper-directories"
+              "desktop-wallpaper-rotate"
+            ];
+        pkgs_systemd = pkgs.systemd;
       }
-      export XDG_RUNTIME_DIR="$PWD/runtime"
-      export SYSTEMD_UNIT_PATH="$PWD/units:${pkgs.systemd}/example/systemd/user"
-      systemd-analyze --user --man=no verify graphical-session.target > verification.log 2>&1 || {
-        cat verification.log
-        exit 1
-      }
-      if grep -E 'ordering cycle|deleted to break' verification.log; then
-        exit 1
-      fi
-      touch "$out"
-    '';
+    );
   gecko-policy-merge =
     assert lib.all
       (
@@ -394,22 +393,13 @@ in
         expectedCommand = networkCommand;
         expectedTheme = iconTheme;
       }
-      ''
-        python3 - ${serviceHome.config.xdg.configFile."ironbar/config.toml".source} <<'PY'
-        import os
-        import sys
-        import tomllib
-
-        with open(sys.argv[1], "rb") as source:
-            config = tomllib.load(source)
-        assert config["icon_theme"] == os.environ["expectedTheme"]
-        network = next(item for item in config["end"] if item.get("name") == "network")
-        assert network["bar"][0]["on_click"] == os.environ["expectedCommand"]
-        assert config["center"][0]["type"] == "clock"
-        assert len(config["end"]) == 7
-        PY
-        touch "$out"
-      '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/ironbar-config-literals.sh {
+          scripts_check_ironbar_py = ./scripts/check_ironbar.py;
+          serviceHome_config_xdg_configFile_ironbar_config_toml_source =
+            serviceHome.config.xdg.configFile."ironbar/config.toml".source;
+        }
+      );
   libreoffice-profile-path =
     pkgs.runCommand "libreoffice-profile-path"
       {
@@ -420,25 +410,7 @@ in
       }
       ''
         ${profilePatcher}/bin/libreoffice-apply-settings
-        python3 - <<'PY'
-        import os
-        import shlex
-        import xml.etree.ElementTree as ET
-        from pathlib import Path
-
-        root = ET.parse(os.environ["profilePath"]).getroot()
-        settings = {prop.get("{http://openoffice.org/2001/registry}name"): prop.findtext("value")
-                    for item in root.findall("item") for prop in item.findall("prop")}
-        assert settings["UseSkia"] == "true"
-        assert settings["ForceSkia"] == "false"
-        command = shlex.split(os.environ["languageToolExec"])
-        properties = Path(command[command.index("--config") + 1]).read_text()
-        values = dict(tuple(part.strip() for part in line.split("=", 1))
-                      for line in properties.splitlines()
-                      if line and not line.startswith("#"))
-        assert values == {"cacheSize": "42", "cacheTTLSeconds": "7",
-                          "maxCheckThreads": "3", "maxWorkQueueSize": "9"}, values
-        PY
+        python3 ${./scripts/check_libreoffice_profile.py}
         touch "$out"
       '';
   service-command-arguments = pkgs.testers.runNixOSTest {
@@ -469,16 +441,7 @@ in
         };
       });
     };
-    testScript = ''
-      import json
-
-      machine.start()
-      machine.wait_for_unit("multi-user.target")
-      expected = json.loads(machine.succeed("cat /etc/expected-arguments.json"))
-      for name, arguments in expected.items():
-          received = json.loads(machine.succeed(f"cat /run/{name}.json"))
-          assert received == arguments, (name, received, arguments)
-    '';
+    testScript = builtins.readFile ./scripts/noogle_test.py;
   };
   policy-json =
     assert
@@ -498,13 +461,23 @@ in
     assert
       !(builtins.tryEval (builtins.deepSeq scalar.config.programs.chromiumPolicies.policies true))
       .success;
-    pkgs.runCommand "chromium-policy-json" { } ''
-      test -n ${
-        lib.escapeShellArg merged.config.environment.etc."helium/policies/managed/helium-system.json".text
+    pkgs.runCommand "chromium-policy-json" { } (
+      (import ../../lib/templates/text.nix) ./scripts/chromium-policy-json.sh {
+        lib_escapeShellArg_merged_config_environment_etc_helium_poli =
+          lib.escapeShellArg
+            merged.config.environment.etc."helium/policies/managed/helium-system.json".text;
       }
-      touch "$out"
-    '';
+    );
   desktop-commands =
+    assert
+      !(builtins.tryEval
+        (homeFor {
+          mode = "rotate";
+          directory = "relative-wallpapers";
+        }).activationPackage.drvPath
+      ).success;
+    assert rotating.config.desktop.capture.directory == "/tmp/tester's home/Pictures/Screenshots";
+    assert lib.all (entry: entry.assertion) rotating.config.assertions;
     assert lib.hasInfix "%%literal$$dollar" execStart;
     pkgs.runCommand "desktop-command-regressions"
       {
@@ -513,29 +486,16 @@ in
           pkgs.jq
         ];
       }
-      ''
-          test -d ${commandTree}
-          printf '%s' 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' | base64 -d > "source image.gif"
-          PATH=/nonexistent ${lib.getExe importer} "$PWD/source image.gif"
-          cmp "source image.gif" ${lib.escapeShellArg "${literalPath}/source image.gif"}
-          test "$(stat -c %a ${lib.escapeShellArg literalPath})" = 700
-          test "$(stat -c %a ${lib.escapeShellArg "${literalPath}/source image.gif"})" = 600
-          status=0
-          PATH=/nonexistent ${lib.getExe importer} || status=$?
-          test "$status" = 64
-          export XDG_CONFIG_HOME="$TMPDIR/wallpaper-config"
-        mkdir -p "$XDG_CONFIG_HOME/desktop-wallpaper"
-        ln -s ${
-          rotating.config.xdg.configFile."desktop-wallpaper/policy-command".source
-        } "$XDG_CONFIG_HOME/desktop-wallpaper/policy-command"
-        ${lib.getExe settings} plan > plan.json
-          jq -e 'all(.[]; .category != "cityscapes")' plan.json
-          jq -e '[.[] | select(.connection == "esaHubble") | .subcategory] == ["nebulae"]' plan.json
-          ${lib.getExe settings} source esaHubble space/galaxies on >/dev/null 2>&1
-          ${lib.getExe settings} plan esaHubble > plan.json
-          jq -e '[.[].subcategory] | sort == ["galaxies", "nebulae"]' plan.json
-          ${lib.getExe settings} connection esaHubble off >/dev/null 2>&1
-          test "$(${lib.getExe settings} plan esaHubble)" = '[]'
-          touch "$out"
-      '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/desktop-command-regressions.sh {
+          inherit commandTree;
+          lib_getExe_importer = lib.getExe importer;
+          lib_escapeShellArg_literalPath_source_image_gif = lib.escapeShellArg "${literalPath}/source image.gif";
+          lib_escapeShellArg_literalPath = lib.escapeShellArg literalPath;
+          configuredPolicyDirectory = lib.escapeShellArg "${wallpaperConfigHome}/desktop-wallpaper";
+          rotating_config_xdg_configFile_desktop_wallpaper_policy_comm =
+            rotating.config.xdg.configFile."desktop-wallpaper/policy-command".source;
+          lib_getExe_settings = lib.getExe settings;
+        }
+      );
 }

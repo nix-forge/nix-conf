@@ -1,0 +1,6 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -euo pipefail
+# Literal dollar signs and a trailing backslash are intentional test data.
+# shellcheck disable=SC2016,SC1003
+printf '%s\n' @value@ "$@"

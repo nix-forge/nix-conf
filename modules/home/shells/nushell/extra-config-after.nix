@@ -32,8 +32,9 @@ let
   ];
 in
 {
-  programs.nushell.extraConfig = lib.mkAfter ''
-    let nix_paths = ${binPaths}
-    $env.PATH = ($nix_paths | append ($env.PATH | split row (char esep) | where { |p| $p not-in $nix_paths }))
-  '';
+  programs.nushell.extraConfig = lib.mkAfter (
+    (import ../../../../lib/templates/text.nix) ./scripts/extra-config-after-config.nu.in {
+      inherit binPaths;
+    }
+  );
 }

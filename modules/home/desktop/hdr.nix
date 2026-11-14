@@ -16,12 +16,18 @@ in
       type = lib.types.nullOr lib.types.str;
       default = null;
       example = "DP-1";
-      description = "Physical HDR monitor connector reported by `hyprctl monitors`. Virtual Sunshine outputs are intentionally unsupported.";
+      description = "Physical HDR monitor connector reported by `hyprctl monitors`. Use an output whose driver supports HDR metadata.";
+    };
+
+    unsupportedOutputs = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Outputs whose capture or display path cannot transport HDR metadata.";
     };
 
     mode = lib.mkOption {
       type = lib.types.str;
-      default = "3840x2160@120";
+      default = "preferred";
       description = "Physical monitor mode. Use a mode exposed by the monitor EDID and GPU driver.";
     };
 
@@ -99,8 +105,8 @@ in
         message = "desktop.hdr requires the physical connector name reported by hyprctl monitors.";
       }
       {
-        assertion = cfg.output != "SUNSHINE";
-        message = "desktop.hdr never enables HDR on the Sunshine virtual output because that capture path cannot transport HDR metadata.";
+        assertion = !lib.elem cfg.output cfg.unsupportedOutputs;
+        message = "desktop.hdr.output must not be listed in desktop.hdr.unsupportedOutputs.";
       }
     ];
 

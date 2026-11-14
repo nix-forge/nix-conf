@@ -29,13 +29,13 @@ _: {
       };
     in
     {
-      packages.documentation = pkgs.runCommand "nix-conf-guide" { nativeBuildInputs = [ python ]; } ''
-        python ${source}/site/build.py --source ${source} --output "$out" \
-          --catalog ${config.packages.feature-catalog} \
-          --options ${config.packages.feature-options}/share/doc/nixos/options.json
-        test -s "$out/index.html"
-        test -s "$out/search/search_index.json"
-      '';
+      packages.documentation = pkgs.runCommand "nix-conf-guide" { nativeBuildInputs = [ python ]; } (
+        (import ../lib/templates/text.nix) ./scripts/nix-conf-guide.sh {
+          inherit source;
+          config_packages_feature_catalog = config.packages.feature-catalog;
+          config_packages_feature_options = config.packages.feature-options;
+        }
+      );
       checks.documentation = config.packages.documentation;
       devShells.docs = pkgs.mkShellNoCC { packages = [ python ]; };
     };

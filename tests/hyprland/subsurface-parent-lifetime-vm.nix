@@ -5,66 +5,67 @@
   parentOnly ? false,
 }:
 let
-  # Both guests use the same fixture-only parent. wlroots implements version 6,
-  # while Cage's default version 5 cannot satisfy Aquamarine's nested client.
-  parent = pkgs.cage.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace cage.c \
-        --replace-fail 'wlr_xdg_shell_create(server.wl_display, 5)' \
-          'wlr_xdg_shell_create(server.wl_display, 6)'
-    '';
-  });
-  fixture = pkgs.lib.fileset.toSource {
-    root = ./.;
-    fileset = pkgs.lib.fileset.unions [
-      ./check-subsurface-teardown.sh
-      ./subsurface-parent-teardown.c
-    ];
-  };
-  node =
-    compositor:
-    let
-      executable = pkgs.writeShellApplication {
-        name = "hyprland-lifetime-under-test";
-        text = ''
-          exec ${pkgs.lib.getExe compositor} --i-am-really-stupid "$@"
-        '';
-      };
-    in
-    {
-      system.stateVersion = "26.05";
-      virtualisation = {
-        memorySize = 2048;
-        cores = 2;
-        qemu.options = [
-          "-vga none"
-          "-device virtio-gpu-pci"
-        ];
-      };
-      hardware.graphics.enable = true;
-      boot.kernelModules = [ "virtio_gpu" ];
-      environment = {
-        systemPackages = [
-          compositor
-          executable
-          parent
-          pkgs.jq
-          pkgs.pkg-config
+  guestPython = import ./guest-python.nix { inherit pkgs; };
+  probe =
+    pkgs.runCommand "hyprland-parent-lifetime-client"
+      {
+        nativeBuildInputs = [
           pkgs.stdenv.cc
-          pkgs.wayland
-          pkgs.wayland-utils
-          (pkgs.lib.getBin pkgs.wayland-scanner)
+          pkgs.pkg-config
+          pkgs.wayland-scanner
         ];
-        variables = {
-          HYPRLAND_UNDER_TEST = pkgs.lib.getExe executable;
-          PKG_CONFIG_PATH = "${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig";
-        };
-        etc = {
-          "lifetime-probe/check-subsurface-teardown.sh".source = "${fixture}/check-subsurface-teardown.sh";
-          "lifetime-probe/subsurface-parent-teardown.c".source = "${fixture}/subsurface-parent-teardown.c";
-        };
-      };
+        buildInputs = [
+          pkgs.wayland
+          pkgs.wayland-protocols
+        ];
+      }
+      ''
+        protocols=$(pkg-config --variable=pkgdatadir wayland-protocols)
+        wayland-scanner client-header "$protocols/stable/xdg-shell/xdg-shell.xml" xdg-shell-client-protocol.h
+        wayland-scanner private-code "$protocols/stable/xdg-shell/xdg-shell.xml" xdg-shell-protocol.c
+        wayland-scanner client-header "$protocols/staging/color-management/color-management-v1.xml" color-management-v1-client-protocol.h
+        wayland-scanner private-code "$protocols/staging/color-management/color-management-v1.xml" color-management-v1-protocol.c
+        $CC -std=c17 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Werror \
+          $(pkg-config --cflags wayland-client) -I. -c ${./subsurface-parent-teardown.c} -o client.o
+        mkdir -p "$out/bin"
+        $CC client.o xdg-shell-protocol.c color-management-v1-protocol.c \
+          $(pkg-config --cflags --libs wayland-client) -o "$out/bin/lifetime-client"
+      '';
+  python = pkgs.python3.withPackages (ps: [
+    ps.watchdog
+    ps.dbus-next
+    (import ../../lib/python/notification-process/package.nix { inherit pkgs; })
+  ]);
+  node = compositor: {
+    system.stateVersion = "26.05";
+    virtualisation = {
+      memorySize = 2048;
+      cores = 2;
+      qemu.options = [
+        "-vga none"
+        "-device virtio-gpu-pci"
+      ];
     };
+    hardware.graphics.enable = true;
+    services.seatd.enable = true;
+    services.dbus.enable = true;
+    services.journald.settings.Journal = {
+      ForwardToConsole = pkgs.lib.mkForce false;
+      RuntimeMaxUse = "16M";
+      MaxLevelStore = "info";
+    };
+    environment.systemPackages = [
+      compositor
+      probe
+      python
+      pkgs.wayland-utils
+    ];
+    environment.etc."lifetime-observer".source = guestPython;
+    environment.etc."lifetime-proof.lua".text = ''
+      hl.config({ animations = { enabled = false }, misc = { disable_watchdog_warning = true }, debug = { disable_logs = false, enable_stdout_logs = true, colored_stdout_logs = false } })
+      hl.monitor({ output = "", mode = "1280x720@60", position = "0x0", scale = 1 })
+    '';
+  };
 in
 pkgs.testers.runNixOSTest {
   name = if parentOnly then "hyprland-parent-display" else "hyprland-subsurface-parent-lifetime";
@@ -73,6 +74,11 @@ pkgs.testers.runNixOSTest {
   }
   // pkgs.lib.optionalAttrs (!parentOnly) { repaired = node patched; };
   testScript =
-    pkgs.lib.optionalString parentOnly "parent_only = True\n"
-    + builtins.readFile ./subsurface_parent_lifetime_vm.py;
+    pkgs.lib.replaceStrings
+      [ "from hyprland.lifetime import lifetime_contract" "lifetime_contract." ]
+      [ (builtins.readFile ./lifetime/lifetime_contract.py) "" ]
+      (
+        pkgs.lib.optionalString parentOnly "parent_only = True\n"
+        + builtins.readFile ./subsurface_parent_lifetime_vm.py
+      );
 }

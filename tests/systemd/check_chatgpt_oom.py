@@ -8,10 +8,12 @@ Requires a systemd user manager and cgroup v2. Allocations are confined to a
 from __future__ import annotations
 
 import os
+import select
 import shutil
 import signal
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - This regression supervises a confined child and its systemd scope.
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -39,19 +41,21 @@ def _workload() -> None:
         == "0",
         "The test scope must disable swap",
     )
-    child = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            (
-                "from pathlib import Path; "
-                "Path('/proc/self/oom_score_adj').write_text('1000', encoding='utf-8'); "
-                "data = bytearray(128 * 1024 * 1024)"
-            ),
-        ],
-        check=False,
-        timeout=10,
-    )
+    with subprocess.Popen([
+        sys.executable,
+        str(Path(__file__).with_name("chatgpt_oom_child.py")),
+    ]) as child:
+        pidfd = os.pidfd_open(child.pid)
+        try:
+            _require(
+                bool(select.select([pidfd], [], [], 10)[0]), "OOM deadline expired"
+            )
+            child.wait()
+        finally:
+            os.close(pidfd)
+            if child.poll() is None:
+                child.kill()
+                child.wait()
     events = dict(
         line.split()
         for line in directory
@@ -71,14 +75,26 @@ def _workload() -> None:
 
 
 def _run(arguments: list[str], timeout: int = 20) -> subprocess.CompletedProcess[str]:
-    # All commands use resolved local executables, fixed flags and our scope name.
-    return subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - No shell or external command input is used.
-        arguments,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=False,
-    )
+    # Captured output is bounded; a pidfd deadline replaces timed wait polling.
+    with (
+        tempfile.TemporaryFile(mode="w+", encoding="utf-8") as output,
+        tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors,
+        subprocess.Popen(arguments, stdout=output, stderr=errors, text=True) as child,
+    ):
+        pidfd = os.pidfd_open(child.pid)
+        try:
+            if not select.select([pidfd], [], [], timeout)[0]:
+                child.kill()
+                child.wait()
+                raise subprocess.TimeoutExpired(arguments, timeout)
+            status = child.wait()
+        finally:
+            os.close(pidfd)
+        output.seek(0)
+        errors.seek(0)
+        return subprocess.CompletedProcess(
+            arguments, status, output.read(), errors.read()
+        )
 
 
 def _main() -> int:
@@ -98,7 +114,16 @@ def _main() -> int:
 
 def _check_scope(systemd_run: str, systemctl: str, prefix: str) -> int:
     unit = f"{prefix}oom-regression-{os.getpid()}.scope"
+    # Family drop-ins override properties in a transient unit. Give only this
+    # disposable scope later limits, preserving its inherited OOM policy.
+    drop_in_directory = (
+        Path(os.environ["XDG_RUNTIME_DIR"]) / "systemd/user" / f"{unit}.d"
+    )
+    drop_in_directory.mkdir(parents=True, exist_ok=False)
+    limits = drop_in_directory / "99-confined-test.conf"
     try:
+        limits.write_text("[Scope]\nMemoryMax=96M\nMemorySwapMax=0\n", encoding="utf-8")
+        _run([systemctl, "--user", "daemon-reload"]).check_returncode()
         result = _run([
             systemd_run,
             "--user",
@@ -120,8 +145,13 @@ def _check_scope(systemd_run: str, systemctl: str, prefix: str) -> int:
             return 1
         return 0
     finally:
-        _run([systemctl, "--user", "stop", unit])
-        _run([systemctl, "--user", "reset-failed", unit])
+        try:
+            _run([systemctl, "--user", "stop", unit])
+            _run([systemctl, "--user", "reset-failed", unit])
+        finally:
+            limits.unlink(missing_ok=True)
+            drop_in_directory.rmdir()
+            _run([systemctl, "--user", "daemon-reload"]).check_returncode()
 
 
 if __name__ == "__main__":

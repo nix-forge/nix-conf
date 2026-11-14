@@ -42,10 +42,11 @@
         ];
         inheritPath = false;
       };
-      generatedPrivateUseFamilyAliases = pkgs.runCommand "fontconfig-private-use-family-aliases" { } ''
-        mkdir -p "$out"
-        ${privateUseFamilyAliases}/bin/fontconfig-private-use-family-aliases "$out/aliases.conf"
-      '';
+      generatedPrivateUseFamilyAliases = pkgs.runCommand "fontconfig-private-use-family-aliases" { } (
+        (import ../../../lib/templates/text.nix) ./scripts/generate-private-use-family-aliases.sh {
+          inherit privateUseFamilyAliases;
+        }
+      );
       privateUseFallbackReplacements = {
         appleColorEmojiFamily = xml compatibility.appleColorEmojiFamily;
         privateUseFallbackFamily = xml compatibility.privateUseFallbackFamily;
@@ -68,10 +69,11 @@
     in
     rendered
     // {
-      package = pkgs.runCommand "fontconfig-shared-rules" { } ''
-        install -d "$out/etc/fonts/conf.d"
-        ln -s ${rendered.cssGenericAlias} "$out/etc/fonts/conf.d/51-shared-css-generic-alias.conf"
-        ln -s ${rendered.privateUseFallback} "$out/etc/fonts/conf.d/51-shared-private-use-fallback.conf"
-      '';
+      package = pkgs.runCommand "fontconfig-shared-rules" { } (
+        (import ../../../lib/templates/text.nix) ./scripts/install-shared-fontconfig-rules.sh {
+          rendered_cssGenericAlias = rendered.cssGenericAlias;
+          rendered_privateUseFallback = rendered.privateUseFallback;
+        }
+      );
     };
 }

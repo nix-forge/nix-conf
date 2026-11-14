@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 import runpy
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -11,12 +14,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+RESTIC_LOCK_FAILURE = 11
+
 if TYPE_CHECKING:
     from typing import Any
 
 HELPER = runpy.run_path(
     str(
-        Path(__file__).parents[2] / "hosts/nixos/desktop/local/storage/backup-helper.py"
+        Path(__file__).parents[2] / "hosts/nixos/desktop/local/storage/backup_helper.py"
     )
 )
 
@@ -36,6 +41,87 @@ def destination() -> dict[str, Any]:
         "maxAgeHours": 48,
         "maxVerificationAgeDays": 14,
     }
+
+
+def test_verification_waits_for_live_backup_lock(tmp_path: Path) -> None:
+    """A contending verification waits and succeeds after the writer finishes."""
+    restic = shutil.which("restic")
+    if restic is None:
+        pytest.skip("Restic is required for the repository lock round trip")
+    wrapper = tmp_path / "restic-lock-wait.sh"
+    source = Path(__file__).parents[2] / (
+        "hosts/nixos/desktop/local/storage/scripts/restic-lock-wait.sh"
+    )
+    wrapper.write_text(
+        source
+        .read_text()
+        .replace("@restic@", shlex.quote(restic))
+        .replace("@flock@", shlex.quote(shutil.which("flock") or "flock"))
+        .replace("@bulkLock@", shlex.quote(str(tmp_path / "bulk.lock")))
+    )
+    environment = os.environ | {
+        "RESTIC_REPOSITORY": str(tmp_path / "repository"),
+        "RESTIC_PASSWORD": "fixture-password",
+        "RESTIC_CACHE_DIR": str(tmp_path / "cache"),
+    }
+
+    async def exercise() -> None:
+        async def start(
+            *arguments: str, stdin: int | None = None
+        ) -> asyncio.subprocess.Process:
+            return await asyncio.create_subprocess_exec(
+                *arguments,
+                env=environment,
+                stdin=stdin,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+
+        initialize = await start(restic, "init")
+        output, _ = await initialize.communicate()
+        assert initialize.returncode == 0, output.decode()
+        writer = await start(
+            restic,
+            "backup",
+            "--stdin",
+            "--stdin-filename",
+            "fixture",
+            "--verbose",
+            stdin=asyncio.subprocess.PIPE,
+        )
+        verification = None
+        try:
+            assert writer.stdin is not None
+            assert writer.stdout is not None
+            writer.stdin.write(b"Committed fixture bytes\n")
+            await writer.stdin.drain()
+            # Restic signals when it holds the live repository lock and starts
+            # reading stdin. No filesystem polling is needed.
+            async with asyncio.timeout(10):
+                while b"start backup on" not in await writer.stdout.readline():
+                    assert writer.returncode is None
+            red = await start(restic, "check")
+            output, _ = await red.communicate()
+            assert red.returncode == RESTIC_LOCK_FAILURE, output.decode()
+            assert b"already locked" in output
+            verification = await start("bash", str(wrapper), "check")
+            assert verification.stdout is not None
+            async with asyncio.timeout(10):
+                while b"waiting" not in await verification.stdout.readline():
+                    assert verification.returncode is None
+            writer.stdin.close()
+            output, _ = await writer.communicate()
+            assert writer.returncode == 0, output.decode()
+            async with asyncio.timeout(20):
+                output, _ = await verification.communicate()
+            assert verification.returncode == 0, output.decode()
+        finally:
+            for process in (verification, writer):
+                if process is not None and process.returncode is None:
+                    process.terminate()
+                    await process.communicate()
+
+    asyncio.run(exercise())
 
 
 def test_empty_policy_is_not_protected(tmp_path: Path) -> None:

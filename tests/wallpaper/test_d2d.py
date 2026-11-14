@@ -11,27 +11,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "modules/home/desktop/scripts/wallpaper-fetch-d2d.py"
+SCRIPT = ROOT / "modules/home/desktop/scripts/wallpaper_fetch_d2d.py"
 HOSTS = {"esaHubble": "esahubble.org", "esaWebb": "esawebb.org"}
-CURL = """
-import json, shutil, sys
-from pathlib import Path
-root = Path(__file__).resolve().parents[1]
-url = sys.argv[-1]
-with (root / "requests").open("a") as log:
-    log.write(url + "\\n")
-responses = json.loads((root / "http.json").read_text())
-if url not in responses or responses[url] == "FAIL":
-    sys.exit(22)
-out = Path(sys.argv[sys.argv.index("--output") + 1])
-response = responses[url]
-if response == "IMAGE":
-    shutil.copyfile(root / "original.jpg", out)
-elif isinstance(response, dict):
-    out.write_text(json.dumps(response))
-else:
-    out.write_text(response)
-"""
+CURL = (Path(__file__).with_name("fixtures") / "download_curl.py").read_text(
+    encoding="utf-8"
+)
 DETAIL = """<nav><a href="/images/archive/category/nebulae/">Nebulae</a></nav>
 <table aria-describedby="About the Object"><tr><th scope="row">Category:</th>
 <td><a href="/images/archive/category/galaxies/">Galaxies</a></td></tr></table>"""

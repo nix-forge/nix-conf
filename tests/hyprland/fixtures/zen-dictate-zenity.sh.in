@@ -1,0 +1,8 @@
+#!@bash@
+# shellcheck shell=bash
+# Controlled fixture environment.
+# shellcheck disable=SC2154
+printf '%s\n' "$*" >>"$MOCK_STATE/dialog"
+cat >"$MOCK_STATE/dialog-input"
+if [[ ${MOCK_DISMISS_DIALOG:-0} == 1 ]]; then exit 1; fi
+printf 'What is Nix?\n'

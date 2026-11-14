@@ -1,0 +1,2 @@
+# shellcheck shell=bash
+ble-import -d @source@

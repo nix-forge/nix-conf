@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "modules/home/desktop/scripts/wallpaper-policy.py"
+SCRIPT = ROOT / "modules/home/desktop/scripts/wallpaper_policy.py"
 
 
 @dataclass

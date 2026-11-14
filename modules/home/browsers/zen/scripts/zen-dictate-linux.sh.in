@@ -1,0 +1,175 @@
+# shellcheck shell=bash
+set -euo pipefail
+
+umask 077
+delivery='@delivery@'
+runtime_dir="${XDG_RUNTIME_DIR:?zen-dictate needs a graphical user session}/zen-dictate"
+install -d -m 700 "$runtime_dir"
+exec 9>"$runtime_dir/lock"
+
+notification_id=''
+notify() {
+  local expiry="${3:-3500}"
+  local options=(--app-name='Zen dictation' --expire-time="$expiry" --print-id)
+  if [[ -n $notification_id ]]; then
+    options+=(--replace-id="$notification_id")
+  fi
+  notification_id=$(notify-send "${options[@]}" "$1" "$2" 2>/dev/null || true)
+}
+
+focused_zen() {
+  hyprctl activewindow -j | jq -r 'select(.class == "zen-beta" or .class == "zen" or .class == "zen-twilight") | .address // empty'
+}
+
+action="${1:-toggle}"
+if [[ $action != toggle && $action != cancel ]]; then
+  printf 'Usage: zen-dictate [toggle|cancel]\n' >&2
+  exit 2
+fi
+
+if ! flock -n 9; then
+  if read -r owner_pid 2>/dev/null <"$runtime_dir/pid" && [[ $owner_pid =~ ^[0-9]+$ ]]; then
+    if [[ $action == cancel ]]; then
+      kill -USR2 "$owner_pid" 2>/dev/null || true
+    else
+      kill -USR1 "$owner_pid" 2>/dev/null || true
+    fi
+  fi
+  exit 0
+fi
+
+if [[ $action == cancel ]]; then
+  exit 0
+fi
+
+window=''
+if [[ $delivery == hyprland-urlbar ]]; then
+  if ! window=$(focused_zen); then
+    notify 'Zen is unavailable' 'Start the graphical session and try again.'
+    exit 1
+  fi
+  if [[ -z $window ]]; then
+    notify 'Open Zen first' 'Focus Zen, then press Super+Alt+D to dictate a search.'
+    exit 1
+  fi
+fi
+
+session_dir=$(mktemp -d "$runtime_dir/session.XXXXXXXX")
+record_pid=''
+pid_temporary=''
+stop_requested=0
+cancel_requested=0
+
+cleanup() {
+  if [[ -n $record_pid ]] && kill -0 "$record_pid" 2>/dev/null; then
+    kill -TERM "$record_pid" 2>/dev/null || true
+    wait "$record_pid" 2>/dev/null || true
+  fi
+  rm -rf -- "$session_dir"
+  if [[ -n $pid_temporary ]]; then
+    rm -f -- "$pid_temporary"
+  fi
+  rm -f -- "$runtime_dir/pid"
+}
+trap cleanup EXIT
+trap 'stop_requested=1; if [[ -n "$record_pid" ]]; then kill -TERM "$record_pid" 2>/dev/null || true; fi' USR1
+trap 'cancel_requested=1; if [[ -n "$record_pid" ]]; then kill -TERM "$record_pid" 2>/dev/null || true; fi' USR2
+trap 'cancel_requested=1; notify "Dictation stopped" "No search text was entered."; exit 130' INT TERM
+
+pid_temporary=$(mktemp "$runtime_dir/pid.XXXXXXXX")
+printf '%s\n' "$$" >"$pid_temporary"
+mv -f -- "$pid_temporary" "$runtime_dir/pid"
+pid_temporary=''
+notify 'Recording a search' 'Speak now. Run zen-dictate again to finish; run zen-dictate cancel to discard. Recording stops after @recordingSeconds@ seconds.' 0
+timeout --signal=TERM --kill-after=5s @recordingSeconds@s \
+  pw-record --rate 16000 --channels 1 --format s16 --sample-count @sampleCount@ "$session_dir/audio.wav" &
+record_pid=$!
+if ((stop_requested || cancel_requested)); then
+  kill -TERM "$record_pid" 2>/dev/null || true
+fi
+wait "$record_pid" || record_status=$?
+if ((stop_requested || cancel_requested)); then
+  wait "$record_pid" 2>/dev/null || true
+fi
+record_pid=''
+
+if ((cancel_requested)); then
+  notify 'Dictation discarded' 'No search text was entered.'
+  exit 0
+fi
+if [[ -n ${record_status:-} && $record_status != 124 ]] && ((! stop_requested)); then
+  notify 'Microphone failed' 'Check the default recording device and try again.'
+  exit 1
+fi
+if [[ ! -s "$session_dir/audio.wav" ]] || (($(stat -c %s "$session_dir/audio.wav") < 3200)); then
+  notify 'No speech captured' 'Try again and speak for at least a moment.'
+  exit 1
+fi
+
+if [[ $delivery == review-dialog ]]; then
+  notify 'Transcribing locally' 'A review dialog will open when the question is ready.' 0
+else
+  notify 'Transcribing locally' 'Your search will appear in Zen when ready.' 0
+fi
+if ! whisper-cli --model @model@ --file "$session_dir/audio.wav" --language @language@ \
+  --no-prints --no-timestamps --suppress-nst --output-txt --output-file "$session_dir/result" \
+  >"$session_dir/whisper.log" 2>&1; then
+  notify 'Transcription failed' 'The recording was discarded.'
+  exit 1
+fi
+
+if ((cancel_requested)); then
+  notify 'Dictation discarded' 'No search text was entered.'
+  exit 0
+fi
+if [[ ! -s "$session_dir/result.txt" ]]; then
+  notify 'No words recognized' 'Try speaking closer to the microphone.'
+  exit 1
+fi
+
+transcript=$(tr '\r\n\t' '   ' <"$session_dir/result.txt")
+transcript="${transcript#"${transcript%%[![:space:]]*}"}"
+transcript="${transcript%"${transcript##*[![:space:]]}"}"
+if [[ -z $transcript ]]; then
+  notify 'No words recognized' 'Try speaking closer to the microphone.'
+  exit 1
+fi
+
+if [[ $delivery == review-dialog ]]; then
+  if ! edited=$(printf '%s\n' "$transcript" | zenity --text-info --editable --title='Review Zen search' --ok-label='Search' --cancel-label='Discard' --width=600 --height=180); then
+    notify 'Search discarded' 'No question was sent to Zen.'
+    exit 0
+  fi
+  edited=$(printf '%s' "$edited" | tr '\r\n\t' '   ')
+  edited="${edited#"${edited%%[![:space:]]*}"}"
+  edited="${edited%"${edited##*[![:space:]]}"}"
+  if [[ -z ${edited//[[:space:]]/} ]]; then
+    notify 'Empty search' 'No question was sent to Zen.'
+    exit 1
+  fi
+  if ! '@zenExe@' --search "$edited"; then
+    notify 'Could not open Zen search' 'Check that Zen Browser is available.'
+    exit 1
+  fi
+  notify 'Search opened' 'The reviewed question was sent to Zen.'
+  exit 0
+fi
+
+if [[ "$(focused_zen)" != "$window" ]]; then
+  notify 'Zen focus changed' 'Search text was discarded to avoid typing into another window.'
+  exit 1
+fi
+
+if ! wtype -M ctrl -k l -m ctrl; then
+  notify 'Could not focus the search bar' 'Check Wayland virtual keyboard access.'
+  exit 1
+fi
+if [[ "$(focused_zen)" != "$window" ]]; then
+  notify 'Zen focus changed' 'Search text was discarded to avoid typing into another window.'
+  exit 1
+fi
+if ! wtype -- "$transcript"; then
+  notify 'Could not enter the search' 'Check Wayland virtual keyboard access.'
+  exit 1
+fi
+notify 'Search ready' 'Review the question in Zen, then press Enter.'

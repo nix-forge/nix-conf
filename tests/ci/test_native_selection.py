@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import pytest
+from notification_process import run as run_command
 
 pytestmark = [pytest.mark.nix_daemon, pytest.mark.usefixtures("isolated_git")]
 
@@ -89,7 +90,7 @@ class NativeSelectionFixture(unittest.TestCase):
             }
             | (environment or {})
         )
-        result = subprocess.run(
+        result = run_command(
             ["bash", str(SCRIPT), *candidates],
             cwd=self.root,
             env=settings,

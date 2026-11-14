@@ -1,0 +1,79 @@
+let
+  lib = import NIXPKGS_LIB;
+  fixture = import DEPLOY {
+    myLib = { };
+    inputs = {
+      nixpkgs = {
+        inherit lib;
+        # Isolate discovery from host closures while exercising native Darwin
+        # deployment-check ownership through the same package-set interface.
+        outPath = builtins.toFile "ci-inventory-nixpkgs.nix" ''
+          _: {
+            deploy-rs.lib.deployChecks = _: { darwin-deployment-check = null; };
+            linkFarm = name: entries: { inherit name entries; };
+          }
+        '';
+      };
+      deploy-rs.overlays.default = _: _: { };
+      deploy-rs.lib.x86_64-linux.deployChecks = _: {
+        host-only = null;
+        new-deployment-check = null;
+      };
+    };
+    self = {
+      deploy = { };
+      lintChecks = {
+        x86_64-linux = {
+          gitleaks-policy = null;
+          new-portable-check = null;
+        };
+        aarch64-darwin.gitleaks-policy = null;
+      };
+      checks = {
+        x86_64-linux = {
+          desktop-workload = "/fixture/desktop-workload";
+          nix-credential-loading = "/fixture/nix-credential-loading";
+          cache-policy = null;
+          application-recovery = null;
+          desktop-authentication = null;
+          generated-artifacts = null;
+          git-email-privacy = null;
+          gitleaks-policy = null;
+          ordinary = null;
+          newly-added = null;
+          new-portable-check = null;
+          sentry-crashpad-lock = null;
+          service-command-arguments = null;
+          python-tests = null;
+          secret-templates = null;
+          host-only = null;
+          new-deployment-check = null;
+        };
+        aarch64-darwin = {
+          darwin-deployment-check = null;
+          application-recovery = null;
+          cache-policy = null;
+          desktop-authentication = null;
+          generated-artifacts = null;
+          git-email-privacy = null;
+          gitleaks-policy = null;
+          host-only = null;
+          ordinary = null;
+          sentry-crashpad-lock = null;
+          service-command-arguments = null;
+          public-demo-runtime = null;
+          python-tests = null;
+          secret-templates = null;
+        };
+        aarch64-linux = {
+          ordinary = null;
+          python-tests = null;
+        };
+      };
+    };
+  };
+in
+{
+  inventory = builtins.mapAttrs (_: builtins.attrNames) fixture.flake.ciChecks;
+  sharedRuntime = fixture.flake.ciChecks.x86_64-linux.determinate-runtime-consumers;
+}

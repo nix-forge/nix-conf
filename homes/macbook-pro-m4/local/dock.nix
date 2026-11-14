@@ -10,7 +10,7 @@ in
     persistentApps = [
       { hmApp = "Ghostty"; }
       { hmApp = "Visual Studio Code"; }
-      { hmApp = "ChatGPT"; }
+      { hmApp = "T3 Code (Beta)"; }
 
       { spacer.small = true; }
 
@@ -27,6 +27,8 @@ in
       { spacer.small = true; }
 
       { hmApp = "Spotify"; }
+      { hmApp = "Feishin"; }
+      { hmApp = "Moonfin"; }
       { app = "/System/Applications/Music.app"; }
 
       { spacer.small = true; }

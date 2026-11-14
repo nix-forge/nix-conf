@@ -14,6 +14,7 @@
     in
     {
       key = "nix-conf/stylix/ironbar/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.ironbar.enable = config.lib.stylix.mkEnableTarget "ironbar" true;
       config = lib.optionalAttrs (options ? desktop.bar) (

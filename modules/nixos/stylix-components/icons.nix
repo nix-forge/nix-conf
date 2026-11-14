@@ -1,4 +1,5 @@
 { pkgs, ... }: {
+  imports = [ ./base.nix ];
   stylix.icons = {
     enable = true;
     package = pkgs.papirus-icon-theme;

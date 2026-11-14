@@ -9,6 +9,10 @@
   # remain reusable in lightweight, recovery, and non-Hyprland profiles.
   desktop.enable = true;
   desktop.noctalia.enable = true;
+  # Keep the existing charcoal application artwork in both Noctalia modes.
+  # Stylix owns GTK and Qt icon selection, without a competing runtime hook.
+  stylix.icons.dark = lib.mkForce "Noctalia-Apps-Dark";
+  stylix.icons.light = lib.mkForce "Noctalia-Apps-Dark";
   # "Prevent sleep while running" should preserve tasks without leaving the
   # unlocked desktop or OLED display awake through Chromium's native inhibitor.
   desktop.idle.backgroundAppClasses = [ "chatgpt" ];
@@ -25,7 +29,7 @@
         "org.gnome.Nautilus"
         "com.mitchellh.ghostty"
         "code"
-        "chatgpt"
+        "t3code"
         "zen-beta"
         "signal"
         "vesktop"
@@ -46,8 +50,8 @@
       trayOverrides.Bitwarden = "bitwarden-tray";
       # Use Discord's monochrome glyph for Vesktop's tray bitmap.
       trayOverrides.Vesktop = "discord-tray";
-      # Zoom sends a colored bitmap; use the theme's video-camera status glyph.
-      trayOverrides.zoom = "camera-video-symbolic";
+      # Zoom sends a colored pixmap without an icon name; use its symbolic logo.
+      trayOverrides.zoom = "zoom-symbolic";
     };
     nightLight = {
       enable = true;
@@ -77,19 +81,7 @@
   xdg.configFile."noctalia/config.toml".force = true;
   xdg.configFile."systemd/user/noctalia.service".force = true;
 
-  # Bound Zen's main process and content children together. On this 30 GiB
-  # host, an unbounded browser exhausted RAM and swap and the global OOM
-  # killer selected unrelated desktop applications. Match UWSM's escaped
-  # executable name so the policy survives new application scope IDs.
-  # Keep surviving browser processes running if a content process hits the
-  # ceiling; this cannot preserve a process selected directly by the kernel.
-  xdg.configFile."systemd/user/app-Hyprland-zen\\x2dbeta-.scope.d/50-memory-budget.conf".text = ''
-    [Scope]
-    MemoryHigh=12G
-    MemoryMax=16G
-    MemorySwapMax=4G
-    OOMPolicy=continue
-  '';
+  # Zen launch placement and its shared budget live in browsers/session.nix.
 
   # ChatGPT splits its processes between Chromium and UWSM scopes. Bound the
   # Chromium group because the measured scope retained nearly 8 GiB resident
@@ -101,8 +93,15 @@
     [Scope]
     MemoryHigh=10G
     MemoryMax=12G
-    MemorySwapMax=4G
     OOMPolicy=continue
+  '';
+  # Allow cold agent/tool memory to spill to disk after zram fills. A 4 GiB
+  # swap ceiling pinned anonymous pages while the host still had swap space.
+  # Keep this allowance in its own file so a scoped repair can install it
+  # without replacing the running Home Manager generation's other limits.
+  xdg.configFile."systemd/user/app-org.chromium.Chromium-.scope.d/70-swap-headroom.conf".text = ''
+    [Scope]
+    MemorySwapMax=8G
   '';
   xdg.configFile."systemd/user/app-Hyprland-chatgpt-.scope.d/50-oom-policy.conf".text = ''
     [Scope]

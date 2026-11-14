@@ -13,7 +13,7 @@ Ignored drafts do not appear automatically in another worktree or machine;
 pass their contents or provide a reviewed copy explicitly.
 
 For desktop evaluation, builds, or checks, pass the
-[workload-runner requirement](../desktop-memory-management.md) to every worker.
+[workload-runner requirement](../operations/desktop-memory-management.md) to every worker.
 Independent worktrees share the desktop user's queue. Coordinate remote/root
 jobs separately because wrapping a local deployment client does not wrap its
 remote evaluation process.
@@ -52,10 +52,13 @@ raw output in private storage under [the publication policy](../publication.md).
 
 ## Model effort and feedback
 
-Use `codex --profile routine` to try Astra with medium reasoning on clear tasks;
-use `codex --profile deep` for difficult diagnosis, design, or review. Profiles
-change model and effort only. The desktop model picker remains independently
-editable. Keep explicit user choices and raise effort when it prevents rework.
+Use each client's model selector and preserve explicit user choices. Codex named
+profiles must be declared before use, for example through
+`programs.codex.profiles`, which writes native profile files beside its config.
+This setup does not install profiles named `routine` or `deep`. Keep a profile's
+scope explicit and use the active harness's controls when working inside T3.
+The desktop model picker remains independently editable. Raise effort when it
+prevents rework rather than routing every task through another agent.
 
 For workflow comparisons, record briefing time, later clarification requests,
 review and repair time, elapsed completion time, and defects. Include human time

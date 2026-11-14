@@ -77,8 +77,22 @@ in
         package = lib.mkDefault pkgs.nixVersions.latest;
         channel.enable = lib.mkDefault false;
         inherit settings;
-        extraOptions = lib.mkIf hasNixAccessTokens ''
+      };
+      # System-private credentials must never be included by public nix.conf:
+      # an unreadable optional include discards its containing configuration.
+      systemd.services.nix-daemon = lib.mkIf hasNixAccessTokens {
+        after = [ "nix-seal-activate.service" ];
+        environment.NIX_USER_CONF_FILES = "/root/.config/nix/nix.conf";
+      };
+      system.build.nixRootCredentials = lib.mkIf hasNixAccessTokens (
+        pkgs.writeText "root-nix-credentials.conf" ''
           !include ${runtimeFiles.${nixAccessTokensId}.path}
+        ''
+      );
+      system.activationScripts.nixRootCredentials = lib.mkIf hasNixAccessTokens {
+        deps = [ "etc" ];
+        text = ''
+          ${pkgs.runtimeShell} ${./nix-settings-assets/install-root-credentials.sh} /root ${config.system.build.nixRootCredentials}
         '';
       };
     };
@@ -120,16 +134,20 @@ in
           optimise.automatic = lib.mkDefault true;
           channel.enable = lib.mkDefault false;
           inherit settings;
-          extraOptions = lib.mkIf hasNixAccessTokens ''
-            !include ${runtimeFiles.${nixAccessTokensId}.path}
-          '';
         };
       })
-      (lib.mkIf usingDeterminateNix {
-        determinateNix.customSettings = determinateSettings;
-        environment.etc."nix/nix.custom.conf".text = lib.mkIf hasNixAccessTokens (
-          lib.mkAfter ''
-            !include ${runtimeFiles.${nixAccessTokensId}.path}
+      (lib.mkIf usingDeterminateNix { determinateNix.customSettings = determinateSettings; })
+      (lib.mkIf hasNixAccessTokens {
+        # The vendor-owned daemon plist is preserved. Root clients and a fresh
+        # root daemon use the normal private root configuration search path.
+        system.activationScripts.postActivation.text = lib.mkAfter (
+          let
+            credentials = pkgs.writeText "root-nix-credentials.conf" ''
+              !include ${runtimeFiles.${nixAccessTokensId}.path}
+            '';
+          in
+          ''
+            ${pkgs.runtimeShell} ${./nix-settings-assets/install-root-credentials.sh} /var/root ${credentials}
           ''
         );
       })
@@ -148,6 +166,13 @@ in
       hasNixAccessTokens = builtins.hasAttr nixAccessTokensId runtimeFiles;
     in
     {
+      # Determinate sets package = null on both platforms. Own only the private
+      # user include in that branch; shared public settings remain system-owned.
+      xdg.configFile."nix/nix.conf" = lib.mkIf (config.nix.package == null && hasNixAccessTokens) {
+        text = ''
+          !include ${runtimeFiles.${nixAccessTokensId}.path}
+        '';
+      };
       nix = {
         package = lib.mkDefault pkgs.nixVersions.latest;
         # Daemon authorization is intentionally system-level. Home Manager

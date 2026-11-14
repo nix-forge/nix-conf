@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   myLib,
   pkgs,
@@ -13,7 +14,7 @@ let
       "E501"
       "W503"
     ];
-  } ./scripts/disable-bluetooth-pairing.py;
+  } ./scripts/disable_bluetooth_pairing.py;
   disableBluetoothPairing = writeBashTemplate {
     name = "disable-bluetooth-pairing";
     src = ./scripts/disable-bluetooth-pairing.sh;
@@ -70,14 +71,14 @@ in
   };
 
   # Blueman provides a regular-user pairing and device-management flow.
-  services.blueman.enable = lib.mkDefault true;
+  services.blueman.enable = lib.mkDefault config.hardware.bluetooth.enable;
 
   # BlueZ defaults every powered adapter to Pairable=true.  AlwaysPairable
   # only controls whether pairing is accepted without an agent, so enforce the
   # stricter default after bluetoothd has registered every adapter.  This does
   # not disable the radio or discovery, and a user can still deliberately turn
   # pairing on through Blueman or bluetoothctl when adding a device.
-  systemd.services.bluetooth-disable-pairing = {
+  systemd.services.bluetooth-disable-pairing = lib.mkIf config.hardware.bluetooth.enable {
     description = "Disable unsolicited Bluetooth pairing";
     wantedBy = [ "bluetooth.target" ];
     requires = [ "bluetooth.service" ];
@@ -86,8 +87,12 @@ in
 
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = disableBluetoothPairing;
-      TimeoutStartSec = "15s";
+      # BlueZ may publish its D-Bus adapter well after bluetoothd starts while
+      # USB firmware initializes. The helper blocks on InterfacesAdded.
+      ExecStart = "${disableBluetoothPairing} --timeout 45";
+      TimeoutStartSec = "50s";
+      Restart = "on-failure";
+      RestartSec = "10s";
       CapabilityBoundingSet = "";
       NoNewPrivileges = true;
       PrivateTmp = true;
@@ -102,12 +107,19 @@ in
   # PipeWire/WirePlumber owns Bluetooth audio. Preserve its adaptive codec
   # selection and headset-profile handling, but prevent private audio from
   # unexpectedly falling back to speakers when Bluetooth playback disappears.
-  services.pipewire.wireplumber.extraConfig."10-bluetooth-policy" = {
-    "wireplumber.settings" = {
-      "bluetooth.autoswitch-to-headset-profile" = true;
-      "bluetooth.profile-preference" = "quality";
-      "bluetooth.use-persistent-storage" = true;
-      "device.routes.mute-on-bluetooth-playback-removed" = true;
-    };
-  };
+  services.pipewire.wireplumber.extraConfig."10-bluetooth-policy" =
+    lib.mkIf
+      (
+        config.hardware.bluetooth.enable
+        && config.services.pipewire.enable
+        && config.services.pipewire.wireplumber.enable
+      )
+      {
+        "wireplumber.settings" = {
+          "bluetooth.autoswitch-to-headset-profile" = true;
+          "bluetooth.profile-preference" = "quality";
+          "bluetooth.use-persistent-storage" = true;
+          "device.routes.mute-on-bluetooth-playback-removed" = true;
+        };
+      };
 }

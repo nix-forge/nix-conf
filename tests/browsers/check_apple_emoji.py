@@ -13,6 +13,7 @@ from pathlib import Path
 
 import check_font_rendering as runner
 import uharfbuzz as hb
+from typescript_sources import javascript_source
 
 RGI_ENTRIES = 3953
 MIN_COLORED_ENTRIES = 3500
@@ -22,6 +23,21 @@ from emoji_support import (  # ruff: ignore[module-import-not-at-top-of-file]
     emoji_entries,
     shape,
 )
+
+
+def _browser_program(name: str) -> str:
+    """Load the checked browser function.
+
+    Returns:
+        The browser script with WebDriver's receiver and arguments preserved.
+
+    """
+    source = javascript_source(Path(__file__).with_name("fixtures") / name)
+    return (
+        "const module = {exports: null};\n"
+        + source
+        + "\nreturn module.exports.apply(this, arguments);"
+    )
 
 
 def main() -> bool:
@@ -55,45 +71,11 @@ def main() -> bool:
         driver.set_context("content")
         driver.get("about:blank")
         driver.set_window_size(1200, 700)
-        loaded = driver.execute_async_script("""
-const done = arguments[0];
-const font = new FontFace('AppleTest', 'local("AppleColorEmoji")');
-font.load().then(f => {document.fonts.add(f); done(true)}).catch(e => done(String(e)));
-""")
+        loaded = driver.execute_async_script(
+            _browser_program("apple-emoji-font-load.cts")
+        )
         result = driver.execute_script(
-            """
-const samples = arguments[0], canvas = document.createElement('canvas');
-canvas.width = 96; canvas.height = 96;
-const ctx = canvas.getContext('2d', {willReadFrequently:true});
-ctx.font = '48px AppleTest'; ctx.fillStyle = '#ddd';
-const failures = []; let colored = 0;
-for (const sample of samples) {
-    ctx.clearRect(0,0,96,96);
-    const width = ctx.measureText(sample.text).width;
-    ctx.fillText(sample.text,8,64);
-    const pixels = ctx.getImageData(0,0,96,96).data;
-    let visible = 0, color = 0;
-    for(let i=0;i<pixels.length;i+=4) {
-    if(pixels[i+3]>32) {
-        visible++;
-        if(Math.max(pixels[i],pixels[i+1],pixels[i+2])-
-            Math.min(pixels[i],pixels[i+1],pixels[i+2])>35) color++;
-    }
-    }
-    if(color>10) colored++;
-    if(Math.abs(width-sample.width)>0.1 || visible<10)
-    failures.push({code:sample.code,width,expected:sample.width,visible});
-}
-document.body.style = 'background:#202124;color:#eee;padding:28px;font:18px sans-serif';
-document.body.innerHTML = '<h1>Apple Color Emoji · installed Linux font</h1>'+
-    '<p>Versioned release: macos-26-20260722-484daf4e · downloaded bitmap fonts disabled</p>'+
-    '<div style="font:48px AppleTest;line-height:1.6">'+
-    '😀 😎 🥰 😭 🫩 🫪 🫯 🐱 🦊 🦋 🌻 🍎 🍕 🎉 ❤️<br>'+
-    '👍🏻 👍🏽 👍🏿 👩🏽‍💻 👨🏻‍🚀 🧑🏿‍🚒 🫱🏻‍🫲🏼 🫱🏿‍🫲🏻<br>'+
-    '👩🏻‍❤️‍💋‍👩🏿 🧑🏽‍🤝‍🧑🏻 👨‍👩‍👧‍👦 🏳️‍🌈 🇺🇸 🇯🇵 ♀️ ♂️ ⚕️ 🏴󠁧󠁢󠁳󠁣󠁴󠁿 1️⃣</div>'+
-    '<p>Font artwork © Apple Inc. Linux conversion: samuelngs/apple-emoji-ttf.</p>';
-return {total:samples.length,failures,colored,localFontLoaded:document.fonts.check('48px AppleTest')};
-""",
+            _browser_program("apple-emoji-canvas-metrics.cts"),
             samples,
         )
         result["localFontLoaded"] = loaded is True

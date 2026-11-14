@@ -115,7 +115,6 @@ let
         twitter-color-emoji
         openmoji-color
         (joypixels.override { acceptLicense = true; })
-        personal.ttf-ms-win11-auto
         nerd-fonts.fira-code
         nerd-fonts.jetbrains-mono
         nerd-fonts.caskaydia-cove
@@ -143,18 +142,21 @@ let
         ]
       else
         [ pkgs.mplus-outline-fonts.githubRelease ];
-    optionalEmoji =
-      pkgs: personal:
-      [
-        personal.firefox-emoji
-        personal.emojione-legacy
-        personal.mutant-standard-emoji
-      ]
-      ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ personal.apple-color-emoji ];
+    optionalEmoji = _pkgs: personal: [
+      personal.firefox-emoji
+      personal.emojione-legacy
+      personal.mutant-standard-emoji
+    ];
     select =
       pkgs: personal: typography:
       pkgs.lib.unique (
         catalog.base pkgs personal
+        ++ pkgs.lib.optionals typography.restrictedFonts.enable [ personal.ttf-ms-win11-auto ]
+        ++ pkgs.lib.optionals (
+          typography.restrictedFonts.enable
+          && typography.optionalEmoji.enable
+          && pkgs.stdenv.hostPlatform.isLinux
+        ) [ personal.apple-color-emoji ]
         ++ catalog.design pkgs personal typography.designLibrary
         ++ pkgs.lib.optionals typography.optionalEmoji.enable (catalog.optionalEmoji pkgs personal)
       );

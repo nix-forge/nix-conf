@@ -4,10 +4,15 @@
   pkgs,
   self,
   system,
+  options,
+  osConfig ? null,
   ...
 }:
 let
   cfg = config.desktop.noctalia;
+  suspendAllowed =
+    osConfig == null
+    || (lib.attrByPath [ "systemd" "sleep" "settings" "Sleep" "AllowSuspend" ] "yes" osConfig) != "no";
   noctalia = lib.getExe config.programs.noctalia.package;
   volumeStep = "${toString cfg.volumeStepPercent}%";
   featureSettings = {
@@ -74,8 +79,7 @@ in
     };
 
     darkAppIcons.enable = lib.mkEnableOption ''
-      dark ChatGPT, Zen and VS Code artwork that follows Noctalia's appearance,
-      with the normal icon theme in light mode
+      the dark ChatGPT, Zen and VS Code icon theme for desktop selection
     '';
 
     symbolicBarIcons = {
@@ -106,13 +110,13 @@ in
       };
 
       sunrise = lib.mkOption {
-        type = lib.types.strMatching "[0-2][0-9]:[0-5][0-9]";
+        type = lib.types.strMatching "([01][0-9]|2[0-3]):[0-5][0-9]";
         default = "06:30";
         description = "Local sunrise time for the privacy-preserving night-light schedule.";
       };
 
       sunset = lib.mkOption {
-        type = lib.types.strMatching "[0-2][0-9]:[0-5][0-9]";
+        type = lib.types.strMatching "([01][0-9]|2[0-3]):[0-5][0-9]";
         default = "20:00";
         description = "Local sunset time for the privacy-preserving night-light schedule.";
       };
@@ -132,7 +136,7 @@ in
       disabledOutputs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
-        example = [ "SUNSHINE" ];
+        example = [ "HEADLESS-1" ];
         description = "Outputs without a usable brightness backend that Noctalia should hide.";
       };
     };
@@ -180,7 +184,7 @@ in
         message = "desktop.noctalia requires an enabled Hyprland session.";
       }
       {
-        assertion = !config.desktop.nightLight.enable || !cfg.nightLight.enable;
+        assertion = !(config.desktop.nightLight.enable or false) || !cfg.nightLight.enable;
         message = "Use either desktop.nightLight or desktop.noctalia.nightLight, not both gamma controllers.";
       }
       {
@@ -193,14 +197,21 @@ in
     # A shell is only coherent when it owns each visible responsibility. Keep
     # the compositor, portal, lock, idle, capture, and wallpaper-acquisition
     # layers independent, but remove the overlapping GTK panel processes.
-    desktop = {
-      bar.enable = lib.mkForce false;
-      launcher.enable = lib.mkForce false;
-      notifications.enable = lib.mkForce false;
-      osd.enable = lib.mkForce false;
-      clipboard.enable = lib.mkForce false;
-      idle.onLockCommand = lib.mkDefault "${noctalia} msg clipboard-clear";
-    };
+    desktop =
+      lib.genAttrs
+        (lib.filter (name: lib.hasAttrByPath [ "desktop" name "enable" ] options) [
+          "bar"
+          "launcher"
+          "notifications"
+          "osd"
+          "clipboard"
+        ])
+        (_: {
+          enable = lib.mkForce false;
+        })
+      // lib.optionalAttrs (lib.hasAttrByPath [ "desktop" "idle" "onLockCommand" ] options) {
+        idle.onLockCommand = lib.mkDefault "${noctalia} msg clipboard-clear";
+      };
 
     programs.fuzzel.enable = lib.mkForce false;
 
@@ -267,7 +278,9 @@ in
               command = "${lib.getExe' pkgs.systemd "loginctl"} lock-session";
               shortcut = "L";
             }
-            { action = "suspend"; }
+          ]
+          ++ lib.optional suspendAllowed { action = "suspend"; }
+          ++ [
             {
               action = "logout";
               countdown_seconds = 10;
@@ -385,10 +398,6 @@ in
             "weather"
             "screen-time"
           ];
-          calendar = {
-            event_date_format = "%a %b %-d";
-            event_time_format = "%-I:%M %p";
-          };
           shortcuts = [
             { type = "wifi"; }
             { type = "bluetooth"; }
@@ -396,6 +405,10 @@ in
             { type = "notification"; }
             { type = "session"; }
           ];
+        };
+        calendar = {
+          event_date_format = "%a %b %-d";
+          event_time_format = "%-I:%M %p";
         };
         notification = {
           enable_daemon = true;

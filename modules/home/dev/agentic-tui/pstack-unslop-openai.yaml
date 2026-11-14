@@ -1,0 +1,5 @@
+interface:
+  display_name: "Unslop"
+  short_description: "Edit prose while preserving facts and meaning"
+policy:
+  allow_implicit_invocation: false

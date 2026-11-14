@@ -7,15 +7,19 @@
         lockPam = pkgs.writeText "hyprlock.pam" host.security.pam.services.hyprlock.text;
       in
       {
+        desktop-hyprlock-lifecycle = import ../../tests/hyprland/hyprlock-lifecycle.nix {
+          inherit pkgs;
+          hyprland = host.programs.hyprland.package;
+          hyprlock = host.programs.hyprlock.package;
+        };
         desktop-authentication =
           pkgs.runCommand "desktop-authentication-policy" { nativeBuildInputs = [ pkgs.gnugrep ]; }
-            ''
-              for pam in ${loginPam} ${lockPam}; do
-                ! grep -Eq '^auth .*nullok' "$pam"
-                grep -Eq '^auth .*pam_deny[.]so' "$pam"
-              done
-              touch "$out"
-            '';
+            (
+              (import ../../lib/templates/text.nix) ./scripts/desktop-authentication-policy.sh {
+                inherit loginPam;
+                inherit lockPam;
+              }
+            );
       }
     );
   };

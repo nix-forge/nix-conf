@@ -15,6 +15,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from notification_process import communicate_and_reap
+from waits import wait_file
+
+pytestmark = pytest.mark.skipif(
+    not hasattr(os, "pidfd_open"), reason="NixOS process supervision uses Linux pidfds"
+)
 
 if TYPE_CHECKING:
     from typing import Any
@@ -23,6 +29,17 @@ RUNNER = (
     Path(__file__).parents[2] / "modules/nixos/services/application-recovery/runner.py"
 )
 HELPER = runpy.run_path(str(RUNNER))
+
+
+def _systemctl_fixture(name: str) -> str:
+    """Load the service-manager double.
+
+    Returns:
+        Executable Python source using the fixture interpreter.
+
+    """
+    source = (Path(__file__).with_name("fixtures") / name).read_text(encoding="utf-8")
+    return f"#!{sys.executable}\n" + source
 
 
 def policy(tmp_path: Path) -> dict[str, Any]:
@@ -37,7 +54,13 @@ def policy(tmp_path: Path) -> dict[str, Any]:
         "units": [],
         "timeoutSeconds": 10,
         **{
-            phase: [sys.executable, "-c", "pass"]
+            phase: [
+                sys.executable,
+                str(
+                    Path(__file__).with_name("fixtures")
+                    / "successful_recovery_phase.py"
+                ),
+            ]
             for phase in ("export", "backup", "recover", "restore", "check")
         },
     }
@@ -87,7 +110,10 @@ def test_sqlite_and_vm_state_roundtrip(
     success = tmp_path / "state/drill-success.json"
     assert json.loads(success.read_text())["scope"] == "isolated-application-drill"
     old_success = success.read_bytes()
-    recipe["check"] = [sys.executable, "-c", "raise SystemExit(1)"]
+    recipe["check"] = [
+        sys.executable,
+        str(Path(__file__).with_name("fixtures") / "failed_roundtrip_check.py"),
+    ]
     with pytest.raises(subprocess.CalledProcessError):
         HELPER["execute"](recipe, "drill")
     assert success.read_bytes() == old_success
@@ -105,22 +131,15 @@ def test_failed_phase_restarts_running_writers(
     """A stopped running writer resumes after failure; an inactive writer stays inactive."""
     adapter = tmp_path / "systemctl"
     events = tmp_path / "events"
-    adapter.write_text(f"""#!{sys.executable}
-import pathlib,sys
-p = pathlib.Path({str(events)!r})
-action, unit = sys.argv[1:3]
-if action == 'show':
-    print('LoadState=loaded\\nActiveState=' + ('active' if unit == 'writer.service' else 'inactive'))
-elif action in ('stop', 'start'):
-    p.open('a').write(action + ' ' + unit + '\\n')
-else:
-    raise SystemExit(9)
-""")
+    adapter.write_text(_systemctl_fixture("systemctl_running_writer.py"))
     adapter.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
     recipe = policy(tmp_path)
     recipe["units"] = ["writer.service", "inactive.service"]
-    recipe[failure_phase] = [sys.executable, "-c", "raise SystemExit(1)"]
+    recipe[failure_phase] = [
+        sys.executable,
+        str(Path(__file__).with_name("fixtures") / "failed_recovery_phase.py"),
+    ]
     with pytest.raises(subprocess.CalledProcessError):
         HELPER["execute"](recipe, "backup")
     assert events.read_text().splitlines() == [
@@ -149,20 +168,8 @@ def test_restart_failure_attempts_other_writers(
     """One failed restart cannot prevent recovery attempts for other stopped writers."""
     events = tmp_path / "events"
     adapter = tmp_path / "systemctl"
-    adapter.write_text(f"""#!{sys.executable}
-import pathlib,sys,subprocess
-action, unit = sys.argv[1:3]
-if action == 'show':
-    print('LoadState=loaded\\nActiveState=active')
-elif action in ('stop', 'start'):
-    pathlib.Path({str(events)!r}).open('a').write(action + ' ' + unit + '\\n')
-    if action == 'start' and unit == 'second.service':
-        if {failure_mode!r} == 'nonzero':
-            raise SystemExit(1)
-        subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'])
-else:
-    raise SystemExit(9)
-""")
+    (tmp_path / "failure-mode").write_text(failure_mode, encoding="utf-8")
+    adapter.write_text(_systemctl_fixture("systemctl_restart_failure.py"))
     adapter.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
     recipe = policy(tmp_path)
@@ -183,23 +190,17 @@ def test_sigterm_resumes_writer_before_exit(
     events = tmp_path / "events"
     started = tmp_path / "export-started"
     adapter = tmp_path / "systemctl"
-    adapter.write_text(f"""#!{sys.executable}
-import pathlib,sys
-if sys.argv[1] == 'show':
-    print('LoadState=loaded\\nActiveState=active')
-elif sys.argv[1] in ('stop', 'start'):
-    pathlib.Path({str(events)!r}).open('a').write(sys.argv[1] + '\\n')
-else:
-    raise SystemExit(9)
-""")
+    adapter.write_text(_systemctl_fixture("systemctl_signal_recovery.py"))
     adapter.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
     recipe = policy(tmp_path)
     recipe["units"] = ["writer.service"]
     recipe["export"] = [
         sys.executable,
-        "-c",
-        f"import pathlib,time; pathlib.Path({str(started)!r}).touch(); time.sleep(60)",
+        str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+        "marker-stall",
+        str(started),
+        "60",
     ]
     config = tmp_path / "policy.json"
     config.write_text(json.dumps(recipe))
@@ -207,14 +208,12 @@ else:
         [sys.executable, str(RUNNER), str(config), "backup"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        start_new_session=True,
     ) as process:
         try:
-            deadline = time.monotonic() + 5
-            while not started.exists() and time.monotonic() < deadline:
-                time.sleep(0.02)
-            assert started.exists(), "Export never started"
+            wait_file(started)
             process.terminate()
-            process.communicate(timeout=5)
+            communicate_and_reap(process, timeout=5)
             assert process.returncode == 1
         finally:
             process.kill()
@@ -230,19 +229,22 @@ def test_async_export_cannot_certify_a_backup(tmp_path: Path) -> None:
     """A leader that exits before its delayed writer finishes cannot succeed."""
     delayed = tmp_path / "late-export"
     backed_up = tmp_path / "backup-ran"
-    child = (
-        f"import pathlib,time; time.sleep(0.4); pathlib.Path({str(delayed)!r}).touch()"
-    )
     recipe = policy(tmp_path)
     recipe["export"] = [
         sys.executable,
-        "-c",
-        f"import subprocess,sys; subprocess.Popen([sys.executable, '-c', {child!r}])",
+        str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+        "spawn-delayed",
+        str(delayed),
+        "0.4",
+        "0",
+        "inherit",
     ]
     recipe["backup"] = [
         sys.executable,
-        "-c",
-        f"import pathlib; pathlib.Path({str(backed_up)!r}).touch()",
+        str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+        "marker-stall",
+        str(backed_up),
+        "0",
     ]
     with pytest.raises(HELPER["RecoveryError"], match="unfinished child processes"):
         HELPER["execute"](recipe, "backup")
@@ -266,29 +268,17 @@ def test_dependency_shutdown_preserves_original_running_set(
         json.dumps({"parent.service": "active", "child.service": "active"})
     )
     adapter = tmp_path / "systemctl"
-    adapter.write_text(f"""#!{sys.executable}
-import pathlib,json,sys
-path = pathlib.Path({str(states)!r})
-state = json.loads(path.read_text())
-action, unit = sys.argv[1:3]
-if action == 'show':
-    print('LoadState=loaded\\nActiveState=' + state[unit])
-elif action == 'stop':
-    state[unit] = 'inactive'
-    if unit == 'parent.service':
-        state['child.service'] = 'inactive'
-    path.write_text(json.dumps(state))
-elif action == 'start':
-    state[unit] = 'active'
-    path.write_text(json.dumps(state))
-else:
-    raise SystemExit(9)
-""")
+    adapter.write_text(_systemctl_fixture("systemctl_dependency_states.py"))
     adapter.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
     recipe = policy(tmp_path)
     recipe["units"] = ["parent.service", "child.service"]
-    recipe["export"] = [sys.executable, "-c", "raise SystemExit(1)"]
+    recipe["export"] = [
+        sys.executable,
+        str(
+            Path(__file__).with_name("fixtures") / "failed_dependency_recovery_phase.py"
+        ),
+    ]
     with pytest.raises(subprocess.CalledProcessError):
         HELPER["execute"](recipe, "backup")
     assert json.loads(states.read_text()) == {

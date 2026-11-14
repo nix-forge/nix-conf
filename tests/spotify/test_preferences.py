@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import shlex
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - disposable shell fixture
@@ -12,7 +14,7 @@ import pytest
 
 SCRIPT = (
     Path(__file__).resolve().parents[2]
-    / "modules/home/scripts/configure-spotify-quality.sh"
+    / "modules/home/spotify-assets/configure-spotify-quality.sh"
 )
 EXPECTED = (
     "unmanaged=a=b\n"
@@ -26,7 +28,11 @@ EXPECTED = (
 
 
 def run_update(
-    root: Path, *, running: bool = False, failure: str | None = None
+    root: Path,
+    *,
+    running: bool = False,
+    failure: str | None = None,
+    preferences: dict[str, bool | int | str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Render pinned-command boundaries against real local files and utilities.
 
@@ -34,7 +40,19 @@ def run_update(
         Sourced command status and diagnostics.
 
     """
+    managed = root / "managed-preferences"
+    managed.write_text(
+        EXPECTED.split("\n", 1)[1]
+        if preferences is None
+        else "".join(
+            f"{key}={json.dumps(value)}\n" for key, value in sorted(preferences.items())
+        )
+    )
     replacements = {
+        "preferenceUpdater": shlex.quote(
+            str(SCRIPT.with_name("update-preferences.awk"))
+        ),
+        "managedPreferences": shlex.quote(str(managed)),
         "pgrep": shutil.which("true" if running else "false"),
         "spotifyPreferences": shlex.quote(str(root / "prefs"))
         + " "
@@ -47,7 +65,15 @@ def run_update(
     assert bash is not None
     if failure == "cmp":
         adapter = root / "cmp-error"
-        adapter.write_text(f"#!{bash}\nexit 2\n")
+        adapter.write_text(
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {"__fixture_0__": f"{bash}"}[match[0]],
+                (Path(__file__).with_name("fixtures") / "cmp-error.sh.in").read_text(
+                    encoding="utf-8"
+                ),
+            )
+        )
         adapter.chmod(0o700)
         replacements["cmp"] = str(adapter)
     if failure != "awk":
@@ -55,8 +81,17 @@ def run_update(
         assert awk is not None
         adapter = root / "count-awk"
         adapter.write_text(
-            f"#!{bash}\nprintf x >> {shlex.quote(str(root / 'awk-calls'))}\n"
-            f'exec {shlex.quote(awk)} "$@"\n'
+            re.sub(
+                r"__fixture_[0-9]+__",
+                lambda match: {
+                    "__fixture_0__": f"{bash}",
+                    "__fixture_1__": f"{shlex.quote(str(root / 'awk-calls'))}",
+                    "__fixture_2__": f"{shlex.quote(awk)}",
+                }[match[0]],
+                (
+                    Path(__file__).with_name("fixtures") / "count-awk-calls.sh.in"
+                ).read_text(encoding="utf-8"),
+            )
         )
         adapter.chmod(0o700)
         replacements["awk"] = str(adapter)
@@ -140,3 +175,24 @@ def test_missing_profiles_are_not_created(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert not (tmp_path / "prefs").exists()
     assert not (tmp_path / "Users").exists()
+
+
+def test_alternative_and_empty_policy_preserve_undeclared_choices(
+    tmp_path: Path,
+) -> None:
+    """Removing managed keys preserves UI choices; declared alternatives apply."""
+    prefs = tmp_path / "prefs"
+    prefs.write_text(
+        'ui.track_notifications_enabled=true\napp.autostart-mode="on"\naudio.play_bitrate_enumeration=3\n'
+    )
+    result = run_update(tmp_path, preferences={"audio.play_bitrate_enumeration": 4})
+    assert result.returncode == 0, result.stderr
+    assert (
+        prefs.read_text()
+        == 'ui.track_notifications_enabled=true\napp.autostart-mode="on"\naudio.play_bitrate_enumeration=4\n'
+    )
+    before = prefs.stat()
+    result = run_update(tmp_path, preferences={})
+    assert result.returncode == 0, result.stderr
+    assert prefs.stat().st_ino == before.st_ino
+    assert prefs.stat().st_mtime_ns == before.st_mtime_ns

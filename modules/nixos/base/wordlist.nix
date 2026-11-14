@@ -19,7 +19,7 @@ in
         message = "environment.wordlistBaseline requires a standard WORDLIST entry; select its language and source in host-local configuration.";
       }
       {
-        assertion = config.environment.wordlist.lists.WORDLIST != [ ];
+        assertion = (config.environment.wordlist.lists.WORDLIST or [ ]) != [ ];
         message = "environment.wordlistBaseline requires WORDLIST to contain at least one immutable text word source.";
       }
     ];

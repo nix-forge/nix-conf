@@ -1,0 +1,882 @@
+diff --git a/dep-crates/hyprland-rs/src/data/regular.rs b/dep-crates/hyprland-rs/src/data/regular.rs
+--- a/dep-crates/hyprland-rs/src/data/regular.rs
++++ b/dep-crates/hyprland-rs/src/data/regular.rs
+@@ -38,9 +38,16 @@
+ /// This struct holds a basic identifier for a workspace often used in other structs
+ #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+ pub struct WorkspaceBasic {
++    /// Canonical compositor workspace address, absent in older IPC schemas.
++    #[serde(default)]
++    pub address: String,
++    /// Compositor workspace kind, absent in older IPC schemas.
++    #[serde(default, rename = "type")]
++    pub workspace_type: String,
++
+     /// The workspace ID, absent for unnamed or special monitor workspace entries.
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+-    pub id: Option<WorkspaceId>,
++    pub id: Option<i64>,
+     /// The workspace's name
+     pub name: String,
+ }
+@@ -154,8 +161,15 @@
+ /// This struct holds information for a workspace
+ #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+ pub struct Workspace {
+-    /// The workspace Id
+-    pub id: WorkspaceId,
++    /// Canonical compositor workspace address, absent in older IPC schemas.
++    #[serde(default)]
++    pub address: String,
++    /// Compositor workspace kind, absent in older IPC schemas.
++    #[serde(default, rename = "type")]
++    pub workspace_type: String,
++    /// The workspace ID, absent for named and special workspaces.
++    #[serde(default)]
++    pub id: Option<i64>,
+     /// The workspace's name
+     pub name: String,
+     /// The monitor the workspace is on
+@@ -781,3 +795,79 @@
+         assert_eq!(monitor.special_workspace.id, None);
+     }
+ }
++
++#[cfg(test)]
++mod current_workspace_schema_tests {
++    use super::{Client, Monitor, Workspace};
++    use serde_json::json;
++
++    // Field names/kinds and address-only identities follow the selected
++    // Hyprland 6cc CCommandFormatter, not the older guessed pointer fixture.
++    fn workspace(address: &str, kind: &str, name: &str) -> serde_json::Value {
++        json!({"address": address, "type": kind, "name": name,
++            "monitor": "DP-1", "monitorID": 0, "windows": 1,
++            "hasfullscreen": false, "lastwindow": "0x1234",
++            "lastwindowtitle": "fixture", "ispersistent": false,
++            "tiledLayout": "dwindle"})
++    }
++
++    #[test]
++    fn actual_full_workspace_schema_accepts_numeric_named_and_special_identities() {
++        for (address, kind, id) in [
++            ("5", "normal", Some(5_i64)),
++            ("work", "normal", None),
++            ("special:scratchpad", "special", None),
++            ("special:special", "special", None),
++            ("4294967295", "normal", Some(i64::from(u32::MAX))),
++        ] {
++            let mut value = workspace(address, kind, address);
++            if let Some(id) = id {
++                value["id"] = json!(id);
++            }
++            let parsed: Workspace = serde_json::from_value(value).unwrap();
++            assert_eq!(parsed.id, id);
++            assert_eq!(parsed.address, address);
++            assert_eq!(parsed.workspace_type, kind);
++        }
++        let mut legacy = workspace("", "", "old-name");
++        legacy.as_object_mut().unwrap().remove("address");
++        legacy.as_object_mut().unwrap().remove("type");
++        legacy["id"] = json!(-99);
++        let legacy: Workspace = serde_json::from_value(legacy).unwrap();
++        assert_eq!(legacy.id, Some(-99));
++    }
++
++    #[test]
++    fn real_client_and_monitor_preserve_the_same_address_only_workspace() {
++        for (address, kind) in [("work", "normal"), ("special:scratchpad", "special")] {
++            let identity = json!({"address": address, "type": kind, "name": address});
++            let client: Client = serde_json::from_value(json!({
++                "address": "0x1234", "mapped": true, "at": [0,0], "size": [200,200],
++                "workspace": identity, "floating": false, "monitor": 0,
++                "class": "fixture", "title": "fixture", "initialClass": "fixture",
++                "initialTitle": "fixture", "pid": 1, "xwayland": false,
++                "pinned": false, "fullscreen": 0, "fullscreenClient": 0,
++                "grouped": [], "swallowing": null, "focusHistoryID": 0
++            }))
++            .unwrap();
++            let monitor: Monitor = serde_json::from_value(json!({
++                "id":0,"name":"DP-1","description":"fixture","width":1920,
++                "height":1080,"refreshRate":60.0,"x":0,"y":0,
++                "activeWorkspace": identity, "specialWorkspace": if kind == "special" { identity.clone() } else { json!({"address":"", "type":"", "name":""}) },
++                "reserved":[0,0,0,0],"scale":1.0,"transform":0,
++                "focused":true,"dpmsStatus":true,"vrr":false,"disabled":false
++            }))
++            .unwrap();
++            assert_eq!(client.workspace.id, None);
++            assert_eq!(client.workspace.address, address);
++            assert_eq!(client.workspace, monitor.active_workspace);
++            if kind == "special" {
++                assert_eq!(client.workspace, monitor.special_workspace);
++            }
++            let full: Workspace =
++                serde_json::from_value(workspace(address, kind, address)).unwrap();
++            assert_eq!(full.address, client.workspace.address);
++            assert_eq!(full.workspace_type, client.workspace.workspace_type);
++        }
++    }
++}
+diff --git a/crates/core-lib/src/data.rs b/crates/core-lib/src/data.rs
+--- a/crates/core-lib/src/data.rs
++++ b/crates/core-lib/src/data.rs
+@@ -1,4 +1,6 @@
+-pub type WorkspaceId = i32;
++// Native numeric IDs remain unchanged; address-only workspaces use private keys
++// outside the native i32 range. These keys are never sent to the compositor.
++pub type WorkspaceId = i64;
+ pub type MonitorId = i128;
+ pub type ClientId = u64;
+ 
+diff --git a/crates/core-lib/src/transfer/structs.rs b/crates/core-lib/src/transfer/structs.rs
+--- a/crates/core-lib/src/transfer/structs.rs
++++ b/crates/core-lib/src/transfer/structs.rs
+@@ -1,4 +1,4 @@
+-use crate::{ClientId, WorkspaceId};
++use crate::ClientId;
+ use serde::{Deserialize, Serialize};
+ 
+ #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+@@ -100,7 +100,8 @@
+ #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+ pub enum WindowsOverride {
+     ClientId(ClientId),
+-    WorkspaceID(WorkspaceId),
++    // Keep the existing external IPC numeric contract separate from private UI keys.
++    WorkspaceID(i32),
+ }
+ 
+ #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+@@ -110,3 +111,22 @@
+     Up,
+     Down,
+ }
++
++#[cfg(test)]
++mod workspace_wire_contract_tests {
++    use super::WindowsOverride;
++
++    #[test]
++    fn external_workspace_override_keeps_the_existing_i32_contract() {
++        let original = WindowsOverride::WorkspaceID(5);
++        assert_eq!(
++            serde_json::to_string(&original).unwrap(),
++            r#"{"WorkspaceID":5}"#
++        );
++        assert_eq!(
++            serde_json::from_str::<WindowsOverride>(r#"{"WorkspaceID":5}"#).unwrap(),
++            original
++        );
++        assert!(serde_json::from_str::<WindowsOverride>(r#"{"WorkspaceID":4294967296}"#).is_err());
++    }
++}
+diff --git a/crates/exec-lib/src/lib.rs b/crates/exec-lib/src/lib.rs
+--- a/crates/exec-lib/src/lib.rs
++++ b/crates/exec-lib/src/lib.rs
+@@ -11,3 +11,5 @@
+     check_version, get_initial_active, reload_hyprland_config, reset_no_follow_mouse,
+     set_follow_mouse_default, set_no_follow_mouse,
+ };
++
++mod workspace_identity;
+diff --git a/crates/exec-lib/src/workspace_identity.rs b/crates/exec-lib/src/workspace_identity.rs
+--- a/crates/exec-lib/src/workspace_identity.rs
++++ b/crates/exec-lib/src/workspace_identity.rs
+@@ -0,0 +1,206 @@
++//! Translate compositor identities to process-local UI keys without inventing
++//! numeric compositor IDs or conflating named and special workspaces.
++use anyhow::{Context, bail};
++use core_lib::WorkspaceId;
++use hyprland::data::{Workspace, WorkspaceBasic};
++use std::collections::HashMap;
++use std::sync::{Mutex, OnceLock};
++
++#[derive(Debug, Clone, PartialEq, Eq, Hash)]
++pub(crate) enum WorkspaceTarget {
++    Number(i64),
++    Named(String),
++    Special(String),
++}
++
++fn target(id: Option<i64>, address: &str, kind: &str) -> anyhow::Result<WorkspaceTarget> {
++    if let Some(id) = id {
++        if id < i64::from(i32::MIN) || id > i64::from(u32::MAX) {
++            bail!("workspace numeric ID outside legacy i32/current u32 range");
++        }
++        return Ok(WorkspaceTarget::Number(id));
++    }
++    match (kind, address) {
++        ("normal", address) if !address.is_empty() && !address.starts_with("special:") => {
++            Ok(WorkspaceTarget::Named(address.to_owned()))
++        }
++        ("special", address) if address.starts_with("special:") && address.len() > 8 => {
++            Ok(WorkspaceTarget::Special(address[8..].to_owned()))
++        }
++        _ => bail!(
++            "workspace has no complete compositor identity: type={kind:?}, address={address:?}"
++        ),
++    }
++}
++
++#[derive(Default)]
++struct Identities {
++    keys: HashMap<WorkspaceTarget, WorkspaceId>,
++    targets: HashMap<WorkspaceId, WorkspaceTarget>,
++    named_count: i64,
++    special_count: i64,
++}
++
++impl Identities {
++    fn intern(&mut self, target: WorkspaceTarget) -> anyhow::Result<WorkspaceId> {
++        if let WorkspaceTarget::Number(number) = target {
++            return Ok(number);
++        }
++        if let Some(key) = self.keys.get(&target) {
++            return Ok(*key);
++        }
++        let key = match &target {
++            WorkspaceTarget::Named(_) => {
++                self.named_count = self
++                    .named_count
++                    .checked_add(1)
++                    .context("named workspace key exhaustion")?;
++                i64::from(u32::MAX)
++                    .checked_add(self.named_count)
++                    .context("named workspace key exhaustion")?
++            }
++            WorkspaceTarget::Special(_) => {
++                self.special_count = self
++                    .special_count
++                    .checked_add(1)
++                    .context("special workspace key exhaustion")?;
++                i64::from(i32::MIN)
++                    .checked_sub(self.special_count)
++                    .context("special workspace key exhaustion")?
++            }
++            WorkspaceTarget::Number(_) => unreachable!(),
++        };
++        self.keys.insert(target.clone(), key);
++        self.targets.insert(key, target);
++        Ok(key)
++    }
++
++    fn resolve(&self, key: WorkspaceId) -> anyhow::Result<WorkspaceTarget> {
++        if (i64::from(i32::MIN)..=i64::from(u32::MAX)).contains(&key) {
++            return Ok(WorkspaceTarget::Number(key));
++        }
++        self.targets
++            .get(&key)
++            .cloned()
++            .context("unknown process-local workspace key")
++    }
++}
++
++fn identities() -> &'static Mutex<Identities> {
++    static IDENTITIES: OnceLock<Mutex<Identities>> = OnceLock::new();
++    IDENTITIES.get_or_init(|| Mutex::new(Identities::default()))
++}
++
++pub(crate) fn full_key(workspace: &Workspace) -> anyhow::Result<WorkspaceId> {
++    key(workspace.id, &workspace.address, &workspace.workspace_type)
++}
++
++pub(crate) fn basic_key(workspace: &WorkspaceBasic) -> anyhow::Result<WorkspaceId> {
++    key(workspace.id, &workspace.address, &workspace.workspace_type)
++}
++
++fn key(id: Option<i64>, address: &str, kind: &str) -> anyhow::Result<WorkspaceId> {
++    let target = target(id, address, kind)?;
++    identities()
++        .lock()
++        .map_err(|_| anyhow::anyhow!("workspace identity mutex poisoned"))?
++        .intern(target)
++}
++
++pub(crate) fn resolve(key: WorkspaceId) -> anyhow::Result<WorkspaceTarget> {
++    identities()
++        .lock()
++        .map_err(|_| anyhow::anyhow!("workspace identity mutex poisoned"))?
++        .resolve(key)
++}
++
++#[cfg(test)]
++mod workspace_identity_tests {
++    use super::*;
++
++    #[test]
++    fn native_numeric_ids_and_signs_are_preserved_without_collisions() {
++        let mut ids = Identities::default();
++        for value in [
++            i64::from(i32::MIN),
++            -99,
++            -1,
++            0,
++            1,
++            i64::from(i32::MAX),
++            i64::from(u32::MAX),
++        ] {
++            let key = ids.intern(target(Some(value), "", "").unwrap()).unwrap();
++            assert_eq!(key, value);
++            assert_eq!(ids.resolve(key).unwrap(), WorkspaceTarget::Number(value));
++        }
++        let named = ids.intern(target(None, "work", "normal").unwrap()).unwrap();
++        let special = ids
++            .intern(target(None, "special:work", "special").unwrap())
++            .unwrap();
++        assert!(named > i64::from(u32::MAX));
++        assert!(special < i64::from(i32::MIN));
++        assert_ne!(named, special);
++        let default_special = ids
++            .intern(target(None, "special:special", "special").unwrap())
++            .unwrap();
++        assert_eq!(
++            ids.resolve(default_special).unwrap(),
++            WorkspaceTarget::Special("special".to_owned())
++        );
++    }
++
++    #[test]
++    fn canonical_identity_survives_reordering_and_other_workspace_creation() {
++        let mut ids = Identities::default();
++        let work = target(None, "work", "normal").unwrap();
++        let scratch = target(None, "special:scratchpad", "special").unwrap();
++        let first = ids.intern(work.clone()).unwrap();
++        let second = ids.intern(scratch.clone()).unwrap();
++        ids.intern(target(None, "other", "normal").unwrap())
++            .unwrap();
++        assert_eq!(ids.intern(scratch.clone()).unwrap(), second);
++        assert_eq!(ids.intern(work.clone()).unwrap(), first);
++        assert_eq!(ids.resolve(first).unwrap(), work);
++        assert_eq!(ids.resolve(second).unwrap(), scratch);
++    }
++
++    #[test]
++    fn incomplete_or_inconsistent_address_only_identifiers_fail_closed() {
++        for (address, kind) in [
++            ("", ""),
++            ("", "normal"),
++            ("work", "unknown"),
++            ("special:work", "normal"),
++            ("work", "special"),
++            ("special:", "special"),
++        ] {
++            assert!(target(None, address, kind).is_err());
++        }
++        assert!(
++            Identities::default()
++                .resolve(i64::from(u32::MAX) + 1)
++                .is_err()
++        );
++    }
++    #[test]
++    fn numeric_looking_named_collection_identities_remain_distinct() {
++        let mut ids = Identities::default();
++        let numeric = ids.intern(target(Some(5), "5", "normal").unwrap()).unwrap();
++        let named = ids.intern(target(None, "5", "normal").unwrap()).unwrap();
++        let special = ids
++            .intern(target(None, "special:5", "special").unwrap())
++            .unwrap();
++        assert_eq!(numeric, 5);
++        assert_ne!(numeric, named);
++        assert_ne!(named, special);
++        let WorkspaceTarget::Named(address) = ids.resolve(named).unwrap() else {
++            panic!("named identity lost");
++        };
++        assert_eq!(address, "5");
++        assert_eq!(
++            ids.resolve(special).unwrap(),
++            WorkspaceTarget::Special("5".to_owned())
++        );
++    }
++}
+diff --git a/crates/exec-lib/src/collect.rs b/crates/exec-lib/src/collect.rs
+--- a/crates/exec-lib/src/collect.rs
++++ b/crates/exec-lib/src/collect.rs
+@@ -1,4 +1,5 @@
+ use crate::util::to_client_id;
++use crate::workspace_identity::{basic_key, full_key};
+ use anyhow::Context;
+ use core_lib::{ByFirst, ClientData, ClientId, MonitorData, MonitorId, WorkspaceData, WorkspaceId};
+ use hyprland::data::{Client, Clients, Monitor, Monitors, Workspace, Workspaces};
+@@ -6,7 +7,7 @@
+ use regex::Regex;
+ use tracing::{debug_span, instrument, trace, warn};
+ 
+-fn get_hypr_data() -> anyhow::Result<(Vec<Monitor>, Vec<Workspace>, Vec<Client>)> {
++fn get_hypr_data() -> anyhow::Result<(Vec<Monitor>, Vec<(WorkspaceId, Workspace)>, Vec<Client>)> {
+     let _span = debug_span!("get_hypr_data").entered();
+     let monitors = Monitors::get().context("monitors failed")?.to_vec();
+     // sort and filter all workspaces sorted by ID
+@@ -14,16 +15,17 @@
+         let mut workspaces = Workspaces::get()
+             .context("workspaces failed")?
+             .into_iter()
+-            .filter(|w| w.id != -1) // TODO: check if still needed: ignore clients on invalid workspaces
+-            .collect::<Vec<_>>();
++            .filter(|w| w.id != Some(-1)) // TODO: check if still needed: ignore clients on invalid workspaces
++            .map(|w| Ok((full_key(&w)?, w)))
++            .collect::<anyhow::Result<Vec<_>>>()?;
+ 
+-        workspaces.sort_by_key(|a| a.id);
++        workspaces.sort_by_key(|a| a.0);
+         workspaces
+     };
+     let clients = Clients::get()
+         .context("clients failed")?
+         .into_iter()
+-        .filter(|c| c.workspace.id.is_some_and(|id| id != -1))
++        .filter(|c| c.workspace.id != Some(-1))
+         .collect::<Vec<_>>();
+ 
+     Ok((monitors, workspaces, clients))
+@@ -74,10 +76,10 @@
+         for (monitor_id, monitor_data) in &monitor_data {
+             workspaces
+                 .iter()
+-                .filter(|ws| ws.monitor_id == Some(*monitor_id))
+-                .for_each(|workspace| {
++                .filter(|(_, ws)| ws.monitor_id == Some(*monitor_id))
++                .for_each(|(workspace_id, workspace)| {
+                     wd.push((
+-                        workspace.id,
++                        *workspace_id,
+                         WorkspaceData {
+                             name: workspace.name.clone(),
+                             monitor: *monitor_id,
+@@ -98,9 +100,8 @@
+             let Some(monitor) = client.monitor else {
+                 continue;
+             };
+-            if let Some(workspace_id) = client.workspace.id
+-                && workspace_data.find_by_first(&workspace_id).is_some()
+-            {
++            let workspace_id = basic_key(&client.workspace)?;
++            if workspace_data.find_by_first(&workspace_id).is_some() {
+                 cd.push((
+                     to_client_id(&client.address),
+                     ClientData {
+@@ -147,12 +148,11 @@
+ 
+     // is broken, reports the "normal" workspace as active when a client in special workspace is selected
+     // let active_ws = Workspace::get_active()?.id;
+-    let active_ws = Workspace::get_active()
+-        .map(|w| w.id)
+-        .context("active workspace failed")?;
++    let active_ws = full_key(&Workspace::get_active().context("active workspace failed")?)?;
+     let active_ws = Client::get_active()
+         .context("active client failed")?
+-        .and_then(|a| a.workspace.id)
++        .map(|a| basic_key(&a.workspace))
++        .transpose()?
+         .unwrap_or(active_ws);
+     let active_monitor = Monitor::get_active().context("active monitor failed")?.id;
+     let active_client = Client::get_active()
+diff --git a/crates/exec-lib/src/switch.rs b/crates/exec-lib/src/switch.rs
+--- a/crates/exec-lib/src/switch.rs
++++ b/crates/exec-lib/src/switch.rs
+@@ -1,12 +1,12 @@
+ use crate::util::to_client_address;
++use crate::workspace_identity::{WorkspaceTarget, basic_key, full_key, resolve};
+ use anyhow::Context;
+-use core_lib::{ClientId, Warn};
++use core_lib::{ClientId, Warn, WorkspaceId};
+ use hyprland::data::{Client, Monitors, Workspace, Workspaces};
+ use hyprland::dispatch::{
+     Dispatch, DispatchType, WindowIdentifier, WorkspaceIdentifierWithSpecial,
+ };
+ use hyprland::prelude::*;
+-use hyprland::shared::WorkspaceId;
+ use tracing::{debug, instrument, trace, warn};
+ 
+ #[instrument(level = "debug", ret(level = "trace"))]
+@@ -97,12 +97,17 @@
+ 
+ #[instrument(level = "debug", ret(level = "trace"))]
+ pub fn switch_workspace(workspace_id: WorkspaceId) -> anyhow::Result<()> {
++    // Validate the normal selector before any compositor IPC or fallback.
++    // Negative legacy/special keys retain the existing special-workspace path.
++    if workspace_id >= 0 {
++        normal_workspace_dispatch(resolve(workspace_id)?)?;
++    }
+     deactivate_special_workspace_if_needed().warn();
+ 
+     // check if already on workspace (if so, don't switch because it throws an error `Previous workspace doesn't exist`)
+     let current_workspace = Workspace::get_active();
+     if let Ok(workspace) = current_workspace
+-        && workspace_id == workspace.id
++        && workspace_id == full_key(&workspace)?
+     {
+         trace!("Already on workspace {}", workspace_id);
+         return Ok(());
+@@ -122,87 +127,172 @@
+ 
+ #[instrument(level = "debug", ret(level = "trace"))]
+ fn switch_special_workspace(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    match switch_special_workspace_lua(workspace_id) {
+-        Err(e) => {
+-            warn!(
+-                "Failed to switch special workspace: {}, trying legacy syntax",
+-                e
+-            );
+-            switch_special_workspace_legacy(workspace_id)
+-        }
+-        Ok(r) => Ok(r),
+-    }
++    dispatch_with_legacy_fallback(
++        "special workspace",
++        || switch_special_workspace_lua(workspace_id),
++        || switch_special_workspace_legacy(workspace_id),
++    )
+ }
+ 
+ fn switch_special_workspace_legacy(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    let ws = Workspaces::get()?
+-        .into_iter()
+-        .find(|w| w.id == workspace_id)
+-        .context("workspace not found")?;
++    let ws = workspace_by_key(workspace_id)?;
+     if special_workspace_active(&ws)? {
+         return Ok(());
+     }
+ 
+-    Dispatch::call(DispatchType::ToggleSpecialWorkspace(Some(
+-        ws.name.trim_start_matches("special:").to_string(),
+-    )))
++    Dispatch::call(DispatchType::ToggleSpecialWorkspace(Some(special_name(
++        workspace_id,
++        &ws,
++    )?)))
+     .context("failed to execute dispatch")?;
+     Ok(())
+ }
+ 
+ fn switch_special_workspace_lua(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    let ws = Workspaces::get()?
+-        .into_iter()
+-        .find(|w| w.id == workspace_id)
+-        .context("workspace not found")?;
++    let ws = workspace_by_key(workspace_id)?;
+     if special_workspace_active(&ws)? {
+         return Ok(());
+     }
+ 
+     let disp = hyprland::dispatch_new::Dispatch::FocusWorkspace(
+-        hyprland::dispatch_new::WorkspaceIdentifier::Special(Some(
+-            ws.name.trim_start_matches("special:").to_string(),
+-        )),
++        hyprland::dispatch_new::WorkspaceIdentifier::Special(Some(special_name(
++            workspace_id,
++            &ws,
++        )?)),
+         false,
+     );
+     disp.apply().context("failed to execute dispatch")?;
+     Ok(())
+ }
+ 
++#[derive(Debug)]
++struct ExpiredWorkspaceSelection;
++
++impl std::fmt::Display for ExpiredWorkspaceSelection {
++    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        formatter.write_str("selected workspace no longer exists")
++    }
++}
++
++impl std::error::Error for ExpiredWorkspaceSelection {}
++
++fn dispatch_with_legacy_fallback(
++    label: &str,
++    primary: impl FnOnce() -> anyhow::Result<()>,
++    legacy: impl FnOnce() -> anyhow::Result<()>,
++) -> anyhow::Result<()> {
++    match primary() {
++        Err(error) if error.is::<ExpiredWorkspaceSelection>() => Err(error),
++        Err(error) => {
++            warn!("Failed to switch {label}: {}, trying legacy syntax", error);
++            legacy()
++        }
++        Ok(result) => Ok(result),
++    }
++}
++
++fn workspace_by_key(key: WorkspaceId) -> anyhow::Result<Workspace> {
++    for workspace in Workspaces::get()? {
++        if full_key(&workspace)? == key {
++            return Ok(workspace);
++        }
++    }
++    Err(ExpiredWorkspaceSelection.into())
++}
++
++fn special_name(key: WorkspaceId, workspace: &Workspace) -> anyhow::Result<String> {
++    match resolve(key)? {
++        WorkspaceTarget::Special(name) => Ok(name),
++        WorkspaceTarget::Number(_) => Ok(workspace.name.trim_start_matches("special:").to_owned()),
++        WorkspaceTarget::Named(_) => anyhow::bail!("normal workspace passed to special dispatch"),
++    }
++}
++
+ fn special_workspace_active(workspace: &Workspace) -> anyhow::Result<bool> {
+-    Ok(Monitors::get()?.into_iter().any(|monitor| {
+-        monitor.special_workspace.id == Some(workspace.id)
+-            || monitor.special_workspace.name == workspace.name
+-    }))
++    let workspace_key = full_key(workspace)?;
++    for monitor in Monitors::get()? {
++        let special = monitor.special_workspace;
++        if special.id.is_none() && special.address.is_empty() && special.name.is_empty() {
++            continue;
++        }
++        if basic_key(&special)? == workspace_key {
++            return Ok(true);
++        }
++    }
++    Ok(false)
+ }
+ 
+ #[instrument(level = "debug", ret(level = "trace"))]
+ fn switch_normal_workspace(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    match switch_normal_workspace_lua(workspace_id) {
+-        Err(e) => {
+-            warn!("Failed to switch workspace: {}, trying legacy syntax", e);
+-            switch_normal_workspace_legacy(workspace_id)
+-        }
+-        Ok(r) => Ok(r),
+-    }
++    dispatch_with_legacy_fallback(
++        "workspace",
++        || switch_normal_workspace_lua(workspace_id),
++        || switch_normal_workspace_legacy(workspace_id),
++    )
+ }
+ 
+ fn switch_normal_workspace_lua(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+     debug!("execute switch to workspace {workspace_id}");
+-    let disp = hyprland::dispatch_new::Dispatch::FocusWorkspace(
+-        hyprland::dispatch_new::WorkspaceIdentifier::Id(workspace_id),
+-        false,
+-    );
++    let target = resolve(workspace_id)?;
++    if matches!(&target, WorkspaceTarget::Named(_)) {
++        workspace_by_key(workspace_id)?;
++    }
++    let disp = normal_workspace_dispatch(target)?;
+     disp.apply().context("failed to execute dispatch")?;
+     Ok(())
++}
++
++fn normal_workspace_dispatch(
++    target: WorkspaceTarget,
++) -> anyhow::Result<hyprland::dispatch_new::Dispatch> {
++    use hyprland::dispatch_new::{Dispatch, WorkspaceIdentifier};
++    let workspace = match target {
++        WorkspaceTarget::Number(number) => {
++            // The current compositor stores u32 IDs, but its public selector
++            // grammar explicitly permits only 1..=INT32_MAX. Never wrap or
++            // reinterpret an unsupported numeric ID as a named workspace.
++            if !(1..=i64::from(i32::MAX)).contains(&number) {
++                anyhow::bail!(
++                    "numeric workspace cannot be dispatched by the current compositor selector grammar: {number}"
++                );
++            }
++            WorkspaceIdentifier::Id(i32::try_from(number)?)
++        }
++        WorkspaceTarget::Named(address) => {
++            // Selected Hyprland's resolver rejects an empty name and ASCII
++            // integer names, including a leading minus. Keep their collection
++            // identities distinct, but never dispatch an unsupported selector.
++            let digits = address.strip_prefix('-').unwrap_or(&address);
++            if address.is_empty()
++                || (!digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()))
++            {
++                anyhow::bail!(
++                    "named workspace cannot be dispatched by the current compositor selector grammar: {address}"
++                );
++            }
++            WorkspaceIdentifier::Name(address)
++        }
++        WorkspaceTarget::Special(_) => anyhow::bail!("special workspace passed to normal dispatch"),
++    };
++    Ok(Dispatch::FocusWorkspace(workspace, false))
+ }
+ 
+ fn switch_normal_workspace_legacy(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+     debug!("execute switch to workspace {workspace_id}");
+-    Dispatch::call(DispatchType::Workspace(WorkspaceIdentifierWithSpecial::Id(
+-        workspace_id,
+-    )))
+-    .context("failed to execute dispatch")?;
++    let target = resolve(workspace_id)?;
++    if let WorkspaceTarget::Number(number) = &target {
++        return Dispatch::call(DispatchType::Custom("workspace", &number.to_string()))
++            .context("failed to execute numeric workspace dispatch");
++    }
++    let dispatch = match &target {
++        WorkspaceTarget::Number(_) => unreachable!(),
++        WorkspaceTarget::Named(address) => {
++            workspace_by_key(workspace_id)?;
++            WorkspaceIdentifierWithSpecial::Name(address)
++        }
++        WorkspaceTarget::Special(_) => anyhow::bail!("special workspace passed to normal dispatch"),
++    };
++    Dispatch::call(DispatchType::Workspace(dispatch)).context("failed to execute dispatch")?;
+     Ok(())
+ }
+ 
+@@ -259,3 +349,139 @@
+ pub async fn switch_modifier_pressed(left: &str, right: &str) -> anyhow::Result<Option<bool>> {
+     Ok(hyprland::ctl::modifier_is_down(left, right).await?)
+ }
++
++#[cfg(test)]
++mod workspace_dispatch_tests {
++    use super::{
++        ExpiredWorkspaceSelection, WorkspaceTarget, dispatch_with_legacy_fallback,
++        normal_workspace_dispatch, switch_workspace,
++    };
++    use std::cell::Cell;
++
++    #[test]
++    fn expired_selection_never_invokes_legacy_dispatch() {
++        for label in ["workspace", "special workspace"] {
++            let primary_calls = Cell::new(0);
++            let legacy_calls = Cell::new(0);
++            let result = dispatch_with_legacy_fallback(
++                label,
++                || {
++                    primary_calls.set(primary_calls.get() + 1);
++                    Err(anyhow::Error::new(ExpiredWorkspaceSelection).context("actual dispatch"))
++                },
++                || {
++                    legacy_calls.set(legacy_calls.get() + 1);
++                    Ok(())
++                },
++            );
++            assert!(result.unwrap_err().is::<ExpiredWorkspaceSelection>());
++            assert_eq!(primary_calls.get(), 1);
++            assert_eq!(legacy_calls.get(), 0);
++        }
++    }
++
++    #[test]
++    fn compatibility_failure_retains_legacy_dispatch_and_result() {
++        for label in ["workspace", "special workspace"] {
++            for legacy_succeeds in [true, false] {
++                let primary_calls = Cell::new(0);
++                let legacy_calls = Cell::new(0);
++                let result = dispatch_with_legacy_fallback(
++                    label,
++                    || {
++                        primary_calls.set(primary_calls.get() + 1);
++                        anyhow::bail!("Lua API unavailable")
++                    },
++                    || {
++                        legacy_calls.set(legacy_calls.get() + 1);
++                        if legacy_succeeds {
++                            Ok(())
++                        } else {
++                            anyhow::bail!("actual legacy failure")
++                        }
++                    },
++                );
++                assert_eq!(primary_calls.get(), 1);
++                assert_eq!(legacy_calls.get(), 1);
++                if legacy_succeeds {
++                    assert!(result.is_ok());
++                } else {
++                    assert_eq!(result.unwrap_err().to_string(), "actual legacy failure");
++                }
++            }
++        }
++    }
++
++    #[test]
++    fn actual_focus_dispatch_preserves_supported_numbers_and_name_grammar() {
++        for (target, expected) in [
++            (
++                WorkspaceTarget::Number(5),
++                r#"hl.dsp.focus({ workspace = "5",  on_current_monitor = false, })"#,
++            ),
++            (
++                WorkspaceTarget::Number(i64::from(i32::MAX)),
++                r#"hl.dsp.focus({ workspace = "2147483647",  on_current_monitor = false, })"#,
++            ),
++            (
++                WorkspaceTarget::Named("work".to_owned()),
++                r#"hl.dsp.focus({ workspace = "name:work",  on_current_monitor = false, })"#,
++            ),
++        ] {
++            assert_eq!(
++                normal_workspace_dispatch(target).unwrap().to_string(),
++                expected
++            );
++        }
++        for unsupported in [0, -1, i64::from(i32::MAX) + 1, i64::from(u32::MAX)] {
++            let error =
++                normal_workspace_dispatch(WorkspaceTarget::Number(unsupported)).unwrap_err();
++            assert!(
++                error
++                    .to_string()
++                    .contains("current compositor selector grammar")
++            );
++            if unsupported >= 0 {
++                // Execute the real entrypoint: this must reject before its IPC
++                // operations or the legacy fallback can observe the target.
++                assert!(
++                    switch_workspace(unsupported)
++                        .unwrap_err()
++                        .to_string()
++                        .contains("current compositor selector grammar")
++                );
++            }
++        }
++        for address in ["5.2", "+5", "-", "-work"] {
++            assert!(normal_workspace_dispatch(WorkspaceTarget::Named(address.to_owned())).is_ok());
++        }
++        for address in ["", "5", "-5", "005", "-0005"] {
++            let error =
++                normal_workspace_dispatch(WorkspaceTarget::Named(address.to_owned())).unwrap_err();
++            assert!(
++                error
++                    .to_string()
++                    .contains("current compositor selector grammar")
++            );
++            if !address.is_empty() {
++                let basic = hyprland::data::WorkspaceBasic {
++                    id: None,
++                    address: address.to_owned(),
++                    workspace_type: "normal".to_owned(),
++                    name: address.to_owned(),
++                };
++                let key = crate::workspace_identity::basic_key(&basic).unwrap();
++                assert!(key > i64::from(u32::MAX));
++                // Execute the actual entrypoint without a running compositor:
++                // unsupported names must fail before any IPC or fallback.
++                assert!(
++                    switch_workspace(key)
++                        .unwrap_err()
++                        .to_string()
++                        .contains("current compositor selector grammar")
++                );
++            }
++        }
++        assert!(normal_workspace_dispatch(WorkspaceTarget::Special("5".to_owned())).is_err());
++    }
++}
+diff --git a/crates/exec-lib/src/util.rs b/crates/exec-lib/src/util.rs
+--- a/crates/exec-lib/src/util.rs
++++ b/crates/exec-lib/src/util.rs
+@@ -110,9 +110,9 @@
+         .ok()
+         .flatten()
+         .map(|c| to_client_id(&c.address));
+-    let active_ws = Workspace::get_active()
+-        .context("unable to get initial workspace")?
+-        .id;
++    let active_ws = crate::workspace_identity::full_key(
++        &Workspace::get_active().context("unable to get initial workspace")?,
++    )?;
+     let active_monitor = Monitor::get_active()
+         .context("unable to get initial monitor")?
+         .id;

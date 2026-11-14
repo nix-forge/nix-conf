@@ -13,6 +13,7 @@
     in
     {
       key = "nix-conf/stylix/hyprshell/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.hyprshell.enable = config.lib.stylix.mkEnableTarget "Hyprshell" true;
       config =

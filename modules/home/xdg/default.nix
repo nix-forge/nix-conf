@@ -9,6 +9,8 @@ let
   inherit (config.home) homeDirectory;
 in
 {
+  imports = [ ./directory-bookmarks.nix ];
+
   xdg = {
     enable = true;
 
