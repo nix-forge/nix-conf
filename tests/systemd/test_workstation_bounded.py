@@ -122,7 +122,12 @@ class BoundedTests(unittest.TestCase):
                 f"MemAvailable: {int(available) // 1024 if available.isdigit() else available} kB\n",
                 encoding="utf-8",
             )
-            source = source.replace("/proc/meminfo", str(meminfo))
+            source, count = re.subn(
+                r"--meminfo (?:'[^']*'|\"[^\"]*\"|[^\s]+)(?= --root )",
+                "--meminfo " + shlex.quote(str(meminfo)),
+                source,
+            )
+            assert count == 1, "The real controller must use the capacity fixture"
         if deadline:
             source = source.replace("RuntimeMaxSec=1800s", "RuntimeMaxSec=" + deadline)
         path = self.work / "runner"
@@ -352,8 +357,15 @@ class BoundedTests(unittest.TestCase):
             jobs[0].stdin.write(b"release\n")
             await jobs[0].stdin.drain()
             self.assertEqual(await asyncio.wait_for(jobs[0].wait(), 10), 0)
-            for job, read in zip(jobs[1:], pending, strict=True):
-                self.assertEqual(await asyncio.wait_for(read, 10), b"ready\n")
+            contenders = dict(zip(pending, jobs[1:], strict=True))
+            while contenders:
+                done, _ = await asyncio.wait(
+                    contenders, timeout=10, return_when=asyncio.FIRST_COMPLETED
+                )
+                self.assertEqual(len(done), 1)
+                read = done.pop()
+                self.assertEqual(read.result(), b"ready\n")
+                job = contenders.pop(read)
                 assert job.stdin is not None
                 job.stdin.write(b"release\n")
                 await job.stdin.drain()

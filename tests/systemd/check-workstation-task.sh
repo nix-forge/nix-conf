@@ -5,7 +5,7 @@
 set -euo pipefail
 
 policy=${1:?usage: check-workstation-task.sh POLICY_DIRECTORY}
-runner="$policy/runner/bin/workstation-task"
+installed_runner="$policy/runner/bin/workstation-task"
 test_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 work=$(mktemp -d)
 unit="workstation-policy-test-$$.scope"
@@ -21,6 +21,13 @@ cleanup() {
   rm -rf -- "$work"
 }
 trap cleanup EXIT
+
+# Tiny scope payloads need controlled admission, not a desktop-sized VM.
+# The real controller, locks, limits and drain observer remain in the runner.
+printf 'MemAvailable: 33554432 kB\n' >"$work/meminfo"
+runner="$work/runner"
+python3 "$test_directory/workstation_runner_fixture.py" \
+  "$installed_runner" "$runner" "$work/meminfo" --adapt-storage
 
 # Stdio, arguments, environment, working directory and exit status survive.
 (

@@ -5,6 +5,7 @@ let
     root = ../systemd;
     fileset = pkgs.lib.fileset.unions [
       ../systemd/check-workstation-task.sh
+      ../systemd/workstation_runner_fixture.py
       ../systemd/check-workstation-feedback.sh
       ../systemd/check_workstation_feedback.py
       ../systemd/check_workstation_lanes.py
@@ -31,6 +32,9 @@ let
     ];
     text = (import ../../lib/templates/text.nix) ./scripts/desktop-workload-probe.sh {
       inherit fixtures policy;
+      diskAdmissionCommand = pkgs.lib.escapeShellArg (
+        pkgs.lib.escapeShellArg (pkgs.lib.getExe desktopConfig.system.build.desktopStorageCapacity)
+      );
     };
   };
 in
