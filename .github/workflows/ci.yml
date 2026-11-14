@@ -546,10 +546,9 @@ jobs:
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
     # On Linux, the largest weight isolates REA in partition zero; Darwin keeps
-    # its single partition. REA's newer Node has two cold compiler scopes. Allow
-    # three hours here without extending the other ARM or x86 shard deadlines.
-    timeout-minutes: ${{ matrix.partition-index == 0 && 180 || matrix.system == 'aarch64-linux' && 45
-      || 90 }}
+    # its single partition. REA's newer Node has two cold compiler scopes.
+    # Other native shards need 90 minutes for cold renderer and SVG dependencies.
+    timeout-minutes: ${{ matrix.partition-index == 0 && 180 || 90 }}
     permissions:
       contents: read
     strategy:
