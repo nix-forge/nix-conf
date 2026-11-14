@@ -514,6 +514,25 @@ jobs:
           cores: 4
       - name: Test native package selection
         run: nix develop .#tests --command python3 -m pytest -m nix_daemon tests/ci
+  submodule-hooks:
+    name: Submodule hooks
+    runs-on: ubuntu-24.04
+    # Child repositories have independent compiler and hook closures. Give
+    # their validation its own budget instead of sharing the root lint job.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Nix
+        uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+        with:
+          cache: 'false'
+          cache-scope: ci-submodule-hooks
       - name: Run submodule hooks
         run: |
           git submodule foreach --recursive '
@@ -912,7 +931,7 @@ jobs:
           if-no-files-found: error
   tests:
     name: Repository tests
-    needs: [flake, guide-changes, public-guide, native]
+    needs: [flake, guide-changes, public-guide, native, submodule-hooks]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -924,8 +943,10 @@ jobs:
           GUIDE_CHANGED: ${{ needs.guide-changes.outputs.changed }}
           GUIDE_RESULT: ${{ needs.public-guide.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
+          SUBMODULE_RESULT: ${{ needs.submodule-hooks.result }}
         run: |
           test "$FLAKE_RESULT" = success
+          test "$SUBMODULE_RESULT" = success
           if [[ "$GUIDE_CHANGED" == true ]]; then
             test "$GUIDE_RESULT" = success
           else
