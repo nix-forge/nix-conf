@@ -1197,7 +1197,7 @@ def owned_process_group() -> Iterator[int]:
         A real session leader, always killed and reaped during fixture cleanup.
 
     """
-    with subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed Python fixture, no shell.
+    with subprocess.Popen(
         [sys.executable, "-c", "import signal; signal.pause()"],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

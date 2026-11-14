@@ -123,6 +123,35 @@ class AdmissionFixture:
                     await job.wait()
 
 
+def with_observed_lock_attempts(work: Path, source: str) -> str:
+    """Observe the actual controller's kernel lock calls in its private child.
+
+    Returns:
+        The rendered runner with an instrumented controller executable.
+
+    """
+    # The runner delegates real nonblocking reservations to Python now. Observe
+    # those attempts in its private child; retain the actual kernel flock call.
+    memory_source = (
+        ROOT / "modules/home/services/workstation-jobs-assets/workstation_memory.py"
+    )
+    memory_controller = executable(
+        work / "memory-controller",
+        f"#!{sys.executable}\n"
+        "import fcntl,runpy,sys\n"
+        "real_flock=fcntl.flock\n"
+        "def observed_flock(descriptor, operation):\n"
+        " if operation & fcntl.LOCK_EX:\n"
+        "  print(f'lock-attempt:{descriptor}',file=sys.stderr,flush=True)\n"
+        " return real_flock(descriptor,operation)\n"
+        "fcntl.flock=observed_flock\n"
+        f"runpy.run_path({str(memory_source)!r},run_name='__main__')\n",
+    )
+    original_controller = shlex.join([sys.executable, str(memory_source)])
+    assert original_controller in source
+    return source.replace(original_controller, shlex.quote(memory_controller))
+
+
 @pytest.fixture
 def admission(tmp_path: Path) -> AdmissionFixture:
     """Render the production runner with no access to host locks or managers.
@@ -188,29 +217,9 @@ def admission(tmp_path: Path) -> AdmissionFixture:
         tmp_path / "bwrap",
         '#!/usr/bin/env bash\nwhile [[ ${1:-} != -- ]]; do shift; done\nshift\nexec "$@"\n',
     )
-    # The runner delegates real nonblocking reservations to Python now. Observe
-    # those attempts in its private child; retain the actual kernel flock call.
-    memory_source = (
-        ROOT / "modules/home/services/workstation-jobs-assets/workstation_memory.py"
-    )
-    memory_controller = executable(
-        tmp_path / "memory-controller",
-        f"#!{sys.executable}\n"
-        "import fcntl,runpy,sys\n"
-        "real_flock=fcntl.flock\n"
-        "def observed_flock(descriptor, operation):\n"
-        " if operation & fcntl.LOCK_EX:\n"
-        "  print(f'lock-attempt:{descriptor}',file=sys.stderr,flush=True)\n"
-        " return real_flock(descriptor,operation)\n"
-        "fcntl.flock=observed_flock\n"
-        f"runpy.run_path({str(memory_source)!r},run_name='__main__')\n",
-    )
-    original_controller = shlex.join([sys.executable, str(memory_source)])
     path = Path(runner)
-    source = path.read_text(encoding="utf-8")
-    assert original_controller in source
+    source = with_observed_lock_attempts(tmp_path, path.read_text(encoding="utf-8"))
     for old, new in {
-        original_controller: shlex.quote(memory_controller),
         "@boundedReserve@": "2147483648",
         "@bubblewrap@": shlex.quote(bubblewrap),
         "/proc/meminfo": str(meminfo),
