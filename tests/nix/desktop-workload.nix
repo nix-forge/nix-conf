@@ -46,6 +46,8 @@ pkgs.testers.nixosTest {
     boot.kernel.sysctl."vm.panic_on_oom" = 0;
     environment.systemPackages = [ probe ];
     services.dbus.enable = true;
+    # The native isolation probes exercise the same CLI feature used by hosts.
+    nix.settings.experimental-features = [ "nix-command" ];
     users.users.fixture = {
       isNormalUser = true;
       uid = 1000;

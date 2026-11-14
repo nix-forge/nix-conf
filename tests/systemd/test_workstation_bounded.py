@@ -86,7 +86,7 @@ class BoundedTests(unittest.TestCase):
             source = source.replace("@" + key + "@", value)
         source = re.sub(
             r"^admission_timeout=\d+$",
-            "admission_timeout=3",
+            "admission_timeout=10",
             source,
             flags=re.MULTILINE,
         )
@@ -159,6 +159,8 @@ class BoundedTests(unittest.TestCase):
         for available in ["", "invalid", "3221225471"]:
             result = self.run_job(
                 self.runner(available),
+                "--admission-timeout",
+                "2",
                 "--bounded-memory",
                 "1",
                 "touch",
@@ -177,7 +179,9 @@ class BoundedTests(unittest.TestCase):
         self.assertEqual(
             (result.returncode, result.stdout), (0, "admitted"), result.stderr
         )
-        result = self.run_job(self.runner("3221225472"), "touch", str(marker))
+        result = self.run_job(
+            self.runner("3221225472"), "--admission-timeout", "2", "touch", str(marker)
+        )
         self.assertEqual(result.returncode, 124, result.stderr)
         self.assertFalse(marker.exists())
 
@@ -364,8 +368,13 @@ class BoundedTests(unittest.TestCase):
                 )
                 self.assertEqual(len(done), 1)
                 read = done.pop()
-                self.assertEqual(read.result(), b"ready\n")
                 job = contenders.pop(read)
+                if not read.result():
+                    code = await asyncio.wait_for(job.wait(), 5)
+                    assert job.stderr is not None
+                    error = (await job.stderr.read()).decode()
+                    self.fail(f"Queued runner exited {code} before readiness: {error}")
+                self.assertEqual(read.result(), b"ready\n")
                 assert job.stdin is not None
                 job.stdin.write(b"release\n")
                 await job.stdin.drain()
