@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
-from systemd.test_workstation_backup_lock import executable, fixtures
+from systemd.test_workstation_backup_lock import ROOT, executable, fixtures
 
 pytestmark = pytest.mark.skipif(
     not sys.platform.startswith("linux") or not shutil.which("flock"),
@@ -69,11 +69,17 @@ class AdmissionFixture:
         assert await asyncio.wait_for(job.stdout.readline(), 5) == b"ready\n"
 
     @staticmethod
-    async def attempting(job: asyncio.subprocess.Process, lock: str) -> None:
+    async def attempting(
+        job: asyncio.subprocess.Process, lock: str, *, first: bool = False
+    ) -> None:
         """Observe a real flock attempt before asserting the payload is blocked."""
         assert job.stderr is not None
         async with asyncio.timeout(5):
             while line := await job.stderr.readline():
+                if not line.startswith(b"lock-attempt:"):
+                    continue
+                if first:
+                    assert line == f"lock-attempt:{lock}\n".encode()
                 if line == f"lock-attempt:{lock}\n".encode():
                     return
         pytest.fail("Process exited before attempting its private admission lock")
@@ -182,9 +188,29 @@ def admission(tmp_path: Path) -> AdmissionFixture:
         tmp_path / "bwrap",
         '#!/usr/bin/env bash\nwhile [[ ${1:-} != -- ]]; do shift; done\nshift\nexec "$@"\n',
     )
+    # The runner delegates real nonblocking reservations to Python now. Observe
+    # those attempts in its private child; retain the actual kernel flock call.
+    memory_source = (
+        ROOT / "modules/home/services/workstation-jobs-assets/workstation_memory.py"
+    )
+    memory_controller = executable(
+        tmp_path / "memory-controller",
+        f"#!{sys.executable}\n"
+        "import fcntl,runpy,sys\n"
+        "real_flock=fcntl.flock\n"
+        "def observed_flock(descriptor, operation):\n"
+        " if operation & fcntl.LOCK_EX:\n"
+        "  print(f'lock-attempt:{descriptor}',file=sys.stderr,flush=True)\n"
+        " return real_flock(descriptor,operation)\n"
+        "fcntl.flock=observed_flock\n"
+        f"runpy.run_path({str(memory_source)!r},run_name='__main__')\n",
+    )
+    original_controller = shlex.join([sys.executable, str(memory_source)])
     path = Path(runner)
     source = path.read_text(encoding="utf-8")
+    assert original_controller in source
     for old, new in {
+        original_controller: shlex.quote(memory_controller),
         "@boundedReserve@": "2147483648",
         "@bubblewrap@": shlex.quote(bubblewrap),
         "/proc/meminfo": str(meminfo),
@@ -303,15 +329,19 @@ def test_feedback_order_preserves_legacy_bounded_progress(
     source = Path(admission.runner).read_text(encoding="utf-8")
     feedback_acquisition = '  exec 7>"$XDG_RUNTIME_DIR/workstation-feedback.lock"'
     assert source.count(feedback_acquisition) == 1
-    # The bounded branch retains the legacy background -> shared -> feedback
-    # order. Stop it after shared ownership, before attempting feedback. With
-    # a feedback-first successor, each process would then hold the other's lock.
+    # Model a legacy blocking owner in background -> shared -> feedback order.
+    # Stop after actual shared ownership, before feedback. Modern controllers
+    # roll back partial locks, so assert their first attempt as well as progress.
     legacy = executable(
         admission.work / "legacy-bounded",
         source.replace(
             feedback_acquisition,
+            "  flock --exclusive 9\n"
+            "  flock --exclusive 8\n"
             "  printf 'legacy-shared-held\\n'\n"
-            "  IFS= read -r legacy_release\n" + feedback_acquisition,
+            "  IFS= read -r legacy_release\n"
+            + feedback_acquisition
+            + "\n  flock --exclusive 7",
         ),
     )
 
@@ -325,7 +355,7 @@ def test_feedback_order_preserves_legacy_bounded_progress(
                 == b"legacy-shared-held\n"
             )
             successor = await admission.start("feedback")
-            await admission.attempting(successor, "8")
+            await admission.attempting(successor, "8", first=True)
             assert successor.stdout is not None
             pending = asyncio.create_task(successor.stdout.readline())
             await assert_blocked(pending)

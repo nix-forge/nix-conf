@@ -9,6 +9,7 @@ import json
 import os
 import shutil
 import signal
+import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Own an isolated native process-group fixture.
 import sys
 import time
 from argparse import Namespace
@@ -19,6 +20,8 @@ from typing import TYPE_CHECKING, TypedDict
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from _pytest.monkeypatch import MonkeyPatch
 
 SOURCE = (
@@ -1186,7 +1189,33 @@ def test_growth_cleanup_denial_cannot_override_successful_native_payload(
     assert receipt["nativeCleanupErrorTypes"] == ["PermissionError"]
 
 
-def test_group_sampler_cancellation_is_responsive(tmp_path: Path) -> None:
+@pytest.fixture
+def owned_process_group() -> Iterator[int]:
+    """Own a live native group independently of the test runner's sandbox PGID.
+
+    Yields:
+        A real session leader, always killed and reaped during fixture cleanup.
+
+    """
+    with subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed Python fixture, no shell.
+        [sys.executable, "-c", "import signal; signal.pause()"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    ) as child:
+        try:
+            assert child.pid > 1
+            assert os.getpgid(child.pid) == child.pid
+            yield child.pid
+        finally:
+            child.kill()
+            child.wait(timeout=5)
+
+
+def test_group_sampler_cancellation_is_responsive(
+    tmp_path: Path, owned_process_group: int
+) -> None:
     """Cancellation interrupts a stalled native RSS query and reaps the sampler."""
     marker = tmp_path / "sampler.pid"
     sampler = tmp_path / "ps"
@@ -1200,7 +1229,7 @@ def test_group_sampler_cancellation_is_responsive(tmp_path: Path) -> None:
         asyncio.get_running_loop().call_later(0.1, cancelled.set)
         started = time.monotonic()
         with pytest.raises(TimeoutError):
-            await jobs._group_usage(os.getpgrp(), cancelled, 1, ps=str(sampler))
+            await jobs._group_usage(owned_process_group, cancelled, 1, ps=str(sampler))
         assert time.monotonic() - started < 0.8
 
     asyncio.run(run())
@@ -1213,7 +1242,7 @@ def test_group_sampler_cancellation_is_responsive(tmp_path: Path) -> None:
     "body", ["echo '1 2 -1'", "echo '1 2 3'; echo '1 2 4'", "exit 1"]
 )
 def test_group_sampler_rejects_invalid_or_missing_live_observation(
-    tmp_path: Path, body: str
+    tmp_path: Path, body: str, owned_process_group: int
 ) -> None:
     """Invalid counters and an absent observation cannot hide a live group's RSS."""
     sampler = tmp_path / "ps"
@@ -1221,7 +1250,7 @@ def test_group_sampler_rejects_invalid_or_missing_live_observation(
     sampler.chmod(0o700)
     with pytest.raises(jobs.JobError, match=r"Invalid native RSS|Empty RSS"):
         asyncio.run(
-            jobs._group_usage(os.getpgrp(), asyncio.Event(), 1, ps=str(sampler))
+            jobs._group_usage(owned_process_group, asyncio.Event(), 1, ps=str(sampler))
         )
 
 

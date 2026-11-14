@@ -53,6 +53,7 @@ _: {
         ../../hosts/nixos/desktop/local/network/scripts/retire-dnssec-preview.sh
         ../../homes/desktop/local/workspace-services/runner.py
         ../../homes/desktop/local/codex-resources/scripts
+        ../../homes/desktop/local/browsers/scripts/zen-session.sh.in
         ../../hosts/shared/local/network.json
         ../../hosts/nixos/desktop/local/storage/backup_helper.py
         ../../hosts/nixos/desktop/local/storage/root_scrub.py
