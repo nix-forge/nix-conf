@@ -151,9 +151,27 @@ let
       stylix.enable = false;
       programs.chatgpt.settings.desktop.git-worktree-root = "/tasks/codex";
     }).config;
+  supportsCodexDesktop = lib.meta.availableOn pkgs.stdenv.hostPlatform pkgs.chatgpt;
+  codexAppearance =
+    c:
+    lib.filterAttrs (
+      name: _:
+      builtins.elem name [
+        "appearanceTheme"
+        "appearanceLightCodeThemeId"
+        "appearanceDarkCodeThemeId"
+        "appearanceDiffMarkerStyle"
+        "appearanceDarkChromeTheme"
+        "sansFontSize"
+        "codeFontSize"
+        "useFontSmoothing"
+        "usePointerCursors"
+      ]
+    ) (c.programs.chatgpt.settings.desktop or { });
+  hasCodexAppearance = c: ((codexAppearance c).appearanceTheme or null) == "dark";
   noCustom =
     c:
-    !(c.home.activation ? configureCodexDesktopSettings)
+    codexAppearance c == { }
     && !(c.programs.ghostty.settings ? selection-background)
     && !(c.xdg.configFile ? "ironbar/style.css")
     && !(c.xdg.configFile ? "swaync/style.css")
@@ -185,20 +203,19 @@ assert
     && !(chromiumOff.programs.chromiumPolicies.heliumExtensions ? catppuccinMocha)
     && chromiumOff.programs.chromiumPolicies.heliumExtensions ? bitwarden
   );
-assert enabled.home.activation ? configureCodexDesktopSettings;
+assert (hasCodexAppearance enabled) == supportsCodexDesktop;
 assert !linux || !(disabled.desktop.walker.settings ? theme);
-assert
-  duplicated.home.activation.configureCodexDesktopSettings.data
-  == enabled.home.activation.configureCodexDesktopSettings.data;
+assert codexAppearance duplicated == codexAppearance enabled;
 assert workspaceWithoutTheme.home.activation ? configureCodexDesktopSettings;
+assert workspaceWithoutTheme.programs.chatgpt.settings.desktop.git-worktree-root == "/tasks/codex";
 assert !(workspaceWithoutTheme.programs.chatgpt.settings.desktop ? appearanceTheme);
 assert noCustom disabled;
 assert noCustom manual;
 assert noCustom optOut;
-assert optIn.home.activation ? configureCodexDesktopSettings;
+assert (hasCodexAppearance optIn) == supportsCodexDesktop;
 assert !(optIn.programs.ghostty.settings ? selection-background);
 assert !(nativeOff.programs.ghostty.settings ? selection-background);
-assert !(absent.home.activation ? configureCodexDesktopSettings);
+assert codexAppearance absent == { };
 assert !(absent.xdg.configFile ? "ironbar/style.css");
 assert !(absent.xdg.configFile ? "walker/themes/stylix/style.css");
 assert (enabled.xdg.configFile ? "ironbar/style.css") == linux;

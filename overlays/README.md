@@ -137,6 +137,15 @@ sandbox configuration remain with their owning modules.
 
 ## Temporary fix lifecycle
 
+OpenCode 2.2.5 backports the upstream Nixpkgs platform-specific Bun dependency
+hashes from [c399e1b](https://github.com/NixOS/nixpkgs/commit/c399e1b7fb90789e3e032784ef8ad98ba9907169).
+Its source, dependency installation and normalization steps, CLI build and native
+version check remain unchanged. The agent-skill integration uses the same
+registered repair and validates configuration against the real CLI schema.
+Retire this backport when the selected recipe includes these hashes and passes
+those native checks. Revision, version, source and original-hash guards require
+review when the upstream recipe changes.
+
 The Blocky multiple-DNSKEY backport applies upstream
 [PR #2293](https://github.com/0xERR0R/blocky/pull/2293) to 0.35.0. The validator
 previously selected the first DS-matched key and rejected a valid DNSKEY RRset

@@ -41,6 +41,7 @@ in
 {
   azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   blocky = fixes.apply "blocky-multiple-dnskeys" pkgs.blocky;
+  opencode = fixes.apply "opencode-dependency-hashes" pkgs.opencode;
   # Keep the official CLI/server; select the signed vendor GUI only on ARM Darwin.
   t3code =
     if system == "aarch64-darwin" then

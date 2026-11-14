@@ -28,6 +28,7 @@ let
     hypridle-condition-inhibitors = ./hypridle-condition-inhibitors.nix;
     nixos-anywhere-ssh-host-check = ./nixos-anywhere-ssh-host-check.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
+    opencode-dependency-hashes = ./opencode-dependency-hashes.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprland-subsurface-rounding = ./hyprland-subsurface-rounding.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;

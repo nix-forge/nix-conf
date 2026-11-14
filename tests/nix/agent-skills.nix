@@ -5,9 +5,13 @@
 }:
 let
   inherit (pkgs) lib;
+  fixes = import ../../overlays/temporary { inherit pkgs inputs; };
   skillPkgs = import inputs.nixpkgs {
     inherit (pkgs.stdenv.hostPlatform) system;
-    overlays = [ inputs.nixpkgs-personal.overlays.default ];
+    overlays = [
+      inputs.nixpkgs-personal.overlays.default
+      (_final: prev: { opencode = fixes.apply "opencode-dependency-hashes" prev.opencode; })
+    ];
     config.allowUnfreePredicate =
       package:
       lib.elem (lib.getName package) [

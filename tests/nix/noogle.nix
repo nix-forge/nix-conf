@@ -210,6 +210,7 @@ let
     definitions:
     (inputs.nix-darwin.lib.darwinSystem {
       system = "aarch64-darwin";
+      specialArgs = { inherit inputs; };
       modules = [
         ../../modules/darwin/macos.nix
         {
