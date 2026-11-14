@@ -124,15 +124,38 @@ in
     # Derive exclusions from their owner so new ordinary checks still enter CI.
     ciChecks = lib.mapAttrs (
       system: checks:
-      removeAttrs checks (
-        aggregateChecks
-        ++ hostedRunnerExclusions
-        ++ lib.optionals (system != "x86_64-linux") oncePerRevision
-        ++ lib.optionals (system == "aarch64-linux") linuxOncePerRevision
-        ++ builtins.attrNames (
-          (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
-        )
-      )
+      let
+        selected = removeAttrs checks (
+          aggregateChecks
+          ++ hostedRunnerExclusions
+          ++ lib.optionals (system != "x86_64-linux") oncePerRevision
+          ++ lib.optionals (system == "aarch64-linux") linuxOncePerRevision
+          ++ builtins.attrNames (
+            (deploymentChecksBySystem.${system} or { }) // (self.lintChecks.${system} or { })
+          )
+        );
+        # Both consumers require the desktop's repaired Determinate runtime and
+        # its complete upstream suites. Share that build on one ephemeral runner.
+        sharedRuntimeChecks = [
+          "desktop-workload"
+          "nix-credential-loading"
+        ];
+        ciPkgs = import inputs.nixpkgs { inherit system; };
+      in
+      if system == "x86_64-linux" then
+        assert builtins.all (name: builtins.hasAttr name selected) sharedRuntimeChecks;
+        assert !(selected ? determinate-runtime-consumers);
+        removeAttrs selected sharedRuntimeChecks
+        // {
+          determinate-runtime-consumers = ciPkgs.linkFarm "determinate-runtime-consumers" (
+            map (name: {
+              inherit name;
+              path = selected.${name};
+            }) sharedRuntimeChecks
+          );
+        }
+      else
+        selected
     ) self.checks;
 
     checks.x86_64-linux = deploymentChecksBySystem.x86_64-linux // {

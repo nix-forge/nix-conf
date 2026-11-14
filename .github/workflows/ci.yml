@@ -545,10 +545,11 @@ jobs:
       && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
-    # On Linux, the largest weight isolates REA in partition zero; Darwin keeps
-    # its single partition. REA's newer Node has two cold compiler scopes.
-    # Other native shards need 90 minutes for cold renderer and SVG dependencies.
-    timeout-minutes: ${{ matrix.partition-index == 0 && 180 || 90 }}
+    # Largest weights isolate REA in partition zero and the shared Determinate
+    # runtime consumers in x86 partition one. Darwin keeps its single partition.
+    # Other native shards retain 90 minutes for cold renderer/SVG dependencies.
+    timeout-minutes: ${{ (matrix.partition-index == 0 || (matrix.system == 'x86_64-linux' && matrix.partition-index
+      == 1)) && 180 || 90 }}
     permissions:
       contents: read
     strategy:
