@@ -16,9 +16,11 @@ in
 {
   # Use NixOS's Mozilla-derived bundle and preserve p11-kit trust metadata.
   # This desktop has no approved private or TLS-interception CA. Each added
-  # root expands who can authenticate arbitrary TLS endpoints. Explicitly
-  # distrust the compromised emSign G3 root (GHSA-6q48-6c7w-9gw2) while
-  # preserving unrelated public roots and the native distrust metadata.
+  # root expands who can authenticate arbitrary TLS endpoints. NSS 3.131.1
+  # already excludes emSign G3 (GHSA-6q48-6c7w-9gw2), C1 and C3. Do not
+  # blacklist their removed labels: buildcatrust rejects absent entries.
+  # The CA regression checks fingerprints and OpenSSL trust against the
+  # actual bundle so an upstream reintroduction cannot pass unnoticed.
   #
   # If a future network or local service genuinely needs a private root, add
   # its public PEM certificate through `certificateFiles` here only after
@@ -29,7 +31,7 @@ in
     useCompatibleBundle = false;
     certificateFiles = [ ];
     certificates = [ ];
-    caCertificateBlacklist = [ "emSign ECC Root CA - G3" ];
+    caCertificateBlacklist = [ ];
   };
 
   # Retire the narrowly scoped boot bridge only after normal activation has

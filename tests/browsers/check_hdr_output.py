@@ -9,6 +9,7 @@ Use --rendering-only to check desktop rendering without requiring HDR or FFmpeg.
 
 import argparse
 import json
+import os
 import re
 import shutil
 import socket
@@ -403,10 +404,10 @@ def main() -> int:
                     "-profile",
                     str(profile),
                     "-marionette",
-                    "--remote-allow-system-access",
                 ],
                 stdout=log,
                 stderr=subprocess.STDOUT,
+                env=os.environ | {"MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"},
             )
             try:
                 _wait_for_browser(args.output / "browser.log", port)

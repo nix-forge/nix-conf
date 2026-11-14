@@ -14,6 +14,7 @@ import http.server
 import io
 import json
 import math
+import os
 import re
 import shutil
 import socket
@@ -1410,12 +1411,17 @@ def main(
             "-profile",
             profile,
             "-marionette",
-            "--remote-allow-system-access",
         ]
         if not args.headed:
             command.append("-headless")
         with (args.output / "browser.log").open("w", encoding="utf-8") as log:
-            browser = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)  # ruff: ignore[subprocess-without-shell-equals-true] -- No shell; the caller selects a local browser.
+            # Only this isolated test browser needs privileged graphics inspection.
+            browser = subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- No shell; the caller selects a local browser.
+                command,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                env=os.environ | {"MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"},
+            )
             driver = None
             try:
                 _wait_for_browser(args.output / "browser.log", port)
