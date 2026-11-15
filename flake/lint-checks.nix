@@ -19,4 +19,15 @@
     }
     // lib.optionalAttrs (checks ? dart-quality) { inherit (checks) dart-quality; }
   ) self.checks;
+  # Hosted CI runs this check before native work. Keep the complete lintChecks
+  # inventory for local consumers and native-check exclusions. The lint job
+  # runs the same generated all-file hooks in devShells.ci, plus publication
+  # history scanning; rebuilding the isolated pre-commit check adds no scope.
+  flake.hostedLintChecks = builtins.mapAttrs (
+    _: checks:
+    removeAttrs checks [
+      "python-quality"
+      "pre-commit"
+    ]
+  ) self.lintChecks;
 }

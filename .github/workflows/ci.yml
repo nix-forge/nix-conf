@@ -71,6 +71,7 @@ concurrency:
 permissions: {}
 jobs:
   azure-review-proof:
+    needs: [static]
     name: Review Azure SSH dependencies and CLI
     if: github.event_name == 'workflow_dispatch' && inputs.prove_azure_cli
     runs-on: macos-26
@@ -91,6 +92,7 @@ jobs:
           nix build --option sandbox true --impure --no-link -L \
             --file overlays/temporary/tests/current-azure-proof.nix ssh cli
   actual-review-proof:
+    needs: [static]
     name: Review current unmodified Actual package and runtime
     if: github.event_name == 'workflow_dispatch' && inputs.prove_actual_runtime
     runs-on: macos-26
@@ -112,6 +114,7 @@ jobs:
             --file overlays/temporary/tests/current-actual-proof.nix \
             sourceLayout rawPackage rawRuntime regression
   package-fixes-review-proof:
+    needs: [static]
     name: Review current package fix (${{ matrix.target }})
     if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'),
       inputs.prove_package_fixes)
@@ -324,6 +327,7 @@ jobs:
             grep -F 'code object is not signed at all' "$RUNNER_TEMP/claude-signature.txt"
           fi
   prism-review-proof:
+    needs: [static]
     name: Review current Prism watch capability
     if: github.event_name == 'workflow_dispatch' && inputs.prove_prism_watch
     runs-on: macos-26
@@ -350,6 +354,7 @@ jobs:
             --file overlays/temporary/tests/current-prism-proof.nix capabilityPresent)
           "$proof/bin/prism-watch-capability-present"
   zen-wrapper-review-proof:
+    needs: [static]
     name: Review current browser wrapper invariants
     if: github.event_name == 'workflow_dispatch' && inputs.prove_zen_wrapper
     runs-on: ubuntu-24.04
@@ -370,6 +375,7 @@ jobs:
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file overlays/temporary/tests/current-zen-wrapper-proof.nix zen firefox
   stylix-review-proof:
+    needs: [static]
     name: Review current Stylix Neovim behavior
     if: github.event_name == 'workflow_dispatch' && inputs.prove_stylix_nvf
     runs-on: ubuntu-24.04
@@ -386,6 +392,7 @@ jobs:
       - name: Compare actual module warnings and canonical theme
         run: nix eval --impure --json --file overlays/temporary/tests/current-stylix-proof.nix
   sentry-review-proof:
+    needs: [static]
     name: Review current Sentry lock behavior
     if: github.event_name == 'workflow_dispatch' && inputs.prove_sentry_lock
     runs-on: ubuntu-24.04
@@ -407,6 +414,7 @@ jobs:
             --file overlays/temporary/tests/current-sentry-proof.nix \
             upstream
   swift-review-proof:
+    needs: [static]
     name: Review current Swift hardening
     if: github.event_name == 'workflow_dispatch' && inputs.prove_swift_hardening
     runs-on: macos-26
@@ -479,7 +487,22 @@ jobs:
     uses: nix-forge/ci/.github/workflows/flake-lock.yml@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
     with:
       lockfile: ${{ matrix.lockfile }}
+  static:
+    name: Python static and type checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: nix-forge/ci/actions/setup-nix@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
+      - name: Check Python syntax, lint, formatting and types
+        run: nix build --no-link --print-build-logs .#checks.x86_64-linux.python-quality
   lint:
+    needs: [static]
     name: Repository hooks
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -499,6 +522,10 @@ jobs:
       - name: Check shared workflow contracts
         uses: nix-forge/ci/actions/validate-workflows@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
       - name: Run repository hooks and publication checks
+        # The same Linux quality-python environment and source are checked by
+        # static. Keep local hooks enabled; skip only these hosted repetitions.
+        env:
+          SKIP: ruff,ruff-format,ty,python-compile
         uses: nix-forge/ci/actions/repository-checks@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           dev-shell: ci
@@ -510,7 +537,7 @@ jobs:
         uses: nix-forge/ci/actions/flake-checks@1a6dfe0b851c69ad30169977e014bd45029e9c55 # v2.13.0
         with:
           system: x86_64-linux
-          checks-output: lintChecks
+          checks-output: hostedLintChecks
           cores: 4
       - name: Test native package selection
         run: nix develop .#tests --command python3 -m pytest -m nix_daemon tests/ci
@@ -539,10 +566,10 @@ jobs:
             nix develop --command bash -c "prek run --all-files && gitleaks git --redact --no-banner"
           '
   flake:
-    needs: [package-fixes-review-proof]
+    needs: [static, package-fixes-review-proof]
     name: Flake checks (${{ matrix.label }})
-    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
-      && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
+    if: ${{ !cancelled() && needs.static.result == 'success' && (github.event_name != 'pull_request' ||
+      !github.event.pull_request.draft) && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
     # Relative weights follow observed cold check times and shared dependencies.
@@ -661,11 +688,16 @@ jobs:
         run: |
           nix eval --raw --option allow-import-from-derivation false \
             .#ciChecks.aarch64-darwin.nix-credential-loading.drvPath > /dev/null
+      - name: Verify repaired Handy microphone identity and Apple signatures
+        if: matrix.system == 'aarch64-darwin'
+        run: |
+          bash .github/scripts/verify-handy.sh
       - name: Verify native Darwin process supervision
         if: matrix.system == 'aarch64-darwin'
         shell: bash
         run: |
-          nix develop .#tests --command python3 -m pytest -m native_process \
+          bash -euo pipefail -c 'source "$1"; shift; exec python3 "$@"' -- \
+            "$RUNNER_TEMP/handy-test-environment.sh" -m pytest -m native_process \
             tests/workstation/test_workstation_faults.py \
             tests/workstation/test_workstation_jobs.py
       - name: Build assigned native CI checks
@@ -701,12 +733,6 @@ jobs:
           test -x "$app/Contents/MacOS/$executable"
           /usr/bin/lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
           /usr/bin/codesign --verify --deep --strict "$app"
-      - name: Verify repaired Handy microphone identity and Apple signatures
-        if: matrix.system == 'aarch64-darwin'
-        run: |
-          artifact=$(nix build --no-link --print-out-paths .#checks.aarch64-darwin.handy-artifact)
-          export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
-          nix develop .#tests --command python3 tests/macos/test_handy_signature.py
       - name: Verify upstream LinearMouse and nested helper signatures
         if: matrix.system == 'aarch64-darwin'
         run: |
@@ -835,6 +861,7 @@ jobs:
           PUBLIC_GUIDE_BUILD_CORES: ${{ matrix.build-cores }}
         run: bash tests/public-guide/check-consumers.sh "$PWD" "$GUIDE_SYSTEM" "$GUIDE_SCENARIO"
   native:
+    needs: [static]
     name: Native packages (${{ matrix.label }})
     if: github.event_name == 'workflow_dispatch' && inputs.build_native_packages == true
     runs-on: ${{ matrix.runner }}
@@ -954,7 +981,7 @@ jobs:
           if-no-files-found: error
   tests:
     name: Repository tests
-    needs: [flake, guide-changes, public-guide, native, submodule-hooks]
+    needs: [static, flake, guide-changes, public-guide, native, submodule-hooks]
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -962,12 +989,14 @@ jobs:
     steps:
       - name: Require the Nix test matrix to pass
         env:
+          STATIC_RESULT: ${{ needs.static.result }}
           FLAKE_RESULT: ${{ needs.flake.result }}
           GUIDE_CHANGED: ${{ needs.guide-changes.outputs.changed }}
           GUIDE_RESULT: ${{ needs.public-guide.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
           SUBMODULE_RESULT: ${{ needs.submodule-hooks.result }}
         run: |
+          test "$STATIC_RESULT" = success
           test "$FLAKE_RESULT" = success
           test "$SUBMODULE_RESULT" = success
           if [[ "$GUIDE_CHANGED" == true ]]; then
@@ -996,6 +1025,7 @@ jobs:
       - legacy-secret-manager-symbols
       - flake-lock
       - lint
+      - static
       - submodule-hooks
       - flake
       - guide-changes

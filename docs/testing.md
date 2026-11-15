@@ -232,3 +232,30 @@ nix develop .#tests --command python3 -m pytest -m native_process \
 The Darwin sandboxed Python check excludes those five cases; Linux continues to
 run them inside its Nix check. Neither path substitutes process observations or
 changes cleanup assertions. Both native and sandboxed checks must pass in CI.
+
+## Hosted static gate and native proofs
+
+The Python static/type gate runs `checks.x86_64-linux.python-quality` before
+native check jobs and optional native review proofs. The required Repository
+tests aggregate explicitly requires that gate to succeed, including when native
+jobs are skipped after a failure. Python source, stubs, source templates, nested
+Ruff/ty project configuration and ignore files invalidate its source; unrelated
+documentation and independently owned submodules do not.
+
+The hosted lint inventory omits `python-quality` and `pre-commit`: the gate owns
+the former, and the lint job runs the generated all-file hooks in the same pinned
+Linux CI shell, plus history/publication scanning. That hook invocation skips
+only the Python checks already performed by the gate with the same declared
+Python environment. Local hooks, `lintChecks` and `nix flake check` keep their
+complete checks. Other lint checks retain their existing coverage because their
+scope and environments have not been established as interchangeable.
+
+The Darwin Handy host proof always realizes the current application, even when
+derivation comparison skipped its sandbox build. It separately times package
+realization, test-shell realization and native identity/signature execution. The
+proof retains the exact application with an output link and executes from the
+captured test-shell environment without a second Nix shell realization. Native
+Darwin process supervision then reuses that environment before the remaining
+flake checks; the retained application is available to those checks too. These
+phase timings are diagnostics; cold/restored runtime savings require measurement
+on native runners.
