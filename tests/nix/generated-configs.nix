@@ -18,8 +18,10 @@ let
         }
       ];
     };
-  # Read the package's schema metadata without building the Darwin application.
-  package = pkgs.callPackage ../../pkgs/pkgs/by-name/li/linearmouse/package.nix { };
+  # Check generated settings without building the Darwin application on Linux.
+  schemaSource = import ../../modules/home/linearmouse-assets/schema-source.nix;
+  schema = pkgs.fetchurl schemaSource.src;
+  package = (import inputs.nixpkgs-apps { system = pkgs.stdenv.hostPlatform.system; }).linearmouse;
   mouseFor =
     settings:
     homeFor [
@@ -49,12 +51,12 @@ let
   };
   invalid = mouseFor { settings.schemes = "not an array"; };
   mismatchedPackage = package // {
-    configurationSchemaVersion = "0.0.0";
+    version = "0.0.0";
   };
   mismatched = mouseFor { package = mismatchedPackage; };
   explicit = mouseFor {
     package = mismatchedPackage;
-    settingsSchema = package.configurationSchema;
+    settingsSchema = schema;
   };
   external = mouseFor {
     settingsSchema = pkgs.writeText "external-schema.json" (
@@ -83,27 +85,22 @@ let
   opener =
     name:
     lib.findFirst (p: lib.getName p == name) (throw "missing ${name}") openerHome.config.home.packages;
-  browser = pkgs.writeShellScript "fixture-browser" ''
-    printf '%s\n' "$@" >> "$OPEN_LOG"
-  '';
+  browser = pkgs.writeShellScript "fixture-browser" (builtins.readFile ./scripts/fixture-browser.sh);
 in
 {
   usbguard-policy = pkgs.runCommand "usbguard-policy" { nativeBuildInputs = [ pkgs.usbguard ]; } ''
-    usbguard-rule-parser -f ${../../hosts/nixos/desktop/local/security-usbguard.rules} > /dev/null
+    usbguard-rule-parser -f ${../../hosts/nixos/desktop/local/security/usbguard.rules} > /dev/null
     touch "$out"
   '';
-  browser-openers = pkgs.runCommand "browser-openers" { nativeBuildInputs = [ pkgs.which ]; } ''
-    export HOME="$TMPDIR/home" OPEN_LOG="$TMPDIR/urls" BROWSER=${browser}
-    mkdir -p "$HOME"
-    export DISPLAY=:99 XDG_CURRENT_DESKTOP=generic
-    ${opener "actual-open"}/bin/actual-open
-    printf '%s\n' http://127.0.0.1:41831 > expected
-    cmp expected "$OPEN_LOG"
-    touch "$out"
-  '';
+  browser-openers = pkgs.runCommand "browser-openers" { nativeBuildInputs = [ pkgs.which ]; } (
+    (import ../../lib/templates/text.nix) ./scripts/browser-openers.sh {
+      inherit browser;
+      opener_actual_open = opener "actual-open";
+    }
+  );
   linearmouse-config =
     assert !(builtins.tryEval mismatched.config.programs.linearmouse.settingsSchema).success;
-    assert explicit.config.programs.linearmouse.settingsSchema == package.configurationSchema;
+    assert explicit.config.programs.linearmouse.settingsSchema == schema;
     mouse.config.programs.linearmouse.settingsFile;
   linearmouse-invalid-config = pkgs.testers.testBuildFailure' {
     drv = invalid.config.programs.linearmouse.settingsFile;
@@ -119,23 +116,11 @@ in
         nativeBuildInputs = [ pkgs.python3 ];
         expectedStyle = "${configHome}/swayosd/style.css";
       }
-      ''
-        python3 - ${osd.config.xdg.configFile."swayosd/config.toml".source} <<'PY'
-        import os
-        import sys
-        import tomllib
-
-        with open(sys.argv[1], "rb") as handle:
-            config = tomllib.load(handle)
-        assert config == {"server": {
-            "style": os.environ["expectedStyle"],
-            "min_brightness": 5,
-            "show_percentage": True,
-            "max_volume": 100,
-            "keyboard_backlight": False,
-            "top_margin": 0.85,
-        }}, config
-        PY
-        touch "$out"
-      '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/swayosd-config-escaping.sh {
+          scripts_generated_configs_check_py = ./scripts/generated_configs_check.py;
+          osd_config_xdg_configFile_swayosd_config_toml_source =
+            osd.config.xdg.configFile."swayosd/config.toml".source;
+        }
+      );
 }

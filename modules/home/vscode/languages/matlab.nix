@@ -1,14 +1,18 @@
-{ pkgs, inputs, ... }:
+{ config, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
-      "mathworks.language-matlab"
-      "affenwiesel.matlab-formatter"
-    ];
+    extensions = catalogExtensions [ "mathworks.language-matlab" ];
 
-    userSettings = { };
+    # MATLAB installation/licensing and runtime connections remain user-owned.
+    userSettings = {
+      # Formatter schema values preserve the publisher's manifest casing.
+      "[matlab]"."editor.defaultFormatter" = "MathWorks.language-matlab";
+      "MATLAB.telemetry" = false;
+      "MATLAB.matlabConnectionTiming" = "onDemand";
+    };
   };
 }

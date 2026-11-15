@@ -32,11 +32,7 @@
     SWAYSOCK = "/run/user/1000/public-demo-sway.sock";
   };
   environment.systemPackages = [ pkgs.jq ];
-  programs.bash.loginShellInit = ''
-    if [ "$(tty)" = /dev/tty1 ]; then
-      exec sway
-    fi
-  '';
+  programs.bash.loginShellInit = builtins.readFile ./scripts/start-sway-on-primary-console.sh;
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;

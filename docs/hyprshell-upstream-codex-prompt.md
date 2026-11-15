@@ -7,10 +7,10 @@ Port and validate the tested downstream fix in `H3rmt/hyprshell` so switch mode 
 Read these files in `~/Developer/nix-conf`:
 
 - `overlays/temporary/patches/hyprshell-modifier-state.patch`
-- `docs/alt-tab-research.md`
-- `docs/hyprshell-upstream-research.md`
-- `docs/hyprshell-hyprland-patch-review.md`
-- `docs/hyprshell-hyprland-local-fixes.md`
+- `docs/research/alt-tab-research.md`
+- `docs/research/hyprshell-upstream-research.md`
+- `docs/reviews/hyprshell-hyprland-patch-review.md`
+- `docs/operations/hyprshell-hyprland-local-fixes.md`
 - `tests/hyprland/check_alt_tab_package.py`
 - `tests/hyprland/check_alt_tab_compatibility.py`
 - `tests/hyprland/check_alt_tab_ipc_timeout.py`

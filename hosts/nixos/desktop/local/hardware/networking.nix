@@ -1,23 +1,23 @@
 { lib, ... }:
 let
-  privateIPv4 = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
+  network = builtins.fromJSON (builtins.readFile ../../../../shared/local/network.json);
+  sshClientCIDRs = "${network.trustedLanCIDR}, ${network.wireguardVpnCIDR}";
 in
 {
   networking = {
     useDHCP = false;
     useNetworkd = true;
-    # The temporary GNOME compatibility layer defaults this on. This desktop's
-    # physical links are intentionally owned by systemd-networkd + IWD until a
-    # separately tested NetworkManager migration replaces their profiles.
+    # The temporary GNOME compatibility layer defaults this on. Networkd owns
+    # both links and IWD owns wireless association.
     networkmanager.enable = false;
     firewall = {
       # Keep the global SSH firewall integration disabled so it cannot add a
       # public port-22 rule ahead of these source-address restrictions.
       extraInputRules = ''
-        ip saddr { ${privateIPv4} } tcp dport 22 accept comment "allow SSH from private IPv4 networks"
-        ip6 saddr fc00::/7 tcp dport 22 accept comment "allow SSH from IPv6 ULA networks"
-        iifname { "en*", "eth*", "wl*" } ip saddr { ${privateIPv4} } udp sport 5353 udp dport 5353 accept comment "allow LAN mDNS replies for MacBook lookup"
-        iifname { "en*", "eth*", "wl*" } ip6 saddr fe80::/10 udp sport 5353 udp dport 5353 accept comment "allow link-local mDNS replies for MacBook lookup"
+        iifname { "enp13s0", "wlan0" } ip saddr { ${sshClientCIDRs} } tcp dport 22 accept comment "allow SSH from trusted LAN and VPN"
+        iifname { "enp13s0", "wlan0" } ip6 saddr fc00::/7 tcp dport 22 accept comment "allow SSH from ULA networks"
+        iifname { "enp13s0", "wlan0" } ip saddr ${network.trustedLanCIDR} udp sport 5353 udp dport 5353 accept comment "allow LAN mDNS replies for MacBook lookup"
+        iifname { "enp13s0", "wlan0" } ip6 saddr fe80::/10 udp sport 5353 udp dport 5353 accept comment "allow link-local mDNS replies for MacBook lookup"
       '';
     };
 
@@ -26,13 +26,15 @@ in
   services.avahi.enable = lib.mkForce false;
 
   # Resolve the MacBook's Bonjour name without advertising desktop services.
-  # Only the physical uplinks below participate; guest bridges stay disabled.
+  # Only the physical uplinks participate; guest bridges stay disabled.
   services.resolved.settings.Resolve.MulticastDNS = lib.mkForce "resolve";
 
-  # This is a multi-homed client, not a router. Router Advertisements remain
-  # enabled for IPv6 connectivity, but ICMP redirects are unnecessary and can
-  # change routing policy on an untrusted or compromised LAN.
+  # Router Advertisements remain enabled for IPv6 connectivity, but ICMP
+  # redirects are unnecessary and can change routing policy on a compromised LAN.
   boot.kernel.sysctl = {
+    # Keep addresses on the same subnet from answering ARP on the other link.
+    "net.ipv4.conf.all.arp_ignore" = 1;
+    "net.ipv4.conf.all.arp_announce" = 2;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;
     "net.ipv4.conf.all.send_redirects" = 0;
@@ -43,18 +45,12 @@ in
 
   systemd.network = {
     enable = true;
-    # Both uplinks are intentionally non-blocking: Ethernet may be unplugged
-    # and Wi-Fi may need time to scan.  A global wait-online service would
-    # otherwise make activation fail even after connectivity has returned.
+    # Only homelab listeners wait for the wired address; a disconnected cable
+    # or slow Wi-Fi scan must not hold up the rest of the desktop.
     wait-online.enable = false;
     networks = {
       "30-wired-networks" = {
-        matchConfig.Name = [
-          "en*"
-          "eth*"
-        ];
-        # The desktop currently uses Wi-Fi. Do not make activation fail merely
-        # because the optional Ethernet port is unplugged.
+        matchConfig.Name = "enp13s0";
         linkConfig.RequiredForOnline = "no";
         networkConfig = {
           MulticastDNS = "resolve";
@@ -71,7 +67,7 @@ in
         dhcpV4Config = {
           RouteMetric = 100;
           # Keep DHCP limited to addressing, routing, and DNS. Chrony owns
-          # time sync; neither link may rename the host, install a global
+          # time sync; DHCP may not rename the host, install a global
           # search suffix, nor opt into a network-designated DNS resolver.
           SendHostname = false;
           UseHostname = false;
@@ -96,8 +92,6 @@ in
 
       "30-wireless-networks" = {
         matchConfig.WLANInterfaceType = "station";
-        # A Wi-Fi scan can occasionally take more than a minute.  Do not
-        # block the rest of boot while IWD is associating.
         linkConfig.RequiredForOnline = "no";
         networkConfig = {
           MulticastDNS = "resolve";
@@ -110,8 +104,6 @@ in
           RouteMetric = 600;
           SendHostname = false;
           UseHostname = false;
-          # See the wired profile: all ordinary DNS must traverse the local
-          # Blocky service, while router advertisements still supply routing.
           UseDNS = false;
           UseNTP = false;
           UseDomains = "route";

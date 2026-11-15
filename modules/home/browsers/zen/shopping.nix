@@ -30,13 +30,11 @@ let
     let
       destination = "${extensionDirectory}/${extension.id}.xpi";
     in
-    ''
-      if [[ ! -e ${lib.escapeShellArg destination} ]]; then
-        run ${lib.getExe' pkgs.coreutils "install"} -m 0644 \
-          ${lib.escapeShellArg extension.package} \
-          ${lib.escapeShellArg destination}
-      fi
-    '';
+    (import ../../../../lib/templates/text.nix) ./scripts/install-shopping-extension.sh {
+      lib_escapeShellArg_destination = lib.escapeShellArg destination;
+      lib_getExe_pkgs_coreutils_install = lib.getExe' pkgs.coreutils "install";
+      lib_escapeShellArg_extension_package = lib.escapeShellArg extension.package;
+    };
   bootstrapExtensions = lib.concatStringsSep "\n" (
     lib.mapAttrsToList bootstrapExtension selectedExtensions
   );
@@ -151,10 +149,13 @@ in
     # Policy can allow an extension only at application scope. Seed a writable
     # signed XPI into this profile once, then leave updates and enablement to Zen.
     home.activation.bootstrapZenShoppingExtensions = lib.mkIf (selectedExtensions != { }) (
-      lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        run ${lib.getExe' pkgs.coreutils "mkdir"} -p ${lib.escapeShellArg extensionDirectory}
-        ${bootstrapExtensions}
-      ''
+      lib.hm.dag.entryAfter [ "linkGeneration" ] (
+        (import ../../../../lib/templates/text.nix) ./scripts/bootstrap-shopping-extensions.sh {
+          lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
+          lib_escapeShellArg_extensionDirectory = lib.escapeShellArg extensionDirectory;
+          inherit bootstrapExtensions;
+        }
+      )
     );
   };
 }

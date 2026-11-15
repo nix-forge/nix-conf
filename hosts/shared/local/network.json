@@ -1,0 +1,10 @@
+{
+  "homelabDomain": "ianholloway.com",
+  "desktopTrustedAddress": "192.168.10.253",
+  "raspberryPiServerAddress": "192.168.40.11",
+  "iotVlanId": 20,
+  "raspberryPiHttpsSites": ["homebridge", "scrypted"],
+  "trustedLanCIDR": "192.168.10.0/24",
+  "wireguardVpnCIDR": "192.168.3.0/24",
+  "raspberryPiAdminClientCIDRs": ["192.168.10.0/24", "192.168.3.0/24"]
+}

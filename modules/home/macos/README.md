@@ -47,6 +47,34 @@ Common GNU commands have explicit names such as `gls`, `gsed`, `gstat`, and
 `gtar`. Use `gnu-first` only for a shell environment whose scripts assume GNU
 behavior for unprefixed commands.
 
+## Applications
+
+`macos.applications` keeps copied Home Manager apps as the canonical Launch
+Services registrations. It runs after `copyApps` and before launch agents start.
+It unregisters competing top-level Nix-store bundles with the same identifiers,
+preserves unrelated installations, and archives confirmed legacy store symlinks
+with a recovery journal under
+`$XDG_STATE_HOME/macos-applications/recovery.noindex/`.
+
+The `chatgpt` command opens the copied app through Launch Services, reusing its
+running instance. The `code` command executes the copied bundle's original CLI,
+preserving arguments, remote-terminal IPC, exit status, and `--wait`. AeroSpace's
+launch agent also starts its copied bundle; its separate IPC CLI stays unchanged.
+The ChatGPT wrapper matches the package's command spelling so it replaces the
+original on case-insensitive stores; lowercase access is retained on both kinds
+of filesystem.
+
+Run `hm-macos-applications --check` to verify registrations or add `--dry-run`
+to preview repairs without modifying state. A plain invocation reconciles them.
+macOS may retain unregistered store paths as launch-disabled records; these are
+excluded only when the native registry explicitly marks them disabled. The
+command does not reset Spotlight or the Launch Services database.
+
+Spotlight Settings shortcuts are separate from app installations. Use
+Command-Space, then Command-1 for Applications browse mode. Showing `.app`
+extensions does not establish that a result is a duplicate. See the
+[investigation and native validation](../../../docs/research/macos-spotlight-applications-research.md).
+
 ## Dock
 
 `macos.dockItems.mode` controls reconciliation:
@@ -96,3 +124,12 @@ selection behavior, permission interface, cancellation, and capture sound.
 Public Nix builds are ad-hoc signed; set `signingIdentity` to a local Apple
 Development or Developer ID identity to re-sign the copied app without placing
 a private key in the Nix store.
+
+## Application capability readiness
+
+`macos.applicationCapabilities` composes feature-specific requirements from the
+selected application modules. `hm-macos-readiness --check` verifies bundle
+identity and reports permission state conservatively, without prompts or writes.
+Explicit `--guide` and `--verify` modes support attended GUI feature tests and
+private historical receipts. See the [runbook](../../../docs/operations/darwin-application-readiness.md)
+for optional feature selection, exit codes, signing repairs and validation limits.

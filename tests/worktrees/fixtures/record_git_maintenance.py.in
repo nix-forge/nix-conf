@@ -1,0 +1,7 @@
+#!__fixture_0__
+import os, sys
+
+if "maintenance" in sys.argv and "run" in sys.argv:
+    with open(__fixture_1__, "a") as f:
+        f.write(sys.argv[2] + "\n")
+os.execv(__fixture_2__, [__fixture_3__, *sys.argv[1:]])

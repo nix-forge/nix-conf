@@ -5,6 +5,7 @@ let
   community = "https://nix-community.cachix.org";
   cuda = "https://cache.nixos-cuda.org";
   hyprland = "https://hyprland.cachix.org";
+  raspberryPi = "https://nixos-raspberrypi.cachix.org";
   same = a: b: lib.sort builtins.lessThan a == lib.sort builtins.lessThan b;
   mkNixos =
     modules:
@@ -27,6 +28,7 @@ let
   ];
   # Package-local CUDA overrides do not change pkgs.config.cudaSupport.
   optedIn = mkNixos [ { nix.caches.cuda.enable = true; } ];
+  piOptedIn = mkNixos [ { nix.caches.raspberry-pi.enable = true; } ];
   integratedHome = {
     home-manager.users.cache-check = {
       imports = [ cacheModule.homeManager ];
@@ -60,6 +62,7 @@ let
         cuda.enable = true;
         hyprland.enable = true;
         noctalia.enable = true;
+        raspberry-pi.enable = true;
       };
     }
   ];
@@ -114,6 +117,12 @@ in
         community
         cuda
       ];
+      assert same piOptedIn.nix.settings.substituters [
+        official
+        community
+        raspberryPi
+      ];
+      assert piOptedIn.nix.settings.trusted-substituters == [ ];
       assert lib.elem cuda integratedCuda.nix.settings.substituters;
       assert !(integratedCuda.home-manager.users.cache-check.nix.settings ? extra-substituters);
       assert !(lib.elem cuda integratedOptOut.nix.settings.substituters);

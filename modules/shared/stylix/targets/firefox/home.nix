@@ -6,6 +6,7 @@
     in
     {
       key = "nix-conf/stylix/firefox/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       config = lib.mkIf (config.stylix.enable && cfg.enable && config.programs.firefox.enable) {
         stylix.targets.firefox = {

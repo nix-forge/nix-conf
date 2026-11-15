@@ -1,4 +1,4 @@
-#!@bash@
+#!/usr/bin/env bash
 set -euo pipefail
 export PATH="@runtimePath@"
 
@@ -17,6 +17,10 @@ find "$source_directory" -maxdepth 1 -type f \
   -o -iname '*.jpg' -o -iname '*.jxl' -o -iname '*.png' -o -iname '*.tif' \
   -o -iname '*.tiff' -o -iname '*.webp' \) -print0 |
   @policyCommand@ filter --null >"$candidates_file"
+min_width=@minWidth@
+min_height=@minHeight@
+min_aspect_ratio_scaled=@minAspectRatioScaled@
+max_aspect_ratio_scaled=@maxAspectRatioScaled@
 candidate=''
 while IFS= read -r -d '' path; do
   dimensions="$(magick identify -ping -format '%w %h %[orientation]\n' -- "$path" 2>/dev/null)" || continue
@@ -31,9 +35,9 @@ while IFS= read -r -d '' path; do
     height="$swap"
     ;;
   esac
-  ((width >= @minWidth@ && height >= @minHeight@)) || continue
-  ((width * 1000 >= height * @minAspectRatioScaled@)) || continue
-  ((width * 1000 <= height * @maxAspectRatioScaled@)) || continue
+  ((width >= min_width && height >= min_height)) || continue
+  ((width * 1000 >= height * min_aspect_ratio_scaled)) || continue
+  ((width * 1000 <= height * max_aspect_ratio_scaled)) || continue
   candidate="$path"
   break
 done < <(shuf -z "$candidates_file")

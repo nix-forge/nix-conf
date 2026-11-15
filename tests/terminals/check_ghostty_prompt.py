@@ -6,6 +6,8 @@ and temporary home, so it cannot type into an existing window or save history
 in the user's home. F12 only exports the screen; it sends no input to Bash.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import select
@@ -14,7 +16,30 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import TextIO
+from typing import TYPE_CHECKING
+
+from notification_process import run as run_command
+from notification_process import wait_child
+from waits import FileChanges
+
+if TYPE_CHECKING:
+    from typing import TextIO
+
+    from watchdog.events import FileClosedEvent
+
+
+class _ScreenExports(FileChanges):
+    """Read newly exported screens only after their writer closes the file."""
+
+    def __init__(self, directory: Path) -> None:
+        super().__init__(directory)
+        self.finished: set[Path] = set()
+
+    def on_closed(self, event: FileClosedEvent) -> None:
+        with self.condition:
+            self.finished.add(Path(os.fsdecode(event.src_path)))
+            self.generation += 1
+            self.condition.notify_all()
 
 
 def _require(condition: bool, message: str) -> None:
@@ -26,7 +51,7 @@ def _stop(process: subprocess.Popen | None) -> None:
     if process is not None:
         process.terminate()
         try:
-            process.wait(timeout=5)
+            wait_child(process, timeout=5)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
@@ -98,11 +123,13 @@ def _check(args: argparse.Namespace, root: Path, log: TextIO) -> None:  # ruff: 
         )
 
         def xdo(*command: str) -> str:
-            return subprocess.check_output(  # ruff: ignore[subprocess-without-shell-equals-true] -- Talks only to our private X server.
+            return run_command(
                 [args.xdotool, *command],
                 env=env,
                 timeout=10,
-            ).decode()
+                stdout=subprocess.PIPE,
+                check=True,
+            ).stdout.decode()
 
         window = xdo(
             "search", "--sync", "--name", "Ghostty prompt regression"
@@ -111,20 +138,34 @@ def _check(args: argparse.Namespace, root: Path, log: TextIO) -> None:  # ruff: 
 
         def snapshot(label: str, expected: int) -> str:
             old = set(root.glob("*/screen.txt"))
-            xdo("key", "F12")
-            deadline = time.monotonic() + 5
-            while time.monotonic() < deadline:
-                created = set(root.glob("*/screen.txt")) - old
-                if created:
-                    screen = created.pop().read_text()
-                    count = screen.count(args.prompt)
-                    message = f"{label}: expected {expected} visible prompts, got {count}: {screen!r}"
-                    _require(count == expected, message)
-                    sys.stdout.write(f"PASS {label}: {count} visible prompt(s)\n")
-                    return screen
-                time.sleep(0.05)
-            message = f"{label}: Ghostty did not export its screen"
-            raise AssertionError(message)
+            changes = _ScreenExports(root)
+            dispatched = False
+            screen = ""
+
+            def completed() -> bool:
+                nonlocal dispatched, screen
+                if not dispatched:
+                    dispatched = True
+                    xdo("key", "F12")
+                with changes.condition:
+                    created = {
+                        path
+                        for path in changes.finished
+                        if path.name == "screen.txt" and path not in old
+                    }
+                if not created:
+                    return False
+                screen = created.pop().read_text()
+                return True
+
+            changes.wait(completed, timeout=5)
+            count = screen.count(args.prompt)
+            message = (
+                f"{label}: expected {expected} visible prompts, got {count}: {screen!r}"
+            )
+            _require(count == expected, message)
+            sys.stdout.write(f"PASS {label}: {count} visible prompt(s)\n")
+            return screen
 
         time.sleep(args.settle)
         snapshot("idle startup", 1)

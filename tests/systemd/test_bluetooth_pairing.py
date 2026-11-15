@@ -7,7 +7,6 @@ from __future__ import annotations
 import asyncio
 import os
 import shutil
-import subprocess  # ruff: ignore[suspicious-subprocess-import] - Private bus and policy processes only.
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -17,49 +16,19 @@ from dbus_next import Message, MessageType, Variant
 from dbus_next.aio import MessageBus
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable
 
     PolicyRunner = Callable[[str, list[str]], tuple[int, str, list[tuple[str, str]]]]
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "modules/nixos/hardware/scripts/disable-bluetooth-pairing.sh"
-POLICY = SCRIPT.with_suffix(".py")
+POLICY = SCRIPT.with_name("disable_bluetooth_pairing.py")
 ADAPTER = "org.bluez.Adapter1"
 MANAGER = "org.freedesktop.DBus.ObjectManager"
 PROPERTIES = "org.freedesktop.DBus.Properties"
 
 
-@pytest.fixture
-def private_bus(tmp_path: Path) -> Iterator[str]:
-    """Start a private bus without contacting the host's Bluetooth service.
-
-    Yields:
-        The private bus address.
-
-    """
-    daemon = shutil.which("dbus-daemon")
-    assert daemon is not None, "dbus-daemon is required"
-    config = tmp_path / "bus.conf"
-    config.write_text(
-        "<busconfig><type>session</type><listen>unix:tmpdir=/tmp</listen>"
-        '<auth>EXTERNAL</auth><policy context="default">'
-        '<allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/>'
-        "</policy></busconfig>",
-        encoding="utf-8",
-    )
-    with subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed executable, no shell input.
-        [daemon, f"--config-file={config}", "--nofork", "--print-address=1"],
-        stdout=subprocess.PIPE,
-        text=True,
-    ) as process:
-        try:
-            assert process.stdout is not None
-            address = process.stdout.readline().strip()
-            assert address.startswith("unix:"), "private D-Bus daemon did not start"
-            yield address
-        finally:
-            process.terminate()
-            process.wait(timeout=5)
+pytest_plugins = ["dbus_helpers"]
 
 
 @pytest.fixture

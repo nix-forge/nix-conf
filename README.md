@@ -64,10 +64,44 @@ project helps you, consider starring it so you can find it again.
 | [`pkgs/`](pkgs/README.md) | Separate repository for package recipes |
 | [`nix-config-framework/`](nix-config-framework/README.md) | Separate repository for target discovery and module composition |
 | [`nix-seal/`](nix-seal/README.md) | Separate repository for secret-management implementation |
+| [`nix-homelab/`](nix-homelab/README.md) | Separate repository for reusable homelab service modules |
 
-The last three directories are Git submodules. Clone with `--recurse-submodules`,
-or run `git submodule update --init --recursive` in a fresh checkout.
+The entries marked as separate repositories are Git submodules. Clone with
+`--recurse-submodules`, or run `git submodule update --init --recursive` in a
+fresh checkout.
 See [CONTRIBUTING.md](CONTRIBUTING.md) before changing configuration.
+The [layout and naming guide](docs/layout.md) explains source ownership and
+links the [runbooks](docs/operations/README.md),
+[research](docs/research/README.md), and [reviews](docs/reviews/README.md).
+
+## Find the file to change
+
+Start at the target's `default.nix` to see which features it selects. Then use
+the owner of the behavior you want to change:
+
+| Change | Edit here | First check |
+| --- | --- | --- |
+| Select a feature for one host or home profile | Its `hosts/` or `homes/` `default.nix` | Evaluate that target |
+| Set policy for one target | Its `local/` tree | Evaluate that target |
+| Change behavior shared by targets | The owning file under `modules/` | Focused module or generated-output check |
+| Change a package recipe | The separate `pkgs/` repository | Its package check or native build |
+| Change discovery or selector rules | The separate `nix-config-framework/` repository | Its discovery and integration checks |
+| Change secret-management behavior | The separate `nix-seal/` repository | Its own checks |
+| Change reusable homelab service behavior | The separate `nix-homelab/` repository | Its module and integration checks |
+| Repair an upstream package in this configuration | `overlays/`, following its [lifecycle](overlays/README.md) | Temporary-fix guard and affected build |
+| Change the supported platform set | [`flake/supported-systems.nix`](flake/supported-systems.nix) | Platform contracts and flake evaluation |
+
+`local/` imports every Nix file beneath it. A helper placed there becomes a
+module, even if no target lists it. Put target-specific helper functions in a
+local module's `lib` option, and keep inactive experiments outside `local/`.
+Related desktop policy lives under `local/gaming/`, `local/homelab/`,
+`local/network/`, `local/observability/`, and `local/security/`. Music services
+live under `local/homelab/music/` because they use the homelab storage and
+service graph. The directory names supply the context, so files inside can use
+short names such as `network/wireguard.nix` and `security/ssh.nix`. The Pi
+similarly groups Homebridge and Scrypted policy.
+The [testing guide](docs/testing.md) gives the exact commands and explains
+what each check proves.
 
 ## How configuration is assembled
 
@@ -79,10 +113,15 @@ Each target selects reusable features through the `modules` argument in its
 The framework also imports Nix files beneath each target's `local/` directory.
 These files must be modules; keep target-specific helper exports under the
 module's `lib` option. Do not also list automatically imported files in the
-target specification. Shared settings under `homes/shared/` and `hosts/shared/`
+target specification. Shared settings under `homes/shared/local/` and `hosts/shared/local/`
 are imported explicitly by their consumers. The host definitions are maintained
 deployment examples; reusable behavior belongs in the shared modules and
 features.
+
+For example, `gaming` selects shared Steam, GameMode, and Gamescope behavior.
+The desktop's [Steam scaling](hosts/nixos/desktop/local/gaming/steam.nix) and
+[display policy](homes/desktop/local/hyprland.nix) live with its target profiles
+because they depend on its display, GPU and account.
 
 A reusable directory's `default.nix` controls its aggregate selection. Without
 one, selecting the directory imports every Nix file below it. Adding a file to

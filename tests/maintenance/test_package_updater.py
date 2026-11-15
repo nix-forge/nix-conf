@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import runpy
 import shutil
 import sys
@@ -25,15 +26,19 @@ def test_forward_package_update(
     exit_code: int,
 ) -> None:
     """Forward arguments and the delegate's exit status from any working directory."""
-    entry = tmp_path / "scripts/update-packages.py"
+    entry = tmp_path / "scripts/update_packages.py"
     entry.parent.mkdir()
-    shutil.copyfile(ROOT / "scripts/update-packages.py", entry)
-    delegate = tmp_path / "pkgs/scripts/update-packages.py"
+    shutil.copyfile(ROOT / "scripts/update_packages.py", entry)
+    delegate = tmp_path / "pkgs/scripts/update_packages.py"
     delegate.parent.mkdir(parents=True)
     delegate.write_text(
-        "import json, sys\n"
-        "print(json.dumps(sys.argv[1:]))\n"
-        f"raise SystemExit({exit_code})\n",
+        re.sub(
+            r"__fixture_[0-9]+__",
+            lambda match: {"__fixture_0__": f"{exit_code}"}[match[0]],
+            (
+                Path(__file__).with_name("fixtures") / "record_updater_arguments.py.in"
+            ).read_text(encoding="utf-8"),
+        ),
         encoding="utf-8",
     )
     arguments: Sequence[str] = ["--package", "fixture", "--", "--dry-run"]

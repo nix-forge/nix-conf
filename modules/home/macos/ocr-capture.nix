@@ -41,6 +41,7 @@ let
   launchCommand = lib.concatMapStringsSep " " lib.escapeShellArg ([ executablePath ] ++ arguments);
 in
 {
+  imports = [ ./application-capabilities.nix ];
   options.macos.ocrCapture = {
     enable = lib.mkEnableOption "native macOS region-screenshot OCR";
 
@@ -54,7 +55,14 @@ in
     shortcuts.copyRegion = lib.mkOption {
       type = lib.types.nullOr lib.types.nonEmptyStr;
       default = "cmd-shift-7";
-      description = "AeroSpace shortcut that uses the macOS region selector and copies its text.";
+      description = "Window-manager shortcut that selects a region and copies its text.";
+    };
+
+    command = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      readOnly = true;
+      default = [ executablePath ] ++ arguments;
+      description = "Configured native OCR executable and arguments for shortcut integrations.";
     };
 
     recognitionMode = lib.mkOption {
@@ -173,6 +181,21 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    macos.applicationCapabilities.apps.ocr = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+      enable = lib.mkDefault cfg.enable;
+      bundle = "OCR Capture.app";
+      bundleId = "dev.ianmh.OCRCapture";
+      features = {
+        regionOCR = {
+          enable = lib.mkDefault true;
+          service = "screen-recording";
+          reason = "Recognize text from a selected screenshot";
+          source = "https://support.apple.com/guide/mac-help/mchld6aa7d23/mac";
+          instruction = "Invoke the configured OCR shortcut on a harmless test image and verify clipboard text; note which app owns any capture prompt.";
+        };
+      };
+    };
+
     assertions = [
       (lib.hm.assertions.assertPlatform "macos.ocrCapture" pkgs lib.platforms.darwin)
       {
@@ -196,17 +219,12 @@ in
     };
 
     home.activation.signCopiedOCRCapture = lib.mkIf (isDarwin && cfg.signingIdentity != null) (
-      lib.hm.dag.entryAfter [ "copyApps" ] ''
-        app=${lib.escapeShellArg appPath}
-        identity=${lib.escapeShellArg cfg.signingIdentity}
-        run /bin/wait4path "$app"
-        if ! /usr/bin/security find-identity -v -p codesigning | /usr/bin/grep -Fq "$identity"; then
-          printf 'OCR Capture signing identity is unavailable: %s\n' "$identity" >&2
-          exit 1
-        fi
-        run /usr/bin/codesign --force --options runtime --sign "$identity" "$app"
-        run /usr/bin/codesign --verify --strict --verbose=2 "$app"
-      ''
+      lib.hm.dag.entryAfter [ "copyApps" ] (
+        (import ../../../lib/templates/text.nix) ./scripts/sign-ocr-capture.sh {
+          lib_escapeShellArg_appPath = lib.escapeShellArg appPath;
+          lib_escapeShellArg_cfg_signingIdentity = lib.escapeShellArg cfg.signingIdentity;
+        }
+      )
     );
 
     programs.aerospace.settings.mode.main.binding = lib.mkIf (

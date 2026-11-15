@@ -45,11 +45,22 @@ in
       fonts.fontconfig.confPackages = lib.mkAfter [ rendered.package ];
       fonts.packages = fontPackages;
     };
-  darwin = { self, system, ... }: {
-    # Native user fonts are owned by Home Manager. Only document fonts shared
-    # across accounts are copied into /Library/Fonts/Nix Fonts.
-    fonts.packages = catalog.appleDocumentFonts self.packages.${system};
-  };
+  darwin =
+    {
+      config,
+      lib,
+      self,
+      system,
+      ...
+    }:
+    {
+      imports = [ ./options.nix ];
+      # Native user fonts are owned by Home Manager. Only document fonts shared
+      # across accounts are copied into /Library/Fonts/Nix Fonts.
+      fonts.packages = lib.optionals config.typography.restrictedFonts.enable (
+        catalog.appleDocumentFonts self.packages.${system}
+      );
+    };
   homeManager =
     {
       config,

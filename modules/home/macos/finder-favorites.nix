@@ -16,7 +16,9 @@ let
     "download"
     "music"
     "pictures"
+    "projects"
     "publicShare"
+    "templates"
     "videos"
   ];
 
@@ -181,24 +183,25 @@ in
 
     home.activation = lib.mkMerge [
       (lib.mkIf (cfg.mode == "initialize") {
-        syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          if [[ ! -e ${lib.escapeShellArg initializedMarker} ]]; then
-            run ${lib.escapeShellArg executable} apply \
-              --config ${lib.escapeShellArg configurationFile} \
-              --state-directory ${lib.escapeShellArg stateDirectory}
-            run ${lib.getExe' pkgs.coreutils "mkdir"} -p -m 0700 \
-              ${lib.escapeShellArg stateDirectory}
-            run ${lib.getExe' pkgs.coreutils "touch"} \
-              ${lib.escapeShellArg initializedMarker}
-          fi
-        '';
+        syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+          (import ../../../lib/templates/text.nix) ./scripts/initialize-finder-favorites.sh {
+            lib_escapeShellArg_initializedMarker = lib.escapeShellArg initializedMarker;
+            lib_escapeShellArg_executable = lib.escapeShellArg executable;
+            lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
+            lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
+            lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
+            lib_getExe_pkgs_coreutils_touch = lib.getExe' pkgs.coreutils "touch";
+          }
+        );
       })
       (lib.mkIf (cfg.mode == "reconcile") {
-        syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          run ${lib.escapeShellArg executable} apply \
-            --config ${lib.escapeShellArg configurationFile} \
-            --state-directory ${lib.escapeShellArg stateDirectory}
-        '';
+        syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+          (import ../../../lib/templates/text.nix) ./scripts/apply-finder-favorites.sh {
+            lib_escapeShellArg_executable = lib.escapeShellArg executable;
+            lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
+            lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
+          }
+        );
       })
     ];
   };

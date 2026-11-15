@@ -83,9 +83,11 @@ for interface in source typed; do
   if [[ $scenario != all && $scenario != interfaces && $scenario != "$interface" ]]; then
     continue
   fi
-  mkdir "$work/$interface"
+  mkdir -p "$work/$interface/scripts"
   cp "$source_path/tests/public-guide/$interface-consumer/consumer-flake.nix" "$work/$interface/flake.nix"
   cp "$source_path/tests/public-guide/recipes.nix" "$work/$interface/recipes.nix"
+  # Keep the extracted recipe and its relative builder dependency together.
+  cp "$source_path/tests/public-guide/scripts/public-guide-recipes.sh" "$work/$interface/scripts/"
   if [[ $interface == source ]]; then
     export PUBLIC_GUIDE_CANDIDATE="$candidate"
     inputs=$(nix eval --impure --json --expr '

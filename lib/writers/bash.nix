@@ -13,10 +13,11 @@
     let
       check = pkgs.writeShellApplication {
         name = "check-rendered-bash";
-        text = ''
-          ${pkgs.stdenv.shellDryRun} "$1"
-          ${lib.getExe pkgs.shellcheck-minimal} --shell=bash ${lib.escapeShellArgs shellcheckFlags} "$1"
-        '';
+        text = (import ../templates/text.nix) ./scripts/check-rendered-bash.sh {
+          syntaxCheck = pkgs.stdenv.shellDryRun;
+          shellcheck = lib.getExe pkgs.shellcheck-minimal;
+          shellcheckFlags = lib.escapeShellArgs shellcheckFlags;
+        };
       };
       contextualReplacements = lib.mapAttrs (
         _: value: if builtins.isPath value then "${value}" else value
@@ -33,26 +34,12 @@
         replacements = contextualReplacements;
         # The writer supplies the interpreter. Keep standalone source files
         # usable, but remove their known Bash shebang after strict substitution.
-        postInstall = ''
-          IFS= read -r firstLine < "$target" || true
-          case "$firstLine" in
-            '#!${lib.getExe pkgs.bash}'|'#!${lib.getExe pkgs.bashNonInteractive}'|'#!${pkgs.runtimeShell}'|'#!/usr/bin/env bash'|'#!/bin/bash')
-              tail -n +2 "$target" > "$TMPDIR/script-body"
-              cat "$TMPDIR/script-body" > "$target"
-              ;;
-            '#!'*)
-              echo "writeBashTemplate requires a Bash source without interpreter arguments" >&2
-              exit 1
-              ;;
-          esac
-          ${lib.optionalString (pathSetup != "") ''
-            {
-              printf '%s\n' ${lib.escapeShellArg pathSetup}
-              cat "$target"
-            } > "$TMPDIR/script-with-runtime-path"
-            cat "$TMPDIR/script-with-runtime-path" > "$target"
-          ''}
-        '';
+        postInstall = (import ../templates/text.nix) ./scripts/install-bash-body.sh {
+          bash = lib.getExe pkgs.bash;
+          bashNonInteractive = lib.getExe pkgs.bashNonInteractive;
+          inherit (pkgs) runtimeShell;
+          pathSetup = lib.escapeShellArg pathSetup;
+        };
       };
       options.check = lib.getExe check;
     in

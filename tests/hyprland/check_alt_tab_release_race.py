@@ -9,8 +9,10 @@ import json
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Tests local compositor and switcher IPC.
 import sys
-import time
 from operator import itemgetter
+
+from compositor_events import CompositorEvents, command_output
+from notification_process import wait_child
 
 CLI_ARGUMENTS = 2
 RACE_ATTEMPTS = 30
@@ -21,8 +23,9 @@ def _require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def _run(args: list[str]) -> str:
-    return subprocess.check_output(args, text=True, timeout=5)  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit argv; no shell.
+def _run(args: list[str], observer: CompositorEvents | None = None) -> str:
+    execute = observer.command if observer is not None else command_output
+    return execute(*args)
 
 
 def _concurrent_pair(binary: str) -> None:
@@ -35,8 +38,8 @@ def _concurrent_pair(binary: str) -> None:
         closing = subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed local IPC arguments, no shell.
             [binary, "socat", '{"CloseSwitch":{"switch":true}}']
         )
-        _require(opening.wait(timeout=5) == 0, "Open IPC failed")
-        _require(closing.wait(timeout=5) == 0, "Close IPC failed")
+        _require(wait_child(opening, timeout=5) == 0, "Open IPC failed")
+        _require(wait_child(closing, timeout=5) == 0, "Close IPC failed")
     finally:
         # A stalled peer must not make Popen's context-manager exit
         # wait forever or leave the other client behind.
@@ -45,18 +48,20 @@ def _concurrent_pair(binary: str) -> None:
             if child.poll() is None:
                 child.kill()
         for child in children:
-            child.wait(timeout=5)
+            wait_child(child, timeout=5)
 
 
 def _check(binary: str, hyprctl: str) -> None:
     def ipc(message: dict) -> None:
         _run([binary, "socat", json.dumps(message)])
 
-    def active() -> str | None:
-        return json.loads(_run([hyprctl, "-j", "activewindow"])).get("address")
+    def active(observer: CompositorEvents | None = None) -> str | None:
+        return json.loads(_run([hyprctl, "-j", "activewindow"], observer)).get(
+            "address"
+        )
 
-    def visible() -> bool:
-        layers = json.loads(_run([hyprctl, "-j", "layers"]))
+    def visible(observer: CompositorEvents | None = None) -> bool:
+        layers = json.loads(_run([hyprctl, "-j", "layers"], observer))
         return any(
             "hyprshell" in layer["namespace"]
             for monitor in layers.values()
@@ -83,14 +88,11 @@ def _check(binary: str, hyprctl: str) -> None:
         # Separate exec_cmd processes can deliver exactly this ordering.
         ipc({"CloseSwitch": {"switch": True}})
         ipc({"OpenSwitch": {"reverse": False}})
-        deadline = time.monotonic() + 1
-        while time.monotonic() < deadline:
-            if not visible() and active() == expected:
-                sys.stdout.write(
-                    "PASS: delayed open commits the recent window and leaves no overlay\n"
-                )
-                break
-            time.sleep(0.02)
+        with CompositorEvents() as changes:
+            changes.wait(lambda: not visible(changes) and active(changes) == expected)
+        sys.stdout.write(
+            "PASS: delayed open commits the recent window and leaves no overlay\n"
+        )
         _require(
             not visible(),
             "FAIL: delayed open left the switcher stuck after Alt release",
@@ -107,9 +109,12 @@ def _check(binary: str, hyprctl: str) -> None:
             expected = clients[1]["address"]
             # Match exec_cmd spawning independently scheduled IPC clients.
             _concurrent_pair(binary)
-            deadline = time.monotonic() + 1
-            while time.monotonic() < deadline and (visible() or active() != expected):
-                time.sleep(0.02)
+            with CompositorEvents() as changes:
+                changes.wait(
+                    lambda expected=expected: (
+                        not visible(changes) and active(changes) == expected
+                    )
+                )
             _require(
                 active() == expected,
                 "FAIL: concurrent release focused the wrong window",

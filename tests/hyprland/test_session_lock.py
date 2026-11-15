@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - Isolated fixture commands exercise the public launcher.
 import sys
-import time
 from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from notification_process import run as run_command
+from waits import wait_child, wait_file
+
+pytestmark = pytest.mark.skipif(
+    not hasattr(os, "pidfd_open"), reason="Wayland locker supervision uses Linux pidfds"
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -28,15 +34,6 @@ type LockEnvironment = tuple[
 ]
 
 
-def wait_for(path: Path) -> None:
-    """Wait for the fixture process to signal readiness."""
-    deadline = time.monotonic() + 5
-    while not path.exists():
-        if time.monotonic() >= deadline:
-            pytest.fail("Locker fixture did not start")
-        time.sleep(0.02)
-
-
 @pytest.fixture
 def lock_environment(tmp_path: Path) -> Iterator[LockEnvironment]:
     """Give each test a private runtime and a disposable locker command.
@@ -49,7 +46,14 @@ def lock_environment(tmp_path: Path) -> Iterator[LockEnvironment]:
     runtime.mkdir(mode=0o700)
     child = tmp_path / "locker.sh"
     child.write_text(
-        f'#!{BASH}\nprintf ready > "$1"\nexec sleep 30\n', encoding="utf-8"
+        re.sub(
+            r"__fixture_[0-9]+__",
+            lambda match: {"__fixture_0__": f"{BASH}"}[match[0]],
+            (
+                Path(__file__).with_name("fixtures") / "ready-session-lock.sh.in"
+            ).read_text(encoding="utf-8"),
+        ),
+        encoding="utf-8",
     )
     child.chmod(0o700)
     env = os.environ | {
@@ -73,7 +77,7 @@ def lock_environment(tmp_path: Path) -> Iterator[LockEnvironment]:
         # The fixture owns a new process group, including flock and sleep.
         with suppress(ProcessLookupError):
             os.killpg(process.pid, 15)
-        process.wait(timeout=5)
+        wait_child(process)
 
 
 def test_duplicate_request_reuses_active_locker(
@@ -83,11 +87,11 @@ def test_duplicate_request_reuses_active_locker(
     env, launch = lock_environment
     first = tmp_path / "first"
     launch(first, "wayland-test-a")
-    wait_for(first)
+    wait_file(first)
     second = tmp_path / "second"
-    assert launch(second, "wayland-test-a").wait(timeout=5) == 0
+    assert wait_child(launch(second, "wayland-test-a")) == 0
     assert not second.exists()
-    result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed launcher and fixture environment.
+    result = run_command(
         [BASH, str(SCRIPT), "running"], env=env, check=False, timeout=5
     )
     assert result.returncode == 0
@@ -100,9 +104,9 @@ def test_another_display_does_not_suppress_lock(
     _, launch = lock_environment
     first, second = tmp_path / "first", tmp_path / "second"
     launch(first, "wayland-test-a")
-    wait_for(first)
+    wait_file(first)
     launch(second, "wayland-test-b")
-    wait_for(second)
+    wait_file(second)
 
 
 def test_unrelated_hyprlock_name_does_not_suppress_lock(
@@ -119,21 +123,22 @@ def test_unrelated_hyprlock_name_does_not_suppress_lock(
     unrelated = subprocess.Popen(  # ruff: ignore[subprocess-without-shell-equals-true] - Disposable Python process with a readiness marker.
         [
             str(named),
-            "-c",
-            "import pathlib, sys, time; pathlib.Path(sys.argv[1]).touch(); time.sleep(30)",
+            str(Path(__file__).resolve().parents[1] / "fixtures/process.py"),
+            "marker-stall",
             str(ready),
+            "30",
         ],
         env=os.environ | {"PYTHONHOME": sys.base_prefix},
     )
     try:
-        wait_for(ready)
+        wait_file(ready)
         assert unrelated.poll() is None
         marker = tmp_path / "started"
         launch(marker, "wayland-test-a")
-        wait_for(marker)
+        wait_file(marker)
     finally:
         unrelated.terminate()
-        unrelated.wait(timeout=5)
+        wait_child(unrelated)
 
 
 def test_exit_releases_lock_and_stale_file_is_harmless(
@@ -141,18 +146,18 @@ def test_exit_releases_lock_and_stale_file_is_harmless(
 ) -> None:
     """A failed launch does not block a later request."""
     env, launch = lock_environment
-    result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed launcher and fixture environment.
+    result = run_command(
         [BASH, str(SCRIPT), "lock", "false"], env=env, check=False, timeout=5
     )
     assert result.returncode == 1
     assert list(Path(env["XDG_RUNTIME_DIR"]).glob("desktop-session-lock-*.lock"))
-    status = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed launcher and fixture environment.
+    status = run_command(
         [BASH, str(SCRIPT), "running"], env=env, check=False, timeout=5
     )
     assert status.returncode == 1
     marker = tmp_path / "retry"
     launch(marker, "wayland-test-a")
-    wait_for(marker)
+    wait_file(marker)
 
 
 def test_missing_display_refuses_ambiguous_launch(
@@ -162,7 +167,7 @@ def test_missing_display_refuses_ambiguous_launch(
     env, _ = lock_environment
     env.pop("WAYLAND_DISPLAY")
     marker = tmp_path / "unexpected"
-    result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed launcher and fixture environment.
+    result = run_command(
         [BASH, str(SCRIPT), "lock", "touch", str(marker)],
         env=env,
         check=False,

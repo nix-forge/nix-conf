@@ -54,7 +54,12 @@
   };
 
   homeManager =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+
+      ...
+    }:
     let
       controlPathDir = "${config.home.homeDirectory}/.ssh/cm";
     in
@@ -116,10 +121,11 @@
         };
       };
 
-      home.activation.sshControlPathDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        mkdir -p "${controlPathDir}"
-        chmod 700 "${controlPathDir}"
-      '';
+      home.activation.sshControlPathDir = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+        (import ../../lib/templates/text.nix) ./ssh-assets/prepare-control-path-directory.sh {
+          inherit controlPathDir;
+        }
+      );
     };
 
   # macOS Remote Login is configured by each host through services.openssh.

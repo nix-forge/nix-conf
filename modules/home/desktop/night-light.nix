@@ -22,6 +22,10 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
+        assertion = config.wayland.windowManager.hyprland.enable;
+        message = "desktop.nightLight requires an enabled Hyprland session.";
+      }
+      {
         assertion = isLinux;
         message = "desktop.nightLight is supported on Linux only.";
       }

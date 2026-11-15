@@ -39,7 +39,7 @@
           "claimType": "observed",
           "sourceKind": "document",
           "evidenceId": "E001",
-          "path": "docs/browser-shopping-profile-research.md",
+          "path": "docs/research/browser-shopping-profile-research.md",
           "claim": "Rakuten supports a website click-through without its extension, while its extension collects broad browsing and shopping data."
         },
         {
@@ -60,7 +60,7 @@
           "claimType": "inferred",
           "sourceKind": "document",
           "evidenceId": "E001",
-          "path": "docs/browser-shopping-profile-research.md",
+          "path": "docs/research/browser-shopping-profile-research.md",
           "claim": "A container cannot prevent a broadly permissioned extension in the same profile from observing ordinary tabs."
         }
       ],

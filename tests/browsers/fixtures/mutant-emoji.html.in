@@ -1,0 +1,7 @@
+<!doctype html><meta charset='utf-8'><style>__font_face__
+body{background:#202124;color:#eee;font:18px sans-serif;padding:24px}
+.emoji{font:48px '__family__';color:pink}
+</style><p>Mutant Standard Emoji</p>
+<p class="emoji">😀😁😂😃😄😅😆😇😈😉😊😋😌😍</p>
+<p>Custom characters and joined sequences</p><p class="emoji" id="custom"></p>
+<p>Artwork by Caius Nocturne · CC BY-NC-SA 4.0 · mutant.tech</p>

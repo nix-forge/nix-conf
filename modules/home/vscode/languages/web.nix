@@ -1,20 +1,19 @@
-{ pkgs, inputs, ... }:
+{ config, ... }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [
+    ../default.nix
+    ../base/javascript-tools.nix
+  ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
-      "aeschli.vscode-css-formatter"
-
-      "bradlc.vscode-tailwindcss"
-      "esbenp.prettier-vscode"
-    ];
-
+    extensions = catalogExtensions [ "bradlc.vscode-tailwindcss" ];
     userSettings = {
-      "[css]" = {
-        "editor.defaultFormatter" = "aeschli.vscode-css-formatter";
-      };
+      "[html]"."editor.defaultFormatter" = "vscode.html-language-features";
+      "[css]"."editor.defaultFormatter" = "vscode.css-language-features";
+      "[scss]"."editor.defaultFormatter" = "vscode.css-language-features";
+      "[less]"."editor.defaultFormatter" = "vscode.css-language-features";
     };
   };
 }

@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import json
 import stat
-import subprocess
 import sys
 import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+from notification_process import run as run_command
+
+if TYPE_CHECKING:
+    import subprocess
 
 
 class AppearanceConfigTests(unittest.TestCase):
@@ -22,7 +27,7 @@ class AppearanceConfigTests(unittest.TestCase):
         self.path = Path(self.temporary.name) / "config.toml"
         self.script = (
             Path(__file__).parents[2]
-            / "modules/shared/stylix/targets/codex-desktop/configure-codex-desktop-appearance.py"
+            / "modules/home/dev/agentic-gui/codex/configure_codex_desktop_settings.py"
         )
         self.settings = self.path.with_name("settings.json")
         self.settings.write_text(
@@ -43,7 +48,7 @@ class AppearanceConfigTests(unittest.TestCase):
             The completed updater process.
 
         """
-        return subprocess.run(
+        return run_command(
             [sys.executable, str(self.script), str(self.path), str(self.settings)],
             capture_output=True,
             text=True,
@@ -130,6 +135,41 @@ class AppearanceConfigTests(unittest.TestCase):
         self.assertEqual(before, self.path.read_bytes())
         self.assertEqual(self.path.stat().st_ino, inode)
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o640)
+
+    def test_workspace_policy_preserves_unmanaged_appearance(self) -> None:
+        """A root-only policy converges without changing app typography or retention."""
+        self.settings.write_text(
+            json.dumps({"desktop": {"git-worktree-root": "/tasks/codex"}})
+        )
+        self.path.write_text(
+            '[desktop]\n"git-worktree-root" = "/old/tasks"\nretention = 15\n'
+            "[desktop.appearanceDarkChromeTheme.fonts]\n"
+            'ui = "User Font"\nuiFace = { family = "User Font" }\n'
+        )
+        before = self.read()["desktop"]["appearanceDarkChromeTheme"]
+        self.assertEqual(self.update().returncode, 0)
+        desktop = self.read()["desktop"]
+        self.assertEqual(desktop["git-worktree-root"], "/tasks/codex")
+        self.assertEqual(desktop["retention"], 15)
+        self.assertEqual(desktop["appearanceDarkChromeTheme"], before)
+        inode = self.path.stat().st_ino
+        self.assertEqual(self.update().returncode, 0)
+        self.assertEqual(self.path.stat().st_ino, inode)
+
+    def test_explicit_managed_font_face_survives_family_selection(self) -> None:
+        """Configured native face metadata is retained alongside its font family."""
+        fonts = {"ui": "Fixture Sans", "uiFace": {"family": "Fixture Sans"}}
+        self.settings.write_text(
+            json.dumps({"desktop": {"appearanceDarkChromeTheme": {"fonts": fonts}}})
+        )
+        self.path.write_text(
+            "[desktop.appearanceDarkChromeTheme.fonts]\n"
+            'ui = "Old UI"\nuiFace = { family = "Old UI" }\n'
+        )
+        self.assertEqual(self.update().returncode, 0)
+        self.assertEqual(
+            self.read()["desktop"]["appearanceDarkChromeTheme"]["fonts"], fonts
+        )
 
     def test_invalid_toml_is_unchanged(self) -> None:
         """Reject malformed input without touching the file."""

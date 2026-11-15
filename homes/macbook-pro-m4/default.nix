@@ -18,19 +18,9 @@
     publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
-  nixpkgsArgs = {
-    overlays = [ (import ../../overlays { inherit inputs; }) ];
-    config = {
-      allowUnfree = true;
-    };
-  };
+  nixpkgsArgs = (import ./local/package-policy.nix { }).lib.targetPackagePolicy inputs;
 
   modules = with modules; [
-    # Full design library remains a user choice, independent of font roles.
-    { typography.designLibrary = "full"; }
-    # Compatibility value for this Home Manager installation; do not raise it
-    # merely to follow the current Nixpkgs/Home Manager release.
-    { home.stateVersion = "25.05"; }
 
     ## Base
     determinate
@@ -38,33 +28,22 @@
     registry
     cache
     nixSeal
-    ./nix-seal.nix
+
     macos
 
     fonts
     desktop-optional-emoji-fonts
+    desktop-dictation
     dev
     xdg
     cli
 
-    wm-aerospace
+    wm-rift
     actual
-    ({ config, ... }: {
-      services.actual = {
-        enable = false;
-        dataDir = "${config.xdg.userDirs.documents}/Actual";
-      };
-    })
     ssh
-    ({ config, ... }: {
-      services.localControl = {
-        enable = true;
-        environmentFile = config.nixSeal.secrets.service-private-settings.path;
-      };
-      # Retain the host-only VM diagnostics and SSH helpers that accompany the
-      # control host.
-      services.devVm.enable = true;
-    })
+    services-ssh-forwards
+    services-workstation-jobs
+    dev-jj-identity
 
     firefox
     helium-browser
@@ -73,6 +52,7 @@
 
     vscode
     vscode-languages
+    vscode-languages-rust
     vscode-ai
     vscode-defaultvisual
     neovim
@@ -82,50 +62,10 @@
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv
+    moonfin
     feishin
-    libreoffice
-    { programs.libreoffice.enable = true; }
     vorssaint
-    {
-      programs.vorssaint = {
-        enable = true;
-        startAtLogin = true;
-        acknowledgeFanControlLimitation = true;
-      };
-    }
     linearmouse
-    {
-      programs.linearmouse = {
-        enable = true;
-        menuBarVisibility = "never";
-        menuBarBatteryDisplay = "off";
-        showInDock = false;
-        settings = {
-          schemes = [
-            {
-              "if" = {
-                device = {
-                  category = "mouse";
-                };
-              };
-              pointer = {
-                # Keep macOS's adaptive acceleration and the device/system
-                # tracking speed. A numeric acceleration of 0 is not the same
-                # as disabling acceleration in LinearMouse.
-                acceleration = "unset";
-                speed = "unset";
-                disableAcceleration = false;
-              };
-              scrolling = {
-                reverse = {
-                  vertical = true;
-                };
-              };
-            }
-          ];
-        };
-      };
-    }
 
     stylix
     stylix-targets-firefox
@@ -138,11 +78,10 @@
     spotify
     notion
     bitwarden
-    darktable
+    lightcraft
     wootility
 
     steam-darwin
-    moonlight
     prismlauncher
   ];
 

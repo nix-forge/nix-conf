@@ -7,6 +7,24 @@
 }:
 let
   cfg = config.hardware.storage.encryptedRoot;
+  homeUsers = lib.filterAttrs (
+    name: user: (user.isNormalUser or false) && user.home == "/home/${name}"
+  ) config.users.users;
+  homeSubvolumes = lib.concatLists (
+    lib.mapAttrsToList (
+      name: user:
+      let
+        group = if user.group == null then "users" else user.group;
+        rule = path: "v /home/${name}/${path} 0700 ${name} ${group} - -";
+      in
+      [
+        "d /home/${name}/.local 0700 ${name} ${group} - -"
+        "d /home/${name}/.local/share 0700 ${name} ${group} - -"
+        (rule ".cache")
+        (rule ".local/share/docker")
+      ]
+    ) homeUsers
+  );
   enrollment = myLib.writers.writeBashTemplate { inherit pkgs; } {
     name = "desktop-storage-enroll";
     src = ./enroll.sh;
@@ -20,6 +38,7 @@ let
       pkgs.python3
     ];
     replacements = {
+      secureBootCheck = ./check_secure_boot.py;
       dataKeyFile = lib.escapeShellArg cfg.dataKeyFile;
       homelabKeyFile = lib.escapeShellArg cfg.homelabKeyFile;
       measuredBoot = lib.boolToString (config.security.secureBootLanzaboote.measuredBoot.enable or false);
@@ -42,9 +61,9 @@ let
     TIMELINE_CLEANUP = true;
     # Ranges permit a second cleanup pass under space pressure. FREE_LIMIT
     # uses filesystem free space and does not require Btrfs quota accounting.
-    TIMELINE_LIMIT_HOURLY = "0-24";
-    TIMELINE_LIMIT_DAILY = "0-7";
-    TIMELINE_LIMIT_WEEKLY = "0-4";
+    TIMELINE_LIMIT_HOURLY = "2-24";
+    TIMELINE_LIMIT_DAILY = "1-7";
+    TIMELINE_LIMIT_WEEKLY = "1-4";
     FREE_LIMIT = 0.2;
     TIMELINE_LIMIT_MONTHLY = 0;
     TIMELINE_LIMIT_YEARLY = 0;
@@ -85,7 +104,10 @@ in
       {
         environment.systemPackages = [ enrollment ];
         system.build.desktopStorageEnroll = enrollment;
-        boot.initrd.systemd.enable = true;
+        # The legacy switch was removed when systemd became the only initrd.
+        boot.initrd.systemd =
+          lib.optionalAttrs (lib.versionOlder (lib.versions.majorMinor lib.version) "26.11")
+            { enable = true; };
         boot.initrd.availableKernelModules = [
           "usbhid"
           "hid_generic"
@@ -112,13 +134,42 @@ in
         systemd.tmpfiles.rules = [
           "d /var/lib/desktop-storage/keys 0700 root root - -"
           "d /var/lib/desktop-storage/recovery 0700 root root - -"
-          "d /home/ianmh 0700 ianmh users - -"
-          "d /home/ianmh/.cache 0700 ianmh users - -"
           "z /home/.snapshots 0700 root root - -"
-          "d /home/ianmh/.local 0700 ianmh users - -"
-          "d /home/ianmh/.local/share 0700 ianmh users - -"
-          "d /home/ianmh/.local/share/docker 0700 ianmh users - -"
-        ];
+        ]
+        ++ homeSubvolumes;
+
+        # tmpfiles does not replace an existing directory with a subvolume.
+        # Refuse logins and home snapshots if a restore crossed that boundary.
+        systemd.services.desktop-home-subvolumes = {
+          description = "Verify per-user home snapshot exclusions";
+          requiredBy = [ "systemd-user-sessions.service" ];
+          before = [ "systemd-user-sessions.service" ];
+          after = [ "systemd-tmpfiles-setup.service" ];
+          unitConfig.RequiresMountsFor = [ "/home" ];
+          path = [ pkgs.btrfs-progs ];
+          serviceConfig.Type = "oneshot";
+          script =
+            (import ../../../../../lib/templates/text.nix) ./scripts/desktop-home-subvolumes-script.sh
+              {
+                lib_concatMapStringsSep_n_name_btrfs_subvolume_show_lib_esca = lib.concatMapStringsSep "\n" (
+                  name: ''
+                    btrfs subvolume show ${lib.escapeShellArg "/home/${name}/.cache"} >/dev/null
+                    btrfs subvolume show ${lib.escapeShellArg "/home/${name}/.local/share/docker"} >/dev/null
+                  '') (builtins.attrNames homeUsers);
+              };
+        };
+        systemd.services."user@" = {
+          requires = [ "desktop-home-subvolumes.service" ];
+          after = [ "desktop-home-subvolumes.service" ];
+        };
+        systemd.services.desktop-snapshot-home-timeline = {
+          requires = [ "desktop-home-subvolumes.service" ];
+          after = [ "desktop-home-subvolumes.service" ];
+        };
+        systemd.services.desktop-snapshot-home-cleanup = {
+          requires = [ "desktop-home-subvolumes.service" ];
+          after = [ "desktop-home-subvolumes.service" ];
+        };
 
         # The optional data drive must not block login, but services must never
         # write replacement data into its unmounted directories on the system SSD.
@@ -135,15 +186,11 @@ in
             Type = "oneshot";
             RemainAfterExit = true;
           };
-          script = ''
-            set -eu
-            ${lib.concatMapStringsSep "\n" (path: "mountpoint -q ${lib.escapeShellArg path}") mounts}
-            chmod 0700 /srv/data/.snapshots /srv/data/work/.snapshots
-            # Clear inherited directory NOCOW after a restore. Existing image
-            # extents need a separate cold copy to regain data checksums.
-            chattr -C /var/lib/libvirt/images
-            install -d -m 2775 -o root -g users /mnt/games/steamapps /srv/data/work/projects /srv/data/media
-          '';
+          script = (import ../../../../../lib/templates/text.nix) ./scripts/desktop-data-ready-script.sh {
+            lib_concatMapStringsSep_n_path_mountpoint_q_lib_escapeShellA = lib.concatMapStringsSep "\n" (
+              path: "mountpoint -q ${lib.escapeShellArg path}"
+            ) mounts;
+          };
         };
         # The pre-start check also covers nofail mounts, whose dependency
         # strength differs by systemd.
@@ -224,8 +271,13 @@ in
                       RequiresMountsFor = [ path ];
                       ConditionPathIsMountPoint = path;
                     };
-                    serviceConfig.Type = "oneshot";
-                    serviceConfig.ExecStartPre = "${pkgs.coreutils}/bin/chmod 0700 ${path}/.snapshots";
+                    serviceConfig = {
+                      Type = "oneshot";
+                      ExecStartPre = "${pkgs.coreutils}/bin/chmod 0700 ${path}/.snapshots";
+                      ExecCondition = lib.mkIf (
+                        cfg.capacity.enable && phase == "timeline"
+                      ) "${lib.getExe config.system.build.desktopStorageCapacity} snapshot ${lib.escapeShellArg path}";
+                    };
                     script =
                       if phase == "timeline" then
                         ''

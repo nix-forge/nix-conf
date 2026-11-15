@@ -10,10 +10,35 @@ let
 
   cfg = config.programs.tmux.declarative;
   boolToTmux = value: if value then "on" else "off";
+  quoteTmux =
+    value:
+    "\""
+    +
+      lib.replaceStrings
+        [
+          "\\"
+          "\""
+          "$"
+          "~"
+          "\n"
+          "\r"
+          "\t"
+        ]
+        [
+          "\\\\"
+          "\\\""
+          "\\$"
+          "\\~"
+          "\\n"
+          "\\r"
+          "\\t"
+        ]
+        value
+    + "\"";
 
   terminalFeatureLines = lib.mapAttrsToList (
     terminal: features:
-    "set -as terminal-features \",${terminal}:${lib.concatStringsSep ":" features}\""
+    "set -as terminal-features ${quoteTmux ",${terminal}:${lib.concatStringsSep ":" features}"}"
   ) cfg.terminalFeatures;
 
   renderedConfig = lib.concatStringsSep "\n" (
@@ -24,22 +49,22 @@ let
       "set -g renumber-windows ${boolToTmux cfg.renumberWindows}"
       "set -g detach-on-destroy ${boolToTmux cfg.detachOnDestroy}"
       "set -g set-titles ${boolToTmux cfg.setTitles}"
-      "set -g set-titles-string \"${cfg.titleFormat}\""
+      "set -g set-titles-string ${quoteTmux cfg.titleFormat}"
       "set -g status-position ${cfg.status.position}"
       "set -g status-interval ${toString cfg.status.interval}"
       "set -g status-left-length ${toString cfg.status.leftLength}"
       "set -g status-right-length ${toString cfg.status.rightLength}"
-      "set -g status-left \"${cfg.status.leftFormat}\""
-      "set -g window-status-format \"${cfg.status.windowFormat}\""
-      "set -g window-status-current-format \"${cfg.status.currentWindowFormat}\""
-      "set -g window-status-separator \"${cfg.status.windowSeparator}\""
-      "set -g status-right \"${cfg.status.rightFormat}\""
-      "bind-key ${cfg.bindings.horizontalSplit} split-window -h -c \"#{pane_current_path}\""
-      "bind-key ${cfg.bindings.verticalSplit} split-window -v -c \"#{pane_current_path}\""
-      "bind-key ${cfg.bindings.newWindow} new-window -c \"#{pane_current_path}\""
-      "bind-key -T copy-mode-vi ${cfg.copyMode.beginSelection} send-keys -X begin-selection"
-      "bind-key -T copy-mode-vi ${cfg.copyMode.copySelection} send-keys -X copy-selection-and-cancel"
-      "bind-key -T copy-mode-vi ${cfg.copyMode.cancel} send-keys -X cancel"
+      "set -g status-left ${quoteTmux cfg.status.leftFormat}"
+      "set -g window-status-format ${quoteTmux cfg.status.windowFormat}"
+      "set -g window-status-current-format ${quoteTmux cfg.status.currentWindowFormat}"
+      "set -g window-status-separator ${quoteTmux cfg.status.windowSeparator}"
+      "set -g status-right ${quoteTmux cfg.status.rightFormat}"
+      "bind-key ${quoteTmux cfg.bindings.horizontalSplit} split-window -h -c \"#{pane_current_path}\""
+      "bind-key ${quoteTmux cfg.bindings.verticalSplit} split-window -v -c \"#{pane_current_path}\""
+      "bind-key ${quoteTmux cfg.bindings.newWindow} new-window -c \"#{pane_current_path}\""
+      "bind-key -T copy-mode-vi ${quoteTmux cfg.copyMode.beginSelection} send-keys -X begin-selection"
+      "bind-key -T copy-mode-vi ${quoteTmux cfg.copyMode.copySelection} send-keys -X copy-selection-and-cancel"
+      "bind-key -T copy-mode-vi ${quoteTmux cfg.copyMode.cancel} send-keys -X cancel"
     ]
   );
 in
@@ -177,7 +202,7 @@ in
       extraConfig = lib.mkAfter renderedConfig;
     };
 
-    programs.tmux.declarative = {
+    programs.tmux.declarative = lib.mkDefault {
       # Ghostty uses xterm-ghostty and exposes true color, OSC 52, focus,
       # titles, and OSC 8 links. tmux-256color covers nested tmux. The SSH
       # fallback is xterm-256color, so it receives no unsafe feature claims.

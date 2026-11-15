@@ -16,6 +16,10 @@ let
       url = "https://noctalia.cachix.org";
       key = "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=";
     };
+    raspberry-pi = {
+      url = "https://nixos-raspberrypi.cachix.org";
+      key = "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=";
+    };
   };
 
   # These are host/client-wide trust decisions, not derivation properties.
@@ -70,6 +74,7 @@ let
           (config.programs.noctalia.enable or false)
           || lib.any (homeUsesCache "noctalia" (home: home.programs.noctalia.enable or false)) homes
         );
+        raspberry-pi.enable = lib.mkDefault false;
       };
     };
 

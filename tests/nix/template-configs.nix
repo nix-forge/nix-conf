@@ -5,6 +5,7 @@
 }:
 let
   inherit (pkgs) lib;
+  homePkgs = pkgs.extend (import ../../overlays { inherit inputs; });
   font = "Test \"quoted\" font\\name";
   colors = lib.genAttrs (map (n: "base${n}") [
     "00"
@@ -25,23 +26,21 @@ let
     "0F"
   ]) (_: "#123456");
   testHyprland = lib.extendDerivation true { override = _: testHyprland; } (
-    pkgs.runCommand "test-hyprland-clients" { } ''
-      mkdir -p "$out/bin"
-      touch "$out/bin/hyprctl" "$out/bin/Hyprland"
-      chmod +x "$out/bin/hyprctl" "$out/bin/Hyprland"
-    ''
+    pkgs.runCommand "test-hyprland-clients" { } (
+      builtins.readFile ./scripts/create-hyprland-client-stubs.sh
+    )
   );
-  homeFor =
-    modules:
+  homeForWithOsConfig =
+    osConfig: modules:
     inputs.home-manager.lib.homeManagerConfiguration {
-      pkgs = pkgs.extend (import ../../overlays { inherit inputs; });
+      pkgs = homePkgs;
       extraSpecialArgs = {
         inherit inputs myLib;
+        inherit osConfig;
         system = pkgs.stdenv.hostPlatform.system;
         self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-personal = pkgs.noctalia;
       };
       modules = [
-        inputs.stylix.homeModules.default
         (import ../../modules/shared/stylix/home.nix).homeManager
         ../../modules/home/desktop/bar.nix
         ../../modules/home/desktop/notifications.nix
@@ -55,7 +54,6 @@ let
         ../../modules/home/desktop/noctalia.nix
         {
 
-          options.appearance.theme = lib.mkOption { type = lib.types.str; };
           config = {
             home = {
               username = "tester";
@@ -66,22 +64,25 @@ let
               enable = true;
               autoEnable = false;
               # A readable accent should survive contrast preparation unchanged.
-              base16Scheme = lib.mapAttrs (_: _: "123456") colors // {
-                base0D = "abcdef";
-              };
+              base16Scheme = lib.mkForce (lib.mapAttrs (_: _: "123456") colors // { base0D = "abcdef"; });
               targets = lib.genAttrs [ "noctalia" "hyprshell" "ironbar" "swaync" "swayosd" "walker" ] (_: {
                 enable = true;
               });
-              fonts.sansSerif.name = font;
-              icons.dark = "test-icons";
+              fonts.sansSerif.name = lib.mkForce font;
+              icons.dark = lib.mkForce "test-icons";
             };
             appearance.theme = "carbon-neon-oled";
             xdg.userDirs.enable = true;
+            wayland.windowManager.hyprland = {
+              enable = true;
+              package = lib.mkDefault testHyprland;
+            };
           };
         }
       ]
       ++ modules;
     };
+  homeFor = homeForWithOsConfig null;
   shell = homeFor [
     {
       desktop.noctalia.enable = true;
@@ -129,12 +130,60 @@ let
       };
     }
   ];
+  noSuspendDesktop =
+    homeForWithOsConfig
+      {
+        services.hypridle.enable = false;
+        systemd.sleep.settings.Sleep.AllowSuspend = "no";
+      }
+      [
+        {
+          desktop.idle.enable = true;
+          desktop.noctalia.enable = true;
+          wayland.windowManager.hyprland.enable = true;
+          programs.noctalia.checkConfig = false;
+        }
+      ];
+  missingCompositor = homeFor [
+    {
+      desktop.idle.enable = true;
+      wayland.windowManager.hyprland.enable = lib.mkForce false;
+    }
+  ];
+  missingLocker = homeFor [
+    {
+      desktop.idle.enable = true;
+      programs.hyprlock.enable = false;
+    }
+  ];
+  externalCompositor = homeFor [
+    {
+      desktop.idle.enable = true;
+      wayland.windowManager.hyprland.package = lib.mkForce null;
+    }
+  ];
+  systemCompositor =
+    homeForWithOsConfig
+      {
+        programs.hyprland = {
+          enable = true;
+          package = testHyprland;
+        };
+      }
+      [
+        {
+          desktop.idle.enable = true;
+          wayland.windowManager.hyprland.package = lib.mkForce null;
+        }
+      ];
   files = pkgs.linkFarm "generated-template-configs" {
     "noctalia.toml" = shell.config.xdg.configFile."noctalia/config.toml".source;
     "palette.json" = shell.config.xdg.configFile."noctalia/palettes/Stylix.json".source;
     "swaync.json" = desktop.config.xdg.configFile."swaync/config.json".source;
     "hypridle.conf" = desktop.config.xdg.configFile."hypr/hypridle.conf".source;
     "hypridle-background.conf" = backgroundDesktop.config.xdg.configFile."hypr/hypridle.conf".source;
+    "hypridle-no-suspend.conf" = noSuspendDesktop.config.xdg.configFile."hypr/hypridle.conf".source;
+    "noctalia-no-suspend.toml" = noSuspendDesktop.config.xdg.configFile."noctalia/config.toml".source;
     "hyprpaper.conf" = desktop.config.xdg.configFile."hypr/hyprpaper.conf".source;
     "cliphist.conf" = desktop.config.xdg.configFile."cliphist/config".source;
     "ironbar.css" = desktop.config.xdg.configFile."ironbar/style.css".source;
@@ -148,14 +197,27 @@ in
 {
   walker-config = desktop.config.xdg.configFile."walker/config.toml".source;
   template-configs =
+    assert lib.all (entry: entry.assertion) desktop.config.assertions;
+    assert !(builtins.tryEval missingCompositor.activationPackage.drvPath).success;
+    assert !(builtins.tryEval missingLocker.activationPackage.drvPath).success;
+    assert lib.hasInfix
+      (builtins.unsafeDiscardStringContext "${lib.getExe' homePkgs.hyprland "hyprctl"} dispatch")
+      externalCompositor.config.xdg.configFile."hypr/hypridle.conf".text;
+    assert lib.hasInfix
+      (builtins.unsafeDiscardStringContext "${lib.getExe' testHyprland "hyprctl"} dispatch")
+      systemCompositor.config.xdg.configFile."hypr/hypridle.conf".text;
     pkgs.runCommand "template-config-regressions"
       {
         nativeBuildInputs = [ pkgs.python3 ];
         FILES = files;
         FONT = font;
+        HYPRCTL = lib.getExe' testHyprland "hyprctl";
+        LOGINCTL = lib.getExe' pkgs.systemd "loginctl";
+        SYSTEMCTL = lib.getExe' pkgs.systemd "systemctl";
       }
-      ''
-        python3 ${./check-template-configs.py}
-        touch "$out"
-      '';
+      (
+        (import ../../lib/templates/text.nix) ./scripts/template-config-regressions.sh {
+          check_template_configs_py = ./check_template_configs.py;
+        }
+      );
 }

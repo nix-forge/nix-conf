@@ -9,6 +9,7 @@ Use --rendering-only to check desktop rendering without requiring HDR or FFmpeg.
 
 import argparse
 import json
+import os
 import re
 import shutil
 import socket
@@ -18,9 +19,13 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from typescript_sources import javascript_source
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 from typing import Any
+
+from notification_process import wait_child
 
 # Optional integration dependencies supplied by the documented Nix command.
 from PIL import Image
@@ -28,11 +33,27 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
+from waits import FileChanges
 
 HDR_BLOB_SIZE = 32
 MIN_SUSTAINED_FRAMES = 360
 MAX_DROP_RATIO = 0.05
 MIN_GREEN = 150
+
+
+def _browser_program(name: str) -> str:
+    """Load a checked browser function and pass the WebDriver arguments through.
+
+    Returns:
+        A script body with the same receiver, arguments, and completion callback.
+
+    """
+    source = javascript_source(Path(__file__).with_name("fixtures") / name)
+    return (
+        "const module = {exports: null};\n"
+        + source
+        + "\nreturn module.exports.apply(this, arguments);"
+    )
 
 
 def check_rendering(
@@ -50,8 +71,9 @@ def check_rendering(
     """
     page = directory / "rendering.html"
     page.write_text(
-        "<title>Zen Wayland rendering check</title>"
-        "<style>html,body{background:#00ff80;margin:0;min-height:300vh}</style>"
+        (Path(__file__).with_name("fixtures") / "wayland-rendering.html").read_text(
+            encoding="utf-8"
+        )
     )
     driver.get(page.as_uri())
     WebDriverWait(driver, 15).until(lambda d: d.title == "Zen Wayland rendering check")
@@ -244,12 +266,11 @@ def create_fixture(directory: Path) -> Path:
         message = f"Incorrect HDR fixture metadata: {stream}"
         raise RuntimeError(message)
     page = directory / "index.html"
-    page.write_text("""<!doctype html><meta charset="utf-8">
-<title>Zen HDR output check</title>
-<style>body{background:#222;color:white}video{width:640px;max-width:95vw}
-video:fullscreen{width:100%;height:100%}</style>
-<button onclick="document.querySelector('video').requestFullscreen()">Fullscreen HDR</button>
-<video src="hdr.webm" muted loop autoplay controls></video>""")
+    page.write_text(
+        (Path(__file__).with_name("fixtures") / "hdr-output.html").read_text(
+            encoding="utf-8"
+        )
+    )
     return page
 
 
@@ -264,11 +285,8 @@ def check(driver: webdriver.Firefox, args: argparse.Namespace, page: Path) -> bo
 
     def snapshot(name: str) -> None:
         state = connector_eotf(args.modetest, args.drm_device, args.connector)
-        state["video"] = (
-            driver.execute_script("""const v=document.querySelector('video');
-const q=v.getVideoPlaybackQuality();return {frames:q.totalVideoFrames,
-dropped:q.droppedVideoFrames,fullscreen:!!document.fullscreenElement,
-paused:v.paused,error:v.error?.message ?? null,width:v.videoWidth,height:v.videoHeight};""")
+        state["video"] = driver.execute_script(
+            _browser_program("video-playback-quality.cts")
         )
         states[name] = state
         (args.output / "result.json").write_text(json.dumps(states, indent=2) + "\n")
@@ -317,17 +335,19 @@ paused:v.paused,error:v.error?.message ?? null,width:v.videoWidth,height:v.video
     return passed
 
 
-def _wait_for_browser(browser: subprocess.Popen, port: int) -> None:
-    deadline = time.monotonic() + 30
-    while True:
-        if browser.poll() is not None or time.monotonic() >= deadline:
-            message = "Browser did not start; inspect browser.log"
-            raise RuntimeError(message)
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
-                return
-        except OSError:
-            time.sleep(0.1)
+def _wait_for_browser(log: Path, port: int) -> None:
+    """Observe Marionette's post-listen announcement, then connect once."""
+    marker = f"Listening on port {port}".encode()
+
+    def listening() -> bool:
+        return any(
+            b"Marionette" in line and marker in line
+            for line in log.read_bytes().splitlines()
+        )
+
+    FileChanges(log.parent).wait(listening, timeout=30)
+    # Gecko announces readiness after asyncListen; the driver makes the real
+    # protocol connection below, without speculative TCP clients.
 
 
 def main() -> int:
@@ -384,13 +404,13 @@ def main() -> int:
                     "-profile",
                     str(profile),
                     "-marionette",
-                    "--remote-allow-system-access",
                 ],
                 stdout=log,
                 stderr=subprocess.STDOUT,
+                env=os.environ | {"MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"},
             )
             try:
-                _wait_for_browser(browser, port)
+                _wait_for_browser(args.output / "browser.log", port)
                 driver = webdriver.Firefox(
                     options=Options(),
                     service=Service(
@@ -415,7 +435,7 @@ def main() -> int:
                 finally:
                     browser.terminate()
                     try:
-                        browser.wait(timeout=5)
+                        wait_child(browser, timeout=5)
                     except subprocess.TimeoutExpired:
                         browser.kill()
                         browser.wait()

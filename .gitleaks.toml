@@ -78,6 +78,10 @@ regex = '''(?i)[a-z0-9._%+-]+@(?:gmail\.com|googlemail\.com|icloud\.com|me\.com|
 id = "hardware-disk-identity"
 description = "Supply physical disk identifiers through private installer configuration."
 regex = '''/dev/disk/by-id/(?:nvme|ata|scsi|wwn|usb)-[A-Za-z0-9_.:-]+'''
+[[rules.allowlists]]
+description = "Deliberately nonexistent USB disk used by the offline layout test."
+regexTarget = "match"
+regexes = ['''^/dev/disk/by-id/usb-UNCONFIGURED-HOMELAB$''']
 
 [[rules]]
 id = "docs-hardware-address"

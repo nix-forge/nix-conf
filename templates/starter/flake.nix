@@ -62,7 +62,7 @@
                 ./vm.nix
               ];
             };
-            testScript = import ./tests/vm.nix;
+            testScript = builtins.readFile ./tests/vm.py;
           };
         }
       );

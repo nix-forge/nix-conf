@@ -1,30 +1,17 @@
-"""Compare parent-first teardown on the exact unpatched and repaired compositor."""
+"""Validate current direct-DRM raw and repaired parent-first lifecycles."""
 
+# Driver-provided guests are intentionally started sequentially to bound memory.
+import json
 import re
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, cast
+
+from hyprland.lifetime import lifetime_contract
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from test_driver.machine import QemuMachine
 
-
-class Guest(Protocol):
-    """The small NixOS driver interface used by this regression."""
-
-    def succeed(self, command: str) -> str:
-        """Execute a successful guest command."""
-        ...
-
-    def execute(self, command: str) -> tuple[int, str]:
-        """Execute a guest command and return its status and output."""
-        ...
-
-    def wait_for_file(self, path: str, *, timeout: int = 60) -> None:
-        """Wait for a guest file with a bounded deadline."""
-        ...
-
-    def copy_from_machine(self, path: str) -> None:
-        """Preserve a guest log as test evidence."""
-        ...
+    baseline: QemuMachine = cast("QemuMachine", None)
+    repaired: QemuMachine = cast("QemuMachine", None)
 
 
 def require_parent_protocols(capabilities: str) -> None:
@@ -44,68 +31,129 @@ def require_parent_protocols(capabilities: str) -> None:
         assert versions.get(interface, 0) >= required, capabilities
 
 
-def verify(guest: Guest, *, expect_crash: bool, parent_only: bool = False) -> None:
-    """Require the original crash and successful repaired lifecycle scenarios."""
-    guest.succeed("command -v wayland-scanner cc pkg-config jq setsid timeout")
-    guest.wait_for_file("/dev/dri/renderD128")
-    guest.succeed("mkdir -m700 /run/lifetime-parent")
-    guest.succeed(
-        "XDG_RUNTIME_DIR=/run/lifetime-parent WLR_BACKENDS=headless "
-        "WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 "
-        "WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 LIBGL_ALWAYS_SOFTWARE=1 "
-        "cage -- sleep 600 > /var/log/lifetime-cage.log 2>&1 & "
-        "echo $! > /run/lifetime-cage.pid"
+def compositor_ready(guest: QemuMachine) -> tuple[int, str, str]:
+    """Bind readiness and protocol evidence to the owned live compositor.
+
+    Returns:
+        The owned PID, signature and command environment.
+
+    """
+    pid = int(
+        guest.succeed(
+            "systemctl show --property=MainPID --value lifetime-compositor"
+        ).strip()
     )
-    guest.succeed(
-        "sleep 1; kill -0 $(cat /run/lifetime-cage.pid) || "
-        "{ cat /var/log/lifetime-cage.log >&2; exit 1; }"
+    assert pid > 0, "Owned compositor has no live service PID"
+    instances = [
+        json.loads(
+            guest.succeed(
+                "XDG_RUNTIME_DIR=/run/lifetime-proof python3 /etc/lifetime-observer/compositor_lifecycle.py startup "
+                + str(pid)
+                + " --runtime /run/lifetime-proof --evidence /tmp/lifetime-home/cache"
+            )
+        )
+    ]
+    observed = instances[0]
+    instances = json.loads(
+        guest.succeed("XDG_RUNTIME_DIR=/run/lifetime-proof hyprctl instances -j")
     )
-    guest.wait_for_file("/run/lifetime-parent/wayland-0")
-    capabilities = guest.succeed(
-        "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 wayland-info"
+    assert isinstance(instances, list), instances
+    assert len(instances) == 1, instances
+    assert all(
+        instances[0].get(field) == observed[field]
+        for field in ("pid", "instance", "wl_socket")
+    ), instances
+    instance = instances[0]
+    signature, display = instance["instance"], instance["wl_socket"]
+    assert isinstance(signature, str), instance
+    assert re.fullmatch(r"[A-Za-z0-9_.-]+", signature), instance
+    assert isinstance(display, str), instance
+    assert re.fullmatch(r"wayland-[0-9]+", display), instance
+    pid = int(
+        guest.succeed(
+            "systemctl show --property=MainPID --value lifetime-compositor"
+        ).strip()
     )
+    assert pid > 0, instance
+    assert type(instance["pid"]) is int, instance
+    assert instance["pid"] == pid, instance
+    env = f"XDG_RUNTIME_DIR=/run/lifetime-proof WAYLAND_DISPLAY={display} HYPRLAND_INSTANCE_SIGNATURE={signature}"
+    capabilities = guest.succeed(env + " wayland-info")
     require_parent_protocols(capabilities)
-    scenarios = (
-        "HYPRLAND_TEST_SCENARIOS=child-first "
-        if parent_only
-        else "HYPRLAND_TEST_SCENARIOS='orphan disconnect feedback child-first' "
+    monitors = json.loads(guest.succeed(env + " hyprctl monitors -j"))
+    assert len(monitors) == 1, monitors
+    assert monitors[0]["width"] > 0, monitors
+    assert monitors[0]["height"] > 0, monitors
+    rendering = guest.succeed(env + " hyprctl systeminfo")
+    assert re.search(r"GL ver: 3\.[02]", rendering), rendering
+    renderer = guest.succeed(
+        "timeout 15 journalctl -u lifetime-compositor --no-pager --grep='Renderer:' | tail -c 8192"
     )
-    status, _ = guest.execute(
-        "XDG_RUNTIME_DIR=/run/lifetime-parent WAYLAND_DISPLAY=wayland-0 "
-        "LIBGL_ALWAYS_SOFTWARE=1 AQ_BACKEND=wayland KEEP_TEST_OUTPUT=1 "
-        + scenarios
-        + 'timeout 240 bash /etc/lifetime-probe/check-subsurface-teardown.sh "$HYPRLAND_UNDER_TEST" '
-        "> /var/log/lifetime-probe.log 2>&1"
-    )
-    output = guest.succeed("cat /var/log/lifetime-probe.log")
-    guest.copy_from_machine("/var/log/lifetime-probe.log")
-    guest.copy_from_machine("/var/log/lifetime-cage.log")
-    backend_logs = guest.succeed(
-        "find /tmp -type f \\( -name compositor.log -o -name hyprland.log \\) "
-        "-exec cat '{}' +"
-    )
-    if expect_crash:
-        assert status != 0, "Unpatched parent-first teardown unexpectedly succeeded"
-        reports = guest.succeed(
-            "find /tmp -name 'hyprlandCrashReport*.txt' -exec cat '{}' +"
-        )
-        assert "posRelativeToParent" in reports, (
-            "The baseline failed without reproducing the parent-lifetime crash: "
-            + output
-            + reports
-            + backend_logs
-        )
-    else:
-        assert status == 0, output + backend_logs
-        assert "PASS: compositor survived every selected subsurface lifecycle" in output
-        assert "exited cleanly" in output
+    assert re.search(r"Renderer: (?:llvmpipe|softpipe)\b", renderer), renderer
+    return pid, signature, env
 
 
-# NixOS's test driver supplies these guests and the lifecycle entrypoint.
-_start = cast("Callable[[], None]", globals()["start_all"])
-_start()
+def verify_lifetime(
+    guest: QemuMachine, *, expect_crash: bool, parent_only: bool = False
+) -> None:
+    """Require actual current protocol, renderer, lifecycle and manager exit gates."""
+    guest.start()
+    try:
+        guest.wait_for_unit("multi-user.target")
+        guest.wait_for_file("/dev/dri/card0")
+        guest.succeed(
+            "mkdir -m700 /run/lifetime-proof; mkdir -p /tmp/lifetime-home/cache /tmp/lifetime-proof"
+        )
+        guest.succeed(
+            "systemd-run --unit=lifetime-compositor --property=Type=exec --property=RuntimeMaxSec=240 "
+            "--setenv=XDG_RUNTIME_DIR=/run/lifetime-proof --setenv=LIBGL_ALWAYS_SOFTWARE=1 "
+            "--setenv=AQ_DRM_DEVICES=/dev/dri/card0 --setenv=HOME=/tmp/lifetime-home "
+            "--setenv=XDG_CACHE_HOME=/tmp/lifetime-home/cache --setenv=PATH=/run/current-system/sw/bin "
+            "Hyprland --i-am-really-stupid --config /etc/lifetime-proof.lua"
+        )
+        guest.wait_for_unit("lifetime-compositor.service", timeout=45)
+        pid, signature, env = compositor_ready(guest)
+        command = (
+            env
+            + " timeout 240 python3 /etc/lifetime-observer/lifetime_cases.py "
+            + str(pid)
+            + " "
+            + signature
+        )
+        if expect_crash:
+            command += " --expect-crash"
+        elif parent_only:
+            command += " --child-first-control"
+        guest.succeed(command + " > /tmp/lifetime-proof/cases.log 2>&1")
+        receipt = json.loads(guest.succeed("cat /tmp/lifetime-proof/cases.json"))
+        assert receipt["originalPidfdExitObserved"] is True, receipt
+        assert receipt["managerCompletionObserved"] is True, receipt
+        if expect_crash:
+            reports = guest.succeed(
+                "find /tmp/lifetime-home/cache -name 'hyprlandCrashReport*.txt' -exec cat '{}' +"
+            )
+            lifetime_contract.require_baseline(receipt["baselineFailure"], reports)
+        elif parent_only:
+            lifetime_contract.require_child_first_control(
+                [tuple(record) for record in receipt["results"]], receipt["shutdown"]
+            )
+        else:
+            lifetime_contract.require_repaired(
+                [tuple(record) for record in receipt["results"]], receipt["shutdown"]
+            )
+    finally:
+        guest.execute("timeout 15 systemctl stop lifetime-compositor")
+        guest.execute(
+            "timeout 15 journalctl -u lifetime-compositor --no-pager | tail -c 262144 > /tmp/lifetime-proof/compositor.log"
+        )
+        evidence_target = "baseline" if expect_crash else "repaired"
+        guest.copy_from_machine("/tmp/lifetime-proof", target_dir=evidence_target)  # ruff: ignore[hardcoded-temp-file] -- Fresh guest-owned evidence.
+        guest.copy_from_machine("/tmp/lifetime-home/cache", target_dir=evidence_target)  # ruff: ignore[hardcoded-temp-file] -- The current owned compositor cache only.
+        guest.shutdown()
+
+
 if globals().get("parent_only", False):
-    verify(cast("Guest", globals()["baseline"]), expect_crash=False, parent_only=True)
+    verify_lifetime(baseline, expect_crash=False, parent_only=True)
 else:
-    verify(cast("Guest", globals()["baseline"]), expect_crash=True)
-    verify(cast("Guest", globals()["repaired"]), expect_crash=False)
+    verify_lifetime(baseline, expect_crash=True)
+    verify_lifetime(repaired, expect_crash=False)

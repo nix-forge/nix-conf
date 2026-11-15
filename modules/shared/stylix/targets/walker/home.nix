@@ -14,6 +14,7 @@
     in
     {
       key = "nix-conf/stylix/walker/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.walker.enable = config.lib.stylix.mkEnableTarget "walker" true;
       config = lib.optionalAttrs (options ? desktop.walker) (

@@ -1,0 +1,10 @@
+#!__interpreter__
+import time
+
+failure = __failure__
+if failure == "exit":
+    raise SystemExit(1)
+if failure == "malformed":
+    print("not JSON")
+if failure == "timeout":
+    time.sleep(10)

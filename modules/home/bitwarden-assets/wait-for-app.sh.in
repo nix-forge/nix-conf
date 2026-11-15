@@ -1,0 +1,2 @@
+# shellcheck shell=bash
+run /bin/wait4path @app@

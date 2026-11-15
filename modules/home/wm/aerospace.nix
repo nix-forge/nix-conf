@@ -1,4 +1,21 @@
-_: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  imports = [
+    ../macos/application-capabilities.nix
+    ../macos/applications.nix
+  ];
+
+  # The graphical process must use the same copied bundle as Spotlight. Keep
+  # the package's CLI for IPC and let launchd supervise the copied executable.
+  launchd.agents.aerospace.config.Program = lib.mkIf config.macos.applications.enable (
+    lib.mkForce "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/AeroSpace.app/Contents/MacOS/AeroSpace"
+  );
+
   programs.aerospace = {
     enable = true;
     launchd.enable = true;
@@ -152,6 +169,21 @@ _: {
           "join-with right"
           "mode main"
         ];
+      };
+    };
+  };
+
+  macos.applicationCapabilities.apps.aerospace = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    enable = lib.mkDefault config.programs.aerospace.enable;
+    bundle = "AeroSpace.app";
+    bundleId = "bobko.aerospace";
+    features = {
+      windowManagement = {
+        enable = lib.mkDefault true;
+        service = "accessibility";
+        reason = "Manage windows using AeroSpace";
+        source = "https://github.com/nikitabobko/AeroSpace/blob/main/dev-docs/development.md";
+        instruction = "Move and focus a disposable window using the configured AeroSpace shortcuts.";
       };
     };
   };

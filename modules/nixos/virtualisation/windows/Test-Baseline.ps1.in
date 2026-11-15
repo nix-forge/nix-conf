@@ -19,6 +19,11 @@ __REMOVE_APPX_PACKAGES__
 $ManagedRoot = Join-Path $env:ProgramData 'ManagedVm'
 $failures = [System.Collections.Generic.List[string]]::new()
 
+$unhealthyDevices = @(Get-CimInstance Win32_PnPEntity | Where-Object { $_.ConfigManagerErrorCode -ne 0 })
+foreach ($device in $unhealthyDevices) {
+    $failures.Add("Device $($device.PNPDeviceID) reports configuration error $($device.ConfigManagerErrorCode)")
+}
+
 if ($RecipeFingerprint -notmatch '^[0-9a-f]{64}$') {
     $failures.Add('The public recipe fingerprint is malformed')
 }
@@ -177,7 +182,7 @@ else {
     }
 }
 
-foreach ($serviceName in @('qemu-ga', 'sshd')) {
+foreach ($serviceName in @('qemu-ga', 'sshd', 'BalloonService')) {
     $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
     if (-not $service -or $service.StartType -ne 'Automatic' -or $service.Status -ne 'Running') {
         $failures.Add("$serviceName is not running with automatic startup")
@@ -216,13 +221,60 @@ if ($null -ne $edgeSecurity) {
 }
 
 $sshRule = Get-NetFirewallRule -DisplayName 'Managed VM SSH from host' -ErrorAction SilentlyContinue
-if (-not $sshRule -or $sshRule.Enabled -ne 'True' -or $sshRule.Action -ne 'Allow') {
+if (@($sshRule).Count -ne 1 -or $sshRule.Enabled -ne 'True' -or $sshRule.Action -ne 'Allow' -or $sshRule.Direction -ne 'Inbound') {
     $failures.Add('The host-restricted SSH firewall rule is not enabled')
 }
+else {
+    $sshAddresses = $sshRule | Get-NetFirewallAddressFilter
+    $sshPorts = $sshRule | Get-NetFirewallPortFilter
+    if (
+        $sshAddresses.LocalAddress -ne $ManagementGuestAddress -or
+        $sshAddresses.RemoteAddress -ne '__MANAGEMENT_HOST_ADDRESS__' -or
+        $sshPorts.Protocol -ne 'TCP' -or
+        $sshPorts.LocalPort -ne '22'
+    ) {
+        $failures.Add('The SSH firewall rule does not restrict both endpoints to the management network')
+    }
+}
 
-$sshdConfig = Get-Content -LiteralPath (Join-Path $env:ProgramData 'ssh\sshd_config') -Raw
-if ($sshdConfig -notmatch '(?m)^PasswordAuthentication no$' -or $sshdConfig -notmatch '(?m)^KbdInteractiveAuthentication no$') {
-    $failures.Add('OpenSSH still permits password or keyboard-interactive authentication')
+$sshDirectory = Join-Path $env:ProgramData 'ssh'
+$protectedSshPaths = @(
+    $sshDirectory,
+    (Join-Path $sshDirectory 'sshd_config'),
+    (Join-Path $sshDirectory 'administrators_authorized_keys'),
+    (Join-Path $sshDirectory 'ssh_host_ed25519_key')
+) + @(Get-ChildItem -LiteralPath $sshDirectory -Filter 'ssh_host_*_key' -File | Select-Object -ExpandProperty FullName)
+foreach ($protectedPath in @($protectedSshPaths | Select-Object -Unique)) {
+    if (-not (Test-Path -LiteralPath $protectedPath)) {
+        $failures.Add("Protected SSH path is missing: $protectedPath")
+        continue
+    }
+    $acl = Get-Acl -LiteralPath $protectedPath
+    $trustedSids = @('S-1-5-18', 'S-1-5-32-544')
+    if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $trustedSids -or -not $acl.AreAccessRulesProtected) {
+        $failures.Add("SSH ownership or inheritance is unsafe: $protectedPath")
+    }
+    $rules = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
+    if (
+        $rules.Count -ne 2 -or
+        @($rules | Where-Object {
+            $_.IdentityReference.Value -notin $trustedSids -or
+            $_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+            $_.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl
+        }).Count -ne 0 -or
+        @($rules | Select-Object -ExpandProperty IdentityReference -Unique).Count -ne 2
+    ) {
+        $failures.Add("SSH permissions are not restricted to SYSTEM and Administrators: $protectedPath")
+    }
+}
+
+$sshdConfig = (Get-Content -LiteralPath (Join-Path $sshDirectory 'sshd_config') -Raw) -replace "`r", ''
+if (
+    $sshdConfig -notmatch "(?m)^ListenAddress $([regex]::Escape($ManagementGuestAddress))$" -or
+    $sshdConfig -notmatch '(?m)^PasswordAuthentication no$' -or
+    $sshdConfig -notmatch "(?m)^AllowUsers $([regex]::Escape($AdministratorName.ToLowerInvariant()))$"
+) {
+    $failures.Add('OpenSSH does not have the declared management listener and key-only administrator policy')
 }
 
 $pagefile = Get-CimInstance -ClassName Win32_ComputerSystem

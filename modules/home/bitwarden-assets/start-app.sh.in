@@ -1,0 +1,2 @@
+# shellcheck shell=bash
+/bin/wait4path @app@ && exec /usr/bin/open -gj -a @app@

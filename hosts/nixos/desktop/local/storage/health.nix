@@ -2,14 +2,16 @@
   config,
   lib,
   pkgs,
+  myLib,
   utils,
   ...
 }:
 let
+  python = pkgs.python3.withPackages (_: [ (myLib.python.notificationProcess { inherit pkgs; }) ]);
   cfg = config.hardware.storage.encryptedRoot;
   destinations = cfg.backup.destinations;
   inherit (cfg) health;
-  mounts =
+  primaryMounts =
     if cfg.enable then
       [
         "/"
@@ -20,11 +22,19 @@ let
         "/"
         "/mnt/games"
       ];
+  mounts =
+    primaryMounts ++ lib.optional (config.hardware.storage.homelabHdd.enable or false) "/mnt/homelab";
   units = [
     "smartd.service"
     "fstrim.service"
   ]
-  ++ map (path: "btrfs-scrub@${utils.escapeSystemdPath path}.service") mounts
+  ++ lib.optionals cfg.capacity.enable [
+    "desktop-storage-collect.service"
+    "desktop-generation-retention.service"
+  ]
+  ++ map (path: "btrfs-scrub@${utils.escapeSystemdPath path}.service") primaryMounts
+  ++ lib.optional (config.hardware.storage.homelabHdd.enable or false
+  ) "btrfs-scrub-mnt-homelab.service"
   ++ lib.optionals cfg.enable [ "desktop-data-ready.service" ]
   ++ lib.optionals cfg.enable (
     lib.concatMap
@@ -42,13 +52,19 @@ let
     "restic-backups-desktop-${name}.service"
     "desktop-backup-verify-${name}.service"
     "desktop-backup-cold-${name}.service"
-  ]) (builtins.attrNames destinations);
+  ]) (builtins.attrNames destinations)
+  ++ lib.optional (config.systemd.services.restic-backups-desktop-homelab-databases.enable or false
+  ) "restic-backups-desktop-homelab-databases.service";
   policy = pkgs.writeText "desktop-storage-health.json" (
     builtins.toJSON {
       inherit mounts units;
       inherit (health) probes notificationCommand;
       encrypted = cfg.enable;
       warningPercent = 80;
+      capacityCommand = lib.optionals cfg.capacity.enable [
+        (lib.getExe config.system.build.desktopStorageCapacity)
+        "status"
+      ];
       stateDirectory = "/var/lib/desktop-storage";
       backupPolicy = "/etc/desktop-storage/backup-policy.json";
     }
@@ -57,15 +73,17 @@ let
     name = "desktop-storage-status";
     runtimeInputs = [
       config.system.build.desktopBackupCheck
-      pkgs.python3
+      python
       pkgs.btrfs-progs
       pkgs.systemd
       pkgs.util-linux
       pkgs.libnotify
     ];
-    text = ''
-      exec ${lib.getExe pkgs.python3} ${./health.py} ${policy} "$@"
-    '';
+    text = (import ../../../../../lib/templates/text.nix) ./scripts/desktop-storage-status.sh {
+      lib_getExe_pkgs_python3 = lib.getExe python;
+      health_py = ./health.py;
+      inherit policy;
+    };
   };
 in
 {

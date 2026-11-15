@@ -1,7 +1,7 @@
 # Hyprland validation evidence
 
 The reviewed results and their limitations are recorded in
-[the validation note](../../hyprland-upstream-local-validation.md).
+[the validation note](../../operations/hyprland-upstream-local-validation.md).
 
 The baseline failed deep-ancestry and mapped parent-teardown cases. The fixed
 native run reported nine passing cases, followed by the documented test-harness

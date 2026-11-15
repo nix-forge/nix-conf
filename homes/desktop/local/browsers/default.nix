@@ -1,10 +1,14 @@
+{ lib, ... }:
+let
+  network = builtins.fromJSON (builtins.readFile ../../../../hosts/shared/local/network.json);
+in
 {
   imports = [
-    ../../../shared/browsers/common.nix
-    ../../../shared/browsers/bitwarden.nix
-    ../../../shared/browsers/extensions.nix
-    ../../../shared/browsers/search.nix
-    ../../../shared/browsers/zen.nix
+    ../../../shared/local/browsers/common.nix
+    ../../../shared/local/browsers/bitwarden.nix
+    ../../../shared/local/browsers/extensions.nix
+    ../../../shared/local/browsers/search.nix
+    ../../../shared/local/browsers/zen.nix
   ];
 
   # Blocky and Unbound own encrypted DNS on this host. Avoid sending a second,
@@ -22,4 +26,15 @@
     "gfx.color_management.hdr" = false;
     "gfx.color_management.hdr.force_enabled" = false;
   };
+
+  # BookOrbit's translucent dashboard cards show moving WebRender seams over
+  # the page pattern. Removing their 1px backdrop blur fixes the artifact.
+  programs.zen-browser.profiles.default.userContent = lib.mkAfter ''
+    @-moz-document domain("bookorbit.${network.homelabDomain}") {
+      [class~="group/card"],
+      [class~="group/scroller"] {
+        backdrop-filter: none !important;
+      }
+    }
+  '';
 }

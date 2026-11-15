@@ -9,7 +9,12 @@ let
   moduleFormatVersion = 2;
 
   dockutilExe = lib.getExe cfg.package;
-  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" { } ./dock_state.py;
+  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" {
+    flakeIgnore = [
+      "E501"
+      "W503"
+    ];
+  } ./dock_state.py;
   dockStateExe = lib.getExe dockStateHelper;
 
   absolutePathType = lib.types.strMatching "^/.*";
@@ -99,24 +104,20 @@ let
       label = if item ? hmApp then "Home Manager app `${item.hmApp}`" else "app `${item.app}`";
       msg = "error: Dock item ${label} does not exist at ${path}";
     in
-    ''
-      if [ -z "''${DRY_RUN:-}" ] && [ ! -d ${lib.escapeShellArg path} ]; then
-        echo ${lib.escapeShellArg msg} >&2
-        exit 1
-      fi
-    '';
+    (import ../../../lib/templates/text.nix) ./scripts/validate-dock-application.sh {
+      lib_escapeShellArg_path = lib.escapeShellArg path;
+      lib_escapeShellArg_msg = lib.escapeShellArg msg;
+    };
 
   validateFolder =
     folder:
     let
       msg = "error: Dock folder ${folder.path} does not exist or is not a directory";
     in
-    ''
-      if [ -z "''${DRY_RUN:-}" ] && [ ! -d ${lib.escapeShellArg folder.path} ]; then
-        echo ${lib.escapeShellArg msg} >&2
-        exit 1
-      fi
-    '';
+    (import ../../../lib/templates/text.nix) ./scripts/validate-dock-folder.sh {
+      lib_escapeShellArg_folder_path = lib.escapeShellArg folder.path;
+      lib_escapeShellArg_msg = lib.escapeShellArg msg;
+    };
 
   removeAllCommand = noRestart: ''
     run ${dockutilExe} --remove all${withNoRestart noRestart}
@@ -127,40 +128,37 @@ let
     let
       path = appPath item;
     in
-    ''
-      run ${dockutilExe} \
-        --add ${lib.escapeShellArg path} \
-        --section apps \
-        --position end${withNoRestart noRestart}
-    '';
+    (import ../../../lib/templates/text.nix) ./scripts/add-dock-application.sh {
+      inherit dockutilExe;
+      lib_escapeShellArg_path = lib.escapeShellArg path;
+      withNoRestart_noRestart = withNoRestart noRestart;
+    };
 
   addSpacerCommand =
     item: noRestart:
     let
       spacerType = if item.spacer.small then "small-spacer" else "spacer";
     in
-    ''
-      run ${dockutilExe} \
-        --add ${lib.escapeShellArg ""} \
-        --type ${spacerType} \
-        --section apps \
-        --position end${withNoRestart noRestart}
-    '';
+    (import ../../../lib/templates/text.nix) ./scripts/add-dock-spacer.sh {
+      inherit dockutilExe;
+      lib_escapeShellArg = lib.escapeShellArg "";
+      inherit spacerType;
+      withNoRestart_noRestart = withNoRestart noRestart;
+    };
 
   addOtherCommand =
     item: noRestart:
     let
       inherit (item) folder;
     in
-    ''
-      run ${dockutilExe} \
-        --add ${lib.escapeShellArg folder.path} \
-        --section others \
-        --view ${showAsMap.${folder.showAs}} \
-        --display ${folder.displayAs} \
-        --sort ${arrangementMap.${folder.arrangement}} \
-        --position end${withNoRestart noRestart}
-    '';
+    (import ../../../lib/templates/text.nix) ./scripts/add-dock-folder.sh {
+      inherit dockutilExe;
+      lib_escapeShellArg_folder_path = lib.escapeShellArg folder.path;
+      showAsMap_folder_showAs = showAsMap.${folder.showAs};
+      folder_displayAs = folder.displayAs;
+      arrangementMap_folder_arrangement = arrangementMap.${folder.arrangement};
+      withNoRestart_noRestart = withNoRestart noRestart;
+    };
 
   commandFns = [
     removeAllCommand
@@ -334,49 +332,16 @@ in
       }
     ];
 
-    home.activation.syncDockItems = lib.hm.dag.entryAfter activationDeps ''
-      dock_cache_directory="${dockCacheDirectory}/home-manager-macos"
-      dock_config_hash_path="$dock_cache_directory/dock-config.hash"
-      dock_state_hash_path="$dock_cache_directory/dock-state.hash"
-      old_config_hash=$(cat "$dock_config_hash_path" 2>/dev/null || true)
-      old_state_hash=$(cat "$dock_state_hash_path" 2>/dev/null || true)
-      new_config_hash="${dockStateHash}"
-      current_state_hash=""
-      needs_sync=""
-
-      if [ ${lib.escapeShellArg cfg.mode} = authoritative ] && [ -z "''${DRY_RUN:-}" ]; then
-        current_state_hash="$(${dockStateExe})" || exit 1
-      fi
-
-      if [ "$old_config_hash" != "$new_config_hash" ]; then
-        needs_sync=1
-      elif [ ${lib.escapeShellArg cfg.mode} = authoritative ] && [ "$old_state_hash" != "$current_state_hash" ]; then
-        needs_sync=1
-      fi
-
-      if [ -n "$needs_sync" ] || [ -n "''${DRY_RUN:-}" ]; then
-        verboseEcho "setting up Dock items..."
-
-        if [ -z "''${DRY_RUN:-}" ] && ! ${dockutilExe} --list >/dev/null; then
-          echo "error: dockutil cannot read this macOS Dock; refusing to remove any items" >&2
-          exit 1
-        fi
-
-        ${validateTargets}
-        ${renderCommandFns commandFns}
-
-        if [ -z "''${DRY_RUN:-}" ]; then
-          current_state_hash="$(${dockStateExe})" || exit 1
-          install -d -m 0700 "$dock_cache_directory"
-          printf '%s\n' "$new_config_hash" > "$dock_config_hash_path.new"
-          printf '%s\n' "$current_state_hash" > "$dock_state_hash_path.new"
-          chmod 0600 "$dock_config_hash_path.new" "$dock_state_hash_path.new"
-          mv -f "$dock_config_hash_path.new" "$dock_config_hash_path"
-          mv -f "$dock_state_hash_path.new" "$dock_state_hash_path"
-        fi
-      else
-        verboseEcho "Dock items unchanged, skipping..."
-      fi
-    '';
+    home.activation.syncDockItems = lib.hm.dag.entryAfter activationDeps (
+      (import ../../../lib/templates/text.nix) ./scripts/sync-dock-items.sh {
+        inherit dockCacheDirectory;
+        inherit dockStateHash;
+        lib_escapeShellArg_cfg_mode = lib.escapeShellArg cfg.mode;
+        inherit dockStateExe;
+        inherit dockutilExe;
+        inherit validateTargets;
+        renderCommandFns_commandFns = renderCommandFns commandFns;
+      }
+    );
   };
 }

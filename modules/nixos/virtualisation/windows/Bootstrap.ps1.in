@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $AdministratorName = '__ADMINISTRATOR_NAME__'
+$EnableLUA = __ENABLE_LUA__
 $ManagementGuestAddress = '__MANAGEMENT_GUEST_ADDRESS__'
 $ManagementHostAddress = '__MANAGEMENT_HOST_ADDRESS__'
 $ActiveHoursStart = __ACTIVE_HOURS_START__
@@ -24,8 +25,7 @@ $StatusPath = Join-Path $ManagedRoot 'baseline-status.txt'
 $StepLogPath = Join-Path $ManagedRoot 'provisioning-steps.jsonl'
 $PreviousStepLogPath = Join-Path $ManagedRoot 'provisioning-steps.previous.jsonl'
 $ProvisioningRunId = [Guid]::NewGuid().ToString('D')
-$RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
-$RunValue = 'ManagedVmBootstrap'
+$RetryTaskName = 'ManagedVmBootstrap'
 $LocalBootstrap = Join-Path $ProvisioningRoot 'Bootstrap.ps1'
 $WinlogonKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 $AutologonMarker = Join-Path $ManagedRoot 'autologon-configured-v1'
@@ -109,7 +109,9 @@ function Set-RegistryDword {
         [int]$Value
     )
 
-    New-Item -Path $Path -Force | Out-Null
+    if (-not (Test-Path -Path $Path)) {
+        New-Item -Path $Path -Force | Out-Null
+    }
     New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
 }
 
@@ -150,6 +152,7 @@ function Install-VirtioDriver {
         'vioserial\w11\amd64\vioser.inf',
         'Balloon\w11\amd64\balloon.inf',
         'viorng\w11\amd64\viorng.inf',
+        'fwcfg\w11\amd64\fwcfg.inf',
         'vioinput\w11\amd64\vioinput.inf',
         'viogpudo\w11\amd64\viogpudo.inf'
     )
@@ -159,13 +162,71 @@ function Install-VirtioDriver {
         if (-not (Test-Path -LiteralPath $driver)) {
             throw "Required VirtIO driver is missing: $relativePath"
         }
-        Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\pnputil.exe" -ArgumentList @('/add-driver', $driver, '/install')
+        # PnPUtil returns 259 when no device needs this INF or a better driver
+        # is already active. Both cases are normal on a provisioning retry.
+        Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\pnputil.exe" -ArgumentList @('/add-driver', $driver, '/install') -SuccessExitCodes @(0, 259, 3010)
     }
 
+    # The balloon INF installs the kernel driver, not its statistics service.
+    # Install the service from the same pinned media into protected persistent
+    # storage, so ejecting the ISO cannot strand a CD-ROM service path.
+    $balloonDirectory = Join-Path $env:ProgramFiles 'Virtio-Win\Balloon'
+    $balloonExecutable = Join-Path $balloonDirectory 'blnsvr.exe'
+    $balloonService = Get-CimInstance Win32_Service -Filter "Name='BalloonService'" -ErrorAction SilentlyContinue
+    if ($null -eq $balloonService) {
+        $balloonSource = Join-Path $MediaRoot 'Balloon\w11\amd64\blnsvr.exe'
+        if (-not (Test-Path -LiteralPath $balloonSource -PathType Leaf)) {
+            throw 'The pinned VirtIO media does not contain the balloon statistics service'
+        }
+        New-Item -ItemType Directory -Path $balloonDirectory -Force | Out-Null
+        Copy-Item -LiteralPath $balloonSource -Destination $balloonExecutable -Force
+        Invoke-CheckedProcess -FilePath $balloonExecutable -ArgumentList @('-i')
+        $balloonService = Get-CimInstance Win32_Service -Filter "Name='BalloonService'" -ErrorAction SilentlyContinue
+    }
+    if ($null -eq $balloonService -or $balloonService.PathName.Trim('"') -ne $balloonExecutable) {
+        throw 'BalloonService is missing or belongs to another installation; refusing to replace it'
+    }
+    Set-Service -Name 'BalloonService' -StartupType Automatic
+    Start-Service -Name 'BalloonService'
+
     $guestAgentInstaller = Join-Path $MediaRoot 'guest-agent\qemu-ga-x86_64.msi'
-    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList @('/i', $guestAgentInstaller, '/qn', '/norestart') -SuccessExitCodes @(0, 1641, 3010)
+    if (-not (Get-Service -Name 'qemu-ga' -ErrorAction SilentlyContinue)) {
+        Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList @('/i', $guestAgentInstaller, '/qn', '/norestart') -SuccessExitCodes @(0, 1641, 3010)
+    }
     Set-Service -Name 'qemu-ga' -StartupType Automatic
     Start-Service -Name 'qemu-ga'
+}
+
+function Set-OpenSshPermission {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LiteralPath
+    )
+
+    $administrators = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+    $system = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+    $item = Get-Item -LiteralPath $LiteralPath
+    if ($item.PSIsContainer) {
+        $acl = [Security.AccessControl.DirectorySecurity]::new()
+        $inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    }
+    else {
+        $acl = [Security.AccessControl.FileSecurity]::new()
+        $inheritance = [Security.AccessControl.InheritanceFlags]::None
+    }
+    $acl.SetOwner($administrators)
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($identity in @($administrators, $system)) {
+        $rule = [Security.AccessControl.FileSystemAccessRule]::new(
+            $identity,
+            [Security.AccessControl.FileSystemRights]::FullControl,
+            $inheritance,
+            [Security.AccessControl.PropagationFlags]::None,
+            [Security.AccessControl.AccessControlType]::Allow
+        )
+        $acl.AddAccessRule($rule)
+    }
+    Set-Acl -LiteralPath $LiteralPath -AclObject $acl
 }
 
 function Install-OpenSsh {
@@ -192,44 +253,68 @@ function Install-OpenSsh {
     $sshDirectory = Join-Path $env:ProgramData 'ssh'
     $authorizedKeys = Join-Path $sshDirectory 'administrators_authorized_keys'
     New-Item -ItemType Directory -Path $sshDirectory -Force | Out-Null
+    Set-OpenSshPermission -LiteralPath $sshDirectory
     Copy-Item -LiteralPath $authorizedKeySource -Destination $authorizedKeys -Force
-    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\icacls.exe" -ArgumentList @($authorizedKeys, '/inheritance:r', '/grant', '*S-1-5-18:F', '/grant', '*S-1-5-32-544:F')
+    Set-OpenSshPermission -LiteralPath $authorizedKeys
 
     $sshdConfig = Join-Path $sshDirectory 'sshd_config'
     @(
         'Port 22'
         'AddressFamily inet'
-        'ListenAddress 0.0.0.0'
+        "ListenAddress $ManagementGuestAddress"
         'PubkeyAuthentication yes'
         'PasswordAuthentication no'
-        'KbdInteractiveAuthentication no'
         'PermitEmptyPasswords no'
-        "AllowUsers $AdministratorName"
+        "AllowUsers $($AdministratorName.ToLowerInvariant())"
         'Subsystem sftp sftp-server.exe'
         'Match Group administrators'
         '    AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys'
     ) | Set-Content -LiteralPath $sshdConfig -Encoding ascii -Force
+    Set-OpenSshPermission -LiteralPath $sshdConfig
 
     Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue | Disable-NetFirewallRule
     Get-NetFirewallRule -DisplayName 'Managed VM SSH from host' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-    New-NetFirewallRule -DisplayName 'Managed VM SSH from host' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 22 -RemoteAddress $ManagementHostAddress -Profile Any | Out-Null
+    New-NetFirewallRule -DisplayName 'Managed VM SSH from host' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 22 -LocalAddress $ManagementGuestAddress -RemoteAddress $ManagementHostAddress -Profile Any | Out-Null
 
+    # A fresh Windows OpenSSH capability has no host keys until its first
+    # service start. Generate them before validating the server configuration.
+    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\OpenSSH\ssh-keygen.exe" -ArgumentList @('-A')
+    # The first-logon administrator owns generated keys by default. sshd runs
+    # as SYSTEM and rejects that owner even when administrator-side -t passes.
+    foreach ($key in @(Get-ChildItem -LiteralPath $sshDirectory -Filter 'ssh_host_*_key' -File)) {
+        Set-OpenSshPermission -LiteralPath $key.FullName
+    }
+    Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\OpenSSH\sshd.exe" -ArgumentList @('-t', '-f', $sshdConfig)
     Set-Service -Name 'sshd' -StartupType Automatic
     Restart-Service -Name 'sshd'
 }
 
 function Set-ManagementNetworkPolicy {
-    $deadline = [DateTime]::UtcNow.AddMinutes(2)
-    $managementAddress = $null
-    while ($null -eq $managementAddress) {
-        $managementAddress = Get-NetIPAddress -AddressFamily IPv4 -IPAddress $ManagementGuestAddress -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -ne $managementAddress) {
-            break
+    # Subscribe before the snapshot so an address assigned during inspection is
+    # retained in PowerShell's event queue. Wait-Event blocks until a change.
+    $source = "ManagementAddress-$([Guid]::NewGuid())"
+    $subscription = Register-ObjectEvent -InputObject ([System.Net.NetworkInformation.NetworkChange]) -EventName NetworkAddressChanged -SourceIdentifier $source
+    $clock = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        while ($true) {
+            $managementAddress = Get-NetIPAddress -AddressFamily IPv4 -IPAddress $ManagementGuestAddress -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $managementAddress) {
+                break
+            }
+            $remaining = 120 - $clock.Elapsed.TotalSeconds
+            if ($remaining -le 0) {
+                throw "The management NIC did not receive $ManagementGuestAddress"
+            }
+            $change = Wait-Event -SourceIdentifier $source -Timeout ([int][Math]::Ceiling($remaining))
+            if ($null -eq $change) {
+                throw "The management NIC did not receive $ManagementGuestAddress"
+            }
+            Remove-Event -EventIdentifier $change.EventIdentifier
         }
-        if ([DateTime]::UtcNow -ge $deadline) {
-            throw "The management NIC did not receive $ManagementGuestAddress"
-        }
-        Start-Sleep -Seconds 2
+    } finally {
+        Unregister-Event -SubscriptionId $subscription.SubscriptionId
+        Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue | Remove-Event
+        $clock.Stop()
     }
 
     # The isolated NIC is only for host administration. Give it a deliberately
@@ -272,9 +357,11 @@ function Set-Autologon {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') {
         throw 'Sysinternals Autologon does not have a valid Microsoft signature'
     }
-    & $tool $AdministratorName $env:COMPUTERNAME $password '/accepteula'
-    if ($LASTEXITCODE -ne 0) {
-        throw "Sysinternals Autologon exited with code $LASTEXITCODE"
+    # Autologon is a GUI-subsystem executable. PowerShell does not reliably
+    # populate LASTEXITCODE for it, so wait for the process explicitly.
+    $process = Start-Process -FilePath $tool -ArgumentList @($AdministratorName, $env:COMPUTERNAME, $password, '/accepteula') -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "Sysinternals Autologon exited with code $($process.ExitCode)"
     }
     $configured = Get-ItemProperty -LiteralPath $WinlogonKey
     if (
@@ -412,10 +499,21 @@ function Remove-DeclaredAppxPackage {
             Installed = $installed.Count
             Provisioned = $provisioned.Count
             StartedAt = $startedAt
+            RemovalErrors = [System.Collections.Generic.List[string]]::new()
         }
 
-        $installed | Remove-AppxPackage -AllUsers -ErrorAction Continue
-        $provisioned | Remove-AppxProvisionedPackage -Online -AllUsers -ErrorAction Continue | Out-Null
+        try {
+            $installed | Remove-AppxPackage -AllUsers -ErrorAction Stop
+        }
+        catch {
+            $initialState[$packageName].RemovalErrors.Add("installed: $($_.Exception.Message)")
+        }
+        try {
+            $provisioned | Remove-AppxProvisionedPackage -Online -AllUsers -ErrorAction Stop | Out-Null
+        }
+        catch {
+            $initialState[$packageName].RemovalErrors.Add("provisioned: $($_.Exception.Message)")
+        }
     }
 
     $remainingPackages = [System.Collections.Generic.List[string]]::new()
@@ -441,6 +539,9 @@ function Remove-DeclaredAppxPackage {
         if ($installedAfter.Count -gt 0 -or $provisionedAfter.Count -gt 0) {
             $state = 'FAIL'
             $detail = "still present; installed=$($installedAfter.Count); provisioned=$($provisionedAfter.Count)"
+            if ($before.RemovalErrors.Count -gt 0) {
+                $detail += "; errors=$($before.RemovalErrors -join '; ')"
+            }
         }
         Add-ProvisioningRecord -State $state -Step "remove Appx $packageName" -StartedAt $before.StartedAt -Detail $detail
     }
@@ -485,11 +586,27 @@ function Initialize-LocalProvisioningCopy {
     foreach ($item in @(Get-ChildItem -LiteralPath $PSScriptRoot -Force)) {
         Copy-Item -LiteralPath $item.FullName -Destination $ProvisioningRoot -Recurse -Force
     }
+    # Files copied from the seed ISO retain its read-only attribute. Keep the
+    # local retry copy writable for recovery and subsequent provisioning.
+    Get-ChildItem -LiteralPath $ProvisioningRoot -Recurse -File -Force |
+        ForEach-Object { $_.IsReadOnly = $false }
     Invoke-CheckedProcess -FilePath "$env:SystemRoot\System32\icacls.exe" -ArgumentList @($ManagedRoot, '/inheritance:r', '/grant', '*S-1-5-18:(OI)(CI)F', '/grant', '*S-1-5-32-544:(OI)(CI)F')
 }
 
+function Register-BootstrapRetryTask {
+    if (Get-ScheduledTask -TaskName $RetryTaskName -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    $account = "$env:COMPUTERNAME\$AdministratorName"
+    $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$LocalBootstrap`""
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $account
+    $principal = New-ScheduledTaskPrincipal -UserId $account -LogonType Interactive -RunLevel Highest
+    Register-ScheduledTask -TaskName $RetryTaskName -Action $action -Trigger $trigger -Principal $principal -Force -ErrorAction Stop | Out-Null
+}
+
 Initialize-LocalProvisioningCopy
-New-ItemProperty -Path $RunKey -Name $RunValue -PropertyType String -Value "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$LocalBootstrap`"" -Force | Out-Null
+Register-BootstrapRetryTask
 New-Item -ItemType Directory -Path $ManagedRoot -Force | Out-Null
 if (Test-Path -LiteralPath $StepLogPath) {
     Move-Item -LiteralPath $StepLogPath -Destination $PreviousStepLogPath -Force
@@ -522,6 +639,11 @@ try {
     Invoke-ProvisioningStep -Name 'remove declared Appx packages' -Action {
         Remove-DeclaredAppxPackage
     }
+    Invoke-ProvisioningStep -Name 'apply runtime administrator token policy' -Action {
+        # FirstLogonCommands needs UAC enabled. Apply the declared runtime
+        # policy only after its bootstrap and retry entry have started.
+        Set-RegistryDword -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'EnableLUA' -Value $EnableLUA
+    }
     Invoke-ProvisioningStep -Name 'run private provisioning hook' -Action {
         Invoke-PrivateProvisioning
     }
@@ -531,7 +653,7 @@ try {
     Invoke-ProvisioningStep -Name 'publish SSH host identity' -Action {
         Copy-Item -LiteralPath (Join-Path $env:ProgramData 'ssh\ssh_host_ed25519_key.pub') -Destination (Join-Path $ManagedRoot 'ssh-host-ed25519-key.pub') -Force
     }
-    Remove-ItemProperty -Path $RunKey -Name $RunValue -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $RetryTaskName -Confirm:$false -ErrorAction Stop
     Write-BaselineStatus -State 'PASS' -Detail 'Public baseline and private provisioning completed'
 }
 catch {

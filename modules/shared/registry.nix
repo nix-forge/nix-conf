@@ -32,7 +32,12 @@ in
   };
 
   darwin =
-    args@{ lib, config, ... }:
+    args@{
+      lib,
+      config,
+      options,
+      ...
+    }:
     let
       registry = mkRegistry args;
       usingDeterminateNix = lib.hasAttr "determinateNix" config && config.determinateNix.enable;
@@ -48,7 +53,9 @@ in
       # /etc/nix/registry.json and points Determinate Nix at it. Do not put
       # flake-registry in customSettings as that would fight its generated
       # setting.
-      (lib.mkIf usingDeterminateNix { determinateNix.registry = registry; })
+      (lib.optionalAttrs (options ? determinateNix) (
+        lib.mkIf usingDeterminateNix { determinateNix.registry = registry; }
+      ))
     ];
 
   homeManager =

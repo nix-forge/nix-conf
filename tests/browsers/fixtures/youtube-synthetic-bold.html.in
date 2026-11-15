@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><style>
+body { background: #111; color: white; margin: 20px; }
+.sample { display: inline-block; white-space: nowrap; font-size: 16px;
+  line-height: 1; margin-right: 12px; }
+</style>
+<span id="reference" class="sample" style='font-family:"Roboto"'>__sample__</span>
+<span id="fallback" class="sample" style='font-family:__css_family_fallback_family__'>__sample__</span>
+<span id="configured-sans" class="sample" style='font-family:__css_family_configured_sans_family__'>__sample__</span>
+<span id="youtube" class="sample" style='font-family:__stacks_youtube__'>__sample__</span>
+<span id="synthetic" class="sample" style='font-family:__stacks_synthetic__'>__sample__</span>

@@ -141,10 +141,10 @@ show_ip() {
   domain_exists "$guest_name" || die "libvirt domain does not exist: $guest_name"
 
   addresses="$(@virsh@ --connect "$libvirt_uri" domifaddr "$guest_name" --source agent 2>/dev/null |
-    @awk@ 'NR > 2 && $4 != "" { sub(/\/.*/, "", $4); print $4 }')"
+    @awk@ 'NF >= 2 && $(NF-1) ~ /^ipv[46]$/ { sub(/\/.*/, "", $NF); print $NF }')"
   if [[ -z $addresses ]]; then
     addresses="$(@virsh@ --connect "$libvirt_uri" domifaddr "$guest_name" --source lease 2>/dev/null |
-      @awk@ 'NR > 2 && $4 != "" { sub(/\/.*/, "", $4); print $4 }')"
+      @awk@ 'NF >= 2 && $(NF-1) ~ /^ipv[46]$/ { sub(/\/.*/, "", $NF); print $NF }')"
   fi
 
   [[ -n $addresses ]] || die "no guest-agent or DHCP lease address is available for $guest_name"

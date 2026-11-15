@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><style>
+body { background:#111; color:white; margin:20px; }
+.sample { display:inline-block; white-space:nowrap; font:400 40px/1.15 __sans_css__; }
+</style><span id="sample" class="sample">__sample__</span>

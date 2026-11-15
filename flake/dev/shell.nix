@@ -3,20 +3,23 @@
     { config, pkgs, ... }:
     let
       inherit (config.pre-commit.settings) enabledPackages package shellHook;
+      probePython = import ./quality-python.nix { pkgs = pkgs.buildPackages; };
+      javascriptTools = import ./javascript-tools.nix { pkgs = pkgs.buildPackages; };
     in
     {
       # Hook validation needs the configured tools, not the interactive shell's
       # built seal CLI. Native secret-template checks exercise that binary.
-      devShells.tests = pkgs.mkShellNoCC {
+      devShells.tests = pkgs.buildPackages.mkShellNoCC {
         PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1";
         NIX_TEST_NIXPKGS = inputs.nixpkgs.outPath;
         NIX_TEST_FRAMEWORK = inputs.nix-config-framework.outPath;
         packages = [
-          (import ./test-python.nix { inherit pkgs; })
+          (import ./test-python.nix { pkgs = pkgs.buildPackages; })
         ]
-        ++ (with pkgs; [
+        ++ (with pkgs.buildPackages; [
           bash
           coreutils
+          curl
           dbus
           file
           findutils
@@ -25,30 +28,36 @@
           git
           gnugrep
           jq
+          just
           libxml2
           nix
           openssh
           perl
           restic
           util-linux
-        ]);
+        ])
+        ++ lib.optionals pkgs.buildPackages.stdenv.hostPlatform.isLinux [ pkgs.buildPackages.systemd ];
       };
-      devShells.ci = pkgs.mkShellNoCC {
+      devShells.ci = pkgs.buildPackages.mkShellNoCC {
         inherit shellHook;
         packages = enabledPackages ++ [
           package
-          pkgs.git
-          pkgs.gitleaks
+          pkgs.buildPackages.git
+          pkgs.buildPackages.gitleaks
         ];
       };
-      devShells.default = pkgs.mkShellNoCC {
+      devShells.default = pkgs.buildPackages.mkShellNoCC {
         inherit shellHook;
-        LIBRARY_PATH = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin "${pkgs.libiconv}/lib";
-        NIX_LDFLAGS = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin "-L${pkgs.libiconv}/lib";
+        LIBRARY_PATH = lib.optionalString pkgs.buildPackages.stdenv.hostPlatform.isDarwin "${pkgs.buildPackages.libiconv}/lib";
+        NIX_LDFLAGS = lib.optionalString pkgs.buildPackages.stdenv.hostPlatform.isDarwin "-L${pkgs.buildPackages.libiconv}/lib";
         packages =
           enabledPackages
-          ++ [ package ]
-          ++ (with pkgs; [
+          ++ [
+            package
+            probePython
+            javascriptTools
+          ]
+          ++ (with pkgs.buildPackages; [
             actionlint
             cargo
             cargo-audit
@@ -64,9 +73,8 @@
             nixd
             nixf-diagnose
             nixfmt
-            oxlint
+            nodejs_24
             pinact
-            prettier
             prek
             rumdl
             rust-analyzer
@@ -86,7 +94,7 @@
             config.packages.nix-seal
             bashInteractive
           ])
-          ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.libiconv ];
+          ++ lib.optionals pkgs.buildPackages.stdenv.hostPlatform.isDarwin [ pkgs.buildPackages.libiconv ];
       };
     };
 }

@@ -1,29 +1,24 @@
 {
   lib,
+  config,
   pkgs,
-  inputs,
   ...
 }:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [
+    # Retain the newer Python client. Interpreters stay project-owned and
+    # ty/Ruff use explicit Nix executables below; no implicit Pylance pack.
+    extensions = catalogExtensions [
       "ms-python.python"
-      "ms-python.vscode-pylance"
       "ms-python.debugpy"
-
-      "ms-toolsai.jupyter-renderers"
-      "ms-toolsai.jupyter"
-      "google.colab"
 
       "charliermarsh.ruff"
       "astral-sh.ty"
 
-      "kevinrose.vsc-python-indent"
-      "njpwerner.autodocstring"
-      "rodolphebarbanneau.python-docstring-highlighter"
     ];
 
     userSettings = {
@@ -44,18 +39,12 @@ in
       };
 
       "ruff.path" = [ (lib.getExe pkgs.ruff) ];
-      "ruff.lint.ignore" = [
-        "ERA001"
-        "W293"
-        "F841"
-        "E303"
-      ];
-      "errorLens.excludeBySource" = [ "Ruff" ];
-
-      "python.analysis.autoImportCompletions" = false;
+      "ty.path" = [ (lib.getExe pkgs.ty) ];
+      # Project Ruff configuration owns lint rules; do not hide diagnostics globally.
+      "ruff.configurationPreference" = "filesystemFirst";
       "python.languageServer" = "None"; # using ty instead
 
-      "python.terminal.activateEnvironment" = false; # using direnv instead
+      "python.terminal.activateEnvironment" = !config.programs.direnv.enable;
     };
   };
 }

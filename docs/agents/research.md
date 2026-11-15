@@ -19,8 +19,9 @@ delegated to a background agent.
    is not yet appropriate. Put raw traces, discussion exports, and personal
    context outside the repository.
 4. Review the draft for relevance, sources, portable paths, and personal data.
-   Keep durable public notes at `docs/<topic>-research.md`, or in an existing
-   topic directory. Preserve existing names and links unless a move is needed.
+   Keep durable public notes at `docs/research/<topic>-research.md`, or in an
+   existing topic directory. Add the note to the [research index](../research/README.md).
+   Preserve existing names and links unless a move is needed.
    Publish a small redacted capture under `docs/assets/<topic>/` only when the
    note cannot convey the evidence adequately on its own.
 

@@ -30,6 +30,13 @@ in
       description = "Network UI to install for the host's chosen network stack.";
     };
 
+    bluetoothApplet = lib.mkOption {
+      type = lib.types.bool;
+      default = !((config.desktop.bar.enable or false) || (config.desktop.noctalia.enable or false));
+      defaultText = lib.literalExpression "!((config.desktop.bar.enable or false) || (config.desktop.noctalia.enable or false))";
+      description = "Start Blueman's Bluetooth tray applet. The desktop bar and Noctalia supply their own indicators when enabled.";
+    };
+
     sessionLauncher = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -49,6 +56,10 @@ in
         assertion = isLinux;
         message = "desktop.applications is supported on Linux only.";
       }
+      {
+        assertion = !config.services.polkit-gnome.enable || config.systemd.user.enable;
+        message = "desktop.applications Polkit agent requires a systemd user manager.";
+      }
     ];
 
     # The corresponding NixOS services belong in `desktop-envs-interactive`.
@@ -65,13 +76,22 @@ in
     ++ lib.optionals (cfg.networkBackend == "networkmanager") [ pkgs.networkmanagerapplet ]
     ++ lib.optionals (cfg.networkBackend == "iwd") [ pkgs.iwgtk ];
 
+    services.polkit-gnome.enable = lib.mkDefault true;
+    systemd.user.services.polkit-gnome = lib.mkIf config.services.polkit-gnome.enable {
+      # Stop the previous system-owned agent when this native user unit starts.
+      Unit.Conflicts = [ "polkit-gnome-authentication-agent-1.service" ];
+      Service.TimeoutStopSec = 10;
+    };
+
     # Blueman ships an XDG autostart entry for its tray applet. Ironbar owns
     # the desktop Bluetooth indicator, so shadow that entry without removing
     # Blueman Manager, which remains available for pairing and device setup.
-    xdg.configFile."autostart/blueman.desktop".text = ''
-      [Desktop Entry]
-      Hidden=true
-    '';
+    xdg.configFile."autostart/blueman.desktop" = lib.mkIf (!cfg.bluetoothApplet) {
+      text = ''
+        [Desktop Entry]
+        Hidden=true
+      '';
+    };
 
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable

@@ -41,5 +41,18 @@
     "selector-type-no-unknown": true,
     "string-no-newline": true,
     "unit-no-unknown": true
-  }
+  },
+  "overrides": [
+    {
+      "files": ["hosts/nixos/desktop/local/identity-ui/styles/*.css"],
+      "rules": {
+        "at-rule-no-unknown": [
+          true,
+          {
+            "ignoreAtRules": ["theme", "source", "apply"]
+          }
+        ]
+      }
+    }
+  ]
 }

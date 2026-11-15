@@ -1,6 +1,7 @@
 {
   homeManager = { config, lib, ... }: {
     key = "nix-conf/stylix/zen-browser/homeManager";
+    imports = [ (import ../../profile.nix).homeManager ];
     _file = __curPos.file;
     config =
       lib.mkIf

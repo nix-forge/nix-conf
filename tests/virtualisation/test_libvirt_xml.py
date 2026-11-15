@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+from notification_process import run as run_command
+
+if TYPE_CHECKING:
+    import subprocess
 
 SCRIPT = (
-    Path(__file__).parents[2] / "modules/nixos/virtualisation/scripts/libvirt-xml.py"
+    Path(__file__).parents[2] / "modules/nixos/virtualisation/scripts/libvirt_xml.py"
 )
 UUID = "70cb4ee0-a076-4ff6-a21c-b26f1a5c93d0"
 
@@ -21,7 +25,7 @@ def run_xml(*arguments: str, xml: str = "") -> subprocess.CompletedProcess[str]:
         The completed subprocess with captured output and status.
 
     """
-    return subprocess.run(
+    return run_command(
         [sys.executable, str(SCRIPT), *arguments],
         input=xml,
         text=True,

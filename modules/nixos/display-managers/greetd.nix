@@ -51,17 +51,11 @@ in
       };
     };
 
-    systemd.services.greetd.preStart = lib.mkIf (defaultSession != null) ''
-      ${pkgs.coreutils}/bin/install -d -m 0755 -o greeter -g greeter /var/cache/tuigreet
-      # Repair ownership after numeric UID changes without following symlinks.
-      # Read and rewrite the user-writable cache only as the greeter account.
-      for cache in /var/cache/tuigreet/last*; do
-        if [[ -e "$cache" || -L "$cache" ]]; then
-          ${pkgs.coreutils}/bin/chown --no-dereference greeter:greeter -- "$cache"
-        fi
-      done
-      ${pkgs.util-linux}/bin/runuser -u greeter -- ${
-        lib.escapeShellArgs (
+    systemd.services.greetd.preStart = lib.mkIf (defaultSession != null) (
+      (import ../../../lib/templates/text.nix) ./scripts/prepare-greeter-cache.sh {
+        pkgs_coreutils = pkgs.coreutils;
+        pkgs_util_linux = pkgs.util-linux;
+        lib_escapeShellArgs_lib_getExe_prepareCache_var_cache_tuigre = lib.escapeShellArgs (
           [
             (lib.getExe prepareCache)
             "/var/cache/tuigreet"
@@ -69,8 +63,8 @@ in
             "${defaultSession}.desktop"
           ]
           ++ normalUsers
-        )
+        );
       }
-    '';
+    );
   };
 }

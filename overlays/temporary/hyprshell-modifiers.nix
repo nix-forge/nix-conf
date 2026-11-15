@@ -1,8 +1,8 @@
 _: {
   reason = "Modifier release can arrive before the switcher opens.";
-  upstream = "https://github.com/H3rmt/hyprshell";
+  upstream = "https://github.com/H3rmt/hyprshell/pull/521";
   removal = "The pinned release passes the local Alt+Tab release and cancellation reproductions.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

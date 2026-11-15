@@ -86,13 +86,6 @@ in
         message = "security.kernelBaseline rejects kernel parameters that disable CPU vulnerability mitigations. Keep the kernel defaults, or disable this baseline only for a deliberately isolated benchmark system.";
       }
       {
-        # SELinux and AppArmor are competing major MAC choices. NixOS has a
-        # supported AppArmor path, whereas complete SELinux policy/labelling
-        # integration is not currently a production-ready NixOS baseline.
-        assertion = lib.elem "apparmor" config.security.lsm && !lib.elem "selinux" config.security.lsm;
-        message = "security.kernelBaseline requires the supported AppArmor LSM path and does not support adding SELinux alongside it.";
-      }
-      {
         assertion = lib.elem "debugfs=off" config.boot.kernelParams;
         message = "security.kernelBaseline requires debugfs=off.";
       }

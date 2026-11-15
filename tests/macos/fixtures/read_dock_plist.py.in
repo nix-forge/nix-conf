@@ -1,0 +1,5 @@
+#!__fixture_0__
+import os, sys
+
+with open(os.environ["DOCK_TEST_PLIST"], "rb") as stream:
+    sys.stdout.buffer.write(stream.read())

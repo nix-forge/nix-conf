@@ -21,17 +21,17 @@ The reviewed policy permits local implementation, tests, and explanations for th
 Read these files in `~/Developer/nix-conf`:
 
 - `overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch`
-- `docs/hyprland-subsurface-crash.md`
-- `docs/hyprland-upstream-research.md`
-- `docs/hyprshell-hyprland-patch-review.md`
-- `docs/hyprshell-hyprland-local-fixes.md`
+- `docs/operations/hyprland-subsurface-crash.md`
+- `docs/research/hyprland-upstream-research.md`
+- `docs/reviews/hyprshell-hyprland-patch-review.md`
+- `docs/operations/hyprshell-hyprland-local-fixes.md`
 - `tests/hyprland/subsurface-ancestry-tests.patch`
 - `tests/hyprland/subsurface-parent-teardown.c`
 - `tests/hyprland/check-subsurface-teardown.sh`
 
 The downstream base is `ee0409623e2d6a683374b39a32e0ac3d087841aa`. During window cleanup, a weak parent reference can expire before subsurface position or damage calculations finish. The patch checks parent and role lifetimes, follows the current ancestor in both parent walks, preserves preferred-color fallback when ancestry is unavailable, and routes `CSubsurface::size()` through its existing guarded geometric overload. All four behaviors matter; the expanded orphan test exposed the need for the size correction.
 
-Use `docs/hyprshell-hyprland-local-fixes.md` for the current validated changes and recorded downstream results. The earlier patch review is historical. Five native hyprtester cases cover deep ancestry, direct-parent teardown, orphan ancestry, higher-ancestor teardown, and cycles. The native test diff is a companion patch because the normal Nix package filters hyprtester out of its source. Apply both artifacts to a full upstream tree. The standalone C client also covers orphan color feedback and child-first destruction. Record fresh results against the exact upstream revision you use, separately from the historical evidence.
+Use `docs/operations/hyprshell-hyprland-local-fixes.md` for the current validated changes and recorded downstream results. The earlier patch review is historical. Five native hyprtester cases cover deep ancestry, direct-parent teardown, orphan ancestry, higher-ancestor teardown, and cycles. The native test diff is a companion patch because the normal Nix package filters hyprtester out of its source. Apply both artifacts to a full upstream tree. The standalone C client also covers orphan color feedback and child-first destruction. Record fresh results against the exact upstream revision you use, separately from the historical evidence.
 
 Current upstream `main` was `34eb03bd8da01024596c367fba66485a8c9b8ca7` on September 6, 2026, and still contained the relevant walks. Refresh `main` before working. There is already a dirty checkout at `~/Developer/upstream/Hyprland` containing subsurface and integration-test work. Inspect its status and origin before creating a clean isolated worktree on a `codex/` branch. Preserve that work and every pending configuration-repository change. Review useful existing work rather than silently overwriting it or treating it as a clean upstream baseline.
 

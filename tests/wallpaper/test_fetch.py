@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - isolated HTTP and image fixtures
@@ -11,6 +12,17 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _shell_fixture(name: str, replacements: dict[str, str]) -> str:
+    """Load a Bash fixture without recursively replacing inserted values.
+
+    Returns:
+        The fixture with its runtime executable and path substitutions.
+
+    """
+    source = (Path(__file__).with_name("fixtures") / name).read_text(encoding="utf-8")
+    return re.sub(r"@(__value[0-9]+)@", lambda match: replacements[match[1]], source)
 
 
 def _fetch(  # ruff: ignore[too-many-locals] - keep the complete disposable HTTP fixture together
@@ -75,35 +87,15 @@ def _fetch(  # ruff: ignore[too-many-locals] - keep the complete disposable HTTP
         )
         curl = binaries / "curl"
         curl.write_text(
-            "#!"
-            + bash
-            + '''
-set -eu
-out=''
-api=0
-for arg in "$@"; do
-    case "$arg" in
-*w/api.php) api=1 ;;
-gcmtitle=Category:Featured*) touch "'''
-            + str(root / "curated-query")
-            + '''" ;;
-pageids=*) exit 99 ;;
-    esac
-done
-while [ "$#" -gt 0 ]; do
-    if [ "$1" = '--output' ]; then out="$2"; shift; fi
-    shift
-done
-if [ "$api" -eq 1 ]; then
-    cp "'''
-            + str(payload)
-            + '''" "$out"
-else
-    cp "'''
-            + str(original)
-            + """" "$out"
-fi
-"""
+            _shell_fixture(
+                "wikimedia-download.sh.in",
+                {
+                    "__value0": str(bash),
+                    "__value1": str(str(root / "curated-query")),
+                    "__value2": str(str(payload)),
+                    "__value3": str(str(original)),
+                },
+            )
         )
         curl.chmod(0o700)
         replacements = {

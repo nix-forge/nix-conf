@@ -1,9 +1,16 @@
-{ pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
+  catalogExtensions = config.lib.vscode.catalogExtensions;
 in
 {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = extensions.forVscode [ "thenuprojectcontributors.vscode-nushell-lang" ];
+    extensions = catalogExtensions [ "thenuprojectcontributors.vscode-nushell-lang" ];
+    userSettings."nushellLanguageServer.nushellExecutablePath" = lib.getExe pkgs.nushell;
   };
 }

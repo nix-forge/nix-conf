@@ -27,7 +27,7 @@ in
         ];
 
         whenText = mkWhen [
-          "config.editor.autoSave != off"
+          "config.files.autoSave != off"
           "!config.editor.formatOnSave"
           "editorHasDocumentFormattingProvider"
           "editorTextFocus"
@@ -37,7 +37,7 @@ in
         ];
 
         whenNotebook = mkWhen [
-          "config.editor.autoSave != off"
+          "config.files.autoSave != off"
           "!config.editor.formatOnSave"
           "jupyter.isinteractiveornativeactive"
           "editorTextFocus"

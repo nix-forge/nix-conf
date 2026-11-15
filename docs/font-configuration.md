@@ -1,6 +1,6 @@
 # Font configuration and validation
 
-Implemented from the [font review](font-config-review.md). Both personal homes
+Implemented from the [font review](reviews/font-config-review.md). Both personal homes
 explicitly select the **full design library**, as requested. Required fonts do
 not depend on that collection.
 
@@ -43,9 +43,9 @@ The curated library selects only Iosevka Charon Mono, and the `none` setting
 installs no Google collection. The variant records every
 excluded file and retains upstream license notices. Static and variable styles
 elsewhere remain available; a shared PostScript name alone does not justify
-deleting a useful alternative. The existing corefonts/Windows and Roboto
-overlaps remain intentional; the inventory exposes their versions and hashes
-for review instead of changing document metrics globally.
+deleting a useful alternative. The inventory exposes font versions and hashes
+for review instead of changing document metrics globally. Windows evaluation
+fonts are excluded unless restricted fonts are explicitly enabled.
 
 M+ uses the upstream standalone package with smaller collections and a compatible
 variant with the full Google collection, avoiding filename collisions. VS Code
@@ -54,18 +54,32 @@ Twemoji remains explicitly selectable without its upstream rules overriding
 ordinary text and the default emoji family.
 
 On the desktop, Home Manager owns the general collection. NixOS installs the
-primary Stylix roles and the consolidated `apple-fonts` package. Repeated
+primary Stylix roles. The consolidated `apple-fonts` package is installed only
+when `typography.restrictedFonts.enable` is explicitly enabled. Repeated
 references to the same immutable Nix package do not create a second physical
 font provider.
 On the Mac, Home Manager owns the general collection in the native user font
-directory. nix-darwin owns only the shared Apple document collection; its Stylix
-font-package installation is disabled. The ownership check rejects an identical
-package in both Mac installation lists.
+directory. nix-darwin owns the optional shared Apple document collection, also
+gated by its system-level `typography.restrictedFonts.enable` option; its Stylix
+font-package installation is disabled. Apple's native system fonts are separate
+from these package selections.
 
 `typography.designLibrary` supports `full`, `curated` and `none`. The default for
 other homes is `curated`; the desktop and Mac explicitly choose `full`.
 `typography.optionalEmoji.enable` adds Firefox Emoji, legacy EmojiOne and Mutant,
-plus the Apple conversion on Linux. macOS retains its native Apple Color Emoji.
+with the Apple conversion on Linux only when restricted fonts are also enabled.
+macOS retains its native Apple Color Emoji.
+
+`typography.restrictedFonts.enable` defaults to `false` in each module scope.
+It gates Windows evaluation fonts, the optional Linux Apple emoji conversion,
+the desktop Apple font aggregate and the Darwin document-font collection.
+Enable it only after reviewing the grants for the intended activity; it does
+not supply permission. Home Manager and system selections are independent, so
+a home setting does not enable system-wide Apple packages. The font recipes
+remain available for separately reviewed use. The relevant unresolved grants
+are recorded in the [package licensing policy](../pkgs/docs/package-licensing.md).
+Legacy Apple private-use glyph rendering depends on a separately authorized
+provider and is not guaranteed by the default font selection.
 
 ## Import and update contracts
 
@@ -103,12 +117,20 @@ just fonts-check /tmp/font-check /etc/profiles/per-user/user/bin/zen-beta
 
 The equivalent flake app is `nix run .#font-check -- OUTPUT [BROWSER]`. Browser
 collection isolation is Linux-only; macOS uses the native check below. The app uses the
-same full catalog as the homes, temporary Fontconfig configuration/data/cache
+full catalog including restricted Apple and Windows fonts, unlike the default
+home selection. Review those permissions before invoking it: its dependencies
+are built before the command starts. It uses temporary Fontconfig configuration/data/cache
 directories, and a fresh browser profile. It scans only `share/fonts`, keeping
 license directories out of the font scan. It checks all primary styles, explicit
 CJK language shaping, authoritative providers, the default and Apple Unicode 17
 emoji coverage, and optional browser suites. It reports duplicate identities
 with hashes instead of silently removing them. No user cache is cleared.
+
+Hosted font checks use original geometric test fonts for legacy private-use
+and Apple CSS family matching. Their family names exercise protocol identifiers;
+no Apple font bytes or artwork are included. These fixtures verify matching and
+rendering behavior, not the appearance of genuine Apple fonts. The explicit
+local `font-check` command retains the actual-provider checks.
 
 CI builds `font-selection` on all three supported systems. It covers 13
 role/style combinations, four language tags, and all 3,953 Unicode 17 emoji

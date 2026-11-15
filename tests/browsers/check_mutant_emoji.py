@@ -18,8 +18,24 @@ from pathlib import Path
 
 import check_font_rendering as runner
 import uharfbuzz as hb
+from typescript_sources import javascript_source
 
 SOURCE_ENCODINGS = 7829
+
+
+def _browser_program(name: str) -> str:
+    """Load the checked browser function.
+
+    Returns:
+        The browser script with WebDriver's receiver and arguments preserved.
+
+    """
+    source = javascript_source(Path(__file__).with_name("fixtures") / name)
+    return (
+        "const module = {exports: null};\n"
+        + source
+        + "\nreturn module.exports.apply(this, arguments);"
+    )
 
 
 def main() -> int:
@@ -61,17 +77,11 @@ def main() -> int:
             else "@font-face{font-family:MutantTest;src:url(font.ttf)}"
         )
         (root / "index.html").write_text(
-            "<!doctype html><meta charset='utf-8'><style>"
-            + font_face
-            + """
-body{background:#202124;color:#eee;font:18px sans-serif;padding:24px}
-.emoji{font:48px '"""
-            + family
-            + """';color:pink}
-</style><p>Mutant Standard Emoji</p>
-<p class="emoji">😀😁😂😃😄😅😆😇😈😉😊😋😌😍</p>
-<p>Custom characters and joined sequences</p><p class="emoji" id="custom"></p>
-<p>Artwork by Caius Nocturne · CC BY-NC-SA 4.0 · mutant.tech</p>""",
+            (Path(__file__).with_name("fixtures") / "mutant-emoji.html.in")
+            .read_text(encoding="utf-8")
+            .removesuffix("\n")
+            .replace("__font_face__", font_face)
+            .replace("__family__", family),
             encoding="utf-8",
         )
         handler = functools.partial(
@@ -83,25 +93,13 @@ body{background:#202124;color:#eee;font:18px sans-serif;padding:24px}
         def check(driver: runner.webdriver.Firefox, output: Path) -> bool:
             driver.get(f"http://127.0.0.1:{server.server_port}/index.html")
             loaded = driver.execute_async_script(
-                "const family=arguments[0], done=arguments[1]; document.fonts.load('48px '+JSON.stringify(family),'😀')"
-                ".then(fonts=>done(fonts.length)).catch(error=>done(String(error)));",
+                _browser_program("mutant-font-load.cts"),
                 family,
             )
             assert isinstance(loaded, int), loaded
             assert args.installed or loaded > 0, "Web font failed to load"
             results = driver.execute_script(
-                """const samples=arguments[0];
-const ctx=document.createElement('canvas').getContext('2d');
-ctx.font='48px '+JSON.stringify(arguments[1]);
-const failures=samples.flatMap(s=>{
-    const actual=ctx.measureText(s.text).width;
-    return Math.abs(actual-s.width)>0.1 ? [{...s,actual}] : [];
-});
-document.querySelector('#custom').textContent = [
-    '1f44d-fe0f-101650-101613', '1f3f3-fe0f-200d-26a7',
-    '1f3f3-200d-1f308', '101698', '101691'
-].map(name=>samples.find(s=>s.encoding===name).text).join(' ');
-return {total:samples.length, failures};""",
+                _browser_program("mutant-emoji-canvas-metrics.cts"),
                 samples,
                 family,
             )

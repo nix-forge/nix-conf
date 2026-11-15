@@ -3,13 +3,7 @@ let
   inherit (pkgs) lib;
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   expected = "quotes: '\" dollar: $HOME backslash: \\";
-  template = pkgs.writeText "writer.sh.in" ''
-    #!@bash@
-    set -euo pipefail
-    # Literal dollar signs and a trailing backslash are intentional test data.
-    # shellcheck disable=SC2016,SC1003
-    printf '%s\n' @value@ "$@"
-  '';
+  template = pkgs.writeText "writer.sh.in" (builtins.readFile ./scripts/bash-argument-probe.sh.in);
   scriptFor =
     dir:
     writeBashTemplate {
@@ -29,22 +23,21 @@ let
     writeBashTemplate {
       name = "body-probe";
       dir = "bin";
-      src = pkgs.writeText "body.sh.in" "#!@bash@\n@body@\n";
+      src = ./scripts/body-probe.sh.in;
       replacements = {
         bash = lib.getExe pkgs.bash;
         inherit body;
       };
     };
-  relaxed = bodyFor "false\nprintf '%s\\n' continued";
-  parseOnly = bodyFor "exit 71";
+  relaxed = bodyFor (builtins.readFile ./scripts/body-relaxed.sh);
+  parseOnly = bodyFor (builtins.readFile ./scripts/body-parse-only.sh);
   pathReplacementSource = ./bash-writers.nix;
   pathReplacement = writeBashTemplate {
     name = "path-replacement-probe";
     dir = "bin";
-    src = pkgs.writeText "path-replacement.sh.in" ''
-      #!@bash@
-      test -f @source@
-    '';
+    src = pkgs.writeText "path-replacement.sh.in" (
+      builtins.readFile ./scripts/path-replacement-probe.sh.in
+    );
     replacements = {
       bash = lib.getExe pkgs.bash;
       source = pathReplacementSource;
@@ -53,11 +46,9 @@ let
   isolatedRuntime = writeBashTemplate {
     name = "isolated-runtime-probe";
     dir = "bin";
-    src = pkgs.writeText "isolated-runtime.sh.in" ''
-      #!@bash@
-      test "$(command -v hello)" = @hello@
-      test "$PATH" = @runtimePath@
-    '';
+    src = pkgs.writeText "isolated-runtime.sh.in" (
+      builtins.readFile ./scripts/isolated-runtime-probe.sh.in
+    );
     replacements = {
       bash = lib.getExe pkgs.bash;
       hello = lib.escapeShellArg (lib.getExe pkgs.hello);
@@ -68,9 +59,7 @@ let
   };
   alias = writeBashTemplate {
     name = "alias-probe";
-    src = pkgs.writeText "alias-body.sh" ''
-      printf '%s\n' "''${0##*/}"
-    '';
+    src = pkgs.writeText "alias-body.sh" (builtins.readFile ./scripts/invoked-name-probe.sh);
     replacements = { };
   };
 in
@@ -78,28 +67,19 @@ in
   bash-template-writer =
     assert bin.meta.mainProgram == "writer-probe";
     assert libexec.meta.mainProgram == "writer-probe";
-    pkgs.runCommand "bash-template-writer" { inherit expected; } ''
-      for script in ${lib.getExe bin} ${single} ${libexec}/libexec/writer-probe; do
-        test -x "$script"
-        test "$(grep -c '^#!' "$script")" = 1
-        test "$(head -n 1 "$script")" = '#! ${lib.getExe pkgs.bashNonInteractive}'
-        "$script" 'argument with spaces' > actual
-        printf '%s\n' "$expected" 'argument with spaces' > expected-output
-        cmp actual expected-output
-        "$script" "" $'line\nbreak' -- -n > actual
-        printf '%s\n' "$expected" "" $'line\nbreak' -- -n > expected-output
-        cmp actual expected-output
-      done
-      test "$(${lib.getExe relaxed})" = continued
-      # Building a program that exits nonzero proves validation doesn't run it.
-      test -x ${lib.getExe parseOnly}
-      ${lib.getExe pathReplacement}
-      ${lib.getExe isolatedRuntime}
-      # The Nix workload launcher dispatches by the invoked symlink's name.
-      ln -s ${alias} writer-alias
-      test "$(./writer-alias)" = writer-alias
-      touch "$out"
-    '';
+    pkgs.runCommand "bash-template-writer" { inherit expected; } (
+      (import ../../lib/templates/text.nix) ./scripts/bash-template-writer.sh {
+        lib_getExe_bin = lib.getExe bin;
+        inherit single;
+        inherit libexec;
+        lib_getExe_pkgs_bashNonInteractive = lib.getExe pkgs.bashNonInteractive;
+        lib_getExe_relaxed = lib.getExe relaxed;
+        lib_getExe_parseOnly = lib.getExe parseOnly;
+        lib_getExe_pathReplacement = lib.getExe pathReplacement;
+        lib_getExe_isolatedRuntime = lib.getExe isolatedRuntime;
+        inherit alias;
+      }
+    );
   bash-template-invalid-syntax = pkgs.testers.testBuildFailure' {
     drv = bodyFor "if then";
     expectedBuilderExitCode = 2;

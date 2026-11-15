@@ -9,42 +9,53 @@
   perSystem =
     { config, pkgs, ... }:
     let
-      checkPython = import ./quality-python.nix { inherit pkgs; };
-      pythonCompileAll = myLib.writers.writeBashTemplate { inherit pkgs; } {
+      checkPython = import ./quality-python.nix { pkgs = pkgs.buildPackages; };
+      javascriptTools = import ./javascript-tools.nix { pkgs = pkgs.buildPackages; };
+      javascriptLint = pkgs.buildPackages.writeShellApplication {
+        name = "repository-javascript-lint";
+        runtimeInputs = [ pkgs.buildPackages.coreutils ];
+        text = (import ../../lib/templates/text.nix) ./scripts/javascript-lint.sh.in {
+          javascript_tools = javascriptTools;
+          node = lib.getExe pkgs.buildPackages.nodejs_24;
+          oxlint = lib.getExe javascriptTools;
+        };
+      };
+      pythonCompileAll = myLib.writers.writeBashTemplate { pkgs = pkgs.buildPackages; } {
         name = "python-compileall";
         src = ./scripts/python-compileall.sh;
         replacements = {
-          bash = lib.getExe pkgs.bash;
-          python = lib.getExe pkgs.python3;
-          mktemp = lib.getExe' pkgs.coreutils "mktemp";
-          rm = lib.getExe' pkgs.coreutils "rm";
+          bash = lib.getExe pkgs.buildPackages.bash;
+          python = lib.getExe pkgs.buildPackages.python3;
+          mktemp = lib.getExe' pkgs.buildPackages.coreutils "mktemp";
+          rm = lib.getExe' pkgs.buildPackages.coreutils "rm";
         };
       };
-      stylesheetLint = pkgs.writeShellApplication {
+      stylesheetLint = pkgs.buildPackages.writeShellApplication {
         name = "stylesheet-lint";
         runtimeInputs = [
-          pkgs.git
-          pkgs.stylelint
+          pkgs.buildPackages.git
+          pkgs.buildPackages.stylelint
         ];
-        text = ''
-          mapfile -d "" -t stylesheets < <(git ls-files -z -- '*.css')
-          if (( ''${#stylesheets[@]} > 0 )); then
-            stylelint --config .stylelintrc.json --max-warnings 0 "''${stylesheets[@]}"
-          fi
-        '';
+        text = builtins.readFile ./scripts/stylesheet-lint.sh;
       };
     in
     {
       pre-commit = {
         check.enable = true;
         settings = {
+          excludes = [
+            "^nix-config-framework/"
+            "^nix-homelab/"
+            "^nix-seal/"
+            "^pkgs/"
+          ];
           # A path flake includes a linked worktree's `.git` pointer.  The check
           # creates its own isolated repository, so carrying that pointer into
           # the sandbox makes Git escape to a non-existent external gitdir.
           # Filter only standard VCS/generated metadata; all candidate source,
           # including untracked files, remains part of the exact path input.
           rootSrc = lib.mkForce (lib.cleanSource inputs.self.outPath);
-          package = pkgs.prek;
+          package = pkgs.buildPackages.prek;
           hooks = {
             treefmt = {
               enable = true;
@@ -57,17 +68,17 @@
             pinact = {
               enable = true;
               name = "pinact";
-              entry = "${lib.getExe pkgs.pinact} run --fix=false --no-api";
+              entry = "${lib.getExe pkgs.buildPackages.pinact} run --fix=false --no-api";
               language = "system";
               files = "^\\.github/workflows/.*\\.ya?ml$";
               after = [ "treefmt" ];
             };
             oxlint = {
               enable = true;
-              name = "Oxlint";
-              entry = "${lib.getExe pkgs.oxlint} --config .oxlintrc.json --deny-warnings tests";
+              name = "TypeScript and Oxlint";
+              entry = lib.getExe javascriptLint;
               language = "system";
-              files = "^(tests/.*\\.[cm]?[jt]sx?$|\\.oxlintrc\\.json)$";
+              files = "(\\.[cm]?[jt]sx?$|(^|/)(tsconfig|projects|\\.oxlintrc|package(-lock)?)\\.json$)";
               pass_filenames = false;
               after = [ "treefmt" ];
             };
@@ -84,10 +95,19 @@
             swift-format = {
               enable = true;
               name = "Swift format lint";
-              entry = "${lib.getExe pkgs.swift-format} lint --configuration .swift-format --parallel --strict tests/fonts/check_coretext.swift";
+              entry = "${lib.getExe pkgs.buildPackages.swift-format} lint --configuration .swift-format --parallel --recursive --strict modules tests";
               language = "system";
-              extraPackages = [ pkgs.swift-format ];
+              extraPackages = [ pkgs.buildPackages.swift-format ];
               files = "(^\\.swift-format$|\\.swift$)";
+              pass_filenames = false;
+              after = [ "treefmt" ];
+            };
+            luacheck = {
+              enable = true;
+              name = "Lua analysis";
+              entry = "${lib.getExe pkgs.buildPackages.luaPackages.luacheck} --config .luacheckrc modules tests";
+              language = "system";
+              files = "(^\\.luacheckrc$|\\.lua$)";
               pass_filenames = false;
               after = [ "treefmt" ];
             };
@@ -95,7 +115,7 @@
               enable = true;
               # Run at the repository root and respect nested project configs.
               # Validation must not apply automatic fixes.
-              entry = "${lib.getExe pkgs.ruff} check --no-fix .";
+              entry = "${lib.getExe pkgs.buildPackages.ruff} check --no-fix .";
               always_run = true;
               pass_filenames = false;
               after = [ "treefmt" ];
@@ -103,7 +123,7 @@
             ruff-format = {
               enable = true;
               name = "ruff format";
-              entry = "${lib.getExe pkgs.ruff} format --check .";
+              entry = "${lib.getExe pkgs.buildPackages.ruff} format --check .";
               language = "system";
               always_run = true;
               pass_filenames = false;
@@ -112,10 +132,10 @@
             ty = {
               enable = true;
               name = "ty";
-              package = pkgs.ty;
+              package = pkgs.buildPackages.ty;
               # `--project .` forces discovery of this repository's [tool.ty]
               # table rather than relying on the caller's current environment.
-              entry = "${lib.getExe pkgs.ty} check --project . --python ${lib.getExe checkPython}";
+              entry = "${lib.getExe pkgs.buildPackages.ty} check --project . --python ${lib.getExe checkPython}";
               language = "system";
               always_run = true;
               pass_filenames = false;
@@ -129,47 +149,6 @@
               always_run = true;
               pass_filenames = false;
               after = [ "ty" ];
-            };
-            local-control-rustfmt = {
-              enable = true;
-              name = "local-control rustfmt";
-              entry = "cargo fmt --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all -- --check";
-              language = "system";
-              extraPackages = [
-                pkgs.cargo
-                pkgs.rustfmt
-              ];
-              files = "^homes/macbook-pro-m4/local/local-control/secure-files-rs/.*\\.(rs|toml)$";
-              pass_filenames = false;
-              after = [ "treefmt" ];
-            };
-            local-control-rust-clippy = {
-              enable = pkgs.stdenv.hostPlatform.isDarwin;
-              name = "local-control Clippy";
-              # Cargo invoked outside the development shell cannot find
-              # Darwin's libiconv. Keep the hook in the same toolchain and
-              # linker environment developers use for local Rust checks.
-              entry = "nix develop --command cargo clippy --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all-targets -- -D warnings";
-              language = "system";
-              extraPackages = [
-                pkgs.cargo
-                pkgs.clippy
-              ];
-              always_run = true;
-              pass_filenames = false;
-              stages = [ "pre-push" ];
-              after = [ "local-control-rustfmt" ];
-            };
-            local-control-rust-test = {
-              enable = pkgs.stdenv.hostPlatform.isDarwin;
-              name = "local-control Rust tests";
-              entry = "nix develop --command cargo test --manifest-path homes/macbook-pro-m4/local/local-control/secure-files-rs/Cargo.toml --all-targets";
-              language = "system";
-              extraPackages = [ pkgs.cargo ];
-              always_run = true;
-              pass_filenames = false;
-              stages = [ "pre-push" ];
-              after = [ "local-control-rust-clippy" ];
             };
             end-of-file-fixer = {
               enable = true;
@@ -215,6 +194,8 @@
               enable = true;
               # Rust inner attributes start with `#![` and are not script shebangs.
               excludes = [
+                # Interpreter placeholders are resolved before execution.
+                ".*\\.(sh|py)\\.in$"
                 ".*\\.rs$"
                 # The framework and package catalog own their hook configuration.
                 "^nix-config-framework/"
@@ -235,7 +216,7 @@
             typos = {
               enable = true;
               # The upstream hook's generated empty [default] table overrides configPath.
-              entry = "${lib.getExe pkgs.typos} --config .typos.toml --force-exclude";
+              entry = "${lib.getExe pkgs.buildPackages.typos} --config .typos.toml --force-exclude";
             };
             zizmor = {
               enable = true;
@@ -244,8 +225,8 @@
             gitleaks = {
               enable = true;
               name = "Gitleaks";
-              entry = "${lib.getExe pkgs.gitleaks} git --pre-commit --staged --redact --no-banner";
-              # The entry supplies the complete command; replace upstream default arguments.
+              entry = "${lib.getExe pkgs.buildPackages.gitleaks} git --pre-commit --staged --redact --no-banner";
+              # The complete entry owns its arguments; do not append hook defaults.
               args = [ ];
               language = "system";
               always_run = true;

@@ -8,20 +8,30 @@
   nix.settings = {
     # This 30 GiB interactive desktop exhausted RAM during concurrent builds.
     # The shared auto/0 settings allow 16 builds, each using all 16 CPUs.
-    max-jobs = lib.mkForce 2;
-    cores = lib.mkForce 4;
+    # Two large builders also exceed the daemon's reclaim threshold.
+    # Keep one derivation at a time, with eight compiler jobs on 16 threads.
+    # The aggregate CPU and memory limits retain interactive headroom.
+    max-jobs = lib.mkForce 1;
+    cores = lib.mkForce 8;
     # A representative package evaluation took comparable time with four and
     # sixteen evaluator threads. Bound evaluation separately from builders so
     # it does not request all logical CPUs during interactive work.
-    eval-cores = lib.mkForce 4;
+    eval-cores = lib.mkForce 8;
   };
 
   # Bound daemon builders separately from user-side Nix evaluations.
   systemd.services.nix-daemon.serviceConfig = {
-    MemoryHigh = "6G";
-    MemoryMax = "8G";
-    MemorySwapMax = "1G";
+    # Eight parallel Node/V8 workers stalled at the former 7/8 GiB limits.
+    # The reviewed working set and admission reserve share one policy.
+    MemoryHigh = config.workstation.workloads.daemon.highMiB * 1024 * 1024;
+    MemoryMax = config.workstation.workloads.daemon.memoryMiB * 1024 * 1024;
+    MemorySwapMax = config.workstation.workloads.daemon.swapMiB * 1024 * 1024;
     CPUWeight = 50;
+    # Cargo job limits do not constrain test-created worker pools. On this
+    # 16-thread desktop, cap the whole daemon at 70% of logical CPU capacity
+    # while retaining lower scheduling priority when interactive work runs.
+    # systemd quotas are percentages of one CPU, so 16 * 70% = 1120%.
+    CPUQuota = "1120%";
     # A failed builder must not cause systemd to stop all daemon connections.
     OOMPolicy = "continue";
   };
@@ -57,7 +67,12 @@
   # migration.
   security.desktopKeyring.enable = true;
   programs.ssh.startAgent = false;
-  environment.systemPackages = [ pkgs.seahorse ];
+  # GVfs starts wsdd on demand when GNOME Files browses Windows network shares.
+  # Supply its upstream executable so the discovery backend can start.
+  environment.systemPackages = with pkgs; [
+    seahorse
+    wsdd
+  ];
 
   # Greetd supplies the login password to GNOME Keyring. Hyprlock retains
   # the same hook for later session unlocks; the boot PIN is independent.
@@ -69,10 +84,10 @@
   };
   # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
   # XDG environment and therefore cannot discover Home Manager's config at
-  # boot. Give the host-owned unit the persistent user config explicitly.
+  # boot. Give the host-owned unit each user's persistent config explicitly.
   systemd.user.services.hypridle.serviceConfig.ExecStart = lib.mkForce [
     ""
-    "${lib.getExe config.services.hypridle.package} -c /home/ianmh/.config/hypr/hypridle.conf"
+    "${lib.getExe config.services.hypridle.package} -c %h/.config/hypr/hypridle.conf"
   ];
   security.pam.services = {
     hyprlock = {
@@ -92,6 +107,13 @@
     # password and cause the separate prompt Helium reported.
     passwd.enableGnomeKeyring = true;
   };
+
+  assertions = [
+    {
+      assertion = !(config.services.greetd.settings ? initial_session);
+      message = "The desktop requires authenticated greetd login.";
+    }
+  ];
 
   # This password-based greetd stack includes PAM's `login` service. Reject
   # null-password accounts despite the permissive shadow-program default,
@@ -159,20 +181,16 @@
     linger = true;
     description = "IanHollow";
     # wheel is required for administration. GPU devices are granted through
-    # logind/udev ACLs to the active graphical session; `uinput` is the narrow
-    # additional permission Sunshine needs for virtual controller, keyboard,
-    # and mouse input. `tss` permits access to the kernel TPM resource manager
-    # for deliberate TPM key management, not the raw TPM device. Rootless
+    # logind/udev ACLs to the active graphical session. `tss` permits access
+    # to the kernel TPM resource manager for deliberate TPM key management, not the raw TPM device. Rootless
     # Docker needs no root-equivalent docker group.
     extraGroups = [
       "wheel"
       "ianmh"
       "tss"
-      "uinput"
     ];
     openssh.authorizedKeys.keys = [
       "${lib.removeSuffix "\n" (builtins.readFile ../../../../homes/macbook-pro-m4/local/nix-seal/identity.pub)} deployment-client"
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII0S5mEDZaqHcYsDLQLWqqG6wrz9IJOH5R9OhNHgk9Rw authorized-client"
     ];
   };
 
@@ -199,32 +217,6 @@
   # Determinate Nix owns automatic garbage collection on this host, so do not
   # enable nh's clean timer as a competing collector.
 
-  # Show a generation diff before activation and reject a closure intended for
-  # another host.  Unlike SRVOS's interactive hostname prompt, fail cleanly so
-  # deploy-rs does not hang during a non-interactive remote deployment.  Set
-  # EXPECTED_HOSTNAME=desktop only for an intentional hostname migration.
-  system.preSwitchChecks = {
-    updateDiff = ''
-      incoming="''${1-}"
-      if [[ -e /run/current-system && -n "$incoming" ]]; then
-        echo "--- diff to current system"
-        PATH="$incoming/sw/bin:$PATH" ${pkgs.nvd}/bin/nvd diff /run/current-system "$incoming"
-        echo "---"
-      fi
-    '';
+  system.activationSafety.enable = true;
 
-    expectedHostname = ''
-      actual="$(< /proc/sys/kernel/hostname)"
-      expected="${config.networking.hostName}"
-      if [[ -e /run/booted-system && "$actual" != "$expected" && "''${EXPECTED_HOSTNAME:-}" != "$expected" ]]; then
-        echo "refusing to activate '$expected' on host '$actual'" >&2
-        echo "set EXPECTED_HOSTNAME='$expected' only for an intentional hostname migration" >&2
-        exit 1
-      fi
-    '';
-  };
-
-  # The rootless Docker module installs a global user unit. Limit it to the
-  # actual desktop user so the greeter never gets a Docker daemon.
-  systemd.user.services.docker.unitConfig.ConditionUser = lib.mkForce "ianmh";
 }

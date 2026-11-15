@@ -1,0 +1,13 @@
+#!@bash@
+# shellcheck shell=bash
+# Controlled fixture environment.
+# shellcheck disable=SC2154
+printf '%s\n' "$@" >"$MOCK_STATE/whisper-cli-arguments"
+while (($#)); do
+  if [[ $1 == --output-file ]]; then
+    printf 'What is Nix?\n' >"$2.txt"
+    exit 0
+  fi
+  shift
+done
+exit 1

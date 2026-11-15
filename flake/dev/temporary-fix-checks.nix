@@ -1,12 +1,37 @@
-{ inputs, self, ... }: {
+{ configurationInputs, self, ... }: {
   perSystem =
-    { pkgs, ... }:
+    { pkgs, configurationPkgs, ... }:
     let
+      inputs = configurationInputs;
       hyprlandPackages = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
       patchedHyprland =
         (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
           hyprlandPackages.hyprland;
-      determinatePackage = import ../../tests/nix/determinate-module.nix { inherit pkgs inputs; };
+      # Keep upstream gtests confined to native regression check packages.
+      roundingHyprland =
+        (configurationPkgs.extend (import ../../overlays { inherit inputs; })).hyprland.override
+          { withTests = true; };
+      roundingBaseline =
+        (
+          (import ../../overlays/temporary {
+            inherit inputs;
+            pkgs = configurationPkgs;
+          }).apply
+            "hyprland-subsurface"
+            hyprlandPackages.hyprland
+        ).override
+          { withTests = true; };
+      nativeRoundingTests =
+        name: package:
+        assert package.withTests;
+        pkgs.runCommand name {
+          nativeBuildInputs = [ pkgs.gnugrep ];
+          HYPRLAND_GTESTS = "${package}/bin/hyprland_gtests";
+        } (builtins.readFile ../../tests/hyprland/scripts/check-native-gtests.sh);
+      determinatePackage = import ../../tests/nix/determinate-module.nix {
+        pkgs = configurationPkgs;
+        inherit inputs;
+      };
       sentryPackage = import ../../tests/nix/sentry/package.nix {
         inherit inputs;
         system = pkgs.stdenv.hostPlatform.system;
@@ -14,36 +39,37 @@
       # Evaluation covers all supported platforms without building foreign
       # packages or moving the desktop closure to another builder.
       results = builtins.listToAttrs (
-        map
-          (system: {
-            name = system;
-            value = import ../../tests/nix/temporary-fixes.nix {
-              inherit inputs;
-              pkgs = import inputs.nixpkgs {
-                inherit system;
-                config.allowUnfree = true;
-              };
+        map (system: {
+          name = system;
+          value = import ../../tests/nix/temporary-fixes.nix {
+            inherit inputs;
+            pkgs = import inputs.nixpkgs {
+              inherit system;
+              config.allowUnfree = true;
             };
-          })
-          [
-            "x86_64-linux"
-            "aarch64-linux"
-            "aarch64-darwin"
-          ]
+          };
+        }) (import ../supported-systems.nix)
       );
     in
     {
       checks = {
+        darwin-app-management-consent = import ../../tests/nix/app-management-consent.nix {
+          inherit pkgs inputs;
+        };
         azure-cli-invoke = import ../../tests/nix/azure-cli.nix { inherit pkgs inputs; };
         temporary-package-fixes = builtins.deepSeq results (
-          pkgs.runCommand "temporary-package-fixes" { } ''
-            touch "$out"
-          ''
+          pkgs.runCommand "temporary-package-fixes" { } (
+            builtins.readFile ./scripts/complete-temporary-fix-check.sh
+          )
         );
       }
+      // (import ../../tests/nix/upstream-fix-regressions.nix {
+        pkgs = configurationPkgs;
+        inherit inputs;
+      })
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
         swift-hardening = import ../../tests/nix/swift-hardening.nix {
-          pkgs = self.darwinConfigurations.macbook-pro-m4.pkgs;
+          pkgs = configurationPkgs.extend (import ../../overlays { inherit inputs; });
         };
       }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
@@ -62,7 +88,31 @@
           (import ../../tests/nix/sentry/crashpad-lock.nix { inherit (pkgs) python3; }) sentryPackage
         );
       }
+      // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
+        # Hosted ARM runners have no KVM. Preserve native builds and upstream
+        # gtests here; the renderer VMs below run on the KVM-capable desktop ISA.
+        hyprland-subsurface-rounding-build = nativeRoundingTests "hyprland-rounding-native" roundingHyprland;
+        hyprland-subsurface-rounding-baseline-build = nativeRoundingTests "hyprland-rounding-baseline-native" roundingBaseline;
+      }
       // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+        hyprland-subsurface-rounding = import ../../tests/hyprland/subsurface-rounding-vm.nix {
+          inherit pkgs;
+          hyprland =
+            assert roundingHyprland.withTests;
+            roundingHyprland;
+        };
+        hyprland-subsurface-rounding-baseline = import ../../tests/hyprland/subsurface-rounding-vm.nix {
+          inherit pkgs;
+          expectFailure = true;
+          hyprland =
+            assert roundingBaseline.withTests;
+            roundingBaseline;
+        };
+        jellyfin-plugin-compatibility = import ../../tests/nix/jellyfin-plugins.nix {
+          inherit pkgs;
+          desktop = self.nixosConfigurations.desktop;
+          introChecker = ../../pkgs/pkgs/by-name/je/jellyfin-plugin-intro-skipper/check_jellyfin_plugin.py;
+        };
         hyprland-parent-display = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
           inherit pkgs;
           unpatched = hyprlandPackages.hyprland;

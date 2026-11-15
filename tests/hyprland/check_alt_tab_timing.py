@@ -15,12 +15,13 @@ import os
 import random
 import shutil
 import struct
-import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Local compositor IPC with explicit argv.
 import sys
 import time
 from contextlib import contextmanager
 from operator import itemgetter
 from typing import TYPE_CHECKING, Literal, overload
+
+from compositor_events import CompositorEvents, command_output
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -43,19 +44,24 @@ HYPRCTL = _hyprctl()
 
 
 def _run(*args: str) -> str:
-    return subprocess.check_output(args, text=True, timeout=5)  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit argv, no shell.
+    return command_output(*args)
 
 
 @overload
-def _hypr(command: Literal["clients"]) -> list[dict]: ...
+def _hypr(
+    command: Literal["clients"], observer: CompositorEvents | None = None
+) -> list[dict]: ...
 
 
 @overload
-def _hypr(command: Literal["activewindow", "layers"]) -> dict: ...
+def _hypr(
+    command: Literal["activewindow", "layers"], observer: CompositorEvents | None = None
+) -> dict: ...
 
 
-def _hypr(command: str) -> dict | list[dict]:
-    result = json.loads(_run(HYPRCTL, "-j", command))
+def _hypr(command: str, observer: CompositorEvents | None = None) -> dict | list[dict]:
+    execute = observer.command if observer is not None else _run
+    result = json.loads(execute(HYPRCTL, "-j", command))
     if command == "clients":
         if isinstance(result, list) and all(
             isinstance(client, dict) for client in result
@@ -67,10 +73,10 @@ def _hypr(command: str) -> dict | list[dict]:
     raise TypeError(message)
 
 
-def _visible() -> bool:
+def _visible(observer: CompositorEvents | None = None) -> bool:
     return any(
         "hyprshell" in layer["namespace"]
-        for monitor in _hypr("layers").values()
+        for monitor in _hypr("layers", observer).values()
         for level in monitor["levels"].values()
         for layer in level
     )
@@ -119,9 +125,8 @@ def _key(fd: int, code: int, value: int) -> None:
 
 
 def _closed(label: str) -> None:
-    deadline = time.monotonic() + 1
-    while _visible() and time.monotonic() < deadline:
-        time.sleep(0.02)
+    with CompositorEvents() as changes:
+        changes.wait(lambda: not _visible(changes), timeout=1)
     _require(not _visible(), f"FAIL: switcher stuck with keys released: {label}")
 
 
@@ -168,12 +173,12 @@ def _check(fd: int) -> None:
         time.sleep(gap)
         _key(fd, order[1], 0)
         time.sleep(0.12)
-        deadline = time.monotonic() + 1
-        while (
-            _hypr("activewindow").get("address") != expected
-            and time.monotonic() < deadline
-        ):
-            time.sleep(0.01)
+        with CompositorEvents() as changes:
+            changes.wait(
+                lambda expected=expected: (
+                    _hypr("activewindow", changes).get("address") == expected
+                )
+            )
         _require(
             _hypr("activewindow").get("address") == expected,
             f"Timed chord did not select the recent window: attempt={attempt}",

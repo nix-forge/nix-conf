@@ -1,0 +1,2 @@
+use @module@ *
+error make {msg: "must not execute configuration"}

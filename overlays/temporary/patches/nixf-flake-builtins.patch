@@ -1,0 +1,43 @@
+--- a/meson.build
++++ b/meson.build
+@@ -5,6 +5,7 @@
+        )
+ 
+ nix_expr = dependency('nix-expr')
++nix_flake = dependency('nix-flake')
+ nlohmann_json = dependency('nlohmann_json')
+ boost = dependency('boost')
+ gtest = dependency('gtest')
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -39,7 +39,7 @@
+ prim_ops_info_gen = executable(
+     'PrimOpsInfo',
+     'Basic/PrimOpsInfoGen.cpp',
+-    dependencies: [ nix_expr ],
++    dependencies: [ nix_expr, nix_flake ],
+     install: false,
+ )
+ 
+--- a/src/Basic/PrimOpsInfoGen.cpp
++++ b/src/Basic/PrimOpsInfoGen.cpp
+@@ -1,11 +1,19 @@
+ #include <nix/expr/eval.hh>
+ #include <nix/expr/primops.hh>
++#include <nix/flake/flake-primops.hh>
++#include <nix/flake/settings.hh>
+ 
+ #include <iostream>
+ 
+ int main(int argc, char **argv) {
+   std::freopen(argv[1], "w", stdout);
+   nix::initGC();
++  // Flake primops are supplied separately from the expression registry.
++  nix::flake::Settings FlakeSettings;
++  nix::RegisterPrimOp GetFlake(nix::flake::primops::getFlake(FlakeSettings));
++  nix::RegisterPrimOp ParseFlakeRef(nix::PrimOp(nix::flake::primops::parseFlakeRef));
++  nix::RegisterPrimOp FlakeRefToString(
++      nix::PrimOp(nix::flake::primops::flakeRefToString));
+   // Generate .cpp file that inject all primops into a custom vector.
+   // This is used by the language server to provide documentation,
+   // but omit the implementation of primops.

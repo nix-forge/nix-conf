@@ -44,7 +44,7 @@ let
 
   actualOpen = writeBashTemplate {
     name = "actual-open";
-    src = ./scripts/actual-open.sh;
+    src = ./actual-assets/actual-open.sh;
     dir = "bin";
     replacements = {
       bash = lib.getExe pkgs.bash;
@@ -55,7 +55,7 @@ let
 
   actualSetup = writeBashTemplate {
     name = "actual-setup.sh";
-    src = ./scripts/actual-setup.sh;
+    src = ./actual-assets/actual-setup.sh;
     replacements = {
       mkdir = lib.getExe' pkgs.coreutils "mkdir";
       chmod = lib.getExe' pkgs.coreutils "chmod";
@@ -96,8 +96,13 @@ in
 
     dataDir = lib.mkOption {
       type = lib.types.path;
-      default = "${config.xdg.userDirs.documents}/Actual";
-      defaultText = lib.literalExpression ''"${config.xdg.userDirs.documents}/Actual"'';
+      default = "${
+        if config.xdg.userDirs.documents != null then
+          config.xdg.userDirs.documents
+        else
+          "${config.home.homeDirectory}/Documents"
+      }/Actual";
+      defaultText = lib.literalExpression ''"<Documents directory or homeDirectory/Documents>/Actual"'';
       description = "Directory for Actual server state, account metadata, and budget sync files.";
     };
 

@@ -1,0 +1,8 @@
+#!@bash@
+# shellcheck shell=bash disable=SC2239
+set -euo pipefail
+set -a
+# shellcheck source=/dev/null
+source @environmentFile@
+set +a
+exec @serverCommand@

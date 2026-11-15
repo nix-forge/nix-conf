@@ -27,6 +27,10 @@ in
       StrictHostKeyChecking = "yes";
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
+      # Codex's verbose SSH probes wait for pipe closure. A persistent master
+      # retains stderr after the probe exits, causing connection timeouts.
+      ControlMaster = "no";
+      ControlPath = "none";
     };
 
     # Servers

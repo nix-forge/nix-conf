@@ -1,7 +1,23 @@
 {
   "plugins": ["unicorn", "typescript", "oxc", "import"],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "perf": "warn",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "eslint/no-await-in-loop": "off",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-explicit-any": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "maxWarnings": 0,
+    "reportUnusedDisableDirectives": "error"
   },
   "env": {
     "node": true,

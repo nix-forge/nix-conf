@@ -1,1 +1,1 @@
-{ imports = [ ../../shared/jj.nix ]; }
+{ imports = [ ../../shared/local/jj.nix ]; }

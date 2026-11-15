@@ -55,6 +55,15 @@ let
   ++ lib.optionals config.targets.darwin.copyApps.enable [ "copyApps" ]
   ++ lib.optionals (!config.targets.darwin.copyApps.enable) [ "linkGeneration" ];
 
+  setDefaultBrowser =
+    pkgs.runCommandCC "set-default-browser" { nativeBuildInputs = [ pkgs.swift ]; }
+      (
+        (import ../../../../lib/templates/text.nix) ./scripts/build-default-browser-helper.sh {
+          set_default_browser_swift = ./set-default-browser.swift;
+          swiftTarget = lib.escapeShellArg "${pkgs.stdenv.hostPlatform.darwinArch}-apple-macosx${pkgs.stdenv.hostPlatform.darwinMinVersion}";
+        }
+      );
+
   defaultBrowserHelper = writeBashTemplate {
     name = "hm-set-default-browser";
     src = ./default-browser.sh;
@@ -62,7 +71,9 @@ let
     replacements = {
       bash = lib.getExe pkgs.bash;
       awkExe = lib.getExe pkgs.gawk;
+      registeredBrowserAwk = "${./registered-browser.awk}";
       defaultBrowserExe = lib.getExe pkgs.defaultbrowser;
+      setDefaultBrowserExe = "${setDefaultBrowser}/bin/set-default-browser";
       appPath = lib.escapeShellArg darwinAppPath;
       appLabel = lib.escapeShellArg (
         if selectedBrowser == null then "browser" else selectedBrowser.appName

@@ -7,6 +7,8 @@
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_latest;
+
   boot.initrd.availableKernelModules = [
     "nvme"
     "ahci"
@@ -35,16 +37,7 @@
     ];
     unitConfig.DefaultDependencies = false;
     serviceConfig.Type = "oneshot";
-    script = ''
-      device=/sys/bus/pci/devices/0000:11:00.6
-      if [[ -d "$device" &&
-        "$(<"$device/vendor")" == 0x1022 &&
-        "$(<"$device/device")" == 0x15e3 &&
-        "$(<"$device/subsystem_vendor")" == 0x1462 &&
-        "$(<"$device/subsystem_device")" == 0xed75 ]]; then
-        printf '%s\n' none > "$device/driver_override"
-      fi
-    '';
+    script = builtins.readFile ./scripts/disable-empty-audio-controller-script.sh;
   };
   # Keep this host's additions narrowly tailored to its Zen 4 platform. Do
   # not force-replace the whole command line: NixOS derives the LSM sequence
@@ -58,9 +51,13 @@
   boot.kernelModules = [
     "kvm-amd"
     "k10temp"
-    "nct6683"
   ];
-  boot.blacklistedKernelModules = [ "zenpower" ];
+  # The onboard FireWire controller has no attached devices and repeatedly
+  # generated AMD-Vi page faults when its driver bound in earlier boots.
+  boot.blacklistedKernelModules = [
+    "zenpower"
+    "firewire_ohci"
+  ];
   boot.extraModprobeConfig = lib.concatLines [
     "options kvm_amd nested=1"
     # The onboard USB audio device can time out during sample-rate discovery.
@@ -68,8 +65,6 @@
     # control requests finish. Audio discovery still runs to completion; check
     # boot timing and named playback/capture devices after the next reboot.
     "options snd_usb_audio async_probe=1"
-    # The board's Nuvoton NCT6687D-R needs force=1 with nct6683 on non-Intel boards.
-    "options nct6683 force=1"
     "options cfg80211 ieee80211_regdom=US"
   ];
 

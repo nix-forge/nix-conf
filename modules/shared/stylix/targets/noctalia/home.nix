@@ -13,28 +13,12 @@
       cfg = config.desktop.noctalia;
       target = config.stylix.targets.noctalia;
       colors = config.lib.stylix.colors.withHashtag;
-      noctalia = lib.getExe config.programs.noctalia.package;
       darkAppIcons = self.packages.${system}.noctalia-dark-app-icons;
       shellPalette = (import ./mk-palette.nix).render { inherit pkgs colors; };
-      syncAppIcons = pkgs.writeShellApplication {
-        name = "noctalia-sync-app-icons";
-        runtimeInputs = [ pkgs.glib ];
-        text = ''
-          mode="''${NOCTALIA_THEME_MODE:-}"
-          if [[ -z "$mode" ]]; then
-            mode="$(${noctalia} msg theme-mode-get)"
-          fi
-          case "$mode" in
-            dark) theme=${lib.escapeShellArg darkAppIcons.iconThemeName} ;;
-            light) theme=${lib.escapeShellArg config.stylix.icons.light} ;;
-            *) echo "Unknown Noctalia theme mode: $mode" >&2; exit 1 ;;
-          esac
-          gsettings set org.gnome.desktop.interface icon-theme "$theme"
-        '';
-      };
     in
     {
       key = "nix-conf/stylix/noctalia/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.noctalia.custom.enable = lib.mkEnableOption "the desktop Noctalia theme" // {
         default = true;
@@ -70,11 +54,6 @@
                   taskbar.symbolic_icons = true;
                   tray.icon_overrides = cfg.symbolicBarIcons.trayOverrides;
                 };
-                hooks = lib.optionalAttrs cfg.darkAppIcons.enable {
-                  started = [ (lib.getExe syncAppIcons) ];
-                  theme_mode_changed = [ (lib.getExe syncAppIcons) ];
-                };
-
                 dock = lib.mkIf cfg.dock.enable {
                   icon_size = 42;
                   # Keep artwork at full opacity and size regardless of window focus.

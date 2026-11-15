@@ -1,0 +1,5 @@
+{
+  "name": "fixture",
+  "description": "Fixture for Home Manager's legacy Claude plugin wrapper",
+  "version": "1.0.0"
+}

@@ -24,6 +24,8 @@ from operator import itemgetter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from compositor_events import CompositorEvents
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -38,6 +40,8 @@ from check_alt_tab_timing import (
     _run,  # ruff: ignore[import-private-name] -- Reuse the live keyboard regression helpers.
     _visible,  # ruff: ignore[import-private-name] -- Reuse the live keyboard regression helpers.
 )
+from notification_process import run as run_command
+from notification_process import wait_child
 
 CLI_ARGUMENTS = 2
 MIN_FINISHED_QUERIES = 3
@@ -132,17 +136,12 @@ def _ipc(binary: str, env: dict[str, str], switch: bool | None) -> None:
         if switch is None
         else {"CloseSwitch": {"switch": switch}}
     )
-    subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit local IPC argv and isolated environment.
-        [binary, "socat", json.dumps(message)], env=env, check=True, timeout=2
-    )
+    run_command([binary, "socat", json.dumps(message)], env=env, check=True, timeout=2)
 
 
 def _wait_visible(expected: bool, timeout: float, label: str) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if _visible() == expected:
-            return
-        time.sleep(0.005)
+    with CompositorEvents() as changes:
+        changes.wait(lambda: _visible(changes) == expected, timeout)
     _require(_visible() == expected, label)
 
 
@@ -237,7 +236,7 @@ def _with_daemon(
             binding_socket.unlink()
         daemon.terminate()
         try:
-            daemon.wait(timeout=2)
+            wait_child(daemon, timeout=2)
         except subprocess.TimeoutExpired:
             daemon.kill()
             daemon.wait()

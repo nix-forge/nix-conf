@@ -274,10 +274,11 @@ in
     # Theme selection remains local: this portable module must not impose a
     # cursor package or theme name on every host.
     xdg.configFile."uwsm/env".text = lib.mkIf (usingUWSMHyprland && cfg.enable && cursorCfg.enable) (
-      lib.mkAfter ''
-        export XCURSOR_SIZE=${toString derivedCursorSize}
-        export HYPRCURSOR_SIZE=${toString derivedCursorSize}
-      ''
+      lib.mkAfter (
+        (import ../../../../lib/templates/text.nix) ./scripts/set-cursor-size.sh {
+          toString_derivedCursorSize = toString derivedCursorSize;
+        }
+      )
     );
 
     assertions = [

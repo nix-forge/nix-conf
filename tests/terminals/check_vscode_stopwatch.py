@@ -13,41 +13,50 @@ import io
 import json
 import os
 import shutil
-import socket
-import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Runs the selected local VS Code binary.
 import sys
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 import websocket
 from PIL import Image, ImageChops
+from typescript_sources import javascript_source
+from vscode.probe_process import owned_probe
+from waits import FileChanges
 
 INK_THRESHOLD = 35
 MIN_ASPECT_RATIO = 0.7
+DEVTOOLS_ENDPOINT_LINES = 2
 
 
 class _CDP:
-    def __init__(self, url: str) -> None:
-        self.ws = websocket.create_connection(url, suppress_origin=True, timeout=15)
+    def __init__(self, url: str, *, timeout: float = 15) -> None:
+        self.ws = websocket.create_connection(
+            url, suppress_origin=True, timeout=timeout
+        )
         self.sequence = 0
+        self.events: list[dict] = []
 
-    def call(self, method: str, params: dict | None = None) -> dict:
+    def call(
+        self, method: str, params: dict | None = None, *, timeout: float = 15
+    ) -> dict:
+        deadline = time.monotonic() + timeout
+        self.ws.settimeout(timeout)
         self.sequence += 1
         self.ws.send(
             json.dumps({"id": self.sequence, "method": method, "params": params or {}})
         )
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            self.ws.settimeout(remaining)
             result = json.loads(self.ws.recv())
             if result.get("id") == self.sequence:
                 if "error" in result:
                     raise RuntimeError(result["error"])
                 return result.get("result", {})
+            self.events.append(result)
 
     def evaluate(self, expression: str) -> dict | str | bool | None:
         result = self.call(
@@ -70,18 +79,147 @@ class _CDP:
             )
 
 
-def _wait_for[T](callback: Callable[[], T | None], timeout: float = 30) -> T:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+def _page_endpoint(profile: Path) -> str:
+    deadline = time.monotonic() + 30
+
+    def remaining() -> float:
+        duration = deadline - time.monotonic()
+        if duration <= 0:
+            raise TimeoutError
+        return duration
+
+    active = profile / "DevToolsActivePort"
+    endpoint = ""
+
+    def available() -> bool:
+        nonlocal endpoint
+        if not active.exists():
+            return False
+        lines = active.read_text().splitlines()
+        if (
+            len(lines) < DEVTOOLS_ENDPOINT_LINES
+            or not lines[0].isdigit()
+            or not lines[1].startswith("/devtools/browser/")
+        ):
+            return False
+        endpoint = f"ws://127.0.0.1:{lines[0]}{lines[1]}"
+        return True
+
+    FileChanges(profile).wait(available, timeout=remaining())
+    browser = _CDP(endpoint, timeout=remaining())
+    try:
+        browser.call(
+            "Target.setDiscoverTargets", {"discover": True}, timeout=remaining()
+        )
+        targets = browser.call("Target.getTargets", timeout=remaining()).get(
+            "targetInfos", []
+        )
+        while True:
+            budget = remaining()
+            page = next(
+                (target for target in targets if target.get("type") == "page"), None
+            )
+            if page:
+                host = endpoint.split("/devtools/", maxsplit=1)[0]
+                return f"{host}/devtools/page/{page['targetId']}"
+            if browser.events:
+                event = browser.events.pop(0)
+            else:
+                browser.ws.settimeout(budget)
+                event = json.loads(browser.ws.recv())
+            target = event.get("params", {}).get("targetInfo")
+            targets = [target] if isinstance(target, dict) else []
+    finally:
+        browser.ws.close()
+
+
+class _ExecutionContexts:
+    def __init__(self, frame_id: str) -> None:
+        self.frame_id = frame_id
+        self.current: dict | None = None
+        self.generation = 0
+
+    def accept(self, event: dict) -> None:
+        params = event.get("params", {})
+        method = event.get("method")
+        context = params.get("context", {})
+        if (
+            method == "Runtime.executionContextCreated"
+            and context.get("auxData", {}).get("isDefault")
+            and context.get("auxData", {}).get("frameId") == self.frame_id
+        ):
+            self.current = context
+            self.generation += 1
+        elif method == "Runtime.executionContextsCleared" or (
+            method == "Runtime.executionContextDestroyed"
+            and self.current
+            and params.get("executionContextId") == self.current["id"]
+        ):
+            self.current = None
+            self.generation += 1
+
+    def buffered(self, cdp: _CDP, deadline: float) -> None:
+        while cdp.events:
+            if time.monotonic() >= deadline:
+                raise TimeoutError
+            self.accept(cdp.events.pop(0))
+
+
+def _wait_for_dom(cdp: _CDP, selector: str) -> None:
+    deadline = time.monotonic() + 15
+
+    def remaining() -> float:
+        budget = deadline - time.monotonic()
+        if budget <= 0:
+            raise TimeoutError
+        return budget
+
+    observer = Path(__file__).resolve().parents[1] / "vscode" / "wait-for-dom.ts"
+    frames = cdp.call("Page.getFrameTree", timeout=remaining())
+    frame_id = frames["frameTree"]["frame"]["id"]
+    contexts = _ExecutionContexts(frame_id)
+
+    cdp.call("Runtime.disable", timeout=remaining())
+    cdp.events.clear()
+    cdp.call("Runtime.enable", timeout=remaining())
+    contexts.buffered(cdp, deadline)
+    while True:
+        remaining()
+        if contexts.current is None:
+            cdp.ws.settimeout(remaining())
+            contexts.accept(json.loads(cdp.ws.recv()))
+            continue
+        previous = contexts.generation
         try:
-            result = callback()
-            if result:
-                return result
-        except OSError, ValueError:
-            time.sleep(0.2)
-        time.sleep(0.2)
-    message = "VS Code diagnostic window did not become ready"
-    raise TimeoutError(message)
+            result = cdp.call(
+                "Runtime.callFunctionOn",
+                {
+                    "uniqueContextId": contexts.current["uniqueId"],
+                    "functionDeclaration": javascript_source(observer),
+                    "arguments": [
+                        {"value": value}
+                        for value in (selector, 1, None, remaining() * 1000)
+                    ],
+                    "awaitPromise": True,
+                    "returnByValue": True,
+                },
+                timeout=remaining(),
+            )
+        except RuntimeError:
+            contexts.buffered(cdp, deadline)
+            if previous == contexts.generation:
+                raise
+            continue
+        contexts.buffered(cdp, deadline)
+        remaining()
+        if previous != contexts.generation:
+            continue
+        if "exceptionDetails" in result:
+            raise RuntimeError(result["exceptionDetails"])
+        if result.get("result", {}).get("value") is not True:
+            message = "DOM observer did not establish readiness"
+            raise RuntimeError(message)
+        return
 
 
 def _close(cdp: _CDP | None, output: Path) -> None:
@@ -136,13 +274,7 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
         workspace = root / "workspace"
         workspace.mkdir()
         sample = root / "sample.sh"
-        sample.write_text(
-            "printf '\\033[2J\\033[H\\033[1m⏱ 24s\\033[0m    bare bold\\n"
-            "⏱ 24s    bare normal\\n⏱︎ 24s    text selector\\n"
-            "⏱️ 24s    emoji selector\\n😀 ❤️ 1️⃣ 🇺🇸 👩‍💻    emoji\\n"
-            "0123456789 ABCDEFG abcdefg\\n┌─┬─┐  ❯      symbols\\n'\n"  # ruff: ignore[ambiguous-unicode-character-string] -- Literal glyph fixtures.
-            "read -r unused\n"
-        )
+        shutil.copyfile(Path(__file__).with_name("stopwatch-sample.sh"), sample)
         os_name = "osx" if sys.platform == "darwin" else "linux"
         settings.update({
             "terminal.integrated.fontSize": 16,
@@ -170,66 +302,36 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
                 {"key": "f7", "command": "workbench.action.toggleMaximizedPanel"},
             ])
         )
-        with socket.socket() as listener:
-            listener.bind(("127.0.0.1", 0))
-            port = listener.getsockname()[1]
         cdp = None
         env = os.environ.copy()
         # --noprofile/--norc do not disable BASH_ENV for a script shell.
         for name in ("BASH_ENV", "ENV"):
             env.pop(name, None)
-        with (args.output / "code.log").open("w") as log:
-            subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Fixed arguments; no shell.
-                [
-                    args.code,
-                    f"--user-data-dir={root / 'profile'}",
-                    f"--extensions-dir={root / 'extensions'}",
-                    "--disable-extensions",
-                    "--new-window",
-                    f"--remote-debugging-port={port}",
-                    str(workspace),
-                ],
-                env=env,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=True,
-                timeout=30,
-            )
+        with owned_probe(
+            root,
+            [
+                args.code,
+                f"--user-data-dir={root / 'profile'}",
+                f"--extensions-dir={root / 'extensions'}",
+                "--disable-extensions",
+                "--new-window",
+                "--remote-debugging-port=0",
+                str(workspace),
+            ],
+            env=env,
+        ):
             try:
-
-                def page() -> dict | None:
-                    with urllib.request.urlopen(
-                        f"http://127.0.0.1:{port}/json/list", timeout=1
-                    ) as response:
-                        return next(
-                            (p for p in json.load(response) if p["type"] == "page"),
-                            None,
-                        )
-
-                cdp = _CDP(_wait_for(page)["webSocketDebuggerUrl"])
-                _wait_for(
-                    lambda: cdp.evaluate(
-                        "!!document.querySelector('.monaco-workbench')"
-                    )
-                )
+                cdp = _CDP(_page_endpoint(root / "profile"))
+                _wait_for_dom(cdp, ".monaco-workbench")
                 # Allow startup contributions and the diagnostic keybindings to load.
                 time.sleep(5)
                 cdp.evaluate(
                     "[...document.querySelectorAll('button, a, [role=button]')].find(e => e.textContent.trim() === 'Continue without Signing In')?.click()"
                 )
                 time.sleep(0.5)
-                # Dismissing first-run onboarding can reload the workbench.
-                # Retry until the terminal exists, then wait for its renderer.
-                for _ in range(10):
-                    if cdp.evaluate("!!document.querySelector('.xterm')"):
-                        break
-                    cdp.key("F6", 117)
-                    time.sleep(1)
-                _wait_for(
-                    lambda: cdp.evaluate(
-                        "!!document.querySelector('.xterm-screen canvas')"
-                    )
-                )
+                # Dispatch the terminal command once and observe its renderer.
+                cdp.key("F6", 117)
+                _wait_for_dom(cdp, ".xterm-screen canvas")
                 time.sleep(2)
                 cdp.key("F7", 118)
                 time.sleep(0.5)
@@ -283,7 +385,10 @@ def _main() -> int:  # ruff: ignore[too-many-statements, too-many-locals] -- Kee
                 sys.stdout.write(json.dumps(metrics) + "\n")
                 return 0 if metrics["pass"] else 1
             finally:
-                _close(cdp, args.output)
+                try:
+                    _close(cdp, args.output)
+                finally:
+                    shutil.copyfile(root / "code.log", args.output / "code.log")
 
 
 if __name__ == "__main__":

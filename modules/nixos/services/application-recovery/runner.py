@@ -1,6 +1,6 @@
 """Run declared application exports and isolated restoration drills."""
 
-# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception, start-process-with-partial-path]
+# ruff: file-ignore[print, subprocess-without-shell-equals-true, suspicious-subprocess-import, raise-vanilla-args, raw-string-in-exception]
 # Operator CLI invokes immutable declared commands without shell interpolation.
 from __future__ import annotations
 
@@ -10,12 +10,15 @@ import fcntl
 import hashlib
 import json
 import os
+import selectors
 import signal
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from notification_process import run as run_command
 
 if TYPE_CHECKING:
     from typing import Any
@@ -31,13 +34,22 @@ def command(arguments: list[str], environment: dict[str, str], timeout: int) -> 
     Raises:
         subprocess.CalledProcessError: The hook returned a failing exit status.
         RecoveryError: The hook left unfinished child processes.
+        subprocess.TimeoutExpired: The hook exceeded its execution deadline.
 
     """
     with subprocess.Popen(
         arguments, env=environment, start_new_session=True
     ) as process:
         try:
-            result = process.wait(timeout=timeout)
+            descriptor = os.pidfd_open(process.pid)
+            try:
+                with selectors.DefaultSelector() as selector:
+                    selector.register(descriptor, selectors.EVENT_READ)
+                    if not selector.select(timeout):
+                        raise subprocess.TimeoutExpired(arguments, timeout)
+                result = process.wait()
+            finally:
+                os.close(descriptor)
             if result:
                 raise subprocess.CalledProcessError(result, arguments)
             try:
@@ -89,7 +101,7 @@ def backup(policy: dict[str, Any], environment: dict[str, str]) -> None:
     timeout = policy["timeoutSeconds"]
     try:
         for unit in policy["units"]:
-            result = subprocess.run(
+            result = run_command(
                 ["systemctl", "show", unit, "--property=LoadState,ActiveState"],
                 capture_output=True,
                 text=True,

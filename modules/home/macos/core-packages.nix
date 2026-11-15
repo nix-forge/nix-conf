@@ -55,9 +55,11 @@ let
         inherit name;
         paths = lib.mapAttrsToList (
           command: path:
-          pkgs.writeShellScriptBin command ''
-            exec ${lib.escapeShellArg path} "$@"
-          ''
+          pkgs.writeShellScriptBin command (
+            (import ../../../lib/templates/text.nix) ./scripts/core-packages-run.sh {
+              lib_escapeShellArg_path = lib.escapeShellArg path;
+            }
+          )
         ) commands;
       }
     );

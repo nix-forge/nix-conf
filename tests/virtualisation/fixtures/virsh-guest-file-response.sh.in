@@ -1,0 +1,14 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+case "$3" in
+domid) printf '1\n' ;;
+qemu-agent-command)
+  case "${@: -1}" in
+  *guest-file-open*) printf '{"return":1}' ;;
+  *guest-file-read*) printf '%s' "$GUEST_RESPONSE" ;;
+  *guest-file-close*) printf '{"return":{}}' ;;
+  *) exit 2 ;; esac
+  ;;
+*) exit 2 ;; esac

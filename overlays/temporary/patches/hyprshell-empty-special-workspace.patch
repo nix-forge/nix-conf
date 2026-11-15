@@ -1,0 +1,165 @@
+diff --git a/crates/exec-lib/src/collect.rs b/crates/exec-lib/src/collect.rs
+index ec346c71c048..de25f9061e60 100644
+--- a/crates/exec-lib/src/collect.rs
++++ b/crates/exec-lib/src/collect.rs
+@@ -23,7 +23,7 @@ fn get_hypr_data() -> anyhow::Result<(Vec<Monitor>, Vec<Workspace>, Vec<Client>)
+     let clients = Clients::get()
+         .context("clients failed")?
+         .into_iter()
+-        .filter(|c| c.workspace.id != -1) // TODO: check if still needed: ignore clients on invalid workspaces
++        .filter(|c| c.workspace.id.is_some_and(|id| id != -1))
+         .collect::<Vec<_>>();
+ 
+     Ok((monitors, workspaces, clients))
+@@ -98,7 +98,9 @@ pub fn collect_hypr_data(
+             let Some(monitor) = client.monitor else {
+                 continue;
+             };
+-            if workspace_data.find_by_first(&client.workspace.id).is_some() {
++            if let Some(workspace_id) = client.workspace.id
++                && workspace_data.find_by_first(&workspace_id).is_some()
++            {
+                 cd.push((
+                     to_client_id(&client.address),
+                     ClientData {
+@@ -107,7 +109,7 @@ pub fn collect_hypr_data(
+                         width: client.size.0,
+                         height: client.size.1,
+                         class: client.class.clone(),
+-                        workspace: client.workspace.id,
++                        workspace: workspace_id,
+                         monitor,
+                         focus_history_id: client.focus_history_id,
+                         title: client.title.clone(),
+@@ -150,7 +152,8 @@ pub fn collect_hypr_data(
+         .context("active workspace failed")?;
+     let active_ws = Client::get_active()
+         .context("active client failed")?
+-        .map_or(active_ws, |a| a.workspace.id);
++        .and_then(|a| a.workspace.id)
++        .unwrap_or(active_ws);
+     let active_monitor = Monitor::get_active().context("active monitor failed")?.id;
+     let active_client = Client::get_active()
+         .context("active client failed")?
+diff --git a/crates/exec-lib/src/switch.rs b/crates/exec-lib/src/switch.rs
+index 7914689d2673..6e7acfbcccf9 100644
+--- a/crates/exec-lib/src/switch.rs
++++ b/crates/exec-lib/src/switch.rs
+@@ -135,17 +135,13 @@ fn switch_special_workspace(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+ }
+ 
+ fn switch_special_workspace_legacy(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    let special = Monitors::get()?
+-        .into_iter()
+-        .find(|m| m.special_workspace.id == workspace_id);
+-    if let Some(special) = special {
+-        trace!("Special workspace already toggled: {special:?}");
+-        return Ok(());
+-    }
+     let ws = Workspaces::get()?
+         .into_iter()
+         .find(|w| w.id == workspace_id)
+         .context("workspace not found")?;
++    if special_workspace_active(&ws)? {
++        return Ok(());
++    }
+ 
+     Dispatch::call(DispatchType::ToggleSpecialWorkspace(Some(
+         ws.name.trim_start_matches("special:").to_string(),
+@@ -155,17 +151,13 @@ fn switch_special_workspace_legacy(workspace_id: WorkspaceId) -> anyhow::Result<
+ }
+ 
+ fn switch_special_workspace_lua(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+-    let special = Monitors::get()?
+-        .into_iter()
+-        .find(|m| m.special_workspace.id == workspace_id);
+-    if let Some(special) = special {
+-        trace!("Special workspace already toggled: {special:?}");
+-        return Ok(());
+-    }
+     let ws = Workspaces::get()?
+         .into_iter()
+         .find(|w| w.id == workspace_id)
+         .context("workspace not found")?;
++    if special_workspace_active(&ws)? {
++        return Ok(());
++    }
+ 
+     let disp = hyprland::dispatch_new::Dispatch::FocusWorkspace(
+         hyprland::dispatch_new::WorkspaceIdentifier::Special(Some(
+@@ -177,6 +169,13 @@ fn switch_special_workspace_lua(workspace_id: WorkspaceId) -> anyhow::Result<()>
+     Ok(())
+ }
+ 
++fn special_workspace_active(workspace: &Workspace) -> anyhow::Result<bool> {
++    Ok(Monitors::get()?.into_iter().any(|monitor| {
++        monitor.special_workspace.id == Some(workspace.id)
++            || monitor.special_workspace.name == workspace.name
++    }))
++}
++
+ #[instrument(level = "debug", ret(level = "trace"))]
+ fn switch_normal_workspace(workspace_id: WorkspaceId) -> anyhow::Result<()> {
+     match switch_normal_workspace_lua(workspace_id) {
+diff --git a/dep-crates/hyprland-rs/src/data/regular.rs b/dep-crates/hyprland-rs/src/data/regular.rs
+index 2540aabd01e7..f561c80aef2c 100644
+--- a/dep-crates/hyprland-rs/src/data/regular.rs
++++ b/dep-crates/hyprland-rs/src/data/regular.rs
+@@ -38,8 +38,9 @@ pub(crate) enum DataCommands {
+ /// This struct holds a basic identifier for a workspace often used in other structs
+ #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+ pub struct WorkspaceBasic {
+-    /// The workspace Id
+-    pub id: WorkspaceId,
++    /// The workspace ID, absent for unnamed or special monitor workspace entries.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub id: Option<WorkspaceId>,
+     /// The workspace's name
+     pub name: String,
+ }
+@@ -738,3 +739,45 @@ create_data_struct!(
+     holding_type: WorkspaceRuleset,
+     doc: "This struct holds a vector of workspace rules per workspace"
+ );
++
++#[cfg(test)]
++mod workspace_basic_tests {
++    use super::{Monitor, WorkspaceBasic};
++
++    #[test]
++    fn parses_old_and_current_workspace_identifiers() {
++        for (input, expected_id, expected_name) in [
++            (r#"{"id":2,"name":"2"}"#, Some(2), "2"),
++            (
++                r#"{"address":"0x1234","id":2,"name":"2","type":"regular"}"#,
++                Some(2),
++                "2",
++            ),
++            (
++                r#"{"address":"0x5678","name":"special:scratchpad","type":"special"}"#,
++                None,
++                "special:scratchpad",
++            ),
++            (r#"{"address":"","name":"","type":""}"#, None, ""),
++        ] {
++            let workspace: WorkspaceBasic = serde_json::from_str(input).unwrap();
++            assert_eq!(workspace.id, expected_id);
++            assert_eq!(workspace.name, expected_name);
++        }
++    }
++
++    #[test]
++    fn parses_monitor_with_empty_special_workspace() {
++        let monitor = serde_json::json!({
++            "id": 0, "name": "DP-1", "description": "Display", "width": 1920,
++            "height": 1080, "refreshRate": 60.0, "x": 0, "y": 0,
++            "activeWorkspace": {"address": "0x1234", "id": 2, "name": "2", "type": "regular"},
++            "specialWorkspace": {"address": "", "name": "", "type": ""},
++            "reserved": [0, 0, 0, 0], "scale": 1.0, "transform": 0,
++            "focused": true, "dpmsStatus": true, "vrr": false, "disabled": false
++        });
++        let monitor: Monitor = serde_json::from_value(monitor).unwrap();
++        assert_eq!(monitor.active_workspace.id, Some(2));
++        assert_eq!(monitor.special_workspace.id, None);
++    }
++}

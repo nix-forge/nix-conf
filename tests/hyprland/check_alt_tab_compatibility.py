@@ -7,7 +7,6 @@ the normal service and focus. Pass the binary and 'cancel' or 'legacy'.
 from __future__ import annotations
 
 import json
-import subprocess  # ruff: ignore[suspicious-subprocess-import] -- Explicit local IPC argv.
 import sys
 import time
 from operator import itemgetter
@@ -25,6 +24,7 @@ from check_alt_tab_ipc_timeout import (
     _wait_visible,  # ruff: ignore[import-private-name] -- Shared regression helpers.
 )
 from check_alt_tab_timing import RALT, SHIFT, TAB
+from notification_process import run as run_command
 
 if TYPE_CHECKING:
     from check_alt_tab_ipc_timeout import _Proxy
@@ -33,7 +33,7 @@ CLI_ARGUMENTS = 3
 
 
 def _open_at(binary: str, env: dict[str, str], event_time: int) -> None:
-    subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] -- Explicit local IPC argv.
+    run_command(
         [
             binary,
             "socat",

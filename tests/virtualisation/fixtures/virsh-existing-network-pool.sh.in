@@ -1,0 +1,52 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+set -euo pipefail
+if [[ ${1-} == --connect ]]; then
+  shift 2
+fi
+command_name=${1-}
+shift
+case "$command_name" in
+net-info)
+  printf 'Active: yes\n'
+  # virsh writes fields separately. An early-exiting reader must not
+  # turn a healthy network into a pipefail error via SIGPIPE.
+  sleep 0.05
+  printf 'Persistent: yes\n'
+  ;;
+net-dumpxml)
+  cat "$EXISTING_NETWORK"
+  ;;
+net-uuid)
+  printf '%s\n' "$EXISTING_UUID"
+  ;;
+net-define)
+  cp "$1" "$DEFINED_NETWORK"
+  if ! grep -Fq "<uuid>$EXISTING_UUID</uuid>" "$1"; then
+    printf "error: operation failed: network 'dev-mgmt' already exists with uuid %s\n" "$EXISTING_UUID" >&2
+    exit 1
+  fi
+  ;;
+net-autostart | pool-autostart | pool-refresh)
+  ;;
+pool-info)
+  printf 'State: running\n'
+  sleep 0.05
+  printf 'Persistent: yes\n'
+  ;;
+pool-dumpxml)
+  cat "$POOL_DEFINITION"
+  ;;
+pool-uuid)
+  printf '%s\n' "$EXISTING_UUID"
+  ;;
+pool-define)
+  cp "$1" "$DEFINED_POOL"
+  ;;
+*)
+  printf 'unexpected virsh command: %s\n' "$command_name" >&2
+  exit 2
+  ;;
+esac

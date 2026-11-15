@@ -24,6 +24,7 @@ exercise serialization with quotes, spaces, backslashes, and ordered values.
 | Caddyfile | `caddy adapt --validate` provisions the actual generated configuration with disposable fixture certificates. Tests inspect listeners, upstreams, and required client authentication, and reject missing certificate files. Validation does not start a server. |
 | JSON, TOML, and application settings | Format generators serialize Nix values. Independent parsers check generated values and ordering. LinearMouse uses its pinned upstream schema, with schema mismatch and external-reference tests. Walker uses TOML generation and value regression checks; upstream has no published configuration schema. |
 | XML and certificate extensions | Existing XML writers check well-formedness, and Libvirt definitions use its selected schemas. OpenSSL consumes the generated extension files; tests inspect client/server usage and subject alternative names. |
+| tmux | A private tmux server loads the generated configuration and checks literal titles, status text and normal option overrides. Fixtures include quotes, backslashes, environment-variable syntax and command separators. The check closes its own server. |
 
 Linux runs the configuration fixtures that depend on Linux desktop packages.
 Bash, Python helper, Lua, and Nushell checks are exposed on Darwin too. The
@@ -58,7 +59,7 @@ aggregate evaluated for Apple Silicon Darwin. Changed Nix, Python, Lua, shell,
 and documentation files passed their applicable format and static checks. No
 system activation, native Darwin build, or live Windows guest test was performed.
 
-The [generation and schema research](nix-generated-config-schema-research.md)
+The [generation and schema research](research/nix-generated-config-schema-research.md)
 explains writer selection. Upstream documentation describes
 [Caddy's provisioning validation](https://caddyserver.com/docs/command-line#caddy-validate)
 and [PSScriptAnalyzer settings and diagnostics](https://learn.microsoft.com/en-us/powershell/module/psscriptanalyzer/invoke-scriptanalyzer?view=ps-modules).

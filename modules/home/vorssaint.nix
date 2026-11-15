@@ -12,6 +12,7 @@ let
   }.app";
 in
 {
+  imports = [ ./macos/application-capabilities.nix ];
   options.programs.vorssaint = {
     enable = lib.mkEnableOption "Vorssaint, a modular macOS menu-bar toolkit";
 
@@ -53,6 +54,19 @@ in
       }
     ];
 
+    macos.applicationCapabilities.apps.vorssaint = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+      enable = lib.mkDefault cfg.enable;
+      bundle = "${cfg.package.appName or "Vorssaint"}.app";
+      bundleId = "io.github.ianhollow.personalmonitor";
+      features.login = {
+        enable = lib.mkDefault cfg.startAtLogin;
+        service = "background-items";
+        reason = "Start one monitor instance at graphical login";
+        source = "https://support.apple.com/guide/deployment/depdca572563/web";
+        instruction = "After login check that one intended monitor instance is running; keep built-in Launch at Login off. Fan control remains unavailable with this package's untrusted privileged-helper identity.";
+      };
+    };
+
     home.packages = [ cfg.package ];
 
     warnings = lib.optional (!cfg.acknowledgeFanControlLimitation) ''
@@ -80,6 +94,7 @@ in
       enable = true;
       domain = "gui";
       config = {
+
         ProgramArguments = [
           "/bin/sh"
           "-c"

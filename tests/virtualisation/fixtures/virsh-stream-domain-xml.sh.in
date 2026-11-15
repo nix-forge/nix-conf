@@ -1,0 +1,19 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+printf '%s\n' "$*" >>@__value1@
+shift 2
+case "$1" in
+dominfo) exit 0 ;;
+domuuid) echo @__value2@ ;;
+dumpxml)
+  printf '%s' '<domain><devices><disk device="disk">'
+  sleep 0.05
+  printf '%s\n' '<source file="/fixture/VM disks/system.qcow2"/><target dev="sda"/></disk></devices></domain>'
+  ;;
+domblklist) echo 'file disk sda /fixture/VM disks/system.qcow2' ;;
+domid) echo 1 ;;
+define | autostart) exit 0 ;;
+*) exit 99 ;;
+esac

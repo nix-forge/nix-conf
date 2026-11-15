@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8" />
+<title>Zen HDR output check</title>
+<style>
+  body {
+    background: #222;
+    color: white;
+  }
+  video {
+    width: 640px;
+    max-width: 95vw;
+  }
+  video:fullscreen {
+    width: 100%;
+    height: 100%;
+  }
+</style>
+<button onclick="document.querySelector('video').requestFullscreen()">
+  Fullscreen HDR
+</button>
+<video src="hdr.webm" muted loop autoplay controls></video>

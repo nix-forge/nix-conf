@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+set -euo pipefail
+if [[ -z ${CODEX_HOME:-} ]]; then
+  # The configured directory is literal, including any dollar signs.
+  # shellcheck disable=SC2016
+  export CODEX_HOME=@defaultHome@
+fi
+exec @codex@ "$@"

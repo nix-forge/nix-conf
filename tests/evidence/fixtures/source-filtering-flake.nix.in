@@ -1,0 +1,11 @@
+{
+  inputs.self.submodules = true;
+  outputs = { self }: {
+    observed = {
+      tracked = builtins.pathExists (self + "/added");
+      hidden = builtins.pathExists (self + "/untracked");
+      childHidden = builtins.pathExists (self + "/child/untracked");
+      childLock = builtins.readFile (self + "/child/flake.lock");
+    };
+  };
+}

@@ -14,6 +14,7 @@ import math
 import os
 import platform
 import re
+import shlex
 import shutil
 import signal
 import statistics
@@ -52,9 +53,7 @@ def git(root: Path, *args: str) -> bytes:
     env = {
         key: value for key, value in os.environ.items() if not key.startswith("GIT_")
     }
-    return subprocess.check_output(
-        ["git", "-C", str(root), *args], env=env, timeout=VERIFICATION_TIMEOUT
-    )
+    return verified_output(root, ["git", "-C", str(root), *args], env=env)
 
 
 def digest(value: bytes) -> str:
@@ -289,39 +288,68 @@ def measure(
     }
 
 
-def nix_output(root: Path, *args: str) -> str:
-    """Run bounded candidate verification, cleaning up its owned child group.
+def verified_output(
+    root: Path, command: list[str], *, env: dict[str, str] | None = None
+) -> bytes:
+    """Capture a command using blocking pipe and child waits under one deadline.
 
     Returns:
-        The verification command's standard output.
+        The command's standard output.
 
     Raises:
         ValueError: Verification left asynchronous descendants running.
-        subprocess.CalledProcessError: Nix rejected the candidate.
+        subprocess.CalledProcessError: The command failed.
+        subprocess.TimeoutExpired: The command exhausted its execution budget.
 
     """
-    command = ["nix", *args]
+    deadline = time.monotonic() + VERIFICATION_TIMEOUT
+    expired = threading.Event()
     with subprocess.Popen(
         command,
         cwd=root,
+        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         start_new_session=True,
-        text=True,
     ) as process:
+
+        def terminate() -> None:
+            expired.set()
+            kill_group(process.pid)
+
+        timer = threading.Timer(max(0, deadline - time.monotonic()), terminate)
+        timer.daemon = True
+        timer.start()
         try:
-            stdout, stderr = process.communicate(timeout=VERIFICATION_TIMEOUT)
+            stdout, stderr = process.communicate()
         except BaseException:
             kill_group(process.pid)
             process.communicate()
             raise
+        finally:
+            timer.cancel()
+            timer.join()
+        if expired.is_set():
+            raise subprocess.TimeoutExpired(
+                command, VERIFICATION_TIMEOUT, output=stdout, stderr=stderr
+            )
         if reject_descendants(process.pid):
             raise ValueError("Candidate verification left background processes running")
         if process.returncode:
             raise subprocess.CalledProcessError(
                 process.returncode, command, stdout, stderr
             )
-    return stdout.strip()
+    return stdout
+
+
+def nix_output(root: Path, *args: str) -> str:
+    """Run bounded candidate verification, cleaning up its owned child group.
+
+    Returns:
+        The verification command's standard output.
+
+    """
+    return os.fsdecode(verified_output(root, ["nix", *args])).strip()
 
 
 def active_generation() -> str | None:
@@ -454,7 +482,7 @@ def nix_configuration(root: Path) -> dict[str, str]:
     """
     try:
         settings = json.loads(nix_output(root, "config", "show", "--json"))
-    except (ValueError, OSError, subprocess.SubprocessError) as error:
+    except (TypeError, ValueError, OSError, subprocess.SubprocessError) as error:
         return {"status": "unavailable", "reason": type(error).__name__}
     if not isinstance(settings, dict) or not settings:
         return {
@@ -583,32 +611,67 @@ def execute_capture(
         )
 
 
-def validate_placement(args: argparse.Namespace, command: list[str]) -> None:
-    """Enforce the desktop full-system recipe and its existing resource scope.
+def build_placement_policy(path: Path, target: str) -> dict[str, Any] | None:
+    """Read a target's optional build-placement contract.
+
+    Returns:
+        The validated policy, or None for a target with no placement restriction.
 
     Raises:
-        ValueError: A desktop build is on the wrong host or outside its runner.
+        TypeError: The JSON root is not an object.
+        ValueError: A selected policy has invalid fields.
 
     """
-    if args.phase != "build" or args.target != "desktop":
+    policies = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(policies, dict):
+        raise TypeError("Build placement policy must be an object")
+    policy = policies.get(target)
+    if policy is None:
+        return None
+    if not isinstance(policy, dict) or set(policy) != {"host", "command", "cgroup"}:
+        raise ValueError("Build placement policy requires host, command and cgroup")
+    expected = policy["command"]
+    if (
+        not isinstance(policy["host"], str)
+        or not isinstance(policy["cgroup"], str)
+        or not policy["cgroup"]
+    ):
+        raise ValueError("Build placement policy has invalid host or cgroup")
+    if not isinstance(expected, list) or not expected:
+        raise ValueError("Build placement policy requires a nonempty command list")
+    if not all(isinstance(argument, str) and argument for argument in expected):
+        raise ValueError("Build placement command arguments must be nonempty strings")
+    return policy
+
+
+def validate_placement(args: argparse.Namespace, command: list[str]) -> None:
+    """Enforce caller-supplied host, recipe, and resource-scope requirements.
+
+    Raises:
+        ValueError: A protected build violates its configured placement policy.
+
+    """
+    policy_path = getattr(args, "build_policy", None)
+    if args.phase != "build" or policy_path is None:
         return
-    if platform.node().split(".")[0] != "desktop":
-        raise ValueError(
-            "Build the desktop system on desktop through just os-build desktop"
-        )
+    policy = build_placement_policy(Path(policy_path), args.target)
+    if policy is None:
+        return
+    expected = policy["command"]
+    if platform.node().split(".")[0] != policy["host"]:
+        raise ValueError(f"Build {args.target} on {policy['host']}")
     if args.check != "full-system":
         return
-    if Path(command[0]).name != "just" or command[1:3] != ["os-build", "desktop"]:
-        raise ValueError(
-            "Record desktop full-system builds with -- just os-build desktop"
-        )
+    if (
+        Path(command[0]).name != expected[0]
+        or command[1 : len(expected)] != expected[1:]
+    ):
+        raise ValueError("Record full-system builds with -- " + shlex.join(expected))
     cgroup = Path("/proc/self/cgroup")
-    if not cgroup.exists() or "/background-workload.slice/" not in cgroup.read_text(
+    if not cgroup.exists() or policy["cgroup"] not in cgroup.read_text(
         encoding="utf-8"
     ):
-        raise ValueError(
-            "Run desktop build evidence through workstation-task or just desktop-validation-build"
-        )
+        raise ValueError("Run build evidence inside the configured workload scope")
 
 
 def verification_diagnostics(error: Exception) -> dict[str, str]:
@@ -639,7 +702,7 @@ def capture(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         The private receipt path and completed observation.
 
     Raises:
-        ValueError: The command is empty or violates desktop build placement.
+        ValueError: The command is empty or violates configured build placement.
 
     """
     root = args.source.resolve()
@@ -1188,6 +1251,9 @@ def parser() -> argparse.ArgumentParser:
     """
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("--source", type=Path, default=Path.cwd())
+    cli.add_argument(
+        "--build-policy", type=Path, help="Local JSON build placement policy"
+    )
     commands = cli.add_subparsers(dest="operation", required=True)
     commands.add_parser("source", help="Print the tracked source identity")
     for name in ("run", "benchmark", "skip"):
@@ -1285,7 +1351,7 @@ def main() -> int:
     args = cli.parse_args()
     try:
         return dispatch(args)
-    except (ValueError, OSError, subprocess.SubprocessError) as error:
+    except (TypeError, ValueError, OSError, subprocess.SubprocessError) as error:
         cli.exit(2, f"error: {error}\n")
 
 

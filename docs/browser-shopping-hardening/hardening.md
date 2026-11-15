@@ -2,7 +2,7 @@
 
 ## Evidence Basis
 
-This review combines current Rakuten, Mozilla, Apple, Bitwarden, uBlock Origin, and Home Manager documentation with the repository's browser policy and personal extension configuration. The [research note](../browser-shopping-profile-research.md) contains the source-level findings. The working tree is not clean, so the proposal describes the inspected state rather than a deployed revision.
+This review combines current Rakuten, Mozilla, Apple, Bitwarden, uBlock Origin, and Home Manager documentation with the repository's browser policy and personal extension configuration. The [research note](../research/browser-shopping-profile-research.md) contains the source-level findings. The working tree is not clean, so the proposal describes the inspected state rather than a deployed revision.
 
 ## Constraints
 

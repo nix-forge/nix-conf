@@ -8,6 +8,7 @@
 let
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.clipboard;
+  python = pkgs.python3.withPackages (ps: [ ps.dbus-next ]);
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   hyprBind = key: command: {
     _args = [
@@ -20,7 +21,6 @@ let
     src = ./scripts/clipboard-history.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       cliphist = lib.getExe pkgs.cliphist;
       wlPaste = lib.getExe' pkgs.wl-clipboard "wl-paste";
     };
@@ -30,7 +30,6 @@ let
     src = ./scripts/clipboard-choose.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       cliphist = lib.getExe pkgs.cliphist;
       walker = lib.getExe pkgs.walker;
       wlCopy = lib.getExe' pkgs.wl-clipboard "wl-copy";
@@ -60,6 +59,10 @@ in
         assertion = isLinux;
         message = "desktop.clipboard is supported on Linux only.";
       }
+      {
+        assertion = config.systemd.user.enable;
+        message = "desktop.clipboard requires a systemd user manager to supervise its history and lock listeners.";
+      }
     ];
 
     home.packages = [
@@ -87,6 +90,20 @@ in
       };
       Service = {
         ExecStart = "${lib.getExe' watcher "desktop-clipboard-history"}";
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+
+    systemd.user.services.cliphist-lock = lib.mkIf cfg.wipeOnLock {
+      Unit = {
+        Description = "Clear clipboard history when a user session locks";
+        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${lib.getExe python} ${./scripts/clipboard_lock.py} ${lib.getExe pkgs.cliphist}";
         Restart = "on-failure";
         RestartSec = 2;
       };

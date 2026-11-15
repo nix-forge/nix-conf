@@ -6,6 +6,9 @@
   ...
 }:
 let
+  fetchPython = pkgs.python3.withPackages (_: [
+    (myLib.python.notificationProcess { inherit pkgs; })
+  ]);
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.wallpaper;
   systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
@@ -13,7 +16,11 @@ let
     config = { };
   };
   inherit (pkgs.stdenv.hostPlatform) isLinux;
-  picturesDirectory = config.xdg.userDirs.pictures;
+  picturesDirectory =
+    if config.xdg.userDirs.pictures != null then
+      config.xdg.userDirs.pictures
+    else
+      "${config.home.homeDirectory}/Pictures";
 
   catalog = builtins.fromJSON (builtins.readFile ./wallpaper-catalog.json);
   policyDefaults = pkgs.writeText "wallpaper-preferences.json" (
@@ -25,24 +32,21 @@ let
   wallpaperPolicy = pkgs.writeShellApplication {
     name = "desktop-wallpaper-policy";
     runtimeInputs = [ pkgs.python3 ];
-    text = ''
-      python3 ${./scripts/wallpaper-policy.py} \
-        --catalog ${./wallpaper-catalog.json} --config ${policyDefaults} \
-        --preferences ${lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper/preferences.json"} "$@"
-      case "''${1:-}" in
-        connection|category|source|personal)
-          ${lib.getExe' pkgs.systemd "systemctl"} --user start --no-block desktop-wallpaper-rotate.service || true
-          ;;
-      esac
-    '';
+    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-policy.sh {
+      scripts_wallpaper_policy_py = ./scripts/wallpaper_policy.py;
+      wallpaper_catalog_json = ./wallpaper-catalog.json;
+      inherit policyDefaults;
+      lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper_pr = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper/preferences.json";
+      lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
+    };
   };
   # The small launcher follows the managed command file across activations.
   # Its interface stays stable while the policy and Nix defaults change.
   wallpaperSettings = pkgs.writeShellApplication {
     name = "desktop-wallpaper-settings";
-    text = ''
-      exec "''${XDG_CONFIG_HOME:-$HOME/.config}/desktop-wallpaper/policy-command" "$@"
-    '';
+    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-settings.sh {
+      policyCommand = lib.escapeShellArg "${config.xdg.configHome}/desktop-wallpaper/policy-command";
+    };
   };
   sourceOverrides = lib.mapAttrs (
     _: _:
@@ -96,25 +100,26 @@ let
     pkgs.writeShellApplication {
       name = "desktop-wallpaper-fetch-${slug}";
       runtimeInputs = [
-        pkgs.python3
+        fetchPython
         pkgs.curl
         pkgs.imagemagick
       ];
-      text = ''
-        plan=$(mktemp)
-        trap 'rm -f -- "$plan"' EXIT
-        ${lib.getExe wallpaperPolicy} plan ${connection} > "$plan"
-        # Configuration paths are escaped literals, including dollar signs.
-        # shellcheck disable=SC2016
-        python3 ${./scripts/wallpaper-fetch-d2d.py} \
-          --connection ${connection} --plan "$plan" \
-          --directory ${lib.escapeShellArg cfg.directory} \
-          --state ${lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper"} \
-          --width ${toString cfg.rotation.width} --height ${toString cfg.rotation.height} \
-          --max-images ${toString cfg.connections.${connection}.maxImages} \
-          --max-pages ${toString cfg.connections.${connection}.maxCandidatePages} \
-          --max-downloads ${toString cfg.connections.${connection}.maxCandidateDownloads}
-      '';
+      text = (import ../../../lib/templates/text.nix) ./scripts/fetch-wallpaper-collection.sh {
+        lib_getExe_wallpaperPolicy = lib.getExe wallpaperPolicy;
+        inherit connection;
+        scripts_wallpaper_fetch_d2d_py = ./scripts/wallpaper_fetch_d2d.py;
+        lib_escapeShellArg_cfg_directory = lib.escapeShellArg cfg.directory;
+        lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
+        toString_cfg_rotation_width = toString cfg.rotation.width;
+        toString_cfg_rotation_height = toString cfg.rotation.height;
+        toString_cfg_connections_connection_maxImages = toString cfg.connections.${connection}.maxImages;
+        toString_cfg_connections_connection_maxCandidatePages =
+          toString
+            cfg.connections.${connection}.maxCandidatePages;
+        toString_cfg_connections_connection_maxCandidateDownloads =
+          toString
+            cfg.connections.${connection}.maxCandidateDownloads;
+      };
     }
   );
   # Install every reviewed connection so runtime switches also work when the
@@ -137,7 +142,6 @@ let
     src = ./scripts/wallpaper-next.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [
         pkgs.awww
         pkgs.coreutils
@@ -164,19 +168,17 @@ let
       pkgs.file
     ];
     inheritPath = false;
-    text = ''
-      # Configuration values are literals, including dollar signs.
-      # shellcheck disable=SC2016
-      destination_directory=${lib.escapeShellArg cfg.directory}
-    ''
-    + builtins.readFile ./scripts/wallpaper-add.sh;
+    text =
+      ((import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-add.sh {
+        lib_escapeShellArg_cfg_directory = lib.escapeShellArg cfg.directory;
+      })
+      + builtins.readFile ./scripts/wallpaper-add.sh;
   };
   wallpaperDirectories = writeBashTemplate {
     name = "desktop-wallpaper-directories";
     src = ./scripts/wallpaper-directories.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       runtimePath = lib.makeBinPath [ pkgs.coreutils ];
       wallpaperDirectory = lib.escapeShellArg cfg.directory;
       stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
@@ -216,7 +218,6 @@ let
     src = ./scripts/wallpaper-seed.sh.in;
     dir = "bin";
     replacements = {
-      bash = lib.getExe pkgs.bash;
       systemctl = lib.getExe' pkgs.systemd "systemctl";
       runtimePath = lib.makeBinPath [ pkgs.coreutils ];
       sourceUnits = lib.concatStringsSep " " (map lib.escapeShellArg fetcherUnits);
@@ -253,7 +254,7 @@ in
     directory = lib.mkOption {
       type = lib.types.str;
       default = "${picturesDirectory}/Wallpapers";
-      defaultText = lib.literalExpression ''"${config.xdg.userDirs.pictures}/Wallpapers"'';
+      defaultText = "The configured XDG Pictures directory, falling back to ~/Pictures, plus /Wallpapers.";
       example = "/mnt/media/wallpapers";
       description = ''
         Local rotating-wallpaper collection. Populate it with 4K SDR PNG,
@@ -399,7 +400,7 @@ in
 
       userAgent = lib.mkOption {
         type = lib.types.str;
-        default = "nix-conf-wallpaper/1.0 (https://github.com/ianmh/nix-conf)";
+        default = "nix-conf-wallpaper/1.0 (https://github.com/nix-forge/nix-conf)";
         description = "Descriptive User-Agent sent to the Wikimedia API.";
       };
 
@@ -437,16 +438,12 @@ in
             message = "desktop.wallpaper is supported on Linux only.";
           }
           {
-            assertion = config.xdg.userDirs.enable;
-            message = "desktop.wallpaper requires xdg.userDirs for its predictable default collection path.";
-          }
-          {
             assertion = cfg.mode != "static" || cfg.outputs != { };
             message = "desktop.wallpaper static mode requires at least one output-to-image mapping.";
           }
           {
-            assertion = cfg.mode != "rotate" || cfg.directory != "";
-            message = "desktop.wallpaper rotate mode requires a local collection directory.";
+            assertion = lib.hasPrefix "/" cfg.directory;
+            message = "desktop.wallpaper.directory must be an absolute path.";
           }
           {
             assertion = cfg.mode != "video" || cfg.video.path != null;
@@ -601,7 +598,6 @@ in
             Service = {
               Type = "oneshot";
               ExecStart = lib.getExe' wikimediaCommonsFetcher "desktop-wallpaper-fetch-wikimedia-commons";
-              ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --user start --no-block desktop-wallpaper-rotate.service";
               TimeoutStartSec = "5min";
               UMask = "0077";
               NoNewPrivileges = true;
@@ -650,7 +646,6 @@ in
             Service = {
               Type = "oneshot";
               ExecStart = lib.getExe' astronomyFetchers.esaHubble "desktop-wallpaper-fetch-esa-hubble";
-              ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --user start --no-block desktop-wallpaper-rotate.service";
               TimeoutStartSec = "5min";
               UMask = "0077";
               NoNewPrivileges = true;
@@ -699,7 +694,6 @@ in
             Service = {
               Type = "oneshot";
               ExecStart = lib.getExe' astronomyFetchers.esaWebb "desktop-wallpaper-fetch-esa-webb";
-              ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --user start --no-block desktop-wallpaper-rotate.service";
               TimeoutStartSec = "5min";
               UMask = "0077";
               NoNewPrivileges = true;

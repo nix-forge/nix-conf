@@ -1,17 +1,9 @@
-{ pkgs, inputs, ... }:
-let
-  extensions = (pkgs.extend inputs.nix4vscode.overlays.default).nix4vscode;
-in
-{
+{ pkgs, ... }: {
+  imports = [ ../default.nix ];
   programs.vscode.profiles.default = {
-    extensions = [
-      ## Copilot
-      pkgs.vscode-extensions.github.copilot-chat
-    ]
-    ++ extensions.forVscode [
-      ## Codex
-      # "openai.chatgpt"
-    ];
+    # Matches the stable Marketplace version at the pinned package revision.
+    # This is an explicit source choice, not an automatic source fallback.
+    extensions = [ pkgs.vscode-extensions.github.copilot-chat ];
 
     userSettings = {
       ## Copilot

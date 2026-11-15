@@ -1,0 +1,101 @@
+<domain type="kvm">
+  <name>@cfg_name@</name>
+  <uuid>@lib_toLower_cfg_uuid@</uuid>
+  <genid>@lib_toLower_cfg_generationId@</genid>
+  <title>Managed Windows runtime</title>
+  <description>NixOS-managed Windows 11 guest with private runtime provisioning</description>
+  <metadata>
+    <managed xmlns="urn:nix-conf:libvirt:windows-vm:1" recipe="windows-vm-v1"/>
+  </metadata>
+  <memory unit="MiB">@toString_cfg_resources_memoryMiB@</memory>
+  <currentMemory unit="MiB">@currentMemoryMiB@</currentMemory>
+  <vcpu placement="static">@toString_cfg_resources_vcpus@</vcpu>
+  <iothreads>1</iothreads>
+  <resource>
+    <partition>/machine</partition>
+  </resource>
+  <cputune>
+    <shares>@toString_cfg_resources_cpuShares@</shares>
+  </cputune>
+  <os>
+    <type arch="x86_64" machine="@cfg_machine@">hvm</type>
+    <loader readonly="yes" secure="yes" type="pflash" format="raw">@secureBootFirmware_firmware@</loader>
+    <nvram template="@secureBootFirmware_variablesMs@" templateFormat="raw" format="raw">@nvramPath@</nvram>
+    <bootmenu enable="yes" timeout="3000"/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <hyperv mode="custom">
+      <relaxed state="on"/>
+      <vapic state="on"/>
+      <spinlocks state="on" retries="8191"/>
+      <vpindex state="on"/>
+      <runtime state="on"/>
+      <synic state="on"/>
+      <stimer state="on">
+        <direct state="on"/>
+      </stimer>
+      <reset state="on"/>
+      <frequencies state="on"/>
+      <reenlightenment state="on"/>
+      <tlbflush state="on"/>
+      <ipi state="on"/>
+    </hyperv>
+    <vmport state="off"/>
+    <smm state="on"/>
+  </features>
+  <cpu mode="host-passthrough" check="none" migratable="off">
+    <topology sockets="1" dies="1" cores="@toString_cfg_resources_vcpus@" threads="1"/>
+    <feature policy="disable" name="svm"/>
+  </cpu>
+  <clock offset="localtime">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+    <timer name="hypervclock" present="yes"/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+    <emulator>@qemuPackage@/bin/qemu-system-x86_64</emulator>
+    @diskDevices@
+    <controller type="sata" index="0"/>
+    <controller type="scsi" index="0" model="virtio-scsi">
+      <driver iothread="1" queues="@toString_cfg_resources_vcpus@"/>
+    </controller>
+    <controller type="usb" index="0" model="qemu-xhci" ports="4"/>
+    @networkDevices@
+    <channel type="unix">
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
+    </channel>
+    <input type="tablet" bus="usb"/>
+    <input type="keyboard" bus="usb"/>
+    <graphics type="spice" autoport="yes">
+      <listen type="socket"/>
+      <clipboard copypaste="no"/>
+      <filetransfer enable="no"/>
+      <gl enable="no"/>
+    </graphics>
+    <video>
+      <model type="virtio" heads="1" primary="yes">
+        <acceleration accel3d="no"/>
+      </model>
+    </video>
+    <memballoon model="virtio" autodeflate="on">
+      <stats period="10"/>
+    </memballoon>
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+    <tpm model="tpm-crb">
+      <backend type="emulator" version="2.0" persistent_state="yes"/>
+    </tpm>
+    <panic model="hyperv"/>
+  </devices>
+</domain>

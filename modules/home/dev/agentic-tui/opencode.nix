@@ -3,8 +3,6 @@
   lib,
   myLib,
   pkgs,
-  self,
-  system,
   ...
 }:
 let
@@ -25,84 +23,6 @@ let
   dprintAstroConfig = pkgs.writeText "opencode-dprint-astro.json" (
     builtins.toJSON { plugins = [ "${pkgs.dprint-plugins.g-plane-markup_fmt}/plugin.wasm" ]; }
   );
-
-  documentedLsp = {
-    # astro = mkTool [ (lib.getExe pkgs.astro-language-server) "--stdio" ] [ ".astro" ];
-    bash =
-      (mkTool [ (lib.getExe pkgs.bash-language-server) "start" ] [ ".sh" ".bash" ".zsh" ".ksh" ".envrc" ])
-      // {
-        env = {
-          SHELLCHECK_PATH = "${lib.getExe pkgs.shellcheck}";
-          SHELLCHECK_ARGUMENTS = "--severity=warning --enable=${
-            builtins.concatStringsSep "," [
-              "deprecate-which"
-              "add-default-case"
-              "check-set-e-suppressed"
-              "check-extra-masked-returns"
-              "check-unassigned-uppercase"
-            ]
-          }";
-        };
-      };
-    clangd =
-      mkTool
-        [ (lib.getExe' pkgs.clang-tools "clangd") "--background-index" "--clang-tidy" ]
-        [
-          ".c"
-          ".cpp"
-          ".cc"
-          ".cxx"
-          ".c++"
-          ".h"
-          ".hpp"
-          ".hh"
-          ".hxx"
-          ".h++"
-        ];
-    eslint = {
-      disabled = true;
-    };
-    gopls = mkTool [ (lib.getExe pkgs.gopls) ] [ ".go" ];
-    lua-ls = mkTool [ (lib.getExe pkgs.lua-language-server) ] [ ".lua" ];
-    nixd = mkTool [ (lib.getExe pkgs.nixd) ] [ ".nix" ];
-    oxlint =
-      mkTool
-        [ (lib.getExe pkgs.oxlint) "--lsp" ]
-        [
-          ".ts"
-          ".tsx"
-          ".js"
-          ".jsx"
-          ".mjs"
-          ".cjs"
-          ".mts"
-          ".cts"
-          ".vue"
-          ".astro"
-          ".svelte"
-        ];
-    pyright = {
-      disabled = true;
-    };
-    ruff = mkTool [ (lib.getExe pkgs.ruff) "server" ] [ ".py" ".pyi" ".ipynb" ];
-    rust = mkTool [ (lib.getExe pkgs.rust-analyzer) ] [ ".rs" ];
-    tinymist = mkTool [ (lib.getExe pkgs.tinymist) "lsp" ] [ ".typ" ".typc" ];
-    ty = mkTool [ (lib.getExe pkgs.ty) "server" ] [ ".py" ".pyi" ".ipynb" ];
-    typescript =
-      mkTool
-        [ (lib.getExe pkgs.typescript-language-server) "--stdio" ]
-        [
-          ".ts"
-          ".tsx"
-          ".js"
-          ".jsx"
-          ".mjs"
-          ".cjs"
-          ".mts"
-          ".cts"
-        ];
-    yaml-ls = mkTool [ (lib.getExe pkgs.yaml-language-server) "--stdio" ] [ ".yaml" ".yml" ];
-  };
 
   documentedFormatters = {
     astro = mkTool [ (lib.getExe pkgs.dprint) "fmt" "--config" dprintAstroConfig "$FILE" ] [ ".astro" ];
@@ -147,56 +67,6 @@ let
     rev = "6628cbf7205fe5059209875f69d80c962064b360";
   };
 
-  anthropicSkills = self.packages.${system}.anthropic-skills;
-  openaiSkills = self.packages.${system}.openai-skills;
-  mattpocockSkills = self.packages.${system}.mattpocock-skills;
-  pstackSkills = self.packages.${system}.pstack-skills;
-  supportsRemindctl = self.packages.${system} ? remindctl;
-  remindctl = self.packages.${system}.remindctl;
-  skillPath = package: name: "${package}/share/agent-skills/${name}";
-  skillSet = package: names: lib.genAttrs names (name: skillPath package name);
-
-  anthropicOpenCodeSkills = [
-    "anthropic-brand-guidelines"
-    "anthropic-frontend-design"
-    "anthropic-internal-comms"
-    "anthropic-mcp-builder"
-    "anthropic-skill-creator"
-    "anthropic-theme-factory"
-    "anthropic-web-artifacts-builder"
-    "anthropic-webapp-testing"
-  ];
-  openaiOpenCodeSkills = [
-    "openai-cli-creator"
-    "openai-gh-address-comments"
-    "openai-gh-fix-ci"
-    "openai-pdf"
-    "openai-playwright"
-    "openai-playwright-interactive"
-    "openai-screenshot"
-    "openai-security-best-practices"
-    "openai-security-ownership-map"
-    "openai-security-threat-model"
-    "openai-yeet"
-  ];
-  mattpocockOpenCodeSkills = [
-    "mattpocock-ask-matt"
-    "mattpocock-codebase-design"
-    "mattpocock-code-review"
-    "mattpocock-diagnosing-bugs"
-    "mattpocock-domain-modeling"
-    "mattpocock-grill-me"
-    "mattpocock-grill-with-docs"
-    "mattpocock-grilling"
-    "mattpocock-handoff"
-    "mattpocock-research"
-    "mattpocock-setup-matt-pocock-skills"
-    "mattpocock-tdd"
-    "mattpocock-wizard"
-    "mattpocock-writing-for-agents"
-  ];
-  pstackOpenCodeSkills = [ "pstack-unslop" ];
-
   opencodeNotifierDarwinFallback = writeBashTemplate {
     name = "opencode-notifier-darwin-fallback";
     src = ./scripts/opencode-notifier-darwin-fallback.sh;
@@ -204,58 +74,71 @@ let
   };
 in
 {
+  imports = [ ./agent-skills.nix ];
+
+  programs.opencode.context = lib.mkMerge [
+    (lib.mkAfter "OpenCode V2 does not run language servers or provide LSP diagnostics. Verify changes with the project's declared lint, typecheck and compiler commands.")
+    (lib.mkIf (config.programs.dev-worktree.enable or false) (
+      lib.mkAfter config.programs.dev-worktree.instructions
+    ))
+  ];
+
   programs.opencode = {
     enable = true;
     skills = {
       typst = "${typstSkillSrc}/skills/typst";
-    }
-    // lib.optionalAttrs supportsRemindctl { apple-reminders = remindctl.agentSkill; }
-    // skillSet anthropicSkills anthropicOpenCodeSkills
-    // skillSet openaiSkills openaiOpenCodeSkills
-    // skillSet mattpocockSkills mattpocockOpenCodeSkills
-    // skillSet pstackSkills pstackOpenCodeSkills;
+    };
     settings = {
       # Nix manages updates via the pinned package; never let opencode self-update
       # and fight the store.
-      autoupdate = false;
+      update = "disable";
       # Lock the default so an upstream default change cannot start uploading
       # sessions. Use /share explicitly if sharing is ever needed.
       share = "manual";
-      plugin = [
-        "@opencode-ai/plugin@${pkgs.opencode.version}"
-        "opencode-gemini-auth@1.4.15"
-        "@mohak34/opencode-notifier@0.2.8"
+      # V2 plugins use @opencode/plugin. The SDK itself is not a runtime
+      # extension, and the old @opencode-ai/plugin@CLI_VERSION did not exist.
+      plugins = [
+        "opencode-gemini-auth@2.0.1"
+        "@mohak34/opencode-notifier@1.1.2"
       ];
       formatter = documentedFormatters;
-      lsp = documentedLsp;
-      permission = {
-        # Danger-full-access equivalent: allow everything by default so normal
-        # work never prompts (codex `--dangerously-bypass-approvals-and-sandbox`
-        # analogue is `opencode --auto`, which auto-approves asks but still
-        # respects explicit denies below).
-        "*" = "allow";
-        external_directory = "allow";
-        doom_loop = "allow";
-
-        read =
-          let
-            afterStar = lib.hm.dag.entryAfter [ "*" ];
-          in
-          {
-            "*" = "allow";
-            # Re-assert the upstream .env defaults: the global allow above
-            # would otherwise permit secret files. Last match wins, so the
-            # example exception must come after its deny.
-            "*.env" = afterStar "deny";
-            "*.env.*" = lib.hm.dag.entryAfter [ "*.env" ] "deny";
-            "*.env.example" = lib.hm.dag.entryAfter [ "*.env.*" ] "allow";
-
-            "${config.home.homeDirectory}/.ssh/**" = afterStar "deny";
-            "${config.home.homeDirectory}/.gnupg/**" = afterStar "deny";
-            "${config.xdg.dataHome}/opencode/auth.json" = afterStar "deny";
-            "${config.xdg.dataHome}/opencode/mcp-auth.json" = afterStar "deny";
-          };
-      };
+      # Ordered V2 rules: preserve the existing full-access default and
+      # file exceptions. Specific denies follow the general allow.
+      permissions = [
+        {
+          action = "*";
+          resource = "*";
+          effect = "allow";
+        }
+        {
+          action = "read";
+          resource = "*.env";
+          effect = "deny";
+        }
+        {
+          action = "read";
+          resource = "*.env.*";
+          effect = "deny";
+        }
+        {
+          action = "read";
+          resource = "*.env.example";
+          effect = "allow";
+        }
+      ]
+      ++
+        map
+          (resource: {
+            action = "read";
+            inherit resource;
+            effect = "deny";
+          })
+          [
+            "${config.home.homeDirectory}/.ssh/**"
+            "${config.home.homeDirectory}/.gnupg/**"
+            "${config.xdg.dataHome}/opencode/auth.json"
+            "${config.xdg.dataHome}/opencode/mcp-auth.json"
+          ];
     };
   };
 
@@ -325,22 +208,6 @@ in
     // lib.optionalAttrs isLinux { linux.grouping = true; }
   );
 
-  home.packages =
-    lib.optional supportsRemindctl remindctl ++ lib.optionals isLinux [ pkgs.libnotify ];
+  home.packages = lib.optionals isLinux [ pkgs.libnotify ];
 
-  home.sessionVariables = {
-    # LSP code intelligence (docs use the singular TOOL name; the old plural
-    # TOOLS key was a no-op).
-    OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
-    OPENCODE_EXPERIMENTAL_LSP_TY = "true";
-    # We ship every LSP/formatter from Nix, so never auto-download binaries.
-    OPENCODE_DISABLE_LSP_DOWNLOAD = "true";
-
-    OPENCODE_EXPERIMENTAL_OXFMT = "true";
-
-    OPENCODE_ENABLE_EXA = "true";
-    OPENCODE_EXPERIMENTAL_EXA = "true";
-
-    OPENCODE_EXPERIMENTAL_PLAN_MODE = "true";
-  };
 }

@@ -12,20 +12,7 @@
     publicKey = lib.removeSuffix "\n" (builtins.readFile ./local/nix-seal/identity.pub);
   };
 
-  nixpkgsArgs = {
-    overlays = [ (import ../../../overlays { inherit inputs; }) ];
-    config = {
-      allowUnfree = true;
-      allowUnfreePredicate = _: true;
-      allowVariants = true;
-      allowBroken = false;
-      # allowAliases = false;
-
-      # GPU acceleration is selected by its consumer. Global CUDA changes
-      # unrelated package variants and their binary-cache coverage.
-      cudaSupport = false;
-    };
-  };
+  nixpkgsArgs = (import ./local/package-policy.nix { }).lib.targetPackagePolicy inputs;
 
   modules = with modules; [
     ## Base system
@@ -34,6 +21,7 @@
     determinate
     nixSeal
     nix-settings
+    codex-runtime
     cache
     registry
     chromium-policies
@@ -69,6 +57,9 @@
     network-tarpit
     hardware-sound
     hardware-ssd
+    hardware-iocost
+    system-activation-safety
+    network-iwd-profiles
     hardware-storage
     hardware-tpm
     hardware-zram
@@ -88,12 +79,8 @@
     services-runners
     services-application-recovery
     ssh
-    virtualisation-docker
     virtualisation-libvirt
-    # Host-specific sealed system secrets must be imported explicitly: the
-    # framework only auto-loads files under local/.
-    ./nix-seal.nix
-    ./disko-system.nix
+
   ];
 
   homes.ianmh = {

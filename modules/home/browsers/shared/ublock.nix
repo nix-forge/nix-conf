@@ -9,8 +9,8 @@
         "ublock-filters"
         "ublock-badware"
         "ublock-privacy"
-        "ublock-abuse"
         "ublock-unbreak"
+        "ublock-quick-fixes"
         "easylist"
         "easyprivacy"
         "urlhaus-1"
@@ -23,10 +23,13 @@
       internal = true;
       readOnly = true;
       default = {
+        advancedUserEnabled = false;
         autoUpdate = true;
         cnameUncloakEnabled = true;
+        dynamicFilteringEnabled = false;
         hyperlinkAuditingDisabled = true;
         prefetchingDisabled = true;
+        suspendUntilListsAreLoaded = true;
       };
     };
   };

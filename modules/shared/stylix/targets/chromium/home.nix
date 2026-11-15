@@ -11,6 +11,7 @@
     in
     {
       key = "nix-conf/stylix/chromium/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.browser-suite.enable =
         config.lib.stylix.mkEnableTarget "browser suite Web Store themes" true;

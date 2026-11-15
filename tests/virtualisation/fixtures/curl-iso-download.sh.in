@@ -1,0 +1,13 @@
+#!@__value0@
+# shellcheck shell=bash
+# Fixture environment supplies the probe variables.
+# shellcheck disable=SC2154
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --output ]; then
+    shift
+    output=$1
+  fi
+  shift
+done
+printf "%s\n" "$output" >"$DOWNLOAD_LOG"
+cp "$ISO_FIXTURE" "$output"

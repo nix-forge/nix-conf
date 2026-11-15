@@ -1,0 +1,17 @@
+<network>
+  <name>@name@</name>
+  <metadata>
+    <description xmlns="urn:nix-conf:libvirt:network:1">NixOS-managed development network</description>
+  </metadata>
+  @optionalString_network_mode_nat_forward_mode_nat_nat_port_st@
+  <bridge name="@network_bridge@" stp="on" delay="0" macTableManager="libvirt"/>
+  @optionalString_network_isolateGuests_port_isolated_yes@
+  <domain name="@network_domain@" localOnly="yes"/>
+  <dns enable="yes"/>
+  <ip address="@network_ipv4Prefix@.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="@network_ipv4Prefix@.@toString_network_dhcp_start@" end="@network_ipv4Prefix@.@toString_network_dhcp_end@"/>
+      @concatMapStrings_reservationName_let_reservation_network_res@
+    </dhcp>
+  </ip>
+</network>

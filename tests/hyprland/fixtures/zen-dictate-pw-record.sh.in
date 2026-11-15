@@ -1,0 +1,8 @@
+#!@bash@
+# shellcheck shell=bash
+# Controlled fixture environment.
+# shellcheck disable=SC2154
+printf '%s\n' "$@" >"$MOCK_STATE/pw-record-arguments"
+head -c 4000 /dev/zero >"${@: -1}"
+printf 'ready\n' >"$MOCK_STATE/recording-ready"
+if [[ ${MOCK_HOLD_RECORDING:-0} == 1 ]]; then exec sleep 30; fi

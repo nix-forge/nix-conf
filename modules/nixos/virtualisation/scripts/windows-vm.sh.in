@@ -8,11 +8,14 @@ guest_name=@guestName@
 configured_iso_sha256=@isoSha256@
 iso_path=@isoPath@
 iso_sha256_path=@isoSha256Path@
+iso_product_id=@isoProductId@
+iso_language=@isoLanguage@
 
 usage() {
   cat >&2 <<'EOF'
 usage:
   windows-vm setup
+  windows-vm fetch-iso
   windows-vm stage-iso <path>
   windows-vm authorize <public-key-file>
   windows-vm credential
@@ -75,6 +78,56 @@ stage_iso() {
   printf 'Staged and verified %s.\n' "$iso_path"
 }
 
+fetch_iso() {
+  local links url url_path temporary checksum_temporary actual existing
+  if [[ -e $iso_path ]]; then
+    [[ -f $iso_path && ! -L $iso_path ]] || die "destination exists but is not a regular file: $iso_path"
+    existing="$(@sha256sum@ "$iso_path")"
+    existing=${existing%% *}
+    [[ ${existing,,} == "$configured_iso_sha256" ]] ||
+      die "a different ISO already exists at $iso_path; archive it explicitly before replacement"
+    printf 'The verified ISO is already staged at %s.\n' "$iso_path"
+    return
+  fi
+
+  # MSDL generates a fresh short-lived Microsoft URL. Disable its optional
+  # telemetry and shared link contribution; the ISO bytes come from Microsoft.
+  links="$(MSDL_NO_TELEMETRY=1 MSDL_NO_CONTRIBUTE=1 @msdl@ --id "$iso_product_id" --lang "$iso_language" --no-contribute </dev/null 2>&1)" ||
+    die 'Microsoft did not issue a Windows 11 download link'
+  url=
+  while IFS= read -r candidate; do
+    case $candidate in
+    https://software.download.prss.microsoft.com/* | https://software-static.download.prss.microsoft.com/* | https://software-download.microsoft.com/*)
+      url_path=${candidate%%\?*}
+      if [[ ${url_path##*/} == "${iso_path##*/}" ]]; then
+        [[ -z $url ]] || die 'Microsoft returned more than one matching ISO URL'
+        url=$candidate
+      fi
+      ;;
+    esac
+  done <<<"$links"
+  [[ -n $url ]] || die 'Microsoft did not return the pinned x64 ISO filename; review the release and SHA-256 in Nix'
+
+  temporary="$(@mktemp@ "${iso_path}.new.XXXXXX")"
+  checksum_temporary="$(@mktemp@ "${iso_sha256_path}.new.XXXXXX")"
+  trap '@rm@ -f -- "$temporary" "$checksum_temporary"' EXIT
+  printf 'Downloading %s from Microsoft and checking its SHA-256.\n' "${iso_path##*/}"
+  @curl@ --fail --location --silent --show-error --retry 2 \
+    --proto '=https' --proto-redir '=https' --output "$temporary" "$url"
+  actual="$(@sha256sum@ "$temporary")"
+  actual=${actual%% *}
+  [[ ${actual,,} == "$configured_iso_sha256" ]] ||
+    die "downloaded ISO hash is $actual, expected the Microsoft-published value $configured_iso_sha256"
+  @chmod@ 0640 "$temporary"
+  printf '%s\n' "$configured_iso_sha256" >"$checksum_temporary"
+  @chmod@ 0640 "$checksum_temporary"
+  @mv@ --no-clobber -- "$temporary" "$iso_path"
+  [[ ! -e $temporary ]] || die 'the ISO destination appeared during the download; no file was replaced'
+  @mv@ -f -- "$checksum_temporary" "$iso_sha256_path"
+  trap - EXIT
+  printf 'Downloaded and verified %s.\n' "$iso_path"
+}
+
 authorize_key() {
   local key_file=$1
   [[ -f $key_file && ! -L $key_file ]] || die "public key must be a regular file, not a symlink: $key_file"
@@ -112,6 +165,10 @@ setup)
 stage-iso)
   (($# == 2)) || usage
   stage_iso "$2"
+  ;;
+fetch-iso)
+  (($# == 1)) || usage
+  fetch_iso
   ;;
 authorize)
   (($# == 2)) || usage

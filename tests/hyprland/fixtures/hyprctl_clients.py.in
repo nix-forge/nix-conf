@@ -1,0 +1,5 @@
+#!__fixture_0__
+import sys
+
+assert sys.argv[1:] == ["-j", "clients"]
+print(__fixture_1__)

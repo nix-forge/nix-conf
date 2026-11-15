@@ -1,0 +1,8 @@
+#!/bin/sh
+mode=__mode__
+case "$mode" in
+private) printf '{"private":true}\n' ;;
+public) printf '{"private":false}\n' ;;
+error) exit 1 ;;
+*) exit 2 ;;
+esac

@@ -1,7 +1,7 @@
 # Shared CI and NUR implementation
 
 Implemented 2026-09-07, America/Los_Angeles. The design follows
-[the research](github-actions-strategy-research.md): own the organization policy
+[the research](research/github-actions-strategy-research.md): own the organization policy
 and reuse maintained upstream actions for installation, scanning and caching.
 
 ```mermaid
@@ -247,7 +247,7 @@ the merge queue. NUR additionally runs its own restricted-evaluator matrix.
 
 The new report passed its formatting and document checks in the original dirty
 checkout. That checkout's hook also runs repository-wide Python lint and found
-unrelated existing work in `tests/hyprland/run-upstream-local.py` and
+unrelated existing work in `tests/hyprland/run_upstream_local.py` and
 `tests/systemd/check_chatgpt_oom.py`. Those files were not changed by this migration.
 The clean nix-conf migration's repository-hooks job passed on GitHub.
 

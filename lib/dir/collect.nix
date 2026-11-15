@@ -23,13 +23,13 @@ let
   #   - Subdirectories are recursed into and become nested attrsets
   #   - The key attrset is only added if matching files exist at that level
   #
-  # Type: String -> String -> Path -> AttrSet
+  # Type: String -> String -> String -> Path -> AttrSet
   # Example:
-  #   collectBySuffix ".age" "secrets" ./secrets/ianhollow/users/ianmh
+  #   collectBySuffix "file" ".age" "secrets" ./secrets/example/users/alice
   #   # => {
   #   #   secrets = {
-  #   #     gitconfig-userName = { file = ./secrets/ianhollow/users/ianmh/gitconfig-userName.age; };
-  #   #     gitconfig-userEmail = { file = ./secrets/ianhollow/users/ianmh/gitconfig-userEmail.age; };
+  #   #     gitconfig-userName = { file = ./secrets/example/users/alice/gitconfig-userName.age; };
+  #   #     gitconfig-userEmail = { file = ./secrets/example/users/alice/gitconfig-userEmail.age; };
   #   #     ...
   #   #   };
   #   # }

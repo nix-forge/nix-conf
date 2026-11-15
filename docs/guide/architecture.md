@@ -42,6 +42,6 @@ The framework becomes useful when multiple targets need named feature selection.
 It does not replace the Nix module system.
 
 The [root contributor guide](https://github.com/nix-forge/nix-conf/blob/main/CONTRIBUTING.md)
-and [glossary](https://github.com/nix-forge/nix-conf/blob/main/CONTEXT.md) define the
+and [glossary](https://github.com/nix-forge/nix-conf/blob/main/GLOSSARY.md) define the
 repository's boundaries. Keep package fixes with their owning package rather
 than hiding them inside a workstation preference.

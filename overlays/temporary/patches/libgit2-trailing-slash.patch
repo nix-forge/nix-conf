@@ -1,0 +1,85 @@
+--- a/src/util/futils.c
++++ b/src/util/futils.c
+@@ -829,12 +829,23 @@
+ static int futils__rmdir_empty_parent(void *opaque, const char *path)
+ {
+ 	futils__rmdir_data *data = opaque;
++	git_str normalized = GIT_STR_INIT;
+ 	int error = 0;
+ 
+ 	if (strlen(path) <= data->baselen)
+-		error = GIT_ITEROVER;
+-
+-	else if (p_rmdir(path) < 0) {
++		return GIT_ITEROVER;
++
++	if (git_str_sets(&normalized, path) < 0) {
++		git_str_dispose(&normalized);
++		return -1;
++	}
++
++	/* walk_up yields parents with a slash; do not follow a symlink. */
++	while (normalized.size > (size_t)(git_fs_path_root(normalized.ptr) + 1) &&
++	       normalized.ptr[normalized.size - 1] == '/')
++		git_str_truncate(&normalized, normalized.size - 1);
++
++	if (p_rmdir(normalized.ptr) < 0) {
+ 		int en = errno;
+ 
+ 		if (en == ENOENT || en == ENOTDIR) {
+@@ -849,6 +860,7 @@
+ 		}
+ 	}
+ 
++	git_str_dispose(&normalized);
+ 	return error;
+ }
+ 
+@@ -862,6 +874,12 @@
+ 	/* build path and find "root" where we should start calling mkdir */
+ 	if (git_fs_path_join_unrooted(&fullpath, path, base, NULL) < 0)
+ 		return -1;
++
++	/* A trailing slash makes lstat follow a directory symlink. Remove it
++	 * before deciding whether to recurse, preserving filesystem roots. */
++	while (fullpath.size > (size_t)(git_fs_path_root(fullpath.ptr) + 1) &&
++	       fullpath.ptr[fullpath.size - 1] == '/')
++		git_str_truncate(&fullpath, fullpath.size - 1);
+ 
+ 	memset(&data, 0, sizeof(data));
+ 	data.base    = base ? base : "";
+--- a/tests/util/rmdir.c
++++ b/tests/util/rmdir.c
+@@ -118,3 +118,32 @@
+ 
+ 	cl_git_pass(git_futils_rmdir_r(empty_tmp_dir, NULL, GIT_RMDIR_EMPTY_HIERARCHY));
+ }
++
++static void assert_trailing_slash_symlink_removes_only_link(const char *suffix)
++{
++	git_str link = GIT_STR_INIT, target = GIT_STR_INIT;
++
++	cl_git_pass(git_str_joinpath(&link, empty_tmp_dir, "link"));
++	cl_git_pass(git_str_joinpath(&target, empty_tmp_dir, "one/sentinel.txt"));
++	cl_git_mkfile(target.ptr, "preserve target");
++	cl_must_pass(p_symlink("one", link.ptr));
++	cl_git_pass(git_str_puts(&link, suffix));
++
++	cl_git_pass(git_futils_rmdir_r(link.ptr, NULL, GIT_RMDIR_REMOVE_FILES));
++	cl_assert(git_fs_path_isfile(target.ptr));
++	cl_assert_equal_file("preserve target", sizeof("preserve target") - 1, target.ptr);
++	cl_assert(!git_fs_path_exists(link.ptr));
++
++	git_str_dispose(&link);
++	git_str_dispose(&target);
++}
++
++void test_rmdir__does_not_follow_symlink_with_trailing_slash(void)
++{
++	assert_trailing_slash_symlink_removes_only_link("/");
++}
++
++void test_rmdir__does_not_follow_symlink_with_multiple_trailing_slashes(void)
++{
++	assert_trailing_slash_symlink_removes_only_link("///");
++}

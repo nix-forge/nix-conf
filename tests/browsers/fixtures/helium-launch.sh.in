@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck disable=SC1091 # The regression renders the owned hook path.
+source @hook@
+printf '%s\n' extension-hook browser-launch

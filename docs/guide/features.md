@@ -16,6 +16,6 @@ The public shell recipes use ordinary Home Manager settings and link their
 complete source so preferences stay inspectable.
 
 The Windows guest is an integration feature for a compatible Linux host. Its
-[runbook](https://github.com/nix-forge/nix-conf/blob/main/docs/workstation-virtualization.md)
+[runbook](https://github.com/nix-forge/nix-conf/blob/main/docs/operations/workstation-virtualization.md)
 explains installation, state ownership and native validation. It is not part of
 the public starter or graphical demonstration.

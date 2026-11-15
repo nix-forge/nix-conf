@@ -28,8 +28,17 @@ available for isolated Linux packages and checks, not the desktop system
 closure. On `desktop`, run other heavy evaluation, build, and check commands as
 the desktop user through `workstation-task COMMAND [ARGS...]`, including work
 started by subagents and other checkouts. See
-`docs/desktop-memory-management.md` for queue behavior, remote execution, and
+`docs/operations/desktop-memory-management.md` for queue behavior, remote execution, and
 activation limits.
+
+For durable finite jobs, use `workstation-job` on the execution host. Before
+submitting, recovering, changing queue configuration, or interpreting a capacity
+failure, read `docs/operations/workstation-jobs.md`. The desktop backend delegates
+to `workstation-task`; preserve existing job IDs and active scopes.
+
+Use the host's configured compiler parallelism. For reclaim stalls or low build
+utilization, follow the guide's compiler pressure recovery procedure before
+retrying. `--cores 1` and equivalent overrides require an explicit task requirement.
 
 ## Public documentation
 

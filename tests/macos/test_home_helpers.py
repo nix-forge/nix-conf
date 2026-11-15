@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import plistlib
+import re
 import stat
 import subprocess  # ruff:ignore[suspicious-subprocess-import]
 import sys
@@ -54,10 +55,13 @@ class MacOSHomeHelperTests(unittest.TestCase):
             plist_path.write_bytes(plistlib.dumps(fixture))
             defaults_adapter = temporary_path / "defaults"
             defaults_adapter.write_text(
-                f"#!{sys.executable}\n"
-                "import os, sys\n"
-                "with open(os.environ['DOCK_TEST_PLIST'], 'rb') as stream:\n"
-                "    sys.stdout.buffer.write(stream.read())\n",
+                re.sub(
+                    r"__fixture_[0-9]+__",
+                    lambda match: {"__fixture_0__": f"{sys.executable}"}[match[0]],
+                    (
+                        Path(__file__).with_name("fixtures") / "read_dock_plist.py.in"
+                    ).read_text(encoding="utf-8"),
+                ),
                 encoding="utf-8",
             )
             defaults_adapter.chmod(defaults_adapter.stat().st_mode | stat.S_IXUSR)

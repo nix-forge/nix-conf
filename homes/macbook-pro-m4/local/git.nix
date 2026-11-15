@@ -1,14 +1,6 @@
-{ config, ... }: {
-  imports = [ ../../shared/git.nix ];
-  programs.git = {
-    maintenance = {
-      enable = true;
-      repositories = [
-        "${config.home.homeDirectory}/Developer/personal/nix-conf"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/nix-config-framework"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/nix-seal"
-        "${config.home.homeDirectory}/Developer/personal/nix-conf/pkgs"
-      ];
-    };
-  };
+{ ... }: {
+  imports = [ ../../shared/local/git.nix ];
+  # Discover durable repositories on this host at each maintenance run.
+  # This host builds verified exports and has no local configuration clone.
+  programs.git.maintenance.enable = true;
 }

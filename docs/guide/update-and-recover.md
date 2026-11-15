@@ -42,6 +42,6 @@ The VM gives you a disposable place to practice configuration changes.
 
 A configuration rollback does not undo application database migrations or restore
 deleted files. Keep backups and test restoration separately. The personal desktop's
-[storage operations guide](https://github.com/nix-forge/nix-conf/blob/main/docs/desktop-storage-operations.md)
+[storage operations guide](https://github.com/nix-forge/nix-conf/blob/main/docs/operations/desktop-storage-operations.md)
 is specific to that setup; adapt its reasoning and recovery tests to your own
 storage rather than copying its device configuration.

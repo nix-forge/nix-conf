@@ -6,6 +6,7 @@
     in
     {
       key = "nix-conf/stylix/ghostty/homeManager";
+      imports = [ (import ../../profile.nix).homeManager ];
       _file = __curPos.file;
       options.stylix.targets.ghostty.custom.enable = lib.mkEnableOption "the desktop Ghostty styling" // {
         default = true;

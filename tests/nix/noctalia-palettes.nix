@@ -17,5 +17,5 @@ let
   manifest = pkgs.writeText "noctalia-palette-fixtures.json" (builtins.toJSON fixtures);
 in
 pkgs.runCommand "noctalia-palette-contrast" { } ''
-  ${pkgs.python3}/bin/python ${./check-noctalia-palettes.py} ${manifest} > "$out"
+  ${pkgs.python3}/bin/python ${./check_noctalia_palettes.py} ${manifest} > "$out"
 ''

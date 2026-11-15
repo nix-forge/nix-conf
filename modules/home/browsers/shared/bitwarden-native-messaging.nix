@@ -59,17 +59,22 @@ let
       ]
     else
       [
-        "${config.home.homeDirectory}/.config/google-chrome/NativeMessagingHosts/com.8bit.bitwarden.json"
-        "${config.home.homeDirectory}/.config/chromium/NativeMessagingHosts/com.8bit.bitwarden.json"
-        "${config.home.homeDirectory}/.config/net.imput.helium/NativeMessagingHosts/com.8bit.bitwarden.json"
+        "${config.xdg.configHome}/google-chrome/NativeMessagingHosts/com.8bit.bitwarden.json"
+        "${config.xdg.configHome}/chromium/NativeMessagingHosts/com.8bit.bitwarden.json"
+        "${config.xdg.configHome}/net.imput.helium/NativeMessagingHosts/com.8bit.bitwarden.json"
       ];
 
   mkdir = if isDarwin then "/bin/mkdir" else lib.getExe' pkgs.coreutils "mkdir";
   install = if isDarwin then "/usr/bin/install" else lib.getExe' pkgs.coreutils "install";
-  installManifest = source: target: ''
-    run ${mkdir} -p ${lib.escapeShellArg (dirOf target)}
-    run ${install} -m 0600 ${lib.escapeShellArg source} ${lib.escapeShellArg target}
-  '';
+  installManifest =
+    source: target:
+    ((import ../../../../lib/templates/text.nix) ./scripts/install-native-messaging-manifest.sh {
+      inherit mkdir;
+      lib_escapeShellArg_dirOf_target = lib.escapeShellArg (dirOf target);
+      inherit install;
+      lib_escapeShellArg_source = lib.escapeShellArg source;
+      lib_escapeShellArg_target = lib.escapeShellArg target;
+    });
   activationDeps = [ "writeBoundary" ] ++ lib.optionals isDarwin [ "copyApps" ];
 in
 {

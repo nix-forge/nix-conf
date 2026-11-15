@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
+from notification_process import run as run_command
 
 SETUP_TEMPLATE = Path(
     os.environ.get(
@@ -25,6 +26,17 @@ SETUP_TEMPLATE = Path(
         / "modules/nixos/virtualisation/scripts/libvirt-workstation-setup.sh.in",
     )
 )
+
+
+def _shell_fixture(name: str, replacements: dict[str, str]) -> str:
+    """Load a Bash fixture without recursively replacing inserted values.
+
+    Returns:
+        The fixture with its runtime executable and path substitutions.
+
+    """
+    source = (Path(__file__).with_name("fixtures") / name).read_text(encoding="utf-8")
+    return re.sub(r"@(__value[0-9]+)@", lambda match: replacements[match[1]], source)
 
 
 def required_command(name: str) -> str:
@@ -90,57 +102,10 @@ class LibvirtWorkstationSetupTests(unittest.TestCase):
 
             fake_virsh = root / "virsh"
             fake_virsh.write_text(
-                f"#!{required_command('bash')}\n"
-                """set -euo pipefail
-if [[ ${1-} == --connect ]]; then
-    shift 2
-fi
-command_name=${1-}
-shift
-case "$command_name" in
-    net-info)
-        printf 'Active: yes\\n'
-        # virsh writes fields separately. An early-exiting reader must not
-        # turn a healthy network into a pipefail error via SIGPIPE.
-        sleep 0.05
-        printf 'Persistent: yes\\n'
-        ;;
-    net-dumpxml)
-        cat "$EXISTING_NETWORK"
-        ;;
-    net-uuid)
-        printf '%s\\n' "$EXISTING_UUID"
-        ;;
-    net-define)
-        cp "$1" "$DEFINED_NETWORK"
-        if ! grep -Fq "<uuid>$EXISTING_UUID</uuid>" "$1"; then
-            printf "error: operation failed: network 'dev-mgmt' already exists with uuid %s\\n" \
-                "$EXISTING_UUID" >&2
-            exit 1
-        fi
-        ;;
-    net-autostart|pool-autostart|pool-refresh)
-        ;;
-    pool-info)
-        printf 'State: running\\n'
-        sleep 0.05
-        printf 'Persistent: yes\\n'
-        ;;
-    pool-dumpxml)
-        cat "$POOL_DEFINITION"
-        ;;
-    pool-uuid)
-        printf '%s\\n' "$EXISTING_UUID"
-        ;;
-    pool-define)
-        cp "$1" "$DEFINED_POOL"
-        ;;
-    *)
-        printf 'unexpected virsh command: %s\\n' "$command_name" >&2
-        exit 2
-        ;;
-esac
-""",
+                _shell_fixture(
+                    "virsh-existing-network-pool.sh.in",
+                    {"__value0": str(required_command("bash"))},
+                ),
                 encoding="utf-8",
             )
             fake_virsh.chmod(fake_virsh.stat().st_mode | stat.S_IXUSR)
@@ -154,7 +119,7 @@ esac
                 "@networkManifest@": shlex.quote(str(network_manifest)),
                 "@python@": shlex.quote(sys.executable),
                 "@xmlHelper@": shlex.quote(
-                    str(SETUP_TEMPLATE.parent / "libvirt-xml.py")
+                    str(SETUP_TEMPLATE.parent / "libvirt_xml.py")
                 ),
                 "@poolDefinition@": shlex.quote(str(pool_definition)),
                 "@poolName@": shlex.quote("workstation"),
@@ -229,16 +194,10 @@ class WindowsVmControlTests(unittest.TestCase):
         )
         fake_virsh = root / "virsh"
         fake_virsh.write_text(
-            f"#!{required_command('bash')}\n"
-            'case "$3" in\n'
-            "domid) printf '1\\n';;\n"
-            "qemu-agent-command)\n"
-            'case "${@: -1}" in\n'
-            "*guest-file-open*) printf '{\"return\":1}';;\n"
-            "*guest-file-read*) printf '%s' \"$GUEST_RESPONSE\";;\n"
-            "*guest-file-close*) printf '{\"return\":{}}';;\n"
-            "*) exit 2;; esac;;\n"
-            "*) exit 2;; esac\n",
+            _shell_fixture(
+                "virsh-guest-file-response.sh.in",
+                {"__value0": str(required_command("bash"))},
+            ),
             encoding="utf-8",
         )
         fake_virsh.chmod(0o700)
@@ -253,7 +212,7 @@ class WindowsVmControlTests(unittest.TestCase):
         replacements = {
             "authorizedKeysFile": shlex.quote(str(root / "authorized_keys")),
             "python": shlex.quote(sys.executable),
-            "xmlHelper": shlex.quote(str(SETUP_TEMPLATE.parent / "libvirt-xml.py")),
+            "xmlHelper": shlex.quote(str(SETUP_TEMPLATE.parent / "libvirt_xml.py")),
             "chown": shlex.quote(required_command("true")),
             "guestName": "windows-runtime",
             "guestUuid": EXISTING_UUID,
@@ -284,6 +243,8 @@ class WindowsVmControlTests(unittest.TestCase):
             "qemuImg",
             "seedIso",
             "seedRenderer",
+            "shutdownGuest",
+            "sevenZip",
             "setpriv",
             "umount",
             "wiminfo",
@@ -322,7 +283,7 @@ class WindowsVmControlTests(unittest.TestCase):
             encoding="utf-8",
         )
         script.chmod(0o700)
-        return subprocess.run(
+        return run_command(
             [script, command, "windows-runtime"],
             input=input_text,
             capture_output=True,
@@ -401,27 +362,21 @@ def test_running_domain_stages_persistent_xml_without_restart(
         marker.touch()
     fake_virsh = tmp_path / "virsh"
     fake_virsh.write_text(
-        f"#!{required_command('bash')}\n"
-        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(calls))}\n"
-        "shift 2\n"
-        'case "$1" in\n'
-        "dominfo) exit 0;;\n"
-        f"domuuid) echo {EXISTING_UUID};;\n"
-        "dumpxml) printf '%s' '<domain><devices><disk device=\"disk\">'; "
-        "sleep 0.05; printf '%s\\n' '<source file=\"/fixture/VM disks/system.qcow2\"/>"
-        '<target dev="sda"/></disk></devices></domain>\';;\n'
-        "domblklist) echo 'file disk sda /fixture/VM disks/system.qcow2';;\n"
-        "domid) echo 1;;\n"
-        "define|autostart) exit 0;;\n"
-        "*) exit 99;;\n"
-        "esac\n",
+        _shell_fixture(
+            "virsh-stream-domain-xml.sh.in",
+            {
+                "__value0": str(required_command("bash")),
+                "__value1": str(shlex.quote(str(calls))),
+                "__value2": str(EXISTING_UUID),
+            },
+        ),
         encoding="utf-8",
     )
     fake_virsh.chmod(0o700)
     replacements = {
         "bash": required_command("bash"),
         "python": sys.executable,
-        "xmlHelper": str(SETUP_TEMPLATE.parent / "libvirt-xml.py"),
+        "xmlHelper": str(SETUP_TEMPLATE.parent / "libvirt_xml.py"),
         "virsh": str(fake_virsh),
         "guestName": "fixture",
         "guestUuid": EXISTING_UUID,
@@ -472,12 +427,10 @@ def test_doctor_uses_exact_autostart_field(tmp_path: Path) -> None:
     networks.touch()
     virsh = tmp_path / "virsh"
     virsh.write_text(
-        f"#!{required_command('bash')}\n"
-        'case "$3" in\n'
-        "dominfo) printf 'Autostart: disable\\nAutostart Once: disable\\n';;\n"
-        "domid) echo -;;\n"
-        "*) exit 0;;\n"
-        "esac\n",
+        _shell_fixture(
+            "virsh-disabled-domain.sh.in",
+            {"__value0": str(required_command("bash"))},
+        ),
         encoding="utf-8",
     )
     virsh.chmod(0o700)
@@ -519,3 +472,70 @@ def test_doctor_uses_exact_autostart_field(tmp_path: Path) -> None:
     )
     assert "PASS  guest autostart is disable" in result.stdout
     assert "FAIL  guest autostart" not in result.stdout
+
+
+@pytest.mark.parametrize("address_source", ["agent", "lease"])
+def test_ip_handles_interface_names_with_spaces(
+    tmp_path: Path, address_source: str
+) -> None:
+    """Return address values even when interface names occupy several fields."""
+    source = (SETUP_TEMPLATE.parent / "libvirt-workstation-control.sh.in").read_text(
+        encoding="utf-8"
+    )
+    manifest = tmp_path / "guests.tsv"
+    manifest.write_text("fixture\t-\t-\t-\t0\t0\n", encoding="utf-8")
+    addresses = tmp_path / "addresses.txt"
+    addresses.write_text(
+        " Name                     MAC address        Protocol Address\n"
+        "----------------------------------------------------------\n"
+        " Ethernet 2               52:54:00:00:00:10  ipv6 2001:db8::10/64\n"
+        " -                        -                  ipv4 192.168.40.10/24\n"
+        " Loopback Pseudo-Interface 1                  ipv6 ::1/128\n"
+        " -                        -                  ipv4 127.0.0.1/8\n\n",
+        encoding="utf-8",
+    )
+    virsh = tmp_path / "virsh"
+    virsh.write_text(
+        _shell_fixture(
+            "virsh-interface-addresses.sh.in",
+            {
+                "__value0": str(required_command("bash")),
+                "__value1": str(address_source),
+                "__value2": str(shlex.quote(str(addresses))),
+            },
+        ),
+        encoding="utf-8",
+    )
+    virsh.chmod(0o700)
+    replacements = {
+        "bash": required_command("bash"),
+        "awk": required_command("awk"),
+        "virsh": str(virsh),
+        "guestManifest": str(manifest),
+        "libvirtUri": "qemu:///fixture",
+    }
+    for token in re.findall(r"@([A-Za-z0-9]+)@", source):
+        replacements.setdefault(token, required_command("false"))
+    script = tmp_path / "control"
+    script.write_text(
+        re.sub(
+            r"@([A-Za-z0-9]+)@",
+            lambda match: shlex.quote(replacements[match[1]]),
+            source,
+        ),
+        encoding="utf-8",
+    )
+    result = run_command(
+        [required_command("bash"), str(script), "ip", "fixture"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "2001:db8::10",
+        "192.168.40.10",
+        "::1",
+        "127.0.0.1",
+    ]

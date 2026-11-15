@@ -1,0 +1,7 @@
+{
+  "desktop": {
+    "host": "desktop",
+    "command": ["just", "os-build", "desktop"],
+    "cgroup": "/background-workload.slice/"
+  }
+}

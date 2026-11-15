@@ -1,4 +1,4 @@
-_: {
+{ myLib, ... }: {
   perSystem =
     {
       pkgs,
@@ -8,7 +8,7 @@ _: {
     }:
     {
       checks = lib.optionalAttrs (system == "x86_64-linux") {
-        application-recovery = import ../../tests/recovery/application-recovery.nix { inherit pkgs; };
+        application-recovery = import ../../tests/recovery/application-recovery.nix { inherit pkgs myLib; };
       };
     };
 }

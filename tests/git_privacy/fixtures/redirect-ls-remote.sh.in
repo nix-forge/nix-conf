@@ -1,0 +1,5 @@
+#!/bin/sh
+if test "$1" = ls-remote; then
+  exec git ls-remote --refs __fixture_0__
+fi
+exec git "$@"

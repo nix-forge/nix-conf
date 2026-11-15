@@ -2,11 +2,11 @@
 
 This repository selects and configures workstation features. Start with the
 affected host or home profile, then follow its selected modules to the behavior
-being changed. The [glossary](CONTEXT.md) distinguishes those concepts.
+being changed. The [glossary](GLOSSARY.md) distinguishes those concepts.
 
 ## Repository boundaries
 
-The root repository owns workstation configuration and integration. The three
+The root repository owns workstation configuration and integration. Its
 submodules are separate repositories with their own checks and release history:
 
 | Change | Owning repository |
@@ -15,6 +15,7 @@ submodules are separate repositories with their own checks and release history:
 | Package recipes and source updates | `pkgs/`, the nixpkgs-personal repository |
 | Target discovery and module composition | `nix-config-framework/` |
 | Secret-management implementation | `nix-seal/` |
+| Reusable homelab service modules | `nix-homelab/` |
 
 Read the owning repository's instructions before editing it. Keep its changes
 and validation separate from the root's gitlink update. A root diff shows only
@@ -24,13 +25,21 @@ to another task.
 
 ## Configuration conventions
 
+Use the [layout and naming guide](docs/layout.md) when adding or moving files.
+It records source ownership, naming rules, and the consumers a move must update.
+
 - Select reusable features in the target's `default.nix`. Put target-specific
   settings and configuration assets in its `local/` tree. That tree auto-imports
   Nix files, so each Nix file must be a module. Export target-specific helper
-  functions through the module's `lib` option. Reserve `lib/` for helpers used
-  across many locations or with a clear reuse case across future modules. Keep
-  feature-specific functions in the caller's `let`, or in a nearby file when
+  functions through the module's `lib` option. Reserve `lib/` for algorithmic
+  or mathematical helpers and functions used by multiple production callers.
+  Keep one-off functions in the caller's `let`, or beside the feature when
   several modules in that feature need them.
+  Group related local modules in domain directories such as `local/network/`
+  and `local/security/`, with short filenames inside them. Local directories
+  remain recursively imported: `local/<domain>/default.nix` is another module,
+  not an import list. Keep runtime unit, option, and secret names stable when
+  moving source files.
   Place reusable configuration beside its owning module and inactive experiments
   in scratch storage.
 - Place reusable system, user, or cross-platform behavior in the matching tree
@@ -54,6 +63,27 @@ to another task.
   rendering templates or packaging Bash and Python helpers. Package local
   commands with Nix and install them through the owning module instead of
   placing executable files in `~/.local/bin`.
+
+## Waiting and readiness
+
+Do not busy-wait for state changes. Use blocking process, descriptor, filesystem,
+D-Bus, or lifecycle notifications when the producer supports them. Subscribe
+before taking the initial snapshot, recheck state after notifications, and use
+one overall deadline. Keep cancellation and resource cleanup with the owner.
+
+Let the service manager own restarts. Ordering after a process start does not
+prove application readiness; prefer the application's native readiness signal.
+For a protocol without notifications, document why a bounded retry is necessary,
+use positive backoff, honor server retry hints, and retry only safe operations.
+Never replace a notification wait with a zero-timeout status loop. On Python 3.14,
+`Popen.wait(timeout=...)` polls internally; Linux process supervision should use
+pidfds or an asynchronous child observer instead.
+
+Keep maintained programs in language source files, including package checks and
+VM drivers. Use the owning repository's declared language tooling and the Nix
+helper appropriate to its lifecycle. See the
+[source and writer conventions](docs/nix-function-conventions.md#source-files-and-language-tooling)
+for file extensions, writers, rendering, and import lookup when extracting code.
 
 ## Validation
 

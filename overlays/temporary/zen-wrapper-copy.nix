@@ -2,7 +2,7 @@
   reason = "The native builder store mount rejects GNU cp permission preservation in the Zen wrapper.";
   upstream = "https://github.com/NixOS/nixpkgs/blob/02c087f3fe673c9e317f206a627cb6b910336dbe/pkgs/applications/networking/browsers/firefox/wrapper.nix";
   removal = "The upstream wrapper copies successfully on the native builder without this substitution.";
-  reviewedRevision = "02c087f3fe673c9e317f206a627cb6b910336dbe";
+  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
   inputPath = [ "nixpkgs" ];
   apply =
     package:

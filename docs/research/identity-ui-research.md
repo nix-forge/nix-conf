@@ -1,0 +1,26 @@
+# Identity UI and homelab sign-in
+
+Reviewed: 2026-10-01. Scope: the desktop's earlier staged Identity UI and current Keycloak integrations. Upstream sources were consulted on 2026-10-01. The recommendation below was implemented in the same working tree.
+
+## Answer
+
+Keep Keycloak where an application needs its OIDC login, but do not treat a custom Identity UI as the homelab's universal sign-in. The earlier staged UI added a Wardrowbe-specific home page and a custom Keycloak login theme. Neither authenticated applications by itself. The home page duplicated links to Wardrowbe and Keycloak's native Account Console, adding npm, React, Tailwind, and theme maintenance without a clear user benefit. The implementation now uses Keycloak's upstream pages and directs users to the Account Console. If a shared identity experience becomes a real multi-service requirement, design and test it as a reusable `nix-homelab` feature.
+
+## Findings and sources
+
+- The earlier staged home page linked Wardrowbe, the Keycloak Account Console, and administration; it explicitly directed other services to separate accounts. It provided navigation and instructions, not authentication. [The host module](../../hosts/nixos/desktop/local/homelab/wardrowbe.nix) now configures the provider without that page or custom theme.
+- Keycloak supplies the login forms and Account Console. Its [theme documentation](https://www.keycloak.org/ui-customization/themes) lists the supported theme types and the native account URL. It also warns that overridden templates can need updates after upgrades.
+- [Wardrowbe's host configuration](../../hosts/nixos/desktop/local/homelab/wardrowbe.nix) connects it to one Keycloak realm. [Actual's configuration](../../hosts/nixos/desktop/local/homelab/actual.nix) connects it to a separate realm. Those are the OIDC integrations found in the desktop homelab configuration. A shared Keycloak server and visual theme do not imply a shared account or sign-on session across those realms. [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0-errata2.html) requires each client to participate in the protocol, and [Keycloak's administration guide](https://www.keycloak.org/docs/latest/server_admin/) describes client and realm configuration.
+- The earlier host configuration set a Wardrowbe-oriented theme as Keycloak's server default. Under [Keycloak's theme selection rules](https://www.keycloak.org/ui-customization/themes), realms or clients without an override could receive its Wardrowbe-oriented account-home link. Removing the custom theme removes that cross-service presentation mismatch.
+- The rest of the configured services retain their own application logins or other access rules. OIDC adoption requires service-specific client configuration, account mapping, recovery, and client compatibility. [Actual's OIDC guide](https://actualbudget.org/docs/config/oauth-auth/) and [Audiobookshelf's OIDC guide](https://audiobookshelf.org/docs/documentation/server-management/oidc-authentication/) illustrate that work. [Jellyfin's user documentation](https://jellyfin.org/docs/general/server/users/adding-managing-users/) describes its native account model; its [Quick Connect documentation](https://jellyfin.org/docs/general/server/quick-connect/) shows why browser login is not the only client path. These examples do not establish an exhaustive compatibility matrix.
+- [The root repository boundary](../../CONTRIBUTING.md) assigns host integration and target-specific assets to this repository, and reusable homelab modules to `nix-homelab`. The current page's Wardrowbe text and URLs justify its `local/` placement under that rule. A generic, reusable theme or account portal would belong with the homelab module, while domain, credentials, selected applications, and firewall policy would remain host configuration.
+
+## Recommendation
+
+1. Decide separately whether Keycloak is worth operating for the applications that use it. Wardrowbe and Actual currently depend on it; removing the provider would require replacement login designs and migration. That decision is larger than removing the Identity UI.
+2. Use Keycloak's native Account Console as the credential-management page. The Wardrowbe-only landing page and custom build were removed. Introduce a custom login theme only for a demonstrated need, with an upgrade and browser-check plan.
+3. If the goal is homelab-wide identity, make that a separate design with an application-by-application compatibility and recovery plan. Move genuinely reusable theme or portal assets into `nix-homelab` only after they stop depending on one host and one application. Test each service's login, authorization, account recovery, client apps, and logout behavior before calling it shared sign-in.
+
+## Validation and limits
+
+The architecture finding came from a source review of the staged working tree and linked upstream documentation. The updated Nix file passed parsing and formatting checks, and both affected Markdown files passed local-link checks. The full desktop build was queued behind other workstation tasks and cancelled before it started; it remains unverified. No browser check, deployment, or account migration was part of this work. Realm settings and runtime behavior may differ from the generated configuration until deployment is verified.

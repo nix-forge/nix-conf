@@ -1,4 +1,4 @@
-{ inputs, ... }: {
+{ inputs, myLib, ... }: {
   perSystem = { pkgs, ... }: {
     checks.git-email-privacy =
       let
@@ -6,6 +6,7 @@
         generic =
           (inputs.home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
+            extraSpecialArgs = { inherit myLib; };
             modules = [
               ../../modules/home/dev/git-privacy.nix
               {
@@ -40,7 +41,7 @@
         name = "git-email-privacy";
         files = [
           ../../tests/git_privacy
-          ../../modules/home/dev/scripts/git-privacy-hook.py
+          ../../modules/home/dev/scripts/git_privacy_hook.py
         ];
         testPaths = [ "tests/git_privacy" ];
         selection = "nix_integration";
