@@ -28,7 +28,7 @@ let
           args
           // {
             inherit inputs;
-            self = inputs.self;
+            inherit (inputs) self;
           }
         )
       )
