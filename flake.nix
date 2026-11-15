@@ -260,6 +260,13 @@
         extraSpecialArgs = { inherit myLib; };
       };
 
-      perSystem = { system, ... }: { packages = inputs.nixpkgs-personal.packages.${system}; };
+      perSystem = { system, ... }: {
+        packages = inputs.nixpkgs-personal.packages.${system} // {
+          rea = import ./lib/rea-runtime.nix {
+            inherit inputs system;
+            package = inputs.nixpkgs-personal.packages.${system}.rea;
+          };
+        };
+      };
     };
 }

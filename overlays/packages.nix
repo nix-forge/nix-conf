@@ -40,6 +40,10 @@ let
 in
 {
   azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
+  rea = import ../lib/rea-runtime.nix {
+    inherit inputs system;
+    package = pkgs.rea;
+  };
   blocky = fixes.apply "blocky-multiple-dnskeys" pkgs.blocky;
   opencode = fixes.apply "opencode-dependency-hashes" pkgs.opencode;
   # Keep the official CLI/server; select the signed vendor GUI only on ARM Darwin.

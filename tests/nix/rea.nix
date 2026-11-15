@@ -5,11 +5,38 @@
 }:
 let
   inherit (pkgs) lib;
-  reaPkgs = import inputs.nixpkgs {
+  basePkgs = import inputs.nixpkgs {
     inherit (pkgs.stdenv.hostPlatform) system;
     overlays = [ inputs.nixpkgs-personal.overlays.default ];
   };
+  reaPkgs = basePkgs.extend (
+    _: previous: {
+      rea = import ../../lib/rea-runtime.nix {
+        inherit inputs;
+        system = pkgs.stdenv.hostPlatform.system;
+        package = previous.rea;
+      };
+    }
+  );
   inherit (reaPkgs) rea;
+  crossRea =
+    if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
+      (import inputs.nixpkgs {
+        localSystem = "x86_64-linux";
+        crossSystem.config = "aarch64-unknown-linux-gnu";
+        overlays = [ inputs.nixpkgs-personal.overlays.default ];
+      }).rea
+    else
+      null;
+  selectedCrossRea =
+    if crossRea == null then
+      null
+    else
+      import ../../lib/rea-runtime.nix {
+        inherit inputs;
+        system = crossRea.stdenv.hostPlatform.system;
+        package = crossRea;
+      };
   homeFor =
     enabled:
     (inputs.home-manager.lib.homeManagerConfiguration {
@@ -67,6 +94,14 @@ let
     builtins.toJSON enabled.programs.chatgpt.settings
   );
 in
+assert (
+  rea.reuseUpstreamNode
+  && rea.buildNodejs.drvPath == rea.runtimeNodejs.drvPath
+  &&
+    rea.runtimeNodejs.drvPath
+    == (import inputs.nixpkgs-apps { system = pkgs.stdenv.hostPlatform.system; }).nodejs_24.drvPath
+);
+assert crossRea == null || selectedCrossRea.drvPath == crossRea.drvPath;
 assert builtins.length (builtins.attrNames (skillFiles enabled)) == 3;
 assert skillFiles disabled == { };
 assert builtins.elem rea enabled.home.packages;

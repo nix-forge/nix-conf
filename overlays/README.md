@@ -550,3 +550,16 @@ deep strict signature verifier rejects that extra sealed resource. The required
 Darwin check verifies the entire resulting upstream bundle, including the helper;
 no bundle contents are patched or re-signed. Retire the repair when the official
 recipe extracts the same archive without these extra files and passes that check.
+
+## REA runtime dependencies
+
+REA keeps its source recipe in nixpkgs-personal. Native consumers select Node24
+and Brotli together from the existing locked application Nixpkgs input. The
+owning recipe enforces its Node and Brotli minimums and returns an unchanged
+upstream runtime when eligible, so the official signed cache can supply it.
+The production overlay, exported package and integration fixture share this
+selection; cross packages retain their original build and target scopes.
+
+The package retains domain, installed CLI, MCP and PTY checks, and runs the
+original upstream memory-usage and worker-memory regressions with the exact
+selected runtime. Older inputs retain the recipe's patched source fallback.
