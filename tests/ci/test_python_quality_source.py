@@ -76,29 +76,29 @@ def test_hosted_inventory_keeps_local_checks_and_single_ci_owner(
 ) -> None:
     """Evaluate the exported inventory against additions through its real consumer."""
     expression = f"""
-      let
-        self = {{
-          checks.x86_64-linux = {{
-            pre-commit = "hooks";
-            python-quality = "python";
-            javascript-quality = "js";
-            stylesheet-quality = "css";
-            swift-quality = "swift";
-            lua-quality = "lua";
-            treefmt = "format";
-            documentation = "docs";
-            gitleaks-policy = "secrets";
-          }};
-          inherit (module.flake) lintChecks;
-        }};
-        module = import {ROOT}/flake/lint-checks.nix {{
-          inherit self;
-          lib.optionalAttrs = condition: value: if condition then value else {{}};
-        }};
-      in {{
-        local = builtins.attrNames module.flake.lintChecks.x86_64-linux;
-        hosted = builtins.attrNames module.flake.hostedLintChecks.x86_64-linux;
-      }}
+        let
+            self = {{
+                checks.x86_64-linux = {{
+                    pre-commit = "hooks";
+                    python-quality = "python";
+                    javascript-quality = "js";
+                    stylesheet-quality = "css";
+                    swift-quality = "swift";
+                    lua-quality = "lua";
+                    treefmt = "format";
+                    documentation = "docs";
+                    gitleaks-policy = "secrets";
+                }};
+                inherit (module.flake) lintChecks;
+            }};
+            module = import {ROOT}/flake/lint-checks.nix {{
+                inherit self;
+                lib.optionalAttrs = condition: value: if condition then value else {{}};
+            }};
+        in {{
+            local = builtins.attrNames module.flake.lintChecks.x86_64-linux;
+            hosted = builtins.attrNames module.flake.hostedLintChecks.x86_64-linux;
+        }}
     """
     inventory = json.loads(
         subprocess.check_output(
