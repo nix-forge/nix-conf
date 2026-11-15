@@ -545,8 +545,8 @@ jobs:
       && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
-    # The shared Determinate runtime now occupies the largest x86 partition.
-    # Cached REA is small; give each cold compositor VM its own scheduling weight.
+    # Relative weights follow observed cold check times and shared dependencies.
+    # Spread compositor VMs and long plugin/service checks across native runners.
     # Keep the existing bounded deadlines and Darwin's single partition.
     timeout-minutes: ${{ (matrix.partition-index == 0 || (matrix.system == 'x86_64-linux' && matrix.partition-index
       == 1)) && 180 || 90 }}
