@@ -18,6 +18,7 @@ xfail_strict = true
 markers = [
   "nix_integration: requires generated artifacts supplied by its Nix check",
   "nix_daemon: exercises Git/Nix orchestration outside the build sandbox",
+  "native_process: requires native Darwin process inspection outside the Nix build sandbox",
 ]
 
 [tool.ruff]

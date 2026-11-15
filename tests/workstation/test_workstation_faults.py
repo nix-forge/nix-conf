@@ -50,10 +50,11 @@ def _live_group(ps: str, group: int) -> bool:
     output = subprocess.check_output(
         [ps, "-ax", "-o", "pgid=", "-o", "stat="], text=True
     )
-    return any(
-        int(pgid) == group and not state.startswith("Z")
-        for pgid, state in (line.split() for line in output.splitlines())
+    rows = [line.split() for line in output.splitlines()]
+    assert all(len(row) == 2 for row in rows), (
+        f"Invalid native ps fields from {ps}: {output[:512]!r}"
     )
+    return any(int(pgid) == group and not state.startswith("Z") for pgid, state in rows)
 
 
 def _cleanup_payload(directory: Path, ps: str, marker_name: str = "owned.json") -> None:
@@ -231,10 +232,11 @@ def _systemd_fixture(recipe: dict[str, Any], directory: Path, ps: str) -> None:
     )
 
 
+@pytest.mark.native_process
 @pytest.mark.parametrize("fault", ["rss", "identity", "persistence"])
 def test_supervision_fault_drains_real_payload(tmp_path: Path, fault: str) -> None:
     """Infrastructure errors fail promptly and cannot orphan the owned payload."""
-    ps = shutil.which("ps")
+    ps = "/bin/ps" if sys.platform == "darwin" else shutil.which("ps")
     if ps is None or not hasattr(os, "mkfifo"):
         pytest.skip("Native ps and FIFO readiness are required")
     os.mkfifo(tmp_path / "ready", 0o600)
@@ -265,9 +267,10 @@ def test_supervision_fault_drains_real_payload(tmp_path: Path, fault: str) -> No
         process.communicate(timeout=5)
 
 
+@pytest.mark.native_process
 def test_systemd_launcher_eof_does_not_prove_native_drain(tmp_path: Path) -> None:
     """Launcher success cannot certify a detached unit without native stop proof."""
-    ps = shutil.which("ps")
+    ps = "/bin/ps" if sys.platform == "darwin" else shutil.which("ps")
     if ps is None or not hasattr(os, "mkfifo"):
         pytest.skip("Native ps and FIFO readiness are required")
     os.mkfifo(tmp_path / "ready", 0o600)

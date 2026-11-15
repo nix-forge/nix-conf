@@ -74,8 +74,7 @@ assert system.config.nix.registry.nixpkgs.flake.outPath == inputs.nixpkgs.outPat
 assert !(lib.hasInfix secretPath system.config.nix.extraOptions);
 assert
   if isDarwin then
-    lib.hasInfix "/var/root" system.config.system.activationScripts.postActivation.text
-    && lib.hasInfix (toString script) system.config.system.activationScripts.postActivation.text
+    lib.hasInfix "${pkgs.runtimeShell} ${script} /var/root " system.config.system.activationScripts.postActivation.text
   else
     system.config.systemd.services.nix-daemon.environment.NIX_USER_CONF_FILES
     == "/root/.config/nix/nix.conf";

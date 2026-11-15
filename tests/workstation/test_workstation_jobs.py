@@ -1213,6 +1213,7 @@ def owned_process_group() -> Iterator[int]:
             child.wait(timeout=5)
 
 
+@pytest.mark.native_process
 def test_native_group_sampler_reads_owned_rss(owned_process_group: int) -> None:
     """Parse positive RSS from the native ps for a real owned process group."""
     ps = "/bin/ps" if sys.platform == "darwin" else shutil.which("ps")

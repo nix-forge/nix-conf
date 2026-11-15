@@ -215,3 +215,20 @@ percentage without a decision it supports. Add cases for meaningful failure
 modes and remove tests whose only effect is to freeze an implementation detail.
 For a repaired test that previously passed incorrectly, demonstrate that a
 controlled broken implementation now fails.
+
+### Native Darwin process inspection
+
+The `native_process` cases use Apple's `/bin/ps` to verify positive RSS and real
+owned-process drain after supervision faults. Darwin's Nix build sandbox denies
+that executable. The required Darwin CI job runs these same cases before its
+Nix check matrix, using the declared test Python environment:
+
+```sh
+nix develop .#tests --command python3 -m pytest -m native_process \
+  tests/workstation/test_workstation_faults.py \
+  tests/workstation/test_workstation_jobs.py
+```
+
+The Darwin sandboxed Python check excludes those five cases; Linux continues to
+run them inside its Nix check. Neither path substitutes process observations or
+changes cleanup assertions. Both native and sandboxed checks must pass in CI.

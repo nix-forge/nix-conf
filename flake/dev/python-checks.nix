@@ -4,6 +4,10 @@ _: {
     # suites opt into separate checks; operational check_* probes are explicit.
     checks.python-tests = (import ../../tests/python-check.nix { inherit pkgs; }) {
       name = "python-behavior-tests";
+      # These same five cases run in the required native Darwin CI step.
+      selection =
+        "not nix_integration and not nix_daemon"
+        + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin " and not native_process";
       files = [
         ../../overlays/temporary/scripts/sign-signal-bundle.py
         ../../overlays/temporary/tests/prism-watch-result.py

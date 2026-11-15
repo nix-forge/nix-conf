@@ -655,6 +655,13 @@ jobs:
             echo "GitHub Nix cache requested: ${CACHE_REQUESTED}"
             echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
           } >>"${GITHUB_STEP_SUMMARY}"
+      - name: Verify native Darwin process supervision
+        if: matrix.system == 'aarch64-darwin'
+        shell: bash
+        run: |
+          nix develop .#tests --command python3 -m pytest -m native_process \
+            tests/workstation/test_workstation_faults.py \
+            tests/workstation/test_workstation_jobs.py
       - name: Build assigned native CI checks
         # Darwin needs declared native profiles (Node/FSEvents); Linux stays strict.
         # Fixed upstream cache policy, downloading without publication credentials.
