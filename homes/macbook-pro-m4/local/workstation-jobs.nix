@@ -6,7 +6,7 @@ _: {
       backend = "darwin";
       memoryMiB = 2048;
       minimumMiB = 256;
-      maximumMiB = 4096;
+      maximumMiB = 8192;
       # Large native release crates can exceed thirty minutes. Longer jobs
       # request their deadline explicitly and retain the same memory budget.
       maximumSeconds = 3600;

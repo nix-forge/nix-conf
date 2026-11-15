@@ -124,7 +124,7 @@ a still-Queued or Running record correctly blocks activation.
 | Desktop `host-check` | Explicit bounded host-identity checks, using the bounded RAM range, reserve, zero swap and deadline. A fixed privileged namespace helper preserves root/caller filesystem IDs, creates a private PID/proc view, masks the daemon and drops UID/GID/capabilities before reading invocation data. Same queue locks and cgroup; never automatically selected. |
 | Desktop `feedback` | Existing 2 GiB hard cap, 1.75 GiB pressure threshold, 256 MiB swap, 120 s ceiling and original feedback admission. Tiny scoped feedback only. |
 | Desktop `daemon` | Ordinary `workstation-task`, capacity waiting at the 14 GiB guard and separately accounted Nix daemon budget. Large Nix/system builds remain here. |
-| Native macOS `bounded` | One serial queue, default 2 GiB, reviewed 256 MiB–4 GiB requests plus 3 GiB conservative host reserve and normal OS pressure. Process-group watchdog samples every 2 s; 3600 s maximum for explicitly budgeted jobs, with the existing 1200 s default. |
+| Native macOS `bounded` | One serial queue, default 2 GiB, reviewed 256 MiB–8 GiB requests plus 3 GiB conservative host reserve and normal OS pressure. Process-group watchdog samples every 2 s; 3600 s maximum for explicitly budgeted jobs, with the existing 1200 s default. |
 | Small Linux service host `bounded` | One serial queue, default 256 MiB, 64–384 MiB requests, 512 MiB host reserve, 384 MiB aggregate hard cap, zero swap, 1200 s maximum. Read-only store and hidden shared daemon. |
 
 Desktop limits have one typed owner in
