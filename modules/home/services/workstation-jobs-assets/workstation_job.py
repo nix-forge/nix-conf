@@ -431,7 +431,7 @@ async def _group_usage(
     # snapshot because procps -g selects sessions instead; filter exact PGIDs.
     selection = ["-g", str(pgid)] if platform.system() == "Darwin" else ["-A"]
     text = await _memory_sample(
-        [ps, *selection, "-o", "pid=,pgid=,rss="],
+        [ps, *selection, "-o", "pid=", "-o", "pgid=", "-o", "rss="],
         cancelled,
         sample_seconds,
         allow_empty_selection=True,

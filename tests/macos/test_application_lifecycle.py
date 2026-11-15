@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import plistlib
+import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - Native fixture processes.
 import sys
 from pathlib import Path
@@ -415,8 +416,10 @@ def test_native_rsync_exclusion_preserves_protected_bundle(tmp_path: Path) -> No
     protected.write_text("running")
     inode = protected.stat().st_ino
     (target / "Obsolete.app").mkdir()
+    rsync = shutil.which("rsync")
+    assert rsync is not None, "The production rsync must be provided to native checks"
     manager.command(
-        "/usr/bin/rsync",
+        rsync,
         "--recursive",
         "--delete",
         "--exclude=/Example.app",

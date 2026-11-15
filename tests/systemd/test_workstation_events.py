@@ -20,9 +20,15 @@ def test_lifecycle_is_private_monotonic_and_argument_free(tmp_path: Path) -> Non
     environment = {**os.environ, "XDG_RUNTIME_DIR": str(tmp_path)}
     environment.pop("WORKSTATION_JOB_DIRECTORY", None)
     unit = "workstation-task-feedback-123-456.scope"
-    for event in ["queued", "admitted", "commandFinished", "completed"]:
+    for event, arguments in [
+        ("queued", []),
+        ("capacityChecked", ["500", "200", "feedback"]),
+        ("admitted", ["0"]),
+        ("commandFinished", ["0"]),
+        ("completed", ["0"]),
+    ]:
         subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true] - Fixed interpreter/helper and controlled fixture arguments.
-            [sys.executable, SOURCE, event, unit, "feedback", "0"],
+            [sys.executable, SOURCE, event, unit, "feedback", *arguments],
             check=True,
             env=environment,
         )

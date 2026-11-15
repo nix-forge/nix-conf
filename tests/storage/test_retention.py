@@ -254,6 +254,18 @@ def cache_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setitem(
         TASKS["cache_location"].__globals__, "verify_cache_root", lambda _: None
     )
+    mountinfo = tmp_path / "mountinfo"
+    mountinfo.write_text("1 0 0:1 / / rw - tmpfs tmpfs rw\n", encoding="utf-8")
+    original_read = Path.read_text
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda path, *args, **kwargs: original_read(
+            mountinfo if path == Path("/proc/self/mountinfo") else path,
+            *args,
+            **kwargs,
+        ),
+    )
     return root
 
 
@@ -414,3 +426,27 @@ def test_foreign_cache_directory_refuses_before_job_root_release(
         TASKS["retire"](tmp_path, "finished-task", "fixture", evidence, root)
     assert (directory / "executor-root").is_symlink()
     assert foreign.exists()
+
+
+def test_nested_cache_mount_refuses_before_job_root_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A controlled mount table must still prevent crossing a cache mount."""
+    root = cache_fixture(tmp_path, monkeypatch)
+    cache = TASKS["create_cache"](root, "finished-task")
+    nested = cache / "mounted"
+    nested.mkdir()
+    (tmp_path / "mountinfo").write_text(
+        f"1 0 0:1 / / rw - tmpfs tmpfs rw\n2 1 0:2 / {nested} rw - tmpfs tmpfs rw\n",
+        encoding="utf-8",
+    )
+    directory = job_state(tmp_path)
+    monkeypatch.setitem(
+        TASKS["retirement_plan"].__globals__, "inspect_job", lambda *_: terminal()
+    )
+    evidence = tmp_path / "preserved-result"
+    evidence.write_text("Preserved evidence", encoding="utf-8")
+    with pytest.raises(ValueError, match="Nested mount"):
+        TASKS["retire"](tmp_path, "finished-task", "fixture", evidence, root)
+    assert (directory / "executor-root").is_symlink()
+    assert nested.exists()

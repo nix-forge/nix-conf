@@ -123,6 +123,7 @@ _: {
           openssh
           perl
           restic
+          rsync
           util-linux
           procps
         ]

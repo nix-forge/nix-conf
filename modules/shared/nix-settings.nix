@@ -102,6 +102,7 @@ in
       lib,
       config,
       pkgs,
+      options,
       ...
     }:
     let
@@ -136,7 +137,9 @@ in
           inherit settings;
         };
       })
-      (lib.mkIf usingDeterminateNix { determinateNix.customSettings = determinateSettings; })
+      (lib.optionalAttrs (options ? determinateNix) (
+        lib.mkIf usingDeterminateNix { determinateNix.customSettings = determinateSettings; }
+      ))
       (lib.mkIf hasNixAccessTokens {
         # The vendor-owned daemon plist is preserved. Root clients and a fresh
         # root daemon use the normal private root configuration search path.

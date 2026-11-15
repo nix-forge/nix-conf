@@ -47,7 +47,9 @@ def _live_group(ps: str, group: int) -> bool:
         Whether the fixture group still contains a live process.
 
     """
-    output = subprocess.check_output([ps, "-axo", "pgid=,stat="], text=True)
+    output = subprocess.check_output(
+        [ps, "-ax", "-o", "pgid=", "-o", "stat="], text=True
+    )
     return any(
         int(pgid) == group and not state.startswith("Z")
         for pgid, state in (line.split() for line in output.splitlines())
@@ -153,7 +155,9 @@ def _fault_worker(directory: Path, fault: str, ps: str) -> None:
             message = "Injected RSS read failure"
             raise OSError(message)
         output = await asyncio.to_thread(
-            subprocess.check_output, [ps, "-axo", "pid=,pgid=,rss="], text=True
+            subprocess.check_output,
+            [ps, "-ax", "-o", "pid=", "-o", "pgid=", "-o", "rss="],
+            text=True,
         )
         return sum(
             int(rss) * 1024

@@ -9,13 +9,18 @@ import json
 import os
 import runpy
 import sys
+import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from dbus_next import Message
 from dbus_next.aio import MessageBus
 from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, dbus_property, method, signal
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 pytest_plugins = ["dbus_helpers"]
 MODULE = runpy.run_path(
@@ -24,6 +29,18 @@ MODULE = runpy.run_path(
 LOGIN = MODULE["LOGIN"]
 ROOT = MODULE["ROOT"]
 SESSION = MODULE["SESSION"]
+
+
+@pytest.fixture
+def socket_root() -> Iterator[Path]:
+    """Keep private UNIX socket names short on every native platform.
+
+    Yields:
+        A private temporary root removed after the owned children are reaped.
+
+    """
+    with tempfile.TemporaryDirectory(prefix="clip-", dir="/tmp") as directory:
+        yield Path(directory)
 
 
 class Session(ServiceInterface):
@@ -124,9 +141,9 @@ async def exercise(address: str, temporary: Path) -> None:
         await server.wait_closed()
 
 
-def test_user_lock_cleanup(private_bus: str, tmp_path: Path) -> None:
+def test_user_lock_cleanup(private_bus: str, socket_root: Path) -> None:
     """Wipe current and future user locks without touching other users."""
-    asyncio.run(asyncio.wait_for(exercise(private_bus, tmp_path), timeout=10))
+    asyncio.run(asyncio.wait_for(exercise(private_bus, socket_root), timeout=10))
 
 
 async def exercise_stuck_wipe(address: str, temporary: Path, cancel: bool) -> None:
@@ -177,8 +194,12 @@ async def exercise_stuck_wipe(address: str, temporary: Path, cancel: bool) -> No
 
 
 @pytest.mark.parametrize("cancel", [True, False])
-def test_stuck_wipe_is_reaped(private_bus: str, tmp_path: Path, cancel: bool) -> None:
+def test_stuck_wipe_is_reaped(
+    private_bus: str, socket_root: Path, cancel: bool
+) -> None:
     """Bound failed cleanup so notification processing and shutdown can recover."""
     asyncio.run(
-        asyncio.wait_for(exercise_stuck_wipe(private_bus, tmp_path, cancel), timeout=5)
+        asyncio.wait_for(
+            exercise_stuck_wipe(private_bus, socket_root, cancel), timeout=5
+        )
     )

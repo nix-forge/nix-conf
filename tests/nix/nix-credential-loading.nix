@@ -22,6 +22,16 @@ let
     modules = [
       (if isDarwin then modules.darwin else modules.nixos)
       (fixture secretPath)
+      (
+        args:
+        (import ../../modules/shared/registry.nix).${if isDarwin then "darwin" else "nixos"} (
+          args
+          // {
+            inherit inputs;
+            self = inputs.self;
+          }
+        )
+      )
       {
         nixpkgs.pkgs = pkgs;
         nix = {
@@ -60,6 +70,7 @@ let
   public = system.config.environment.etc."nix/nix.conf".source;
   script = ../../modules/shared/nix-settings-assets/install-root-credentials.sh;
 in
+assert system.config.nix.registry.nixpkgs.flake.outPath == inputs.nixpkgs.outPath;
 assert !(lib.hasInfix secretPath system.config.nix.extraOptions);
 assert
   if isDarwin then

@@ -1213,6 +1213,16 @@ def owned_process_group() -> Iterator[int]:
             child.wait(timeout=5)
 
 
+def test_native_group_sampler_reads_owned_rss(owned_process_group: int) -> None:
+    """Parse positive RSS from the native ps for a real owned process group."""
+    ps = "/bin/ps" if sys.platform == "darwin" else shutil.which("ps")
+    assert ps is not None
+    assert (
+        asyncio.run(jobs._group_usage(owned_process_group, asyncio.Event(), 5, ps=ps))
+        > 0
+    )
+
+
 def test_group_sampler_cancellation_is_responsive(
     tmp_path: Path, owned_process_group: int
 ) -> None:
