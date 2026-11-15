@@ -171,7 +171,7 @@ class Scenario:
     ) -> str:
         if self.sampler_denial:
             error = PermissionError(1, "fake sampler cleanup denied")
-            error.native_cleanup_observation = {
+            error.__dict__["native_cleanup_observation"] = {
                 "operation": "sampler-group-signal",
                 "errorType": "PermissionError",
                 "pid": SAMPLER_PID,
@@ -518,7 +518,7 @@ def test_sampler_denied_cleanup_reports_owned_sampler_not_payload(sig: int) -> N
         try:
             with pytest.raises(PermissionError) as caught:
                 await scope["_memory_sample"](["/usr/bin/vm_stat"], asyncio.Event(), 1)
-            assert caught.value.native_cleanup_observation == {
+            assert caught.value.__dict__["native_cleanup_observation"] == {
                 "operation": "sampler-group-signal",
                 "errorType": "PermissionError",
                 "pid": 5501,

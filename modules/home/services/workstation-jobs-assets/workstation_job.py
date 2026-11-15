@@ -948,7 +948,7 @@ async def _memory_sample(
         except ProcessLookupError:
             return
         except OSError as error:
-            error.native_cleanup_observation = {  # type: ignore[attr-defined]
+            error.__dict__["native_cleanup_observation"] = {
                 "operation": "sampler-group-signal",
                 "errorType": type(error).__name__,
                 "pid": process.pid,
