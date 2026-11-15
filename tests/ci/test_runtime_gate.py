@@ -19,7 +19,7 @@ def test_static_result_controls_native_and_required_aggregate(
     tmp_path: Path, result: str
 ) -> None:
     """A failed gate blocks native jobs and cannot become a green required check."""
-    for name in ["flake", "native"] + [
+    for name in ["flake", "native", "public-guide", "submodule-hooks"] + [
         key for key in JOBS if key.endswith("review-proof")
     ]:
         job = JOBS[name]
@@ -59,9 +59,13 @@ def test_handy_realizes_each_input_once_and_always_runs_host_proof(
     tools = tmp_path / "bin"
     tools.mkdir()
     fixture = ROOT / "tests/ci/fixtures/handy-command.sh"
+    interpreter = shutil.which("bash")
+    assert interpreter
+    body = fixture.read_text().split("\n", 1)[1]
     for name in ("nix", "python3"):
-        shutil.copyfile(fixture, tools / name)
-        (tools / name).chmod(0o755)
+        command = tools / name
+        command.write_text(f"#!{interpreter}\n" + body)
+        command.chmod(0o755)
     step = next(
         step
         for step in JOBS["flake"]["steps"]
@@ -90,7 +94,9 @@ def test_handy_realizes_each_input_once_and_always_runs_host_proof(
         text=True,
         check=False,
     )
-    calls = (tmp_path / "calls").read_text().splitlines()
+    record = tmp_path / "calls"
+    assert record.exists(), result.stdout + result.stderr
+    calls = record.read_text().splitlines()
     assert calls.count("artifact") == 1
     if fail_phase != "artifact":
         assert calls.count("shell") == 1

@@ -42,6 +42,7 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [ChatGPT Linux GPU-process crash research](chatgpt-gpu-crash-research.md)
 - [Replacing the personal ChatGPT package with nixpkgs](chatgpt-upstream-package-research.md)
 - [CI efficiency audit](ci-efficiency-research.md)
+- [CI runtime and cache audit, November 2026](ci-runtime-cache-audit-research.md)
 - [Cities: Skylines II mouse input at 4K on Hyprland](cities-skylines-ii-mouse-input-linux-research.md)
 - [ClamAV scan memory research](clamav-memory-research.md)
 - [Codex Desktop Nix package research](codex-desktop-nix-package-research.md)

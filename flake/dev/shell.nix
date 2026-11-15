@@ -38,6 +38,14 @@
         ])
         ++ lib.optionals pkgs.buildPackages.stdenv.hostPlatform.isLinux [ pkgs.buildPackages.systemd ];
       };
+      # A retained profile for the early Python gate warms only its exact tools.
+      devShells.ciPython = pkgs.buildPackages.mkShellNoCC {
+        packages = [
+          probePython
+          pkgs.buildPackages.ruff
+          pkgs.buildPackages.ty
+        ];
+      };
       devShells.ci = pkgs.buildPackages.mkShellNoCC {
         inherit shellHook;
         packages = enabledPackages ++ [

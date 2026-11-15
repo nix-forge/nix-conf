@@ -178,3 +178,37 @@ by renaming a source file without updating its consumers.
 
 See [Node's TypeScript execution rules](https://nodejs.org/api/typescript.html)
 and [TypeScript's JavaScript checking option](https://www.typescriptlang.org/tsconfig/checkJs.html).
+
+## CI runtime and cache ownership
+
+The early Python job owns hosted syntax, Ruff and type analysis before native
+work. Local hooks and full `lintChecks` remain available. Hosted lint retains its
+other language, formatting, publication and policy checks; native host proofs
+remain distinct from sandboxed build checks.
+
+`Seed reviewed static CI caches` warms only the reviewed Linux `ciPython` and
+`ci` tool environments after relevant default-branch dependency changes or an
+explicit default-branch dispatch. It retains a Nix profile through post-job GC.
+Python and lint consumers use matching workload keys and read-only mode. Source
+changes still require their exact Nix outputs; an older dependency restore does
+not make a changed check pass. Cache post-action logs record actual transfer and
+save outcomes, while summaries report policy, matched keys, timing and retained
+closure size. No new cache account or publication credential is required.
+
+The native/package audit stores remain outside automatic warming. Archive only
+closures whose contents can be shared with contributors; a GitHub store cache
+includes the whole store, including dependencies. Native artifacts, credentials,
+private data and redistribution-restricted packages require their own review.
+Keep native application identity, signature, runtime and recovery assertions.
+The Handy proof records artifact, environment and host-execution phases and
+retains the exact current application while reusing its realized test environment.
+
+The shared native runner supports small bounded evaluation batches. Current
+batch failures fall back to isolated current evaluation; unknown or timed-out
+historical entries rebuild. Reuse also requires the latest owning GitHub Actions
+`Repository tests` aggregate to have succeeded on the exact base commit; missing,
+pending or failed evidence rebuilds current checks. Do not replace conservative fallback with source-path
+heuristics or make a successful queue admission stand for completed validation.
+See the [runtime audit](research/ci-runtime-cache-audit-research.md) for the measured
+baseline and benchmark acceptance criteria. Compare cold and restored runs of the
+same source before claiming a cache speedup.
