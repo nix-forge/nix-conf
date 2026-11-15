@@ -1229,19 +1229,46 @@ def test_group_sampler_cancellation_is_responsive(
 ) -> None:
     """Cancellation interrupts a stalled native RSS query and reaps the sampler."""
     marker = tmp_path / "sampler.pid"
+    ready = tmp_path / "sampler.ready"
+    os.mkfifo(ready, 0o600)
     sampler = tmp_path / "ps"
     sampler.write_text(
-        f"#!/bin/sh\necho $$ > '{marker}'\nexec sleep 20\n", encoding="utf-8"
+        f"#!/bin/sh\necho $$ > '{marker}'\necho ready > '{ready}'\nexec sleep 20\n",
+        encoding="utf-8",
     )
     sampler.chmod(0o700)
 
     async def run() -> None:
         cancelled = asyncio.Event()
-        asyncio.get_running_loop().call_later(0.1, cancelled.set)
-        started = time.monotonic()
-        with pytest.raises(TimeoutError):
-            await jobs._group_usage(owned_process_group, cancelled, 1, ps=str(sampler))
-        assert time.monotonic() - started < 0.8
+        loop = asyncio.get_running_loop()
+        started: asyncio.Future[None] = loop.create_future()
+        with contextlib.ExitStack() as stack:
+            reader = os.open(ready, os.O_RDONLY | os.O_NONBLOCK)
+            stack.callback(os.close, reader)
+            # Keep a writer open so the reader cannot report EOF before launch.
+            writer = os.open(ready, os.O_WRONLY | os.O_NONBLOCK)
+            stack.callback(os.close, writer)
+
+            def sampler_started() -> None:
+                """Observe the real sampler's startup before testing cancellation."""
+                if os.read(reader, 64) and not started.done():
+                    started.set_result(None)
+
+            loop.add_reader(reader, sampler_started)
+            stack.callback(loop.remove_reader, reader)
+            query = asyncio.create_task(
+                jobs._group_usage(owned_process_group, cancelled, 1, ps=str(sampler))
+            )
+            try:
+                await asyncio.wait_for(started, timeout=10)
+                cancellation_started = time.monotonic()
+                cancelled.set()
+                with pytest.raises(TimeoutError):
+                    await query
+                assert time.monotonic() - cancellation_started < 0.8
+            finally:
+                cancelled.set()
+                await asyncio.gather(query, return_exceptions=True)
 
     asyncio.run(run())
     pid = int(marker.read_text(encoding="utf-8"))

@@ -935,6 +935,28 @@ async def _memory_sample(
         stderr=asyncio.subprocess.DEVNULL,
         start_new_session=True,
     )
+
+    def signal_sampler(sig: int) -> None:
+        """Annotate denied owned sampler cleanup without suppressing the error.
+
+        Raises:
+            OSError: Signalling the owned sampler group was denied or failed.
+
+        """
+        try:
+            os.killpg(process.pid, sig)
+        except ProcessLookupError:
+            return
+        except OSError as error:
+            error.native_cleanup_observation = {  # type: ignore[attr-defined]
+                "operation": "sampler-group-signal",
+                "errorType": type(error).__name__,
+                "pid": process.pid,
+                "processGroup": process.pid,
+                "signal": int(sig),
+            }
+            raise
+
     output = asyncio.create_task(process.communicate())
     cancellation = asyncio.create_task(cancelled.wait())
     try:
@@ -956,13 +978,11 @@ async def _memory_sample(
         with contextlib.suppress(asyncio.CancelledError):
             await cancellation
         if not output.done():
-            with contextlib.suppress(ProcessLookupError):
-                os.killpg(process.pid, signal.SIGTERM)
+            signal_sampler(signal.SIGTERM)
             try:
                 await asyncio.wait_for(asyncio.shield(output), timeout=0.2)
             except TimeoutError:
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(process.pid, signal.SIGKILL)
+                signal_sampler(signal.SIGKILL)
                 await output
 
 
@@ -1397,6 +1417,8 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
     peak = 0
     sampling_timeouts = 0
     consecutive_sampling_timeouts = 0
+    capacity_timeouts = 0
+    consecutive_capacity_timeouts = 0
     last_usage: int | None = None
     reason = None
     if "memoryController" not in cfg:
@@ -1404,12 +1426,15 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
     growth = None
     growth_healthy = None
     cleanup_errors: set[str] = set()
-    try:  # ruff: ignore[too-many-statements-in-try-clause] - all post-spawn failures must reach owned cleanup
+    cleanup_observations: list[Json] = []
+    operation = "post-spawn-identity"
+    try:  # ruff: ignore[too-many-statements-in-try-clause, too-many-nested-blocks] - all post-spawn failures must reach owned cleanup
         if (
             backend == "systemd"
             and "memoryRange" in recipe
             and memory < recipe["memoryRange"]["maximumMiB"] * MIB
         ):
+            operation = "growth-controller-launch"
             growth = await asyncio.create_subprocess_exec(
                 cfg["memoryController"],
                 "grow",
@@ -1436,7 +1461,9 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
             phase="executing" if backend == "darwin" else "executor-wait",
             pid=process.pid,
         )
+        operation = "post-spawn-identity"
         receipt["processIdentity"] = _process_identity(process.pid, cfg)
+        operation = "executing-receipt-save"
         _save(receipt_path, receipt)
         while True:
             if cancelled.is_set():
@@ -1446,6 +1473,7 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                 reason = "timeout"
                 break
             if backend == "darwin":
+                operation = "group-rss"
                 try:
                     usage = await _group_usage(
                         process.pid,
@@ -1470,6 +1498,7 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                     consecutive_sampling_timeouts = 0
                     last_usage = usage
                     peak = max(peak, usage)
+                    operation = "watchdog-growth"
                     memory, growth_healthy = await _grow_darwin(
                         recipe,
                         directory,
@@ -1482,33 +1511,58 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                     if usage > memory:
                         reason = "memory-limit-observed"
                         break
-                    if waiter.done() and usage == 0 and output.done():
+                    if (
+                        waiter.done()
+                        and usage == 0
+                        and output.done()
+                        and not consecutive_capacity_timeouts
+                    ):
                         break
                     # Admission is a snapshot. Recheck host headroom while the
                     # owned client runs; its RSS excludes the shared Nix daemon.
-                    available = await _darwin_available(
-                        cancelled,
-                        min(
-                            1,
-                            max(
-                                0.001, recipe["timeout"] - (time.monotonic() - started)
+                    operation = "host-capacity"
+                    try:
+                        available = await _darwin_available(
+                            cancelled,
+                            min(
+                                1,
+                                max(
+                                    0.001,
+                                    recipe["timeout"] - (time.monotonic() - started),
+                                ),
                             ),
-                        ),
-                    )
-                    reserve = cfg["reserveMiB"] * MIB
-                    receipt["hostMemoryObservation"] = {
-                        "availableBytes": available,
-                        "reserveBytes": reserve,
-                        "observedAt": time.time(),
-                    }
-                    if available < reserve:
-                        reason = "host-memory-headroom-lost"
-                        break
+                        )
+                    except TimeoutError:
+                        capacity_timeouts += 1
+                        consecutive_capacity_timeouts += 1
+                        receipt["hostMemoryObservation"] = {
+                            "availableBytes": None,
+                            "reserveBytes": cfg["reserveMiB"] * MIB,
+                            "observedAt": time.time(),
+                            "errorType": "TimeoutError",
+                        }
+                        if consecutive_capacity_timeouts > 1:
+                            raise
+                        # Unknown capacity is not healthy headroom. Retry once
+                        # through the normal wait, with cancellation/deadline
+                        # checks, and still require an actual capacity sample.
+                    else:
+                        consecutive_capacity_timeouts = 0
+                        reserve = cfg["reserveMiB"] * MIB
+                        receipt["hostMemoryObservation"] = {
+                            "availableBytes": available,
+                            "reserveBytes": reserve,
+                            "observedAt": time.time(),
+                        }
+                        if available < reserve:
+                            reason = "host-memory-headroom-lost"
+                            break
             elif waiter.done():
                 break
             # macOS has no process-group RSS notification; bounded 2s sampling is
             # a best-effort watchdog, not a kernel allocation cap. Also bounds
             # deadline checks while native executors perform notification waits.
+            operation = "supervision-wait"
             await asyncio.wait(
                 {waiter, cancellation} if not waiter.done() else {cancellation},
                 timeout=min(
@@ -1525,6 +1579,11 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
     ) as error:
         reason = "supervision-error"
         receipt["supervisionErrorType"] = type(error).__name__
+        receipt["supervisionErrorOperation"] = operation
+        sampler_cleanup = getattr(error, "native_cleanup_observation", None)
+        if sampler_cleanup is not None:
+            cleanup_observations.append(sampler_cleanup)
+            cleanup_errors.add(type(error).__name__)
     finally:
         if growth is not None:
             try:
@@ -1542,6 +1601,13 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                 return
             except OSError as error:
                 cleanup_errors.add(type(error).__name__)
+                cleanup_observations.append({
+                    "operation": "payload-group-signal",
+                    "errorType": type(error).__name__,
+                    "pid": process.pid,
+                    "processGroup": process.pid,
+                    "signal": int(sig),
+                })
 
         if reason:
             if backend == "systemd":
@@ -1612,6 +1678,13 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
         except ProcessLookupError:
             receipt["nativeGroupAbsent"] = True
         except OSError as error:
+            cleanup_observations.append({
+                "operation": "payload-group-absence",
+                "errorType": type(error).__name__,
+                "pid": process.pid,
+                "processGroup": process.pid,
+                "signal": 0,
+            })
             receipt["nativeGroupAbsent"] = False
             receipt["drained"] = False
             receipt["nativeCleanupErrorTypes"] = sorted(
@@ -1626,6 +1699,9 @@ async def _supervise(recipe: Json, directory: Path) -> int:  # ruff: ignore[comp
                 exitCode=receipt["exitCode"] or 1,
             )
         receipt.update(
+            nativeCleanupErrors=cleanup_observations,
+            hostMemorySamplingTimeouts=capacity_timeouts,
+            hostMemorySamplingConsecutiveTimeouts=consecutive_capacity_timeouts,
             memorySamplingTimeouts=sampling_timeouts,
             memorySamplingConsecutiveTimeouts=consecutive_sampling_timeouts,
             lastObservedGroupBytes=last_usage,
