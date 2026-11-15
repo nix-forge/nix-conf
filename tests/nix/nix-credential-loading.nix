@@ -74,7 +74,10 @@ assert system.config.nix.registry.nixpkgs.flake.outPath == inputs.nixpkgs.outPat
 assert !(lib.hasInfix secretPath system.config.nix.extraOptions);
 assert
   if isDarwin then
-    lib.hasInfix "${pkgs.runtimeShell} ${script} /var/root " system.config.system.activationScripts.postActivation.text
+    # hasInfix uses a regex pattern, which cannot carry store dependency context.
+    # Only this comparison drops context; the actual installer retains its inputs.
+    lib.hasInfix (builtins.unsafeDiscardStringContext "${pkgs.runtimeShell} ${script} /var/root ")
+      system.config.system.activationScripts.postActivation.text
   else
     system.config.systemd.services.nix-daemon.environment.NIX_USER_CONF_FILES
     == "/root/.config/nix/nix.conf";

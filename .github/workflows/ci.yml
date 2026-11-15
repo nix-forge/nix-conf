@@ -545,9 +545,9 @@ jobs:
       && (needs.package-fixes-review-proof.result == 'success' || needs.package-fixes-review-proof.result
       == 'skipped') }}
     runs-on: ${{ matrix.runner }}
-    # Largest weights isolate REA in partition zero and the shared Determinate
-    # runtime consumers in x86 partition one. Darwin keeps its single partition.
-    # Other native shards retain 90 minutes for cold renderer/SVG dependencies.
+    # The shared Determinate runtime now occupies the largest x86 partition.
+    # Cached REA is small; give each cold compositor VM its own scheduling weight.
+    # Keep the existing bounded deadlines and Darwin's single partition.
     timeout-minutes: ${{ (matrix.partition-index == 0 || (matrix.system == 'x86_64-linux' && matrix.partition-index
       == 1)) && 180 || 90 }}
     permissions:
@@ -655,6 +655,12 @@ jobs:
             echo "GitHub Nix cache requested: ${CACHE_REQUESTED}"
             echo "GitHub Nix cache restored: ${CACHE_HIT:-false}"
           } >>"${GITHUB_STEP_SUMMARY}"
+      - name: Evaluate native Darwin credential fixture
+        if: matrix.system == 'aarch64-darwin'
+        timeout-minutes: 5
+        run: |
+          nix eval --raw --option allow-import-from-derivation false \
+            .#ciChecks.aarch64-darwin.nix-credential-loading.drvPath > /dev/null
       - name: Verify native Darwin process supervision
         if: matrix.system == 'aarch64-darwin'
         shell: bash

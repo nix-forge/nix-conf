@@ -6,6 +6,7 @@
     "azure-cli-invoke": 32,
     "clamav-special-files": 4,
     "darwin-configuration-macbook-pro-m4": 8,
+    "desktop-hyprlock-lifecycle": 64,
     "determinate-runtime-consumers": 192,
     "finder-favorites-swift": 4,
     "font-browser": 4,
@@ -24,7 +25,7 @@
     "nixos-configuration-desktop": 16,
     "public-guide-recipes": 3,
     "python-tests": 6,
-    "rea": 256,
+    "rea": 8,
     "scrypted-auth-compat": 16,
     "secret-templates": 20,
     "template-configs": 4
