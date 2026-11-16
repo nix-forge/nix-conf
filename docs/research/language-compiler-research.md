@@ -61,9 +61,11 @@ both arrays inside `buildCommand`, because that derivation did not run ordinary
 phase hooks. The [new Nixpkgs Swift package](https://github.com/NixOS/nixpkgs/blob/c59305bab2065cfecc4944690d9eedbb56f3a9fa/pkgs/development/compilers/swift/by-name/sw/swift/package.nix)
 uses an unwrapped driver, so the earlier wrapper repair no longer applies. A
 native Darwin build showed that its Clang importer still misses those flags.
-The [current repair](../../overlays/temporary/swift-clang-hardening.nix) forwards
+The [former repair](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/overlays/temporary/swift-clang-hardening.nix) forwarded
 the active cc-wrapper flags through `swiftc` without changing SwiftPM commands.
-The [native Darwin probe](../../tests/nix/swift-hardening.nix) checks the result.
+The compiler override and its dedicated probe have since been retired in favor
+of upstream compiler selection and binary-cache reuse. That policy decision
+does not establish an upstream fix for the observed discrepancy.
 This repair concerns Clang flags passed through Swift; it does not imply that
 all Mach-O hardening was absent. Both original and repaired probe executables
 had PIE, and Finder's separately compiled C bridge already received stack

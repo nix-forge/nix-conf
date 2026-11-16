@@ -1,4 +1,10 @@
-{ self, lib, ... }: {
+{
+  self,
+  lib,
+  configurationInputs,
+  ...
+}:
+{
   perSystem = { pkgs, system, ... }: {
     checks = lib.optionalAttrs (system == "x86_64-linux") (
       let
@@ -11,6 +17,7 @@
           inherit pkgs;
           hyprland = host.programs.hyprland.package;
           hyprlock = host.programs.hyprlock.package;
+          upstreamHyprlock = configurationInputs.hyprlock.packages.${system}.hyprlock;
         };
         desktop-authentication =
           pkgs.runCommand "desktop-authentication-policy" { nativeBuildInputs = [ pkgs.gnugrep ]; }

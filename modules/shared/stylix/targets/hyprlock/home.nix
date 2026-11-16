@@ -42,19 +42,6 @@
         rsvg-convert --width ${toString (pixels 64)} --height ${toString (pixels 64)} \
           ${avatarSvg} --output "$out"
       '';
-      submitX = design.panelWidth / 2 - design.padding - design.inputHeight / 2;
-      inputX = -(design.inputHeight + design.gap) / 2;
-      arrow =
-        color:
-        let
-          svg = pkgs.writeText "authentication-submit.svg" (
-            (import ../../../../../lib/templates/text.nix) ./scripts/submit-arrow.svg { inherit color; }
-          );
-        in
-        pkgs.runCommand "authentication-submit.png" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
-          rsvg-convert --width ${toString (pixels 16)} --height ${toString (pixels 16)} \
-            ${svg} --output "$out"
-        '';
       label = text: size: y: {
         monitor = "";
         text = sizedText size text;
@@ -103,23 +90,7 @@
                   halign = "center";
                   valign = "center";
                 }
-                {
-                  monitor = "";
-                  size = "${toString (pixels design.inputHeight)}, ${toString (pixels design.inputHeight)}";
-                  rounding = pixels design.inputRadius;
-                  color = "rgb(${colors.base0D})";
-                  border_size = 0;
-                  position = "${toString (physical submitX)}, ${toString (physical design.inputY)}";
-                  halign = "center";
-                  valign = "center";
-                  # Native password submission keeps the same PAM and busy guards
-                  # as Enter. The control owns both its fill and arrow state.
-                  submit_on_click = true;
-                  submit_icon = toString (arrow design.greeterPalette.on_primary);
-                  submit_icon_hover = toString (arrow design.greeterPalette.on_hover);
-                  submit_icon_size = pixels 16;
-                  submit_hover_color = "rgb(${colors.base02})";
-                }
+
               ];
               image = [
                 {
@@ -135,28 +106,22 @@
               ];
               "input-field" = {
                 monitor = "";
-                size = "${
-                  toString (
-                    physical (design.panelWidth - 2 * design.padding - design.gap - design.inputHeight)
-                    - 2 * focusBorder
-                  )
-                }, ${toString (physical design.inputHeight - 2 * focusBorder)}";
+                size = "${toString (physical (design.panelWidth - 2 * design.padding) - 2 * focusBorder)}, ${
+                  toString (physical design.inputHeight - 2 * focusBorder)
+                }";
                 rounding = pixels design.inputRadius - focusBorder;
                 outline_thickness = focusBorder;
                 dots_size = 0.2;
                 dots_spacing = 0.2;
-                dots_center = false;
-                text_align = "left";
-                padding_x = pixels design.inputPadding - focusBorder;
+                dots_center = true;
                 hide_input = false;
                 fade_on_empty = false;
                 placeholder_text = passwordHint;
-                check_text = passwordHint;
-                check_opacity = 0.55;
-                fail_text = passwordHint;
+                check_text = sizedText design.fontSizes.body "Checking password";
+                fail_text = sizedText design.fontSizes.body "Authentication failed";
                 capslock_color = "rgb(${colors.base0C})";
                 check_color = lib.mkIf cfg.colors.enable (lib.mkForce "rgb(${colors.base0C})");
-                position = "${toString (physical inputX)}, ${toString (physical design.inputY)}";
+                position = "0, ${toString (physical design.inputY)}";
                 halign = "center";
                 valign = "center";
                 outer_color = lib.mkIf cfg.colors.enable (lib.mkForce "rgb(${colors.base0C})");
@@ -168,16 +133,7 @@
                 (clockLabel design.dateFormat design.fontSizes.body design.dateY)
                 (label "<b>$USER</b>" design.fontSizes.title design.accountY)
                 (label "Press Enter to unlock" design.fontSizes.body design.footerY)
-                (label "$AUTHCHECK" design.fontSizes.caption design.statusY)
-                (
-                  (label "$AUTHFAIL" design.fontSizes.caption design.statusY) // { color = "rgb(${colors.base08})"; }
-                )
-                (
-                  (label "$LAYOUT$CAPSLOCK" design.fontSizes.caption design.keyboardY)
-                  // {
-                    capslock_color = "rgb(${colors.base08})";
-                  }
-                )
+                (label "$LAYOUT" design.fontSizes.caption design.keyboardY)
               ];
             };
           };

@@ -2,6 +2,7 @@
   pkgs,
   hyprland,
   hyprlock,
+  upstreamHyprlock ? null,
 }:
 let
   inherit (pkgs) lib;
@@ -15,30 +16,36 @@ let
     buildInputs = [ pkgs.libglvnd ];
     witnessSource = ./fixtures/egl-lifetime-witness.c;
   } (builtins.readFile ./fixtures/build-egl-lifetime-witness.sh);
-  command = lib.escapeShellArgs [
-    (lib.getExe' pkgs.coreutils "env")
-    "PYTHONPATH=/etc/locker-test"
-    (lib.getExe python)
-    "/etc/locker-test/hyprlock_lifecycle.py"
-    "--cage"
-    (lib.getExe pkgs.cage)
-    "--sleep"
-    (lib.getExe' pkgs.coreutils "sleep")
-    "--hyprland"
-    (lib.getExe hyprland)
-    "--locker"
-    (lib.getExe hyprlock)
-    "--wtype"
-    (lib.getExe pkgs.wtype)
-    "--witness"
-    witness
-    "--config"
-    "/etc/locker-test/hyprlock.conf"
-    "--compositor-config"
-    "/etc/locker-test/hyprland.lua"
-    "--password"
-    password
-  ];
+  command = lib.escapeShellArgs (
+    [
+      (lib.getExe' pkgs.coreutils "env")
+      "PYTHONPATH=/etc/locker-test"
+      (lib.getExe python)
+      "/etc/locker-test/hyprlock_lifecycle.py"
+      "--cage"
+      (lib.getExe pkgs.cage)
+      "--sleep"
+      (lib.getExe' pkgs.coreutils "sleep")
+      "--hyprland"
+      (lib.getExe hyprland)
+      "--locker"
+      (lib.getExe hyprlock)
+      "--wtype"
+      (lib.getExe pkgs.wtype)
+      "--witness"
+      witness
+      "--config"
+      "/etc/locker-test/hyprlock.conf"
+      "--compositor-config"
+      "/etc/locker-test/hyprland.lua"
+      "--password"
+      password
+    ]
+    ++ lib.optionals (upstreamHyprlock != null) [
+      "--upstream-locker"
+      (lib.getExe upstreamHyprlock)
+    ]
+  );
 in
 pkgs.testers.runNixOSTest {
   name = "hyprlock-session-lifecycle";

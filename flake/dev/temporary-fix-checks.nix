@@ -7,6 +7,26 @@
       patchedHyprland =
         (import ../../overlays/temporary/hyprland-subsurface.nix { }).apply
           hyprlandPackages.hyprland;
+      # Freeze the original negative control: the updated protocol source fixes
+      # its posRelativeToParent crash, but not the mapped view's size accessor.
+      lifetimeBaseline =
+        (hyprlandPackages.hyprland.override {
+          commit = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
+          date = "2026-11-05";
+          version = "0.57.0+date=2026-11-05_f389f00";
+        }).overrideAttrs
+          (_: {
+            # The recipe reads source metadata while evaluating drvPath.
+            # Fetch the pinned tree directly so cold evaluation needs no build.
+            src =
+              (fetchTree {
+                type = "github";
+                owner = "hyprwm";
+                repo = "Hyprland";
+                rev = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
+                narHash = "sha256-jx73NY1kT1xyQa0Ma9n/YlN/2+QM4EgTm0csM5b2mQ4=";
+              }).outPath;
+          });
       # Keep upstream gtests confined to native regression check packages.
       roundingHyprland =
         (configurationPkgs.extend (import ../../overlays { inherit inputs; })).hyprland.override
@@ -56,7 +76,10 @@
         darwin-app-management-consent = import ../../tests/nix/app-management-consent.nix {
           inherit pkgs inputs;
         };
-        azure-cli-invoke = import ../../tests/nix/azure-cli.nix { inherit pkgs inputs; };
+        azure-cli-invoke = import ../../tests/nix/azure-cli.nix {
+          pkgs = configurationPkgs;
+          inherit inputs;
+        };
         temporary-package-fixes = builtins.deepSeq results (
           pkgs.runCommand "temporary-package-fixes" { } (
             builtins.readFile ./scripts/complete-temporary-fix-check.sh
@@ -67,11 +90,6 @@
         pkgs = configurationPkgs;
         inherit inputs;
       })
-      // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-        swift-hardening = import ../../tests/nix/swift-hardening.nix {
-          pkgs = configurationPkgs.extend (import ../../overlays { inherit inputs; });
-        };
-      }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # Keep native compiler compatibility coverage after retiring the override.
         hyprland-portal-build =
@@ -121,7 +139,7 @@
         };
         hyprland-subsurface-lifetime = import ../../tests/hyprland/subsurface-parent-lifetime-vm.nix {
           inherit pkgs;
-          unpatched = hyprlandPackages.hyprland;
+          unpatched = lifetimeBaseline;
           patched = patchedHyprland;
         };
       };

@@ -137,6 +137,19 @@ sandbox configuration remain with their owning modules.
 
 ## Temporary fix lifecycle
 
+Hyprlock uses its upstream flake source and ordinary authentication controls.
+The personal click-submit and layout variant is retired. The independent
+`hyprlock-graphics-cleanup` repair keeps graphics resources alive until their
+owning EGL context has disposed of them. The lifecycle fixture compares an
+unmodified rejected locker against the repaired package in the same locked
+session, then checks competing lockers, wrong and correct passwords and relock.
+Native acceptance of that new comparison remains required before merge.
+
+The Swift compiler override is retired by package-selection policy. Darwin uses
+the upstream compiler and preserves cached upstream Handy builds; the independent
+Handy bundle-signature repair remains downstream. This retirement does not claim
+that the earlier Clang-import flag discrepancy was fixed upstream.
+
 OpenCode 2.2.5 backports the upstream Nixpkgs platform-specific Bun dependency
 hashes from [c399e1b](https://github.com/NixOS/nixpkgs/commit/c399e1b7fb90789e3e032784ef8ad98ba9907169).
 Its source, dependency installation and normalization steps, CLI build and native
@@ -185,12 +198,12 @@ Home Manager portal adapter and separate Zoom input remain retired.
 | `determinate-libgit2-trailing-slash`, `determinate-libgit2-module`, `determinate-darwin-tests` | The owning dependency sources lack the cleanup fix, the module still needs factory routing, and the Darwin functional suite still registers the sandbox-incompatible Sentry case. |
 | `gtksourceview-xvfb`, `hypridle-condition-inhibitors` | Their selected sources retain the Xvfb reset race and inhibitor bypass. |
 | `nom-quadratic-build-plan` | Monitor 2.2.0 retains linear root deletion. Upstream now accepts unknown activity types, including 10113. |
-| `hyprland-subsurface`, `hyprland-subsurface-rounding` | Both complete repairs still apply to the selected compositor source. |
+| `hyprland-subsurface`, `hyprland-subsurface-rounding` | The mapped size accessor and shared surface-tree rounding still need local repairs; protocol ancestry is supplied upstream. |
 | `hyprshell-modifiers`, `hyprshell-workspace-schema`, `hyprshell-workspace-identity` | All three repairs remain absent from 4.10.8; the identity patch depends on applying the other two first. |
 | `nh-darwin-home`, `prismlauncher-darwin-tests` | nh 4.4.2 still sets empty elevated HOME; Prism 11.1.1 still assumes native watcher availability. |
 | `nixos-anywhere-ssh-host-check` | The pinned installer still disables host-key verification before argument parsing. |
 | `stylix-gtk-flatpak-polarity`, `stylix-nvf`, `stylix-rofi` | The selected modules retain incomplete Flatpak polarity handling and both deprecated option assignments. |
-| `swift-clang-hardening`, `zen-wrapper-copy` | The selected compiler wrapper and Firefox wrapper still lack the required hardening forwarding and compatible copy command. |
+| `zen-wrapper-copy` | The selected Firefox wrapper still lacks the compatible copy command. |
 
 Keep both permanent overlays: the personal package collection supplies intentional
 variants, and Determinate selects its owning Nix component scope. Neither is a
@@ -282,16 +295,11 @@ payload bytes and modes, data, symlinks and launcher execution. The ordinary
 Firefox wrapper retains its identical derivation. This supports retaining the
 narrow repair; retirement on the native builder's store mount remains unverified.
 
-The Swift Clang importer fix was reviewed at Nixpkgs
-`e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. Its combined compiler recipe,
-driver recipe, compiler recipe, source manifest and hardening helper remain
-identical to the previous reviewed source blobs. The
-[native macOS proof](https://github.com/nix-forge/nix-conf/actions/runs/38312707376/job/115022124354)
-selects the configuration's actual `swiftPackages.swift` 6.2.4 compiler.
-Unmodified typechecking reports both missing fortify and strong stack protection;
-the repaired importer receives both flags and passes typechecking, linking and
-the native runtime probe. This justifies retaining the fix at the reviewed pin,
-while the guard still rejects later input changes.
+The former Swift Clang importer repair forwarded cc-wrapper flags through the
+compiler driver. It is retired by package-selection policy in favor of the
+unmodified upstream compiler and reusable downstream package outputs. This is
+not an upstream hardening-fix claim; the earlier native probe is historical
+evidence, and the dedicated local proof lane is retired with the override.
 
 The AudioMuse-AI loopback manifest fix was reviewed at Nixpkgs
 `e7439b6b14ad3cc35d05608ebca9bce01a25f5f8`. The selected upstream plugin is
@@ -470,7 +478,7 @@ request, so normal evaluation remains reproducible and works with cached inputs.
 It does not send notifications or poll upstream while the lockfile is unchanged.
 
 The dependency review at Nixpkgs `02c087f3fe673c9e317f206a627cb6b910336dbe`
-retains the GTK, Zen wrapper, Swift hardening, Nix Output Monitor, Hypridle,
+retains the GTK, Zen wrapper, Nix Output Monitor, Hypridle,
 Hyprshell, AudioMuse loopback, and NH Darwin home fixes.
 Source comparison confirms the repaired paths remain applicable; the current
 native proofs pass in [run 41226706466](https://github.com/nix-forge/nix-conf/actions/runs/41226706466).
@@ -504,29 +512,18 @@ unmodified failure and capability skips, and passes every other resource case.
 The exported actual test binary passes the full resource suite on the host
 where the independent prerequisite confirms watcher availability.
 
-Azure CLI 2.91.0 needs Fabric 3.2.3, whose declared Invoke range is
-`>=2.0,<3.0`. The current Nixpkgs scope supplies Invoke 3.0.3 and correctly
-marks that Fabric dependency broken. The `azure-cli-invoke` repair pins the
-non-yanked Invoke 2.2.1 source inside Azure's private interpreter, composing
-after Azure's own package overrides. The ordinary Python package set retains
-Invoke 3.0.3. The repaired CLI's `withExtensions` method retains this scope and
-the packaged Azure DevOps extension. A required native check imports Azure's
-actual App Service SSH module with Fabric and Invoke, constructs a connection
-without opening it, and checks offline CLI help and extension discovery.
-The same private scope grants Darwin local networking to `sshtunnel`'s
-unmodified loopback SSH tests, matching the upstream Paramiko recipe. Its
-sandbox and complete selected pytest suite remain enabled. The original
-Darwin build failed in test setup while resolving `localhost`; the native
-repair subsequently passed all 47 selected SSH tests. A separate HTTPX2 timeout
-fixture could return EOF before a descheduled caller started waiting. Its mock
-now stays open until explicit close, and both immediate and delayed callers
-must still raise the same timeout. Production HTTPX2 code is unchanged.
-The private Requests telemetry dependency also gets Darwin local networking
-for its real loopback HTTP server tests. The [focused Darwin proof](https://github.com/nix-forge/nix-conf/actions/runs/41240432860/job/124653014334)
-passes all 81 telemetry tests and CLI integration alongside the SSH and HTTPX2
-suites. Retire the repair when the selected dependencies supply compatible
-Fabric/Invoke, and their Darwin tests have the required local networking and
-deterministic timeout fixtures.
+Azure CLI is selected from the existing applications Nixpkgs input, whose Fabric
+recipe backports Invoke 3 task-context compatibility. The local Invoke downgrade
+is retired; both platforms use that official Azure package unchanged, including its own
+extension set. Production integration tests retain the App Service SSH import,
+connection construction, CLI help and DevOps extension checks, and exercise
+Fabric's Invoke 3 task-context factory without opening an SSH connection.
+
+The local Azure dependency overrides are retired on both Linux and Darwin.
+The selected official package retains its own dependency tests and extension
+scope; native CI must pass the production CLI integration before merge. Any
+source-build sandbox failure must be diagnosed against this exact upstream
+package rather than assuming an older dependency repair remains required.
 
 Nixpkgs `1d060086d60cb76a40cf37109f979d88a5bd6396` separates the NVIDIA
 builder's interpreter and RPATH edits; the unmodified `nvidia-smi --help` loader
@@ -563,3 +560,35 @@ selection; cross packages retain their original build and target scopes.
 The package retains domain, installed CLI, MCP and PTY checks, and runs the
 original upstream memory-usage and worker-memory regressions with the exact
 selected runtime. Older inputs retain the recipe's patched source fallback.
+
+The Hyprland input now selects the minimal reviewed lifetime-fix revision
+[`a1d7a78`](https://github.com/hyprwm/Hyprland/commit/a1d7a78b6c8e54ad72d401bfa8b85fdc89ee66a6).
+It includes upstream's nested-parent traversal, cycle and expired-role guards,
+and image-description fallback. Those protocol backports are removed locally;
+the upstream `BAD_PARENT` behavior is preserved. The remaining lifetime patch
+only delegates zero-argument `CSubsurface::size()` to the guarded geometric
+accessor, which returns the last size after resource disposal.
+
+The mapped lifetime VM keeps `f389f008228d51fa48bdd69a4c9e2b91f24bb2da`
+as an independently frozen negative control for the original parent-position
+crash. The repaired guest uses the new input and only the size delegation,
+retaining frame-confirmed mapped damage, twenty lifecycle cases and clean
+shutdown. The separate parent-display control uses the new upstream package.
+The rounding baseline also uses the new lifetime fixes and size delegation,
+while omitting rounding. Shared corner masking, alpha overlap and child overflow
+remain distinct from upstream's per-surface rounding, so the coherent renderer
+patch and scales 1, 1.25 and 2 with blur off/on remain covered by the declared
+VM checks. Native gtests, including upstream ancestry and expired-role cases,
+remain enabled in both renderer checks and the native ARM checks.
+
+These are source and fixture changes; native builds, gtests and VM acceptance
+must pass on the updated input before claiming runtime retirement. Normal pixel
+checks do not force the framebuffer-allocation fallback.
+
+The Hyprshell workspace-schema and identity repairs were also reviewed against
+the Hyprland `a1d7a78` update. The intervening sources do not change the relevant
+monitor, workspace or client IPC serialization. The added workspace-action
+argument defaults to the former focus behavior; the consumer's supported selector
+and missing-special-workspace handling remain necessary. The existing parser,
+dispatch and wire-contract tests remain enabled. Native interaction acceptance
+is separate from this source review.

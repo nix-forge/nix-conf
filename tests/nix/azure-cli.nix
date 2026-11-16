@@ -20,7 +20,8 @@ let
   python = fabric.pythonModule;
 in
 assert fabric.version == "3.2.3";
-assert invoke.version == "2.2.1";
+assert toString pkgs.path == toString inputs.nixpkgs;
+assert invoke.version == "3.0.3";
 assert !(fabric.meta.broken or false);
 assert pkgs.python3Packages.invoke.version == "3.0.3";
 assert !(sshtunnel.__noChroot or false);
@@ -30,18 +31,7 @@ pkgs.runCommand "azure-cli-compatible-invoke" { } ''
   export AZURE_CORE_COLLECT_TELEMETRY=false
   export AZURE_EXTENSION_USE_DYNAMIC_INSTALL=no
   export PYTHONPATH="${python.pkgs.makePythonPath azure.propagatedBuildInputs}:${azure}/${python.sitePackages}"
-  ${python}/bin/python - <<'PY'
-  from azure.cli.command_modules.appservice.custom import Connection
-  import fabric
-  import invoke
-
-  assert fabric.__version__ == "3.2.3"
-  assert invoke.__version__ == "2.2.1"
-  assert Connection is fabric.Connection
-  connection = Connection("localhost")
-  assert isinstance(connection, invoke.Context)
-  assert not connection.is_connected
-  PY
+  ${python}/bin/python ${./scripts/azure_cli_compatibility.py}
   ${azure}/bin/az version > "$TMPDIR/azure-version.json"
   ${azure}/bin/az webapp ssh --help > "$TMPDIR/webapp-ssh-help"
   ${azure}/bin/az devops --help > "$TMPDIR/devops-help"

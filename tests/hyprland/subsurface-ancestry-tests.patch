@@ -1,60 +1,63 @@
 diff --git a/hyprtester/clients/surface-scale-transform.cpp b/hyprtester/clients/surface-scale-transform.cpp
-index e097c01144f3..508b998209e9 100644
 --- a/hyprtester/clients/surface-scale-transform.cpp
 +++ b/hyprtester/clients/surface-scale-transform.cpp
-@@ -5,6 +5,8 @@
- #include <format>
+@@ -6,6 +6,8 @@
  #include <iostream>
+ #include <print>
  #include <string>
 +#include <array>
 +#include <ranges>
  #include <sys/mman.h>
  #include <sys/poll.h>
  #include <unistd.h>
-@@ -35,30 +37,34 @@ struct SSurfaceStats {
+@@ -36,30 +38,34 @@
  };
  
  struct SWlState {
 -    wl_display*                                  display = nullptr;
-+    wl_display*                                   display = nullptr;
- 
+-
 -    CSharedPointer<CCWlRegistry>                 registry;
 -    CSharedPointer<CCWlCompositor>               compositor;
 -    CSharedPointer<CCWlSubcompositor>            subcompositor;
 -    CSharedPointer<CCWlShm>                      shm;
 -    CSharedPointer<CCXdgWmBase>                  xdgShell;
 -    CSharedPointer<CCWpFractionalScaleManagerV1> fractional;
+-
+-    CSharedPointer<CCWlSurface>                  surface;
+-    CSharedPointer<CCXdgSurface>                 xdgSurface;
+-    CSharedPointer<CCXdgToplevel>                xdgToplevel;
+-    CSharedPointer<CCWpFractionalScaleV1>        rootFractional;
+-    CSharedPointer<CCWlBuffer>                   rootBuffer;
+-
+-    CSharedPointer<CCWlSurface>                  childSurface;
+-    CSharedPointer<CCWlSubsurface>               childSubsurface;
+-    CSharedPointer<CCWpFractionalScaleV1>        childFractional;
+-    CSharedPointer<CCWlBuffer>                   childBuffer;
+-
+-    SSurfaceStats                                stats;
+-    bool                                         xrgb8888   = false;
+-    bool                                         configured = false;
+-    std::string                                  setupError;
++    wl_display*                                   display = nullptr;
++
 +    CSharedPointer<CCWlRegistry>                  registry;
 +    CSharedPointer<CCWlCompositor>                compositor;
 +    CSharedPointer<CCWlSubcompositor>             subcompositor;
 +    CSharedPointer<CCWlShm>                       shm;
 +    CSharedPointer<CCXdgWmBase>                   xdgShell;
 +    CSharedPointer<CCWpFractionalScaleManagerV1>  fractional;
- 
--    CSharedPointer<CCWlSurface>                  surface;
--    CSharedPointer<CCXdgSurface>                 xdgSurface;
--    CSharedPointer<CCXdgToplevel>                xdgToplevel;
--    CSharedPointer<CCWpFractionalScaleV1>        rootFractional;
--    CSharedPointer<CCWlBuffer>                   rootBuffer;
++
 +    CSharedPointer<CCWlSurface>                   surface;
 +    CSharedPointer<CCXdgSurface>                  xdgSurface;
 +    CSharedPointer<CCXdgToplevel>                 xdgToplevel;
 +    CSharedPointer<CCWpFractionalScaleV1>         rootFractional;
 +    CSharedPointer<CCWlBuffer>                    rootBuffer;
- 
--    CSharedPointer<CCWlSurface>                  childSurface;
--    CSharedPointer<CCWlSubsurface>               childSubsurface;
--    CSharedPointer<CCWpFractionalScaleV1>        childFractional;
--    CSharedPointer<CCWlBuffer>                   childBuffer;
++
 +    CSharedPointer<CCWlSurface>                   childSurface;
 +    CSharedPointer<CCWlSubsurface>                childSubsurface;
 +    CSharedPointer<CCWpFractionalScaleV1>         childFractional;
 +    CSharedPointer<CCWlBuffer>                    childBuffer;
- 
--    SSurfaceStats                                stats;
--    bool                                         xrgb8888   = false;
--    bool                                         configured = false;
--    std::string                                  setupError;
++
 +    std::array<CSharedPointer<CCWlSurface>, 3>    nestedSurfaces;
 +    std::array<CSharedPointer<CCWlSubsurface>, 3> nestedSubsurfaces;
 +    CSharedPointer<CCWlBuffer>                    nestedBuffer;
@@ -66,7 +69,7 @@ index e097c01144f3..508b998209e9 100644
  };
  
  static void sendLine(const std::string& line) {
-@@ -320,6 +326,52 @@ static bool createChild(SWlState& state) {
+@@ -331,6 +337,52 @@
      return waitForDisplayState(state, [&state]() { return state.stats.childScale != -1 && state.stats.childTransform != -1 && state.stats.childFraction != -1; }, 100, 100);
  }
  
@@ -119,8 +122,8 @@ index e097c01144f3..508b998209e9 100644
  static bool remapRoot(SWlState& state) {
      state.surface->sendAttach(state.rootBuffer.get(), 0, 0);
      state.surface->sendCommit();
-@@ -349,7 +401,25 @@ static void handleCommand(SWlState& state, const std::string& command) {
-         sendLine(remapRoot(state) ? "ok" : "error");
+@@ -374,7 +426,25 @@
+         sendLine(createToplevel(state) && pollDisplay(state, 100) ? "ok" : "error");
      } else if (command == "subsurface")
          sendLine(createChild(state) ? "ok" : "error");
 -    else if (command == "exit")
@@ -147,19 +150,18 @@ index e097c01144f3..508b998209e9 100644
      else
          sendLine("unknown");
 diff --git a/hyprtester/plugin/src/main.cpp b/hyprtester/plugin/src/main.cpp
-index 0af71139e080..941dcee1a693 100644
 --- a/hyprtester/plugin/src/main.cpp
 +++ b/hyprtester/plugin/src/main.cpp
-@@ -29,6 +29,8 @@
- #include <src/state/WorkspaceState.hpp>
+@@ -41,6 +41,8 @@
+ #include <src/state/workspace/State.hpp>
  #include <src/layout/LayoutManager.hpp>
  #include <src/event/EventBus.hpp>
 +#include <src/protocols/core/Subcompositor.hpp>
 +#include <src/protocols/core/Compositor.hpp>
  #undef private
+ #undef protected
  
- #include <hyprutils/utils/ScopeGuard.hpp>
-@@ -1060,6 +1062,37 @@ static int luaExpectNoMaximizeEcho(lua_State* L) {
+@@ -1840,6 +1842,37 @@
      return luaResult(L, ::expectNoMaximizeEcho(""));
  }
  
@@ -197,19 +199,18 @@ index 0af71139e080..941dcee1a693 100644
  APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
      PHANDLE = handle;
  
-@@ -1069,6 +1102,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
+@@ -1849,6 +1882,7 @@
      };
  
      addLuaFn("test", ::luaTest);
 +    addLuaFn("expect_subsurface_ancestry", ::luaExpectSubsurfaceAncestry);
-     addLuaFn("snapmove", ::luaSnapMove);
-     addLuaFn("drag_window", ::luaDragWindow);
-     addLuaFn("expect_window_at_workspace", ::luaExpectWindowAtWorkspace);
+     addLuaFn("start_cursor_fixture", ::luaStartCursorFixture);
+     addLuaFn("restore_cursor_fixture", ::luaRestoreCursorFixture);
+     addLuaFn("cursor_fixture_image", ::luaCursorFixtureImage);
 diff --git a/hyprtester/src/tests/clients/surface-scale-transform.cpp b/hyprtester/src/tests/clients/surface-scale-transform.cpp
-index 0574a1449cbc..3001ba300084 100644
 --- a/hyprtester/src/tests/clients/surface-scale-transform.cpp
 +++ b/hyprtester/src/tests/clients/surface-scale-transform.cpp
-@@ -202,3 +202,57 @@ TEST_CASE(surfaceScaleTransform) {
+@@ -210,3 +210,57 @@
      EXPECT_CONTAINS(withChild, "child_fraction=180");
      EXPECT_CONTAINS(withChild, "child_transform=1");
  }

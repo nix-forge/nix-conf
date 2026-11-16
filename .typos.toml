@@ -23,6 +23,10 @@ extend-ignore-identifiers-re = [
 ]
 
 [default.extend-identifiers]
+# Unmodified upstream Hyprlock identifiers in the reviewed cleanup patch context.
+pollThr = "pollThr"
+timersThr = "timersThr"
+m_lockAquired = "m_lockAquired"
 ANC = "ANC"                         # Active noise cancellation.
 TharLon = "TharLon"                 # Upstream Burmese font family.
 ANDed = "ANDed"                     # Boolean conjunction in nix-seal authorization documentation.

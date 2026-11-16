@@ -6,7 +6,6 @@
 let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
-    azure-cli-invoke = ./azure-cli-invoke.nix;
     blocky-multiple-dnskeys = ./blocky-multiple-dnskeys.nix;
     home-manager-protected-apps = ./home-manager-protected-apps.nix;
     home-manager-app-management-consent = ./home-manager-app-management-consent.nix;
@@ -29,6 +28,7 @@ let
     nixos-anywhere-ssh-host-check = ./nixos-anywhere-ssh-host-check.nix;
     nom-quadratic-build-plan = ./nom-quadratic-build-plan.nix;
     opencode-dependency-hashes = ./opencode-dependency-hashes.nix;
+    hyprlock-graphics-cleanup = ./hyprlock-graphics-cleanup.nix;
     hyprland-subsurface = ./hyprland-subsurface.nix;
     hyprland-subsurface-rounding = ./hyprland-subsurface-rounding.nix;
     hyprshell-modifiers = ./hyprshell-modifiers.nix;
@@ -39,7 +39,6 @@ let
     stylix-gtk-flatpak-polarity = ./stylix-gtk-flatpak-polarity.nix;
     stylix-nvf = ./stylix-nvf.nix;
     stylix-rofi = ./stylix-rofi.nix;
-    swift-clang-hardening = ./swift-clang-hardening.nix;
     t3code-darwin-vendor-gui = ./t3code-darwin-vendor-gui.nix;
     t3code-darwin-workspace-shims = ./t3code-darwin-workspace-shims.nix;
     zen-wrapper-copy = ./zen-wrapper-copy.nix;

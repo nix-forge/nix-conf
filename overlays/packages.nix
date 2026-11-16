@@ -8,6 +8,7 @@ let
   };
   upstreamNames = [
     "aurral"
+    "azure-cli"
     "bookorbit"
     "cadcraft"
     "deckcraft"
@@ -30,7 +31,6 @@ let
   officialT3code = (import inputs.nixpkgs-t3code { inherit system; }).t3code;
   deploy = inputs.deploy-rs.packages.${system}.default;
   hyprlandPackages = inputs.hyprland.packages.${system};
-  swift = fixes.apply "swift-clang-hardening" pkgs.swift;
   nom = fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor;
   nh = pkgs.nh.override {
     nix-output-monitor = nom;
@@ -39,7 +39,6 @@ let
   };
 in
 {
-  azure-cli = fixes.apply "azure-cli-invoke" pkgs.azure-cli;
   rea = import ../lib/rea-runtime.nix {
     inherit inputs system;
     package = pkgs.rea;
@@ -73,10 +72,6 @@ in
   prismlauncher = pkgs.prismlauncher.override {
     prismlauncher-unwrapped = fixes.apply "prismlauncher-darwin-tests" pkgs.prismlauncher-unwrapped;
   };
-  inherit swift;
-  ocr-capture = pkgs.ocr-capture.override { inherit swift; };
-  finder-favorites = pkgs.finder-favorites.override { inherit swift; };
-  vorssaint = pkgs.vorssaint.override { inherit swift; };
 }
 // pkgs.lib.optionalAttrs isLinux {
   jellyfin-web = fixes.apply "jellyfin-caption-defaults" pkgs.jellyfin-web-personal;
@@ -91,9 +86,7 @@ in
   );
   hypridle = fixes.apply "hypridle-condition-inhibitors" pkgs.hypridle;
   # Retain the selected Hyprland dependency set for the native lock UI variant.
-  hyprlock-personal = pkgs.hyprlock-personal.override {
-    hyprlock = inputs.hyprlock.packages.${system}.hyprlock;
-  };
+  hyprlock = fixes.apply "hyprlock-graphics-cleanup" inputs.hyprlock.packages.${system}.hyprlock;
   hyprland = fixes.apply "hyprland-subsurface-rounding" (
     fixes.apply "hyprland-subsurface" hyprlandPackages.hyprland
   );

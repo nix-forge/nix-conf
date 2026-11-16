@@ -91,7 +91,7 @@ diff --git a/src/render/ElementRenderer.cpp b/src/render/ElementRenderer.cpp
 diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
 --- a/src/render/OpenGL.cpp
 +++ b/src/render/OpenGL.cpp
-@@ -1427,7 +1427,9 @@
+@@ -1437,7 +1437,9 @@
          case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
  
          // TODO set correct features
@@ -102,7 +102,7 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
          default: RASSERT(false, "tex->m_iTarget unsupported!");
      }
  
-@@ -1504,6 +1506,8 @@
+@@ -1518,6 +1520,8 @@
  
      if (data.round > 0)
          shaderFeatures |= SH_FEAT_ROUNDING;
@@ -111,7 +111,7 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
  
      if (!skipCM) {
          const auto settings = g_pHyprRenderer->getCMSettings(ctx, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, surface.valid() ? surface.lock() : nullptr, true,
-@@ -1565,8 +1569,11 @@
+@@ -1579,8 +1583,11 @@
          shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
      }
  
@@ -125,7 +125,7 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
      // Rounded corners
      shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
      shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
-@@ -1891,8 +1898,10 @@
+@@ -1906,8 +1913,10 @@
                                .a                           = data.a,
                                .round                       = data.round,
                                .roundingPower               = data.roundingPower,
@@ -136,7 +136,7 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
                                .wrapX                       = data.wrapX,
                                .wrapY                       = data.wrapY,
                                .discardMode                 = data.discardMode,
-@@ -1940,8 +1949,10 @@
+@@ -1955,8 +1964,10 @@
                                    .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
                                    .round          = data.round,
                                    .roundingPower  = data.roundingPower,
@@ -147,7 +147,7 @@ diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
                                    .noAA           = false,
                                    .wrapX          = data.wrapX,
                                    .wrapY          = data.wrapY,
-@@ -1985,10 +1985,11 @@
+@@ -1985,10 +1996,11 @@
                                .a                = data.a * data.overallA,
                                .round            = data.round,
                                .roundingPower    = data.roundingPower,
@@ -174,7 +174,7 @@ diff --git a/src/render/OpenGL.hpp b/src/render/OpenGL.hpp
 diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
 --- a/src/render/Renderer.cpp
 +++ b/src/render/Renderer.cpp
-@@ -724,22 +724,87 @@
+@@ -756,22 +756,87 @@
          }
  
          renderdata.surfaceCounter = 0;
@@ -186,7 +186,7 @@ diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
 +        // surface still owns the window geometry; child buffers have no radius.
 +        const double cornerBand = std::max(0, renderdata.rounding - 1) + 2;
          pWindow->wlSurface()->resource()->breadthfirst(
--            [this, &ctx, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+-            [&ctx, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
 -                if (!s->m_current.texture)
 -                    return;
 -
@@ -406,7 +406,7 @@ diff --git a/src/render/shaders/glsl/surface.frag b/src/render/shaders/glsl/surf
      pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
  #endif
  #if !USE_CM
-@@ -169,13 +169,16 @@
+@@ -181,13 +181,16 @@
  #endif
  #endif
  
@@ -424,7 +424,7 @@ diff --git a/src/render/shaders/glsl/surface.frag b/src/render/shaders/glsl/surf
      mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
  #endif
  #if !USE_CM
-@@ -210,5 +213,9 @@
+@@ -234,5 +237,9 @@
  #endif
  #endif
  

@@ -270,3 +270,31 @@ prevent treating historical medians as a controlled before/after benchmark.
 No running check was cancelled, stopped, rerun or reconfigured. No build, cache
 seed, deployment or activation was started. These are reviewed recommendations;
 workflow implementation and cache savings remain to be validated separately.
+
+## Follow-up: controlled Linux static-cache pilot
+
+After implementation, the trusted main-branch producer completed on root
+`bb481eb2fab6bb064cee8efef4c0ec0653cd44b8`. One initial Nix-store cache miss
+was followed by two sequential runs restoring the exact primary keys. All three
+used Determinate Nix 3.24.2 / Nix 2.35.3 and the same root, locks and workloads.
+The installer's separate download cache is not counted as a Nix-store hit.
+
+| Producer workload | Initial job, seconds | Exact restore 1, seconds | Exact restore 2, seconds | Initial compressed archive, bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Python tooling | 61 | 36 | 38 | 596,914,202 |
+| Lint tooling | 167 | 76 | 50 | 1,377,864,109 |
+
+Job times include checkout, setup, closure realization and post-job processing;
+they exclude time before the job started. Initial cache post-actions took about
+12.2 seconds for Python and 29.6 seconds for lint. Exact primary hits did not
+write new archives. The lint profile retained about 4.79 GB of store objects
+after collection: the 2 GiB GC target is not a hard cap on a pinned closure.
+The retained Python store measured about 1.85 GB.
+[Initial producer](https://github.com/nix-forge/nix-conf/actions/runs/43808629932),
+[first restored run](https://github.com/nix-forge/nix-conf/actions/runs/43818987709),
+[second restored run](https://github.com/nix-forge/nix-conf/actions/runs/43819853277).
+
+These small controlled samples support retaining the Linux static-tool pilot.
+They measure producer preparation, not a full PR or native application build.
+Runner variation remains visible between the two restored lint runs; no general
+CI speedup percentage or native-platform benefit follows from these samples.

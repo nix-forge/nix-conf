@@ -1,8 +1,8 @@
 _: {
-  reason = "Subsurface teardown can dereference an expired parent.";
+  reason = "Mapped subsurface size can dereference a disposed surface resource.";
   upstream = "https://github.com/hyprwm/Hyprland";
-  removal = "The pinned source handles parent-first teardown and passes the local subsurface reproduction.";
-  reviewedRevision = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
+  removal = "The unmodified size accessor handles disposed resources and passes mapped parent-first teardown, damage and shutdown checks.";
+  reviewedRevision = "a1d7a78b6c8e54ad72d401bfa8b85fdc89ee66a6";
   inputPath = [ "hyprland" ];
   apply =
     package:

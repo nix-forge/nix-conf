@@ -6,8 +6,7 @@
 }:
 let
   cursor = config.stylix.cursor;
-  hyprlockPackage =
-    if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock-personal;
+  hyprlockPackage = if osConfig != null then osConfig.programs.hyprlock.package else pkgs.hyprlock;
   monitor = "desc:ASUSTek COMPUTER INC PG32UCWM";
 in
 {
