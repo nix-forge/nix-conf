@@ -76,11 +76,10 @@
 
   # Greetd supplies the login password to GNOME Keyring. Hyprlock retains
   # the same hook for later session unlocks; the boot PIN is independent.
-  # The native UI variant retains the upstream PAM termination deadlock fix
-  # and adds a guarded submit control without replacing authentication.
+  # Use upstream authentication controls with the independent GL cleanup repair.
   programs.hyprlock = {
     enable = true;
-    package = pkgs.hyprlock-personal;
+    package = pkgs.hyprlock;
   };
   # NixOS ships Hypridle's user unit, but that unit starts without the UWSM
   # XDG environment and therefore cannot discover Home Manager's config at

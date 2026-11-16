@@ -1,4 +1,0 @@
-module HardeningProbe {
-  header "probe.h"
-  export *
-}

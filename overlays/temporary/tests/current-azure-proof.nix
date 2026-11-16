@@ -19,6 +19,7 @@ assert !(ssh.__noChroot or false);
   };
   metadata = {
     nixpkgsRevision = flake.inputs.nixpkgs.rev;
+    azureNixpkgsRevision = flake.inputs.nixpkgs-apps.rev;
     azureVersion = azure.version;
     sshVersion = ssh.version;
     sshSourceHash = ssh.src.outputHash;

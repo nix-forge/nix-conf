@@ -514,11 +514,10 @@ assert
   selected.nix-output-monitor.drvPath
   == (fixes.apply "nom-quadratic-build-plan" pkgs.nix-output-monitor).drvPath;
 assert selected.nix-output-monitor.doCheck;
-assert !(succeeds (changed.apply "swift-clang-hardening" pkgs.swift).drvPath);
 assert
   if pkgs.stdenv.hostPlatform.isDarwin then
-    selected.swift.drvPath == (fixes.apply "swift-clang-hardening" pkgs.swiftPackages.swift).drvPath
-    && selected.swift.drvPath != pkgs.swift.drvPath
+    selected.swift.drvPath == pkgs.swift.drvPath
+    && (selected.handy.unsealed or selected.handy).drvPath == pkgs.handy.drvPath
     &&
       builtins.all
         (

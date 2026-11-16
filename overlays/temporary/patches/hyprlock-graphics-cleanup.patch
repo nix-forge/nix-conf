@@ -1,0 +1,67 @@
+--- a/src/core/hyprlock.cpp
++++ b/src/core/hyprlock.cpp
+@@ -379,6 +379,7 @@
+         m_sLoopState.timerCV.notify_all();
+         if (g_pAuth)
+             g_pAuth->terminate();
++        cleanupResources();
+         exit(1);
+     }
+ 
+@@ -490,8 +491,6 @@
+         processTimers();
+     }
+ 
+-    const auto DPY = m_sWaylandState.display;
+-
+     // Wake threads so they observe m_bTerminate and exit; pending timers are dropped
+     m_sLoopState.timerEvent = true;
+     m_sLoopState.timerCV.notify_all();
+@@ -506,9 +505,17 @@
+     pollThr.join();
+     timersThr.join();
+ 
+-    // Now safe to destroy globals — no more timer callbacks can fire
+-    m_sWaylandState = {};
+-    dma             = {};
++    cleanupResources();
++
++    Log::logger->log(Log::INFO, "Reached the end, exiting");
++}
++
++void CHyprlock::cleanupResources() {
++    const auto DPY = m_sWaylandState.display;
++
++    // Dispose graphics while their owning context and protocol objects exist.
++    if (auto* egl = g_pEGL.get())
++        egl->makeCurrent(EGL_NO_SURFACE);
+ 
+     m_vOutputs.clear();
+     g_pSeatManager.reset();
+@@ -516,11 +523,11 @@
+     g_pRenderer.reset();
+     g_pEGL.reset();
+ 
+-    wl_display_disconnect(DPY);
+-
++    m_sWaylandState = {};
++    dma             = {};
++    if (DPY)
++        wl_display_disconnect(DPY);
+     g_dbus.reset();
+-
+-    Log::logger->log(Log::INFO, "Reached the end, exiting");
+ }
+ 
+ void CHyprlock::fadeOutAndUnlock() {
+--- a/src/core/hyprlock.hpp
++++ b/src/core/hyprlock.hpp
+@@ -121,6 +121,8 @@
+     void        removeDmabufListener();
+ 
+   private:
++    void             cleanupResources();
++
+     bool             m_lockAquired        = false;
+     std::atomic_bool m_fadeOutOrTerminate = false;
+     std::atomic_bool m_bTerminate         = false;

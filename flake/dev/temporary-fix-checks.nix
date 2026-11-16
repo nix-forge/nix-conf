@@ -72,7 +72,10 @@
         darwin-app-management-consent = import ../../tests/nix/app-management-consent.nix {
           inherit pkgs inputs;
         };
-        azure-cli-invoke = import ../../tests/nix/azure-cli.nix { inherit pkgs inputs; };
+        azure-cli-invoke = import ../../tests/nix/azure-cli.nix {
+          pkgs = configurationPkgs;
+          inherit inputs;
+        };
         temporary-package-fixes = builtins.deepSeq results (
           pkgs.runCommand "temporary-package-fixes" { } (
             builtins.readFile ./scripts/complete-temporary-fix-check.sh
@@ -83,11 +86,6 @@
         pkgs = configurationPkgs;
         inherit inputs;
       })
-      // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-        swift-hardening = import ../../tests/nix/swift-hardening.nix {
-          pkgs = configurationPkgs.extend (import ../../overlays { inherit inputs; });
-        };
-      }
       // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # Keep native compiler compatibility coverage after retiring the override.
         hyprland-portal-build =

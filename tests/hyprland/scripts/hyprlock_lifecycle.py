@@ -12,6 +12,9 @@ from pathlib import Path
 
 from waits import FileChanges
 
+# Exit contract of fixtures/egl-lifetime-witness.c.
+INVALID_GL_CONTEXT_EXIT = 86
+
 
 class LoggedProcess:
     """Observe output and child exit through blocking asynchronous notifications."""
@@ -111,6 +114,29 @@ async def wait_socket(path: Path, child: LoggedProcess) -> None:
         raise RuntimeError(message) from error
 
 
+async def verify_upstream_cleanup(
+    argv: list[str], env: dict[str, str], children: list[LoggedProcess]
+) -> None:
+    """Require the unmodified package to reproduce the exact GL lifetime defect."""
+    upstream = await launch(argv, env)
+    children.append(upstream)
+    await upstream.wait_text("onLockFinished called")
+    status = await upstream.wait()
+    assert status == INVALID_GL_CONTEXT_EXIT, (
+        f"Upstream cleanup control exited {status}: {''.join(upstream.lines[-15:])}"
+    )
+    assert "EGL_LIFETIME_WITNESS: armed\n" in upstream.lines
+    assert "EGL_LIFETIME_WITNESS: exit thread cleanup\n" in upstream.lines
+    assert (
+        "EGL_LIFETIME_ERROR: shader deletion without a current context\n"
+        in upstream.lines
+    )
+    assert any(
+        line.startswith("EGL_LIFETIME_WITNESS: delete program ")
+        for line in upstream.lines
+    )
+
+
 async def exercise(args: argparse.Namespace, runtime: Path) -> None:
     """Reject competing lockers and bad credentials without releasing the first lock."""
     children: list[LoggedProcess] = []
@@ -137,6 +163,14 @@ async def exercise(args: argparse.Namespace, runtime: Path) -> None:
         first = await launch(argv, locker_env)
         children.append(first)
         await first.wait_text("onLockLocked called")
+        if args.upstream_locker:
+            # Compare both packages in the same locked session and EGL witness.
+            await verify_upstream_cleanup(
+                [args.upstream_locker, *argv[1:]], locker_env, children
+            )
+            assert first.process.returncode is None, (
+                "Upstream rejected locker released the original lock"
+            )
         for _ in range(3):
             rejected = await launch(argv, locker_env)
             children.append(rejected)
@@ -207,6 +241,7 @@ def main() -> None:
         "password",
     ):
         parser.add_argument("--" + name, required=True)
+    parser.add_argument("--upstream-locker")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="hyprlock-private-") as directory:
         runtime = Path(directory) / "runtime"

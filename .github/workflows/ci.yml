@@ -35,11 +35,6 @@ on:
         required: false
         default: false
         type: boolean
-      prove_swift_hardening:
-        description: Independently verify current upstream and repaired Swift hardening.
-        required: false
-        default: false
-        type: boolean
       prove_sentry_lock:
         description: Verify current upstream Sentry report-lock behavior.
         required: false
@@ -65,8 +60,8 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name
     == 'workflow_dispatch' && (contains(fromJSON('["darwin","deploy","linux","hyprland","all"]'), inputs.prove_package_fixes)
     || inputs.prove_azure_cli == true || inputs.prove_actual_runtime == true || inputs.prove_prism_watch
-    == true || inputs.prove_zen_wrapper == true || inputs.prove_stylix_nvf == true || inputs.prove_swift_hardening
-    == true || inputs.prove_sentry_lock == true) && format('-proof-{0}', github.run_id) || '' }}
+    == true || inputs.prove_zen_wrapper == true || inputs.prove_stylix_nvf == true || inputs.prove_sentry_lock
+    == true) && format('-proof-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 env:
@@ -423,27 +418,6 @@ jobs:
           nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
             --file overlays/temporary/tests/current-sentry-proof.nix \
             upstream
-  swift-review-proof:
-    needs: [static]
-    name: Review current Swift hardening
-    if: github.event_name == 'workflow_dispatch' && inputs.prove_swift_hardening
-    runs-on: macos-26
-    timeout-minutes: 45
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: nix-forge/ci/actions/setup-nix@4ab5625bc19dccae2adc7e1dcfb0c5d3661892f4 # v2.14.0
-      - name: Record exact selected compiler
-        run: nix eval --impure --json --file overlays/temporary/tests/current-swift-proof.nix metadata
-      - name: Verify missing upstream flags and repaired native runtime
-        run: |
-          nix build --option sandbox true --impure --no-link -L --max-jobs 1 --cores 2 \
-            --file overlays/temporary/tests/current-swift-proof.nix upstream repaired
   discover:
     name: Discover CI inputs
     runs-on: ubuntu-24.04
@@ -1043,7 +1017,6 @@ jobs:
       - package-fixes-review-proof
       - prism-review-proof
       - sentry-review-proof
-      - swift-review-proof
       - stylix-review-proof
       - zen-wrapper-review-proof
       - lock-health

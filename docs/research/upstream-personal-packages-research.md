@@ -351,7 +351,7 @@ The 84 recipes in the reviewed snapshot are listed here; the Craft decisions are
 | [homebridge-samsung-tizen](../../pkgs/pkgs/by-name/ho/homebridge-samsung-tizen/package.nix) | 1 | Personal / Aurral |
 | [homebridge-tsvesync](../../pkgs/pkgs/by-name/ho/homebridge-tsvesync/package.nix) | 1 | Personal / Aurral |
 | [homelab-iot-scripts](../../pkgs/pkgs/by-name/ho/homelab-iot-scripts/package.nix) | 0 | Personal / Aurral |
-| [hyprlock-personal](../../pkgs/pkgs/by-name/hy/hyprlock-personal/package.nix) | 2 | Personal / Aurral |
+| [former hyprlock-personal](https://github.com/nix-forge/nixpkgs-personal/blob/322be5182e0f00b9dbe80640ed2822f50b811a35/pkgs/by-name/hy/hyprlock-personal/package.nix) | 2 | Personal / Aurral |
 | [jellyfin-plugin-intro-skipper](../../pkgs/pkgs/by-name/je/jellyfin-plugin-intro-skipper/package.nix) | 0 | Personal / Aurral |
 | [jellyfin-plugin-moonbase](../../pkgs/pkgs/by-name/je/jellyfin-plugin-moonbase/package.nix) | 0 | Personal / Aurral |
 | [jellyfin-plugin-subtitle-extract](../../pkgs/pkgs/by-name/je/jellyfin-plugin-subtitle-extract/package.nix) | 0 | Personal / Aurral |
