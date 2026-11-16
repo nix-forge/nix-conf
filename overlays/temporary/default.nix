@@ -6,7 +6,6 @@
 let
   # Explicit registration keeps helper files from becoming active fixes.
   files = {
-    azure-cli-darwin-tests = ./azure-cli-darwin-tests.nix;
     blocky-multiple-dnskeys = ./blocky-multiple-dnskeys.nix;
     home-manager-protected-apps = ./home-manager-protected-apps.nix;
     home-manager-app-management-consent = ./home-manager-app-management-consent.nix;

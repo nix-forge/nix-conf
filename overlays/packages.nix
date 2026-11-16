@@ -8,6 +8,7 @@ let
   };
   upstreamNames = [
     "aurral"
+    "azure-cli"
     "bookorbit"
     "cadcraft"
     "deckcraft"
@@ -38,11 +39,6 @@ let
   };
 in
 {
-  azure-cli =
-    if isDarwin then
-      fixes.apply "azure-cli-darwin-tests" upstreamApps.azure-cli
-    else
-      upstreamApps.azure-cli;
   rea = import ../lib/rea-runtime.nix {
     inherit inputs system;
     package = pkgs.rea;

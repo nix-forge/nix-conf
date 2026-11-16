@@ -514,17 +514,16 @@ where the independent prerequisite confirms watcher availability.
 
 Azure CLI is selected from the existing applications Nixpkgs input, whose Fabric
 recipe backports Invoke 3 task-context compatibility. The local Invoke downgrade
-is retired; Linux uses that official Azure package unchanged, including its own
+is retired; both platforms use that official Azure package unchanged, including its own
 extension set. Production integration tests retain the App Service SSH import,
 connection construction, CLI help and DevOps extension checks, and exercise
 Fabric's Invoke 3 task-context factory without opening an SSH connection.
 
-The Darwin-only `azure-cli-darwin-tests` repair retains loopback networking for
-SSHTunnel and Requests telemetry tests and the HTTPX2 timeout-fixture correction.
-These are dependency test-environment repairs, not Azure runtime changes.
-Retire each when the selected upstream test configuration supplies the same
-behavior and the normal sandbox suites pass. The integration proof uses the
-production package set and records the separate Azure package input revision.
+The local Azure dependency overrides are retired on both Linux and Darwin.
+The selected official package retains its own dependency tests and extension
+scope; native CI must pass the production CLI integration before merge. Any
+source-build sandbox failure must be diagnosed against this exact upstream
+package rather than assuming an older dependency repair remains required.
 
 Nixpkgs `1d060086d60cb76a40cf37109f979d88a5bd6396` separates the NVIDIA
 builder's interpreter and RPATH edits; the unmodified `nvidia-smi --help` loader
