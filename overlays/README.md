@@ -185,7 +185,7 @@ Home Manager portal adapter and separate Zoom input remain retired.
 | `determinate-libgit2-trailing-slash`, `determinate-libgit2-module`, `determinate-darwin-tests` | The owning dependency sources lack the cleanup fix, the module still needs factory routing, and the Darwin functional suite still registers the sandbox-incompatible Sentry case. |
 | `gtksourceview-xvfb`, `hypridle-condition-inhibitors` | Their selected sources retain the Xvfb reset race and inhibitor bypass. |
 | `nom-quadratic-build-plan` | Monitor 2.2.0 retains linear root deletion. Upstream now accepts unknown activity types, including 10113. |
-| `hyprland-subsurface`, `hyprland-subsurface-rounding` | Both complete repairs still apply to the selected compositor source. |
+| `hyprland-subsurface`, `hyprland-subsurface-rounding` | The mapped size accessor and shared surface-tree rounding still need local repairs; protocol ancestry is supplied upstream. |
 | `hyprshell-modifiers`, `hyprshell-workspace-schema`, `hyprshell-workspace-identity` | All three repairs remain absent from 4.10.8; the identity patch depends on applying the other two first. |
 | `nh-darwin-home`, `prismlauncher-darwin-tests` | nh 4.4.2 still sets empty elevated HOME; Prism 11.1.1 still assumes native watcher availability. |
 | `nixos-anywhere-ssh-host-check` | The pinned installer still disables host-key verification before argument parsing. |
@@ -563,3 +563,27 @@ selection; cross packages retain their original build and target scopes.
 The package retains domain, installed CLI, MCP and PTY checks, and runs the
 original upstream memory-usage and worker-memory regressions with the exact
 selected runtime. Older inputs retain the recipe's patched source fallback.
+
+The Hyprland input now selects the minimal reviewed lifetime-fix revision
+[`a1d7a78`](https://github.com/hyprwm/Hyprland/commit/a1d7a78b6c8e54ad72d401bfa8b85fdc89ee66a6).
+It includes upstream's nested-parent traversal, cycle and expired-role guards,
+and image-description fallback. Those protocol backports are removed locally;
+the upstream `BAD_PARENT` behavior is preserved. The remaining lifetime patch
+only delegates zero-argument `CSubsurface::size()` to the guarded geometric
+accessor, which returns the last size after resource disposal.
+
+The mapped lifetime VM keeps `f389f008228d51fa48bdd69a4c9e2b91f24bb2da`
+as an independently frozen negative control for the original parent-position
+crash. The repaired guest uses the new input and only the size delegation,
+retaining frame-confirmed mapped damage, twenty lifecycle cases and clean
+shutdown. The separate parent-display control uses the new upstream package.
+The rounding baseline also uses the new lifetime fixes and size delegation,
+while omitting rounding. Shared corner masking, alpha overlap and child overflow
+remain distinct from upstream's per-surface rounding, so the coherent renderer
+patch and scales 1, 1.25 and 2 with blur off/on remain covered by the declared
+VM checks. Native gtests, including upstream ancestry and expired-role cases,
+remain enabled in both renderer checks and the native ARM checks.
+
+These are source and fixture changes; native builds, gtests and VM acceptance
+must pass on the updated input before claiming runtime retirement. Normal pixel
+checks do not force the framebuffer-allocation fallback.

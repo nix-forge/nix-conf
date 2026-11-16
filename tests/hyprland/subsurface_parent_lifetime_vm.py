@@ -1,4 +1,4 @@
-"""Validate current direct-DRM raw and repaired parent-first lifecycles."""
+"""Compare the frozen broken source with the updated mapped-lifetime repair."""
 
 # Driver-provided guests are intentionally started sequentially to bound memory.
 import json
@@ -146,7 +146,7 @@ def verify_lifetime(
         guest.execute(
             "timeout 15 journalctl -u lifetime-compositor --no-pager | tail -c 262144 > /tmp/lifetime-proof/compositor.log"
         )
-        evidence_target = "baseline" if expect_crash else "repaired"
+        evidence_target = guest.name
         guest.copy_from_machine("/tmp/lifetime-proof", target_dir=evidence_target)  # ruff: ignore[hardcoded-temp-file] -- Fresh guest-owned evidence.
         guest.copy_from_machine("/tmp/lifetime-home/cache", target_dir=evidence_target)  # ruff: ignore[hardcoded-temp-file] -- The current owned compositor cache only.
         guest.shutdown()
