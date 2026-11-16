@@ -9,6 +9,10 @@ _: {
         "not nix_integration and not nix_daemon"
         + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin " and not native_process";
       files = [
+        ../../.github/workflows/ci.yml
+        ../../.github/workflows/ci-cache.yml
+        ../../.github/scripts/seed-ci-cache.sh
+        ../../.github/scripts/verify-handy.sh
         ../../overlays/temporary/scripts/sign-signal-bundle.py
         ../../overlays/temporary/tests/prism-watch-result.py
         ../../overlays/temporary/tests/darwin-package-result.py

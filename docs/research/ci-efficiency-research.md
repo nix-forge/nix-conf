@@ -8,6 +8,9 @@ GitHub Actions API and completed runs available on that date.
 The [2026-11-09 follow-up](#development-follow-up) distinguishes the current
 publication blocker from the historical timing sample below.
 
+The [2026-11-15 runtime and cache audit](ci-runtime-cache-audit-research.md)
+adds a complete 72-hour workflow inventory and current cache evidence.
+
 ## Answer
 
 Before this change, `nix-conf` spent almost all of its CI time in one

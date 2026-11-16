@@ -39,6 +39,7 @@ in
     };
     ciChecks = inputs.flake-schemas.exportedSchemas.checks;
     lintChecks = inputs.flake-schemas.exportedSchemas.checks;
+    hostedLintChecks = inputs.flake-schemas.exportedSchemas.checks;
 
     deploy = attrsetSchema {
       doc = "deploy-rs nodes; full node and activation validation is provided by checks.x86_64-linux.deploy-schema and deploy-activate.";

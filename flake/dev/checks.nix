@@ -67,7 +67,10 @@
             }
             (
               (import ../../lib/templates/text.nix) ./scripts/python-quality.sh {
-                inputs_self_outPath = inputs.self.outPath;
+                source = import ./python-quality-source.nix {
+                  inherit (pkgs) lib;
+                  root = ../..;
+                };
                 inherit checkPython;
               }
             );

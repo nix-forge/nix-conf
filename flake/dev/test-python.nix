@@ -10,6 +10,7 @@ pkgs.python3.withPackages (
     ps.pillow
     ps.pytest
     ps.pytest-timeout
+    ps.pyyaml
     ps.tomlkit
     ps.uharfbuzz
     ps.watchdog
