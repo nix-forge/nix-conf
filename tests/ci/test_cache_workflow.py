@@ -123,7 +123,7 @@ def test_effective_ci_cache_configuration_preserves_default_and_reviewed_provide
     assert expected
     providers = re.findall(r'"([^"\n]+)"', expected[1])
     effective = {value.rstrip("/") for value in settings["substituters"]["value"]}
-    assert "https://cache.nixos.org" in effective
+    assert {"https://cache.nixos.org"} <= effective
     assert set(providers) <= effective
     keys = re.search(r"extra-trusted-public-keys\s*=\s*\[(.*?)\];", source, re.DOTALL)
     assert keys
