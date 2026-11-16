@@ -16,12 +16,16 @@
           version = "0.57.0+date=2026-11-05_f389f00";
         }).overrideAttrs
           (_: {
-            src = pkgs.fetchFromGitHub {
-              owner = "hyprwm";
-              repo = "Hyprland";
-              rev = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
-              hash = "sha256-jx73NY1kT1xyQa0Ma9n/YlN/2+QM4EgTm0csM5b2mQ4=";
-            };
+            # The recipe reads source metadata while evaluating drvPath.
+            # Fetch the pinned tree directly so cold evaluation needs no build.
+            src =
+              (fetchTree {
+                type = "github";
+                owner = "hyprwm";
+                repo = "Hyprland";
+                rev = "f389f008228d51fa48bdd69a4c9e2b91f24bb2da";
+                narHash = "sha256-jx73NY1kT1xyQa0Ma9n/YlN/2+QM4EgTm0csM5b2mQ4=";
+              }).outPath;
           });
       # Keep upstream gtests confined to native regression check packages.
       roundingHyprland =
