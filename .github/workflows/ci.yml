@@ -717,8 +717,8 @@ jobs:
         if: matrix.system == 'aarch64-darwin'
         shell: bash
         run: |
-          bash -euo pipefail -c 'source "$1"; shift; exec python3 "$@"' -- \
-            "$RUNNER_TEMP/handy-test-environment.sh" -m pytest -m native_process \
+          nix develop "$RUNNER_TEMP/handy-test-environment" --command \
+            python3 -m pytest -m native_process \
             tests/workstation/test_workstation_faults.py \
             tests/workstation/test_workstation_jobs.py
       - name: Build assigned native CI checks

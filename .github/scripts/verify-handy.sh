@@ -11,12 +11,14 @@ printf '::endgroup::\n'
 export HANDY_TEST_BUNDLE="$artifact/Applications/Handy.app"
 
 printf '::group::Handy test shell realization\n'
-# Capture the realized shell once. Execution below sources that exact environment
-# rather than asking Nix to evaluate or realize the tests shell again.
-time nix print-dev-env .#tests >"$RUNNER_TEMP/handy-test-environment.sh"
+# Record the realized environment once in Nix's supported profile format.
+# Nix activates it with the compatible shell, without re-evaluating this flake
+# or asking the runner's system Bash to parse generated shell functions.
+time nix print-dev-env .#tests --profile "$RUNNER_TEMP/handy-test-environment" \
+  --json >/dev/null
 printf '::endgroup::\n'
 
 printf '::group::Handy native identity and signature execution\n'
-time bash -euo pipefail -c 'source "$1"; python3 "$2"' -- \
-  "$RUNNER_TEMP/handy-test-environment.sh" "$PWD/tests/macos/test_handy_signature.py"
+time nix develop "$RUNNER_TEMP/handy-test-environment" --command \
+  python3 "$PWD/tests/macos/test_handy_signature.py"
 printf '::endgroup::\n'

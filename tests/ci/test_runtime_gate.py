@@ -51,7 +51,7 @@ def test_static_result_controls_native_and_required_aggregate(
     assert (outcome.returncode == 0) == (result == "success")
 
 
-@pytest.mark.parametrize("fail_phase", ["", "artifact", "shell", "native"])
+@pytest.mark.parametrize("fail_phase", ["", "artifact", "shell", "activate", "native"])
 def test_handy_realizes_each_input_once_and_always_runs_host_proof(
     tmp_path: Path, fail_phase: str
 ) -> None:
@@ -80,7 +80,11 @@ def test_handy_realizes_each_input_once_and_always_runs_host_proof(
         s for s in steps if s.get("name") == "Build assigned native CI checks"
     )
     assert steps.index(step) < steps.index(process) < steps.index(matrix)
-    assert "nix develop" not in process["run"]
+    assert ".#tests" not in process["run"]
+    assert (
+        'nix develop "$RUNNER_TEMP/handy-test-environment" --command' in process["run"]
+    )
+    assert "source " not in process["run"]
     result = subprocess.run(
         ["bash", "-e", "-c", step["run"] + "\n" + process["run"]],
         cwd=ROOT,
@@ -101,7 +105,11 @@ def test_handy_realizes_each_input_once_and_always_runs_host_proof(
     if fail_phase != "artifact":
         assert calls.count("shell") == 1
     if fail_phase not in {"artifact", "shell"}:
-        assert calls.count("native") == 1
+        assert calls.count("activate") == (1 if fail_phase else 2)
+        if fail_phase == "activate":
+            assert "native" not in calls
+        else:
+            assert calls.count("native") == 1, result.stderr
         if not fail_phase:
             assert calls.count("native-process") == 1
         assert "Handy native identity and signature execution" in result.stdout

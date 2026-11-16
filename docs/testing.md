@@ -254,7 +254,9 @@ The Darwin Handy host proof always realizes the current application, even when
 derivation comparison skipped its sandbox build. It separately times package
 realization, test-shell realization and native identity/signature execution. The
 proof retains the exact application with an output link and executes from the
-captured test-shell environment without a second Nix shell realization. Native
+recorded Nix environment profile without a second flake evaluation or shell
+realization. Nix activates the profile with its compatible shell; the runner's
+system Bash does not source generated environment code. Native
 Darwin process supervision then reuses that environment before the remaining
 flake checks; the retained application is available to those checks too. These
 phase timings are diagnostics; cold/restored runtime savings require measurement

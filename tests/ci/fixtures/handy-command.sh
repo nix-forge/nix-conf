@@ -9,7 +9,22 @@ elif [[ ${0##*/} == nix && $1 == print-dev-env ]]; then
   echo shell >>"$RUNNER_TEMP/calls"
   [[ ${FAIL_PHASE:-} != shell ]] || exit 24
   [[ $* == *'.#tests'* ]]
-  printf 'export HANDY_EXACT_ENVIRONMENT=realized\n'
+  if [[ $# == 5 && $3 == --profile && $4 == "$RUNNER_TEMP/handy-test-environment" && $5 == --json ]]; then
+    printf 'recorded environment\n' >"$4"
+    printf '{"captured": true}\n'
+  else
+    # A generated shell script need not parse in the caller's Bash version.
+    # Reproduce the native capture/activation failure at that exact boundary.
+    printf ';\n'
+  fi
+elif [[ ${0##*/} == nix && $1 == develop ]]; then
+  [[ $2 == "$RUNNER_TEMP/handy-test-environment" && $3 == --command ]]
+  [[ -f $2 ]]
+  echo activate >>"$RUNNER_TEMP/calls"
+  [[ ${FAIL_PHASE:-} != activate ]] || exit 26
+  export HANDY_EXACT_ENVIRONMENT=realized
+  shift 3
+  exec "$@"
 elif [[ ${0##*/} == python3 ]]; then
   [[ $HANDY_EXACT_ENVIRONMENT == realized ]]
   if [[ $1 == -m ]]; then
