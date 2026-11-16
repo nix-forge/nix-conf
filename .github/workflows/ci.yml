@@ -650,7 +650,7 @@ jobs:
           submodules: recursive
       - name: Enable UID-range sandbox fixtures on Linux
         if: runner.os == 'Linux'
-        uses: DeterminateSystems/determinate-nix-action@4d65ea9cab522b6d9f29a170aed23ededc1b27af # v3.23.0
+        uses: DeterminateSystems/determinate-nix-action@16f94ba7aae399b9f9077c254b6719ec6de7e3e3 # v3.24.2
         with:
           extra-conf: |
             extra-experimental-features = auto-allocate-uids cgroups
