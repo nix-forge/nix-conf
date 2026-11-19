@@ -4,10 +4,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   network = builtins.fromJSON (builtins.readFile ../../../../shared/local/network.json);
   domain = network.homelabDomain;
   siteNames = builtins.attrNames config.homelab.operations.lanHttps.sites;
@@ -113,7 +115,11 @@ in
       Restart = "on-failure";
       RestartSec = "30s";
       TimeoutStartSec = "120s";
-      ExecStart = "${pkgs.python3}/bin/python3 ${./scripts/ensure_homelab_dns.py} ${lib.escapeShellArg domain} ${lib.escapeShellArg lanAddress} ${lib.escapeShellArgs siteNames}";
+      ExecStart = "${
+        lib.getExe'
+          (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).homelabServiceProtocols
+          "ensure-homelab-dns"
+      } ${lib.escapeShellArg domain} ${lib.escapeShellArg lanAddress} ${lib.escapeShellArgs siteNames}";
       LoadCredential = [
         "cloudflare-token:${config.nixSeal.secrets.homelab-cloudflare-dns-token.path}"
         "cloudflare-zone-id:${config.nixSeal.secrets.homelab-cloudflare-zone-id.path}"
@@ -161,7 +167,7 @@ in
       navidrome.upstream = "http://127.0.0.1:${toString config.services.navidrome.settings.Port}";
       miniflux.upstream = "http://${config.services.miniflux.config.LISTEN_ADDR}";
       news.upstream = "http://${config.services.miniflux.config.LISTEN_ADDR}";
-      aurral.upstream = "http://127.0.0.1:3001";
+      aurral.upstream = config.homelab.desktopAurral.backendUrl;
       actual = {
         upstream = "http://127.0.0.1:${toString config.services.actual.settings.port}";
         # Actual enforces OIDC login and manual account creation. Use the same
@@ -186,16 +192,19 @@ in
   };
 
   # Retire the scoped phone-access rollout when the generated units take over.
-  system.activationScripts.t3PhonePreviewCleanup.text = ''
-    for service in nginx blocky; do
-      override="/etc/systemd/system.control/$service.service.d/90-t3-phone-preview.conf"
-      root="/nix/var/nix/gcroots/t3-phone-$service-unit"
-      if [ -L "$override" ] && [ "$(readlink "$override")" = "$root" ]; then
-        rm -- "$override"
-        rm -f -- "$root" "/nix/var/nix/gcroots/t3-phone-$service-config"
-      fi
-    done
-  '';
+  system.activationScripts.t3PhonePreviewCleanup.text = checkedShellText {
+    name = "retire-phone-preview";
+    text = ''
+      for service in nginx blocky; do
+        override="/etc/systemd/system.control/$service.service.d/90-t3-phone-preview.conf"
+        root="/nix/var/nix/gcroots/t3-phone-$service-unit"
+        if [ -L "$override" ] && [ "$(readlink "$override")" = "$root" ]; then
+          rm -- "$override"
+          rm -f -- "$root" "/nix/var/nix/gcroots/t3-phone-$service-config"
+        fi
+      done
+    '';
+  };
 
   # Actual can transfer financial data in both directions. Do not let nginx
   # spill large imports or responses into temporary files on the plain root.

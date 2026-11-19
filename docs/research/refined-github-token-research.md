@@ -86,8 +86,6 @@ Fetched and inspected the official [AMO 26.10 XPI](https://addons.mozilla.org/fi
 
 No credential was read, generated, or submitted. No browser API operation or authenticated feature was tested. No native manifest was deployed. One research request for AMO metadata failed with HTTP 401; a separate coordinator request succeeded and confirmed the GUID, slug and version. The signed download also succeeded. A GitHub recursive dependency-tree request hit unauthenticated rate limits; raw source and npm package metadata supplied the pinned evidence instead. These limits do not alter the inspected packaged behavior.
 
-Focused evaluation used the real extension option module and policy generator with the installed Nixpkgs library. Against the existing staged catalog, both policies were `allowed` with no URL. Against the repaired catalog, both were `normal_installed` with the AMO latest URL; all catalog assertions passed. Nix formatting, deadnix, catalog statix and patch whitespace checks passed on Linux. Research Markdown lint, spelling, local links and a Gitleaks publication scan passed. Full desktop evaluation was submitted through `workstation-task` and then cancelled while queued behind other work; it did not run. No full system build, activation or Darwin runtime test was performed.
-
 ## Implication for this repository
 
 Keep installation policy and token provisioning separate. Repair extension installation first. Prefer a dedicated expiring classic PAT with scopes chosen for actual feature use; full private support needs `repo`. Use the existing sealed-secret integration if storing a canonical credential or runtime import template. Do not add a token-bearing Firefox policy to the ordinary Nix configuration. If unattended provisioning is required, propose managed-storage support upstream and assess signing and updates before implementing a fork. The [secret-management guide](../secrets.md#config-templates) describes runtime templates and their ownership requirements. The integration now uses a dedicated classic token. The initial temporary reuse and subsequent deployment are recorded below.
@@ -104,7 +102,7 @@ The new template was evaluated with the installed Nixpkgs library and nix-seal's
 
 ### Linux activation verification, 2026-10-09
 
-The full desktop system built successfully through the workstation queue. Signed
+The full desktop system built successfully. Signed
 secret preparation passed its dry run, installed the host and home artifact
 batches, and passed destination readiness. The resulting system was activated
 and selected as the boot default. Both installed browser packages contain

@@ -1,7 +1,7 @@
 _: {
-  lib.targetPackagePolicy = inputs: {
-    overlays = [ (import ../../../../overlays { inherit inputs; }) ];
-    config = {
+  lib.targetPackagePolicy =
+    inputs:
+    (import ../../../shared/local/package-policy.nix) inputs {
       allowUnfree = true;
       allowUnfreePredicate = _: true;
       allowVariants = true;
@@ -12,5 +12,4 @@ _: {
       # unrelated package variants and their binary-cache coverage.
       cudaSupport = false;
     };
-  };
 }

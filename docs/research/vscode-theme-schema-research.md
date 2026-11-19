@@ -306,9 +306,9 @@ unknown workbench color, an unsupported token background, an opaque highlight
 that requires transparency, and an invalid semantic font style.
 
 The reusable checks are
-[interaction and contrast checks](../../tests/vscode/check-interaction-colors.mts),
-[schema validation](../../tests/vscode/check-theme-schema.mts), and
-[grammar-based syntax checks](../../tests/vscode/check-syntax-colors.mts).
+interaction and contrast checks,
+schema validation, and
+grammar-based syntax checks.
 Set the variables below to a built extension directory, the selected editor's
 `resources/app` directory, a private schema-output directory, and an extension
 directory containing the configured Nix and YAML grammars. `VSCODE_BINARY` can

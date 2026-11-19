@@ -2,7 +2,7 @@ _: {
   reason = "Mapped subsurface size can dereference a disposed surface resource.";
   upstream = "https://github.com/hyprwm/Hyprland";
   removal = "The unmodified size accessor handles disposed resources and passes mapped parent-first teardown, damage and shutdown checks.";
-  reviewedRevision = "a1d7a78b6c8e54ad72d401bfa8b85fdc89ee66a6";
+  reviewedRevision = "11cbc6c577b84ffb1edf4df3fc5b6128c3ae6947";
   inputPath = [ "hyprland" ];
   apply =
     package:

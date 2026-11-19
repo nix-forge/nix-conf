@@ -14,9 +14,6 @@ indent_size = 2
 [*.rs]
 indent_size = 4
 
-[*.{py,py.in}]
-indent_size = 4
-
 [*.md]
 # Preserve Markdown hard-break spaces when the editor applies this policy.
 trim_trailing_whitespace = false
@@ -44,11 +41,3 @@ insert_final_newline = unset
 indent_style = unset
 indent_size = unset
 trim_trailing_whitespace = false
-
-# Native formatters own continuation alignment and pretty-printed AWK tabs.
-[*.{c,h,cc,cpp,hpp}]
-indent_size = unset
-
-[*.awk]
-indent_style = unset
-indent_size = unset

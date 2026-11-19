@@ -49,6 +49,13 @@ behavior for unprefixed commands.
 
 ## Applications
 
+`macos.applications.manageAll` defaults on and applies staged, running-aware
+updates to every selected top-level app. Vendor certificate signatures are
+preserved; ad-hoc/unsigned inputs use an explicitly enrolled persistent local
+Code Signing identity. Unchanged copies remain untouched. See the
+[identity setup and recovery procedure](../../../docs/operations/darwin-application-readiness.md#shared-application-identity-and-updates)
+before the first activation. These policies never grant privacy permissions.
+
 `macos.applications` keeps copied Home Manager apps as the canonical Launch
 Services registrations. It runs after `copyApps` and before launch agents start.
 It unregisters competing top-level Nix-store bundles with the same identifiers,
@@ -76,6 +83,20 @@ extensions does not establish that a result is a duplicate. See the
 [investigation and native validation](../../../docs/research/macos-spotlight-applications-research.md).
 
 ## Dock
+
+Use `{ package = config.programs.ghostty.package; }` in
+`macos.dockItems.persistentApps` to select an installed GUI package. The module
+reads `meta.mainDarwinApp` with `lib.getDarwinApp` and resolves the bundle inside
+Home Manager's copied or linked application directory. Package entries require
+an application with matching bundle metadata in `home.packages`, including
+configured variants such as Spicetify or system Vencord. Missing or invalid metadata fails
+evaluation. Keep `{ hmApp = "Ghostty"; }` for explicit bundle selection and
+`{ app = "/System/Applications/Messages.app"; }` for system applications.
+
+Personal package recipes own their bundle metadata. Revision-guarded repairs
+under `overlays/temporary/` fill upstream omissions until the selected recipes
+declare it themselves. Metadata changes do not edit an application's Info.plist
+or signature.
 
 `macos.dockItems.mode` controls reconciliation:
 

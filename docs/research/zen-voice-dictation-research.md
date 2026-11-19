@@ -153,15 +153,15 @@ Evaluation of that exact input on 2026-09-22 found:
 
 The stable packaged `whisper-cpp` is behind the upstream v1.9.4 release, so a
 future pin should deliberately choose the repository input's version or update
-it; it must not claim to be the latest upstream version. The existing optional
-`cli-whisper` module uses Python `openai-whisper` with a CPU-only Torch override
+it; it must not claim to be the latest upstream version. The former optional
+`cli-whisper` module used Python `openai-whisper` with a CPU-only Torch override
 to avoid a large CUDA runtime, which supports keeping any desktop dictation
 feature separately selected and hardware-specific.
 
 - [Pinned Nixpkgs `whisper-cpp` derivation](https://github.com/NixOS/nixpkgs/blob/c5c4a43b0e8056328ec4529f735cabdb8f1942bb/pkgs/by-name/wh/whisper-cpp/package.nix)
 - [Pinned Nixpkgs `hyprwhspr-rs` derivation](https://github.com/NixOS/nixpkgs/blob/c5c4a43b0e8056328ec4529f735cabdb8f1942bb/pkgs/by-name/hy/hyprwhspr-rs/package.nix)
 - [Pinned Nixpkgs `voxtype` derivation](https://github.com/NixOS/nixpkgs/blob/c5c4a43b0e8056328ec4529f735cabdb8f1942bb/pkgs/by-name/vo/voxtype/package.nix)
-- [Existing CPU-only Whisper choice](../../modules/home/cli/whisper.nix)
+- Historical CPU-only Whisper choice: `modules/home/cli/whisper.nix` (retired; see Git history).
 
 ### macOS
 

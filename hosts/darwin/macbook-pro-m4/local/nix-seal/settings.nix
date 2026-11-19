@@ -1,6 +1,8 @@
 {
   config,
   lib,
+  myLib,
+  pkgs,
 
   ...
 }:
@@ -17,10 +19,19 @@
   # The activation phase materializes the private token before this runs.
   # Nixd owns its generated netrc for Nix and the native builder.
   system.activationScripts.postActivation.text = lib.mkOrder 2000 (
-    (import ../../../../../lib/templates/text.nix) ../scripts/authenticate-flakehub.sh {
-      lib_escapeShellArg_config_nixSeal_secrets_flakehub_password_ =
-        lib.escapeShellArg
-          config.nixSeal.secrets."flakehub-password".path;
-    }
+    myLib.writers.renderBashText { inherit pkgs; }
+      {
+        name = "authenticate-flakehub.sh";
+        text = ''
+          # shellcheck shell=bash
+          /usr/local/bin/determinate-nixd auth login token \
+            --token-file @lib_escapeShellArg_config_nixSeal_secrets_flakehub_password_@
+        '';
+      }
+      {
+        lib_escapeShellArg_config_nixSeal_secrets_flakehub_password_ =
+          lib.escapeShellArg
+            config.nixSeal.secrets."flakehub-password".path;
+      }
   );
 }

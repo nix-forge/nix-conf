@@ -1,5 +1,6 @@
 { lib, pkgs, ... }:
 let
+  inherit (import ../storage/.storage-roles.nix) dataMount vmImagesMount;
   oppositeSystem = if pkgs.stdenv.hostPlatform.isAarch64 then "x86_64-linux" else "aarch64-linux";
 in
 {
@@ -21,6 +22,19 @@ in
     allowUserNamespaces = true;
 
     virtualisation.flushL1DataCache = null;
+  };
+
+  # A missing data SSD must leave installer media unavailable while the system
+  # still boots. Automount also blocks writes into the unmounted legacy path.
+  fileSystems."/var/lib/libvirt/boot" = {
+    device = "${dataMount}/libvirt-media";
+    fsType = "none";
+    options = [
+      "bind"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.requires-mounts-for=${dataMount}"
+    ];
   };
 
   virtualisation.libvirtWorkstation = {
@@ -64,7 +78,12 @@ in
     };
 
     # Keep checksums and compression for new VM images on encrypted Btrfs.
-    storage.nocow = false;
+    storage = {
+      # Prefer the desktop role to the generic option default. Consumers can
+      # still supply a normal or mkDefault override.
+      root = lib.mkOverride 1490 vmImagesMount;
+      nocow = false;
+    };
 
     windowsVm = {
       enable = true;
@@ -198,7 +217,16 @@ in
     };
   };
 
-  # User services and workstation-task need these cgroup-v2 controllers
+  # User services need these cgroup-v2 controllers
   # to enforce their CPU, I/O, memory and process limits.
-  systemd.services."user@".serviceConfig.Delegate = "cpu cpuset io memory pids";
+  systemd.services = {
+    "user@".serviceConfig.Delegate = "cpu cpuset io memory pids";
+    # Libvirt can activate machined through D-Bus during a switch, before
+    # socket activation is restored. Require the socket on both start paths
+    # so its listener cannot be started after the daemon is already running.
+    systemd-machined = {
+      requires = [ "systemd-machined.socket" ];
+      after = [ "systemd-machined.socket" ];
+    };
+  };
 }

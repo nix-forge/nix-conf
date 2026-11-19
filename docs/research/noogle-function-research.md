@@ -75,12 +75,13 @@ functions were checked in pinned source instead.
 
 ### Shell commands and configurable values
 
-The wallpaper scripts are the best first migration target. For example,
-[wallpaper.nix](../../modules/home/desktop/wallpaper.nix) supplies an unescaped
-directory to [wallpaper-add.sh](../../modules/home/desktop/scripts/wallpaper-add.sh),
-which places it inside single quotes. An isolated substitution using a directory
-containing an apostrophe makes `bash -n` fail. This is a concrete robustness
-problem for configurable paths, regardless of which builder packages the script.
+The original wallpaper importer demonstrated a shell quoting defect: a directory
+containing an apostrophe made the generated script fail `bash -n`. That finding
+motivated escaping configurable values at the Nix-to-shell boundary. The current
+[wallpaper.nix](../../modules/home/desktop/wallpaper.nix) uses
+`lib.escapeShellArg` to pass the directory to the native
+[wallpaper importer](../../modules/home/desktop/wallpaper-tools/src/bin/wallpaper-add.rs),
+which handles paths as arguments rather than shell source.
 
 Use `lib.escapeShellArg` at the Nix-to-shell boundary and remove the template's
 surrounding quotes around that replacement. Shell syntax and already-quoted
@@ -151,7 +152,7 @@ in [checks.nix](../../flake/dev/checks.nix) already use it appropriately.
 
 [windows-vm.nix](../../modules/nixos/virtualisation/windows-vm.nix) currently creates
 a `writeShellApplication` whose only job is to execute
-[windows_vm_render_seed.py](../../modules/nixos/virtualisation/scripts/windows_vm_render_seed.py).
+[windows_vm_render_seed.py](../../modules/nixos/virtualisation/runtime/src/bin/windows-vm-render-seed.rs).
 A Python writer removes that shell layer and associates the interpreter with
 the actual program:
 
@@ -198,7 +199,7 @@ case and explain how to preserve intentional `%t` expansion.
 ### Build inputs and generated configuration
 
 Use `lib.fileset.toSource` with `unions` for focused tests and local compiled
-helpers. [fonts.nix](../../flake/dev/fonts.nix) already demonstrates this well.
+helpers. [fonts.nix](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/flake/dev/fonts.nix) already demonstrates this well.
 Inventory build-script inputs and required fixtures before narrowing a source
 set. A smaller source set alone is not a demonstrated build-speed improvement.
 [Noogle fileset reference](https://noogle.dev/f/lib/fileset/toSource/).
@@ -861,7 +862,7 @@ work. The organization inventory still contains seven repositories.
   directories. Repositories containing only composite actions skip actionlint
   and still run action validation and contract checks.
 
-The root regression checks live in [the Nix fixtures](../../tests/nix/noogle.nix).
+The root regression checks live in the Nix fixtures.
 Before the fixes, the systemd VM showed `%n` expanding into the service name
 inside Actual's path, Ironbar's configuration failed TOML parsing, LibreOffice's
 wrapper failed shell parsing, and the macOS merge assertion failed. CI's new

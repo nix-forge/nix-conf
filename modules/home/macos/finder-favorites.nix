@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -184,23 +185,50 @@ in
     home.activation = lib.mkMerge [
       (lib.mkIf (cfg.mode == "initialize") {
         syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-          (import ../../../lib/templates/text.nix) ./scripts/initialize-finder-favorites.sh {
-            lib_escapeShellArg_initializedMarker = lib.escapeShellArg initializedMarker;
-            lib_escapeShellArg_executable = lib.escapeShellArg executable;
-            lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
-            lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
-            lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
-            lib_getExe_pkgs_coreutils_touch = lib.getExe' pkgs.coreutils "touch";
-          }
+          myLib.writers.renderBashText { inherit pkgs; }
+            {
+              name = "initialize-finder-favorites.sh";
+              text = ''
+                # shellcheck shell=bash
+                if [[ ! -e @lib_escapeShellArg_initializedMarker@ ]]; then
+                  run @lib_escapeShellArg_executable@ apply \
+                    --config @lib_escapeShellArg_configurationFile@ \
+                    --state-directory @lib_escapeShellArg_stateDirectory@
+                  run @lib_getExe_pkgs_coreutils_mkdir@ -p -m 0700 \
+                    @lib_escapeShellArg_stateDirectory@
+                  run @lib_getExe_pkgs_coreutils_touch@ \
+                    @lib_escapeShellArg_initializedMarker@
+                fi
+              '';
+            }
+            {
+              lib_escapeShellArg_initializedMarker = lib.escapeShellArg initializedMarker;
+              lib_escapeShellArg_executable = lib.escapeShellArg executable;
+              lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
+              lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
+              lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
+              lib_getExe_pkgs_coreutils_touch = lib.getExe' pkgs.coreutils "touch";
+            }
         );
       })
       (lib.mkIf (cfg.mode == "reconcile") {
         syncFinderFavorites = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-          (import ../../../lib/templates/text.nix) ./scripts/apply-finder-favorites.sh {
-            lib_escapeShellArg_executable = lib.escapeShellArg executable;
-            lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
-            lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
-          }
+          myLib.writers.renderBashText { inherit pkgs; }
+            {
+              name = "apply-finder-favorites.sh";
+              text = ''
+                # shellcheck shell=bash
+                # Sourced by Home Manager or the owning build phase.
+                run @lib_escapeShellArg_executable@ apply \
+                  --config @lib_escapeShellArg_configurationFile@ \
+                  --state-directory @lib_escapeShellArg_stateDirectory@
+              '';
+            }
+            {
+              lib_escapeShellArg_executable = lib.escapeShellArg executable;
+              lib_escapeShellArg_configurationFile = lib.escapeShellArg configurationFile;
+              lib_escapeShellArg_stateDirectory = lib.escapeShellArg stateDirectory;
+            }
         );
       })
     ];

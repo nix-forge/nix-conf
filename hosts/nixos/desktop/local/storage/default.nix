@@ -3,10 +3,20 @@
   lib,
   myLib,
   pkgs,
+  utils,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.hardware.storage.encryptedRoot;
+  inherit (import ./.storage-roles.nix)
+    bulkLockPath
+    dataMount
+    gamesMount
+    runtimeDirectory
+    vmImagesMount
+    workMount
+    ;
   homeUsers = lib.filterAttrs (
     name: user: (user.isNormalUser or false) && user.home == "/home/${name}"
   ) config.users.users;
@@ -25,34 +35,33 @@ let
       ]
     ) homeUsers
   );
-  enrollment = myLib.writers.writeBashTemplate { inherit pkgs; } {
+  runtime =
+    (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).desktopStorageRuntime;
+  enrollmentPolicy = (pkgs.formats.json { }).generate "desktop-storage-enrollment.json" {
+    secureBootCheck = lib.getExe' runtime "desktop-storage-check-secure-boot";
+    inherit (cfg) dataKeyFile;
+    inherit (cfg) homelabKeyFile;
+    measuredBoot = config.security.secureBootLanzaboote.measuredBoot.enable or false;
+    pcrlockPolicy =
+      config.boot.lanzaboote.measuredBoot.pcrlockPolicy or "/var/lib/systemd/pcrlock.json";
+    pcrlockExecutable = "${config.systemd.package}/lib/systemd/systemd-pcrlock";
+  };
+  enrollment = writeShellApplication {
     name = "desktop-storage-enroll";
-    src = ./enroll.sh;
-    dir = "bin";
     runtimeInputs = [
       pkgs.cryptsetup
       pkgs.systemd
-      pkgs.coreutils
       pkgs.util-linux
-      pkgs.jq
-      pkgs.python3
     ];
-    replacements = {
-      secureBootCheck = ./check_secure_boot.py;
-      dataKeyFile = lib.escapeShellArg cfg.dataKeyFile;
-      homelabKeyFile = lib.escapeShellArg cfg.homelabKeyFile;
-      measuredBoot = lib.boolToString (config.security.secureBootLanzaboote.measuredBoot.enable or false);
-      pcrlockPolicy = lib.escapeShellArg (
-        config.boot.lanzaboote.measuredBoot.pcrlockPolicy or "/var/lib/systemd/pcrlock.json"
-      );
-      pcrlockExecutable = lib.escapeShellArg "${config.systemd.package}/lib/systemd/systemd-pcrlock";
-    };
+    text = ''
+      exec ${lib.getExe' runtime "desktop-storage-enroll"} ${enrollmentPolicy} "$@"
+    '';
   };
   mounts = [
-    "/srv/data"
-    "/srv/data/work"
-    "/mnt/games"
-    "/var/lib/libvirt/images"
+    dataMount
+    workMount
+    gamesMount
+    vmImagesMount
   ];
   snapshot = path: {
     SUBVOLUME = path;
@@ -132,6 +141,8 @@ in
         };
 
         systemd.tmpfiles.rules = [
+          "d ${runtimeDirectory} 0700 root root - -"
+          "f ${bulkLockPath} 0600 root root - -"
           "d /var/lib/desktop-storage/keys 0700 root root - -"
           "d /var/lib/desktop-storage/recovery 0700 root root - -"
           "z /home/.snapshots 0700 root root - -"
@@ -146,17 +157,29 @@ in
           before = [ "systemd-user-sessions.service" ];
           after = [ "systemd-tmpfiles-setup.service" ];
           unitConfig.RequiresMountsFor = [ "/home" ];
-          path = [ pkgs.btrfs-progs ];
-          serviceConfig.Type = "oneshot";
-          script =
-            (import ../../../../../lib/templates/text.nix) ./scripts/desktop-home-subvolumes-script.sh
-              {
-                lib_concatMapStringsSep_n_name_btrfs_subvolume_show_lib_esca = lib.concatMapStringsSep "\n" (
-                  name: ''
-                    btrfs subvolume show ${lib.escapeShellArg "/home/${name}/.cache"} >/dev/null
-                    btrfs subvolume show ${lib.escapeShellArg "/home/${name}/.local/share/docker"} >/dev/null
-                  '') (builtins.attrNames homeUsers);
-              };
+          serviceConfig = {
+            Type = "oneshot";
+            StandardOutput = "null";
+            ExecStart = map utils.escapeSystemdExecArgs (
+              if homeUsers == { } then
+                [ [ (lib.getExe' pkgs.coreutils "true") ] ]
+              else
+                lib.concatMap (name: [
+                  [
+                    (lib.getExe' pkgs.btrfs-progs "btrfs")
+                    "subvolume"
+                    "show"
+                    "/home/${name}/.cache"
+                  ]
+                  [
+                    (lib.getExe' pkgs.btrfs-progs "btrfs")
+                    "subvolume"
+                    "show"
+                    "/home/${name}/.local/share/docker"
+                  ]
+                ]) (builtins.attrNames homeUsers)
+            );
+          };
         };
         systemd.services."user@" = {
           requires = [ "desktop-home-subvolumes.service" ];
@@ -177,19 +200,56 @@ in
           description = "Prepare mounted desktop data directories";
           wantedBy = [ "multi-user.target" ];
           unitConfig.RequiresMountsFor = mounts;
-          path = [
-            pkgs.util-linux
-            pkgs.coreutils
-            pkgs.e2fsprogs
-          ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-          };
-          script = (import ../../../../../lib/templates/text.nix) ./scripts/desktop-data-ready-script.sh {
-            lib_concatMapStringsSep_n_path_mountpoint_q_lib_escapeShellA = lib.concatMapStringsSep "\n" (
-              path: "mountpoint -q ${lib.escapeShellArg path}"
-            ) mounts;
+            ExecStart = map utils.escapeSystemdExecArgs (
+              map (path: [
+                (lib.getExe' pkgs.util-linux "mountpoint")
+                "-q"
+                path
+              ]) mounts
+              ++ [
+                [
+                  (lib.getExe' pkgs.coreutils "chmod")
+                  "0700"
+                  "${dataMount}/.snapshots"
+                  "${workMount}/.snapshots"
+                ]
+                # Clear inherited NOCOW after restores. Existing extents need a
+                # separate cold copy to regain data checksums.
+                [
+                  (lib.getExe' pkgs.e2fsprogs "chattr")
+                  "-C"
+                  vmImagesMount
+                ]
+                # Steam checks access at the library root. Change ownership
+                # only after verifying that all data mounts are present.
+                [
+                  (lib.getExe' pkgs.coreutils "chown")
+                  "root:users"
+                  gamesMount
+                ]
+                [
+                  (lib.getExe' pkgs.coreutils "chmod")
+                  "2775"
+                  gamesMount
+                ]
+                [
+                  (lib.getExe' pkgs.coreutils "install")
+                  "-d"
+                  "-m"
+                  "2775"
+                  "-o"
+                  "root"
+                  "-g"
+                  "users"
+                  "${gamesMount}/steamapps"
+                  "${workMount}/projects"
+                  "${dataMount}/media"
+                ]
+              ]
+            );
           };
         };
         # The pre-start check also covers nofail mounts, whose dependency
@@ -197,8 +257,8 @@ in
         systemd.services.libvirtd = lib.mkIf config.virtualisation.libvirtd.enable {
           requires = [ "desktop-data-ready.service" ];
           after = [ "desktop-data-ready.service" ];
-          unitConfig.RequiresMountsFor = [ "/var/lib/libvirt/images" ];
-          serviceConfig.ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /var/lib/libvirt/images" ];
+          unitConfig.RequiresMountsFor = [ vmImagesMount ];
+          serviceConfig.ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q ${vmImagesMount}" ];
         };
         # A restored pool can autostart with its old NOCOW policy before the
         # reconciler updates its persistent XML. Repair directory inheritance
@@ -207,8 +267,8 @@ in
           lib.mkIf (config.virtualisation.libvirtWorkstation.enable or false)
             {
               serviceConfig.ExecStartPost = [
-                "${pkgs.util-linux}/bin/mountpoint -q /var/lib/libvirt/images"
-                "${pkgs.e2fsprogs}/bin/chattr -C /var/lib/libvirt/images"
+                "${pkgs.util-linux}/bin/mountpoint -q ${vmImagesMount}"
+                "${pkgs.e2fsprogs}/bin/chattr -C ${vmImagesMount}"
               ];
             };
 
@@ -218,8 +278,8 @@ in
           persistentTimer = true;
           configs = {
             home = snapshot "/home";
-            data = snapshot "/srv/data";
-            work = snapshot "/srv/data/work";
+            data = snapshot dataMount;
+            work = snapshot workMount;
           };
         };
         # Run each filesystem independently. Upstream's shared jobs couple all
@@ -277,17 +337,41 @@ in
                       ExecCondition = lib.mkIf (
                         cfg.capacity.enable && phase == "timeline"
                       ) "${lib.getExe config.system.build.desktopStorageCapacity} snapshot ${lib.escapeShellArg path}";
+                      ExecStart =
+                        let
+                          snapper =
+                            args:
+                            utils.escapeSystemdExecArgs (
+                              [
+                                (lib.getExe' pkgs.snapper "snapper")
+                                "--config"
+                                name
+                              ]
+                              ++ args
+                            );
+                        in
+                        if phase == "timeline" then
+                          snapper [
+                            "create"
+                            "--type"
+                            "single"
+                            "--cleanup-algorithm"
+                            "timeline"
+                            "--description"
+                            "timeline"
+                          ]
+                        else
+                          [
+                            (snapper [
+                              "cleanup"
+                              "timeline"
+                            ])
+                            (snapper [
+                              "cleanup"
+                              "empty-pre-post"
+                            ])
+                          ];
                     };
-                    script =
-                      if phase == "timeline" then
-                        ''
-                          ${pkgs.snapper}/bin/snapper --config ${name} create --type single --cleanup-algorithm timeline --description timeline
-                        ''
-                      else
-                        ''
-                          ${pkgs.snapper}/bin/snapper --config ${name} cleanup timeline
-                          ${pkgs.snapper}/bin/snapper --config ${name} cleanup empty-pre-post
-                        '';
                   }
                 )
                 [

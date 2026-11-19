@@ -8,6 +8,7 @@
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.programs.helium;
   inherit (config.programs.browserSuite.chromium) extensionUpdateUrl heliumExtensions;
@@ -16,31 +17,21 @@ let
   isLinux = lib.hasSuffix "-linux" system;
   isDarwin = lib.hasSuffix "-darwin" system;
 
-  flagArgs = lib.concatMapStringsSep " \\\n      " (
-    flag: "--add-flags ${lib.escapeShellArg flag}"
-  ) cfg.flags;
-
-  darwinCrxToZip = pkgs.writers.writePython3Bin "helium-crx-to-zip" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/crx_to_zip.py;
+  darwinCrxToZip = (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).crxToZip;
 
   # Helium stores its UI preferences in the Chromium profile. Seed these once
   # before the browser starts, so later changes made in Helium's Settings UI
   # remain user-controlled.
-  darwinHeliumPreferenceDefaults = pkgs.writers.writePython3Bin "helium-preference-defaults" {
-    # Match the project formatter: long lines and leading binary operators.
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/preference_defaults.py;
+  darwinHeliumPreferenceDefaults =
+    (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).heliumPreferenceDefaults;
 
   darwinHeliumPreferenceHook = writeBashTemplate {
     name = "helium-preference-hook";
-    src = ./scripts/apply-preference-defaults.sh;
+    text = ''
+      #!@bash@
+      # shellcheck shell=bash
+      @defaults@ @defaultsFile@ @preferencesPath@ || printf '%s\n' 'Could not apply Helium preference defaults.' >&2
+    '';
     replacements = {
       bash = lib.getExe pkgs.bash;
       defaults = lib.getExe darwinHeliumPreferenceDefaults;
@@ -61,32 +52,120 @@ let
   # ensure a stalled Web Store request cannot leave Helium waiting indefinitely.
   darwinExtensionUpdateHook = writeBashTemplate {
     name = "helium-extension-update-hook";
-    src = ./scripts/extension-update-hook.sh;
+    text = ''
+      #!@bash@
+      # shellcheck shell=bash
+      extension_flag="$(@updater@ list @extensionRoot@ @extensionIdsFile@ @extensionUpdateUrl@ @curl@ @unzip@)"
+      @updater@ update @extensionRoot@ @extensionIdsFile@ @extensionUpdateUrl@ @curl@ @unzip@ >/dev/null 2>&1 &
+      [ -z "$extension_flag" ] || set -- "$extension_flag" "$@"
+    '';
     replacements = {
       bash = lib.getExe pkgs.bash;
       extensionIdsFile = pkgs.writeText "helium-extension-ids" (lib.concatStringsSep "\n" extensionIds);
       extensionRoot = lib.escapeShellArg "${dirOf cfg.profileDirectory}/nix-managed-extensions";
       extensionUpdateUrl = lib.escapeShellArg extensionUpdateUrl;
-      mkdir = lib.getExe' pkgs.coreutils "mkdir";
-      rmdir = lib.getExe' pkgs.coreutils "rmdir";
-      mktemp = lib.getExe' pkgs.coreutils "mktemp";
-      rm = lib.getExe' pkgs.coreutils "rm";
-      mv = lib.getExe' pkgs.coreutils "mv";
+      updater = lib.getExe' darwinCrxToZip "helium-extension-update";
       curl = lib.getExe pkgs.curl;
-      crxToZip = lib.getExe darwinCrxToZip;
       unzip = lib.getExe pkgs.unzip;
     };
   };
 
-  darwinPackageWithFlags = cfg.package.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
-    postInstall =
-      (old.postInstall or "")
-      + ((import ../../../../lib/templates/text.nix) ./scripts/wrap-darwin-launcher.sh {
-        inherit flagArgs;
-        lib_escapeShellArg_source_darwinHeliumPreferenceHook_source_ = lib.escapeShellArg "source ${darwinHeliumPreferenceHook}; source ${darwinExtensionUpdateHook}";
+  # Finder and Dock launches must select Helium Launcher.app for flags/hooks.
+  # Direct launches of the unchanged vendor Helium.app retain vendor behavior.
+  # Invoke the selected upstream CLI wrapper, retaining its updater-disable
+  # argument and any future upstream launcher setup. Never rewrite signed code.
+  darwinLauncher = writeBashTemplate {
+    name = "helium";
+    text = ''
+      #!@bash@
+      # shellcheck shell=bash
+      # shellcheck source=/dev/null
+      source @preferenceHook@
+      # shellcheck source=/dev/null
+      source @extensionHook@
+      exec @browser@ @flags@ "$@"
+    '';
+    dir = "bin";
+    replacements = {
+      bash = lib.getExe pkgs.bash;
+      preferenceHook = darwinHeliumPreferenceHook;
+      extensionHook = darwinExtensionUpdateHook;
+      browser = lib.getExe cfg.package;
+      flags = lib.escapeShellArgs cfg.flags;
+    };
+  };
+  darwinLauncherApp = pkgs.stdenv.mkDerivation {
+    pname = "helium-launcher";
+    version = cfg.package.version;
+    src = ./scripts/launcher.swift;
+    dontUnpack = true;
+    nativeBuildInputs = [
+      pkgs.swift
+      pkgs.rcodesign
+    ];
+    buildPhase = checkedShellText {
+      name = "build-helium-launcher";
+      text = ''
+        # Nix supplies the immutable Swift source and builder hooks.
+        # shellcheck disable=SC2154
+        runHook preBuild
+        swiftc -swift-version 5 -O "$src" -o helium-launcher
+        runHook postBuild
+      '';
+    };
+    installPhase = checkedShellText {
+      name = "install-helium-launcher";
+      text =
+        myLib.templates.renderText
+          {
+            name = "install-launcher.sh";
+            text = ''
+              # shellcheck shell=bash
+              # shellcheck disable=SC2154
+              runHook preInstall
+              app="$out/Applications/Helium Launcher.app"
+              mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+              cp helium-launcher "$app/Contents/MacOS/helium-launcher"
+              cp @launcherPlist@ "$app/Contents/Info.plist"
+              printf '%s\n' @launcherExecutable@ >"$app/Contents/Resources/launcher.txt"
+              if [ -f "@vendor@/Applications/Helium.app/Contents/Resources/app.icns" ]; then
+                cp "@vendor@/Applications/Helium.app/Contents/Resources/app.icns" "$app/Contents/Resources/app.icns"
+              fi
+              runHook postInstall
+            '';
+          }
+          {
+            launcherPlist = ./scripts/launcher.plist;
+            launcherExecutable = lib.escapeShellArg (lib.getExe darwinLauncher);
+            vendor = cfg.package;
+          };
+    };
+    postFixup = checkedShellText {
+      name = "seal-helium-launcher";
+      text = ''
+        # Seal only our helper after Mach-O fixups, preserving the vendor signature.
+        # shellcheck disable=SC2154
+        rcodesign sign "$out/Applications/Helium Launcher.app"
+      '';
+    };
+  };
+  darwinPackageWithFlags =
+    (pkgs.linkFarm "helium-with-launcher-${cfg.package.version}" {
+      "Applications/Helium.app" = "${cfg.package}/Applications/Helium.app";
+      "Applications/Helium Launcher.app" = "${darwinLauncherApp}/Applications/Helium Launcher.app";
+      "bin/helium" = lib.getExe darwinLauncher;
+    }).overrideAttrs
+      (_: {
+        inherit (cfg.package) version;
+        passthru = {
+          vendor = cfg.package;
+          launcher = darwinLauncherApp;
+        };
+        meta = cfg.package.meta // {
+          mainDarwinApp = "Helium Launcher.app";
+        };
       });
-  });
+
 in
 {
   imports = [
@@ -101,7 +180,9 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = inputs.helium-browser-darwin.packages.${system}.default;
+      default =
+        (import ../../../../overlays/temporary { inherit inputs pkgs; }).apply "helium-darwin-app-metadata"
+          inputs.helium-browser-darwin.packages.${system}.default;
       defaultText = "inputs.helium-browser-darwin.packages.\${system}.default";
       description = "The Helium package to use.";
     };

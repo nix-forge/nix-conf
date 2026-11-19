@@ -1,6 +1,12 @@
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
 in
 {
   key = "nix-conf/ghostty/homeManager";
@@ -37,18 +43,37 @@ in
 
         auto-update = "off";
       }
+      // lib.optionalAttrs macShortcuts {
+        keybind = [
+          "super+c=copy_to_clipboard"
+          "super+v=paste_from_clipboard"
+          "super+a=select_all"
+          "super+f=start_search"
+          "super+t=new_tab"
+          "super+n=new_window"
+          "super+w=close_tab:this"
+          "super+shift+w=close_window"
+          "super+q=quit"
+          "super+equal=increase_font_size:1"
+          "super+shift+equal=increase_font_size:1"
+          "super+minus=decrease_font_size:1"
+          "super+0=reset_font_size"
+          "super+shift+bracket_left=previous_tab"
+          "super+shift+bracket_right=next_tab"
+          "super+arrow_left=text:\\x01"
+          "super+arrow_right=text:\\x05"
+          "super+arrow_up=scroll_to_top"
+          "super+arrow_down=scroll_to_bottom"
+          "alt+arrow_left=esc:b"
+          "alt+arrow_right=esc:f"
+          "alt+backspace=text:\\x17"
+          "super+backspace=text:\\x15"
+        ]
+        ++ map (n: "super+${toString n}=goto_tab:${toString n}") (lib.range 1 9);
+      }
       // lib.optionalAttrs isDarwin {
         # Treat Option as Alt (recommended if you use terminal apps that rely on Alt bindings)
         macos-option-as-alt = true;
-        keybind = [
-          # Option+Delete / Option+Backspace => Ctrl-W
-          # Delete previous word in bash/zsh/nushell-style line editors.
-          "option+backspace=text:\\x17"
-
-          # Command+Delete / Command+Backspace => Ctrl-U
-          # Delete from cursor to beginning of line.
-          "cmd+backspace=text:\\x15"
-        ];
 
         # macOS secure input: auto-enable on detected password prompts + show indication
         macos-auto-secure-input = true;
@@ -67,6 +92,17 @@ in
         quick-terminal-autohide = true;
         quick-terminal-space-behavior = "move";
         quick-terminal-animation-duration = 0.12;
+      }
+      // lib.optionalAttrs (isDarwin && !macShortcuts) {
+        keybind = [
+          # Option+Delete / Option+Backspace => Ctrl-W
+          # Delete previous word in bash/zsh/nushell-style line editors.
+          "option+backspace=text:\\x17"
+
+          # Command+Delete / Command+Backspace => Ctrl-U
+          # Delete from cursor to beginning of line.
+          "cmd+backspace=text:\\x15"
+        ];
       }
       // lib.optionalAttrs isLinux {
         # Linux convention: quit when last window closes

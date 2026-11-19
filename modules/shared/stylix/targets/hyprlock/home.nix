@@ -3,6 +3,7 @@
     {
       config,
       lib,
+      myLib,
       pkgs,
       osConfig ? null,
       ...
@@ -32,9 +33,7 @@
       # Hyprlang treats a single hash as a comment, including inside markup.
       passwordHint = sizedText design.fontSizes.body ''<span foreground="#${design.greeterPalette.on_surface}">Type password</span>'';
       avatarSvg = pkgs.writeText "authentication-user.svg" (
-        (import ../../../../../lib/templates/text.nix) ./scripts/user-icon.svg {
-          design_colors_base05 = design.colors.base05;
-        }
+        myLib.templates.renderText ./scripts/user-icon.svg { design_colors_base05 = design.colors.base05; }
       );
       # Hyprlock's path loader does not supply the size required for SVGs.
       # Rasterize once in the build, keeping image decoding at lock time tiny.

@@ -14,7 +14,24 @@ let
   client = lib.getExe' pkgs.swayosd "swayosd-client";
   focusedClient = writeBashTemplate {
     name = "desktop-swayosd-focused";
-    src = ./scripts/swayosd-focused.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      # SwayOSD otherwise mirrors feedback onto every connected output. Querying the
+      # focused Hyprland output keeps a future multi-monitor desktop calm while the
+      # fallback preserves useful feedback during compositor startup.
+      monitor=""
+      if [ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        monitor="$("@hyprctl@" monitors -j 2>/dev/null | "@jq@" -r '.[] | select(.focused == true) | .name' 2>/dev/null || true)"
+      fi
+
+      if [ -n "$monitor" ]; then
+        exec "@swayosdClient@" --monitor "$monitor" "$@"
+      fi
+
+      exec "@swayosdClient@" "$@"
+    '';
     dir = "bin";
     replacements = {
       hyprctl = lib.getExe' hyprlandPackage "hyprctl";

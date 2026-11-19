@@ -1,11 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
-  osConfig ? null,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.programs.voiceDictation;
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   dataDir =
@@ -13,47 +14,8 @@ let
       "${config.home.homeDirectory}/Library/Application Support/com.pais.handy"
     else
       "${config.xdg.dataHome}/com.pais.handy";
-  # Handy v0.9.6's catalog pins this archive by SHA-256. English Parakeet V2
-  # offers high-quality recognition without a second local cleanup model.
-  archive = pkgs.fetchurl {
-    url = "https://blob.handy.computer/parakeet-v2-int8.tar.gz";
-    sha256 = "ac9b9429984dd565b25097337a887bb7f0f8ac393573661c651f0e7d31563991";
-  };
-  model = pkgs.runCommand "dictation-parakeet-v2-int8" { } ''
-    mkdir -p "$out"
-    tar --warning=no-unknown-keyword -xzf ${archive} -C "$out" --strip-components=1 --exclude='._*'
-    test -f "$out/encoder-model.int8.onnx"
-    test -f "$out/vocab.txt"
-    test -f "$out/decoder_joint-model.int8.onnx"
-  '';
-  shortcutKeys = {
-    toggle = [
-      "CTRL"
-      "ALT"
-      "D"
-    ];
-    cancel = [
-      "CTRL"
-      "ALT"
-      "SHIFT"
-      "D"
-    ];
-  };
-  linuxChords = lib.mapAttrs (_: keys: lib.concatStringsSep " + " keys) shortcutKeys;
-  macChords = lib.mapAttrs (
-    _: keys:
-    lib.concatStringsSep "+" (map (key: if key == "ALT" then "option" else lib.toLower key) keys)
-  ) shortcutKeys;
-  actions = {
-    toggle = "record toggle";
-    cancel = "record cancel";
-  };
-  shortcutLua = lib.concatMapStringsSep "\n" (action: ''
-    hl.unbind(${builtins.toJSON linuxChords.${action}})
-    hl.bind(${
-      builtins.toJSON linuxChords.${action}
-    }, hl.dsp.exec_cmd(${builtins.toJSON "${lib.getExe cfg.package} ${actions.${action}}"}))
-  '') (builtins.attrNames shortcutKeys);
+  # Package metadata owns model identity, immutable pins and update automation.
+  model = cfg.modelPackage;
   binding = id: chord: {
     inherit id;
     name = id;
@@ -62,15 +24,22 @@ let
     current_binding = chord;
   };
   preferences = (pkgs.formats.json { }).generate "handy-preferences.json" {
-    selected_model = "parakeet-tdt-0.6b-v2";
-    model_unload_timeout = "immediately";
+    selected_model = model.modelId;
+    # Keep weights warm during a dictation session; release memory after idle.
+    model_unload_timeout = "min5";
+    transcribe_accelerator = "auto";
     always_on_microphone = false;
-    push_to_talk = false;
+    keyboard_implementation = "handy_keys";
+    shortcut_activation = "push_to_talk";
+    overlay_style = "live";
+    overlay_position = "bottom";
     audio_feedback = true;
     audio_feedback_volume = 0.4;
     start_hidden = true;
     autostart_enabled = false; # The native service manager owns its lifetime.
     update_checks_enabled = false; # Nix owns updates.
+    # Native normalization and the editable vocabulary still apply without an LLM.
+    filler_word_removal_enabled = true;
     post_process_enabled = false;
     auto_submit = false;
     paste_method = "ctrl_v";
@@ -80,51 +49,44 @@ let
     recording_retention_period = "never";
     log_level = "warn";
     bindings = {
-      transcribe = binding "transcribe" macChords.toggle;
+      transcribe = binding "transcribe" (if isDarwin then "option_left+space" else "alt_left+space");
       transcribe_with_post_process = binding "transcribe_with_post_process" "";
-      cancel = binding "cancel" macChords.cancel;
+      # D is a named workspace in the shared keyboard scheme; Shift sends
+      # a window there. Keep dictation cancellation out of that family.
+      cancel = binding "cancel" (
+        if config.keyboard.macosShortcuts.enable or false then "ctrl+alt+shift+x" else "ctrl+alt+shift+d"
+      );
     };
   };
-  reconciler = pkgs.writers.writePython3Bin "configure-voice-dictation" {
-    flakeIgnore = [ "E501" ];
-  } ./dictation-assets/configure.py;
-  prepare = pkgs.writeShellApplication {
+  reconciler = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).dictationReconcile;
+  prepareArgs = [
+    (lib.getExe reconciler)
+    "--data-dir"
+    dataDir
+    "--preferences"
+    preferences
+    "--model"
+    model.modelFile
+    "--model-name"
+    model.modelFilename
+  ];
+  prepare = writeShellApplication {
     name = "prepare-voice-dictation";
-    text = ''
-      exec ${lib.getExe reconciler} --data-dir ${lib.escapeShellArg dataDir} \
-        --preferences ${preferences} --model ${model}
-    '';
+    text = "exec ${lib.escapeShellArgs prepareArgs}";
   };
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") { inherit lib config pkgs; };
   launcher =
     if isDarwin then
       "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/Handy.app/Contents/MacOS/handy"
     else
       lib.getExe cfg.package;
-  start = pkgs.writeShellApplication {
+  start = writeShellApplication {
     name = "start-voice-dictation";
     text = ''
       ${lib.getExe prepare}
+      export HANDY_DISABLE_UPDATER=1
       exec ${lib.escapeShellArg launcher} --start-hidden
     '';
-  };
-  hyprlandPackage =
-    if osConfig != null && (osConfig.programs.hyprland.enable or false) then
-      osConfig.programs.hyprland.package
-    else if config.wayland.windowManager.hyprland.package != null then
-      config.wayland.windowManager.hyprland.package
-    else
-      pkgs.hyprland;
-  registerBindings = pkgs.writeShellApplication {
-    name = "register-dictation-shortcuts";
-    text = ''
-      exec ${lib.getExe' hyprlandPackage "hyprctl"} eval ${lib.escapeShellArg shortcutLua}
-    '';
-  };
-  bind = key: argument: {
-    _args = [
-      key
-      (lib.generators.mkLuaInline "hl.dsp.exec_cmd(${builtins.toJSON "${launcher} ${argument}"})")
-    ];
   };
 in
 {
@@ -133,8 +95,13 @@ in
     enable = lib.mkEnableOption "free offline system-wide voice dictation";
     package = lib.mkOption {
       type = lib.types.package;
-      default = if isDarwin then pkgs.handy else (pkgs.voxtype.override { onnxSupport = true; });
-      description = "Handy on Darwin or Voxtype on Linux.";
+      default = pkgs.handy;
+      description = "Handy desktop dictation application.";
+    };
+    modelPackage = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.parakeet-unified-en-gguf;
+      description = "Speech model package exposing modelId, modelFilename and modelFile metadata.";
     };
     prepare = lib.mkOption {
       type = lib.types.package;
@@ -144,55 +111,32 @@ in
     };
   };
   config = lib.mkIf cfg.enable {
-    home.packages = [ cfg.package ] ++ lib.optionals isDarwin [ prepare ];
+    home.packages = [
+      cfg.package
+      prepare
+    ];
     targets.darwin.copyApps.enable = lib.mkIf isDarwin (lib.mkDefault true);
-    xdg.configFile."voxtype/config.toml" = lib.mkIf isLinux {
-      source = (pkgs.formats.toml { }).generate "voxtype.toml" {
-        engine = "parakeet";
-        osd.enabled = false;
-        state_file = "auto";
-        hotkey.enabled = false;
-        audio = {
-          device = "default";
-          max_duration_secs = 300;
-          feedback.enabled = true;
-        };
-        parakeet = {
-          model = toString model;
-          model_type = "tdt";
-          on_demand_loading = true;
-        };
-        output = {
-          mode = "paste";
-          fallback_to_clipboard = true;
-          auto_submit = false;
-          notification = {
-            on_recording_start = true;
-            on_recording_stop = true;
-            on_transcription = false;
-          };
-        };
-      };
-    };
-    systemd.user.services.voxtype = lib.mkIf isLinux {
+    systemd.user.services.handy = lib.mkIf isLinux {
       Unit = {
-        Description = "Offline voice dictation";
+        Description = "Offline voice dictation with recording overlay";
         PartOf = [ "graphical-session.target" ];
         After = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${lib.getExe cfg.package} --config ${config.xdg.configHome}/voxtype/config.toml daemon";
-        ExecStartPost = lib.getExe registerBindings;
+        ExecStartPre = systemdUtils.escapeSystemdExecArgs prepareArgs;
+        ExecStart = systemdUtils.escapeSystemdExecArgs [
+          launcher
+          "--start-hidden"
+        ];
+        Environment = [
+          "HANDY_DISABLE_UPDATER=1"
+          "GDK_BACKEND=wayland"
+        ];
         Restart = "on-failure";
         RestartSec = 5;
       };
       Install.WantedBy = [ "graphical-session.target" ];
     };
-    wayland.windowManager.hyprland.settings.bind = lib.mkIf isLinux (
-      lib.mkAfter (
-        map (action: bind linuxChords.${action} actions.${action}) (builtins.attrNames shortcutKeys)
-      )
-    );
     launchd.agents.handy = lib.mkIf isDarwin {
       enable = true;
       config = {
@@ -208,6 +152,7 @@ in
       enable = true;
       bundle = "Handy.app";
       bundleId = "com.pais.handy";
+      teamId = "UWFLB4GC25";
       features = {
         recording = {
           enable = true;

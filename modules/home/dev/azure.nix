@@ -5,5 +5,13 @@ in
 {
   # The extension is built and pinned with the CLI. Do not let `az extension`
   # download a second, mutable copy into the user profile.
-  home.packages = [ azureCli ];
+  home.packages = [
+    (
+      azureCli
+      // {
+        # This package provides command-line tools and has no Applications output.
+        hasMacOSApplications = false;
+      }
+    )
+  ];
 }

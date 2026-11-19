@@ -7,7 +7,8 @@
   ...
 }:
 let
-  python = pkgs.python3.withPackages (_: [ (myLib.python.notificationProcess { inherit pkgs; }) ]);
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
   cfg = config.desktop.idle;
   hyprlandPackage = myLib.desktop.resolveHyprlandPackage { inherit config pkgs osConfig; };
   inherit (pkgs.stdenv.hostPlatform) isLinux;
@@ -16,46 +17,56 @@ let
     osConfig == null
     || (lib.attrByPath [ "systemd" "sleep" "settings" "Sleep" "AllowSuspend" ] "yes" osConfig) != "no";
   sessionLockUnit = "desktop-session-lock";
-  sessionClient = pkgs.writeShellApplication {
+  sessionClient = writeShellApplication {
     name = "${sessionLockUnit}-client";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.util-linux
-    ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-session-lock-client.sh {
-      pkgs_bash = pkgs.bash;
-      scripts_session_lock_sh = ./scripts/session-lock.sh;
-      lib_getExe_config_programs_hyprlock_package = lib.getExe config.programs.hyprlock.package;
-      lib_escapeShellArg_config_xdg_configHome_hypr_hyprlock_conf = lib.escapeShellArg "${config.xdg.configHome}/hypr/hyprlock.conf";
-    };
+    text =
+      myLib.templates.renderText
+        {
+          name = "desktop-session-lock-client.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @runtime@ client "$@" @locker@ --config @lock_config@
+          '';
+        }
+        {
+          runtime =
+            lib.getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).idleInhibitor
+              "desktop-session-lock";
+          locker = lib.escapeShellArg (lib.getExe config.programs.hyprlock.package);
+          lock_config = lib.escapeShellArg "${config.xdg.configHome}/hypr/hyprlock.conf";
+        };
   };
-  sessionLock = pkgs.writeShellApplication {
+  sessionLock = writeShellApplication {
     name = sessionLockUnit;
-    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-session-lock.sh {
-      session_client = lib.getExe sessionClient;
-      unit_template = lib.escapeShellArg "${sessionLockUnit}@.service";
-      ipc_timeout = lib.escapeShellArg "${toString cfg.recoveryIpcTimeoutSeconds}s";
-      ipc_kill_after = lib.escapeShellArg "2s";
-      systemctl = lib.getExe' pkgs.systemd "systemctl";
-      timeout = lib.getExe' pkgs.coreutils "timeout";
-      sha256sum = lib.getExe' pkgs.coreutils "sha256sum";
-      flock = lib.getExe' pkgs.util-linux "flock";
-      systemd_escape = lib.getExe' pkgs.systemd "systemd-escape";
-      hyprctl = lib.getExe' hyprlandPackage "hyprctl";
-      jq = lib.getExe pkgs.jq;
-    };
+    text =
+      myLib.templates.renderText
+        {
+          name = "desktop-session-lock.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @runtime@ @systemctl@ @systemd_escape@ @hyprctl@ @ipc_timeout@ "$@"
+          '';
+        }
+        {
+          runtime =
+            lib.getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).idleInhibitor
+              "desktop-session-lock";
+          systemctl = lib.getExe' pkgs.systemd "systemctl";
+          systemd_escape = lib.getExe' pkgs.systemd "systemd-escape";
+          hyprctl = lib.getExe' hyprlandPackage "hyprctl";
+          ipc_timeout = toString cfg.recoveryIpcTimeoutSeconds;
+        };
   };
   hyprctl = lib.getExe' hyprlandPackage "hyprctl";
   loginctl = lib.getExe' pkgs.systemd "loginctl";
   systemctl = lib.getExe' pkgs.systemd "systemctl";
   filterNativeInhibitors = cfg.backgroundAppClasses != [ ];
-  inhibitorCheck = pkgs.writeShellApplication {
+  inhibitorCheck = writeShellApplication {
     name = "desktop-idle-inhibit-check";
     runtimeInputs = [ hyprlandPackage ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-idle-inhibit-check.sh {
-      lib_getExe_pkgs_python3 = lib.getExe python;
-      scripts_idle_inhibit_check_py = ./scripts/idle_inhibit_check.py;
-    };
+    text = ''
+      exec ${lib.getExe (import ../../../flake/runtime-packages.nix { inherit pkgs; }).idleInhibitor} "$@"
+    '';
   };
   screenCondition = lib.optionalAttrs filterNativeInhibitors {
     condition_cmd = "${lib.getExe inhibitorCheck} screen -- ${lib.escapeShellArgs cfg.backgroundAppClasses}";
@@ -268,6 +279,10 @@ in
 
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable
-        (lib.mkAfter [ (hyprBind "SUPER + L" "${loginctl} lock-session") ]);
+        (
+          lib.mkAfter [
+            (hyprBind (if macShortcuts then "SUPER + CTRL + Q" else "SUPER + L") "${loginctl} lock-session")
+          ]
+        );
   };
 }

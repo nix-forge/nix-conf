@@ -1,10 +1,12 @@
 {
   config,
+  myLib,
   pkgs,
   lib,
   ...
 }:
 let
+  writeShellScriptBin = myLib.writers.writeShellScriptBin { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   cfg = config.macos;
 
@@ -55,10 +57,14 @@ let
         inherit name;
         paths = lib.mapAttrsToList (
           command: path:
-          pkgs.writeShellScriptBin command (
-            (import ../../../lib/templates/text.nix) ./scripts/core-packages-run.sh {
-              lib_escapeShellArg_path = lib.escapeShellArg path;
-            }
+          writeShellScriptBin command (
+            myLib.templates.renderText {
+              name = "core-packages-run.sh";
+              text = ''
+                # shellcheck shell=bash
+                exec @lib_escapeShellArg_path@ "$@"
+              '';
+            } { lib_escapeShellArg_path = lib.escapeShellArg path; }
           )
         ) commands;
       }

@@ -1,33 +1,30 @@
-{ self, lib, ... }: {
+{ self, ... }: {
   # The required Linux lint job owns portable tooling. Native jobs own the
   # remaining checks; additions within either tool configuration follow it.
-  # Python analysis targets all platforms through pyproject.toml.
-  flake.lintChecks = builtins.mapAttrs (
-    _: checks:
-    {
-      inherit (checks)
-        pre-commit
-        python-quality
-        javascript-quality
-        stylesheet-quality
-        swift-quality
-        lua-quality
-        treefmt
-        documentation
-        gitleaks-policy
-        ;
-    }
-    // lib.optionalAttrs (checks ? dart-quality) { inherit (checks) dart-quality; }
+  # Rust package and quality checks retain their native platform selection.
+  flake.lintChecks = builtins.mapAttrs (_: checks: {
+    inherit (checks)
+      pre-commit
+      runtime-source-policy
+      javascript-quality
+      stylesheet-quality
+      swift-quality
+      lua-quality
+      treefmt
+      documentation
+      ;
+  }
+
   ) self.checks;
   # Hosted CI runs this check before native work. Keep the complete lintChecks
   # inventory for local consumers and native-check exclusions. The lint job
   # runs the same generated all-file hooks in devShells.ci, plus publication
   # history scanning; rebuilding the isolated pre-commit check adds no scope.
   flake.hostedLintChecks = builtins.mapAttrs (
-    _: checks:
-    removeAttrs checks [
-      "python-quality"
-      "pre-commit"
-    ]
+    _: checks: removeAttrs checks [ "pre-commit" ]
   ) self.lintChecks;
+
+  flake.ciChecks = builtins.mapAttrs (
+    system: checks: removeAttrs checks (builtins.attrNames (self.lintChecks.${system} or { }))
+  ) self.checks;
 }

@@ -1,10 +1,18 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  renderCheck =
+    name: src: replacements:
+    checkedShellText {
+      inherit name;
+      text = myLib.templates.renderText src replacements;
+    };
   cfg = config.system.activationSafety;
 in
 {
@@ -44,19 +52,51 @@ in
     ];
     system.preSwitchChecks = lib.mkMerge [
       (lib.mkIf cfg.showDiff {
-        updateDiff = (import ../../../lib/templates/text.nix) ./activation-safety-assets/show-diff.sh {
-          pkgs_nvd = pkgs.nvd;
-        };
+        updateDiff = renderCheck "show-activation-diff" {
+          name = "show-diff.sh";
+          text = ''
+            # shellcheck shell=bash
+            incoming="''${1-}"
+            if [[ -e /run/current-system && -n $incoming ]]; then
+              echo "--- diff to current system"
+              PATH="$incoming/sw/bin:$PATH" @pkgs_nvd@/bin/nvd diff /run/current-system "$incoming"
+              echo "---"
+            fi
+          '';
+        } { pkgs_nvd = pkgs.nvd; };
       })
       (lib.mkIf cfg.checkHostname {
-        expectedHostname =
-          (import ../../../lib/templates/text.nix) ./activation-safety-assets/check-hostname.sh
-            { expectedHostname = lib.escapeShellArg config.networking.hostName; };
+        expectedHostname = renderCheck "check-activation-hostname" {
+          name = "check-hostname.sh";
+          text = ''
+            # shellcheck shell=bash
+            actual="$(</proc/sys/kernel/hostname)"
+            expected=@expectedHostname@
+            if [[ -e /run/booted-system && $actual != "$expected" && ''${EXPECTED_HOSTNAME:-} != "$expected" ]]; then
+              echo "refusing to activate '$expected' on host '$actual'" >&2
+              echo "set EXPECTED_HOSTNAME='$expected' only for an intentional hostname migration" >&2
+              exit 1
+            fi
+          '';
+        } { expectedHostname = lib.escapeShellArg config.networking.hostName; };
       })
       (lib.mkIf cfg.checkDeploymentIdentity {
-        deploymentIdentity =
-          (import ../../../lib/templates/text.nix) ./activation-safety-assets/check-deployment-identity.sh
-            { deploymentIdentity = lib.escapeShellArg cfg.deploymentIdentity; };
+        deploymentIdentity = renderCheck "check-activation-deployment-identity" {
+          name = "check-deployment-identity.sh";
+          text = ''
+            # shellcheck shell=bash
+            identity_file=/run/current-system/etc/nixos/deployment-id
+            expected=@deploymentIdentity@
+            if [[ -e $identity_file || -L $identity_file ]]; then
+              actual="$(<"$identity_file")"
+              if [[ ! $actual =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ || $actual != "$expected" ]]; then
+                echo 'refusing to omit or change the running deployment identity' >&2
+                echo 'use the operational deployment flake; an intentional migration must explicitly disable the identity check' >&2
+                exit 1
+              fi
+            fi
+          '';
+        } { deploymentIdentity = lib.escapeShellArg cfg.deploymentIdentity; };
       })
     ];
   };

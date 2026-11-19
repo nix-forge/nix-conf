@@ -1,101 +1,74 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  cfg = config.homelab.desktopAurral;
+  httpPort = toString cfg.httpPort;
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   qualityPolicy = (pkgs.formats.json { }).generate "aurral-quality-policy.json" (
-    config.homelab.desktopAurral.qualityProfile
-    // {
-      inherit (config.homelab.desktopAurral) onboarding slskd;
-    }
+    cfg.qualityProfile // { inherit (cfg) onboarding slskd; }
   );
   mediaMounts = config.homelab.storage.requiredMounts;
-  musicFolder = "${config.homelab.storage.libraryDir}/music";
-  downloadFolder = musicFolder;
+  inherit (config.homelab.desktopMusic) libraryDir;
+  # Aurral uses the shared music folder as its destination. Soulseek's
+  # acquisition directory and Aurral's mutable service state are separate.
+  downloadFolder = libraryDir;
   mediaGroup = config.homelab.storage.group;
   namespace = config.homelab.vpn.namespace.name;
-  bridgeDirectory = "/run/aurral-network";
   lidarrPort = toString config.services.lidarr.settings.server.port;
-  bridge = confined: command: {
-    requires = [ "systemd-tmpfiles-setup.service" ];
-    after = [ "systemd-tmpfiles-setup.service" ];
-    vpn = lib.optionalAttrs confined {
-      enable = true;
-      inherit namespace;
-      extraAddressFamilies = [ "AF_UNIX" ];
-    };
-    serviceConfig = {
-      User = "aurral";
-      Group = "aurral";
-      ExecStart = "${lib.getExe pkgs.socat} ${command}";
-      Restart = "on-failure";
-      RestartSec = "2s";
-      UMask = "0077";
-      NoNewPrivileges = true;
-      CapabilityBoundingSet = "";
-      AmbientCapabilities = [ ];
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      PrivateDevices = true;
-      RestrictNamespaces = true;
-      RestrictAddressFamilies = [
-        "AF_INET"
-        "AF_UNIX"
-      ];
-      IPAddressDeny = [ "any" ];
-      IPAddressAllow = [ "127.0.0.0/8" ];
-      ReadWritePaths = [ bridgeDirectory ];
-      TasksMax = 128;
-      MemoryMax = "128M";
-    };
-  };
-  rescan = pkgs.writers.writePython3 "rescan-shared-music-library" {
-    libraries = [
-      (import ../../../../../../lib/python/notification-process/package.nix { inherit pkgs; })
-    ];
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./scripts/rescan_shared_music_library.py);
+  musicTools = (import ../../../../../../flake/runtime-packages.nix { inherit pkgs; }).musicApiTools;
+  rescan = lib.getExe' musicTools "rescan-shared-music-library";
   # Lidarr provides no readiness notification. Curl bounds safe GET retries;
   # the owning oneshot also caps the complete startup operation.
-  waitForLidarr = pkgs.writeShellApplication {
+  waitForLidarr = writeShellApplication {
     name = "wait-for-lidarr";
-    text = (import ../../../../../../lib/templates/text.nix) ./scripts/wait-for-lidarr.sh {
-      cat = lib.getExe' pkgs.coreutils "cat";
-      curl = lib.escapeShellArgs [
-        (lib.getExe pkgs.curl)
-        "--silent"
-        "--show-error"
-        "--fail"
-        "--noproxy"
-        "*"
-        "--output"
-        "/dev/null"
-        "--max-time"
-        "10"
-        "--retry"
-        "10"
-        "--retry-connrefused"
-        "--retry-max-time"
-        "60"
-        "--header"
-        "@-"
-        "http://127.0.0.1:${lidarrPort}/api/v1/system/status"
-      ];
-    };
+    text =
+      myLib.templates.renderText
+        {
+          name = "wait-for-lidarr.sh";
+          text = ''
+            # shellcheck shell=bash
+            key="$(@cat@ "$CREDENTIALS_DIRECTORY/lidarr-api-key")"
+            case "$key" in
+            "" | *$'\n'* | *$'\r'*)
+              echo "Invalid Lidarr API credential" >&2
+              exit 1
+              ;;
+            esac
+            printf 'X-Api-Key: %s\n' "$key" | @curl@
+          '';
+        }
+        {
+          cat = lib.getExe' pkgs.coreutils "cat";
+          curl = lib.escapeShellArgs [
+            (lib.getExe pkgs.curl)
+            "--silent"
+            "--show-error"
+            "--fail"
+            "--noproxy"
+            "*"
+            "--output"
+            "/dev/null"
+            "--max-time"
+            "10"
+            "--retry"
+            "10"
+            "--retry-connrefused"
+            "--retry-max-time"
+            "60"
+            "--header"
+            "@-"
+            "http://127.0.0.1:${lidarrPort}/api/v1/system/status"
+          ];
+        };
   };
-  bootstrap = pkgs.writers.writePython3 "bootstrap-aurral" {
-    # The repository formats Python to 88 columns rather than pycodestyle's 79.
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./scripts/bootstrap_aurral.py);
+  bootstrap =
+    lib.getExe
+      (import ../../../../../../flake/runtime-packages.nix { inherit pkgs; }).aurralBootstrap;
 in
 {
   users.groups.aurral = { };
@@ -108,51 +81,6 @@ in
     ];
     home = "/var/lib/aurral";
   };
-
-  # Unix sockets preserve the existing loopback API URLs without granting the
-  # VPN namespace a route into the host network. Every TCP bridge is local-only.
-  systemd.tmpfiles.rules = [ "d ${bridgeDirectory} 0700 aurral aurral -" ];
-  systemd.services.aurral-lidarr-host = bridge false "UNIX-LISTEN:${bridgeDirectory}/lidarr.sock,fork,unlink-early TCP:127.0.0.1:${lidarrPort}";
-  systemd.services.aurral-lidarr-vpn =
-    lib.recursiveUpdate
-      (bridge true "TCP-LISTEN:${lidarrPort},bind=127.0.0.1,reuseaddr,fork UNIX-CONNECT:${bridgeDirectory}/lidarr.sock")
-      {
-        requires = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-lidarr-host.service"
-        ];
-        after = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-lidarr-host.service"
-        ];
-      };
-  systemd.services.aurral-http-vpn =
-    lib.recursiveUpdate
-      (bridge true "UNIX-LISTEN:${bridgeDirectory}/http.sock,fork,unlink-early TCP:127.0.0.1:3001")
-      {
-        requires = [
-          "systemd-tmpfiles-setup.service"
-          "aurral.service"
-        ];
-        after = [
-          "systemd-tmpfiles-setup.service"
-          "aurral.service"
-        ];
-      };
-  systemd.services.aurral-http-host =
-    lib.recursiveUpdate
-      (bridge false "TCP-LISTEN:3001,bind=127.0.0.1,reuseaddr,fork UNIX-CONNECT:${bridgeDirectory}/http.sock")
-      {
-        wantedBy = [ "multi-user.target" ];
-        requires = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-http-vpn.service"
-        ];
-        after = [
-          "systemd-tmpfiles-setup.service"
-          "aurral-http-vpn.service"
-        ];
-      };
 
   systemd.timers.aurral-library-rescan = {
     wantedBy = [ "timers.target" ];
@@ -167,7 +95,7 @@ in
     after = [ "lidarr.service" ];
     environment = {
       LIDARR_URL = "http://127.0.0.1:${lidarrPort}";
-      MUSIC_ROOT = musicFolder;
+      MUSIC_ROOT = libraryDir;
       CURL = lib.getExe pkgs.curl;
       HTTP_TIMEOUT_SECONDS = "10";
       HTTP_RETRY_BUDGET_SECONDS = "60";
@@ -200,7 +128,7 @@ in
     before = [ "aurral.service" ];
     requires = [ "homelab-storage.service" ];
     after = [ "homelab-storage.service" ];
-    unitConfig.RequiresMountsFor = mediaMounts ++ [ musicFolder ];
+    unitConfig.RequiresMountsFor = mediaMounts ++ [ libraryDir ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -226,12 +154,12 @@ in
       inherit namespace;
       extraAddressFamilies = [ "AF_UNIX" ];
     };
-    unitConfig.RequiresMountsFor = mediaMounts ++ [ musicFolder ];
+    unitConfig.RequiresMountsFor = mediaMounts ++ [ libraryDir ];
     environment = {
       AURRAL_QUALITY_POLICY = toString qualityPolicy;
       AURRAL_DATA_DIR = "/var/lib/aurral";
       AURRAL_HOST = "127.0.0.1";
-      PORT = "3001";
+      PORT = httpPort;
       DOWNLOAD_FOLDER = downloadFolder;
       # Only the local reverse proxy may supply client IP headers.
       TRUST_PROXY = "loopback";
@@ -308,15 +236,34 @@ in
   };
 
   # Remove only the owned emergency package override after declarative activation.
-  system.activationScripts.aurral-artist-identity-repair-cleanup.text =
-    (import ../../../../../../lib/templates/text.nix)
-      ./scripts/aurral-artist-identity-repair-cleanup-text.sh
-      { pkgs_coreutils = pkgs.coreutils; };
+  system.activationScripts.aurral-artist-identity-repair-cleanup.text = myLib.templates.renderText {
+    name = "aurral-artist-identity-repair-cleanup-text.sh";
+    text = ''
+      # shellcheck shell=bash
+      aurral_repair_override=/etc/systemd/system.control/aurral.service.d/96-artist-identity.conf
+      if [[ -f $aurral_repair_override && ! -L $aurral_repair_override ]]; then
+        IFS= read -r aurral_repair_header <"$aurral_repair_override" || true
+        if [[ $aurral_repair_header == '# Temporary Aurral artist identity repair.' ]]; then
+          @pkgs_coreutils@/bin/rm -- "$aurral_repair_override"
+        fi
+      fi
+    '';
+  } { pkgs_coreutils = pkgs.coreutils; };
 
-  system.activationScripts.aurral-request-quality-repair-cleanup.text =
-    (import ../../../../../../lib/templates/text.nix)
-      ./scripts/aurral-request-quality-repair-cleanup-text.sh
-      { pkgs_coreutils = pkgs.coreutils; };
+  system.activationScripts.aurral-request-quality-repair-cleanup.text = myLib.templates.renderText {
+    name = "aurral-request-quality-repair-cleanup-text.sh";
+    text = ''
+      # shellcheck shell=bash
+      repair=/etc/systemd/system.control/aurral-bootstrap.service.d/97-request-quality.conf
+      if [[ -f $repair && ! -L $repair ]]; then
+        IFS= read -r header <"$repair" || true
+        if [[ $header == '# Temporary Aurral request quality repair.' ]]; then
+          @pkgs_coreutils@/bin/rm -- "$repair"
+          @pkgs_coreutils@/bin/rm -f -- /nix/var/nix/gcroots/aurral-request-quality-repair
+        fi
+      fi
+    '';
+  } { pkgs_coreutils = pkgs.coreutils; };
 
   systemd.services.aurral-quality-profile = {
     description = "Prepare the managed music quality profile before Lidarr integration";
@@ -330,7 +277,7 @@ in
     ];
     environment = {
       AURRAL_QUALITY_ONLY = "1";
-      AURRAL_URL = "http://127.0.0.1:3001";
+      AURRAL_URL = cfg.backendUrl;
       LIDARR_URL = "http://127.0.0.1:${lidarrPort}";
       SLSKD_URL = "unused";
       AURRAL_QUALITY_POLICY = toString qualityPolicy;
@@ -342,7 +289,7 @@ in
       Group = "aurral";
       ExecStartPre = lib.getExe waitForLidarr;
       TimeoutStartSec = "180s";
-      ExecStart = "${bootstrap} ${lib.escapeShellArg downloadFolder} ${lib.escapeShellArg musicFolder}";
+      ExecStart = "${bootstrap} ${lib.escapeShellArg downloadFolder} ${lib.escapeShellArg libraryDir}";
       LoadCredential = [ "lidarr-api-key:${config.nixSeal.secrets.homelab-lidarr-api-key.path}" ];
       NoNewPrivileges = true;
       ProtectSystem = "strict";
@@ -382,14 +329,7 @@ in
       LoadCredential = [
         "listenbrainz-identity:${config.nixSeal.secrets.music-discovery-listenbrainz-identity.path}"
       ];
-      ExecStart = "${
-        pkgs.writers.writePython3 "verify-listenbrainz-identity" {
-          flakeIgnore = [
-            "E501"
-            "W503"
-          ];
-        } (builtins.readFile ./scripts/verify_listenbrainz_identity.py)
-      } /run/aurral-listenbrainz-identity/validated.json";
+      ExecStart = "${lib.getExe' musicTools "verify-listenbrainz-identity"} /run/aurral-listenbrainz-identity/validated.json";
       TimeoutStartSec = "30s";
       NoNewPrivileges = true;
       CapabilityBoundingSet = "";
@@ -429,8 +369,8 @@ in
     environment = {
       LISTENBRAINZ_IDENTITY_RECEIPT = "/run/aurral-listenbrainz-identity/validated.json";
       AURRAL_LIDARR_WEBHOOK = "1";
-      AURRAL_URL = "http://127.0.0.1:3001";
-      LIDARR_URL = "http://127.0.0.1:${toString config.services.lidarr.settings.server.port}";
+      AURRAL_URL = cfg.backendUrl;
+      LIDARR_URL = "http://127.0.0.1:${lidarrPort}";
       SLSKD_URL = "http://${config.homelab.vpn.namespace.bindAddress}:${toString config.homelab.apps.slskd.webPort}";
       AURRAL_QUALITY_POLICY = toString qualityPolicy;
       AURRAL_DATA_DIR = "/var/lib/aurral";
@@ -449,8 +389,8 @@ in
         "listenbrainz-identity:${config.nixSeal.secrets.music-discovery-listenbrainz-identity.path}"
         "slskd-settings:${config.nixSeal.secrets.music-discovery-slskd-settings.path}"
       ];
-      ExecStartPre = "${lib.getExe pkgs.curl} --fail --silent --show-error --output /dev/null --retry 20 --retry-delay 2 --retry-connrefused --retry-all-errors --connect-timeout 2 --max-time 3 http://127.0.0.1:3001/api/health";
-      ExecStart = "${bootstrap} ${lib.escapeShellArg downloadFolder} ${lib.escapeShellArg musicFolder}";
+      ExecStartPre = "${lib.getExe pkgs.curl} --fail --silent --show-error --output /dev/null --retry 20 --retry-delay 2 --retry-connrefused --retry-all-errors --connect-timeout 2 --max-time 3 ${cfg.backendUrl}/api/health";
+      ExecStart = "${bootstrap} ${lib.escapeShellArg downloadFolder} ${lib.escapeShellArg libraryDir}";
       NoNewPrivileges = true;
       CapabilityBoundingSet = [ ];
       AmbientCapabilities = [ ];
@@ -482,36 +422,16 @@ in
     }
     {
       assertion =
-        lib.all
-          (
-            name:
-            let
-              unit = config.systemd.services.${name};
-            in
-            unit.vpn.enable
-            && unit.vpn.namespace == namespace
-            && unit.serviceConfig.NetworkNamespacePath == "/run/netns/${namespace}"
-          )
-          [
-            "aurral-http-vpn"
-            "aurral-lidarr-vpn"
-            "aurral-listenbrainz-identity"
-          ]
-        &&
-          lib.all
-            (
-              name:
-              let
-                unit = config.systemd.services.${name}.serviceConfig;
-              in
-              unit.IPAddressDeny == [ "any" ] && unit.IPAddressAllow == [ "127.0.0.0/8" ]
-            )
-            [
-              "aurral-http-host"
-              "aurral-lidarr-host"
-              "aurral-library-rescan"
-            ];
-      message = "Aurral API bridges must preserve VPN confinement and loopback-only host access.";
+        let
+          identity = config.systemd.services.aurral-listenbrainz-identity;
+          rescanService = config.systemd.services.aurral-library-rescan.serviceConfig;
+        in
+        identity.vpn.enable
+        && identity.vpn.namespace == namespace
+        && identity.serviceConfig.NetworkNamespacePath == "/run/netns/${namespace}"
+        && rescanService.IPAddressDeny == [ "any" ]
+        && rescanService.IPAddressAllow == [ "127.0.0.0/8" ];
+      message = "Aurral identity lookup must use the VPN and Lidarr rescans must stay on loopback.";
     }
     {
       assertion =
@@ -519,8 +439,8 @@ in
         && config.homelab.apps.lidarr.enable
         && config.homelab.apps.slskd.enable
         && config.services.navidrome.enable
-        && config.services.navidrome.settings.MusicFolder == musicFolder
-        && !(builtins.elem 3001 config.networking.firewall.allowedTCPPorts);
+        && config.services.navidrome.settings.MusicFolder == libraryDir
+        && !(builtins.elem cfg.httpPort config.networking.firewall.allowedTCPPorts);
       message = "Aurral needs the homelab music services and Navidrome's music folder; its direct HTTP port must stay closed to the LAN.";
     }
   ];

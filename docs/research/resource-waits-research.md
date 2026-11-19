@@ -144,7 +144,7 @@ required consent. PowerShell can retain registered object events in its queue.
 A Unix socket inode indicates bind, not listen, so the mpv observer relies on
 its owner's completed IPC startup before connecting. mpv supplies property
 observations and file-loaded events over that connection.
-[NSWorkspace browser completion](<https://developer.apple.com/documentation/appkit/nsworkspace/setdefaultapplication(at:toopenurlswithscheme:completion:)>),
+NSWorkspace browser completion>),
 [PowerShell object events](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/register-objectevent),
 [mpv IPC protocol](https://github.com/mpv-player/mpv/blob/master/DOCS/man/ipc.rst).
 
@@ -180,13 +180,12 @@ templates, Windows bootstrap code, and runtime helpers in the three submodules.
 
 | Component                                                                                  | Previous work                                                                                     | Replacement                                                                                                                                                          |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Bluetooth startup policy](../../modules/nixos/hardware/scripts/disable_bluetooth_pairing.py) | Up to 100 separate property probes per adapter, spaced 100 ms apart                               | One connection subscribes to adapter-added signals before taking an ObjectManager snapshot. It sets pairing policy once per adapter and bounds the entire operation. |
-| [Workload queue](../../homes/desktop/local/wait_workstation_cgroup.py)                        | A systemd query and sleep every 200 ms after the main command exits                               | Blocking cgroup populated notifications retain the queue until descendants finish.                                                                                   |
+| [Bluetooth startup policy](../../modules/nixos/hardware/pairing-policy/src/main.rs) | Up to 100 separate property probes per adapter, spaced 100 ms apart                               | One connection subscribes to adapter-added signals before taking an ObjectManager snapshot. It sets pairing policy once per adapter and bounds the entire operation. |
 | MiniDV capture, since retired                                                              | A sysfs scan and several subprocesses each second; repeated child-exit probes during cancellation | A udev subscription, child pidfd, and signal descriptor shared one blocking selector. Deadlines applied only during shutdown escalation.                             |
 | MiniDV finalization, since retired                                                         | Two identical ffprobe invocations                                                                 | One stream snapshot supplied both codec and audio checks.                                                                                                            |
 | Karakeep launchd wrapper                                                                   | A Compose stack kept a Linux VM and three containers alive on macOS                               | Removed. The reusable homelab module now runs the source-built Nixpkgs package, Meilisearch and Chromium as bounded NixOS services.                                  |
 | [nix-seal subprocesses](../../nix-seal/crates/nix-seal-runtime/src/child.rs)                  | Four child-status loops waking every 10 to 25 ms                                                  | One blocking observer per active child, with condition-variable deadlines and serialized cancellation/reaping. No dependency was added.                              |
-| [Git privacy inspection](../../modules/home/dev/scripts/git_privacy_hook.py)                  | Full-buffer lowercasing for every blocked pattern                                                 | Normalize once per chunk, retaining case-insensitive matching.                                                                                                       |
+| [Git privacy inspection](../../modules/home/dev/runtime-tools/src/bin/git-email-privacy.rs)                  | Full-buffer lowercasing for every blocked pattern                                                 | Normalize once per chunk, retaining case-insensitive matching.                                                                                                       |
 
 BlueZ's ObjectManager supports discovery through a snapshot and subsequent
 signals. Subscribing before the snapshot closes the registration race.

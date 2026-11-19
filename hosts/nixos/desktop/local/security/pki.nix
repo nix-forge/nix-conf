@@ -5,13 +5,9 @@
   ...
 }:
 let
-  retirePreview = pkgs.writers.writePython3 "retire-desktop-trust-preview" {
-    # Ruff owns wrapping; retain all other writer checks.
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./scripts/retire-trust-preview.py);
+  retirePreview =
+    (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).trustRetirement;
+
 in
 {
   # Use NixOS's Mozilla-derived bundle and preserve p11-kit trust metadata.
@@ -39,7 +35,7 @@ in
   system.activationScripts.desktopTrustPreviewCleanup = {
     deps = [ "etc" ];
     text = lib.escapeShellArgs [
-      (toString retirePreview)
+      (lib.getExe retirePreview)
       (toString config.security.pki.caBundle)
       (toString config.environment.etc."ssl/trust-source".source)
     ];

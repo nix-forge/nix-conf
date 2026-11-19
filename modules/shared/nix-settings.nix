@@ -1,4 +1,36 @@
 let
+  installRootCredentials =
+    myLib: pkgs:
+    pkgs.writeText "install-root-credentials.sh" (
+      myLib.writers.checkedShellText { inherit pkgs; } {
+        name = "install-root-credentials";
+        text = ''
+          # shellcheck shell=bash
+          set -euo pipefail
+          root_home=$1
+          source=$2
+          target="$root_home/.config/nix/nix.conf"
+          if [[ -e $target || -L $target ]]; then
+            previous=$(readlink "$target" || true)
+            case "$previous" in
+            /nix/store/*-root-nix-credentials.conf) ;;
+            "$source") exit 0 ;;
+            *)
+              echo 'Refusing to replace unmanaged root Nix configuration; preserve and reconcile it first.' >&2
+              exit 1
+              ;;
+            esac
+          fi
+          install -d -m 0700 "$root_home/.config/nix"
+          # Rename a sibling symlink atomically; never overwrite an unmanaged target.
+          link=$(mktemp "$root_home/.config/nix/.credentials.XXXXXX")
+          trap 'rm -f "$link"' EXIT
+          rm "$link"
+          ln -s "$source" "$link"
+          mv -f "$link" "$target"
+        '';
+      }
+    );
   sharedSettings = {
     max-jobs = "auto";
     cores = 0;
@@ -42,6 +74,7 @@ in
     {
       config,
       lib,
+      myLib,
       pkgs,
       ...
     }:
@@ -84,6 +117,7 @@ in
         after = [ "nix-seal-activate.service" ];
         environment.NIX_USER_CONF_FILES = "/root/.config/nix/nix.conf";
       };
+      system.build.nixRootCredentialInstaller = installRootCredentials myLib pkgs;
       system.build.nixRootCredentials = lib.mkIf hasNixAccessTokens (
         pkgs.writeText "root-nix-credentials.conf" ''
           !include ${runtimeFiles.${nixAccessTokensId}.path}
@@ -92,7 +126,7 @@ in
       system.activationScripts.nixRootCredentials = lib.mkIf hasNixAccessTokens {
         deps = [ "etc" ];
         text = ''
-          ${pkgs.runtimeShell} ${./nix-settings-assets/install-root-credentials.sh} /root ${config.system.build.nixRootCredentials}
+          ${pkgs.runtimeShell} ${installRootCredentials myLib pkgs} /root ${config.system.build.nixRootCredentials}
         '';
       };
     };
@@ -101,6 +135,7 @@ in
     {
       lib,
       config,
+      myLib,
       pkgs,
       options,
       ...
@@ -150,7 +185,7 @@ in
             '';
           in
           ''
-            ${pkgs.runtimeShell} ${./nix-settings-assets/install-root-credentials.sh} /var/root ${credentials}
+            ${pkgs.runtimeShell} ${installRootCredentials myLib pkgs} /var/root ${credentials}
           ''
         );
       })

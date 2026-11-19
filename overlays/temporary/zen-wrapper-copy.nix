@@ -2,7 +2,7 @@
   reason = "The native builder store mount rejects GNU cp permission preservation in the Zen wrapper.";
   upstream = "https://github.com/NixOS/nixpkgs/blob/02c087f3fe673c9e317f206a627cb6b910336dbe/pkgs/applications/networking/browsers/firefox/wrapper.nix";
   removal = "The upstream wrapper copies successfully on the native builder without this substitution.";
-  reviewedRevision = "1d060086d60cb76a40cf37109f979d88a5bd6396";
+  reviewedRevision = "04906337b6d53e8bb0eaf0470ae9f070a4d4eb55";
   inputPath = [ "nixpkgs" ];
   apply =
     package:
@@ -21,9 +21,10 @@
     if lib.hasPrefix "zen-" (browser.pname or "") then
       wrapped.overrideAttrs (old: {
         buildCommand =
-          assert lib.assertMsg (lib.hasInfix incompatibleCopy old.buildCommand)
-            "Zen wrapper copy workaround no longer matches the upstream build command";
-          builtins.replaceStrings [ incompatibleCopy ] [ compatibleCopy ] old.buildCommand;
+          if !(lib.hasInfix incompatibleCopy old.buildCommand) then
+            throw "Zen wrapper copy workaround no longer matches the upstream build command"
+          else
+            builtins.replaceStrings [ incompatibleCopy ] [ compatibleCopy ] old.buildCommand;
       })
     else
       wrapped;

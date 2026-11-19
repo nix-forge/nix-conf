@@ -19,26 +19,13 @@ Run the full `nixosConfigurations.desktop` build on the host named `desktop`.
 Choose the command by caller location:
 
 - On `desktop`, use `just os-build desktop` to build or `just os-switch desktop`
-  to build and activate. These recipes run heavy work through `workstation-task`.
+  to build and activate.
 - From another host, use `just desktop-build` for a remote build with dry
   activation or `just desktop-deploy` to build and activate remotely.
 
 Evaluation-only commands may run anywhere. The native Linux builder remains
 available for isolated Linux packages and checks, not the desktop system
-closure. On `desktop`, run other heavy evaluation, build, and check commands as
-the desktop user through `workstation-task COMMAND [ARGS...]`, including work
-started by subagents and other checkouts. See
-`docs/operations/desktop-memory-management.md` for queue behavior, remote execution, and
-activation limits.
-
-For durable finite jobs, use `workstation-job` on the execution host. Before
-submitting, recovering, changing queue configuration, or interpreting a capacity
-failure, read `docs/operations/workstation-jobs.md`. The desktop backend delegates
-to `workstation-task`; preserve existing job IDs and active scopes.
-
-Use the host's configured compiler parallelism. For reclaim stalls or low build
-utilization, follow the guide's compiler pressure recovery procedure before
-retrying. `--cores 1` and equivalent overrides require an explicit task requirement.
+closure. Use the host's configured compiler parallelism.
 
 ## Public documentation
 

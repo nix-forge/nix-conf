@@ -1,4 +1,4 @@
-{ lib, ... }: {
+{ lib, myLib, ... }: {
   lib.workspaceServices.mkRuntime =
     { pkgs, configPath }:
     let
@@ -16,7 +16,7 @@
       toolPaths = pkgs.writeText "workspace-tools.json" (
         builtins.toJSON (lib.mapAttrs (_: toString) tools)
       );
-      runner = pkgs.writeShellApplication {
+      runner = myLib.writers.writeShellApplication { inherit pkgs; } {
         name = "workspace";
         runtimeInputs = [
           pkgs.bash
@@ -26,12 +26,23 @@
           tools.node
           tools.corepack
         ];
-        text = (import ../../../../lib/templates/text.nix) ./scripts/workspace.sh {
-          inherit toolPaths;
-          privateConfig = lib.escapeShellArg configPath;
-          lib_getExe_tools_python = lib.getExe tools.python;
-          runner_py = ./runner.py;
-        };
+        text =
+          myLib.templates.renderText
+            {
+              name = "workspace.sh";
+              text = ''
+                # shellcheck shell=bash
+                export WORKSPACE_TOOLS_FILE=@toolPaths@
+                exec @dispatcher@ @privateConfig@ "$@"
+              '';
+            }
+            {
+              inherit toolPaths;
+              privateConfig = lib.escapeShellArg configPath;
+              dispatcher =
+                lib.getExe
+                  (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).workspaceDispatch;
+            };
       };
       executable = lib.getExe runner;
       common = ''
@@ -131,15 +142,12 @@
         '';
       };
       files = lib.mapAttrs (name: text: pkgs.writeText name text) units;
-      package = pkgs.symlinkJoin {
-        name = "workspace-services";
-        paths = [ runner ];
-        postBuild = (import ../../../../lib/templates/text.nix) ./scripts/workspace-services.sh {
-          lib_concatStringsSep_n_lib_mapAttrsToList_name_file_ln_s_fil = lib.concatStringsSep "\n" (
-            lib.mapAttrsToList (name: file: ''ln -s ${file} "$out/share/systemd/user/${name}"'') files
-          );
-        };
-      };
+      package = pkgs.linkFarm "workspace-services" (
+        {
+          "bin/workspace" = executable;
+        }
+        // lib.mapAttrs' (name: file: lib.nameValuePair "share/systemd/user/${name}" file) files
+      );
     in
     {
       inherit package units;

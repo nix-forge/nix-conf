@@ -1,5 +1,0 @@
-#!@bash@
-# shellcheck shell=bash
-# Controlled fixture environment.
-# shellcheck disable=SC2154
-printf '%s\n' "$*" >>"$MOCK_STATE/typed"

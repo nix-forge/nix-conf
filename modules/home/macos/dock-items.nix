@@ -1,5 +1,6 @@
 {
   lib,
+  myLib,
   pkgs,
   config,
   ...
@@ -9,13 +10,7 @@ let
   moduleFormatVersion = 2;
 
   dockutilExe = lib.getExe cfg.package;
-  dockStateHelper = pkgs.writers.writePython3Bin "hm-dock-state" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./dock_state.py;
-  dockStateExe = lib.getExe dockStateHelper;
+  dockStateHelper = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).dockState;
 
   absolutePathType = lib.types.strMatching "^/.*";
   appBundlePathType = lib.types.strMatching "^/.+\\.app$";
@@ -28,7 +23,12 @@ let
     else
       null;
 
-  hasManagedApps = builtins.any (item: item ? hmApp) cfg.persistentApps;
+  hasManagedApps = builtins.any (item: item ? hmApp || item ? package) cfg.persistentApps;
+
+  # getDarwinApp validates the standard metadata; only retain its bundle name.
+  # Dock tiles must open the managed copy, rather than the immutable store app.
+  managedAppName =
+    item: if item ? package then baseNameOf (lib.getDarwinApp item.package) else "${item.hmApp}.app";
 
   activationDeps = [
     "setDarwinDefaults"
@@ -58,21 +58,19 @@ let
     list = "list";
   };
 
-  withNoRestart = noRestart: lib.optionalString noRestart " --no-restart";
-
   appPath =
     item:
-    if item ? hmApp then
-      "${config.home.homeDirectory}/${managedAppsDirectory}/${item.hmApp}.app"
+    if item ? hmApp || item ? package then
+      "${config.home.homeDirectory}/${managedAppsDirectory}/${managedAppName item}"
     else
       item.app;
 
   resolvedPersistentApps = map (
     item:
-    if item ? hmApp then
+    if item ? hmApp || item ? package then
       {
         type = "hmApp";
-        name = item.hmApp;
+        name = lib.removeSuffix ".app" (managedAppName item);
         path = appPath item;
       }
     else if item ? app then
@@ -97,90 +95,63 @@ let
       ;
   }) cfg.persistentOthers;
 
-  validateApp =
-    item:
-    let
-      path = appPath item;
-      label = if item ? hmApp then "Home Manager app `${item.hmApp}`" else "app `${item.app}`";
-      msg = "error: Dock item ${label} does not exist at ${path}";
-    in
-    (import ../../../lib/templates/text.nix) ./scripts/validate-dock-application.sh {
-      lib_escapeShellArg_path = lib.escapeShellArg path;
-      lib_escapeShellArg_msg = lib.escapeShellArg msg;
-    };
-
-  validateFolder =
-    folder:
-    let
-      msg = "error: Dock folder ${folder.path} does not exist or is not a directory";
-    in
-    (import ../../../lib/templates/text.nix) ./scripts/validate-dock-folder.sh {
-      lib_escapeShellArg_folder_path = lib.escapeShellArg folder.path;
-      lib_escapeShellArg_msg = lib.escapeShellArg msg;
-    };
-
-  removeAllCommand = noRestart: ''
-    run ${dockutilExe} --remove all${withNoRestart noRestart}
-  '';
-
-  addAppCommand =
-    item: noRestart:
-    let
-      path = appPath item;
-    in
-    (import ../../../lib/templates/text.nix) ./scripts/add-dock-application.sh {
-      inherit dockutilExe;
-      lib_escapeShellArg_path = lib.escapeShellArg path;
-      withNoRestart_noRestart = withNoRestart noRestart;
-    };
-
-  addSpacerCommand =
-    item: noRestart:
-    let
-      spacerType = if item.spacer.small then "small-spacer" else "spacer";
-    in
-    (import ../../../lib/templates/text.nix) ./scripts/add-dock-spacer.sh {
-      inherit dockutilExe;
-      lib_escapeShellArg = lib.escapeShellArg "";
-      inherit spacerType;
-      withNoRestart_noRestart = withNoRestart noRestart;
-    };
-
-  addOtherCommand =
-    item: noRestart:
-    let
-      inherit (item) folder;
-    in
-    (import ../../../lib/templates/text.nix) ./scripts/add-dock-folder.sh {
-      inherit dockutilExe;
-      lib_escapeShellArg_folder_path = lib.escapeShellArg folder.path;
-      showAsMap_folder_showAs = showAsMap.${folder.showAs};
-      folder_displayAs = folder.displayAs;
-      arrangementMap_folder_arrangement = arrangementMap.${folder.arrangement};
-      withNoRestart_noRestart = withNoRestart noRestart;
-    };
-
-  commandFns = [
-    removeAllCommand
+  # Nix supplies ordered data; the native reconciler owns preflight and commit.
+  dockActions = [
+    [
+      "--remove"
+      "all"
+    ]
   ]
   ++ map (
-    item: if item ? spacer then addSpacerCommand item else addAppCommand item
+    item:
+    if item ? spacer then
+      [
+        "--add"
+        ""
+        "--type"
+        (if item.spacer.small then "small-spacer" else "spacer")
+        "--section"
+        "apps"
+        "--position"
+        "end"
+      ]
+    else
+      [
+        "--add"
+        (appPath item)
+        "--section"
+        "apps"
+        "--position"
+        "end"
+      ]
   ) cfg.persistentApps
-  ++ map addOtherCommand cfg.persistentOthers;
+  ++ map (item: [
+    "--add"
+    item.folder.path
+    "--section"
+    "others"
+    "--view"
+    showAsMap.${item.folder.showAs}
+    "--display"
+    item.folder.displayAs
+    "--sort"
+    arrangementMap.${item.folder.arrangement}
+    "--position"
+    "end"
+  ]) cfg.persistentOthers;
 
-  renderCommandFns =
-    fns: lib.concatStringsSep "\n" (map (fn: fn true) (lib.init fns) ++ [ (lib.last fns false) ]);
-
-  # Validate everything before touching the Dock.  Without this preflight,
-  # an unavailable app can leave the Dock half-rebuilt after `--remove all`.
-  validateTargets = lib.concatStringsSep "\n" (
-    (map (item: lib.optionalString (!(item ? spacer)) (validateApp item)) cfg.persistentApps)
-    ++ (map (item: validateFolder item.folder) cfg.persistentOthers)
-  );
+  dockTargets =
+    map appPath (builtins.filter (item: !(item ? spacer)) cfg.persistentApps)
+    ++ map (item: item.folder.path) cfg.persistentOthers;
 
   taggedAppType = lib.types.attrTag {
+    package = lib.mkOption {
+      type = lib.types.package;
+      description = "Package whose meta.mainDarwinApp identifies an application installed by Home Manager, including configured package variants.";
+    };
+
     hmApp = lib.mkOption {
-      type = lib.types.str;
+      type = lib.types.strMatching "[^/]+";
       description = "Name of an app bundle inside the Home Manager apps directory, without the .app suffix.";
     };
 
@@ -295,6 +266,7 @@ in
       default = [ ];
       description = "Ordered items for the left side of the Dock.";
       example = [
+        { package = pkgs.ghostty-bin; }
         { hmApp = "Ghostty"; }
         { spacer.small = false; }
         { app = "/System/Applications/System Settings.app"; }
@@ -326,22 +298,44 @@ in
         assertion =
           !hasManagedApps || config.targets.darwin.copyApps.enable || config.targets.darwin.linkApps.enable;
         message = ''
-          `macos.dockItems.persistentApps` contains `hmApp` entries, but neither
+          `macos.dockItems.persistentApps` contains managed application entries, but neither
           `targets.darwin.copyApps.enable` nor `targets.darwin.linkApps.enable` is enabled.
         '';
+      }
+      {
+        assertion = lib.all (
+          item:
+          !(item ? package)
+          || lib.any (
+            package: (package.meta.mainDarwinApp or null) == managedAppName item
+          ) config.home.packages
+        ) cfg.persistentApps;
+        message = "macos.dockItems package entries must identify an application supplied by home.packages.";
       }
     ];
 
     home.activation.syncDockItems = lib.hm.dag.entryAfter activationDeps (
-      (import ../../../lib/templates/text.nix) ./scripts/sync-dock-items.sh {
-        inherit dockCacheDirectory;
-        inherit dockStateHash;
-        lib_escapeShellArg_cfg_mode = lib.escapeShellArg cfg.mode;
-        inherit dockStateExe;
-        inherit dockutilExe;
-        inherit validateTargets;
-        renderCommandFns_commandFns = renderCommandFns commandFns;
-      }
+      myLib.writers.renderBashText { inherit pkgs; }
+        {
+          name = "sync-dock-items.sh";
+          text = ''
+            # shellcheck shell=bash
+            DRY_RUN="''${DRY_RUN:-}" @dockSyncExe@ @dockPolicy@
+          '';
+        }
+        {
+          dockSyncExe = lib.getExe' dockStateHelper "hm-dock-sync";
+          dockPolicy = pkgs.writeText "dock-policy.json" (
+            builtins.toJSON {
+              inherit (cfg) mode;
+              configHash = dockStateHash;
+              cacheDirectory = "${dockCacheDirectory}/home-manager-macos";
+              dockutil = dockutilExe;
+              actions = dockActions;
+              targets = dockTargets;
+            }
+          );
+        }
     );
   };
 }

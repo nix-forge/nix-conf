@@ -1,18 +1,15 @@
-{ pkgs, ... }: {
+{ lib, pkgs, ... }: {
   home.packages = with pkgs; [
-    # Keep the compiler, formatter and linter on the same pinned Nixpkgs toolchain.
-    cargo
-    rustc
-    rustfmt
-    clippy
-    rust-analyzer
-    rustPlatform.rustLibSrc
+    # Rustup owns project compilers and their rustfmt, Clippy and rust-src components.
+    rustup
+    # Keep the standalone LSP server ahead of Rustup's rust-analyzer shim.
+    (lib.hiPrio rust-analyzer)
 
     # Interactive checks, test execution, coverage and snapshot review.
     bacon
     cargo-nextest
-    cargo-tarpaulin
     cargo-insta
+    cargo-tarpaulin
 
     # Dependency security, licensing, cleanup and upgrades.
     cargo-audit
@@ -28,7 +25,4 @@
     cargo-bloat
     cargo-flamegraph
   ];
-
-  # rust-analyzer can navigate the standard library outside a project dev shell.
-  home.sessionVariables.RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
 }

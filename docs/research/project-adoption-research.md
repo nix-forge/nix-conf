@@ -53,7 +53,7 @@ contained unrelated work, which this investigation did not evaluate or modify.
 The root's architecture, platform contracts, generated-file checks, theming
 guides, and font evidence give it material worth sharing. A new landing page
 should expose that evidence without asking readers to understand the CI
-implementation or all four repositories first. See [platform checks](../../flake/dev/platform-checks.nix),
+implementation or all four repositories first. See platform checks,
 [generated-file checks](../generated-file-checks.md), and [font configuration](../font-configuration.md).
 
 ### Positioning and the learning path

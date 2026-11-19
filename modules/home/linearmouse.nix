@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   cfg = config.programs.linearmouse;
   schemaSource = import ./linearmouse-assets/schema-source.nix;
@@ -21,11 +23,27 @@ let
         ];
       }
       (
-        (import ./../../lib/templates/text.nix) ./linearmouse-assets/checked-config.sh {
-          referencesFilter = ./linearmouse-assets/schema-references.jq;
-          lib_escapeShellArg_cfg_settingsSchema = lib.escapeShellArg cfg.settingsSchema;
-          inherit renderedConfig;
-        }
+        myLib.templates.renderText
+          {
+            name = "checked-config.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Build/activation supplies these variables and functions.
+              # shellcheck disable=SC2154,SC2329
+              # All references must be bundled in the pinned schema, including overrides.
+              jq -e -f @referencesFilter@ @lib_escapeShellArg_cfg_settingsSchema@ >/dev/null || {
+                echo 'LinearMouse settingsSchema must be self-contained; external references are not supported.' >&2
+                exit 1
+              }
+              check-jsonschema --schemafile @lib_escapeShellArg_cfg_settingsSchema@ @renderedConfig@
+              cp @renderedConfig@ "$out"
+            '';
+          }
+          {
+            referencesFilter = ./linearmouse-assets/schema-references.jq;
+            lib_escapeShellArg_cfg_settingsSchema = lib.escapeShellArg cfg.settingsSchema;
+            inherit renderedConfig;
+          }
       );
   stagedConfigDirectory = "${config.xdg.stateHome}/home-manager/linearmouse";
   stagedConfigFile = "${stagedConfigDirectory}/linearmouse.json";
@@ -186,37 +204,87 @@ in
 
     home.activation = {
       installLinearMouseConfig = lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "linkGeneration" ] (
-        (import ../../lib/templates/text.nix) ./linearmouse-assets/stage-config.sh {
-          lib_escapeShellArg_stagedConfigFile = lib.escapeShellArg stagedConfigFile;
-          lib_escapeShellArg_cfg_settingsFile = lib.escapeShellArg cfg.settingsFile;
-          lib_escapeShellArg_stagedConfigDirectory = lib.escapeShellArg stagedConfigDirectory;
-          lib_escapeShellArg_stagedConfigFile_tmp = lib.escapeShellArg "${stagedConfigFile}.tmp";
-        }
+        myLib.templates.renderText
+          {
+            name = "stage-config.sh";
+            text = ''
+              # shellcheck shell=bash
+              if [[ ! -f @lib_escapeShellArg_stagedConfigFile@ ]] ||
+                ! /usr/bin/cmp -s \
+                  @lib_escapeShellArg_cfg_settingsFile@ \
+                  @lib_escapeShellArg_stagedConfigFile@; then
+                run /bin/mkdir -p @lib_escapeShellArg_stagedConfigDirectory@
+                run /usr/bin/install -m 0600 \
+                  @lib_escapeShellArg_cfg_settingsFile@ \
+                  @lib_escapeShellArg_stagedConfigFile_tmp@
+                run /bin/mv -f \
+                  @lib_escapeShellArg_stagedConfigFile_tmp@ \
+                  @lib_escapeShellArg_stagedConfigFile@
+              fi
+            '';
+          }
+          {
+            lib_escapeShellArg_stagedConfigFile = lib.escapeShellArg stagedConfigFile;
+            lib_escapeShellArg_cfg_settingsFile = lib.escapeShellArg cfg.settingsFile;
+            lib_escapeShellArg_stagedConfigDirectory = lib.escapeShellArg stagedConfigDirectory;
+            lib_escapeShellArg_stagedConfigFile_tmp = lib.escapeShellArg "${stagedConfigFile}.tmp";
+          }
       );
 
       warnAboutLegacyLinearMouseConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-        (import ../../lib/templates/text.nix) ./linearmouse-assets/warn-legacy-config.sh {
-          lib_escapeShellArg_legacyConfigFile = lib.escapeShellArg legacyConfigFile;
-          inherit legacyConfigFile;
-        }
+        myLib.templates.renderText
+          {
+            name = "warn-legacy-config.sh";
+            text = ''
+              # shellcheck shell=bash
+              if [ -e @lib_escapeShellArg_legacyConfigFile@ ]; then
+                echo "warning: @legacyConfigFile@ takes precedence over the Home Manager-managed LinearMouse configuration" >&2
+              fi
+            '';
+          }
+          {
+            lib_escapeShellArg_legacyConfigFile = lib.escapeShellArg legacyConfigFile;
+            inherit legacyConfigFile;
+          }
       );
 
       configureLinearMousePreferences =
         lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "writeBoundary" ]
           (
-            ((import ../../lib/templates/text.nix) ./linearmouse-assets/configure-preferences.sh {
-              lib_escapeShellArg_builtins_toJSON_cfg_menuBarVisibility = lib.escapeShellArg (
-                builtins.toJSON cfg.menuBarVisibility
-              );
-              lib_boolToString_cfg_menuBarVisibility_never = lib.boolToString (cfg.menuBarVisibility != "never");
-              lib_escapeShellArg_builtins_toJSON_cfg_menuBarBatteryDisplay = lib.escapeShellArg (
-                builtins.toJSON cfg.menuBarBatteryDisplay
-              );
-              lib_boolToString_cfg_showInDock = lib.boolToString cfg.showInDock;
-            })
-            + lib.optionalString cfg.disableAutomaticUpdates (
-              builtins.readFile ./linearmouse-assets/disable-updates.sh
+            (myLib.templates.renderText
+              {
+                name = "configure-preferences.sh";
+                text = ''
+                  # shellcheck shell=bash
+                  # Sourced by Home Manager or the owning build phase.
+                  run /usr/bin/defaults write com.lujjjh.LinearMouse menuBarVisibilityMode \
+                    -string @lib_escapeShellArg_builtins_toJSON_cfg_menuBarVisibility@
+                  run /usr/bin/defaults write com.lujjjh.LinearMouse menuBarVisibilityModeMigrationCompleted -bool true
+                  run /usr/bin/defaults write com.lujjjh.LinearMouse showInMenuBar \
+                    -bool @lib_boolToString_cfg_menuBarVisibility_never@
+                  run /usr/bin/defaults write com.lujjjh.LinearMouse menuBarBatteryDisplayMode \
+                    -string @lib_escapeShellArg_builtins_toJSON_cfg_menuBarBatteryDisplay@
+                  run /usr/bin/defaults write com.lujjjh.LinearMouse showInDock \
+                    -bool @lib_boolToString_cfg_showInDock@
+                '';
+              }
+              {
+                lib_escapeShellArg_builtins_toJSON_cfg_menuBarVisibility = lib.escapeShellArg (
+                  builtins.toJSON cfg.menuBarVisibility
+                );
+                lib_boolToString_cfg_menuBarVisibility_never = lib.boolToString (cfg.menuBarVisibility != "never");
+                lib_escapeShellArg_builtins_toJSON_cfg_menuBarBatteryDisplay = lib.escapeShellArg (
+                  builtins.toJSON cfg.menuBarBatteryDisplay
+                );
+                lib_boolToString_cfg_showInDock = lib.boolToString cfg.showInDock;
+              }
             )
+            + lib.optionalString cfg.disableAutomaticUpdates ((''
+              # shellcheck shell=bash
+              # Variables and functions are supplied by the owning activation or build phase.
+              run /usr/bin/defaults write com.lujjjh.LinearMouse SUEnableAutomaticChecks -bool false
+              run /usr/bin/defaults write com.lujjjh.LinearMouse SUAutomaticallyUpdate -bool false
+            ''))
           );
 
       waitForCopiedLinearMouseApp = lib.mkIf cfg.startAtLogin (
@@ -233,7 +301,11 @@ in
         ProgramArguments = [
           "/bin/sh"
           "-c"
-          "/bin/wait4path ${lib.escapeShellArg appPath} && exec /usr/bin/open -gj -a ${lib.escapeShellArg appPath}"
+          (checkedShellText {
+            name = "launch-linearmouse";
+            shell = "sh";
+            text = "/bin/wait4path ${lib.escapeShellArg appPath} && exec /usr/bin/open -gj -a ${lib.escapeShellArg appPath}";
+          })
         ];
         RunAtLoad = true;
         KeepAlive = false;

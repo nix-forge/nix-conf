@@ -2,7 +2,7 @@ _: {
   reason = "nixos-anywhere disables SSH host-key verification before parsing caller options.";
   upstream = "https://github.com/nix-community/nixos-anywhere/blob/da83557d8b0bce57a52371b888ffd6d58724e55c/src/nixos-anywhere.sh";
   removal = "The pinned installer verifies SSH host keys by default or accepts an effective caller override.";
-  reviewedRevision = "b6be7b277b468d55082584441cbef1fed8530eb3";
+  reviewedRevision = "58132e1d1f813b845382a2aeca4203b18d2ac807";
   inputPath = [ "nixos-anywhere" ];
   apply =
     package:

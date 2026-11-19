@@ -25,16 +25,6 @@
 
     # Core
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    # Use maintained application recipes without changing the system package set.
-    nixpkgs-apps = {
-      url = "github:NixOS/nixpkgs/b3cff76391a4867236cc135b69a928d873b9f6d0";
-      flake = false;
-    };
-    # Track the official T3 Code package without downgrading existing app data.
-    nixpkgs-t3code = {
-      url = "github:NixOS/nixpkgs/master";
-      flake = false;
-    };
     systems.url = "github:nix-systems/default";
     nixpkgs-personal = {
       url = "path:./pkgs";
@@ -45,7 +35,7 @@
       };
     };
     hyprland = {
-      url = "github:hyprwm/Hyprland/a1d7a78b6c8e54ad72d401bfa8b85fdc89ee66a6";
+      url = "github:hyprwm/Hyprland/11cbc6c577b84ffb1edf4df3fc5b6128c3ae6947";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         systems.follows = "systems";
@@ -105,7 +95,6 @@
       url = "path:./nix-homelab";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        nixpkgs-apps.follows = "nixpkgs-apps";
         nixpkgs-personal.follows = "nixpkgs-personal";
         flake-parts.follows = "flake-parts";
         git-hooks-nix.inputs.flake-compat.follows = "flake-compat";
@@ -178,8 +167,8 @@
     lanzaboote = {
       # This pinned upstream revision retains the booted generation and the
       # previous bootloader measurement during an update. Both repairs are
-      # newer than v1.2.0; review a release before moving off this commit.
-      url = "github:nix-community/lanzaboote/c57a9234747eea6fe498d0eb601583f7ba378f06";
+      # newer than v1.2.0; use a revision that includes both repairs.
+      url = "github:nix-community/lanzaboote/69c7f74b872aae4f360bdd0050106e0fddfed7aa";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.pre-commit.inputs.flake-compat.follows = "flake-compat";
     };
@@ -226,15 +215,14 @@
       systems = import ./flake/supported-systems.nix;
       imports = [
         ./flake/build-platform.nix
-        inputs.nix-config-framework.flakeModules.default
+        ./flake/targets.nix
         inputs.nix-seal.flakeModules.default
         inputs.nix-seal.flakeModules.nix-config-framework
         ./flake/partitions.nix
         ./flake/documentation.nix
+        ./flake/runtime.nix
         ./flake/public-guide.nix
         ./hosts/shared/local/flake/validation.nix
-        ./hosts/shared/local/flake/development-tools.nix
-        ./flake/storage.nix
         ./flake/feature-catalog.nix
         ./flake/lint-checks.nix
         ./hosts/shared/local/flake/nix-seal.nix
@@ -244,29 +232,11 @@
         ./flake/schemas.nix
       ];
 
-      flake.lib.packagesFor = platform: inputs.nixpkgs-personal.lib.packagesFor platform;
-      flake.lib.nixosConfigurationFor =
-        { name, buildSystem }:
-        inputs.self.nixosConfigurations.${name}.extendModules {
-          modules = [ ({ lib, ... }: { nixpkgs.buildPlatform = lib.mkForce buildSystem; }) ];
-        };
       _module.args.myLib = myLib;
-      # Development partitions may replace tooling inputs. Configuration
-      # fixtures must retain the inputs used by the deployed configurations.
-      _module.args.configurationInputs = inputs;
-
-      nixConfigFramework = {
-        root = ./.;
-        extraSpecialArgs = { inherit myLib; };
-      };
 
       perSystem = { system, ... }: {
-        packages = inputs.nixpkgs-personal.packages.${system} // {
-          rea = import ./lib/rea-runtime.nix {
-            inherit inputs system;
-            package = inputs.nixpkgs-personal.packages.${system}.rea;
-          };
-        };
+        _module.args.myLib = myLib;
+        packages = inputs.nixpkgs-personal.packages.${system};
       };
     };
 }

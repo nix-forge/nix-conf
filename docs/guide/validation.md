@@ -16,7 +16,7 @@ On the desktop host:
 just desktop-validation-build
 ```
 
-This runs the existing `just os-build desktop` recipe through the workload queue.
+This runs the existing `just os-build desktop` recipe directly.
 The evidence command evaluates the candidate system output, checks that the
 successful build realized it, and records its store path. It does not activate
 the result. Source changes during the command invalidate the receipt.
@@ -64,8 +64,8 @@ A later failure supersedes an earlier pass for the same source and check.
 Record an omitted check explicitly when its required hardware is unavailable:
 
 ```sh
-just evidence skip --target starter --check home --phase build \
-  --system aarch64-linux --reason "Native ARM Linux builder unavailable"
+just evidence skip --target macbook-pro-m4 --check full-system --phase build \
+  --system aarch64-darwin --reason "Native Apple silicon Mac unavailable"
 ```
 
 `status` also accepts a manifest without receipts and reports every requirement

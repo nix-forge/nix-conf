@@ -31,9 +31,8 @@ a desktop build. Nothing boots or reserves guest memory while it is idle.
 
 From this configuration checkout, use `just arm-build PACKAGE` or
 `just arm-check CHECK`. These commands require the desktop host, keep the build
-local, and enter the workload queue with one derivation and four compiler jobs.
-Invoke them separately for independent packages so waiting jobs can run between
-queue entries. Existing sandbox and memory limits still apply. See the
+local, and run directly with one derivation and four compiler jobs.
+Existing sandbox and daemon memory limits still apply. See the
 [ARM builder review](../research/arm-linux-builder-research.md) for validation and limits.
 
 Incus would add a second QEMU owner without improving this Windows guest.
@@ -445,15 +444,14 @@ display, reset, and recovery policy remains a separate reviewed change.
 
 ## Verification
 
-The focused generated-artifact check runs on the desktop host:
+Build the focused controller check on the desktop host:
 
 ```sh
-nix build .#checks.x86_64-linux.virtualisation-generated-artifacts --no-link
+nix build .#checks.x86_64-linux.rust-libvirt-control --no-link
 ```
 
-It validates the generated runtime and installer domain XML, verifies the
-installed privilege boundary, lints the generated shell tools, parses the
-generated PowerShell, and checks that the bootstrap and baseline share a
-complete recipe fingerprint. Focused Python tests cover the command behavior.
-Build the complete desktop closure only with `just desktop-build`, which also
-builds it on `desktop`.
+Compare the generated domain XML, controller policy, wrapper arguments and
+privileged command rules when changing the VM instructions. Check fresh and
+resumed installation in an authorized native window. Use
+`just os-build desktop` on the desktop or `just desktop-build` from another
+host for the complete desktop closure.

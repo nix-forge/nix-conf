@@ -1,12 +1,32 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  storageRuntime =
+    (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).desktopStorageRuntime;
   cfg = config.hardware.storage.encryptedRoot;
   inherit (cfg) capacity;
+  inherit (import ./.storage-roles.nix)
+    bulkLockPath
+    cacheRoot
+    dataMount
+    gamesMount
+    homelabMount
+    resticCacheRoot
+    runtimeDirectory
+    scratchRoot
+    vmImagesMount
+    workMount
+    ;
+  workspaceBackupPath = "${config.home-manager.users.ianmh.xdg.stateHome}/workspace-services/backups";
+  workspaceBackupStorage = "${dataMount}/workspace-backups";
+  workspaceUser = config.users.users.ianmh;
   gib = value: value * 1024 * 1024 * 1024;
   bytes =
     default: description:
@@ -28,13 +48,13 @@ let
       capacity.criticalRecoveryGiB
       [ ]
     )
-    (limits "/srv/data" 200 100 250 125 [
-      "/mnt/games"
-      "/var/lib/libvirt/images"
+    (limits dataMount 200 100 250 125 [
+      gamesMount
+      vmImagesMount
     ])
   ]
   ++ lib.optional (config.hardware.storage.homelabHdd.enable or false) (
-    limits "/mnt/homelab" 1024 512 1152 768 [ ]
+    limits homelabMount 1024 512 1152 768 [ ]
   );
   policy = pkgs.writeText "desktop-storage-capacity.json" (
     builtins.toJSON {
@@ -42,16 +62,13 @@ let
       collectBelowBytes = gib capacity.collectBelowGiB;
       collectTargetBytes = gib capacity.collectTargetGiB;
       defaultAdditionalBytes = gib capacity.defaultAdditionalGiB;
-      minimumMemoryAvailableBytes =
-        (config.workstation.workloads.daemon.memoryMiB + config.workstation.workloads.daemon.reserveMiB)
-        * 1024
-        * 1024;
+      minimumMemoryAvailableBytes = gib 14;
       stateDirectory = "/var/lib/desktop-storage";
       cache = {
-        mount = "/srv/data";
-        root = "/srv/data/cache";
+        mount = dataMount;
+        root = cacheRoot;
       };
-      bulkLock = "/run/workstation-workloads/bulk.lock";
+      bulkLock = bulkLockPath;
       generations = {
         profile = "/nix/var/nix/profiles/system";
         currentSystem = "/run/current-system";
@@ -69,19 +86,14 @@ let
       collectorStaleSeconds = 2 * 60 * 60;
       cacheBudgets = [
         {
-          path = "/srv/data/cache/restic";
+          path = resticCacheRoot;
           warningBytes = gib 64;
         }
       ];
     }
   );
-  program = pkgs.writers.writePython3 "desktop-storage-capacity" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./capacity.py;
-  command = pkgs.writeShellApplication {
+  program = lib.getExe' storageRuntime "desktop-storage-capacity";
+  command = writeShellApplication {
     name = "desktop-storage-capacity";
     runtimeInputs = [
       pkgs.util-linux
@@ -89,23 +101,25 @@ let
     ];
     text = ''exec ${program} --policy ${policy} "$@"'';
   };
-  retentionProgram = pkgs.writers.writePython3 "desktop-storage-retention" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./retention.py;
-  retention = pkgs.writeShellApplication {
+  retentionProgram = lib.getExe' storageRuntime "desktop-storage-retention";
+  retention = writeShellApplication {
     name = "desktop-storage-retention";
     text = ''exec ${retentionProgram} --policy ${policy} "$@"'';
   };
-  taskRetirement = pkgs.writers.writePython3Bin "desktop-task-retire" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./task_retention.py;
-  taskCache = pkgs.writeShellApplication {
+  taskRetirementPolicy = pkgs.writeText "desktop-task-retirement.json" (
+    builtins.toJSON { inherit dataMount scratchRoot; }
+  );
+  taskRetirement = writeShellApplication {
+    name = "desktop-task-retire";
+    runtimeInputs = [ pkgs.util-linux ];
+    text = ''exec ${lib.getExe' storageRuntime "desktop-task-retire"} --policy ${taskRetirementPolicy} "$@"'';
+  };
+  installer = writeShellApplication {
+    name = "prepare-desktop-installer";
+    runtimeInputs = [ pkgs.git ];
+    text = ''exec ${lib.getExe' storageRuntime "prepare-desktop-installer"} "$@"'';
+  };
+  taskCache = writeShellApplication {
     name = "desktop-task-cache";
     runtimeInputs = [ pkgs.util-linux ];
     text = ''
@@ -128,6 +142,48 @@ in
     defaultAdditionalGiB = bytes 32 "Conservative additional peak disk estimate for undeclared ordinary jobs.";
   };
   config = lib.mkIf capacity.enable {
+    # Keep the adapter's existing private path while storing dumps outside
+    # the home snapshot. The automount blocks writes if the data disk is absent.
+    fileSystems.${workspaceBackupPath} = {
+      device = workspaceBackupStorage;
+      fsType = "none";
+      options = [
+        "bind"
+        "nofail"
+        "x-systemd.automount"
+        "x-systemd.requires=desktop-workspace-backups-ready.service"
+      ];
+    };
+    systemd.services.desktop-workspace-backups-ready = {
+      description = "Prepare the data SSD workspace backup subvolume";
+      bindsTo = [ "srv-data.mount" ];
+      after = [ "srv-data.mount" ];
+      path = [
+        pkgs.btrfs-progs
+        pkgs.coreutils
+        pkgs.util-linux
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        UMask = "0077";
+      };
+      script = ''
+        set -eu
+        mountpoint -q ${lib.escapeShellArg dataMount}
+        directory=${lib.escapeShellArg workspaceBackupStorage}
+        if [[ ! -e $directory ]]; then
+          btrfs subvolume create "$directory"
+        fi
+        [[ ! -L $directory ]]
+        btrfs subvolume show "$directory" >/dev/null
+        chown ${lib.escapeShellArg "${workspaceUser.name}:${workspaceUser.group}"} "$directory"
+        chmod 0700 "$directory"
+      '';
+    };
+    # The file backup already includes the data SSD source of this bind mount.
+    hardware.storage.encryptedRoot.backup.exclude = [ workspaceBackupPath ];
+
     assertions = [
       {
         assertion =
@@ -147,28 +203,38 @@ in
       }
     ];
     nix.settings = {
-      min-free = gib capacity.collectBelowGiB;
+      # The scheduled collector owns proactive reclamation and its cooldown.
+      # Nix's per-connection collector cannot share that cooldown: using the
+      # same watermark repeatedly stalls builds when retained roots prevent
+      # reclamation. Keep native collection as an emergency backstop, with
+      # headroom above the critical floor.
+      min-free = gib capacity.criticalRecoveryGiB;
       max-free = gib capacity.collectTargetGiB;
     };
-    # Native build-time and idle-time triggers share this policy and Nix's GC
-    # lock. Disable only Nixd's independent collector during the handover.
+    # The native backstop and scheduled collector share Nix's GC lock.
+    # Disable Nixd's independent collector to avoid another scheduler.
     nix.determinateNixdSettings.garbageCollector.strategy = "disabled";
     environment.systemPackages = [
       command
       retention
       taskRetirement
       taskCache
+      installer
     ];
     environment.etc."desktop-storage/capacity.json".source = policy;
     system = {
       activationScripts.desktopStoragePreviewCleanup = {
         deps = [ "etc" ];
         text = ''
-          ${lib.getExe pkgs.python3} ${./scripts/retire-preview.py}
+          ${lib.getExe'
+            (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).desktopStorageRuntime
+            "desktop-storage-retire-preview"
+          }
         '';
       };
       build = {
         desktopStorageCapacity = command;
+        desktopInstallerPreparation = installer;
         desktopStorageRetention = retention;
         desktopStorageCapacityPolicy = policy;
         desktopStorageCommands = pkgs.symlinkJoin {
@@ -182,14 +248,8 @@ in
         };
         desktopStoragePreview = pkgs.symlinkJoin {
           name = "desktop-storage-preview";
-          paths = [
-            config.system.build.desktopStorageRootPreview
-            config.system.build.workstationTask
-            config.home-manager.users.ianmh.services.workstationJobs.package
-            config.home-manager.users.ianmh.lib.workstationNix
-          ];
+          paths = [ config.system.build.desktopStorageRootPreview ];
         };
-        # Root tools must not shadow the desktop user's queue client/config.
         desktopStorageRootPreview = pkgs.symlinkJoin {
           name = "desktop-storage-root-preview";
           paths = [
@@ -206,7 +266,7 @@ in
           ];
         };
         # These selected artifacts support a scoped rollout without activating
-        # unrelated pending applications or stopping an active execution queue.
+        # unrelated pending applications.
         desktopStorageRollout = pkgs.linkFarm "desktop-storage-rollout" (
           [
             {
@@ -218,20 +278,12 @@ in
               path = config.system.build.desktopStorageRootPreview;
             }
             {
-              name = "workstation-job-config.json";
-              path = config.home-manager.users.ianmh.services.workstationJobs.package.configuration;
-            }
-            {
               name = "commands";
               path = config.system.build.desktopStorageCommands;
             }
             {
               name = "capacity.json";
               path = policy;
-            }
-            {
-              name = "runner";
-              path = config.system.build.workstationTask;
             }
             {
               name = "health";
@@ -257,7 +309,7 @@ in
             }
             {
               name = "install-root-credentials.sh";
-              path = ../../../../../modules/shared/nix-settings-assets/install-root-credentials.sh;
+              path = config.system.build.nixRootCredentialInstaller;
             }
             {
               name = "restic-wrappers";
@@ -315,8 +367,8 @@ in
           requires = [ "desktop-data-ready.service" ];
           after = [ "desktop-data-ready.service" ];
           unitConfig.RequiresMountsFor = [
-            "/srv/data"
-            "/srv/data/work"
+            dataMount
+            workMount
           ];
           path = [
             pkgs.btrfs-progs
@@ -328,14 +380,38 @@ in
             RemainAfterExit = true;
             UMask = "0077";
           };
-          script =
-            builtins.readFile ./scripts/prepare-cache-subvolumes.sh
+          script = checkedShellText {
+            name = "prepare-cache-subvolumes";
+            text = (''
+              # shellcheck shell=bash
+              set -euo pipefail
+              mountpoint -q ${lib.escapeShellArg dataMount}
+              mountpoint -q ${lib.escapeShellArg workMount}
+              for directory in ${lib.escapeShellArg cacheRoot} ${lib.escapeShellArg scratchRoot}; do
+                if [[ ! -e $directory ]]; then btrfs subvolume create "$directory"; fi
+                # A normal restored directory is not a snapshot boundary. Refuse it.
+                btrfs subvolume show "$directory" >/dev/null
+                chown root:root "$directory"
+                tag="$directory/CACHEDIR.TAG"
+                signature='Signature: 8a477f597d28d172789f06886806bc55'
+                if [[ -e $tag || -L $tag ]]; then
+                  [[ ! -L $tag && -f $tag && $(head -c 43 "$tag") == "$signature" ]]
+                else
+                  printf '%s\n# Regenerable caches and task scratch only.\n' "$signature" >"$tag"
+                fi
+                chmod 0644 "$tag"
+              done
+              chmod 0700 ${lib.escapeShellArg cacheRoot}
+              chmod 0755 ${lib.escapeShellArg scratchRoot}
+              install -d -m 0700 ${lib.escapeShellArg resticCacheRoot} ${lib.escapeShellArg "${resticCacheRoot}/tmp"}
+            '')
             + lib.concatMapStringsSep "\n" (
               user:
               "install -d -m 0700 -o ${lib.escapeShellArg user.name} -g ${
                 lib.escapeShellArg (if user.group == null then "users" else user.group)
-              } ${lib.escapeShellArg "/srv/data/work/scratch/${user.name}"}"
+              } ${lib.escapeShellArg "${scratchRoot}/${user.name}"}"
             ) (builtins.attrValues (lib.filterAttrs (_: user: user.isNormalUser) config.users.users));
+          };
         };
         desktop-storage-collect = {
           description = "Reclaim dead Nix paths under the desktop capacity policy";
@@ -353,10 +429,10 @@ in
             MemoryHigh = "384M";
             MemoryMax = "512M";
             # The GC itself uses the separately contained Nix daemon. The client
-            # takes the existing root/user bulk reservation before requesting it.
+            # takes the storage maintenance lock before requesting it.
             ReadWritePaths = [
               "/var/lib/desktop-storage"
-              "/run/workstation-workloads"
+              runtimeDirectory
             ];
             ProtectSystem = "strict";
             ProtectHome = "read-only";

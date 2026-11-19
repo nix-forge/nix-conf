@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -57,26 +58,37 @@ let
     };
   };
   prepare =
-    pkgs.writers.writePython3 "soularr-runtime-config"
-      {
-        flakeIgnore = [
-          "E501"
-          "W503"
-        ];
-      }
-      (
-        (import ../../../../../../lib/templates/text.nix) ./scripts/soularr_runtime_config.py {
-          inherit settings;
-          LIDARR_KEY = null;
-          SLSKD_KEY = null;
-        }
-      );
+    (import ../../../../../../flake/runtime-packages.nix { inherit pkgs; }).soularrRuntimeConfig;
+
 in
 {
   # Remove only the targeted live units recorded by this deployment.
   system.activationScripts.music-integration-live-units-cleanup.text =
-    (import ../../../../../../lib/templates/text.nix)
-      ./scripts/music-integration-live-units-cleanup-text.sh
+    myLib.writers.renderBashText { inherit pkgs; }
+      {
+        name = "music-integration-live-units-cleanup-text.sh";
+        text = ''
+          # shellcheck shell=bash
+          for unit in soularr.service soularr.timer soulseek-directories.service slskd.service aurral.service aurral-bootstrap.service aurral-quality-profile.service aurral-navidrome-host.service aurral-navidrome-vpn.service homelab-integrate-lidarr.service; do
+            root="/nix/var/nix/gcroots/music-integration-$unit"
+            override="/etc/systemd/system.control/$unit"
+            if [[ -L $root && -L $override ]]; then
+              store="$(@pkgs_coreutils@/bin/readlink "$root")"
+              target="$(@pkgs_coreutils@/bin/readlink "$override")"
+              if [[ $target == "$store/$unit" ]]; then
+                @pkgs_coreutils@/bin/rm -- "$override" "$root"
+              fi
+            fi
+          done
+          activation=/etc/systemd/system.control/timers.target.d/98-music-integration.conf
+          if [[ -f $activation && ! -L $activation ]]; then
+            IFS= read -r header <"$activation" || true
+            if [[ $header == '# Temporary music integration timer activation.' ]]; then
+              @pkgs_coreutils@/bin/rm -- "$activation"
+            fi
+          fi
+        '';
+      }
       { pkgs_coreutils = pkgs.coreutils; };
   systemd.services.soularr = {
     description = "Acquire missing Lidarr albums through Soulseek";
@@ -107,7 +119,7 @@ in
         "lidarr-api-key:${config.nixSeal.secrets.homelab-lidarr-api-key.path}"
         "slskd-settings:${config.nixSeal.secrets.music-discovery-slskd-settings.path}"
       ];
-      ExecStartPre = prepare;
+      ExecStartPre = "${lib.getExe prepare} ${settings}";
       ExecStart = "${lib.getExe pkgs.soularr} --config-dir /run/soularr --var-dir /var/lib/soularr --no-lock-file";
       TimeoutStartSec = "45min";
       TimeoutStopSec = "30s";

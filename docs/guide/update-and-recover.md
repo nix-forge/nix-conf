@@ -4,16 +4,17 @@ Keep the configuration and lockfile in your own Git repository. A lockfile fixes
 the inputs used for a build; it does not preserve application databases, documents,
 or every piece of mutable state.
 
-## Update the small example
+## Update your configuration
 
-In your permanent copy of the starter, commit a working configuration first.
-Update one input, inspect the lockfile diff, and run its checks:
+In your own configuration repository, commit a working configuration first.
+Update one input, inspect the lockfile diff, and build your named output.
+For a standalone Home Manager configuration, replace `<name>` below with its
+output name:
 
 ```sh
 nix flake update nixpkgs
 git diff -- flake.lock
-guide_system=$(nix eval --impure --raw --expr builtins.currentSystem)
-nix build ".#checks.${guide_system}.generated-config"
+nix build '.#homeConfigurations.<name>.activationPackage'
 ```
 
 Keep Home Manager and Nixpkgs on compatible release tracks. If you change their

@@ -184,7 +184,7 @@ During follow-up validation, the small behavior suite completed in the feedback
 lane. Evaluation of an isolated generated-policy output nevertheless reached
 about 1.1 GiB under that lane's 1 GiB high threshold, with roughly 21% full memory
 pressure over one minute and no OOM. That evaluation was cancelled and moved to
-the ordinary bulk lane; passing the behavior suite did not count as a generated
+the Nix daemon; passing the behavior suite did not count as a generated
 policy build pass. This supports routing full host/home evaluation to bulk even
 when the requested output itself is small. Feedback limits and compiler counts
 remain unchanged.

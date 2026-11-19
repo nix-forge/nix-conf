@@ -6,14 +6,20 @@
   ...
 }:
 let
-  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  inherit
+    (import ./.libvirt-artifacts.nix {
+      inherit lib myLib pkgs;
+      libvirtPackage = config.virtualisation.libvirtd.package;
+    })
+    mkControl
+    validateXml
+    ;
   workstation = config.virtualisation.libvirtWorkstation;
   cfg = workstation.windowsVm;
 
   inherit (lib)
     concatMapStrings
     concatStringsSep
-    escapeShellArg
     getExe
     getExe'
     mkEnableOption
@@ -275,10 +281,7 @@ let
     hash = "sha256-mkd2JOpkiKz70s78w5L6wII4OjqNscbYZ68bQQ9HMbc=";
   };
 
-  seedRenderer = pkgs.writers.writePython3Bin "windows-vm-render-seed" {
-    # Ruff owns formatting; retain the writer's other Flake8 checks.
-    flakeIgnore = [ "E501" ];
-  } ./scripts/windows_vm_render_seed.py;
+  seedRenderer = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtRuntimeTools;
 
   # Keep file-backed disks on buffered I/O, matching the running desktop guest.
   # O_DIRECT can race guest buffer changes with Btrfs checksum validation.
@@ -334,7 +337,7 @@ let
       diskDevices = if installationMode then installerDiskDevices else runtimeDiskDevices;
     in
     pkgs.writeText "${cfg.name}-${if installationMode then "installer" else "runtime"}-domain.xml" (
-      (import ../../../lib/templates/text.nix) ./scripts/windows-vm-config.xml {
+      myLib.templates.renderText ./scripts/windows-vm-config.xml {
         cfg_name = cfg.name;
         lib_toLower_cfg_uuid = lib.toLower cfg.uuid;
         lib_toLower_cfg_generationId = lib.toLower cfg.generationId;
@@ -357,152 +360,117 @@ let
   runtimeDomainSource = mkDomainDefinition false;
   installerDomainSource = mkDomainDefinition true;
 
-  validateDomain =
-    name: source:
-    pkgs.runCommand "validated-${name}-domain.xml" { } (
-      (import ../../../lib/templates/text.nix) ./scripts/validate-domain-xml.sh {
-        inherit source;
-        getExe_config_virtualisation_libvirtd_package_virt_xml_valid = getExe' config.virtualisation.libvirtd.package "virt-xml-validate";
-      }
-    );
+  runtimeDefinition = validateXml "domain" "${cfg.name}-runtime" runtimeDomainSource;
+  installerDefinition = validateXml "domain" "${cfg.name}-installer" installerDomainSource;
 
-  runtimeDefinition = validateDomain "${cfg.name}-runtime" runtimeDomainSource;
-  installerDefinition = validateDomain "${cfg.name}-installer" installerDomainSource;
-
-  reconcileScript = writeBashTemplate {
-    name = "libvirt-windows-vm-reconcile";
-    src = ./scripts/libvirt-windows-vm-reconcile.sh.in;
-    replacements = {
-      autostart = if cfg.autostart then "1" else "0";
-      python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt_xml.py;
-      bash = getExe pkgs.bash;
-      diskPath = escapeShellArg diskPath;
-      guestName = escapeShellArg cfg.name;
-      guestUuid = escapeShellArg (lib.toLower cfg.uuid);
-      installMarker = escapeShellArg installMarker;
-      libvirtUri = escapeShellArg libvirtUri;
-      runtimeDefinition = escapeShellArg runtimeDefinition;
-      virsh = getExe' config.virtualisation.libvirtd.package "virsh";
-    };
+  reconcileScript = mkControl "libvirt-windows-vm-reconcile" null "reconcile" {
+    inherit (cfg) autostart;
+    xmlHelper =
+      getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtRuntimeTools
+        "libvirt-xml";
+    inherit diskPath;
+    guestName = cfg.name;
+    guestUuid = lib.toLower cfg.uuid;
+    inherit installMarker;
+    inherit libvirtUri;
+    inherit runtimeDefinition;
+    virsh = getExe' config.virtualisation.libvirtd.package "virsh";
   };
 
-  shutdownGuest = pkgs.writers.writePython3Bin "libvirt-shutdown" {
-    libraries = [ pkgs.python3Packages.libvirt ];
-    flakeIgnore = [ "E501" ];
-  } (builtins.readFile ./scripts/libvirt_shutdown.py);
+  shutdownGuest = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtShutdown;
 
-  privilegedControl = writeBashTemplate {
-    name = "libvirt-windows-vm-control";
-    src = ./scripts/libvirt-windows-vm-control.sh.in;
-    dir = "libexec";
-    replacements = {
-      answerTemplate = escapeShellArg answerTemplate;
-      autologonArchive = escapeShellArg autologonArchive;
-      autostart = if cfg.autostart then "1" else "0";
-      authorizedKeysFile = escapeShellArg authorizedKeysFile;
-      python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt_xml.py;
-      base64 = getExe' pkgs.coreutils "base64";
-      baselineTest = escapeShellArg baselineTest;
-      bash = getExe pkgs.bash;
-      bootstrapScript = escapeShellArg bootstrapScript;
-      cat = getExe' pkgs.coreutils "cat";
-      chmod = getExe' pkgs.coreutils "chmod";
-      chown = getExe' pkgs.coreutils "chown";
-      cp = getExe' pkgs.coreutils "cp";
-      diskPath = escapeShellArg diskPath;
-      diskSerial = escapeShellArg cfg.diskSerial;
-      diskSizeGiB = toString cfg.resources.diskSizeGiB;
-      downloadPage = escapeShellArg cfg.installation.downloadPage;
-      env = getExe' pkgs.coreutils "env";
-      find = getExe pkgs.findutils;
-      grep = getExe pkgs.gnugrep;
-      guestName = escapeShellArg cfg.name;
-      guestUuid = escapeShellArg (lib.toLower cfg.uuid);
-      imageName = escapeShellArg cfg.installation.imageName;
-      install = getExe' pkgs.coreutils "install";
-      installMarker = escapeShellArg installMarker;
-      installerDefinition = escapeShellArg installerDefinition;
-      isoPath = escapeShellArg isoPath;
+  privilegedControl = mkControl "libvirt-windows-vm-control" "libexec" "windows-control" {
+    inherit answerTemplate;
+    inherit autologonArchive;
+    inherit (cfg) autostart;
+    inherit authorizedKeysFile;
+    xmlHelper =
+      getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtRuntimeTools
+        "libvirt-xml";
+    inherit baselineTest;
+    inherit bootstrapScript;
+    chown = getExe' pkgs.coreutils "chown";
+    cp = getExe' pkgs.coreutils "cp";
+    inherit diskPath;
+    inherit (cfg) diskSerial;
+    diskSizeGiB = cfg.resources.diskSizeGiB;
+    downloadPage = cfg.installation.downloadPage;
+    env = getExe' pkgs.coreutils "env";
+    guestName = cfg.name;
+    guestUuid = lib.toLower cfg.uuid;
+    imageName = cfg.installation.imageName;
+    install = getExe' pkgs.coreutils "install";
+    inherit installMarker;
+    inherit installerDefinition;
+    inherit isoPath;
+    isoSha256 = normalizedIsoSha256;
+    inherit libvirtUri;
+    inherit mediaInspectionDirectory;
+    inherit mediaInspectorGroup;
+    inherit mediaInspectorUser;
+    mv = getExe' pkgs.coreutils "mv";
+    inherit passwordFile;
+    inherit primeDisk;
+    inherit privateDirectory;
+    inherit recipeFingerprint;
+    release = cfg.installation.release;
+    inherit qemuGroup;
+    qemuImg = getExe' qemuPackage "qemu-img";
+    inherit qemuUser;
+    rm = getExe' pkgs.coreutils "rm";
+    inherit runtimeDefinition;
+    inherit runtimeDirectory;
+    inherit seedIso;
+    seedRenderer = getExe' seedRenderer "windows-vm-render-seed";
+    sevenZip = getExe' pkgs.p7zip "7z";
+    setpriv = getExe' pkgs.util-linux "setpriv";
+    sha256sum = getExe' pkgs.coreutils "sha256sum";
+    shutdownGuest = getExe shutdownGuest;
+    sshKeygen = getExe' pkgs.openssh "ssh-keygen";
+    inherit stateDirectory;
+    storageRoot = workstation.storage.root;
+    virsh = getExe' config.virtualisation.libvirtd.package "virsh";
+    inherit virtioIso;
+    wiminfo = getExe' pkgs.wimlib "wiminfo";
+    xorriso = getExe' pkgs.xorriso "xorriso";
+  };
+
+  windowsControlExecutable = "${privilegedControl}/libexec/libvirt-windows-vm-control";
+  windowsCredentialPolicy = {
+    guestName = cfg.name;
+    privilegedControl = windowsControlExecutable;
+    sudo = "${config.security.wrapperDir}/sudo";
+  };
+
+  setupWizard = mkControl "setup-windows-vm" "bin" "wizard" (
+    windowsCredentialPolicy
+    // {
+      imageName = cfg.installation.imageName;
+      isoFileName = cfg.installation.isoFileName;
       isoSha256 = normalizedIsoSha256;
-      jq = getExe pkgs.jq;
-      libvirtUri = escapeShellArg libvirtUri;
-      mediaInspectionDirectory = escapeShellArg mediaInspectionDirectory;
-      mediaInspectorGroup = escapeShellArg mediaInspectorGroup;
-      mediaInspectorUser = escapeShellArg mediaInspectorUser;
-      mkdir = getExe' pkgs.coreutils "mkdir";
-      mktemp = getExe' pkgs.coreutils "mktemp";
-      mv = getExe' pkgs.coreutils "mv";
-      passwordFile = escapeShellArg passwordFile;
-      primeDisk = escapeShellArg primeDisk;
-      privateDirectory = escapeShellArg privateDirectory;
-      recipeFingerprint = escapeShellArg recipeFingerprint;
-      release = escapeShellArg cfg.installation.release;
-      inherit qemuGroup;
-      qemuImg = getExe' qemuPackage "qemu-img";
-      inherit qemuUser;
-      rm = getExe' pkgs.coreutils "rm";
-      runtimeDefinition = escapeShellArg runtimeDefinition;
-      runtimeDirectory = escapeShellArg runtimeDirectory;
-      seedIso = escapeShellArg seedIso;
-      seedRenderer = getExe seedRenderer;
-      sevenZip = getExe' pkgs.p7zip "7z";
-      setpriv = getExe' pkgs.util-linux "setpriv";
-      sha256sum = getExe' pkgs.coreutils "sha256sum";
-      shutdownGuest = getExe shutdownGuest;
-      sleep = getExe' pkgs.coreutils "sleep";
-      sshKeygen = getExe' pkgs.openssh "ssh-keygen";
-      stateDirectory = escapeShellArg stateDirectory;
-      storageRoot = escapeShellArg workstation.storage.root;
-      virsh = getExe' config.virtualisation.libvirtd.package "virsh";
-      virtioIso = escapeShellArg virtioIso;
-      wiminfo = getExe' pkgs.wimlib "wiminfo";
-      xorriso = getExe' pkgs.xorriso "xorriso";
-    };
-  };
+      mediaDescription = cfg.installation.mediaDescription;
+      inherit privateDirectory;
+    }
+  );
 
-  setupWizard = writeBashTemplate {
-    name = "setup-windows-vm";
-    src = ./scripts/setup-windows-vm.sh.in;
-    dir = "bin";
-    replacements = {
-      guestName = cfg.name;
-      imageName = escapeShellArg cfg.installation.imageName;
-      isoFileName = escapeShellArg cfg.installation.isoFileName;
-      isoSha256 = escapeShellArg normalizedIsoSha256;
-      mediaDescription = escapeShellArg cfg.installation.mediaDescription;
-      privateDirectory = escapeShellArg privateDirectory;
-    };
-  };
-
-  windowsVmCli = writeBashTemplate {
-    name = "windows-vm";
-    src = ./scripts/windows-vm.sh.in;
-    dir = "bin";
-    replacements = {
-      bash = getExe pkgs.bash;
-      cat = getExe' pkgs.coreutils "cat";
-      chmod = getExe' pkgs.coreutils "chmod";
+  windowsVmCli = mkControl "windows-vm" "bin" "windows-vm" (
+    windowsCredentialPolicy
+    // {
       curl = getExe pkgs.curl;
-      guestName = cfg.name;
       install = getExe' pkgs.coreutils "install";
-      isoLanguage = escapeShellArg cfg.installation.isoLanguage;
-      isoPath = escapeShellArg isoPath;
-      isoProductId = escapeShellArg cfg.installation.isoProductId;
+      isoLanguage = cfg.installation.isoLanguage;
+      inherit isoPath;
+      isoProductId = cfg.installation.isoProductId;
       isoSha256 = normalizedIsoSha256;
-      isoSha256Path = escapeShellArg isoSha256Path;
-      mktemp = getExe' pkgs.coreutils "mktemp";
+      inherit isoSha256Path;
       msdl = getExe pkgs.msdl-cli;
       mv = getExe' pkgs.coreutils "mv";
-      privilegedControl = "${privilegedControl}/libexec/libvirt-windows-vm-control";
       rm = getExe' pkgs.coreutils "rm";
       setupWizard = getExe' setupWizard "setup-windows-vm";
       sha256sum = getExe' pkgs.coreutils "sha256sum";
       sshKeygen = getExe' pkgs.openssh "ssh-keygen";
-      sudo = "${config.security.wrapperDir}/sudo";
-    };
-  };
+    }
+  );
 in
 {
   options.virtualisation.libvirtWorkstation.windowsVm = {
@@ -839,7 +807,7 @@ in
       users = [ operator ];
       commands = [
         {
-          command = "${privilegedControl}/libexec/libvirt-windows-vm-control";
+          command = windowsControlExecutable;
           options = [
             "NOPASSWD"
             "NOSETENV"

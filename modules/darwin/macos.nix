@@ -4,6 +4,8 @@
 
   lib,
   options,
+  myLib,
+  pkgs,
   ...
 }:
 let
@@ -43,30 +45,61 @@ let
       desired = if value then "1" else "0";
       boolValue = if value then "true" else "false";
     in
-    (import ../../lib/templates/text.nix) ./scripts/write-current-host-default.sh {
-      readCurrentHostUserDefault_domain_key = readCurrentHostUserDefault domain key;
-      lib_escapeShellArg_desired = lib.escapeShellArg desired;
-      inherit user;
-      lib_escapeShellArg_domain = lib.escapeShellArg domain;
-      lib_escapeShellArg_key = lib.escapeShellArg key;
-      inherit boolValue;
-    };
+    myLib.writers.renderBashText { inherit pkgs; }
+      {
+        name = "write-current-host-default.sh";
+        text = ''
+          # shellcheck shell=bash
+          current_host_default="$(@readCurrentHostUserDefault_domain_key@)"
+          if [ "$current_host_default" != @lib_escapeShellArg_desired@ ]; then
+            /bin/launchctl asuser "$(/usr/bin/id -u -- @user@)" \
+              /usr/bin/sudo --user=@user@ -- \
+              /usr/bin/defaults -currentHost write @lib_escapeShellArg_domain@ @lib_escapeShellArg_key@ \
+              -bool @boolValue@
+          fi
+        '';
+      }
+      {
+        readCurrentHostUserDefault_domain_key = readCurrentHostUserDefault domain key;
+        lib_escapeShellArg_desired = lib.escapeShellArg desired;
+        inherit user;
+        lib_escapeShellArg_domain = lib.escapeShellArg domain;
+        lib_escapeShellArg_key = lib.escapeShellArg key;
+        inherit boolValue;
+      };
   writeProtectedUserBooleanDefault =
     domain: key: value:
     let
       desired = if value then "1" else "0";
       boolValue = if value then "true" else "false";
     in
-    (import ../../lib/templates/text.nix) ./scripts/write-protected-user-default.sh {
-      readUserDefault_domain_key = readUserDefault domain key;
-      lib_escapeShellArg_desired = lib.escapeShellArg desired;
-      inherit domain;
-      inherit key;
-      inherit user;
-      lib_escapeShellArg_domain = lib.escapeShellArg domain;
-      lib_escapeShellArg_key = lib.escapeShellArg key;
-      inherit boolValue;
-    };
+    myLib.writers.renderBashText { inherit pkgs; }
+      {
+        name = "write-protected-user-default.sh";
+        text = ''
+          # shellcheck shell=bash
+          protected_default_current="$(@readUserDefault_domain_key@)"
+          if [ "$protected_default_current" != @lib_escapeShellArg_desired@ ]; then
+            echo >&2 "updating protected macOS default @domain@.@key@..."
+            if ! /bin/launchctl asuser "$(/usr/bin/id -u -- @user@)" \
+              /usr/bin/sudo --user=@user@ -- \
+              /usr/bin/defaults write @lib_escapeShellArg_domain@ @lib_escapeShellArg_key@ \
+              -bool @boolValue@; then
+              echo >&2 "warning: macOS blocked @domain@.@key@; grant the activating terminal Full Disk Access to manage it"
+            fi
+          fi
+        '';
+      }
+      {
+        readUserDefault_domain_key = readUserDefault domain key;
+        lib_escapeShellArg_desired = lib.escapeShellArg desired;
+        inherit domain;
+        inherit key;
+        inherit user;
+        lib_escapeShellArg_domain = lib.escapeShellArg domain;
+        lib_escapeShellArg_key = lib.escapeShellArg key;
+        inherit boolValue;
+      };
 
   obsoleteDefaults = [
     [
@@ -466,12 +499,25 @@ in
 
     system.activationScripts.userDefaults.text = lib.mkMerge [
       (lib.mkBefore (
-        (import ../../lib/templates/text.nix) ./scripts/snapshot-user-defaults.sh {
-          readUserDefault_com_apple_finder_DisableAllAnimations = readUserDefault "com.apple.finder" "DisableAllAnimations";
-          readUserDefault_com_apple_Passwords_EnableMenuBarExtra = readUserDefault "com.apple.Passwords" "EnableMenuBarExtra";
-          readUserDefault_com_apple_Siri_StatusMenuVisible = readUserDefault "com.apple.Siri" "StatusMenuVisible";
-          readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde = readCurrentHostUserDefault "com.apple.Spotlight" "MenuItemHidden";
-        }
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "snapshot-user-defaults.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Nix builder/activation callers and rendered fragments provide external variables.
+              # shellcheck disable=SC2034
+              finder_animation_before="$(@readUserDefault_com_apple_finder_DisableAllAnimations@)"
+              passwords_menu_before="$(@readUserDefault_com_apple_Passwords_EnableMenuBarExtra@)"
+              siri_menu_before="$(@readUserDefault_com_apple_Siri_StatusMenuVisible@)"
+              spotlight_menu_before="$(@readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde@)"
+            '';
+          }
+          {
+            readUserDefault_com_apple_finder_DisableAllAnimations = readUserDefault "com.apple.finder" "DisableAllAnimations";
+            readUserDefault_com_apple_Passwords_EnableMenuBarExtra = readUserDefault "com.apple.Passwords" "EnableMenuBarExtra";
+            readUserDefault_com_apple_Siri_StatusMenuVisible = readUserDefault "com.apple.Siri" "StatusMenuVisible";
+            readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde = readCurrentHostUserDefault "com.apple.Spotlight" "MenuItemHidden";
+          }
       ))
       (lib.mkBefore ''
         ${writeCurrentHostUserBooleanDefault "com.apple.Spotlight" "MenuItemHidden" spotlightMenuHidden}
@@ -489,20 +535,54 @@ in
         }
       '')
       (lib.mkBefore (
-        (import ../../lib/templates/text.nix) ./scripts/remove-obsolete-user-defaults.sh {
-          lib_concatMapStringsSep_n_entry_deleteUserDefault_builtins_e = lib.concatMapStringsSep "\n" (
-            entry: deleteUserDefault (builtins.elemAt entry 0) (builtins.elemAt entry 1)
-          ) defaultsToDelete;
-        }
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "remove-obsolete-user-defaults.sh";
+            text = ''
+              # shellcheck shell=bash
+              echo >&2 "reconciling inactive macOS user defaults..."
+              @lib_concatMapStringsSep_n_entry_deleteUserDefault_builtins_e@
+            '';
+          }
+          {
+            lib_concatMapStringsSep_n_entry_deleteUserDefault_builtins_e = lib.concatMapStringsSep "\n" (
+              entry: deleteUserDefault (builtins.elemAt entry 0) (builtins.elemAt entry 1)
+            ) defaultsToDelete;
+          }
       ))
       (lib.mkAfter (
-        (import ../../lib/templates/text.nix) ./scripts/restart-changed-desktop-services.sh {
-          readUserDefault_com_apple_finder_DisableAllAnimations = readUserDefault "com.apple.finder" "DisableAllAnimations";
-          inherit user;
-          readUserDefault_com_apple_Siri_StatusMenuVisible = readUserDefault "com.apple.Siri" "StatusMenuVisible";
-          readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde = readCurrentHostUserDefault "com.apple.Spotlight" "MenuItemHidden";
-          readUserDefault_com_apple_Passwords_EnableMenuBarExtra = readUserDefault "com.apple.Passwords" "EnableMenuBarExtra";
-        }
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "restart-changed-desktop-services.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Nix builder/activation callers and rendered fragments provide external variables.
+              # shellcheck disable=SC2154
+              finder_animation_after="$(@readUserDefault_com_apple_finder_DisableAllAnimations@)"
+              if [ "$finder_animation_before" != "$finder_animation_after" ]; then
+                echo >&2 "restarting Finder after changing its animation policy..."
+                /usr/bin/killall -qu @user@ Finder || true
+              fi
+
+              siri_menu_after="$(@readUserDefault_com_apple_Siri_StatusMenuVisible@)"
+              spotlight_menu_after="$(@readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde@)"
+              passwords_menu_after="$(@readUserDefault_com_apple_Passwords_EnableMenuBarExtra@)"
+              if [ "$passwords_menu_before" != "$passwords_menu_after" ] ||
+                [ "$siri_menu_before" != "$siri_menu_after" ] ||
+                [ "$spotlight_menu_before" != "$spotlight_menu_after" ]; then
+                echo >&2 "restarting SystemUIServer after changing menu bar visibility..."
+                /usr/bin/killall -qu @user@ com.apple.Passwords.MenuBarExtra || true
+                /usr/bin/killall -qu @user@ SystemUIServer || true
+              fi
+            '';
+          }
+          {
+            readUserDefault_com_apple_finder_DisableAllAnimations = readUserDefault "com.apple.finder" "DisableAllAnimations";
+            inherit user;
+            readUserDefault_com_apple_Siri_StatusMenuVisible = readUserDefault "com.apple.Siri" "StatusMenuVisible";
+            readCurrentHostUserDefault_com_apple_Spotlight_MenuItemHidde = readCurrentHostUserDefault "com.apple.Spotlight" "MenuItemHidden";
+            readUserDefault_com_apple_Passwords_EnableMenuBarExtra = readUserDefault "com.apple.Passwords" "EnableMenuBarExtra";
+          }
       ))
     ];
   };

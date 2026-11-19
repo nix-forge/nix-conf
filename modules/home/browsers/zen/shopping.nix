@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -30,11 +31,23 @@ let
     let
       destination = "${extensionDirectory}/${extension.id}.xpi";
     in
-    (import ../../../../lib/templates/text.nix) ./scripts/install-shopping-extension.sh {
-      lib_escapeShellArg_destination = lib.escapeShellArg destination;
-      lib_getExe_pkgs_coreutils_install = lib.getExe' pkgs.coreutils "install";
-      lib_escapeShellArg_extension_package = lib.escapeShellArg extension.package;
-    };
+    myLib.writers.renderBashText { inherit pkgs; }
+      {
+        name = "install-shopping-extension.sh";
+        text = ''
+          # shellcheck shell=bash
+          if [[ ! -e @lib_escapeShellArg_destination@ ]]; then
+            run @lib_getExe_pkgs_coreutils_install@ -m 0644 \
+              @lib_escapeShellArg_extension_package@ \
+              @lib_escapeShellArg_destination@
+          fi
+        '';
+      }
+      {
+        lib_escapeShellArg_destination = lib.escapeShellArg destination;
+        lib_getExe_pkgs_coreutils_install = lib.getExe' pkgs.coreutils "install";
+        lib_escapeShellArg_extension_package = lib.escapeShellArg extension.package;
+      };
   bootstrapExtensions = lib.concatStringsSep "\n" (
     lib.mapAttrsToList bootstrapExtension selectedExtensions
   );
@@ -150,11 +163,21 @@ in
     # signed XPI into this profile once, then leave updates and enablement to Zen.
     home.activation.bootstrapZenShoppingExtensions = lib.mkIf (selectedExtensions != { }) (
       lib.hm.dag.entryAfter [ "linkGeneration" ] (
-        (import ../../../../lib/templates/text.nix) ./scripts/bootstrap-shopping-extensions.sh {
-          lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
-          lib_escapeShellArg_extensionDirectory = lib.escapeShellArg extensionDirectory;
-          inherit bootstrapExtensions;
-        }
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "bootstrap-shopping-extensions.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Variables and functions are supplied by the owning activation or build phase.
+              run @lib_getExe_pkgs_coreutils_mkdir@ -p @lib_escapeShellArg_extensionDirectory@
+              @bootstrapExtensions@
+            '';
+          }
+          {
+            lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
+            lib_escapeShellArg_extensionDirectory = lib.escapeShellArg extensionDirectory;
+            inherit bootstrapExtensions;
+          }
       )
     );
   };

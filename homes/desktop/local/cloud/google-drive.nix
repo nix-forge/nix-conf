@@ -1,13 +1,14 @@
 {
   config,
   lib,
-  pkgs,
   myLib,
+  pkgs,
   osConfig,
   options,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   state = "${config.xdg.stateHome}/google-drive";
   mount = "${config.home.homeDirectory}/Google Drive";
   password = config.nixSeal.secrets.google-drive-config-password.path;
@@ -25,16 +26,12 @@ let
       notify = lib.getExe' pkgs.libnotify "notify-send";
     }
   );
-  helper = pkgs.writers.writePython3Bin "google-drive-runtime" {
-    libraries = [ (myLib.python.notificationProcess { inherit pkgs; }) ];
-    flakeIgnore = [ "E501" ];
-  } ./google_drive.py;
-  command = pkgs.writeShellApplication {
+  helper = (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).googleDriveRuntime;
+  command = writeShellApplication {
     name = "google-drive";
-    text = (import ../../../../lib/templates/text.nix) ./scripts/google-drive.sh {
-      lib_getExe_helper = lib.getExe helper;
-      inherit policy;
-    };
+    text = ''
+      exec ${lib.getExe helper} --policy ${policy} "$@"
+    '';
   };
 in
 {

@@ -115,6 +115,6 @@ of MetaBrainz write APIs are not validated by this repair.
 
 - [Connection patch](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/listenbrainz-connect.patch)
 - [API regressions](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/au/aurral/listenbrainz-connect.test.mts)
-- [Bootstrap](../../hosts/nixos/desktop/local/homelab/music/scripts/bootstrap_aurral.py)
+- [Bootstrap](../../hosts/nixos/desktop/local/homelab/music/bootstrap/src/main.rs)
 - [Music discovery investigation](media-music-discovery-research.md)
 - [Spotify and MetaBrainz](../operations/spotify-metabrainz.md)

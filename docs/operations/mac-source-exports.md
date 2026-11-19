@@ -1,9 +1,27 @@
 # Verified Mac source exports
 
+Exporting hashes and transfers source; compilation and native tests run on the
+Mac.
+
 Use a complete verified snapshot for remote Mac builds and tests. Incrementally
 copying individual files can pair a newer fixture with an older implementation.
 The export tool captures one selected working tree, imports it into the Nix
 store, and transfers that exact immutable source to the Mac.
+
+The Mac needs a trusted native verifier before the first remote export. The
+Darwin dev profile supplies it. To bootstrap without a system rebuild, run
+these commands **on the Mac** from a reviewed checkout with initialized
+submodules:
+
+```sh
+mkdir -p "$HOME/.local/state/nix-conf"
+nix build --no-update-lock-file \
+  --out-link "$HOME/.local/state/nix-conf/mac-verifier" .#mac-source
+```
+
+The exporter prefers the verifier in the Mac's noninteractive SSH command path
+and looks at this independent build link when it is absent. It verifies the
+snapshot before any command runs from that source.
 
 ## Default remote commands
 
@@ -11,7 +29,7 @@ The normal remote commands create a fresh verified export automatically:
 
 ```sh
 just macbook-build
-just mac-test -q tests/macos/test_mac_source.py
+just mac-test
 just mac-check
 ```
 
@@ -24,20 +42,18 @@ flags follow `--`, for example `just macbook-build -- --show-trace`.
 
 From Linux, `darwin-build <CONFIGURATION>` and `darwin-switch <CONFIGURATION>`
 use these verified remote build/deploy paths. On Darwin, those two commands retain
-their local `nh` behavior. `mac-test` realizes the exported flake's pinned test
-environment on the Mac, disables the source-directory pytest cache, and forwards
-pytest arguments unchanged. With no arguments it selects `tests/macos`; the
-repository's marker policy still controls native integration tests.
+their local `nh` behavior. `mac-test` runs the exported flake's pinned `nix-unit` library runner on the Mac
+and forwards its arguments. Runtime acceptance remains an explicit operator task;
+no root Python integration suite is installed.
 
 `mac-exec <COMMAND> ...` runs another command through a fresh export. Each default
 operation prints a private receipt path under
 `~/.local/state/nix-conf/mac-source-runs/`. Sources and command outcomes stay bound
-to that receipt. Deployment-client preparation and deploy-rs's nested local Nix evaluation and
-copy operations run through the desktop workload queue. The build against the
-verified Mac store runs outside that queue, as do native tests. Queue-placement
-records are retained beside the receipt as `.client.nix.jsonl`. A sibling
-`.client` root retains the selected deployment client while the operation is
-needed, alongside the source root.
+to that receipt. Only deployment-client preparation, evaluation and transfer
+run on the caller. Builds and native tests use the verified Mac store.
+The `.client.nix.jsonl` file beside the receipt records the deployment client's
+Nix arguments. A sibling `.client` root retains the deployment client
+alongside the source root.
 
 ## Explicit exports and receipt reuse
 
@@ -45,7 +61,7 @@ The lower-level commands remain available when several commands intentionally
 share a source snapshot. Existing `mac-check <RECEIPT>` and `mac-run <RECEIPT>`
 usage is preserved and rejects a receipt after selected source changes.
 
-Run from the repository checkout with Git, Nix, Python 3 and SSH available.
+Run from the repository checkout with Git, Nix, SSH and the Nix-packaged `mac-source` command available.
 Choose a new private receipt filename for each export:
 
 ```sh
@@ -55,9 +71,8 @@ just mac-check "$receipt"
 ```
 
 `mac-export` defaults to the configured `macbook` SSH alias. Pass a different Mac
-alias as its second argument. `mac-check` runs the broader temporary-fix check,
-whose assertions evaluate all three supported platforms on the native Mac.
-It does not activate a configuration.
+alias as its second argument. `mac-check` runs `nix flake check --no-write-lock-file`
+on the Mac, which builds the native flake checks.
 
 Run other commands through the same verifier:
 
@@ -65,8 +80,7 @@ Run other commands through the same verifier:
 just mac-run "$receipt" nix build --no-link --no-write-lock-file \
   --max-jobs 2 --cores 4 \
   '.#darwinConfigurations.macbook-pro-m4.config.system.build.toplevel'
-just mac-run "$receipt" python3 -m pytest -p no:cacheprovider \
-  tests/macos/test_mac_source.py
+just mac-run "$receipt" nix develop --command nix-unit --flake '{source}#libTests'
 ```
 
 Common Nix source overrides (`--expr`, `--file`, input overrides and unrelated
@@ -81,15 +95,9 @@ target. Commands must use the snapshot working directory or
 shell scripts or other programs.
 
 Arguments retain their boundaries through SSH; `{source}` expands to the exact
-verified Nix-store source. Commands run in that source directory. Tests must put
-outputs in their temporary directories: the source is immutable. Python bytecode
-writes are disabled automatically; disable pytest's source-directory cache as
-shown above. Use the repository's test Python environment when pytest or its
-configured plugins are not installed in the ordinary Mac interpreter.
-
-Exporting hashes and transfers source; compilation and native tests run on the
-Mac. Other heavy desktop checks still use `workstation-task` as required by the
-repository's build-placement policy.
+verified Nix-store source. Commands run in that source directory. Commands must put outputs outside the immutable source. The remote machine must
+have the trusted `mac-source` verifier from the dev profile or the native
+bootstrap build.
 
 ## Source selection and identity
 
@@ -104,7 +112,7 @@ source selection. For a new source file, add it deliberately to Git or select it
 explicitly without changing the index:
 
 ```sh
-just mac-export "$receipt" macbook --include scripts/new_helper.py
+just mac-export "$receipt" macbook --include scripts/new-helper/src/main.rs
 ```
 
 Ignored files cannot be explicitly included. Relative symlinks that stay inside
@@ -123,9 +131,8 @@ stable export.
 
 Before launching SSH, `mac-run` verifies that the selected local source still
 matches the receipt. An older receipt after a local edit is rejected with an
-instruction to export again. On the Mac, the trusted verifier is sent from the
-caller over SSH rather than loaded from a potentially stale export. It checks
-the expected manifest digest and scans the complete source for missing, extra,
+instruction to export again. The Mac's trusted native verifier checks the
+expected manifest digest and scans the complete source for missing, extra,
 modified or redirected files before starting the requested command.
 
 Both local freshness and remote integrity are checked again after execution.

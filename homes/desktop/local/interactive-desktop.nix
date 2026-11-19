@@ -108,6 +108,16 @@
     OOMPolicy=continue
   '';
 
+  # Keep the ICC MIME handler's upstream metadata and use its Nix executable.
+  xdg.dataFile."applications/gcm-import.desktop".source =
+    let
+      colorManager = pkgs.gnome-color-manager;
+    in
+    pkgs.runCommand "gcm-import.desktop" { } ''
+      substitute "${colorManager}/share/applications/gcm-import.desktop" "$out" \
+        --replace-quiet 'Exec=/usr/bin/gcm-import ' 'Exec=${lib.getExe' colorManager "gcm-import"} '
+    '';
+
   xdg.dataFile."applications/noctalia-settings.desktop".source =
     let
       entry = pkgs.makeDesktopItem {

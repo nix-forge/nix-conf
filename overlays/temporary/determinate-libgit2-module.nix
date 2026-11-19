@@ -20,8 +20,10 @@
           };
           repairedLibgit2 = owningFixes.apply "determinate-libgit2-trailing-slash" owningPkgs.nixDependencies2.libgit2;
         in
-        assert owningPkgs.nixComponents2.nix-everything.drvPath == packages.default.drvPath;
-        packages // { default = packages.default.overrideScope (_: _: { libgit2 = repairedLibgit2; }); };
+        if owningPkgs.nixComponents2.nix-everything.drvPath != packages.default.drvPath then
+          throw "Invalid production input in determinate-libgit2-module.nix"
+        else
+          packages // { default = packages.default.overrideScope (_: _: { libgit2 = repairedLibgit2; }); };
       moduleInputs = determinate.inputs // {
         self = determinate;
         nix = determinate.inputs.nix // {

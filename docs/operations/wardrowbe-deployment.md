@@ -20,7 +20,7 @@ passkeys. The ordinary account has no administrator role. A separate permanent
 administrator replaces Keycloak's temporary bootstrap account after its login
 and permissions have been verified.
 
-The [identity credential helper](../../hosts/nixos/desktop/local/homelab/credentials/identity_to_bitwarden.py)
+The [identity credential helper](../../hosts/nixos/desktop/local/homelab/credentials/runtime/src/bin/identity-to-bitwarden.rs)
 generates missing bundles on first use and copies both password logins to
 Bitwarden. Existing bundles are decrypted through SSH to their administrator
 identity, without copying private keys. The helper preserves vault records and
@@ -49,7 +49,7 @@ After changing a login name or password, synchronize the existing vault items
 with the deployed sealed credentials:
 
 ```sh
-python hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py \
+homelab-to-bitwarden \
   --only Wardrowbe --only 'Wardrowbe sign-in administrator'
 ```
 

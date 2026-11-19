@@ -42,7 +42,6 @@
     actual
     ssh
     services-ssh-forwards
-    services-workstation-jobs
     dev-jj-identity
 
     firefox
@@ -59,6 +58,7 @@
     neovim-defaulteditor
 
     shells
+    keyboard-macos-shortcuts
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv

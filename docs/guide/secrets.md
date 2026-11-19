@@ -1,8 +1,7 @@
-# Add secrets after the starter works
+# Add secrets when needed
 
-The public starter has no secret manager. That keeps the first build independent
-of personal credentials and lets you choose a provider when you have a concrete
-secret to deliver.
+Choose a secret provider when your configuration has a concrete secret to deliver.
+Keep initial module builds independent of personal credentials where possible.
 
 Never put a plaintext credential in a Nix expression. Nix source and build outputs
 can enter the readable Nix store. Use placeholders in documentation and keep
@@ -30,7 +29,7 @@ status visible when evaluating it. See its
 and [recovery runbooks](https://github.com/nix-forge/nix-seal/blob/main/docs/runbooks.md).
 
 The complete home profiles rely on host-managed runtime storage, so they cannot
-be activated as standalone replacements for the tutorial home. Review the
+be activated as standalone Home Manager configurations. Review the
 [root secret workflow](https://github.com/nix-forge/nix-conf/blob/main/docs/secrets.md)
 when working on those hosts.
 

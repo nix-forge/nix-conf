@@ -45,7 +45,7 @@ submits them through the local `FILDES` protocol with four blocking workers,
 bounded batches, `MaxThreads = 4`, and `MaxQueue = 8`.
 The host-local policy defines those roots and settings. [The shared
 module](../../modules/nixos/security/clamav.nix) installs the [native Python
-client](../../modules/nixos/security/clamav_scan.py). Files removed during cache
+client](../../modules/nixos/security/clamav-runtime/src/main.rs). Files removed during cache
 eviction are skipped before opening, and retained descriptors remain valid after
 unlinking. Unreadable inputs and daemon errors remain nonzero results.
 

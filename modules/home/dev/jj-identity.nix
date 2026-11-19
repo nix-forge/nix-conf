@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   ...
 }:
@@ -9,13 +8,7 @@ let
   cfg = config.programs.jujutsu.runtimeIdentity;
   destination = "${config.xdg.configHome}/jj/conf.d/90-local-identity.toml";
   gitPackage = if config.programs.git.package == null then pkgs.git else config.programs.git.package;
-  writer = pkgs.writers.writePython3Bin "write-jujutsu-identity" {
-    libraries = [ (myLib.python.notificationProcess { inherit pkgs; }) ];
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/write_jujutsu_identity.py;
+  writer = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).devTools;
   arguments =
     if cfg.sourceFile != null then
       [
@@ -70,6 +63,6 @@ in
     ];
     home.activation.jujutsuLocalIdentity = lib.hm.dag.entryAfter (
       [ "writeBoundary" ] ++ cfg.activationAfter
-    ) "run ${lib.getExe writer} ${lib.escapeShellArgs arguments}";
+    ) "run ${lib.getExe' writer "write-jujutsu-identity"} ${lib.escapeShellArgs arguments}";
   };
 }

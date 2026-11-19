@@ -1,5 +1,9 @@
-{ pkgs, ... }: {
-  imports = [ ../default.nix ];
+{ pkgs, lib, ... }: {
+  imports = [
+    ../default.nix
+    ../../dev/agentic-tui/agent-skills.nix
+  ];
+  programs.agent-skills.clients.copilot.enable = lib.mkDefault true;
   programs.vscode.profiles.default = {
     # Matches the stable Marketplace version at the pinned package revision.
     # This is an explicit source choice, not an automatic source fallback.

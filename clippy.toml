@@ -1,0 +1,8 @@
+# Compiler-resolved paths also cover renamed imports. Keep transport verification
+# and finite queue admission in feature-local adapters.
+disallowed-methods = [
+  { path = "reqwest::ClientBuilder::danger_accept_invalid_certs", reason = "preserve TLS certificate verification" },
+  { path = "reqwest::ClientBuilder::danger_accept_invalid_hostnames", reason = "preserve TLS hostname verification" },
+  { path = "tokio::sync::mpsc::unbounded_channel", reason = "use bounded channels and define overload behavior" },
+  { path = "std::sync::mpsc::channel", reason = "use sync_channel with an explicit capacity" },
+]

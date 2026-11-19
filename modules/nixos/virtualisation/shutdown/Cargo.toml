@@ -1,0 +1,37 @@
+[package]
+name = "libvirt-shutdown"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+
+# libvirt's lifecycle callbacks require the reviewed native.rs C ABI boundary.
+# Keep the rest of this crate denied and every other workspace crate forbidden.
+[lints.rust]
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+unfulfilled_lint_expectations = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -2 }
+correctness = { level = "deny", priority = -1 }
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+let_underscore_must_use = "deny"
+unused_result_ok = "deny"
+await_holding_lock = "deny"
+allow_attributes_without_reason = "warn"
+ignore_without_reason = "deny"
+undocumented_unsafe_blocks = "deny"
+disallowed_methods = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[build-dependencies]
+pkg-config = "0.3"

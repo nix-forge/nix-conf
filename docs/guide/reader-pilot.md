@@ -1,13 +1,13 @@
 # Test the guide with independent readers
 
-Use a fixed candidate revision and its public starter. Ask each willing reader
-to begin with [prerequisites](start-here.md), build the starter, inspect the
-result, change a setting, and follow the [recovery guide](update-and-recover.md).
-Linux readers can also try the disposable VM. Record the native platform and
-whether the reader already knows Nix.
+Use a fixed candidate revision and a selected module recipe. Ask each willing
+reader to begin with [prerequisites](start-here.md), build their configuration,
+inspect the result, change a setting, and follow the [recovery guide](update-and-recover.md).
+Linux readers can also try the [graphical VM](graphical-demo.md). Record the
+native platform and whether the reader already knows Nix.
 
 Choose five readers for an initial small pilot. A useful first acceptance target
-is four completing the starter without synchronous maintainer help. This is a
+is four completing the recipe without synchronous maintainer help. This is a
 proposed target for finding guide defects, not a statistical estimate of general
 usability. Do not count automated tests or agent simulations as independent users.
 

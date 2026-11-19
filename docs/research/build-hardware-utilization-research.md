@@ -1,9 +1,5 @@
 # Build hardware utilization
 
-Reviewed: 2026-10-12. Scope: Nix 2.34.9, systemd v261.2, current Cargo and
-Ninja manuals, and Linux cgroup v2 documentation. This supplements the
-[queue investigation](build-queue-efficiency-research.md) with resource sizing.
-
 ## Answer
 
 For a desktop with 16 logical CPUs and about 30 GiB of memory, begin with one

@@ -2,24 +2,15 @@
   config,
   lib,
   pkgs,
-  myLib,
   ...
 }:
 let
   cfg = config.programs.git.emailPrivacy;
-  guard = pkgs.writers.writePython3Bin "git-email-privacy" {
-    libraries = [ (myLib.python.notificationProcess { inherit pkgs; }) ];
-    # Match Ruff's formatting of long lines, slices, and binary operators.
-    flakeIgnore = [
-      "E203"
-      "E501"
-      "W503"
-    ];
-  } ./scripts/git_privacy_hook.py;
+  guard = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).devTools;
   command =
     event:
     lib.escapeShellArgs [
-      (lib.getExe guard)
+      (lib.getExe' guard "git-email-privacy")
       "--git"
       (lib.getExe' config.programs.git.package "git")
       "--gh"

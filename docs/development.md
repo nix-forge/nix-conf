@@ -10,17 +10,60 @@ prek run --all-files
 
 The dev partition contains formatters, linters, security scanners, Nix language
 tooling, and the repository hooks. Expensive checks such as the full flake
-evaluation and Rust audit/test suites run in pre-push hooks or CI.
+evaluation and native Rust compilation run in CI. Dependency advisory checks
+use the current RustSec database through `cargo audit`.
 
 To install or refresh hooks for a clone without entering its development shell,
 run `just hooks` from any directory. The command resolves the repository from
 its justfile and installs hooks only in that clone; it does not retain another
 developer's checkout path.
 
-On Windows, direnv is supported through WSL or Git Bash. If Nix is absent,
-`.envrc` loads only a small project-root/path environment so shell startup does
-not fail; it does not provide the reproducible tools above. Native PowerShell
-direnv is outside the supported scope.
+Direnv loads the pinned Nix shell through `.envrc`; Nix is required. Use
+`nix develop` directly when direnv is unavailable. Windows development requires
+WSL with Nix and direnv.
+
+Run `javascript-check` inside the shell for TypeScript, Oxlint and formatting.
+Nix supplies the compiler, runtime, linter and formatter;
+no package-manager install or local dependency directory is needed. Root runtime
+helpers belong to the feature-local Cargo workspace. Nix supplies Cargo, rustc,
+rustfmt, Clippy, rust-analyzer and advisory tools; no separate Rustup selection
+or Python tooling environment is needed for this repository. See the
+[Nix-first migration research](research/nix-first-runtime-research.md).
+
+## Rust workstation support
+
+The shared Rust home module installs Rustup and a standalone rust-analyzer. Rustup
+selects the compiler, Cargo, rustfmt, Clippy and standard-library sources from each
+project's `rust-toolchain.toml`. There is no global `RUST_SRC_PATH` or forced
+`RUSTUP_TOOLCHAIN`. The Nix-managed language server has priority over Rustup's LSP
+shim and discovers sources through the selected compiler's sysroot.
+
+Project crates, lockfiles, analysis-tool versions and build commands remain owned
+by their projects. Existing global Cargo utilities are optional conveniences;
+projects can install their own required versions without adding a Nix expression.
+This repository's explicit Nix development shell still owns its own tools.
+
+The C/C++ module supplies GNU make, Perl and pkg-config for native build scripts.
+GCC is also available for tools that invoke `gcc` explicitly, at lower priority
+so Clang retains the default `cc`. The `dev-perf` module supplies Linux
+perf without changing kernel sampling permissions. These are workstation
+prerequisites, not a Nix build environment for another project.
+
+After activating an updated Home Manager generation, check command ownership:
+
+```sh
+type -a rustup cargo rustc rust-analyzer
+rustup show
+rustup which rustc
+```
+
+Use a project's toolchain file to select its compiler. Outside projects, an
+optional default can be installed with `rustup default stable`. Miri is an
+explicit nightly component; Kani uses its upstream installation procedure and
+matching backend. Home activation does not download toolchains or install project
+Cargo plugins. Preserve installed toolchains and manually installed tools until
+the new generation and the project's commands have been verified; do not use
+`rustup self uninstall` as a launcher-cleanup operation.
 
 ## Local repository layout
 
@@ -48,8 +91,8 @@ Home Manager maintains. Add a new path there only after its checkout exists;
 Home Manager does not clone repositories during activation.
 
 Keep task checkouts under `$HOME/Worktrees`, with separate `manual`, `codex`,
-and `claude` directories. Home Manager creates these directories and adds the
-Worktrees user-directory bookmark. Permanent clones remain in Developer.
+`claude`, `opencode`, and `t3` directories. Home Manager creates these directories
+and adds the Worktrees user-directory bookmark. Permanent clones remain in Developer.
 
 Create a task from a committed base:
 
@@ -62,7 +105,8 @@ a base containing submodules gets an independent clone with separate storage.
 Initialize its submodules before evaluating or building. Pending edits and
 ignored local files are not copied. Run a terminal agent with
 `dev-worktree run PATH -- claude` or the matching agent command to hold a session
-lease. Global instructions in Codex, Claude Code, and OpenCode use this policy.
+lease. This is an optional manual command, not an installed agent skill or
+global instruction.
 
 Use `dev-worktree list` or `dev-worktree doctor` for a live inventory. The weekly
 report is private state under `$XDG_STATE_HOME/dev-worktree/inventory.json`.
@@ -78,35 +122,44 @@ preserved; `--discard-ignored` explicitly allows their loss. Independent clones
 require reviewed archival because their other branches, stashes, and object
 storage must survive. The helper never deletes app-managed worktrees.
 
-Codex's native worktree root is set to `$HOME/Worktrees/codex` through an atomic
-merge that preserves its writable settings. Let the app manage retention and
-handoff. Existing managed checkouts are not relocated by this setting. For
-Claude desktop, select `$HOME/Worktrees/claude` in Settings > Claude Code >
-Worktree location on the host where it runs. No declarative key for that native
-setting has been verified. Cursor retains its own exclusive managed root.
+The shared `programs.dev-worktree.worktreeRoot` option supplies defaults for
+native harness settings on both workstation profiles. Each harness module owns
+its own setting; the worktree module owns directories, manual commands, and Git
+maintenance. It does not export agent instructions, install a worktree skill, or
+bundle global `AGENTS.md` or `CLAUDE.md` files.
 
-The reusable worktree module owns `programs.dev-worktree` paths, commands,
-maintenance, and the shared instruction text. Each terminal client's module
-adds that text through its own Home Manager `context` option. The Codex desktop
-module owns native settings through `programs.chatgpt.settings`; the workspace
-root and Stylix appearance are merged before one activation step updates the
-writable TOML file. Unconfigured trust and session preferences remain app-owned.
-Changing `programs.dev-worktree.worktreeRoot` updates the default Codex root.
-Host-specific native preferences can be set in the home's `local/` modules:
+| Harness | Nix-managed setting | Default location and scope |
+| --- | --- | --- |
+| Codex | `programs.chatgpt.settings.desktop.git-worktree-root` | `$HOME/Worktrees/codex` for desktop-managed worktrees |
+| OpenCode | `programs.opencode.settings.worktree.directory` | `$HOME/Worktrees/opencode` for newly created worktrees |
+| T3 Code | `programs.t3code.userSettings.worktreesDirectory` | `$HOME/Worktrees/t3` on the environment host, regardless of its selected provider |
+| Claude desktop SSH | `programs.claude-code.settings.worktree.location` | `$HOME/Worktrees/claude` on the SSH host |
 
-```nix
-programs.chatgpt.settings.desktop.git-worktree-root = "/absolute/tasks/codex";
-```
+Set `programs.dev-worktree.worktreeRoot` in a home's `local/` module to change
+these defaults together. Each native assignment uses `lib.mkDefault`, so a
+host-specific native setting can override one harness without changing the
+others. Settings are applied during Home Manager activation, not continuously
+while applications run. Codex's writable TOML is merged by its existing settings
+owner; T3's mutable settings merger preserves unrelated provider and connection
+preferences.
 
-Settings are reapplied during Home Manager activation, rather than continuously
-enforced while the app runs. Claude Code's CLI has no verified worktree-root
-setting; use `dev-worktree` and launch it inside the resulting checkout.
+Native settings have different scopes. Claude's `worktree.location` is read by
+Desktop SSH sessions; its CLI, `EnterWorktree`, and isolated subagents continue
+to use the repository's `.claude/worktrees` location. See
+[Claude's setting reference](https://code.claude.com/docs/en/settings-reference#worktreelocation).
+Cursor's documented `.cursor/worktrees.json` controls setup, not a shared
+storage root; keep its managed storage app-owned. Other clients can run inside
+a manual checkout created by `dev-worktree`. No global creation/removal hooks
+or symlinks replace their native lifecycle.
 
-Short bounded desktop checks can use `workstation-task --feedback`; full builds
-and acceptance suites use the default bulk lane. See
-[desktop memory management](operations/desktop-memory-management.md) for limits,
-failure behavior and standalone runner installation. Task lifetime helpers do
-not replace workload scheduling.
+[Codex](https://learn.chatgpt.com/docs/environments/git-worktrees),
+[OpenCode](https://opencode.ai/docs/config#worktrees), and T3 manage their own
+worktree creation and retention. New location settings do not migrate existing
+checkouts. T3 0.1.8 continues recognizing its default managed directory and its
+app-owned previous-directory history. Never move, prune, or delete existing
+worktrees as part of configuration activation.
+
+Run builds and checks directly with the host's configured compiler parallelism.
 
 ## Git maintenance
 
@@ -120,11 +173,11 @@ share their canonical repository's maintenance.
 The strategy is incremental. It does not schedule full GC or checkout deletion.
 Automatic Git optimization remains available for repositories outside this
 layout. Do not also run `git maintenance start` or install a separate scheduler.
-On desktop, scheduled maintenance and inventory use `workstation-task`.
+Scheduled maintenance and inventory run directly.
 
 ```sh
 systemctl --user list-timers 'git-maintenance*'
-workstation-task dev-worktree maintain --schedule=daily
+dev-worktree maintain --schedule=daily
 ```
 
 On macOS, inspect Home Manager's `git-maintenance-*` launchd agents instead.
@@ -147,49 +200,31 @@ package outputs, generated preferences, and short browser expressions.
 
 | Source                                                                                           | Choice and check                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Root browser fixtures, DOM observer, disposable VS Code extensions, Electron startup probe       | TypeScript `.cts` or `.ts`, checked by the strict root compiler. Node type erasure produces JavaScript before WebDriver, CDP, VS Code, or Electron receives the source.                                             |
-| Jellyfin caption regression test                                                                 | TypeScript `.cts` with an explicit settings contract at its VM boundary. The patch check uses the declared Node 24 interpreter.                                                                                     |
 | Package module smoke checks, manifest scripts, Aurral native smoke check                         | TypeScript `.mts`, checked by the package repository's JavaScript quality check. Standalone packages retain identical local copies of the module smoke helper and resolve dependencies from the caller's directory. |
 | Feishin lifecycle and Samsung power-state regression tests                                       | TypeScript `.mts`, included in the package repository's compiler and lint checks. Their package checks still execute the actual patched upstream implementation.                                                    |
 | ReactFlux authentication, session store, media policy, image gallery and image integration tests | TypeScript and TSX. Vite compiles application sources. The package checks these sources against its locked React, Vite, parser, and nanostores declarations before running image tests.                             |
-| Existing Spotify extension, homelab helpers, Feishin helpers, T3 runtime check and root probes   | Check every standalone compiler project through the package repository command as well as its package-specific build.                                                                                               |
 | Feishin and Stirling `.js.in` fragments, upstream patch hunks                                    | Keep exact upstream JavaScript. Partial fragments are not compilation units. Source anchors, assembled-program parsing, and package behavior checks validate them.                                                  |
-| T3 CommonJS loader fixtures, preference assignments and short HTML or browser expressions        | Keep JavaScript where the fixture tests CommonJS loading itself or the application requires JavaScript text. These small expressions do not justify a compiler pipeline.                                            |
 
-Root `npm run check` includes all maintained root JavaScript and TypeScript tests
-and the caption regression source. Its test command requires
-`METABRAINZ_EXTENSION` as described in [the testing guide](testing.md).
-The package repository's `npm run check` covers maintained Node helpers and tests;
-ReactFlux's image test is checked inside its package build, where its real
-application dependencies are available. Substantial Electron and CDP renderer
-programs also live in TypeScript and emit JavaScript for their consumers.
-Narrow local declarations for browser,
-VS Code, Electron, and nanostores host contracts support standalone checking;
-they do not replace integration checks against those applications.
-
-New browser TypeScript under `tests/` automatically enters the root compiler
-project. Use the shared source adapter in `tests/typescript/source.mts` and
-`tests/typescript_sources.py` when a consumer requires JavaScript text. The adapter
-erases types without introducing CommonJS or ES module compiler boilerplate.
-JavaScript remains included in the compiler project for future intentional fixtures. New package script `.mts` files enter the package compiler project and
-Nix source set. Keep type-check, lint, formatter, Nix source selection, and runtime
-callers aligned when adding other programs. Never bypass an incompatible runtime
-by renaming a source file without updating its consumers.
+Root and package `javascript-check` commands run compiler, lint and formatting
+checks for surviving maintained JavaScript and TypeScript. Compiler discovery
+uses `scripts/typescript/projects.json`; native Nix validates strict options and
+explicit source coverage in `flake/dev/javascript-tools.nix`. Keep compiler manifests, source
+selection and runtime callers aligned when adding programs. The root excludes
+subprojects, whose static tooling is owned independently.
 
 See [Node's TypeScript execution rules](https://nodejs.org/api/typescript.html)
 and [TypeScript's JavaScript checking option](https://www.typescriptlang.org/tsconfig/checkJs.html).
 
 ## CI runtime and cache ownership
 
-The early Python job owns hosted syntax, Ruff and type analysis before native
-work. Local hooks and full `lintChecks` remain available. Hosted lint retains its
-other language, formatting, publication and policy checks; native host proofs
-remain distinct from sandboxed build checks.
+The early Rust job owns workspace formatting, compilation and Clippy before
+other native work. Local hooks and full `lintChecks` remain available. Hosted lint retains its
+other language, formatting and publication checks; library tests remain separate.
 
-`Seed reviewed static CI caches` warms only the reviewed Linux `ciPython` and
+`Seed reviewed static CI caches` warms only the reviewed Linux `ciRust` and
 `ci` tool environments after relevant default-branch dependency changes or an
 explicit default-branch dispatch. It retains a Nix profile through post-job GC.
-Python and lint consumers use matching workload keys and read-only mode. Source
+Rust and lint consumers use matching workload keys and read-only mode. Source
 changes still require their exact Nix outputs; an older dependency restore does
 not make a changed check pass. Cache post-action logs record actual transfer and
 save outcomes, while summaries report policy, matched keys, timing and retained
@@ -199,16 +234,12 @@ The native/package audit stores remain outside automatic warming. Archive only
 closures whose contents can be shared with contributors; a GitHub store cache
 includes the whole store, including dependencies. Native artifacts, credentials,
 private data and redistribution-restricted packages require their own review.
-Keep native application identity, signature, runtime and recovery assertions.
-The Handy proof records artifact, environment and host-execution phases and
-retains the exact current application while reusing its realized test environment.
-
 The shared native runner supports small bounded evaluation batches. Current
 batch failures fall back to isolated current evaluation; unknown or timed-out
 historical entries rebuild. Reuse also requires the latest owning GitHub Actions
 `Repository tests` aggregate to have succeeded on the exact base commit; missing,
 pending or failed evidence rebuilds current checks. Do not replace conservative fallback with source-path
-heuristics or make a successful queue admission stand for completed validation.
+heuristics or treat submission as completed validation.
 See the [runtime audit](research/ci-runtime-cache-audit-research.md) for the measured
 baseline and benchmark acceptance criteria. Compare cold and restored runs of the
 same source before claiming a cache speedup.

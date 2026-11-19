@@ -8,12 +8,19 @@
     resolveHyprlandPackage = import ./desktop/hyprland-package.nix;
   };
 
-  python = {
-    notificationProcess = import ./python/notification-process/package.nix;
-  };
+  systemd.execArgs = import ./systemd/exec-args.nix;
+
+  templates.renderText = import ./templates/text.nix;
 
   writers = {
-    inherit (import ./writers/bash.nix { inherit lib; }) writeBashTemplate;
+    inherit (import ./writers/bash.nix { inherit lib; })
+      checkedShellText
+      renderBashText
+      writeBashTemplate
+      writeShellApplication
+      writeShellScript
+      writeShellScriptBin
+      ;
     inherit (import ./writers/lua.nix { inherit lib; }) checkLuaFile;
     inherit (import ./writers/nushell.nix { inherit lib; }) checkNuFile;
     inherit (import ./writers/powershell.nix { inherit lib; }) writePowerShell;

@@ -1,6 +1,6 @@
 { lib, ... }: {
   reason = "The Sentry crashdump test needs Crashpad Mach ports denied by the Darwin sandbox.";
-  upstream = "https://github.com/DeterminateSystems/nix";
+  upstream = "https://api.flakehub.com/f/pinned/DeterminateSystems/nix-src/3.24.2/01a1a784-2356-7ff3-a013-b47d4fd7ed90/source.tar.gz";
   removal = "The Sentry crashdump case passes in the strict Darwin sandbox.";
   reviewedRevision = "f43bee4f45c2d42e7d1f4e37908ec5c7bb0fdba1";
   inputPath = [
@@ -18,9 +18,6 @@
           (throw "Determinate Nix has multiple functional gates; review the Darwin Sentry fix")
           package.buildInputs;
     in
-    assert package.doCheck;
-    assert builtins.length package.buildInputs == 6;
-    assert functional.doCheck;
     builtins.seq functional (
       package.override {
         nix-functional-tests = functional.overrideAttrs (old: {

@@ -5,6 +5,7 @@
   ...
 }:
 let
+  inherit (import ../storage/.storage-roles.nix) homelabMount;
   qbitBootstrapReady = lib.all (name: builtins.pathExists (../secrets + "/homelab-${name}.age")) [
     "vpn-private-key"
     "qbittorrent-username"
@@ -60,8 +61,8 @@ in
     # Keep downloads and libraries on the HDD for hardlink imports. The
     # required mount prevents writes to root if the disk is absent or locked.
     storage = {
-      rootDir = "/mnt/homelab/media";
-      requiredMounts = [ "/mnt/homelab" ];
+      rootDir = "${homelabMount}/media";
+      requiredMounts = [ homelabMount ];
     };
 
     # Reserve headroom on the HDD for backup growth and imports.

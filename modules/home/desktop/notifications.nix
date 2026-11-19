@@ -5,6 +5,8 @@
   ...
 }:
 let
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
+  desktopMod = if macShortcuts then "CTRL + ALT + SUPER" else "SUPER";
   cfg = config.desktop.notifications;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   hyprBind = key: command: {
@@ -88,8 +90,8 @@ in
       lib.mkIf config.wayland.windowManager.hyprland.enable
         (
           lib.mkAfter [
-            (hyprBind "SUPER + N" "${lib.getExe' pkgs.swaynotificationcenter "swaync-client"} -t")
-            (hyprBind "SUPER + SHIFT + N" "${lib.getExe' pkgs.swaynotificationcenter "swaync-client"} -d")
+            (hyprBind "${desktopMod} + N" "${lib.getExe' pkgs.swaynotificationcenter "swaync-client"} -t")
+            (hyprBind "${desktopMod} + SHIFT + N" "${lib.getExe' pkgs.swaynotificationcenter "swaync-client"} -d")
           ]
         );
   };

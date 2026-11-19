@@ -1,5 +1,6 @@
 {
   lib,
+  myLib,
   config,
   osConfig ? null,
   ...
@@ -33,8 +34,6 @@ let
 in
 {
   programs.nushell.extraConfig = lib.mkAfter (
-    (import ../../../../lib/templates/text.nix) ./scripts/extra-config-after-config.nu.in {
-      inherit binPaths;
-    }
+    myLib.templates.renderText ./scripts/extra-config-after-config.nu.in { inherit binPaths; }
   );
 }

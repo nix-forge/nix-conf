@@ -1,19 +1,31 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellScript = myLib.writers.writeShellScript { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   cfg = config.programs.bitwardenDesktop;
-  render = import ../../lib/templates/text.nix;
+  render = myLib.templates.renderText;
   darwinAppPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/Bitwarden.app";
-  waitForApp = render ./bitwarden-assets/wait-for-app.sh.in {
-    app = lib.escapeShellArg darwinAppPath;
-  };
-  startApp = pkgs.writeShellScript "bitwarden-start" (
-    render ./bitwarden-assets/start-app.sh.in { app = lib.escapeShellArg darwinAppPath; }
+  waitForApp = render {
+    name = "wait-for-app.sh.in";
+    text = ''
+      # shellcheck shell=bash
+      run /bin/wait4path @app@
+    '';
+  } { app = lib.escapeShellArg darwinAppPath; };
+  startApp = writeShellScript "bitwarden-start" (
+    render {
+      name = "start-app.sh.in";
+      text = ''
+        # shellcheck shell=bash
+        /bin/wait4path @app@ && exec /usr/bin/open -gj -a @app@
+      '';
+    } { app = lib.escapeShellArg darwinAppPath; }
   );
 
 in

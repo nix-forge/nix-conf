@@ -76,7 +76,7 @@ keep PCR 4 covered through one bootloader update. Reboot before a second
 bootloader update; upstream documents that remaining limitation.
 
 The selected `boot.lanzaboote.package` includes a fail-closed
-[guard](../../hosts/nixos/desktop/local/security/lanzaboote-install-guard.sh).
+[guard](../../hosts/nixos/desktop/local/storage/runtime/src/bin/desktop-guard-boot-install.rs).
 Before `lzbt install` changes the ESP, it compares `/run/booted-system` with
 the exact generation reported by the EFI loader and requires one matching
 profile link. Upstream otherwise silently skips the protection when it cannot

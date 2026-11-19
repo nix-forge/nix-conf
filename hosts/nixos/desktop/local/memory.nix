@@ -1,12 +1,26 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  retirePreview = pkgs.writeText "retire-boot-repair.sh" (
+    myLib.writers.checkedShellText { inherit pkgs; } {
+      name = "retire-boot-repair";
+      text = ''
+        # shellcheck shell=bash
+        if [[ -L $1 && $(readlink -- "$1") == "$2/mkswap-swap-workstation.service" ]]; then
+          rm -- "$1"
+          rm -f -- "$2"
+        fi
+      '';
+    }
+  );
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   desktopUid = toString config.users.users.ianmh.uid;
-  workload = config.workstation.workloads;
 in
 {
   # Cold interactive pages exhausted the original swap during validation.
@@ -34,12 +48,6 @@ in
   ];
 
   systemd = {
-    tmpfiles.rules = [
-      # Both root backups and user bulk commands participate. A root-owned
-      # parent prevents users replacing the lock with a privileged symlink.
-      "d /run/workstation-workloads 0750 root ${config.users.users.ianmh.group} - -"
-      "f /run/workstation-workloads/bulk.lock 0660 root ${config.users.users.ianmh.group} - -"
-    ];
     # Protection must be assigned at each ancestor. These are best-effort
     # reclaim protections, not preallocated RAM or immunity from the OOM killer.
     slices = {
@@ -53,9 +61,9 @@ in
         # security-wrapper mount and prevent both graphical and SSH login.
         # Prepare only our directory here, after the upstream RequiresMountsFor
         # dependency has made its filesystem available, including on first boot.
-        preStart = ''
-          ${lib.getExe' pkgs.systemd "systemd-tmpfiles"} --create ${pkgs.writeText "workstation-swap.conf" "v /swap 0700 root root - -\n"}
-        '';
+        serviceConfig.ExecStartPre = [
+          "${lib.getExe' pkgs.systemd "systemd-tmpfiles"} --create ${pkgs.writeText "workstation-swap.conf" "v /swap 0700 root root - -\n"}"
+        ];
       };
       "user@${desktopUid}" = {
         overrideStrategy = "asDropin";
@@ -73,20 +81,6 @@ in
         IOWeight = 200;
       };
       app.sliceConfig.MemoryLow = "4G";
-      # The runner's scopes are siblings of interactive applications. Monitor
-      # only this subtree: oomd must never select a desktop application scope.
-      "background-workload" = {
-        description = "Queued workstation development workloads";
-        sliceConfig = {
-          MemoryHigh = workload.aggregate.highMiB * 1024 * 1024;
-          MemoryMax = workload.aggregate.memoryMiB * 1024 * 1024;
-          MemorySwapMax = workload.aggregate.swapMiB * 1024 * 1024;
-          CPUWeight = 25;
-          IOWeight = 25;
-          ManagedOOMMemoryPressure = "kill";
-          ManagedOOMMemoryPressureLimit = "60%";
-        };
-      };
     };
     oomd.enable = true;
 
@@ -103,36 +97,45 @@ in
   # Retire the scoped repair only when this cycle-free configuration activates.
   # It lets the already-booted generation recover without switching unrelated
   # pending configuration. Leave any replacement owned by another task intact.
-  system.activationScripts.desktopBootReliabilityCleanup.text = ''
-    source ${./scripts/retire-boot-repair.sh} \
-      /etc/systemd/system.control/mkswap-swap-workstation.service \
-      /nix/var/nix/gcroots/desktop-boot-reliability
-  '';
+  system.activationScripts.desktopBootReliabilityCleanup.text = checkedShellText {
+    name = "retire-boot-repair";
+    text = ''
+      source ${retirePreview} \
+        /etc/systemd/system.control/mkswap-swap-workstation.service \
+        /nix/var/nix/gcroots/desktop-boot-reliability
+    '';
+  };
 
   # Preserve unexpected unmanaged files rather than blocking activation or
   # overwriting them. Each backup has a private, unique directory.
-  home-manager.backupCommand = lib.getExe (
-    pkgs.writeShellApplication {
-      name = "home-manager-preserve-file";
-      runtimeInputs = [ pkgs.coreutils ];
-      text = builtins.readFile ./scripts/home-manager-preserve-file.sh;
-    }
-  );
-
-  # Build and inspect this policy without rebuilding unrelated desktop
-  # applications. The manifest contains the actual generated configuration.
-  system.build.workstationTask = config.home-manager.users.ianmh.lib.workstationTask;
+  home-manager.backupCommand = lib.getExe (writeShellApplication {
+    name = "home-manager-preserve-file";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = (''
+      # shellcheck shell=bash
+      if [[ $# != 1 || ! -e $1 && ! -L $1 ]]; then
+        echo "Expected one existing Home Manager conflict path" >&2
+        exit 1
+      fi
+      umask 077
+      backup_root="''${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/conflicts"
+      mkdir -p -- "$backup_root"
+      backup_dir=$(mktemp -d "$backup_root/backup.XXXXXXXX")
+      printf '%s\n' "$1" >"$backup_dir/original-path"
+      # Dereference file symlinks so garbage collection cannot erase the
+      # preserved content of a manually installed Nix-store configuration.
+      if [[ -L $1 && ! -e $1 ]]; then
+        printf 'Symlink target was unavailable at backup time.\n' >"$backup_dir/content-unavailable"
+      else
+        cp -aL -- "$1" "$backup_dir/content"
+      fi
+      mv -- "$1" "$backup_dir/original"
+      printf 'Preserved unmanaged configuration in %s\n' "$backup_dir" >&2
+    '');
+  });
 
   system.build.desktopMemoryPolicy = pkgs.linkFarm "desktop-memory-policy" (
     [
-      {
-        name = "runner";
-        path = config.system.build.workstationTask;
-      }
-      {
-        name = "workload-policy.json";
-        path = config.system.build.workstationWorkloadPolicy;
-      }
       {
         name = "backup-command";
         path = config.home-manager.backupCommand;
@@ -192,7 +195,6 @@ in
           "session"
           "app"
           "background"
-          "background-workload"
         ]
     ++
       map
@@ -252,15 +254,6 @@ in
       ]) config.hardware.storage.encryptedRoot.backup.destinations
     )
     ++ [
-      {
-        name = "workstation-tmpfiles.conf";
-        path = pkgs.writeText "workstation-workloads-tmpfiles.conf" (
-          lib.concatStringsSep "\n" (
-            lib.filter (rule: lib.hasInfix "/run/workstation-workloads" rule) config.systemd.tmpfiles.rules
-          )
-          + "\n"
-        );
-      }
       {
         name = "user/app-org.chromium.Chromium-.scope.d/50-oom-policy.conf";
         path =

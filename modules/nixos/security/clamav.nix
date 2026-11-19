@@ -10,9 +10,8 @@ let
   daemonThreads = config.services.clamav.daemon.settings.MaxThreads;
   validDaemonThreads = builtins.isInt daemonThreads && daemonThreads > 0;
   scanWorkers = if validDaemonThreads then lib.min 4 daemonThreads else 1;
-  scheduledScanner = pkgs.writers.writePython3Bin "clamav-scan-regular-files" {
-    flakeIgnore = [ "E501" ];
-  } ./clamav_scan.py;
+  scheduledScanner =
+    (import ../../../flake/runtime-packages.nix { inherit pkgs; }).clamavScanRegularFiles;
 in
 {
   options.security.clamav.enable = lib.mkEnableOption ''

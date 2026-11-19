@@ -1,7 +1,7 @@
 # Add a host deliberately
 
 The personal hosts are examples of integration, not portable hardware definitions.
-First finish the [starter](first-configuration.md) and understand the
+First understand the [module recipes](git.md) and
 [architecture](architecture.md). Use the framework's
 [minimal consumer](https://github.com/nix-forge/nix-config-framework/tree/main/examples/minimal)
 when you are ready to organize several targets.

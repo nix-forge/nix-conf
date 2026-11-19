@@ -39,13 +39,18 @@
     # brings a machine-learning runtime and is intentionally opt-in rather
     # than an implicit dependency of every desktop Home Manager generation.
     cli-ffmpeg
+    cli-files
     cli-hf
     cli-images
     cli-jq
     cli-nh
+    cli-openssl
     cli-pandoc
     cli-pdf
+    cli-processes
     cli-ripgrep
+    cli-sqlite
+    cli-yq
 
     shells-aliases
     shells-atuin
@@ -62,7 +67,6 @@
     desktop
     ssh
     services-ssh-forwards
-    services-workstation-jobs
     dev-jj-identity
 
     firefox
@@ -77,6 +81,7 @@
     neovim
     neovim-defaulteditor
 
+    keyboard-macos-shortcuts
     terminals-ghostty
     terminals-ghostty-defaultterminal
     mpv

@@ -1,3 +1,0 @@
-#!@bash@
-# shellcheck shell=bash
-printf '%s\n' 'browser reached'

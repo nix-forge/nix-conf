@@ -1,6 +1,6 @@
 { inputs, lib, ... }: {
   imports = [ inputs.treefmt-nix.flakeModule ];
-  perSystem = { pkgs, ... }: {
+  perSystem = { myLib, pkgs, ... }: {
     treefmt = {
       # Preserve captured upstream source, logs, and checksums byte for byte.
       settings.global.excludes = [
@@ -87,13 +87,6 @@
           priority = 200;
         };
 
-        ruff-check.enable = true;
-        ruff-format.enable = true;
-
-        # C and C++
-        cmake-format.enable = true;
-        clang-format.enable = true;
-
         # Lua
         stylua = {
           enable = true;
@@ -110,6 +103,7 @@
         keep-sorted.enable = true;
         just.enable = true;
         taplo.enable = true;
+        rustfmt.enable = true;
         rumdl-check.enable = true;
         typos = {
           enable = true;
@@ -127,36 +121,41 @@
         stylua.includes = [ ".luacheckrc" ];
       };
       settings.formatter = {
-        # Use the same locked formatter as npm checks and include Node's
+        # Use the same Nixpkgs formatter as JavaScript checks and include Node's
         # explicit module extensions, which the upstream module omits.
         prettier = {
           command = lib.mkForce "${
-            import ./javascript-tools.nix { pkgs = pkgs.buildPackages; }
+            import ./javascript-tools.nix {
+              inherit myLib;
+              pkgs = pkgs.buildPackages;
+            }
           }/bin/prettier";
           includes = [
             "*.mts"
             "*.cts"
           ];
         };
-        python-template = {
-          command = lib.getExe pkgs.buildPackages.ruff;
-          options = [
-            "format"
-            "--extension"
-            "in:python"
-          ];
-          includes = [ "*.py.in" ];
-        };
-
         nix-template = {
           command = "${
-            pkgs.buildPackages.writeShellApplication {
+            myLib.writers.writeShellApplication { pkgs = pkgs.buildPackages; } {
               name = "format-nix-template";
               runtimeInputs = [
                 pkgs.buildPackages.nixfmt
                 pkgs.buildPackages.coreutils
               ];
-              text = builtins.readFile ../../scripts/format-nix-template.sh;
+              text = (''
+                # shellcheck shell=bash
+                # nixfmt formats stdin without restricting the source filename's extension.
+                set -euo pipefail
+                temporary=$(mktemp)
+                trap 'rm -f "$temporary"' EXIT
+                for source in "$@"; do
+                  # --filename labels stdin; output goes to a distinct temporary file.
+                  # shellcheck disable=SC2094
+                  nixfmt --strict --width 100 --filename "$source" <"$source" >"$temporary"
+                  cat "$temporary" >"$source"
+                done
+              '');
             }
           }/bin/format-nix-template";
           includes = [ "*.nix.in" ];
@@ -165,19 +164,6 @@
           command = "${pkgs.buildPackages.dart}/bin/dart";
           options = [ "format" ];
           includes = [ "*.dart" ];
-        };
-        gawk-format = {
-          command = "${
-            pkgs.buildPackages.writeShellApplication {
-              name = "format-awk";
-              runtimeInputs = [
-                pkgs.buildPackages.gawk
-                pkgs.buildPackages.coreutils
-              ];
-              text = builtins.readFile ../../scripts/format-awk.sh;
-            }
-          }/bin/format-awk";
-          includes = [ "*.awk" ];
         };
         swift-format = {
           command = "${pkgs.buildPackages.swift-format}/bin/swift-format";
@@ -193,24 +179,6 @@
         nufmt = {
           command = "${pkgs.buildPackages.nufmt}/bin/nufmt";
           includes = [ "*.nu" ];
-        };
-        tclfmt = {
-          command = "${pkgs.buildPackages.tclint}/bin/tclfmt";
-          options = [ "--in-place" ];
-          includes = [
-            "*.tcl"
-            "*.exp"
-          ];
-          priority = 100;
-        };
-        tclint = {
-          command = "${pkgs.buildPackages.tclint}/bin/tclint";
-          options = [ ];
-          includes = [
-            "*.tcl"
-            "*.exp"
-          ];
-          priority = 200;
         };
         shfmt.includes = [ "*.sh.in" ];
         shellcheck.includes = [ "*.sh.in" ];

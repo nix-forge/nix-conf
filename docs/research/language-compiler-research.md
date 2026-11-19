@@ -37,7 +37,7 @@ these changes.
 | PersonalMonitor concurrency | Enforce complete concurrency checking with warnings as errors for the Now Playing adapter; repair four helper diagnostics and add an explicit diagnostic command for all targets. | Adapter checks and helper selftests pass on the pinned compiler. Application errors and 19 helper warnings still require an isolation migration, so full checking remains an explicit diagnostic lane. |
 | Secure-files Rust helper | Add installed-release checks for interrupted input and exec identity, status, signals and mapped-file preservation. Retain the release profile. | Native Darwin Nix build passes eight new cases, four existing filesystem tests, formatting and Clippy. Deliberately premature writes and temporary-file residue fail the new assertions. |
 
-The [XML helper](../../modules/nixos/virtualisation/scripts/libvirt_xml.py) uses
+The [XML helper](../../modules/nixos/virtualisation/runtime/src/bin/libvirt-xml.rs) uses
 immutable disk records, rejects ambiguous targets and duplicate identity fields,
 rejects DTD/entity declarations before parsing, and limits UTF-8 XML to 4 MiB.
 It returns data to the existing controllers without launching subprocesses or
@@ -61,11 +61,9 @@ both arrays inside `buildCommand`, because that derivation did not run ordinary
 phase hooks. The [new Nixpkgs Swift package](https://github.com/NixOS/nixpkgs/blob/c59305bab2065cfecc4944690d9eedbb56f3a9fa/pkgs/development/compilers/swift/by-name/sw/swift/package.nix)
 uses an unwrapped driver, so the earlier wrapper repair no longer applies. A
 native Darwin build showed that its Clang importer still misses those flags.
-The [former repair](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/overlays/temporary/swift-clang-hardening.nix) forwarded
+The [current repair](../../overlays/temporary/swift-clang-hardening.nix) forwards
 the active cc-wrapper flags through `swiftc` without changing SwiftPM commands.
-The compiler override and its dedicated probe have since been retired in favor
-of upstream compiler selection and binary-cache reuse. That policy decision
-does not establish an upstream fix for the observed discrepancy.
+The native Darwin probe checks the result.
 This repair concerns Clang flags passed through Swift; it does not imply that
 all Mach-O hardening was absent. Both original and repaired probe executables
 had PIE, and Finder's separately compiled C bridge already received stack
@@ -97,11 +95,11 @@ with WMO: 45,512,936 versus 41,614,976 bytes, with build time 362 versus 193
 seconds. The package retains its existing application flags because this
 comparison lacks pinned-compiler full-application and GUI runtime validation.
 The reusable [OCR benchmark](https://github.com/IanHollow/ocr-capture/blob/8cb0bc8107245d1659667a383d84f4cc27d0b5e6/Scripts/benchmark-optimization.sh)
-and [PersonalMonitor benchmark](../../pkgs/pkgs/by-name/vo/vorssaint/scripts/benchmark-optimization.sh)
+and [PersonalMonitor benchmark](https://github.com/nix-forge/nixpkgs-personal/blob/322be5182e0f00b9dbe80640ed2822f50b811a35/pkgs/by-name/vo/vorssaint/scripts/benchmark-optimization.sh)
 document the inputs and optional application comparison. Neither launches the
 GUI or accesses live screen content or fan controls.
 
-The [concurrency diagnostic lane](../../pkgs/pkgs/by-name/vo/vorssaint/scripts/check-concurrency.sh)
+The [concurrency diagnostic lane](https://github.com/nix-forge/nixpkgs-personal/blob/322be5182e0f00b9dbe80640ed2822f50b811a35/pkgs/by-name/vo/vorssaint/scripts/check-concurrency.sh)
 continues checking the other targets after a compiler failure, then returns a
 failure status. The helper patch used for those measurements
 gives the controller its own logger with the same identity and reads startup
@@ -167,32 +165,26 @@ Patches also contain CMake and Meson build-language changes. Keep those in the
 upstream build system rather than maintaining a replacement build definition.
 
 Local anchors include the [framework](../../nix-config-framework/README.md),
-[Python policy](../../pyproject.toml), [Bash writer](../../lib/writers/bash.nix),
+[Runtime source policy](../../flake/dev/runtime-source-policy.nix), [Bash writer](../../lib/writers/bash.nix),
 [Zsh configuration](../../modules/home/shells/zsh/config.nix),
 [Nushell integration](../../modules/home/shells/nushell/extra-config-after.nix),
 [JavaScript check](../../flake/dev/javascript-checks.nix),
 [Lua callbacks](../../modules/home/desktop/workflow.nix),
-[PowerShell writer](../../lib/writers/powershell.nix), and
-[notification adapter](../../modules/home/dev/agentic-tui/scripts/opencode-notifier-darwin-fallback.sh).
+and [PowerShell writer](../../lib/writers/powershell.nix).
 
 ## Where changing languages could help
 
-### First candidate: VM-control shell to Python
+### VM control: completed Rust migration
 
-The [Windows controller](../../modules/nixos/virtualisation/scripts/libvirt-windows-vm-control.sh.in)
-is 694 lines and the [workstation controller](../../modules/nixos/virtualisation/scripts/libvirt-workstation-control.sh.in)
-is 431 lines. They combine argument policy, state transitions, subprocesses,
-formatted `virsh` output, XML queries and cleanup. The
-[setup script](../../modules/nixos/virtualisation/scripts/libvirt-workstation-setup.sh.in)
-also inserts UUIDs into XML using Perl regexes.
-
-Migrate parsing and planning first, preserving the CLI and privilege boundaries.
-Use typed Python records, structured XML, explicit exceptions and argument lists
-with `shell=False`. Domain XML exposes disk sources and targets directly, avoiding
-reliance on display-column whitespace. An argument list avoids shell parsing; it
-does not replace argument validation, allowlists or protection against option
-injection. [libvirt domain XML](https://libvirt.org/formatdomain.html),
-[Python subprocess rules](https://docs.python.org/3/library/subprocess.html#security-considerations).
+The later [Nix-first migration](nix-first-runtime-research.md) replaces the
+[Windows controller](../../modules/nixos/virtualisation/control/src/windows.rs),
+[workstation controller](../../modules/nixos/virtualisation/control/src/workstation.rs)
+and [interactive setup](../../modules/nixos/virtualisation/control/src/cli.rs)
+with feature-local Rust. The earlier Python recommendation is superseded by the
+root runtime-language policy. Nix generates the policy; native libvirt XML and
+shutdown helpers retain their existing interfaces. Argument lists avoid shell
+parsing but still require explicit allowlists and option-injection guards.
+[libvirt domain XML](https://libvirt.org/formatdomain.html).
 
 Keep the existing protections during migration: guest and UUID checks, inactive
 state requirements, restricted media inspection, immutable executable paths,
@@ -202,8 +194,8 @@ confirmation. Python's interpreter does not enforce any of these automatically.
 The likely benefit is simpler review and fewer parser/process boundaries. A
 startup or throughput improvement remains unmeasured; VM operations themselves
 may dominate runtime. Start with XML identity preservation and disk selection,
-then use the existing [VM setup fixtures](../../tests/virtualisation/test_libvirt_workstation_setup.py)
-and [seed-rendering tests](../../tests/virtualisation/test_windows_seed_renderer.py).
+then use the existing VM setup fixtures
+and seed-rendering tests.
 Add cases for spaces in paths, malformed output, missing state, interruption and
 repeated invocation before replacing the controller. No live VM should be needed
 to test planning and parsing.
@@ -247,24 +239,24 @@ validation. Keep it in C with its compiler diagnostics and fixtures. Removing th
 interposer when upstream provides the needed behavior would remove more code and
 risk than changing its implementation language.
 
-### Keep Python until a benchmark identifies a reason to move
+### Native ports do not establish faster external tools
 
-The [wallpaper fetcher](../../modules/home/desktop/scripts/wallpaper_fetch_d2d.py)
-calls curl and ImageMagick. The [backup helper](../../hosts/nixos/desktop/local/storage/backup_helper.py)
-calls external storage tools. Those are process and I/O boundaries, so a Rust port
+The [wallpaper fetcher](../../modules/home/desktop/wallpaper-tools/src/bin/wallpaper-fetch-d2d.rs)
+calls curl and ImageMagick. The [backup helper](../../hosts/nixos/desktop/local/storage/runtime/src/bin/desktop-backup-helper.rs)
+calls external storage tools. Both now use Rust under the root language policy. These are process and I/O boundaries, so a port
 of the orchestration alone does not establish faster image conversion or backup.
 Preserve decoder limits, deadlines, private output handling and tests.
 
 Two bounded performance experiments would be reasonable if users observe delay:
 
-- Measure the [idle-inhibitor check](../../modules/home/desktop/scripts/idle_inhibit_check.py)
+- Measure the [idle-inhibitor check](../../modules/home/desktop/idle-inhibitor/src/main.rs)
   under the [five-second retry policy](../../modules/home/desktop/idle.nix). Compare
   interpreter startup, `hyprctl` latency and JSON parsing separately. Keep the
   different screen-lock and suspend failure behavior in any native prototype.
-- Measure the [Git privacy hook](../../modules/home/dev/scripts/git_privacy_hook.py)
+- Measure the [Git privacy hook](../../modules/home/dev/runtime-tools/src/bin/git-email-privacy.rs)
   on representative object counts and blob sizes. It already streams through
-  `git cat-file --batch`; preserve that design. Consider a native scanner only if
-  its matching loop, rather than Git or network requests, dominates the delay.
+  `git cat-file --batch`; preserve that design. Attribute any improvement to measured matching work,
+  Git subprocesses or network requests separately.
 
 For either experiment, compare the same fixtures, warm and cold runs, wall time,
 CPU time, peak memory and failures. Do not trade correctness or resource bounds
@@ -448,9 +440,3 @@ and consulted primary documentation on 2026-09-11. It compared wrapper files
 across pins but did not build applications, run sanitizers or audit Darwin
 binaries. The implementation follow-up above records the later native checks
 and measurements separately from that initial evidence.
-
-The report was checked on Linux for Markdown, spelling, local links, whitespace
-and publication-sensitive content. Further native checks need the relevant Linux
-or Darwin host; heavy desktop checks must use `workstation-task` as documented in
-the [testing guide](../testing.md). No full host build or activation is claimed by
-the focused package and fixture results.

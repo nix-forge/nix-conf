@@ -21,7 +21,9 @@ in
       (targets inputs "darwin")
     ];
   };
-  homeManager = { inputs, ... }: {
+  homeManager = { inputs, lib, ... }: {
+    stylix.targets.opencode.enable = lib.mkDefault false;
+    stylix.targets.codex-desktop.enable = lib.mkDefault false;
     imports = [
       profile.homeManager
       (targets inputs "homeManager")

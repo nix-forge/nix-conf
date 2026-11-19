@@ -16,34 +16,54 @@ installation those names have the `mattpocock-` prefix. Resolve the installed
 skill by its full name and read its referenced files using the available skill
 or filesystem tools; a tool literally named `Skill` is not required.
 
-## Choose a skill
+## Default skills
+
+The shared default covers common tasks with one selected process per purpose:
 
 | Task | Installed skill | Repository context |
 | --- | --- | --- |
-| Choose a workflow | `mattpocock-ask-matt` | Check this table against the router's larger upstream catalog. |
-| Configure the skill conventions | `mattpocock-setup-matt-pocock-skills` | This setup is recorded in the tracker and domain guides. |
-| Interview about a repository design | `mattpocock-grill-with-docs` | Use the glossary and real decisions; keep interview drafts local. |
-| Interview without persistent domain docs | `mattpocock-grill-me` | Use for a stateless discussion. |
-| Run the interview primitive | `mattpocock-grilling` | Resolve decisions with the user; find factual answers in the sources. |
-| Clarify project terminology | `mattpocock-domain-modeling` | Read [domain guidance](domain.md). |
-| Design a module's interface | `mattpocock-codebase-design` | Preserve the framework's module contracts and repository ownership. |
-| Diagnose a hard bug or regression | `mattpocock-diagnosing-bugs` | Build a reproduction for the exact symptom; keep raw captures private. |
-| Build requested behavior test-first | `mattpocock-tdd` | Agree the public interface to test, then work one behavior at a time. |
-| Review against a fixed point | `mattpocock-code-review` | Use the standards and requirements sources below. |
-| Write a pull request body | `mattpocock-pr` | Use the repository's evidence and publication rules. |
-| Investigate a source-backed question | `mattpocock-research` | Follow [research guidance](research.md), including for its background agent. |
-| Transfer work to a new environment | `mattpocock-handoff` | Write a redacted handoff outside the repository and link existing artifacts. |
-| Guide steps only a human can perform | `mattpocock-wizard` | Use its installed template; keep one-off scripts and captured values private. |
-| Write agent-facing instructions | `mattpocock-writing-for-agents` | Keep AGENTS.md short and put task-specific guidance behind clear pointers. |
+| Design a module's interface | `mattpocock-codebase-design` | Preserve module contracts and repository ownership. |
+| Clarify terminology | `mattpocock-domain-modeling` | Follow [domain guidance](domain.md). |
+| Diagnose a hard bug | `mattpocock-diagnosing-bugs` | Reproduce the actual symptom; follow repository test and publication policy. |
+| Implement test-first | `mattpocock-tdd` | Agree the interface; use the repository's permitted test layer. |
+| Review a fixed patch | `mattpocock-code-review` | Use the review inputs below; preserve the active harness's delegation rules. |
+| Write a PR body | `mattpocock-pr` | Use reviewed evidence and the repository's publishing rules. |
+| Research a question | `mattpocock-research` | Follow [research guidance](research.md), including for its background researcher. |
+| Interview with durable domain docs | `mattpocock-grill-with-docs` | Explicit invocation; includes grilling and domain-modeling dependencies. |
+| Interview without persistent docs | `mattpocock-grill-me` | Explicit invocation; includes grilling. |
+| Run the interview primitive | `mattpocock-grilling` | Agents establish facts; users decide unresolved preferences. |
+| Transfer a session | `mattpocock-handoff` | Explicit invocation; write a redacted handoff outside the repository. |
+| Write agent instructions | `mattpocock-writing-for-agents` | Keep AGENTS.md short and disclose task-specific guidance through pointers. |
 
-The router, setup, two interview wrappers, and handoff are explicitly
-user-invoked in the installed frontmatter. Mention their full names when
-requesting them. The router also describes skills such as `implement`,
-`implement-spec`, `to-spec`, `to-tickets`, `retro`, `prototype`, and `wayfinder`
-that are not selected for these clients. Do not promise those workflows are
-available. Their absence does not prevent ordinary implementation from an
-agreed task. Upstream retired `resolving-merge-conflicts`; resolve an active
-conflict from its Git state and each side's intent.
+These skills supply task-specific processes. Ordinary small edits do not need
+an interview, persistent spec, background researcher or delegated review unless
+the chosen workflow and task call for them. Native harness and repository
+instructions retain authority over tests, tool routing and external actions.
+
+## Optional workflows
+
+The [catalog research](../research/agent-skills-catalogs-research.md) inventories
+all upstream skills. Add a stable Matt skill through
+`programs.agent-skills.mattpocock.skills` when its process fits the task. This
+replaces the default list. Include its dependencies: `grill-me` needs `grilling`;
+`grill-with-docs` needs `grilling` and `domain-modeling`; controllers such as
+`implement` and `ask-matt` refer to several other workflows. Read the chosen
+skill and resolve its dependencies before selecting it. A referenced upstream
+workflow is not necessarily installed.
+
+Global routers and execution controllers (`ask-matt`, `implement`,
+`implement-spec`, `wayfinder`) remain opt-in to keep process ownership clear.
+Setup is a one-time operation, and tracker workflows require the
+[tracker configuration](issue-tracker.md). Prototype, teaching, questionnaire,
+retrospective and other specialist workflows stay available for explicit
+selection. Experimental and miscellaneous skills remain outside the stable
+selection.
+
+The complete Superpowers plugin is an alternative opt-in workflow owner. Its
+startup guidance, planning gates, TDD and delegation rules should be chosen as
+a coherent process, with repository policy still authoritative. The shared
+default does not enable it or its startup hooks. See the
+[harness guide](harnesses.md) for the explicit alternative configuration.
 
 ## Review inputs
 

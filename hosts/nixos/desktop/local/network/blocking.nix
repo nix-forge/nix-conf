@@ -1,7 +1,26 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  myLib,
+  pkgs,
+  ...
+}:
 let
+  retirePreview = pkgs.writeText "retire-dnssec-preview.sh" (
+    myLib.writers.checkedShellText { inherit pkgs; } {
+      name = "retire-dnssec-preview";
+      text = ''
+        # shellcheck shell=bash
+        if [[ -L $1 && $(readlink -- "$1") == "$2" ]]; then
+          rm -- "$1"
+          rm -f -- "$2"
+        fi
+      '';
+    }
+  );
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   lanHttps = config.homelab.operations.lanHttps;
-  network = builtins.fromJSON (builtins.readFile ../../../../shared/local/network.json);
+  inherit (import ../../../../shared/local/network-topology.nix) raspberryPi;
 in
 {
   networking.dnsBlocker = {
@@ -26,7 +45,7 @@ in
     # No other public name may rebind to the LAN.
     rebindingAllowlist = lib.optionals lanHttps.enable (
       lib.mapAttrsToList (name: _: "${name}.${lanHttps.domain}") lanHttps.sites
-      ++ map (name: "${name}.${lanHttps.domain}") network.raspberryPiHttpsSites
+      ++ map (name: "${name}.${lanHttps.domain}") raspberryPi.httpsSites
     );
   };
 
@@ -35,11 +54,14 @@ in
   services.blocky.settings.caching.cacheTimeNegative = lib.mkForce "30s";
 
   # Retire only the owned scoped DNS repair when the declarative unit takes over.
-  system.activationScripts.desktopDnssecPreviewCleanup.text = ''
-    source ${./scripts/retire-dnssec-preview.sh} \
-      /etc/systemd/system.control/blocky.service.d/90-desktop-dnssec-preview.conf \
-      /nix/var/nix/gcroots/desktop-dnssec-preview
-  '';
+  system.activationScripts.desktopDnssecPreviewCleanup.text = checkedShellText {
+    name = "retire-dnssec-preview";
+    text = ''
+      source ${retirePreview} \
+        /etc/systemd/system.control/blocky.service.d/90-desktop-dnssec-preview.conf \
+        /nix/var/nix/gcroots/desktop-dnssec-preview
+    '';
+  };
 
   # Enforce the encrypted resolver path for all host processes. Namespace DNS
   # is carried inside WireGuard and has its own firewall; loopback remains

@@ -14,7 +14,7 @@ in
 {
   imports = [
     ../../macos/application-capabilities.nix
-    ./codex/settings.nix
+    ./codex/plugins.nix
     ../../macos/applications.nix
   ];
 
@@ -72,14 +72,7 @@ in
       inherit bundle;
       aliases = lib.optional (darwinCommand != "chatgpt") "chatgpt";
     };
-    programs.chatgpt.settings.desktop.git-worktree-root = lib.mkIf (config.programs.dev-worktree.enable
-      or false
-    ) (lib.mkDefault "${config.programs.dev-worktree.worktreeRoot}/codex");
-
     home.packages = [ package ] ++ cfg.extraPackages;
-
-    programs.chatgpt.settings.shell_environment_policy.set.CODEX_DESKTOP_APP_PATH =
-      lib.mkIf pkgs.stdenv.hostPlatform.isDarwin "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${bundle}";
 
     xdg.dataFile."applications/chatgpt.desktop" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       # Replace old user-local launchers with the entry shipped by this package.

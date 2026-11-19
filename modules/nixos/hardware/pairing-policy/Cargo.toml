@@ -1,0 +1,15 @@
+[package]
+name = "disable-bluetooth-pairing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+zbus.workspace = true
+futures-util.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

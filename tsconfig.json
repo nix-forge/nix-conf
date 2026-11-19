@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2024", "DOM", "DOM.Iterable", "ES2025.RegExp"],
-    "types": ["node"],
+    "types": [],
     "strict": true,
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
@@ -27,15 +27,5 @@
     "allowUnusedLabels": false,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": [
-    "tests/**/*.ts",
-    "tests/**/*.mts",
-    "tests/**/*.cts",
-    "tests/**/*.js",
-    "tests/**/*.cjs",
-    "tests/**/*.mjs",
-    "overlays/temporary/patches/*-test.cts",
-    "tests/**/*.tsx",
-    "tests/**/*.jsx"
-  ]
+  "include": []
 }

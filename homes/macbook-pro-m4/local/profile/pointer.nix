@@ -1,1 +1,0 @@
-{ typography.designLibrary = "full"; }

@@ -1,16 +1,26 @@
-{ pkgs, ... }: {
+{ lib, pkgs, ... }:
+let
+  pdfPython = pkgs.python3.withPackages (ps: [
+    ps.reportlab
+    ps.pillow
+    ps.pdfplumber
+    ps.pypdf
+  ]);
+in
+{
   home.packages = [
     pkgs.poppler-utils
-
-    pkgs.python3Packages.reportlab
-
-    # `doCheck` skips only pdfplumber's check phase. Drop native test inputs
-    # too, otherwise Nix still builds pandas-stubs (whose install checks fail
-    # with pytest 9 on Python 3.14) before it can build pdfplumber.
-    (pkgs.python3Packages.pdfplumber.overridePythonAttrs (_: {
-      doCheck = false;
-      nativeCheckInputs = [ ];
-    }))
-    pkgs.python3Packages.pypdf
+    # Expose a complete document runtime without replacing the development
+    # module's python3 or depending on a global PYTHONPATH.
+    (pkgs.linkFarm "pdf-python" [
+      {
+        name = "bin/pdf-python";
+        path = lib.getExe' pdfPython "python3";
+      }
+      {
+        name = "bin/pdfplumber";
+        path = lib.getExe' pdfPython "pdfplumber";
+      }
+    ])
   ];
 }

@@ -11,9 +11,10 @@
       source = builtins.readFile (targetDirectory + "/nvf.nix");
       oldOption = "lualine.theme =";
       patchedTarget = builtins.toFile "stylix-nvf.nix" (
-        assert lib.assertMsg (lib.hasInfix oldOption source)
-          "Stylix no longer defines the expected deprecated nvf option";
-        builtins.replaceStrings [ oldOption ] [ "lualine.setupOpts.options.theme =" ] source
+        if !(lib.hasInfix oldOption source) then
+          throw "Stylix no longer defines the expected deprecated nvf option"
+        else
+          builtins.replaceStrings [ oldOption ] [ "lualine.setupOpts.options.theme =" ] source
       );
       mkTarget = import (stylix + "/stylix/mk-target.nix") {
         name = "neovim";

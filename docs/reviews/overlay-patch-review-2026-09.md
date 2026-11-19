@@ -18,9 +18,9 @@ reports the same protocol break, and the upstream development branch still
 requires that field. [Hyprland PR #16140](https://github.com/hyprwm/Hyprland/pull/16140)
 changed workspace identities.
 
-The new [local parser patch](../../overlays/temporary/patches/hyprshell-empty-special-workspace.patch)
+The new local parser patch (`overlays/temporary/patches/hyprshell-empty-special-workspace.patch`, retired; see Git history)
 maps a missing workspace ID to the existing invalid sentinel, `-1`. The live
-Alt+Tab check exercises monitor parsing through Hyprshell. Its [temporary fix record](../../overlays/temporary/hyprshell-workspace-schema.nix)
+Alt+Tab check exercises monitor parsing through Hyprshell. Its temporary fix record (`overlays/temporary/hyprshell-workspace-schema.nix`, retired; see Git history)
 tracks the selected Hyprland revision separately from the older modifier timing
 patch. This is a compatibility fix for the current pin. An upstream contribution
 should handle the full address-based workspace protocol and add monitor fixtures

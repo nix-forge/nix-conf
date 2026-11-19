@@ -55,7 +55,7 @@ These are observations of the working tree, not upstream guarantees.
 | [`modules/shared/stylix/default.nix`](../../modules/shared/stylix/default.nix) | Sets the same Stylix roles on NixOS, Darwin, and Home Manager. Linux adds cursor and icon targets. NixOS and Home Manager force ordered Fontconfig default lists. Darwin disables Stylix's system font-package target. | A shared role selection is sound. The Darwin target disable avoids a second system-level installation of role packages. |
 | [`modules/shared/fonts/default.nix`](../../modules/shared/fonts/default.nix) | NixOS installs the selected collection system-wide and adds the generated CSS-generic and private-use Fontconfig fragments. Home Manager installs the selected collection in `home.packages` and enables those fragments only on Linux. Darwin gets native nix-darwin document fonts and no generated Fontconfig policy. | The inventory ownership and matching mechanisms are intentionally split on Darwin. Core Text owns native system-face behavior there. |
 | [`modules/nixos/stylix-components/fonts.nix`](../../modules/nixos/stylix-components/fonts.nix) | Supplies a lower-priority NixOS Stylix role set and Fontconfig defaults. | It is a compatible fallback layer. Its defaults can be superseded by the shared Stylix module, so it should not become a competing role source. |
-| [`flake/dev/fonts.nix`](../../flake/dev/fonts.nix) | Builds isolated Fontconfig configurations, checks role selection and emoji coverage, and runs Linux browser and native rendering checks. It deliberately notes that collection isolation is Fontconfig-specific and that Core Text needs a separate check after activation. | This is good Linux evidence. It does not validate macOS Core Text selection, font cascading, or system UI metrics. |
+| [`flake/dev/fonts.nix`](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/flake/dev/fonts.nix) | Builds isolated Fontconfig configurations, checks role selection and emoji coverage, and runs Linux browser and native rendering checks. It deliberately notes that collection isolation is Fontconfig-specific and that Core Text needs a separate check after activation. | This is good Linux evidence. It does not validate macOS Core Text selection, font cascading, or system UI metrics. |
 
 The Linux CSS-generic template strongly prepends the active Stylix role for
 `system-ui` and the `ui-*` generic requests. Apple platform protocol names
@@ -65,7 +65,7 @@ template includes generated weak exact-first-family rules only for installed
 named families, plus a catalog-driven Apple Color Emoji compatibility gate.
 See [`css-generic-alias.conf.in`](../../modules/shared/fonts/css-generic-alias.conf.in),
 [`private-use-fallback.conf.in`](../../modules/shared/fonts/private-use-fallback.conf.in),
-and [`private-use-family-aliases.sh.in`](../../modules/shared/fonts/private-use-family-aliases.sh.in).
+and [`private-use-family-aliases.sh.in`](../../modules/shared/fonts/alias-tools/src/main.rs).
 
 ## Inferences and recommended architecture
 
@@ -95,7 +95,7 @@ and [`private-use-family-aliases.sh.in`](../../modules/shared/fonts/private-use-
 
 ## Validation and limits
 
-This review inspected the specified files and linked upstream source on 2026-09-17. It did not evaluate, build, activate, or modify the configuration. Existing Linux checks in [`flake/dev/fonts.nix`](../../flake/dev/fonts.nix) are useful evidence for Fontconfig, Gecko, Qt, and Pango under their isolated setup. They do not establish native macOS behavior.
+This review inspected the specified files and linked upstream source on 2026-09-17. It did not evaluate, build, activate, or modify the configuration. Existing Linux checks in [`flake/dev/fonts.nix`](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/flake/dev/fonts.nix) are useful evidence for Fontconfig, Gecko, Qt, and Pango under their isolated setup. They do not establish native macOS behavior.
 
 Before changing the architecture, validate two separate contracts:
 

@@ -1,30 +1,14 @@
 {
   config,
   lib,
-  pkgs,
   myLib,
+  pkgs,
   ...
 }:
 let
   cfg = config.networking.wireless.iwd.runtimeProfiles;
-  validator =
-    pkgs.runCommandCC "validate-iwd-profile"
-      {
-        nativeBuildInputs = [ pkgs.pkg-config ];
-        buildInputs = [ pkgs.ell ];
-      }
-      ''
-        mkdir -p "$out/bin"
-        $CC -std=c11 -Wall -Wextra -Werror ${./iwd-profiles-assets/validate-profile.c} \
-          $(pkg-config --cflags --libs ell) -o "$out/bin/validate-iwd-profile"
-      '';
-  materializer = pkgs.writers.writePython3Bin "materialize-iwd-profile" {
-    libraries = [ (myLib.python.notificationProcess { inherit pkgs; }) ];
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./iwd-profiles-assets/materialize_profile.py;
+  validator = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).iwdValidator;
+  materializer = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).iwdMaterialize;
   runtimePath =
     path:
     lib.hasPrefix "/" path
@@ -118,7 +102,7 @@ in
           Type = "oneshot";
           RemainAfterExit = true;
           UMask = "0077";
-          ExecStart = (import ../../../lib/systemd/exec-args.nix) [
+          ExecStart = myLib.systemd.execArgs [
             (lib.getExe materializer)
             profile.source
             "/var/lib/iwd"

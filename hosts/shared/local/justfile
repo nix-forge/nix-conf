@@ -1,23 +1,21 @@
 # Personal build and deployment policy. Imported by the repository justfile.
-task := if os() == "linux" { if `hostname -s` == "desktop" { "workstation-task" } else { "" } } else { "" }
-protected_system_args := "--protected-system desktop"
-
-# Install and boot disposable disks, and exercise backup restoration.
-[group('Checks')]
-desktop-storage-check:
-    {{ task }} nix build --no-link "{{ flake }}#checks.x86_64-linux.python-tests" "{{ flake }}#packages.x86_64-linux.desktop-storage-install"
+task := ""
+build_policy := flake + "/hosts/shared/local/build-policy.nix"
 
 # Build the proposed encrypted TPM-PIN system and optional homelab HDD without activating them.
 # Use Git's tracked source view so ignored scratch sockets cannot enter the flake.
 [group('NixOS')]
 desktop-storage-build: (guard-desktop-build-location "desktop")
-    NIX_CONF_STORAGE_BUILD_ROOT={{ quote(flake) }} {{ task }} nix build --no-link --impure --expr 'let f = builtins.getFlake ("git+file://" + builtins.getEnv "NIX_CONF_STORAGE_BUILD_ROOT" + "?submodules=1"); in (f.nixosConfigurations.desktop.extendModules { modules = [ ({ lib, ... }: { hardware.storage.encryptedRoot = { enable = true; unlockMethod = "tpm-pin"; }; hardware.storage.homelabHdd.enable = true; security.secureBootLanzaboote = { enable = lib.mkForce true; measuredBoot.enable = lib.mkForce true; }; }) ]; }).config.system.build.toplevel'
+    NIX_CONF_STORAGE_BUILD_ROOT={{ quote(flake) }} nix build --no-link --impure --expr 'let f = builtins.getFlake ("git+file://" + builtins.getEnv "NIX_CONF_STORAGE_BUILD_ROOT" + "?submodules=1"); in (f.nixosConfigurations.desktop.extendModules { modules = [ ({ lib, ... }: { hardware.storage.encryptedRoot = { enable = true; unlockMethod = "tpm-pin"; }; hardware.storage.homelabHdd.enable = true; security.secureBootLanzaboote = { enable = lib.mkForce true; measuredBoot.enable = lib.mkForce true; }; }) ]; }).config.system.build.toplevel'
 
 [private]
 guard-desktop-build-location hostname:
-    @actual_hostname="$(hostname -s)"; \
-        if [[ "{{ hostname }}" == "desktop" && "$actual_hostname" != "desktop" ]]; then \
-            echo "error: refusing to build NixOS host '{{ hostname }}' on '$actual_hostname'" >&2; \
+    @target={{ quote(hostname) }}; \
+        actual_hostname="$(hostname -s)"; \
+        required="$(NIX_CONF_BUILD_TARGET="$target" nix eval --impure --raw --file {{ quote(build_policy) }} \
+          --apply 'policy: let target = builtins.getEnv "NIX_CONF_BUILD_TARGET"; in policy.${target}.host or ""')" || exit 1; \
+        if [[ -n "$required" && "$actual_hostname" != "$required" ]]; then \
+            echo "error: refusing to build NixOS host '$target' on '$actual_hostname'" >&2; \
             echo "hint: use 'just desktop-build' or 'just desktop-deploy' from another machine" >&2; \
             exit 1; \
         fi
@@ -35,26 +33,26 @@ desktop-deploy *args:
 # Build the Pi closure on the desktop and show the activation diff
 [group('NixOS')]
 raspberry-pi-build:
-    {{ task }} bash {{ quote(flake) }}/hosts/nixos/raspberry-pi/local/scripts/deploy.sh build {{ quote(flake) }}
+    nix run --accept-flake-config {{ quote(flake + "#raspberry-pi-operation") }} -- build {{ quote(flake) }}
 
 # Build and activate the Pi through deploy-rs
 [group('NixOS')]
 raspberry-pi-deploy:
-    {{ task }} bash {{ quote(flake) }}/hosts/nixos/raspberry-pi/local/scripts/deploy.sh deploy {{ quote(flake) }}
+    nix run --accept-flake-config {{ quote(flake + "#raspberry-pi-operation") }} -- deploy {{ quote(flake) }}
 
 # Build the MacBook from a fresh verified export and show the activation command.
 [group('Darwin')]
 [positional-arguments]
 macbook-build *args:
-    python3 {{ quote(flake) }}/scripts/mac_source.py auto --source {{ quote(flake) }} --kind build --workload-command {{ quote(task) }} -- "$@"
+    nix run {{ quote(flake + "#mac-source") }} -- auto --source {{ quote(flake) }} --kind build -- "$@"
 
 # Activate with deploy-rs rollback policy using a fresh verified source export.
 [group('Darwin')]
 [positional-arguments]
 macbook-deploy *args:
-    python3 {{ quote(flake) }}/scripts/mac_source.py auto --source {{ quote(flake) }} --kind deploy --workload-command {{ quote(task) }} -- "$@"
+    nix run {{ quote(flake + "#mac-source") }} -- auto --source {{ quote(flake) }} --kind deploy -- "$@"
 
 # Capture a native desktop build with its evaluated and realized system output.
 [group('Checks')]
 desktop-validation-build: (guard-desktop-build-location "desktop")
-    cd {{ quote(flake) }} && {{ task }} nix run .#workstation-evidence -- run --target desktop --check full-system --phase build --installable nixosConfigurations.desktop.config.system.build.toplevel -- just os-build desktop
+    cd {{ quote(flake) }} && nix run .#workstation-evidence -- run --target desktop --check full-system --phase build --installable nixosConfigurations.desktop.config.system.build.toplevel -- just os-build desktop

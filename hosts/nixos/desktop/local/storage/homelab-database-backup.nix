@@ -1,11 +1,14 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellScript = myLib.writers.writeShellScript { inherit pkgs; };
   cfg = config.hardware.storage.encryptedRoot;
+  inherit (import ./.storage-roles.nix) bulkLockPath resticCacheRoot;
   directory = "/var/lib/desktop-storage/database-backups";
   sqlite =
     unit: name: path:
@@ -27,6 +30,14 @@ let
       "--"
     ];
   };
+  bookorbit = config.homelab.apps.bookorbit;
+  # Keep compatibility with package revisions predating the service-owned interface.
+  bookorbitConnection =
+    bookorbit.databaseBackupConnection or {
+      socket = "/run/bookorbit-postgres";
+      user = "bookorbit";
+      clientPackage = pkgs.postgresql_18;
+    };
   policy = pkgs.writeText "homelab-database-backup.json" (
     builtins.toJSON {
       inherit directory;
@@ -65,17 +76,19 @@ let
         lib.optional config.services.postgresql.enable (
           cluster "postgresql" "postgres" "/run/postgresql" config.services.postgresql.package
         )
-        ++ lib.optional config.homelab.apps.bookorbit.enable (
-          cluster "bookorbit" "bookorbit" "/run/bookorbit-postgres" pkgs.postgresql_18
+        ++ lib.optional bookorbit.enable (
+          cluster "bookorbit" bookorbitConnection.user bookorbitConnection.socket
+            bookorbitConnection.clientPackage
         );
     }
   );
-  exporter = pkgs.writers.writePython3 "export-homelab-databases" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./scripts/export_homelab_databases.py);
+  storageRuntime =
+    (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).desktopStorageRuntime;
+  helper = lib.getExe' storageRuntime "desktop-backup-helper";
+  exporter = writeShellScript "export-homelab-databases" ''
+    export PATH=${lib.makeBinPath [ pkgs.sqlite ]}:"$PATH"
+    exec ${lib.getExe' storageRuntime "export-homelab-databases"} "$@"
+  '';
   mainJob = config.services.restic.backups.desktop-homelab;
   mainService = config.systemd.services.restic-backups-desktop-homelab.serviceConfig;
 in
@@ -111,10 +124,8 @@ in
         "--json"
       ];
       backupPrepareCommand = ''
-        ${lib.getExe pkgs.python3} ${./backup_helper.py} ${
-          config.environment.etc."desktop-storage/backup-policy.json".source
-        } guard homelab
-        ${lib.getExe' pkgs.util-linux "flock"} --exclusive /run/workstation-workloads/bulk.lock ${exporter} ${policy}
+        ${helper} ${config.environment.etc."desktop-storage/backup-policy.json".source} guard homelab
+        ${lib.getExe' pkgs.util-linux "flock"} --exclusive ${lib.escapeShellArg bulkLockPath} ${exporter} ${policy}
       '';
       timerConfig = {
         OnCalendar = "*-*-* 05:00:00";
@@ -143,8 +154,8 @@ in
         GOMEMLIMIT = "8GiB";
       }
       // lib.optionalAttrs cfg.capacity.enable {
-        RESTIC_CACHE_DIR = lib.mkForce "/srv/data/cache/restic/homelab";
-        TMPDIR = "/srv/data/cache/restic/tmp";
+        RESTIC_CACHE_DIR = lib.mkForce "${resticCacheRoot}/homelab";
+        TMPDIR = "${resticCacheRoot}/tmp";
       };
       serviceConfig = {
         inherit (mainService)
@@ -160,12 +171,12 @@ in
           TimeoutStopSec
           ;
         ExecStartPost = [
-          "${lib.getExe pkgs.python3} ${./backup_helper.py} ${
+          "${helper} ${
             config.environment.etc."desktop-storage/backup-policy.json".source
           } stamp homelab database-backup"
         ];
         ExecStopPost = [
-          "${lib.getExe pkgs.python3} ${./backup_helper.py} ${
+          "${helper} ${
             config.environment.etc."desktop-storage/backup-policy.json".source
           } finish homelab database-backup"
         ];

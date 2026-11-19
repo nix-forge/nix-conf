@@ -6,6 +6,7 @@ _: {
       ...
     }:
     let
+      inherit (import ./.storage-roles.nix) homelabMount;
       checkedDisk =
         if
           lib.hasPrefix "/dev/disk/by-id/usb-" homelabDisk
@@ -52,7 +53,7 @@ _: {
                 ];
                 subvolumes = {
                   "@homelab" = {
-                    mountpoint = "/mnt/homelab";
+                    mountpoint = homelabMount;
                     mountOptions = [
                       "compress=zstd:1"
                       "noatime"

@@ -7,6 +7,9 @@
       );
     in
     pkgs.runCommand "noctalia-stylix-palette.json" { } ''
-      ${pkgs.python3}/bin/python ${./prepare_palette.py} ${rawPalette} "$out"
+      ${
+        pkgs.lib.getExe
+          (import ../../../../../flake/runtime-packages.nix { pkgs = pkgs.buildPackages; }).preparePalette
+      } ${rawPalette} "$out"
     '';
 }

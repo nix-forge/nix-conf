@@ -138,7 +138,7 @@ version and should not be removed merely because it exists.
 
 The [application module](../../modules/home/macos/applications.nix) now runs
 scoped registration reconciliation after `copyApps` and before launch agents
-start. Its [native helper](../../modules/home/macos/application_registry.py)
+start. Its [native helper](../../modules/home/macos/application-runtime/src/bin/hm-macos-applications-helper.rs)
 validates the copied inventory first, archives confirmed obsolete store links
 with recovery journals, unregisters competing store bundles, and refreshes the
 copied bundles. It preserves unrelated manually installed applications. Check

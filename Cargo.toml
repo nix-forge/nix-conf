@@ -1,0 +1,119 @@
+[workspace]
+members = [
+  "scripts/native-package-selection",
+  "modules/nixos/hardware/iocost-runtime",
+  "hosts/nixos/desktop/local/hardware/wooting-share",
+  "modules/nixos/virtualisation/control",
+  "modules/shared/fonts/alias-tools",
+
+  "lib/desktop/gtk-css-validator",
+  "modules/nixos/network/iwd-profiles-assets/iwd-validator",
+
+  "modules/nixos/display-managers/tuigreet-cache-runtime",
+  "scripts/workstation-evidence",
+  "modules/home/spotify-assets/preferences-runtime",
+  "scripts/mac-source",
+  "lib/legacy-number-format",
+  "hosts/nixos/desktop/local/homelab/credentials/runtime",
+  "modules/home/macos/application-runtime",
+  "modules/home/dev/worktree-runtime",
+  "homes/desktop/local/codex-resources/pressure",
+  "homes/desktop/local/codex-resources/launch",
+  "homes/desktop/local/cloud/runtime",
+  "hosts/nixos/desktop/local/homelab/music/bootstrap",
+  "hosts/nixos/desktop/local/homelab/actual/protocols",
+  "hosts/nixos/desktop/local/homelab/scripts/protocols",
+  "modules/nixos/virtualisation/shutdown",
+  "hosts/nixos/desktop/local/storage/runtime",
+  "modules/nixos/security/clamav-runtime",
+  "modules/nixos/services/application-recovery/runtime",
+  "modules/nixos/virtualisation/runtime",
+  "modules/nixos/network/iwd-profiles-assets/materialize",
+  "hosts/nixos/desktop/local/security/trust-retirement",
+  "modules/home/desktop/wallpaper-tools",
+  "overlays/temporary/scripts/sign-signal-bundle",
+  "modules/home/macos/dock-state",
+  "scripts/remote-realise",
+  "scripts/build-linux-package",
+  "modules/home/desktop/clipboard-observer",
+  "modules/nixos/hardware/pairing-policy",
+  "modules/home/desktop/idle-inhibitor",
+  "modules/home/libreoffice-assets/settings",
+  "modules/home/xdg/directory-bookmarks-runtime",
+  "modules/home/browsers/shared/install-registry-runtime",
+  "modules/home/browsers/helium/preference-defaults",
+  "hosts/nixos/desktop/local/homelab/music/api-tools",
+  "modules/home/dev/runtime-tools",
+  "lib/runtime-process",
+  "hosts/nixos/desktop/local/homelab/music/runtime-config",
+  "homes/desktop/local/workspace-services/dispatcher",
+  "modules/shared/stylix/targets/noctalia/palette-tool",
+  "modules/home/browsers/helium/crx-to-zip",
+  "modules/home/desktop/dictation-assets/reconcile",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+version = "0.1.0"
+publish = false
+
+[workspace.dependencies]
+plist = "1.10.4"
+scraper = "0.29"
+time = { version = "0.3.47", features = ["formatting", "parsing"] }
+base64 = "0.22"
+zbus = { version = "6.3", default-features = false, features = [
+  "tokio",
+  "proxy",
+] }
+futures-util = "0.3"
+roxmltree = "0.21"
+fs2 = "0.4"
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+sha2 = "0.10"
+tokio = { version = "1.48", features = [
+  "process",
+  "io-util",
+  "rt",
+  "macros",
+  "time",
+] }
+toml = "0.9"
+regex = "1.11"
+rustix = { version = "1.1", features = ["fs", "process"] }
+shell-words = "1.1"
+serde_json = "1.0"
+tempfile = "3.20"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+unfulfilled_lint_expectations = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -2 }
+correctness = { level = "deny", priority = -1 }
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+let_underscore_must_use = "deny"
+unused_result_ok = "deny"
+await_holding_lock = "deny"
+allow_attributes_without_reason = "warn"
+ignore_without_reason = "deny"
+undocumented_unsafe_blocks = "deny"
+disallowed_methods = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[profile.release]
+lto = "thin"
+strip = "debuginfo"

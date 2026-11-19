@@ -15,7 +15,7 @@ Build your Home Manager configuration and inspect its generated
 its prompt integration.
 
 The full module's glyphs depend on the terminal font. If symbols appear as empty
-boxes, check the selected font or use the starter's deliberately small prompt
+boxes, check the selected font or start with a small prompt
 before adding decorative symbols. A prompt configuration does not install a
 terminal font by itself.
 
@@ -23,6 +23,4 @@ For changes, use the Home Manager `programs.starship.settings` option and
 [Starship's configuration reference](https://starship.rs/config/). Keep the prompt
 short enough to leave room for commands at your normal terminal width.
 
-The public consumer check builds the module with neutral account settings and
-checks the generated configuration. The starter's VM separately demonstrates a
-small prompt in a running shell.
+The [graphical VM](graphical-demo.md) demonstrates the prompt in a running shell.

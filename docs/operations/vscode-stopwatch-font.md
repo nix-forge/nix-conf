@@ -26,15 +26,12 @@ The diagnostic fixture contains bare bold and normal stopwatches, both variation
 
 Screenshots: [before](../assets/vscode-stopwatch/before.png), [after](../assets/vscode-stopwatch/after.png).
 
-The permanent check launches an isolated VS Code profile, prints the actual stopwatch through its integrated terminal, captures the rendered pixels through Chromium's debugging protocol, and rejects a narrow aspect ratio. It closes only its own diagnostic application. It requires a graphical session, Python with Pillow and websocket-client, and the `code` command:
-
-```sh
-python tests/terminals/check_vscode_stopwatch.py \
-  --settings ~/.config/Code/User/settings.json \
-  --output /tmp/vscode-stopwatch-check
-```
-
-The permanent check failed with the original settings at 13 by 27 pixels and passed with the applied settings at 16 by 19 pixels. [Recorded results](../assets/vscode-stopwatch/results.json).
+The recorded diagnostic used an isolated VS Code profile, printed the
+fixture in its integrated terminal and captured the rendered pixels. The
+original bold stopwatch measured 13 by 27 pixels. The corrected glyph
+measured 16 by 19 pixels. Compare the same fixture in a native session when changing font fallback
+or terminal settings. Keep the remaining rendering settings fixed during
+that comparison. [Recorded results](../assets/vscode-stopwatch/results.json).
 
 The Linux Home Manager settings derivation built successfully. The Darwin settings evaluated with the same fallback and default rescaling enabled. Native Darwin rendering was not tested because the Mac was unavailable.
 

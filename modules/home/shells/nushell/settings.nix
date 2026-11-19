@@ -1,6 +1,8 @@
 { config, ... }: {
   programs.nushell = {
     enable = true;
+    # env.nix renders home.sessionVariables with Nushell-compatible quoting.
+    loadSessionVariables = false;
 
     # DOCS: https://github.com/nushell/nushell/tree/main/crates/nu-utils/src/default_files
     settings = {

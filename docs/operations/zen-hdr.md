@@ -41,38 +41,20 @@ The repair does not weaken the sandbox or force hardware decoding.
 
 ## Rendering regression check
 
-`tests/browsers/check_hdr_output.py --rendering-only` opens an isolated profile,
-maximizes a solid page, scrolls it, and resizes the window. It captures the actual
-Hyprland output with grim and requires every sampled interior pixel to remain
-green. The activated HDR trial failed all three stages with 3,504,384 incorrect
-interior pixels per capture. The repaired build passed all three with zero.
-Black output and rounded holes both fail. It saves three screenshots and
-`rendering.json`. It does not access existing tabs, cookies, or history.
+The recorded diagnostic opened an isolated profile, maximized a solid
+green page, then scrolled and resized it. The HDR trial produced 3,504,384
+incorrect interior pixels in each capture. The repaired SDR settings
+passed all three captures with zero incorrect interior pixels.
 
-Run from the repository on the desktop's visible Hyprland session:
-
-```sh
-nix shell --impure --expr '
-  let pkgs = (builtins.getFlake (toString ./.)).inputs.nixpkgs.legacyPackages.x86_64-linux;
-  in [ pkgs.geckodriver pkgs.grim
-       (pkgs.python3.withPackages (p: [ p.selenium p.pillow ])) ]
-' --command python3 tests/browsers/check_hdr_output.py \
-  --rendering-only \
-  --user-js "$HOME/.config/zen/default/user.js" \
-  --output /tmp/zen-rendering-check
-```
-
-Use `--browser /path/to/zen-beta` and a corresponding `--user-js` to test a built
-configuration before activation. The check briefly manipulates its own visible
-window. Keep that test window focused while it runs.
+For a new candidate, repeat the ordinary page, scroll and resize checks
+in an isolated profile on the visible Hyprland session. Check solid page
+interiors for black output or rounded holes before testing HDR playback.
 
 ## Future HDR trials
 
-Without `--rendering-only`, the check now requires the rendering check to pass
-before testing the local 10-bit 4K60 VP9 PQ fixture. This mode also needs FFmpeg,
-ffprobe, and modetest from `pkgs.ffmpeg` and `pkgs.libdrm.bin`. It is expected to
-fail with the current SDR browser configuration. Do not use it to justify
-re-enabling HDR unless ordinary rendering and visible video playback both work.
+Use known PQ video and confirm the physical output signal after the
+ordinary rendering checks pass. The archived trial used a local 10-bit
+4K60 VP9 PQ fixture and the NVIDIA connector metadata.
 
 The HDR portion reads `HDR_OUTPUT_METADATA` directly from the NVIDIA DRM
 connector. EOTF 2 means ST 2084 PQ HDR; EOTF 0 or absent metadata means SDR.

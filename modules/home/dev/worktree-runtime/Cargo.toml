@@ -1,0 +1,21 @@
+[package]
+name = "dev-worktree-internal"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+sha2.workspace = true
+regex.workspace = true
+tempfile.workspace = true
+fs2.workspace = true
+rustix.workspace = true
+clap = { version = "4.5", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+signal-hook = "0.3"
+
+[lints]
+workspace = true

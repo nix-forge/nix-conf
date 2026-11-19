@@ -1,1 +1,1 @@
-{ home.stateVersion = "25.05"; }
+{ typography.designLibrary = "full"; }

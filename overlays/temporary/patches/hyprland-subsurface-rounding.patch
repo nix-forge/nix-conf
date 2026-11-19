@@ -186,7 +186,7 @@ diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
 +        // surface still owns the window geometry; child buffers have no radius.
 +        const double cornerBand = std::max(0, renderdata.rounding - 1) + 2;
          pWindow->wlSurface()->resource()->breadthfirst(
--            [&ctx, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+-            [this, &ctx, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
 -                if (!s->m_current.texture)
 -                    return;
 -
@@ -282,7 +282,7 @@ diff --git a/src/render/ShaderLoader.cpp b/src/render/ShaderLoader.cpp
 diff --git a/src/render/ShaderLoader.hpp b/src/render/ShaderLoader.hpp
 --- a/src/render/ShaderLoader.hpp
 +++ b/src/render/ShaderLoader.hpp
-@@ -28,9 +28,12 @@
+@@ -28,9 +28,11 @@
          SH_FEAT_BLUR_MATTE        = (1 << 12), // condition: transformed-window blur matte
          SH_FEAT_ALT_TONEMAP       = (1 << 13), // condition: tonemapMode == 3
          SH_FEAT_BLUR_PROPORTIONAL = (1 << 14), // condition: decoration:blur:proportional
@@ -291,7 +291,6 @@ diff --git a/src/render/ShaderLoader.hpp b/src/render/ShaderLoader.hpp
          // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
      };
 +
-+    static_assert((SH_FEAT_WINDOW_ROUNDING & SH_FEAT_BLUR_PROPORTIONAL) == 0, "Window rounding must not overlap proportional blur");
  
      using ShaderFeatureFlags = uint16_t;
  

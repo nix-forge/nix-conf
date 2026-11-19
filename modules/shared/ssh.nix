@@ -57,6 +57,8 @@
     {
       config,
       lib,
+      myLib,
+      pkgs,
 
       ...
     }:
@@ -122,9 +124,14 @@
       };
 
       home.activation.sshControlPathDir = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-        (import ../../lib/templates/text.nix) ./ssh-assets/prepare-control-path-directory.sh {
-          inherit controlPathDir;
-        }
+        myLib.writers.renderBashText { inherit pkgs; } {
+          name = "prepare-control-path-directory.sh";
+          text = ''
+            # shellcheck shell=bash
+            mkdir -p "@controlPathDir@"
+            chmod 700 "@controlPathDir@"
+          '';
+        } { inherit controlPathDir; }
       );
     };
 

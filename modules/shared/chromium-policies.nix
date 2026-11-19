@@ -3,6 +3,7 @@ let
     {
       config,
       lib,
+      myLib,
       pkgs,
       ...
     }:
@@ -279,7 +280,15 @@ let
 
       darwinActivation = concatMapStringsSep "\n" (
         target:
-        ((import ../../lib/templates/text.nix) ./chromium-policies-assets/install-darwin-extension-policy.sh
+        (myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "install-darwin-extension-policy.sh";
+            text = ''
+              # shellcheck shell=bash
+              install -m 0644 @target_source@ "@darwinPolicyDirectory@/@target_bundleId@.plist"
+              chown root:wheel "@darwinPolicyDirectory@/@target_bundleId@.plist"
+            '';
+          }
           {
             target_source = target.source;
             inherit darwinPolicyDirectory;
@@ -387,14 +396,28 @@ let
         (mkIf (cfg.enable && isLinux) { environment.etc = nixosEtcEntries; })
         (mkIf (cfg.enable && isDarwin && darwinPolicyPlists != { }) {
           system.activationScripts.extraActivation.text = lib.mkAfter (
-            (import ../../lib/templates/text.nix) ./chromium-policies-assets/activate-darwin-policies.sh {
-              inherit darwinPolicyDirectory;
-              inherit darwinLegacyManagedPolicyCleanup;
-              inherit darwinLegacyExternalExtensionCleanup;
-              inherit darwinExtensionPolicyCleanup;
-              inherit darwinActivation;
-              inherit darwinExtensionManagedPreferencesActivation;
-            }
+            myLib.writers.renderBashText { inherit pkgs; }
+              {
+                name = "activate-darwin-policies.sh";
+                text = ''
+                  # shellcheck shell=bash
+                  install -d -m 0755 "@darwinPolicyDirectory@"
+                  @darwinLegacyManagedPolicyCleanup@
+                  @darwinLegacyExternalExtensionCleanup@
+                  @darwinExtensionPolicyCleanup@
+                  @darwinActivation@
+                  @darwinExtensionManagedPreferencesActivation@
+                  killall cfprefsd 2>/dev/null || true
+                '';
+              }
+              {
+                inherit darwinPolicyDirectory;
+                inherit darwinLegacyManagedPolicyCleanup;
+                inherit darwinLegacyExternalExtensionCleanup;
+                inherit darwinExtensionPolicyCleanup;
+                inherit darwinActivation;
+                inherit darwinExtensionManagedPreferencesActivation;
+              }
           );
         })
       ];

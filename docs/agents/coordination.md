@@ -12,11 +12,8 @@ Give each worker and reviewer the accepted outcome and completion criteria.
 Ignored drafts do not appear automatically in another worktree or machine;
 pass their contents or provide a reviewed copy explicitly.
 
-For desktop evaluation, builds, or checks, pass the
-[workload-runner requirement](../operations/desktop-memory-management.md) to every worker.
-Independent worktrees share the desktop user's queue. Coordinate remote/root
-jobs separately because wrapping a local deployment client does not wrap its
-remote evaluation process.
+Pass the repository build-placement requirements to every worker. Coordinate
+remote and root jobs with the execution host.
 
 ## Parallel work
 

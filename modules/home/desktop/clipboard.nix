@@ -6,9 +6,10 @@
   ...
 }:
 let
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
+  desktopMod = if macShortcuts then "CTRL + ALT + SUPER" else "SUPER";
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.clipboard;
-  python = pkgs.python3.withPackages (ps: [ ps.dbus-next ]);
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   hyprBind = key: command: {
     _args = [
@@ -18,7 +19,18 @@ let
   };
   watcher = writeBashTemplate {
     name = "desktop-clipboard-history";
-    src = ./scripts/clipboard-history.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      @cliphist@ wipe
+      @wlPaste@ --type text --watch @cliphist@ store &
+      text_watcher=$!
+      @wlPaste@ --type image --watch @cliphist@ store &
+      image_watcher=$!
+      trap 'kill "$text_watcher" "$image_watcher"' EXIT INT TERM
+      wait
+    '';
     dir = "bin";
     replacements = {
       cliphist = lib.getExe pkgs.cliphist;
@@ -27,7 +39,12 @@ let
   };
   choose = writeBashTemplate {
     name = "desktop-clipboard-choose";
-    src = ./scripts/clipboard-choose.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      @cliphist@ list | @walker@ --dmenu --prompt 'Clipboard> ' | @cliphist@ decode | @wlCopy@
+    '';
     dir = "bin";
     replacements = {
       cliphist = lib.getExe pkgs.cliphist;
@@ -103,7 +120,9 @@ in
         After = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${lib.getExe python} ${./scripts/clipboard_lock.py} ${lib.getExe pkgs.cliphist}";
+        ExecStart = "${
+          lib.getExe (import ../../../flake/runtime-packages.nix { inherit pkgs; }).clipboardObserver
+        } ${lib.getExe pkgs.cliphist}";
         Restart = "on-failure";
         RestartSec = 2;
       };
@@ -112,6 +131,6 @@ in
 
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable
-        (lib.mkAfter [ (hyprBind "SUPER + V" (lib.getExe' choose "desktop-clipboard-choose")) ]);
+        (lib.mkAfter [ (hyprBind "${desktopMod} + V" (lib.getExe' choose "desktop-clipboard-choose")) ]);
   };
 }

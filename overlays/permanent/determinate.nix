@@ -20,10 +20,20 @@ let
         pkgs = owningPkgs;
       };
       libgit2 = owningTemporary.apply "determinate-libgit2-trailing-slash" owningPkgs.nixDependencies2.libgit2;
-      scope = owningPkgs.nixComponents2.overrideScope (_final: _prev: { inherit libgit2; });
+      scope = owningPkgs.nixComponents2.overrideScope (
+        _final: previous:
+        {
+          inherit libgit2;
+        }
+        // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
+          nix-store = owningTemporary.apply "determinate-darwin-sandbox-profile" previous.nix-store;
+        }
+      );
     in
-    assert raw.drvPath == upstream.drvPath;
-    scope.nix-everything;
+    if raw.drvPath != upstream.drvPath then
+      throw "Invalid production input in determinate.nix"
+    else
+      scope.nix-everything;
 in
 {
   nix =

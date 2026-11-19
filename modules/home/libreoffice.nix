@@ -13,7 +13,7 @@ let
     config = { };
   };
 
-  cfg = config.programs.libreoffice;
+  cfg = config.programs.libreofficePersonal;
   libreofficePackage = pkgs.libreoffice;
   profileDir =
     if isDarwin then
@@ -203,20 +203,32 @@ let
 
   settingsJson = pkgs.writeText "libreoffice-managed-settings.json" (builtins.toJSON managedSettings);
 
-  settingsPatcherPython = pkgs.writers.writePython3 "libreoffice_apply_settings.py" {
-    # Ruff owns line wrapping; retain the writer's other Flake8 checks.
-    flakeIgnore = [ "E501" ];
-  } ./libreoffice-assets/libreoffice_apply_settings.py;
+  settingsHelper = (import ../../flake/runtime-packages.nix { inherit pkgs; }).libreofficeSettings;
 
   settingsPatcher = writeBashTemplate {
     name = "libreoffice-apply-settings";
-    src = ./libreoffice-assets/libreoffice-apply-settings.sh;
+    text = ''
+      #!/usr/bin/env bash
+
+      set -euo pipefail
+
+      # Nix supplies a literal path; dollar signs must not expand.
+      # shellcheck disable=SC2016
+      readonly PROFILE=@profile@
+
+      if '@pgrepExe@' -f '(^|/)soffice(\.bin)?( |$)' >/dev/null 2>&1; then
+        printf '%s\n' "LibreOffice is running; settings were not changed. Quit LibreOffice, then run libreoffice-apply-settings." >&2
+        exit 0
+      fi
+
+      exec '@settingsExe@' "''${PROFILE}" '@settingsJson@'
+    '';
     dir = "bin";
     replacements = {
       profile = lib.escapeShellArg registryFile;
       pgrepExe = if isDarwin then "/usr/bin/pgrep" else lib.getExe' pkgs.procps "pgrep";
-      pythonExe = lib.getExe pkgs.python3;
-      inherit settingsJson settingsPatcherPython;
+      settingsExe = lib.getExe settingsHelper;
+      inherit settingsJson;
     };
   };
 
@@ -245,12 +257,11 @@ let
   ];
 in
 {
-  # This module manages an existing, writable LibreOffice profile on Linux and
-  # Darwin. The upstream module now declares the same option namespace but
-  # writes a complete registry file, which conflicts with our profile patcher.
-  disabledModules = [ "programs/libreoffice.nix" ];
+  # This integration owns a writable profile on Linux and Darwin. Leave the
+  # upstream module available, with its complete-file writer disabled, so it
+  # cannot replace unrelated profile state managed by LibreOffice itself.
 
-  options.programs.libreoffice = {
+  options.programs.libreofficePersonal = {
     enable = lib.mkEnableOption "LibreOffice office suite";
 
     package = lib.mkOption {
@@ -341,19 +352,28 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    programs.libreoffice = lib.mkIf isLinux {
+      enable = true;
+      inherit (cfg) package;
+    };
+
     assertions = [
       {
+        assertion = !config.programs.libreoffice.enable || config.programs.libreoffice.settings == { };
+        message = "libreofficePersonal requires empty upstream LibreOffice settings to preserve the writable profile.";
+      }
+      {
         assertion = isDarwin || isLinux;
-        message = "programs.libreoffice only supports Linux and Darwin Home Manager hosts.";
+        message = "programs.libreofficePersonal only supports Linux and Darwin Home Manager hosts.";
       }
     ];
 
     home.packages = [
-      cfg.package
       pkgs.carlito
       pkgs.caladea
       pkgs.liberation_ttf
     ]
+    ++ lib.optional isDarwin cfg.package
     ++ lib.optionals cfg.settings.enable [ settingsPatcher ]
     ++ lib.optionals cfg.languageTool.enable [
       pkgs.languagetool

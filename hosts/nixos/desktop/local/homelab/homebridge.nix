@@ -1,5 +1,11 @@
-{ config, pkgs, ... }:
+{
+  config,
+  myLib,
+  pkgs,
+  ...
+}:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   network = builtins.fromJSON (builtins.readFile ../../../../shared/local/network.json);
   userHome = config.users.users.ianmh.home;
 in
@@ -30,13 +36,37 @@ in
       ProtectHome = "read-only";
       PrivateTmp = true;
     };
-    script =
-      (import ../../../../../lib/templates/text.nix) ./scripts/raspberry-pi-homebridge-backup-script.sh
-        {
-          inherit userHome;
-          network_raspberryPiServerAddress = network.raspberryPiServerAddress;
-          raspberry_pi_keys_desktop_pub = ../../../raspberry-pi/local/keys/desktop.pub;
-        };
+    script = checkedShellText {
+      name = "raspberry-pi-homebridge-backup";
+      text =
+        myLib.templates.renderText
+          {
+            name = "raspberry-pi-homebridge-backup-script.sh";
+            text = ''
+              # shellcheck shell=bash
+              set -euo pipefail
+              stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              backup="''${STATE_DIRECTORY}/''${stamp}.tar.zst.age"
+              partial="''${backup}.partial"
+              trap 'rm -f "$partial"' EXIT
+
+              ssh -T -S none -o BatchMode=yes -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes -i @userHome@/.ssh/id_ed25519 \
+                ianmh@@network_raspberryPiServerAddress@ \
+                'sudo -n tar --exclude=homebridge/backups --exclude=homebridge/homebridge.log -C /var/lib -cf - homebridge scrypted' |
+                zstd -q -1 -c |
+                age -R @raspberry_pi_keys_desktop_pub@ -o "$partial"
+
+              mv "$partial" "$backup"
+              trap - EXIT
+            '';
+          }
+          {
+            inherit userHome;
+            network_raspberryPiServerAddress = network.raspberryPiServerAddress;
+            raspberry_pi_keys_desktop_pub = ../../../raspberry-pi/local/keys/desktop.pub;
+          };
+    };
   };
 
   systemd.timers.raspberry-pi-homebridge-backup = {

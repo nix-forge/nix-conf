@@ -21,7 +21,6 @@
     determinate
     nixSeal
     nix-settings
-    codex-runtime
     cache
     registry
     chromium-policies

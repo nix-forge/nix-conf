@@ -18,7 +18,7 @@ The development switch handler still drops `CloseSwitch` when closed, opens late
 
 The development branch renamed `dep-crates/hyprland-rs` to `dep-crates/hyprland` and added optional live thumbnails with their own timers and close cleanup. Port the behavior into that code, preserving thumbnail lifetime and feature combinations. [Development switch component](https://github.com/H3rmt/hyprshell/blob/dce45069922d99bd702999de260f9ca19cdea957/crates/windows-lib/src/switch/root.rs), [workspace manifest](https://github.com/H3rmt/hyprshell/blob/dce45069922d99bd702999de260f9ca19cdea957/Cargo.toml).
 
-The existing local report records deterministic close-before-open failures, 200 timing cases, and passing patched desktop checks. Those are prior observations recorded in this configuration repository; this investigation did not rerun the live desktop tests. Use their scripts and traces as starting evidence and reproduce against an unpatched upstream build before claiming current upstream validation. [Local investigation](alt-tab-research.md), [local regression tests](../../tests/hyprland).
+The existing local report records deterministic close-before-open failures, 200 timing cases, and passing patched desktop checks. Those are prior observations recorded in this configuration repository; this investigation did not rerun the live desktop tests. Use their scripts and traces as starting evidence and reproduce against an unpatched upstream build before claiming current upstream validation. [Local investigation](alt-tab-research.md), local regression tests.
 
 ## Related issues, discussions, and PRs
 

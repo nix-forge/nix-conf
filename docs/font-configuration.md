@@ -101,57 +101,14 @@ disabled, but those Nix settings do not prevent uploading store paths. The CI
 workflow has no font-cache upload step. See each personal package's README for
 provenance and update commands.
 
-## Validation commands
+## Validation
 
-Run the collection check without changing the active installation:
-
-```sh
-just fonts-check /tmp/font-check
-```
-
-Include the installed browser to test actual Zen rendering:
-
-```sh
-just fonts-check /tmp/font-check /etc/profiles/per-user/user/bin/zen-beta
-```
-
-The equivalent flake app is `nix run .#font-check -- OUTPUT [BROWSER]`. Browser
-collection isolation is Linux-only; macOS uses the native check below. The app uses the
-full catalog including restricted Apple and Windows fonts, unlike the default
-home selection. Review those permissions before invoking it: its dependencies
-are built before the command starts. It uses temporary Fontconfig configuration/data/cache
-directories, and a fresh browser profile. It scans only `share/fonts`, keeping
-license directories out of the font scan. It checks all primary styles, explicit
-CJK language shaping, authoritative providers, the default and Apple Unicode 17
-emoji coverage, and optional browser suites. It reports duplicate identities
-with hashes instead of silently removing them. No user cache is cleared.
-
-Hosted font checks use original geometric test fonts for legacy private-use
-and Apple CSS family matching. Their family names exercise protocol identifiers;
-no Apple font bytes or artwork are included. These fixtures verify matching and
-rendering behavior, not the appearance of genuine Apple fonts. The explicit
-local `font-check` command retains the actual-provider checks.
-
-CI builds `font-selection` on all three supported systems. It covers 13
-role/style combinations, four language tags, and all 3,953 Unicode 17 emoji
-entries. Linux CI also renders multilingual samples
-through Qt and Pango and runs the digit and multilingual browser checks against
-pinned Firefox. Native checks include bitmap scaling rules so color emoji uses
-the requested text size. Example outputs: [Qt](assets/font-implementation/qt.png)
-and [Pango](assets/font-implementation/pango.png).
-
-The personal repository's CI runs 21 Apple/Windows import and updater tests.
-Affected emoji package builds run their full coverage and artwork checks. The
-interactive collection command additionally tests all 7,829 Mutant source
-encodings and all 3,953 Apple entries in the chosen browser.
-
-The macOS CI step registers the tested primary files only for its own process,
-then checks Core Text family selection and multilingual/emoji shaping. On the
-configured Mac, test the activated native installation directly with:
-
-```sh
-xcrun swift tests/fonts/check_coretext.swift
-```
+Run the retained static checks with `just check`. Module assertions validate
+invalid font-setting combinations. Project-authored font-selection, browser,
+native-rendering and artwork suites have been retired. Upstream font package
+test defaults remain unchanged. Inspect rendering in the actual application
+when accepting a font configuration change; static analysis does not establish
+shaping or glyph selection.
 
 ## Activation and cost
 
@@ -180,7 +137,10 @@ substitution limit of 127 and disabled downloaded color bitmaps remain the
 selected policy. A failed SBIX/CBDT download test does not establish that an
 installed emoji family is broken.
 
-## Recorded desktop results
+## Historical desktop results
+
+These results describe earlier investigations. Their project-authored automated
+suites are retired; they are not current CI coverage.
 
 The [candidate collection](assets/font-implementation/selection.json) passed all
 13 role/style selections and all four CJK language comparisons. Its general user

@@ -8,6 +8,12 @@ and Home Manager to `c58f54c733a7894d84fa2fdff26cc12088c4b78c`.
 
 ## Answer
 
+The [2026-11-16 declarative identity follow-up](#follow-up-declarative-identity-without-mdm-or-paid-membership)
+refines the current recommendation: preserve the verified upstream Handy release
+through a pinned Nix package, and pilot persistent local certificate signing for
+source-built Rift/OCR. Consent itself remains a macOS-owned state boundary. The
+original investigation and implementation history follow below.
+
 Build an application capability inventory and a read-only readiness command on
 top of the existing configuration owners. Nix should apply supported settings,
 explain the remaining consent steps, validate app identity, and report whether
@@ -233,7 +239,7 @@ user choice and policy removal on a managed test Mac before production adoption.
 ### Executable planning evidence
 
 The [prototype](../assets/darwin-application-permissions/plan.nix) is a pure Nix
-function with [30 executable cases](../assets/darwin-application-permissions/check.nix).
+function with [30 executable cases](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/docs/assets/darwin-application-permissions/check.nix).
 It exercises personal consent instructions, disabled entries, identity and
 justification preconditions, macOS version gates, enrollment/channel eligibility,
 PPPC allow/deny differences, macOS 27 Accessibility semantics, and DDM consent,
@@ -245,8 +251,7 @@ All 30 cases passed native evaluation on the reachable arm64 Mac running macOS
 activation or profile installation was needed. Reproduce from a checkout with:
 
 ```sh
-# On the desktop, use workstation-task as required by repository policy.
-workstation-task nix-instantiate --eval --strict --json \
+nix-instantiate --eval --strict --json \
   docs/assets/darwin-application-permissions/check.nix
 ```
 
@@ -338,9 +343,320 @@ failures and unperformed GUI acceptance matrix are explicit implementation gates
 
 The first personal-Mac implementation is now in the
 [capability module](../../modules/home/macos/application-capabilities.nix) and
-[readiness command](../../modules/home/macos/application_readiness.py). The
+[readiness command](../../modules/home/macos/application-runtime/src/bin/hm-macos-readiness.rs). The
 [operations runbook](../operations/darwin-application-readiness.md) records native
 signing repairs, attended feature results, installation scope and remaining
 lifecycle tests. The earlier “research only” statements above describe the
 original investigation, not the subsequent implementation. Managed adapters
 remain intentionally deferred.
+
+## Follow-up: repeated prompts for source-built applications
+
+Reviewed: 2026-11-16. Scope: the working configuration based on
+`75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d`, with read-only inspection of
+macOS 27.2.1 (26B131). This section updates the recommendation for recurring
+prompts; the earlier dated observations retain their original scope.
+
+### Answer and evidence
+
+There are two separate problems. First-time consent is expected on an unmanaged
+Mac: `macos.applicationCapabilities` generates an inventory and guidance, not
+privacy grants. Repeated consent after an executable update can result from
+build-specific signing identity. Apple explicitly describes this failure for
+ad-hoc signed applications: the recorded designated requirement identifies one
+code version, and a changed build can prompt again.
+[Apple TN3127](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+
+Native read-only checks found no MDM enrollment. `hm-macos-readiness --check
+--json` returned exit 2, with all ten inventoried app identities valid and
+protected capabilities unknown. `hm-macos-applications --check` passed all 27
+canonical registrations. Unknown authorization is the intended output of this
+inspection command; it does not prove denial.
+
+`codesign -d -r-` on the installed Handy 0.9.8, Rift 0.7.2, Signal 8.32.0,
+and OCR Capture 0.1.0 bundles showed default designated requirements containing
+only a code-directory hash. LinearMouse instead had an Apple certificate/team
+and application identifier requirement. Thus the inspected source-built apps
+have valid signatures but lack an identity that survives changed executable
+bytes. This is a confirmed structural risk and a strong explanation for prompts
+after their updates; this investigation did not reproduce the GUI prompt or
+establish that it explains every reported permission request.
+
+The [historical Handy sealing repair](https://github.com/nix-forge/nix-conf/blob/9e24d0b1d0a9c375a5a4530a91927ec07fc0f145/overlays/temporary/handy-darwin-signature.nix)
+restores integrity using ad-hoc signing. The
+[Rift package](../../pkgs/pkgs/by-name/ri/rift/package.nix) also signs ad hoc.
+Neither step supplies persistent developer identity. The pinned upstream
+[Handy recipe](https://github.com/NixOS/nixpkgs/blob/02c087f3fe673c9e317f206a627cb6b910336dbe/pkgs/by-name/ha/handy/package.nix)
+explicitly disables Tauri certificate signing. Repeating integrity checks or
+Launch Services registration cannot change these designated requirements.
+
+### Recommended fix
+
+Keep Nix as the installation/configuration owner and add persistent signing for
+explicitly selected locally built apps. Start with Handy and Rift. A usable
+Apple Development identity was present in the Mac's Keychain at inspection time;
+its public identity and private key need not be published in repository prose.
+The existing OCR `signingIdentity` option demonstrates the local-Keychain
+boundary, but is not yet a general app-update solution.
+
+1. Preserve vendor signatures on distributed apps. Prefer a verified vendor-signed
+   artifact when it provides the required functionality; do not assume a release
+   download is signed without inspecting it. Retain source builds where needed.
+2. For selected source builds, stage the complete bundle outside the Nix store
+   and sign it using the persistent Apple-issued Keychain identity. Keep private
+   signing material out of derivations and caches. Preserve reviewed entitlements
+   and sign nested components in the correct order; avoid blanket deep re-signing.
+3. Integrate this with the existing application lifecycle owner. Reject a missing
+   or unusable signer before replacing the current app. Verify the staged signature,
+   bundle identifier, signer and designated requirement. Never mutate a running
+   executable; retain the previous complete app for recovery. Reuse an unchanged
+   signed copy on a no-op activation.
+4. Verify that the updated build satisfies the previous signed build's designated
+   requirement, using `codesign --verify -R`, and verify in reverse where relevant.
+   Apple documents this compatibility check in TN3127. Do not pin the DR to a
+   particular executable hash or confuse changing CDHash with changed developer
+   identity. Certificate renewal and signer changes need an explicit migration.
+5. Reapprove once after migrating from ad-hoc to certificate identity, then test
+   Handy microphone/paste and Rift window movement in the real GUI. Repeat after
+   a changed build, ordinary relaunch, login and no-op Nix activation. Only that
+   native acceptance can establish that the recurring symptom is fixed.
+
+This is the smallest supported approach for these locally built apps. It does
+not need MDM enrollment. MDM is a separate deployment choice for centrally managed
+policy, with service-specific limits. Apple's
+[PPPC schema](https://github.com/apple/device-management/blob/release/mdm/profiles/com.apple.TCC.configuration-profile-policy.yaml)
+requires user-approved MDM and forbids manual installation. PPPC cannot silently
+grant camera, microphone, ScreenCapture or ListenEvent. The macOS 27
+[AppSettings declaration](https://github.com/apple/device-management/blob/release/declarative/declarations/configurations/app.settings.yaml)
+adds supervised, user-scope consent defaults for supported services and AppKit
+apps, still requiring user acceptance. It is not an unmanaged activation API.
+
+### Updated Local Network recovery
+
+The earlier no-reset guidance applies before macOS 27.2. Apple now documents
+removing an app with the minus button in System Settings > Privacy & Security >
+Local Network to reset its decision on macOS 27.2 and later. This is explicit
+recovery, not an activation step or a grant. Do not use `tccutil reset All` as a
+repair for repeated prompts. Apple also recommends Apple-issued signing for
+reliable Local Network identity tracking.
+[Apple TN3179](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy).
+
+### Validation limits
+
+Only read-only native inspection ran. No app was signed, replaced or restarted;
+no permission was requested, reset or granted. SSH cannot reproduce GUI consent
+or establish GUI-origin Local Network access. The user reports both initial and
+repeated prompts, including Handy and Rift; a before/after GUI reproduction
+remains necessary before attributing all recurrence to signing or claiming a fix.
+No runtime configuration or package change is implemented by this follow-up.
+
+## Follow-up: declarative identity without MDM or paid membership
+
+Reviewed: 2026-11-16. Scope: the working configuration based on
+`75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d`, pinned Home Manager
+`a1293da7dd8e497e08d26173f97e2976b36a31ea`, and native artifact inspection on
+macOS 27.2.1 (26B131). This follow-up supersedes the blanket recommendation to
+locally re-sign Handy: a verified vendor-signed artifact is available.
+
+### Recommended order
+
+Keep application selection, versions, launch paths and signing policy declarative.
+Treat the private signing key as persistent host state and privacy consent as
+user-owned macOS state. Pure Nix builds produce the selected input; an idempotent
+activation transaction installs the verified result. This fits the repository's
+existing application owner and secret boundary without claiming that every part
+of macOS can be reconstructed from a Nix derivation.
+
+1. Package the vendor-signed Handy release on Darwin with an immutable version,
+   fixed fetch hash and preserved signed bundle. Keep the Linux source package.
+2. Pilot a persistent self-signed Code Signing identity for the locally built
+   Rift and OCR bundles. No Apple account or paid membership is needed to create
+   that identity. Do not promise permission persistence until native tests pass.
+3. Extend the existing app lifecycle transaction to own both signing policies,
+   preserving canonical locations, no-op rebuilds and recovery. Avoid a second
+   post-copy script that repeatedly overwrites and re-signs active applications.
+4. Keep capability guidance and feature verification. First-time consent and
+   migration consent cannot be eliminated by a local signing declaration.
+
+### Handy: verify and preserve upstream signing
+
+The [0.9.8 release workflow](https://github.com/cjpais/Handy/blob/v0.9.8/.github/workflows/release.yml)
+invokes signed builds. The [build workflow](https://github.com/cjpais/Handy/blob/v0.9.8/.github/workflows/build.yml)
+imports a Developer ID certificate and passes the signing identity and notarization
+credentials to Tauri. By contrast, the selected source-build strategy disables
+certificate signing and the local sealing repair restores only ad-hoc integrity.
+The recipient of a vendor-signed app does not need a developer membership.
+
+Native inspection downloaded `Handy_aarch64.app.tar.gz` from the
+[0.9.8 release assets](https://github.com/cjpais/Handy/releases/expanded_assets/v0.9.8)
+into a private temporary directory and checked the published SHA-256:
+
+```text
+e6931a14805eac47878e5e80ba7de9395cebaf355d4b7e231fbdac532169e9a4
+```
+
+The extracted bundle had version `0.9.8`, identifier `com.pais.handy`, vendor team
+`UWFLB4GC25`, and a Developer ID designated requirement scoped to its identifier
+and vendor team. `codesign --verify --deep --strict --all-architectures` exited 0.
+`spctl --assess --type execute --verbose=2` exited 0 and reported
+`source=Notarized Developer ID`. The app was never executed or installed and the
+temporary directory was removed. These results establish artifact identity and
+Gatekeeper assessment at inspection time, not working dictation or migration.
+
+The package should extract/copy the bundle without stripping, changing its
+Info.plist, rewriting rpaths, wrapping its internal executable or re-signing it.
+Place wrappers outside the bundle. Retain the vendor Team ID expectation in the
+capability manifest and installation transaction. The binary package recipe belongs
+to `pkgs/`; source selection and feature integration belong to the root repository.
+A binary-preserving variant is a package choice, not another permanent patch to
+the source package's ad-hoc sealing repair.
+
+The pinned [Handy settings implementation](https://github.com/cjpais/Handy/blob/v0.9.8/src-tauri/src/settings.rs)
+provides `HANDY_DISABLE_UPDATER` as a runtime override. Set it in the managed launch
+environment so Nix remains the update owner. The current Darwin dictation launcher
+executes the copied bundle directly and does not set this variable; wrapping only
+the package's store CLI would therefore miss it. Cover every supported launch
+route or enforce the existing application preference as well, without modifying
+the sealed bundle. Verify ordinary Finder launch and login launch separately.
+
+### Rift and OCR: persistent local signing, with a bounded claim
+
+The inspected [Rift release workflow](https://github.com/acsandmann/rift/blob/2bb6647a18cde9ac44470d296988298c1093460d/.github/workflows/release.yml)
+builds, combines and strips binaries without a certificate-signing step. Its
+repository package constructs a bundle and signs ad hoc. Downloading its release
+instead is not evidence of a vendor identity and would not itself solve this
+problem. Keep the source-built package unless a verified signed release becomes
+available.
+
+Apple documents creating a self-signed Code Signing identity with Keychain Access.
+It can identify successive local builds without a paid membership. This does not
+provide notarization, Developer ID distribution trust or restricted entitlement
+authorization.
+[Apple Code Signing Tasks](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html).
+
+Use one persistent certificate/key pair, unique signing identifiers per app, and
+the default designated requirement generated by `codesign`. Pin the public
+certificate identity, not merely its human-readable name. Do not make a custom
+identifier-only requirement that would match unrelated signers. Check compatibility
+between different signed builds using Apple's requirement evaluator in both
+directions. A passing comparison proves code identity compatibility; it does not
+prove current Accessibility or microphone authorization.
+[Apple TN3127](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+
+Apple's archived signing guide makes self-signed acceptance subsystem-dependent.
+Accordingly, "a self-signed certificate fixes all privacy prompts" is not a
+validated conclusion. Do not install broad system-wide trust overrides or relax
+Gatekeeper as a default. Test the actual Accessibility, screen-capture and other
+features independently. A private CA can accommodate certificate renewal through
+explicit requirements, but adds policy and key-management complexity; one persistent
+local identity is the smaller first experiment.
+[Apple TN2206](https://developer.apple.com/library/archive/technotes/tn2206/_index.html).
+
+Local Network remains a separate limit: Apple specifically recommends Apple-issued
+signing for reliable identity tracking, and executable UUID and responsible-app
+attribution also matter. Do not advertise a local self-signed certificate as its
+universal solution.
+[Apple TN3179](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy).
+
+### Proposed Nix contract and lifecycle
+
+Extend `macos.applications.protectedApps` with an explicit signing policy rather
+than introducing a second installer. The following is a proposed interface, not
+implemented configuration:
+
+```nix
+macos.applications = {
+  signingIdentities.localApps = {
+    certificateSha256 = "<public certificate fingerprint>";
+    keychain = "${config.home.homeDirectory}/Library/Keychains/login.keychain-db";
+  };
+
+  protectedApps.rift = {
+    bundle = "Rift.app";
+    bundleId = "git.acsandmann.rift";
+    source = "${pkgs.rift}/Applications/Rift.app";
+    signing = {
+      mode = "localCertificate";
+      identity = "localApps";
+    };
+  };
+};
+```
+
+Keep existing vendor entries on `preserveVendor`, retaining their required Team ID
+and source-signature verification. Local mode must require a configured certificate,
+explicit bundle identifier and reviewed signing layout. It cannot require a vendor
+Team ID because a self-signed identity has none. Do not weaken vendor verification
+to accommodate local apps. Use module assertions for impossible combinations.
+
+Create/import the local identity once through an explicitly invoked setup step,
+preferably Keychain Access Certificate Assistant. Record the public fingerprint in
+Nix and keep an encrypted private backup. Normal activation checks availability
+and fails clearly if the key is missing, locked or mismatched; it must never silently
+create a replacement identity. Losing the key cannot be repaired by regenerating
+a certificate with the same display name. Keychain access may need attended setup;
+do not embed its password in Nix or assume headless SSH signing always succeeds.
+
+A local signed output intentionally differs from its unsigned/ad-hoc source.
+The current [lifecycle helper](../../modules/home/macos/application-runtime/src/bin/hm-macos-app-lifecycle-helper.rs)
+compares source and installed signing hashes and enforces vendor Team IDs.
+Merely adding `codesign` after copying would make that contract fail and could
+cause perpetual replacement. Extend inspection and the installation record to
+separate selected source identity from installed signed identity.
+
+The activation transaction should:
+
+1. Inspect the selected immutable input, signing policy, expected certificate and
+   reviewed entitlement/layout description. Detect a true no-op before requiring
+   an app quit or unlocked signing key. Verify the installed bundle as well as the
+   private receipt; a receipt alone cannot authorize a no-op.
+2. For a changed source or signing policy, require the app to quit, stage a complete
+   private copy, and sign with native `codesign`. Sign reviewed nested components
+   inside out; preserve intentional entitlements and runtime options. Do not use
+   blanket `--deep` re-signing or add hardened-runtime exceptions indiscriminately.
+3. Verify all architectures, expected signer, bundle identifier and nested code.
+   Compare the candidate with the previously accepted designated requirement.
+   A deliberate first migration from ad-hoc signing needs explicit handling;
+   signer changes must not masquerade as ordinary compatible updates.
+4. Recheck running state, install the complete bundle through the existing atomic
+   exchange/journal mechanism, then register its canonical path. Store source
+   selection, signing-policy digest, public certificate fingerprint and resulting
+   signed identity atomically in private state. Retain the prior complete bundle.
+5. Reuse that signed copy on identical rebuilds. A rollback restores a compatible
+   retained signed artifact or re-signs the selected older input using the same
+   identity after explicit downgrade handling. It cannot roll back macOS consent.
+
+Extend the existing readiness output to describe certificate-based versus
+build-specific identity as an advisory. Keep that assessment separate from signature
+integrity and feature authorization; valid ad-hoc signing is not invalid code.
+The existing per-feature manifest remains the consent checklist. Do not add direct
+TCC database writes, automatic resets, repeated approval prompts or a parallel
+permission daemon.
+
+### Implementation gates and validation limits
+
+Start with the binary-preserving Handy package and existing vendor lifecycle path;
+that has stronger native evidence and requires no new local signer. Verify feature
+and settings compatibility with the source package before switching it. Then pilot
+local signing for Rift alone, extend to OCR after capture attribution is understood,
+and generalize only after those results.
+
+Native acceptance must cover one migration approval, actual GUI operation, a changed
+build signed by the same identity, quit/relaunch, login, a no-op activation, an
+interrupted update and generation rollback. Deliberate signer replacement should
+be reported as a migration. Missing-key failure must preserve the installed app.
+A disposable account is preferable for consent/revocation experiments.
+
+For implementation validation, follow repository policy: Nix evaluation/assertions
+and applicable static checks, upstream package checks, plus attended native evidence.
+Do not introduce project-owned integration or snapshot suites. A successful build
+or static signature comparison cannot replace the actual GUI acceptance matrix.
+
+This research verified the published Handy archive and native signing/Gatekeeper
+results, reviewed pinned release sources and the current integration, and made no
+app installation, signing-key or permission changes. No self-signed candidate or
+GUI permission-persistence test ran. GitHub API release enumeration returned HTTP
+403 rate limiting; the official expanded release assets supplied the artifact name
+and checksum instead. Therefore the recommendation is concrete and source-backed,
+but source-to-vendor migration and local-certificate consent persistence remain
+implementation gates.

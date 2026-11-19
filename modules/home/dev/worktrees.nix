@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.programs.dev-worktree;
   policy = pkgs.writeText "dev-worktree.json" (
     builtins.toJSON {
@@ -12,99 +14,31 @@ let
       inherit (config.programs.git.maintenance) repositories;
     }
   );
-  implementation = pkgs.writers.writePython3Bin "dev-worktree-internal" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/dev_worktree.py;
-  command = pkgs.writeShellApplication {
+  implementation = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).devWorktree;
+  command = writeShellApplication {
     name = "dev-worktree";
     runtimeInputs = [ config.programs.git.package ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/dev-worktree.sh {
-      lib_escapeShellArg_lib_getExe_config_programs_git_package = lib.escapeShellArg (
-        lib.getExe config.programs.git.package
-      );
-      lib_getExe_implementation = lib.getExe implementation;
-      inherit policy;
-    };
-  };
-  instructions = ''
-    Keep durable Git clones under ${cfg.developerRoot}. Open one repository or
-    task checkout at a time. Use `dev-worktree new REPOSITORY TASK --base REF`
-    for manually managed tasks; it prints the absolute checkout path and uses an
-    independent clone when the requested base contains submodules.
-    Run terminal agents with `dev-worktree run PATH -- COMMAND` to protect the
-    checkout while the session runs. Manual task checkouts live under
-    ${cfg.worktreeRoot}/manual. Codex and other desktop apps own their managed
-    worktrees and cleanup. Never create task checkouts beside durable clones or
-    place manual checkouts in an app's managed folder. For repositories with
-    submodules, initialize the new clone following the repository's setup
-    instructions. Preserve local changes and
-    unpublished commits. Cleanup requires explicit task completion; use
-    `dev-worktree doctor` to inspect first. Do not delete worktrees by age.
-  ''
-  + cfg.extraInstructions;
-  report = pkgs.writeShellApplication {
-    name = "dev-worktree-report";
-    runtimeInputs = [
-      pkgs.coreutils
-      command
-    ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/dev-worktree-report.sh {
-      lib_escapeShellArg_cfg_stateDirectory = lib.escapeShellArg cfg.stateDirectory;
-      lib_escapeShellArg_cfg_stateDirectory_report_XXXXXXXX = lib.escapeShellArg "${cfg.stateDirectory}/.report-XXXXXXXX";
-      lib_escapeShellArg_cfg_stateDirectory_inventory_json = lib.escapeShellArg "${cfg.stateDirectory}/inventory.json";
-    };
-  };
-  retireBootstrap = pkgs.writeShellApplication {
-    name = "retire-dev-worktree-bootstrap";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.coreutils
-      config.nix.package
-    ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/retire-dev-worktree-bootstrap.sh {
-      lib_escapeShellArg_cfg_stateDirectory_bootstrap_profile_json = lib.escapeShellArg "${cfg.stateDirectory}/bootstrap-profile.json";
-      lib_escapeShellArg_config_home_homeDirectory_nix_profile = lib.escapeShellArg "${config.home.homeDirectory}/.nix-profile";
-    };
-  };
-  runtimeManifest = pkgs.writeText "dev-worktree-runtime.json" (
-    builtins.toJSON {
-      inherit (cfg) developerRoot worktreeRoot stateDirectory;
-      contexts =
-        map
-          (name: {
-            source = config.home.file.${name}.source;
-            target = config.home.file.${name}.target;
-          })
-          (
-            lib.filter (name: builtins.match ".*(AGENTS|CLAUDE)\\.md" name != null) (
-              lib.attrNames config.home.file
-            )
+    text =
+      myLib.templates.renderText
+        {
+          name = "dev-worktree.sh";
+          text = ''
+            # shellcheck shell=bash
+            export DEV_WORKTREE_GIT=@lib_escapeShellArg_lib_getExe_config_programs_git_package@
+            exec @lib_getExe_implementation@ --config @policy@ "$@"
+          '';
+        }
+        {
+          lib_escapeShellArg_lib_getExe_config_programs_git_package = lib.escapeShellArg (
+            lib.getExe config.programs.git.package
           );
-      units = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (
-        lib.genAttrs [
-          "git-maintenance@.service"
-          "dev-worktree-report.service"
-          "dev-worktree-report.timer"
-        ] (name: config.xdg.configFile."systemd/user/${name}".source)
-      );
-    }
-  );
-  runtimeBundle = pkgs.linkFarm "dev-worktree-runtime" [
-    {
-      name = "command";
-      path = command;
-    }
-    {
-      name = "manifest.json";
-      path = runtimeManifest;
-    }
-    {
-      name = "retire-bootstrap";
-      path = retireBootstrap;
-    }
+          lib_getExe_implementation = lib.getExe implementation;
+          inherit policy;
+        };
+  };
+  reportCommand = [
+    (lib.getExe command)
+    "report"
   ];
 in
 {
@@ -122,6 +56,11 @@ in
       default = "${config.home.homeDirectory}/Worktrees";
       description = "Task checkout root, with separate manual and app-owned children.";
     };
+    worktreeMount = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Optional Linux mount point required to prepare checkout directories.";
+    };
     stateDirectory = lib.mkOption {
       type = lib.types.str;
       default = "${config.xdg.stateHome}/dev-worktree";
@@ -132,28 +71,6 @@ in
       readOnly = true;
       default = command;
       description = "Packaged dev-worktree command.";
-    };
-    instructions = lib.mkOption {
-      type = lib.types.lines;
-      readOnly = true;
-      default = instructions;
-      description = "Shared checkout policy for client-owned global instructions.";
-    };
-    extraInstructions = lib.mkOption {
-      type = lib.types.lines;
-      default = "";
-      description = "Additional checkout instructions for local build and workload policy.";
-    };
-    workloadPrefix = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = "Command prefix for scheduled maintenance and inventory, such as workstation-task.";
-    };
-    runtimeBundle = lib.mkOption {
-      type = lib.types.package;
-      readOnly = true;
-      default = runtimeBundle;
-      description = "Scoped runtime artifacts for applying this feature without a full system activation.";
     };
   };
 
@@ -175,42 +92,56 @@ in
           && !(lib.hasPrefix "${cfg.worktreeRoot}/" cfg.developerRoot);
         message = "Developer, Worktrees, and state paths must be absolute; the checkout roots must be separate.";
       }
+      {
+        assertion =
+          cfg.worktreeMount == null
+          || (pkgs.stdenv.hostPlatform.isLinux && lib.hasPrefix "${cfg.worktreeMount}/" cfg.worktreeRoot);
+        message = "A worktree mount requires a Linux checkout root below the mount point.";
+      }
     ];
     home.packages = [ command ];
     xdg.configFile."dev-worktree/config.json".source = policy;
-    xdg.userDirs.extraConfig.WORKTREES = cfg.worktreeRoot;
+    # Home Manager creates XDG directories unconditionally. Mounted worktrees
+    # use the guarded activation below and still export the path to applications.
+    xdg.userDirs.extraConfig.WORKTREES = lib.mkIf (cfg.worktreeMount == null) cfg.worktreeRoot;
+    home.sessionVariables.XDG_WORKTREES_DIR = lib.mkIf (cfg.worktreeMount != null) cfg.worktreeRoot;
     home.activation.createWorktreeDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-      (import ../../../lib/templates/text.nix) ./scripts/prepare-worktree-directories.sh {
-        lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
-        lib_escapeShellArg_cfg_developerRoot = lib.escapeShellArg cfg.developerRoot;
-        lib_escapeShellArg_cfg_worktreeRoot_manual = lib.escapeShellArg "${cfg.worktreeRoot}/manual";
-        lib_escapeShellArg_cfg_worktreeRoot_codex = lib.escapeShellArg "${cfg.worktreeRoot}/codex";
-        lib_escapeShellArg_cfg_worktreeRoot_claude = lib.escapeShellArg "${cfg.worktreeRoot}/claude";
-        lib_escapeShellArg_cfg_stateDirectory = lib.escapeShellArg cfg.stateDirectory;
+      myLib.writers.checkedShellText { inherit pkgs; } {
+        name = "prepare-worktree-directories";
+        text = ''
+          run ${lib.getExe' pkgs.coreutils "mkdir"} -p -- ${lib.escapeShellArg cfg.developerRoot}
+          ${lib.optionalString (cfg.worktreeMount != null) ''
+            if ${lib.getExe' pkgs.util-linux "mountpoint"} -q -- ${lib.escapeShellArg cfg.worktreeMount}; then
+          ''}
+          run ${lib.getExe' pkgs.coreutils "mkdir"} -p -- ${
+            lib.escapeShellArgs (
+              map (name: "${cfg.worktreeRoot}/${name}") [
+                "manual"
+                "codex"
+                "claude"
+                "opencode"
+                "t3"
+              ]
+            )
+          }
+          ${lib.optionalString (cfg.worktreeMount != null) "fi"}
+          run ${lib.getExe' pkgs.coreutils "mkdir"} -p -m 700 -- ${lib.escapeShellArg cfg.stateDirectory}
+        '';
       }
     );
-    # A scoped bootstrap can make the command usable before a system switch.
-    # Remove only that exact profile entry once the declarative package is active.
-    home.activation.retireDevWorktreeBootstrap = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      run ${lib.getExe retireBootstrap}
-    '';
-
     # Home Manager owns the schedule. Refresh discovery for every run, rather
     # than registering each transient checkout or starting Git's own scheduler.
     systemd.user.services."git-maintenance@" =
       lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && config.programs.git.maintenance.enable)
         {
           Service.ExecStart = lib.mkForce (
-            lib.escapeShellArgs (
-              cfg.workloadPrefix
-              ++ [
-                "${command}/bin/dev-worktree"
-                "maintain"
-                "--schedule=%i"
-              ]
-            )
+            lib.escapeShellArgs [
+              "${command}/bin/dev-worktree"
+              "maintain"
+              "--schedule=%i"
+            ]
           );
-          Service.Slice = "background-workload.slice";
+          Service.Slice = "background.slice";
           Service.Nice = 10;
           Service.IOSchedulingClass = "idle";
           Service.Environment = [ "GIT_TERMINAL_PROMPT=0" ];
@@ -219,8 +150,8 @@ in
       Unit.Description = "Inventory Git task checkouts without deleting work";
       Service = {
         Type = "oneshot";
-        ExecStart = lib.escapeShellArgs (cfg.workloadPrefix ++ [ (lib.getExe report) ]);
-        Slice = "background-workload.slice";
+        ExecStart = lib.escapeShellArgs reportCommand;
+        Slice = "background.slice";
         UMask = "0077";
       };
     };
@@ -246,7 +177,7 @@ in
         dev-worktree-report = {
           enable = true;
           config = {
-            ProgramArguments = [ (lib.getExe report) ];
+            ProgramArguments = reportCommand;
             StartCalendarInterval = [
               {
                 Weekday = 0;

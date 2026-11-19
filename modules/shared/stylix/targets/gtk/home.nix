@@ -31,6 +31,13 @@
             && config.stylix.targets.gtk.colors.enable
           )
           {
+            # Keep this palette choice independent of the upstream Flatpak repair.
+            # Solarized Light's text reaches 4.99:1 on base00 versus 4.39:1 on base01.
+            stylix.targets.gtk.extraCss = lib.mkIf (polarity == "light") (
+              lib.mkBefore ''
+                @define-color dialog_bg_color #${config.lib.stylix.colors.base00};
+              ''
+            );
             # GTK 3 needs its own variant preference alongside the desktop color
             # scheme. Let GTK select the configured theme's variant, and allow
             # explicit user preferences to override this palette-derived default.

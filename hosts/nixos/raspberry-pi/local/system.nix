@@ -141,7 +141,7 @@ in
       message = "This host targets the verified Raspberry Pi 4.";
     }
     {
-      assertion = !config.services.avahi.reflector;
+      assertion = !config.services.avahi.settings.reflector.enable-reflector;
       message = "Cross-VLAN mDNS belongs to the gateway, not the Pi.";
     }
   ];

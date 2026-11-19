@@ -44,7 +44,7 @@ The daemon properties were applied with `systemctl set-property --runtime`
 and verified without restarting the daemon. That override lasts until reboot;
 normal NixOS reactivation is needed to persist the declared daemon policy.
 The ChatGPT scope overrides are already installed. The
-[scope regression](../../tests/systemd/check_chatgpt_oom.py) passed for both
+scope regression passed for both
 prefixes after the missing Hyprland policy was added.
 
 The experimental `nix-workload` runner has been removed from the user package
@@ -129,7 +129,7 @@ systemd documents that `stop` terminates the remaining processes, whereas
 
 ### Controlled verification
 
-The existing [OOM regression workload](../../tests/systemd/check_chatgpt_oom.py)
+The existing OOM regression workload
 was run inside a disposable scope using the missing Hyprland prefix:
 
 ```sh

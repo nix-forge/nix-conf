@@ -6,6 +6,94 @@ Mac in device management. Apple's
 [Local Network privacy guidance](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy)
 explains the identity and user-consent requirements for local connections.
 
+## Shared application identity and updates
+
+`macos.applications.manageAll` now defaults to true. It discovers every top-level
+`.app` selected by Home Manager packages at build/activation time, without
+import-from-derivation or an application-name allowlist. Manually installed apps
+outside that selected set remain outside this lifecycle. Explicit vendor-protected
+entries retain their existing independent vendor checks and root registration.
+
+Certificate-signed input bundles keep their signatures. Ad-hoc or unsigned inputs
+are staged and signed using one persistent local Code Signing identity. Source
+and installed signing identities are tracked separately. Changed apps require a
+full quit before atomic replacement; unchanged bundles are verified and reused.
+No check or activation creates signing keys or changes privacy permissions.
+Owned deselected apps are moved to journaled recovery directories after a quit;
+unknown apps and application user data are not deleted.
+
+The ARM Darwin Handy selection now uses the pinned upstream `handy-bin` package.
+Its vendor signature is preserved; the managed dictation launcher disables its
+self-updater with `HANDY_DISABLE_UPDATER=1`. Other app update controls remain
+application-specific. A vendor self-update that differs from the selected Nix
+package is reported as drift rather than silently accepted or overwritten.
+
+### One-time local identity setup
+
+Create a persistent certificate using Keychain Access > Certificate Assistant >
+Create a Certificate. Use the name `Nix Local Applications`, Identity Type
+`Self Signed Root`, Certificate Type `Code Signing`, and the login Keychain.
+Keep a protected encrypted backup of the certificate and private key. This does
+not require an Apple account, paid developer membership, or MDM. Do not recreate
+the certificate on rebuilds, add blanket system trust, or put its private key in
+the repository/Nix store.
+
+Build the lifecycle command before the first switch, on the Mac:
+
+```sh
+nix build --out-link /tmp/macos-app-policy \
+  '.#darwinConfigurations.macbook-pro-m4.config.home-manager.users.ianmh.macos.applications.lifecyclePackage'
+/tmp/macos-app-policy/bin/hm-macos-app-lifecycle --mode inventory
+/tmp/macos-app-policy/bin/hm-macos-app-lifecycle --mode enroll-identity
+/tmp/macos-app-policy/bin/hm-macos-app-lifecycle --mode preflight
+```
+
+Enrollment pins the public certificate fingerprint in private local state.
+Optionally copy its returned SHA-256 into
+`macos.applications.localSigning.certificateSha256` for a Nix-owned public pin.
+Configure a different certificate name with `localSigning.identity`. Activation
+refuses a missing identity or an unexpected signer change. Enrolling an existing
+key is explicit and idempotent; it never generates or replaces a key. Keychain may
+require user interaction when the signer first uses its private key.
+
+After preflight succeeds, use the normal Darwin deployment procedure. The first
+migration from ad-hoc to certificate signing may require approval once in System
+Settings. Test the actual GUI features after migration, a changed build, relaunch
+and a no-op rebuild. Self-signed code identity is not Developer ID trust or a
+guarantee that every privacy subsystem retains approval. Local Network retains
+Apple's recommendation for Apple-issued signing.
+
+`--mode inventory` inspects every selected input without needing an enrolled key.
+`--mode check` verifies selected/installed identity and reports drift, independently
+of `hm-macos-readiness`'s feature guidance. JSON always leaves authorization
+unknown. A failure after a bundle exchange reports the retained complete bundle
+and journal; inspect that directory before retrying or restoring a prior copy.
+The downgrade guard remains in effect; generation rollback may need deliberate
+restoration of the retained bundle rather than automatic replacement of a newer app.
+
+To return to Home Manager's ordinary copying, set `manageAll = false` and fully
+quit affected applications before switching; ordinary copying restores package
+signatures. Retain private signing state and recovery material until rollback has
+been verified. Removing this feature does not revoke macOS consent.
+
+### Implementation validation
+
+The shared helper's native read-only inventory processed all 27 apps in the
+existing selected Home Manager application environment without errors. It found
+16 certificate-signed, ten ad-hoc and one unsigned input. The new Handy package
+was separately built on arm64 macOS; strict all-architecture signature verification
+and Gatekeeper's Notarized Developer ID assessment passed on its Nix-store output.
+These are identity checks, not performed GUI permission tests.
+
+Focused Python lint/type checks and formatting/docs checks passed. The package
+repository's `just check` passed. Root-wide checks passed Python, Swift and the
+library checks but encountered unrelated formatting and broken documentation
+links in the working tree. Full Darwin closure evaluation failed on a
+`gtk.css.mustache` pure-path error, reproduced with universal app management
+disabled. No full activation or local-certificate signing/consent test was run.
+The initial rollout still requires the one-time local identity setup above and
+native feature/update acceptance before claiming recurring prompts are resolved.
+
 ## Installation and selection
 
 The Home Manager `macos` feature imports
@@ -104,8 +192,11 @@ Apple documents [targeted registration refresh](https://developer.apple.com/libr
 The existing `hm-macos-applications` repair command also refreshes all configured
 canonical registrations; `--check` only inspects them. Registration refresh is
 metadata repair, not a privacy grant or a documented reset of Local Network
-state. It preserves the signed vendor bundle. Apple provides no supported
-per-app reset-to-undetermined operation for this macOS permission.
+state. It preserves the signed vendor bundle. Before macOS 27.2, Apple provides no supported per-app reset-to-undetermined
+operation for this permission. On macOS 27.2 and later, explicitly removing the
+app with the minus button in System Settings > Privacy & Security > Local Network
+resets its decision; the next real access requests consent again. Reserve this
+for targeted recovery, after checking the current bundle identity.
 
 Run acceptance from a task inside the reopened GUI app. Test a fresh plain TCP
 connection, a Network.framework connection, and an uncached direct SSH connection
@@ -317,7 +408,7 @@ ChatGPT uses `macos.applications.protectedApps.codex`. Home Manager excludes
 that bundle from its ordinary in-place rsync. A revision-guarded
 [Home Manager adapter](../../overlays/temporary/home-manager-protected-apps.nix)
 adds only this exclusion; an unfamiliar Home Manager revision requires review.
-The [lifecycle helper](../../modules/home/macos/application_lifecycle.py) owns the
+The [lifecycle helper](../../modules/home/macos/application-runtime/src/bin/hm-macos-app-lifecycle-helper.rs) owns the
 protected copy:
 
 - Before Darwin activation and Home Manager's write boundary, verify the selected

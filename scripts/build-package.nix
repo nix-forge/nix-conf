@@ -12,6 +12,9 @@ let
   source = builtins.getFlake repository;
   packages = source.lib.packagesFor { inherit buildSystem hostSystem; };
 in
-assert builtins.elem buildSystem linuxSystems;
-assert builtins.elem hostSystem linuxSystems;
-builtins.getAttr package packages
+if !(builtins.elem buildSystem linuxSystems) then
+  throw "Invalid production input in build-package.nix"
+else if !(builtins.elem hostSystem linuxSystems) then
+  throw "Invalid production input in build-package.nix"
+else
+  builtins.getAttr package packages

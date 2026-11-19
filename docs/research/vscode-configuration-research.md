@@ -164,7 +164,7 @@ versions included Nix IDE 0.5.13, Bash IDE 1.43.2, Nushell 2.0.6, rust-analyzer
 YAML 2.0.0 and Even Better TOML 0.21.2. Upstream main can differ from locked
 extension versions; avoid adding settings solely because main supports them.
 
-The focused [composition check](../../tests/nix/vscode-configuration.nix)
+The focused composition check
 exercises Linux and Darwin modules without importing development features,
 standalone selection, merged settings, actual extension derivation resolution,
 optional direnv behavior, and signing preference. The existing shell integration

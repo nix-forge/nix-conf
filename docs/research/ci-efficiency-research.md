@@ -265,6 +265,4 @@ matching revision passes. Do not copy shared runner code into this repository.
 
 This follow-up read source, primary documentation and GitHub metadata. It started
 no hosted run, local build, cache benchmark, deployment or merge. It does not
-claim that any proposed batching/cache change has saved time. The
-[queue follow-up](build-queue-efficiency-research.md#development-efficiency-follow-up)
-records local admission, deadline and preflight improvements.
+claim that any proposed batching or cache change has saved time.
