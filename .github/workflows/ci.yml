@@ -49,6 +49,21 @@ jobs:
           persist-credentials: false
       - id: inventory
         uses: nix-forge/ci/actions/discover-lockfiles@4ab5625bc19dccae2adc7e1dcfb0c5d3661892f4 # v2.14.0
+  legacy-secret-manager-symbols:
+    name: Reject removed secret-manager runtime references
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          if git grep -nEi 'secret[c]tl|secret[I]ndex|config[.]age[.]secrets|inputs[.]agenix' -- . ':(exclude).gitleaksignore'; then
+            echo 'removed secret-manager symbols or agenix runtime references found' >&2
+            exit 1
+          fi
   lock-health:
     name: Flake lock health
     needs: [flake-lock]
