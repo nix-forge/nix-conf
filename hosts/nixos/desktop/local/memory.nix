@@ -111,7 +111,7 @@ in
   home-manager.backupCommand = lib.getExe (writeShellApplication {
     name = "home-manager-preserve-file";
     runtimeInputs = [ pkgs.coreutils ];
-    text = (''
+    text = ''
       # shellcheck shell=bash
       if [[ $# != 1 || ! -e $1 && ! -L $1 ]]; then
         echo "Expected one existing Home Manager conflict path" >&2
@@ -131,7 +131,7 @@ in
       fi
       mv -- "$1" "$backup_dir/original"
       printf 'Preserved unmanaged configuration in %s\n' "$backup_dir" >&2
-    '');
+    '';
   });
 
   system.build.desktopMemoryPolicy = pkgs.linkFarm "desktop-memory-policy" (

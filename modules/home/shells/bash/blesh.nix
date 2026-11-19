@@ -95,7 +95,7 @@ let
     };
   bleshRc = pkgs.writeText "blesh-init.sh" (checkedShellText {
     name = "blesh-rc";
-    text = (''
+    text = ''
       # shellcheck shell=bash
       # Delay suggestions while normal input is being typed.
       bleopt complete_auto_delay=200
@@ -104,7 +104,7 @@ let
       bleopt exec_elapsed_mark=
       bleopt exec_exit_mark=
       bleopt prompt_eol_mark=
-    '')
+    ''
     + lib.optionalString config.programs.fzf.enable (
       render {
         name = "configure-blesh-fzf.sh";

@@ -104,10 +104,10 @@ in
       # Spotify's preference above prevents StartUpHelper from being registered
       # again. Keep launchd's existing user-level registration disabled too.
       disableSpotifyDarwinAutostart = lib.mkIf (isDarwin && cfg.disableAutostart) (
-        lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ((''
+        lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ''
           # shellcheck shell=bash
           run /bin/launchctl disable "gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper"
-        ''))
+        ''
       );
     };
 

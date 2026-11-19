@@ -24,8 +24,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const REMOTE_VERIFIER: &str = r#"
 verifier=$(command -v mac-source) || verifier="$HOME/.local/state/nix-conf/mac-verifier/bin/mac-source"
 if [ ! -x "$verifier" ]; then
-  printf '%s\n' 'Install a trusted native mac-source verifier on this Mac before exporting.' >&2
-  exit 127
+    printf '%s\n' 'Install a trusted native mac-source verifier on this Mac before exporting.' >&2
+    exit 127
 fi
 exec "$verifier" "#;
 fn fail<T>(message: impl Into<String>) -> Result<T> {

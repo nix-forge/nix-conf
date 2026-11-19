@@ -1,3 +1,1 @@
-{
-  imports = [ ../../../shared/local/browsers ];
-}
+{ imports = [ ../../../shared/local/browsers ]; }

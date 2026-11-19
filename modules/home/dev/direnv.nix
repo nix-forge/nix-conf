@@ -34,17 +34,15 @@ in
   # nix-direnv evaluates cached profile files as shell code. Protect the
   # common parent so layouts created with the user's normal umask remain
   # inaccessible to other local users.
-  home.activation.prepareDirenvCache = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-    (checkedShellText {
-      name = "prepare-direnv-directories";
-      text = ''
-        run ${lib.getExe' pkgs.coreutils "install"} -d -m 0700 ${
-          lib.escapeShellArgs [
-            direnvCacheDirectory
-            direnvLayoutDirectory
-          ]
-        }
-      '';
-    })
-  );
+  home.activation.prepareDirenvCache = lib.hm.dag.entryAfter [ "writeBoundary" ] (checkedShellText {
+    name = "prepare-direnv-directories";
+    text = ''
+      run ${lib.getExe' pkgs.coreutils "install"} -d -m 0700 ${
+        lib.escapeShellArgs [
+          direnvCacheDirectory
+          direnvLayoutDirectory
+        ]
+      }
+    '';
+  });
 }

@@ -305,11 +305,11 @@ This inventory includes regression scaffolding; it does not imply one upstream P
 | [jellyfin-caption-defaults.patch](../../overlays/temporary/patches/jellyfin-caption-defaults.patch) | `jellyfin-caption-defaults` |
 | [libgit2-trailing-slash.patch](../../overlays/temporary/patches/libgit2-trailing-slash.patch) | `determinate-libgit2-trailing-slash` |
 | [microsocks-credential-files.patch](../../overlays/temporary/patches/microsocks-credential-files.patch) | `microsocks-credential-files` |
-| [nh-darwin-home.patch](../../overlays/temporary/patches/nh-darwin-home.patch) | `nh-darwin-home` |
+| [nh-darwin-home.patch](https://github.com/nix-forge/nix-conf/blob/75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d/overlays/temporary/patches/nh-darwin-home.patch) | `nh-darwin-home` |
 | [nixf-flake-builtins.patch](../../overlays/temporary/patches/nixf-flake-builtins.patch) | `nixf-flake-builtins` |
 | [nom-named-activities-tests.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities-tests.patch) | `nom-named-activities` |
 | [nom-named-activities.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities.patch) | `nom-named-activities` |
-| [nom-quadratic-build-plan.patch](../../overlays/temporary/patches/nom-quadratic-build-plan.patch) | `nom-quadratic-build-plan` |
+| [nom-quadratic-build-plan.patch](https://github.com/nix-forge/nix-conf/blob/75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d/overlays/temporary/patches/nom-quadratic-build-plan.patch) | `nom-quadratic-build-plan` |
 | [nu-scripts-pytest-lists.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nu-scripts-pytest-lists.patch) | `nu-scripts-pytest-lists` |
 | [prismlauncher-watch-test-capability.patch](../../overlays/temporary/patches/prismlauncher-watch-test-capability.patch) | `prismlauncher-darwin-tests` |
 | [prowlarr-torrentdownload.patch](../../overlays/temporary/patches/prowlarr-torrentdownload.patch) | `prowlarr-torrentdownload` |

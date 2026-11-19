@@ -163,7 +163,7 @@ in
         path = with pkgs; [ cryptsetup ];
         script = checkedShellText {
           name = "actual-vault-open";
-          text = (''
+          text = ''
             # shellcheck shell=bash
             set -euo pipefail
             image=/var/lib/actual-volume/actual.luks
@@ -182,7 +182,7 @@ in
             # The enrolled TPM2 token unlocks locally. Headless mode forbids a boot prompt.
             exec "$SYSTEMD_CRYPTSETUP" attach "$mapper" "$image" none \
               tpm2-device=auto,headless=yes,tries=1
-          '');
+          '';
         };
         environment.SYSTEMD_CRYPTSETUP = "${pkgs.systemd}/lib/systemd/systemd-cryptsetup";
         serviceConfig = {

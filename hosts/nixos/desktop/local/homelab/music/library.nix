@@ -1,5 +1,4 @@
-{ config, lib, ... }:
-{
+{ config, lib, ... }: {
   options.homelab.desktopMusic.libraryDir = lib.mkOption {
     type = lib.types.nonEmptyStr;
     default = "${config.homelab.storage.libraryDir}/music";

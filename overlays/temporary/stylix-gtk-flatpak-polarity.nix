@@ -21,7 +21,7 @@
       ];
       replacement = [
         "  options,\n  gtkPolarity,\n"
-        ((''
+        ''
           # shellcheck shell=bash
           # Nix builder/activation callers and rendered fragments provide external variables.
           # shellcheck disable=SC2154
@@ -30,7 +30,7 @@
               cat "''${finalCss}" >>"$stylesheet"
             fi
           done
-        ''))
+        ''
         ''
           preferDark = config.gtk.gtk3.extraConfig.gtk-application-prefer-dark-theme
             or (gtkPolarity == "dark");

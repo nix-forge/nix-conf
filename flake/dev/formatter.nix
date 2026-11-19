@@ -143,7 +143,7 @@
                 pkgs.buildPackages.nixfmt
                 pkgs.buildPackages.coreutils
               ];
-              text = (''
+              text = ''
                 # shellcheck shell=bash
                 # nixfmt formats stdin without restricting the source filename's extension.
                 set -euo pipefail
@@ -155,7 +155,7 @@
                   nixfmt --strict --width 100 --filename "$source" <"$source" >"$temporary"
                   cat "$temporary" >"$source"
                 done
-              '');
+              '';
             }
           }/bin/format-nix-template";
           includes = [ "*.nix.in" ];

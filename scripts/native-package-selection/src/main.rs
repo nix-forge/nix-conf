@@ -113,18 +113,18 @@ fn select() -> Result<()> {
     let requested: Vec<String> = env::args().skip(1).collect();
     let projection = format!(
         r#"packages:
-          let
+        let
             requested = builtins.fromJSON {};
             excluded = builtins.fromJSON {};
             names = if requested == [] then builtins.attrNames packages else requested;
             project = names: builtins.listToAttrs (map (name: {{
-              inherit name;
-              value =
-                if !builtins.hasAttr name packages then throw ("Unknown requested package: " + name)
-                else if builtins.hasAttr name excluded then null
-                else packages.${{name}}.drvPath;
+                inherit name;
+                value =
+                    if !builtins.hasAttr name packages then throw ("Unknown requested package: " + name)
+                    else if builtins.hasAttr name excluded then null
+                    else packages.${{name}}.drvPath;
             }}) names);
-          in "#,
+        in "#,
         nix_json(&serde_json::to_value(requested)?)?,
         nix_json(&Value::Object(policy.clone()))?
     );

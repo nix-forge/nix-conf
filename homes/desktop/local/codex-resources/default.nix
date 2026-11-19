@@ -50,7 +50,7 @@ let
   supervisor =
     lib.getExe
       (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).codexDesktopSupervisor;
-  forwardEnvironment = (''
+  forwardEnvironment = ''
     # shellcheck shell=bash
     # Copy values inside systemd-run; only variable names appear in its argv.
     forward_environment() {
@@ -66,7 +66,7 @@ let
         environment+=("--setenv=$name")
       done < <(env -0)
     }
-  '');
+  '';
   managedLaunch = writeShellApplication {
     name = "codex-desktop-launch";
     runtimeInputs = [

@@ -34,7 +34,7 @@ writeShellApplication {
     );
     RUST_WORKSPACE_EXCLUSIONS = lib.concatStringsSep " " workspace.unsupportedCrates;
   };
-  text = (''
+  text = ''
     # shellcheck shell=bash
     case ''${1:-} in
     list | check | audit | analyzer | test) ;;
@@ -153,7 +153,7 @@ writeShellApplication {
         # Cargo also discovers members through local path dependencies.
         jq -er --slurpfile declared "$RUST_WORKSPACE_MEMBERS_FILE" '
           [.workspace_members as $members | .packages[]
-           | select(.id as $id | $members | index($id)) | .manifest_path] as $actual
+            | select(.id as $id | $members | index($id)) | .manifest_path] as $actual
           | .workspace_root as $root
           | ($declared[0] | map($root + "/" + . + "/Cargo.toml")) as $expected
           | if ($actual | sort) == ($expected | sort) then true
@@ -277,5 +277,5 @@ writeShellApplication {
       printf '  %s\n' "''${failed[@]}" >&2
       exit 1
     fi
-  '');
+  '';
 }

@@ -382,7 +382,7 @@ in
           };
           script = checkedShellText {
             name = "prepare-cache-subvolumes";
-            text = (''
+            text = ''
               # shellcheck shell=bash
               set -euo pipefail
               mountpoint -q ${lib.escapeShellArg dataMount}
@@ -404,7 +404,7 @@ in
               chmod 0700 ${lib.escapeShellArg cacheRoot}
               chmod 0755 ${lib.escapeShellArg scratchRoot}
               install -d -m 0700 ${lib.escapeShellArg resticCacheRoot} ${lib.escapeShellArg "${resticCacheRoot}/tmp"}
-            '')
+            ''
             + lib.concatMapStringsSep "\n" (
               user:
               "install -d -m 0700 -o ${lib.escapeShellArg user.name} -g ${
