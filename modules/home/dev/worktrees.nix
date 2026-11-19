@@ -122,6 +122,11 @@ in
       default = "${config.home.homeDirectory}/Worktrees";
       description = "Task checkout root, with separate manual and app-owned children.";
     };
+    worktreeMount = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Optional Linux mount point required to prepare checkout directories.";
+    };
     stateDirectory = lib.mkOption {
       type = lib.types.str;
       default = "${config.xdg.stateHome}/dev-worktree";
@@ -175,14 +180,32 @@ in
           && !(lib.hasPrefix "${cfg.worktreeRoot}/" cfg.developerRoot);
         message = "Developer, Worktrees, and state paths must be absolute; the checkout roots must be separate.";
       }
+      {
+        assertion =
+          cfg.worktreeMount == null
+          || (pkgs.stdenv.hostPlatform.isLinux && lib.hasPrefix "${cfg.worktreeMount}/" cfg.worktreeRoot);
+        message = "A worktree mount requires a Linux checkout root below the mount point.";
+      }
     ];
     home.packages = [ command ];
     xdg.configFile."dev-worktree/config.json".source = policy;
-    xdg.userDirs.extraConfig.WORKTREES = cfg.worktreeRoot;
+    # Home Manager creates XDG user directories even when a mount is absent.
+    xdg.userDirs.extraConfig.WORKTREES = lib.mkIf (cfg.worktreeMount == null) cfg.worktreeRoot;
+    home.sessionVariables.XDG_WORKTREES_DIR = lib.mkIf (cfg.worktreeMount != null) cfg.worktreeRoot;
     home.activation.createWorktreeDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] (
       (import ../../../lib/templates/text.nix) ./scripts/prepare-worktree-directories.sh {
         lib_getExe_pkgs_coreutils_mkdir = lib.getExe' pkgs.coreutils "mkdir";
         lib_escapeShellArg_cfg_developerRoot = lib.escapeShellArg cfg.developerRoot;
+        worktree_mount_check =
+          if cfg.worktreeMount == null then
+            "true"
+          else
+            lib.escapeShellArgs [
+              (lib.getExe' pkgs.util-linux "mountpoint")
+              "-q"
+              "--"
+              cfg.worktreeMount
+            ];
         lib_escapeShellArg_cfg_worktreeRoot_manual = lib.escapeShellArg "${cfg.worktreeRoot}/manual";
         lib_escapeShellArg_cfg_worktreeRoot_codex = lib.escapeShellArg "${cfg.worktreeRoot}/codex";
         lib_escapeShellArg_cfg_worktreeRoot_claude = lib.escapeShellArg "${cfg.worktreeRoot}/claude";
