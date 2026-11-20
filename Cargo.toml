@@ -64,7 +64,7 @@ publish = false
 plist = "1.10.4"
 scraper = "0.29"
 time = { version = "0.3.47", features = ["formatting", "parsing"] }
-base64 = "0.22"
+base64 = "0.23"
 zbus = { version = "6.3", default-features = false, features = [
   "tokio",
   "proxy",
@@ -76,7 +76,7 @@ reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "rustls-tls",
 ] }
-sha2 = "0.10"
+sha2 = "0.11"
 tokio = { version = "1.48", features = [
   "process",
   "io-util",
@@ -84,7 +84,7 @@ tokio = { version = "1.48", features = [
   "macros",
   "time",
 ] }
-toml = "0.9"
+toml = "1.2"
 regex = "1.11"
 rustix = { version = "1.1", features = ["fs", "process"] }
 shell-words = "1.1"

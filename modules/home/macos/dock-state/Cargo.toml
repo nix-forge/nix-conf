@@ -9,7 +9,7 @@ license.workspace = true
 [dependencies]
 serde_json.workspace = true
 plist.workspace = true
-sha2 = "0.10"
+sha2 = "0.11"
 
 fs2.workspace = true
 tempfile.workspace = true

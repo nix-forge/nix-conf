@@ -9,8 +9,8 @@ license.workspace = true
 [dependencies]
 serde_json.workspace = true
 tempfile.workspace = true
-signal-hook = "0.3"
-nix = { version = "0.30", features = ["signal", "process"] }
+signal-hook = "0.4"
+nix = { version = "0.31", features = ["signal", "process"] }
 
 [lints]
 workspace = true

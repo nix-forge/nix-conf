@@ -24,7 +24,7 @@ path = "../../../../lib/runtime-process"
 workspace = true
 
 [dependencies.rand]
-version = "0.8"
+version = "0.10"
 
 [dependencies.url]
 version = "2.5"
