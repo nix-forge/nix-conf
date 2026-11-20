@@ -9,6 +9,8 @@
   ...
 }:
 let
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
+  desktopMod = if macShortcuts then "CTRL + ALT + SUPER" else "SUPER";
   cfg = config.desktop.noctalia;
   suspendAllowed =
     osConfig == null
@@ -228,7 +230,7 @@ in
           items_per_row = 5;
           overview = null;
           switch = {
-            modifier = "alt";
+            modifier = if macShortcuts then "super" else "alt";
             key = "Tab";
             filter_by = [ ];
             switch_workspaces = false;
@@ -517,10 +519,12 @@ in
 
     wayland.windowManager.hyprland.settings.bind = lib.mkAfter [
       (hyprBind "SUPER + SPACE" "${noctalia} msg panel-toggle launcher")
-      (hyprBind "SUPER + RETURN" "${noctalia} msg panel-toggle launcher")
-      (hyprBind "SUPER + V" "${noctalia} msg panel-toggle clipboard")
-      (hyprBind "SUPER + S" "${noctalia} msg panel-toggle control-center")
-      (hyprBind "SUPER + COMMA" "${noctalia} msg settings-toggle")
+      (hyprBind (
+        if macShortcuts then "${desktopMod} + SPACE" else "SUPER + RETURN"
+      ) "${noctalia} msg panel-toggle launcher")
+      (hyprBind "${desktopMod} + V" "${noctalia} msg panel-toggle clipboard")
+      (hyprBind "${desktopMod} + S" "${noctalia} msg panel-toggle control-center")
+      (hyprBind "${desktopMod} + COMMA" "${noctalia} msg settings-toggle")
       (hyprBind "XF86AudioRaiseVolume" "${noctalia} msg volume-up ${volumeStep}")
       (hyprBind "XF86AudioLowerVolume" "${noctalia} msg volume-down ${volumeStep}")
       (hyprBind "XF86AudioMute" "${noctalia} msg volume-mute")

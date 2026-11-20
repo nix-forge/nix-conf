@@ -24,7 +24,7 @@ Both parent walks use a strong reference to the current ancestor and check expir
 
 Preferred-color lookup checks the nullable parent and uses the existing monitor/window/compositor fallback. A stale subsurface role in `get_subsurface` produces a protocol error. The expanded rendered-orphan test also found an unchecked surface resource in `CSubsurface::size()`. That overload now delegates to the existing geometric overload, which returns the last known size after resource destruction.
 
-The [native regression patch](../../tests/hyprland/subsurface-ancestry-tests.patch) contains five hyprtester cases. It is separate because the ordinary Nix package source excludes hyprtester. Apply both patches when porting to a full upstream tree. The existing dirty upstream checkout at `~/Developer/upstream/Hyprland` was extended after snapshotting its diff, rather than reset. Its touched base files match the pinned Nix source exactly.
+The native regression patch contains five hyprtester cases. It is separate because the ordinary Nix package source excludes hyprtester. Apply both patches when porting to a full upstream tree. The existing dirty upstream checkout at `~/Developer/upstream/Hyprland` was extended after snapshotting its diff, rather than reset. Its touched base files match the pinned Nix source exactly.
 
 ## Validation
 
@@ -50,7 +50,10 @@ The final Hyprshell runtime results are:
 
 The Nix override runs the timestamp test module during normal Hyprshell package builds, using the same check flags as the verified package. That module now contains four tests, including the cancellation-lifetime regressions described below. This release's root binary had no unit tests; the relevant tests live in `hyprshell-windows-lib`. No dependency or lockfile change was needed. Patch digests and exact derivations are saved in [artifact identities](../assets/hypr-patch-fixes/artifacts.json).
 
-The repeated test sequence is available as `tests/hyprland/check_alt_tab_package.py`. On an idle desktop with the required windows and input access, run it with the Hyprshell binary as its only argument. Run `check_alt_tab_compatibility.py BINARY cancel`, `check_alt_tab_compatibility.py BINARY legacy`, and `check_alt_tab_ipc_timeout.py BINARY` for the separate fault cases. These commands temporarily route the normal daemon socket to the test daemon and restore it afterward.
+The historical diagnostic ran cancellation, legacy-query and stalled-IPC
+trials against a private daemon socket. The results above record those
+trials. For a new candidate, use the retained package checks and verify the
+configured Alt+Tab shortcuts and cancellation on the native desktop.
 
 The pre-fix Hyprshell binary was `/nix/store/c46hkwgw417jsrrspk8nj1xwqdpmmxgy-hyprshell-4.10.8/bin/hyprshell`. The cancellation test failed with `Delayed cancelled open changed focus`. The unsupported-query test failed with `Unsupported query prevented modifier-release commit`. Each run restored the normal service and original focus. The proxy harness now routes compositor-spawned commands from the normal Hyprshell socket to the private test daemon; previously, physical key bindings targeted the stopped service and produced false failures. Tests that cancel or navigate an established picker also allow its keyboard focus handoff to finish before sending the next key.
 

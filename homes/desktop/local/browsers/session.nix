@@ -9,7 +9,16 @@ let
   launcher = (myLib.writers.writeBashTemplate { inherit pkgs; }) {
     name = "zen-session";
     dir = "bin";
-    src = ./scripts/zen-session.sh.in;
+    text = ''
+      #!@bash@
+      # shellcheck shell=bash
+      set -euo pipefail
+      # Scope placement happens before browser exec, including portal launches. Do
+      # not expand URL dollars as environment variables in systemd-run (or UWSM).
+      exec @systemdRun@ --user --scope --collect --quiet --expand-environment=no \
+        --slice=app-zen.slice --property=OOMPolicy=continue --property=PartOf=graphical-session.target \
+        --property=After=graphical-session.target -- @browser@ "$@"
+    '';
     replacements = {
       bash = lib.getExe pkgs.bash;
       systemdRun = lib.escapeShellArg (lib.getExe' pkgs.systemd "systemd-run");
@@ -36,23 +45,6 @@ let
   };
 in
 {
-  lib.zenSession = launcher;
-  lib.zenSessionPolicy = pkgs.linkFarm "zen-session-policy" (
-    [
-      {
-        name = "launcher";
-        path = launcher;
-      }
-      {
-        name = "app-zen.slice";
-        path = config.xdg.configFile."systemd/user/app-zen.slice".source;
-      }
-    ]
-    ++ lib.mapAttrsToList (name: value: {
-      inherit name;
-      path = value.source;
-    }) entries
-  );
   home.packages = [ launcher ];
   # User entries take precedence for portal launches. Preserve upstream IDs,
   # MIME handlers, labels, field codes and actions; change only the executable.

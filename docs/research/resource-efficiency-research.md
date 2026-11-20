@@ -35,13 +35,18 @@ claims below use the versioned 261.2 source. Other upstream documents were
 retrieved on the review date; moving manuals describe upstream behavior, not
 proof of installed runtime behavior.
 
+The later [Nix-first migration](nix-first-runtime-research.md) replaces the Python
+implementations discussed below with feature-local Rust. Source links now point
+to their current owners. The measurements and Python API discussion below describe
+the earlier implementation; they are not Rust performance measurements.
+
 ## Implemented changes
 
 ### Stream evidence and wallpaper hashing
 
-[The evidence recorder](../../scripts/workstation_evidence.py) now hashes each tracked
+[The evidence recorder](../../scripts/workstation-evidence/src/main.rs) now hashes each tracked
 file through `hashlib.file_digest()` and reuses the digest for lockfile metadata.
-[The astronomy fetcher](../../modules/home/desktop/scripts/wallpaper_fetch_d2d.py)
+[The astronomy fetcher](../../modules/home/desktop/wallpaper-tools/src/bin/wallpaper-fetch-d2d.rs)
 uses the same API for the rendered image checksum. Both previously allocated
 whole-file bytes. SHA-256 and the serialized source-identity format remain
 unchanged. The recorder still reads every tracked file and stores its inventory;
@@ -55,7 +60,7 @@ opens its own file with a context manager.
 
 ### Stream browser-extension payloads
 
-[The CRX converter](../../modules/home/browsers/helium/scripts/crx_to_zip.py) now reads
+[The CRX converter](../../modules/home/browsers/helium/crx-to-zip/src/main.rs) now reads
 only the fixed header, validates the payload offset against the opened file's
 size, seeks past the variable header, and copies the ZIP payload in 1 MiB chunks.
 CRX2 and CRX3 support and malformed-header errors remain covered by the packaged
@@ -72,7 +77,7 @@ when given a positive chunk length.
 
 ### Preserve laziness in native CI selection
 
-[The native package selector](../../.github/scripts/select-native-packages.sh) now
+[The native package selector](../../flake/runtime.nix) now
 projects explicitly requested package names before evaluating their derivation
 paths, for both current and historical revisions. This avoids forcing unrelated
 packages in the representative Darwin build selection. Nix's lazy evaluation
@@ -127,7 +132,7 @@ API, but its memory change was not benchmarked separately.
 
 A second pass found additional repeated work and failure-handling gaps.
 
-The [wallpaper policy](../../modules/home/desktop/scripts/wallpaper_policy.py) now
+The [wallpaper policy](../../modules/home/desktop/wallpaper-tools/src/bin/wallpaper-policy.rs) now
 reads NUL-delimited filename input in 64 KiB chunks. It preserves filenames split
 across reads, embedded newlines, non-UTF-8 filename bytes, and an unterminated final
 record. Memory scales with the chunk and longest unfinished filename, rather than
@@ -142,7 +147,7 @@ changes take effect on the next command. Declarative settings now validate befor
 a preference edit writes anything. Previously, a corrupt default could produce a
 failed command after the override file had already changed.
 
-[Spotify preference activation](../../modules/home/spotify-assets/configure-spotify-quality.sh)
+[Spotify preference activation](../../modules/home/spotify-assets/preferences-runtime/src/main.rs)
 now updates its six managed keys with one AWK pass per profile. It retains
 unmanaged lines, deduplicates managed keys, and appends missing keys in the same
 order. It compares the prepared result before replacement, preserving an unchanged
@@ -154,7 +159,7 @@ bytes, while status 2 is an error and must not permit replacement.
 [GNU AWK arrays](https://www.gnu.org/software/gawk/manual/html_node/Arrays),
 [GNU cmp statuses](https://www.gnu.org/s/diffutils/manual/html_node/Invoking-cmp.html).
 
-The [CI selector](../../.github/scripts/select-native-packages.sh) now compares only
+The [CI selector](../../flake/runtime.nix) now compares only
 historical names that remain in the current candidate map. Previously, an invalid
 historical package that had since been removed could trigger the fallback and
 rebuild every current package. Removed outputs cannot affect the build decision;
@@ -215,8 +220,6 @@ choices. Existing means present in the inspected source, not necessarily active.
 | Measure pressure and power, not only usage | PSI measures stalled time. The evidence recorder captures repeated trials; the earlier desktop review measured PSI separately. A power-profile change needs task time, energy and responsiveness observations; no source establishes one universal optimum. [PSI](https://docs.kernel.org/accounting/psi.html), [AMD P-state](https://docs.kernel.org/admin-guide/pm/amd-pstate.html). |
 
 ## First-pass validation and limits
-
-Validation ran on native x86 Linux through `workstation-task`.
 
 - The native CI selection suite passed 29 tests and six subtests using real Git
   history and Nix evaluation.

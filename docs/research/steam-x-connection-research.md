@@ -46,7 +46,7 @@ Removing another display's socket also changes the shared directory's timestamp.
 The timestamp alone cannot identify when the desktop socket disappeared or
 attribute its deletion to that probe.
 
-The repository's [regular-file ClamAV scanner](../../modules/nixos/security/clamav_scan.py)
+The repository's [regular-file ClamAV scanner](../../modules/nixos/security/clamav-runtime/src/main.rs)
 does not scan sockets or implement unlinking or quarantine. No evidence from
 this investigation attributes the failure to that scanner.
 

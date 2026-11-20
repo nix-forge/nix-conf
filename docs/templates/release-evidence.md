@@ -10,9 +10,6 @@ a clean, reviewable revision before presenting a release as reproducible.
 
 | Target | Native platform | Phase | Result | Evidence date | Remaining requirement |
 | --- | --- | --- | --- | --- | --- |
-| Public starter | x86 Linux | Build and console VM | Pending | Pending | Candidate-specific result |
-| Public starter | ARM Linux | Native build | Pending | Pending | Candidate-specific result |
-| Public starter and Darwin example | Apple Silicon | Native build | Pending | Pending | Candidate-specific result |
 | Graphical demo | x86 Linux | VM workflows | Pending | Pending | Compositor, terminal and configured probe results |
 | Personal Linux workstation | x86 Linux | Full build, activation, runtime | Pending | Pending | Each required hardware workflow |
 | Personal Mac | Apple Silicon | Full build, activation, runtime | Pending | Pending | Native application and permission checks |

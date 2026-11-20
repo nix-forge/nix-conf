@@ -1,29 +1,30 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   utils,
   ...
 }:
 let
-  homelabMountPoint = "/mnt/homelab";
-  homelabScrubService = "btrfs-scrub-${utils.escapeSystemdPath homelabMountPoint}";
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  inherit (import ../storage/.storage-roles.nix) bulkLockPath dataMount homelabMount;
+  homelabScrubService = "btrfs-scrub-${utils.escapeSystemdPath homelabMount}";
   homelabKeyFile = config.hardware.storage.encryptedRoot.homelabKeyFile;
   rootScrubPolicy = pkgs.writeText "desktop-root-scrub.json" (
     builtins.toJSON {
       stateDirectory = "/var/lib/desktop-storage";
-      bulkLock = "/run/workstation-workloads/bulk.lock";
+      bulkLock = bulkLockPath;
       swapfile = "/swap/workstation";
       swapUnit = "swap-workstation.swap";
     }
   );
-  rootScrubProgram = pkgs.writers.writePython3 "desktop-root-scrub" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ../storage/root_scrub.py;
-  rootScrub = pkgs.writeShellApplication {
+  rootScrubProgram =
+    lib.getExe'
+      (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).desktopStorageRuntime
+      "desktop-root-scrub";
+  rootScrub = writeShellApplication {
     name = "desktop-root-scrub";
     runtimeInputs = [
       pkgs.btrfs-progs
@@ -68,8 +69,13 @@ in
         pkgs.btrfs-progs
         pkgs.util-linux
       ];
-      script = (import ../../../../../lib/templates/text.nix) ./scripts/filesystems-script.sh {
-        inherit homelabMountPoint;
+      script = checkedShellText {
+        name = "homelab-scrub";
+        text = ''
+          if findmnt -rnC -t btrfs --mountpoint ${homelabMount} >/dev/null; then
+            btrfs scrub start -B -d -r ${homelabMount}
+          fi
+        '';
       };
     };
     systemd.timers.${homelabScrubService} = lib.mkIf config.hardware.storage.homelabHdd.enable {
@@ -90,7 +96,7 @@ in
       limit = "800M";
       fileSystems = [
         "/"
-        "/srv/data"
+        dataMount
       ];
     };
     system.build.desktopRootScrub = rootScrub;

@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -191,7 +192,7 @@ in
           After = [ "network-online.target" ];
         };
         Service = {
-          ExecStart = (import ../../../lib/systemd/exec-args.nix) (arguments forward);
+          ExecStart = myLib.systemd.execArgs (arguments forward);
           Restart = "always";
           RestartSec = forward.restartSeconds;
           TimeoutStopSec = 5;

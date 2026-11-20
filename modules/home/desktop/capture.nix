@@ -12,7 +12,21 @@ let
   grimblastRegion = pkgs.grimblast-region;
   screenshot = writeBashTemplate {
     name = "desktop-screenshot";
-    src = ./scripts/screenshot.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      if [ "$#" -gt 0 ] && [ "$1" = "full" ]; then
+        exec @grimblast@ copy screen
+      else
+        # Supply no window rectangles, so clicks cannot select an entire window.
+        export SLURP_RECTS='''
+        # Slurp's default translucent white background flashes the whole display.
+        export SLURP_ARGS='-b 00000000 -B 00000000 -c ffffffff -w 2'
+        # Freeze before selection so moving content stays at the captured frame.
+        exec @grimblast@ --freeze copy area
+      fi
+    '';
     dir = "bin";
     replacements = {
       grimblast = lib.getExe grimblastRegion;
@@ -20,7 +34,20 @@ let
   };
   annotate = writeBashTemplate {
     name = "desktop-screenshot-annotate";
-    src = ./scripts/screenshot-annotate.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      umask 077
+      # Configuration values are shell-escaped literals, including dollar signs.
+      # shellcheck disable=SC2016
+      output_directory=@outputDirectory@
+      @mkdir@ -p -- "$output_directory"
+      timestamp="$(@date@ +%Y-%m-%d_%H-%M-%S)"
+      @grim@ -g "$(@slurp@)" -t ppm - | @satty@ --filename - --fullscreen \
+        --output-filename "$output_directory/$timestamp.png" \
+        --copy-command @wlCopy@
+    '';
     dir = "bin";
     replacements = {
       outputDirectory = lib.escapeShellArg cfg.directory;
@@ -92,11 +119,17 @@ in
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable
         (
-          lib.mkAfter [
-            (hyprBind "PRINT" (lib.getExe' screenshot "desktop-screenshot"))
-            (hyprBind "SUPER + PRINT" "${lib.getExe' screenshot "desktop-screenshot"} full")
-            (hyprBind "SUPER + SHIFT + PRINT" (lib.getExe' screenshot "desktop-screenshot"))
-          ]
+          lib.mkAfter (
+            [
+              (hyprBind "PRINT" (lib.getExe' screenshot "desktop-screenshot"))
+              (hyprBind "SUPER + PRINT" "${lib.getExe' screenshot "desktop-screenshot"} full")
+              (hyprBind "SUPER + SHIFT + PRINT" (lib.getExe' screenshot "desktop-screenshot"))
+            ]
+            ++ lib.optionals (config.keyboard.macosShortcuts.enable or false) [
+              (hyprBind "SUPER + SHIFT + 3" "${lib.getExe' screenshot "desktop-screenshot"} full")
+              (hyprBind "SUPER + SHIFT + 4" (lib.getExe' screenshot "desktop-screenshot"))
+            ]
+          )
         );
   };
 }

@@ -4,10 +4,11 @@
 {
   render =
     {
+      myLib,
       pkgs,
       fonts,
-      myLib,
       fontPackages ? [ ],
+      ...
     }:
     let
       inherit (pkgs) lib;
@@ -20,32 +21,29 @@
         serifFamily = xml fonts.serif.name;
         monospaceFamily = xml fonts.monospace.name;
       };
-      privateUseFamilyAliases = myLib.writers.writeBashTemplate { inherit pkgs; } {
+      aliasTools = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).fontconfigAliasTools;
+      aliasPolicy = pkgs.writeText "fontconfig-alias-policy.json" (
+        builtins.toJSON (compatibility // { inherit fontDirectories; })
+      );
+      privateUseFamilyAliases = myLib.writers.writeShellApplication { inherit pkgs; } {
         name = "fontconfig-private-use-family-aliases";
-        src = ./private-use-family-aliases.sh.in;
-        dir = "bin";
-        replacements = {
-          fontDirectories = lib.concatMapStringsSep " " lib.escapeShellArg fontDirectories;
-          privateUseFallbackFamily = lib.escapeShellArg compatibility.privateUseFallbackFamily;
-          appleSystemFamily = lib.escapeShellArg compatibility.appleSystemFamily;
-          blinkMacSystemFamily = lib.escapeShellArg compatibility.blinkMacSystemFamily;
-          appleColorEmojiFamily = lib.escapeShellArg compatibility.appleColorEmojiFamily;
-          appleSansPrefix = lib.escapeShellArg compatibility.appleSansPrefix;
-          appleSerifPrefix = lib.escapeShellArg compatibility.appleSerifPrefix;
-          appleHelveticaNeueFamily = lib.escapeShellArg compatibility.appleHelveticaNeueFamily;
-        };
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.findutils
-          pkgs.fontconfig
-          pkgs.gnused
-        ];
+        runtimeInputs = [ pkgs.fontconfig ];
         inheritPath = false;
+        text = ''
+          exec ${lib.getExe aliasTools} ${aliasPolicy} "$@"
+        '';
       };
       generatedPrivateUseFamilyAliases = pkgs.runCommand "fontconfig-private-use-family-aliases" { } (
-        (import ../../../lib/templates/text.nix) ./scripts/generate-private-use-family-aliases.sh {
-          inherit privateUseFamilyAliases;
-        }
+        myLib.templates.renderText {
+          name = "generate-private-use-family-aliases.sh";
+          text = ''
+            # shellcheck shell=bash
+            # Nix builder/activation callers and rendered fragments provide external variables.
+            # shellcheck disable=SC2154
+            mkdir -p "$out"
+            @privateUseFamilyAliases@/bin/fontconfig-private-use-family-aliases "$out/aliases.conf"
+          '';
+        } { inherit privateUseFamilyAliases; }
       );
       privateUseFallbackReplacements = {
         appleColorEmojiFamily = xml compatibility.appleColorEmojiFamily;
@@ -69,11 +67,15 @@
     in
     rendered
     // {
-      package = pkgs.runCommand "fontconfig-shared-rules" { } (
-        (import ../../../lib/templates/text.nix) ./scripts/install-shared-fontconfig-rules.sh {
-          rendered_cssGenericAlias = rendered.cssGenericAlias;
-          rendered_privateUseFallback = rendered.privateUseFallback;
+      package = pkgs.linkFarm "fontconfig-shared-rules" [
+        {
+          name = "etc/fonts/conf.d/51-shared-css-generic-alias.conf";
+          path = rendered.cssGenericAlias;
         }
-      );
+        {
+          name = "etc/fonts/conf.d/51-shared-private-use-fallback.conf";
+          path = rendered.privateUseFallback;
+        }
+      ];
     };
 }

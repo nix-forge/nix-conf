@@ -275,46 +275,6 @@ as root when collection cannot restore its margin. Retire appropriate roots or
 move verified regenerable data; never delete arbitrary store paths, live task
 roots or backups to silence a capacity warning.
 
-`workstation-task` checks disk space after obtaining the execution reservation.
-It combines requests by filesystem UUID, so Btrfs subvolume aliases cannot each
-spend the same free bytes. An undeclared ordinary job initially budgets 32 GiB
-of additional system-SSD writes. Declare expected additional peaks using existing
-absolute directory paths:
-
-```sh
-workstation-task --disk-mib /=32768 --disk-mib /srv/data/work=65536 -- COMMAND ARGS
-```
-
-A refusal exits 75 before the payload. It is a failed preflight, not permission
-to retry a non-idempotent job automatically. Adjust the cause and use a new
-attempt key. For durable desktop submissions, the existing explicit environment
-interface can retain a JSON array of declarations:
-
-```sh
-export WORKSTATION_DISK_REQUESTS='["/=32768","/srv/data/work=65536"]'
-workstation-job submit --owner example-task --key reviewed-attempt-1 \
-  --source IMMUTABLE_REFERENCE --profile auto --memory-mib 4096 --timeout 1200 \
-  --env WORKSTATION_DISK_REQUESTS -- COMMAND ARGS
-```
-
-The disk receipt is stored beside the memory allocation receipt. Queued work
-rechecks current capacity; admission is not a reservation against arbitrary
-applications. New ordinary work leaves 200 GiB on the data SSD. The homelab HDD
-retains its separate media headroom policy.
-
-Use `--storage-recovery` only for explicitly space-releasing maintenance or
-low-write diagnostics. It preserves the memory and execution policy while
-removing the ordinary disk floor; declare any additional writes honestly.
-Feedback diagnostics use this recovery admission. Do not use the flag to make an
-ordinary build bypass capacity policy.
-
-Health records Btrfs allocator headroom and emergency reserve use separately
-from file sizes. A nearly full allocated block group is not itself a full
-filesystem when new groups can still be allocated. Device counters distinguish
-new errors, historical totals, decreased/reset counters and inspection failures.
-They are never reset automatically. Keep evidence and investigate before
-establishing a new baseline.
-
 ## OS and task retention
 
 The weekly `desktop-generation-retention.timer` retains the union of the latest
@@ -347,34 +307,17 @@ a private directory on a provisioned, snapshot-excluded data-SSD subvolume:
 desktop-task-cache example-task
 ```
 
-Use a unique owner matching the task's durable jobs. Keep source edits, frozen
-inputs needed for reproducibility and required results in protected locations.
-The helper does not move durable clones, active checkouts or existing task state.
-
-Place private writable Nix stores and large build intermediates in that task cache,
-for example by selecting a cache child as `workstation-nix --state`. Preserve its
-receipts and required outputs externally before explicit retirement. Stores under
-snapshotted home state can remain physically retained by older snapshots after
-ordinary GC; deleting their live paths does not remove those snapshot references.
-
-`desktop-task-retire --owner example-task` reviews an owner's job roots without
-releasing them. Explicit completion additionally requires preserved external
-results and terminal, drained native jobs:
+Use a unique owner for each task. Keep source inputs and required results in
+protected locations outside the regenerable cache. After the task completes,
+remove its cache explicitly:
 
 ```sh
-workstation-task --bounded-memory 1 --storage-recovery -- \
-  desktop-task-retire --owner example-task --complete-task \
+desktop-task-retire --owner example-task --complete-task \
   --preserved-result "$HOME/task-results/example-task.json" --remove-cache
 ```
 
-Omit `--remove-cache` to retain the cache. Cache removal refuses symlinked trees,
-unexpected ownership, nested mounts/subvolumes, results inside the cache and a
-current working directory inside the cache. The queue metadata lock is retained
-during explicit finalization; schedule a very large cleanup as finite maintenance.
-A terminal job is not task completion. Failed/interrupted or missing executions
-without proven drainage must be reconciled by their owner first. Unknown legacy
-roots remain for explicit review; no age-based task cleanup runs. Recipes,
-claims, receipts and native queue history remain preserved.
+Removal refuses symlinked trees, unexpected ownership, nested mounts or
+subvolumes, results inside the cache and a current working directory inside it.
 
 ## Cache placement and credentials
 
@@ -409,8 +352,7 @@ rotation. Perform a deliberately idle fresh daemon start when required.
 
 A scoped preview retains its generated tools/units with an explicit GC root.
 Before retiring that preview, verify the normal system/home generations own
-the installed commands, public configuration and units. Preserve live queues and
-applications; normal configuration activation is separate from a package build.
+the installed commands, public configuration and units. Preserve live applications; normal configuration activation is separate from a package build.
 The broader weekly file schedule and daily database exports remain unchanged.
 Choose a shorter file recovery objective and an independent backup destination
 explicitly; caches and local snapshots do not supply off-site recovery.

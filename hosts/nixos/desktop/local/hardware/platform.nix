@@ -1,9 +1,13 @@
 {
   lib,
   modulesPath,
+  myLib,
   pkgs,
   ...
 }:
+let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+in
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
@@ -37,7 +41,19 @@
     ];
     unitConfig.DefaultDependencies = false;
     serviceConfig.Type = "oneshot";
-    script = builtins.readFile ./scripts/disable-empty-audio-controller-script.sh;
+    script = checkedShellText {
+      name = "disable-empty-audio-controller";
+      text = ''
+        device=/sys/bus/pci/devices/0000:11:00.6
+        if [[ -d $device &&
+          "$(<"$device/vendor")" == 0x1022 &&
+          "$(<"$device/device")" == 0x15e3 &&
+          "$(<"$device/subsystem_vendor")" == 0x1462 &&
+          "$(<"$device/subsystem_device")" == 0xed75 ]]; then
+          printf '%s\n' none >"$device/driver_override"
+        fi
+      '';
+    };
   };
   # Keep this host's additions narrowly tailored to its Zen 4 platform. Do
   # not force-replace the whole command line: NixOS derives the LSM sequence

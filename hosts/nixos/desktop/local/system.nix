@@ -22,10 +22,9 @@
   # Bound daemon builders separately from user-side Nix evaluations.
   systemd.services.nix-daemon.serviceConfig = {
     # Eight parallel Node/V8 workers stalled at the former 7/8 GiB limits.
-    # The reviewed working set and admission reserve share one policy.
-    MemoryHigh = config.workstation.workloads.daemon.highMiB * 1024 * 1024;
-    MemoryMax = config.workstation.workloads.daemon.memoryMiB * 1024 * 1024;
-    MemorySwapMax = config.workstation.workloads.daemon.swapMiB * 1024 * 1024;
+    MemoryHigh = 9216 * 1024 * 1024;
+    MemoryMax = 10240 * 1024 * 1024;
+    MemorySwapMax = 1024 * 1024 * 1024;
     CPUWeight = 50;
     # Cargo job limits do not constrain test-created worker pools. On this
     # 16-thread desktop, cap the whole daemon at 70% of logical CPU capacity

@@ -23,14 +23,14 @@ passes quiet pending/completed contention and visible permission-error cases.
 The Sentry patch, application helper and registry record are retired. The input
 module adapter remains for the independent libgit2 cleanup repair. The upstream
 module remains the sole owner of `nix.package` and Nixd's `--nix-bin`. The
-[module check](../../tests/nix/determinate-module.nix) requires the scoped repaired
+module check requires the scoped repaired
 package at normal module priority and verifies the daemon command; Sentry itself
 keeps the upstream definition. Darwin's separate sandbox-test policy remains
 active.
 
 ## Retained behavior check
 
-The [probe](../../tests/nix/sentry/crashpad-lock.cc) creates synthetic reports without
+The probe creates synthetic reports without
 crashing or uploading. A child attempts to read a report while its parent holds
 the lock. Pending and completed cases must return busy with empty stderr and
 preserve both report and lock. A separate permission case must retain the real

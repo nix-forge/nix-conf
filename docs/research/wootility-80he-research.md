@@ -620,3 +620,392 @@ eyedropper to validate a stored color: a
 [Wooting staff reply](https://github.com/WootingKb/wootility-issues/issues/339#issuecomment-3612044884)
 explains that the eyedropper can sample a hover-darkened preview and recommends
 right-clicking a key to retrieve its color.
+
+## Native profile import follow-up
+
+Reviewed: 2026-11-17. Scope: the installed Linux Wootility 5.4.2 application,
+its native schema 15 profile serializer, normal import UI, cloud sharing path,
+and the generated ANSI 80HE Mac Work profile. A subsequent implementation and
+live service round trip are recorded below; hardware application remains untested.
+
+### Recommended application boundary
+
+Use **a complete profile share code as the repeatable application artifact**,
+with Wootility responsible for importing, reviewing and saving the profile to
+the keyboard. Re-entering the modifier changes should be a fallback or a
+one-time bootstrap, not the normal repeat-deployment procedure.
+
+Wooting explicitly documents My Profiles → Import Profile → paste code →
+Import in its [current profile-sharing instructions](https://wooting.io/post/wooting-geometry-dash-guide-in-game-benefits-settings-and-pro-profiles).
+Its [recovery guide](https://help.wooting.io/article/90-how-to-restore-reset-my-wooting-one-or-wooting-two-flaretech)
+also documents duplicating a profile into inactive storage and dragging it back
+to the keyboard. Together these provide a vendor-supported repeat workflow:
+configure and share a profile once, retain the code, import that complete
+profile later, and deliberately select the onboard destination.
+
+The implemented Nix-generated workflow is:
+
+1. Build the complete native JSON from the existing Nix definitions and validate
+   its schema version and target device/layout.
+2. Run a separate, explicitly invoked publisher that sends that JSON through
+   Wootility's observed sharing endpoint. Do not upload during a Nix build,
+   login or OS activation.
+3. Retrieve the resulting code immediately and compare the returned profile's
+   canonical content with the generated settings. Preserve all meaningful
+   settings; exclude only demonstrated server-added identity metadata such as
+   `guid` from that comparison. Reject mismatches.
+4. Retain the verified code with the desired JSON's SHA-256 and the adapter/app
+   version. Reuse an existing code when the exact desired content is unchanged.
+5. Import the code through Wootility, inspect the inactive profile and destination
+   slot, then use the application's normal save path. Verify persistence after
+   reconnecting before treating the hardware deployment as complete.
+
+This is a version-specific adapter, **not a documented public API integration**.
+The upload endpoint is observed in the shipped application; no stable public
+contract for it was established. The live publish/read-back trial passed, but
+a normal application import and hardware persistence test remain necessary
+before claiming end-to-end reliability. The vendor-supported fallback remains
+creating the code through Wootility's Share action. The publisher removes
+repeated manual remapping without reimplementing the device's flash-write protocol.
+
+Treat publication as an intentional network operation: a profile retrievable
+by its code is not a private local backup. Keep the native JSON and a recovery
+profile as well. Bound network deadlines, report service errors clearly, and
+do not blindly retry an ambiguous timed-out upload. The build should remain
+usable offline from its pinned local assets; importing a cloud code still
+depends on Wooting's service.
+
+### What the shipped application establishes
+
+The [official release](https://wooting.io/wootility/changelogs/5.4.2) identifies
+Wootility 5.4.2. Static inspection used that installed Linux app's
+`resources/app.asar`, SHA-256
+`e0ef363fd691793d72cbb6732b7679b9845228ca6713e64b7011c79e3c24fc3e`.
+The renderer `dist/assets/index-BOPbSDfQ.js` has SHA-256
+`62e805e9bd1670ba389a362fc8251a164233c1aa4eb6990594e4b04d0e6faebd`.
+These are identities of the inspected first-party files, not public API or
+cross-platform compatibility guarantees. Independent inspection of the
+[vendor web renderer](https://wootility.io/assets/index-BaoALhfv.js) found the
+same code-based importer in that different build; its SHA-256 was
+`987ba72a09a78b1fc508c8739b1c0a25a3434d7ef614fba56f1822e5acdbc40a`.
+
+The observed paths are:
+
+- The normal import dialog accepts a profile-code string, checks its length,
+  retrieves profile JSON, checks schema/target compatibility, converts it into
+  application state and adds the imported profile. It does not accept arbitrary
+  pasted JSON in that code field.
+- The Share action serializes the selected profile to the same native JSON
+  envelope used by the generated asset, then sends it with HTTP POST to
+  `https://api.wooting.io/public/wootility/profiles`. Its response's `data` value
+  is copied as the share code.
+- Code retrieval uses HTTP GET on that endpoint with a `code` query parameter,
+  reading the JSON response's `data` object. This is a server lookup, not an
+  offline encoding of all profile settings into the short code.
+- The serializer includes name, metadata, target, RGB, analog settings, gamepad
+  settings, custom actuation, advanced keys, all remap layers and lightbar
+  settings. The publisher therefore need not issue individual USB
+  remap commands or reconstruct a profile from key labels.
+- Desktop protocol handling recognizes `import-profile?code=...`; the Electron
+  main process and desktop entry register `wootwoot` and `web+wootwoot`. A code
+  could also be accompanied by a launch link, but actual scheme registration
+  and launching were not tested on either target. Retain paste-code import as
+  the portable path until those integrations are verified.
+
+An internal native-JSON export helper is present too. However, the inspected
+profile-menu construction does not expose its wired export callback as a menu
+item. A helper's presence is not evidence of a supported visible file workflow,
+and it does not establish that the normal importer accepts its JSON output.
+No usable full-settings backup/restore file path was established for this
+version. Wooting's documented firmware Restore resets firmware/defaults; it
+must not be described as importing a settings-backup JSON. The observed backup action moves known profiles into inactive app
+storage; it is not evidence of an arbitrary JSON-file restore interface.
+
+Wooting documents [copying remaps, advanced keys and RGB between profiles and
+layers](https://wooting.io/post/wootility-update-introducing-the-background-service).
+The inspected implementation uses a React-managed virtual clipboard for those
+layer objects. It is useful for editing inside Wootility; writing generated
+JSON to the OS clipboard is not an established external import method.
+
+### Offline and third-party alternatives
+
+A version-pinned adapter could call the application's internal profile
+conversion and save methods. That would be a maintained private integration,
+with compatibility checks, backups and read-back requirements, rather than a
+vendor-supported offline importer. Directly editing Chromium/LevelDB state or
+injecting app-store actions adds failure modes that the normal code importer
+already handles. Neither is the preferred first integration here.
+
+The shipped `wooting-usb` package identifies itself as version 2.4.0 with
+`UNLICENSED` metadata, a TypeScript entry point and no repository declaration.
+It should not be described as an officially released open-source full-profile
+SDK. The separately published [Analog SDK](https://github.com/WootingKb/wooting-analog-sdk)
+and [RGB SDK](https://github.com/WootingKb/wooting-rgb-sdk) expose their respective
+input/lighting functions, not an established supported full-profile importer.
+
+The third-party [eng1n88r/wooting project](https://github.com/eng1n88r/wooting)
+advertises CLI profile import/export and a native Linux configuration stack.
+Its own documentation says it was built and verified on a 60HE+, with only the
+60HE key layout bundled so far. That does not establish reliable 80HE layout
+handling or compatibility with this native JSON envelope. It is a candidate for
+future investigation, not a validated replacement writer for this keyboard.
+
+A dated [Wooting staff response on bulk profile handling](https://github.com/WootingKb/wootility-issues/issues/218#issuecomment-2347956270)
+says v5 would improve individual profile handling, while the system was built
+around individual profiles. It is context for the current workflow, not a
+promise about future local import or a claim that no later feature could exist.
+
+### Validation and remaining gap
+
+A read-only GET successfully retrieved the 80HE profile code published in
+Wooting's [CS2 guide](https://wooting.io/post/wooting-cs2-guide-in-game-benefits-rapid-trigger-settings-and-pro-profiles).
+The response used the observed `data` wrapper, schema 15 and target
+`device = 10`, `layout = 0`. Its top-level profile fields matched the generated
+Mac Work envelope, with an additional server `guid` field. This verifies a
+working retrieval path and a compatible envelope; it does not prove acceptance
+of a newly uploaded payload or equality after an import/save round trip.
+
+The static investigation decoded the renderer's constant string table without
+starting the application, then inspected the import, serialization, sharing,
+protocol and virtual-clipboard paths. Only the self-contained string lookup
+and array rotation executed in an isolated Node VM; renderer startup, imports,
+network functions and device functions did not execute. Recovered app source
+and raw API responses remain outside the repository.
+
+The initial investigation performed no upload. The subsequent implementation
+trial on 2026-11-17 used the packaged
+[`wooting-profile-share` helper](../../hosts/nixos/desktop/local/hardware/wooting-share/src/main.rs)
+through the generated `wooting-mac-work` wrapper. A single explicit POST
+returned a 36-character code. GET retrieved a profile identical to the complete
+canonical generated JSON after removing only root `guid`. The desired content
+SHA-256 was
+`ebf5ea9c31a515d6652761834bffe5e65a16e9e17c3a25d2b31b8fdf23e7e745`.
+The code and complete release record remain in private user state rather than
+being embedded as a potentially stale configuration constant.
+
+Repeated publication of unchanged content reused and verified that code.
+One-off checks exercised pending-code recovery, refusal to repeat an uncertain
+publication, rejection of a known different profile, exclusive state locking,
+unsupported-schema rejection before network/state creation, and private release
+permissions. Rust formatting, Clippy and an isolated Nix package build passed
+on Linux. These checks are operational evidence, not a retained behavior suite.
+
+No app-state import, keyboard write, firmware update or full system build ran
+for this implementation. Normal Wootility import, onboard save and reconnect
+persistence remain unverified, as do macOS execution and deeplink registration.
+
+### Configuration integration
+
+The [Nix generator](../../hosts/nixos/desktop/local/hardware/wooting.nix)
+exports the original profile, complete generated JSON, diagram and pinned-profile
+publisher wrapper together. It installs the wrapper on the desktop while
+keeping publication separate from builds, login and activation. The root Cargo
+workspace and runtime package definitions own the feature-local Rust helper.
+
+The helper validates the reviewed envelope and target, hashes canonical complete
+JSON, durably records publication intent before POST, records a candidate before
+GET and emits a verified result only after full comparison. Private locked
+release records preserve the JSON snapshot, adapter version, hash and code.
+Uncertain uploads require explicit recovery or `--republish`; changed content
+receives a separate record. Requests have bounded deadlines and response sizes,
+no redirects and no automatic retries. Builds never invoke the helper.
+
+The [keyboard operating guide](../operations/keyboard-workflow.md#build-and-apply)
+documents publication, verification, recovery and normal Wootility application,
+with manual remapping and vendor Share retained as fallbacks.
+
+## REA audit of import conversion
+
+Reviewed 2026-11-17 against the same installed Wootility 5.4.2 ASAR and renderer
+identified above. Question: can reverse engineering improve confidence beyond
+the publisher's complete cloud read-back comparison?
+
+### Result
+
+Yes, principally by identifying conversion rules and separating **transport
+fidelity** from **application fidelity**. No unresolved remap code was found in
+the current generated Mac Work profile. However, the helper's local validation
+is an envelope/target/remap check, not a complete native schema validator.
+Source inspection demonstrates inputs that pass it but are later defaulted,
+discarded or rejected by Wootility. Cloud equality cannot detect those changes.
+The current generated input avoids the specific legacy-DKS, unknown-key and
+analog-unit cases described below; this does not establish a complete app or
+hardware round trip.
+
+### What REA actually established
+
+`analyze_javascript_application` selected only
+`dist/assets/index-BOPbSDfQ.js` from the original ASAR. Attempts with 45-second
+and 120-second per-source deadlines both timed out. The retained partial
+Evidence recorded zero parsed sources for those attempts. Its complete artifact
+inventory identifies the input; it is not a successful renderer analysis or
+proof of missing behavior.
+
+To make the investigation tractable, a byte-exact contiguous conversion excerpt
+was selected from that renderer: UTF-8 byte interval `[1571241, 1581186)`, starting
+at `o$` and ending before `var We`. Its SHA-256 is
+`29940fef183435c5da03517c3a87644dc4ade8d4300e208986a27dac97c5229f`.
+REA parsed this 9,945-byte excerpt successfully. A second analysis parsed the
+9,120-byte decoded/folded counterpart, SHA-256
+`33234164b19849df9a131ff00fd4202e04b22e182cd73c42c6da30a8fe183259`.
+The latter is derived inspection material, not a byte-identical original or a
+proved equivalent reconstruction. Decoding used the earlier isolated constant
+lookup/rotation procedure; neither application bootstrap nor device code ran.
+
+The original excerpt's `remap` semantic trace located the destructuring site
+inside `nd`, but reported unresolved receiver identity and partial coverage.
+The decoded excerpt retained more object relationships, but external helpers,
+dynamic properties and omitted source remained unknown. REA did **not** certify
+complete conversion, runtime reachability, app security or behavioral equivalence.
+Manual source inspection and an independent source-table review supplied the
+specific findings below. Raw sources, Evidence export and private review notes
+remain outside the repository. REA resources were closed after export.
+
+### Conversion rules and validator limits
+
+Offsets in this table are zero-based UTF-8 bytes in the original renderer
+identified above. They locate first-party functions rather than public API
+contracts. The native key definitions were also checked in the shipped
+`node_modules/wooting-usb/src/layouts/hidCodes.ts`.
+
+| Source | Observed behavior | Consequence |
+| --- | --- | --- |
+| `nd`, byte 1578859; `Nn`, byte 68121 | Sparse remaps become matrices; each numeric binding is resolved through known key maps. An unresolved binding becomes null. | Numeric range `0..255` alone is insufficient. For example, 255 passes the helper but is unresolved in this remap path and disappears on re-export. |
+| `o$`, byte 1571241 | The final migration runs for schema **≤15** and treats actuation/sensitivity values ≤4 as legacy millimeters. | Schema 15 does not unambiguously imply raw integer units. Future edits need unit-aware validation. |
+| `o$`; `nd`; `u$`, byte 1580290 | Top-level DKS is promoted to AKC only for versions below 9. Schema-15 import does not consume it; export emits `dks: []`. | Nonempty legacy `dks` should be rejected for this adapter; supported advanced keys require validation in `akc`. |
+| `a$`, byte 1575882; `s5`, byte 1567193 | Missing/invalid indicator colors receive white defaults. Matrix decoding can reuse a preceding color; malformed rows can fail. | Checking that `rgb` is an object does not validate colors, matrices or effects. |
+| `s$`, byte 1577212; `l$`, byte 1576516 | Analog import supplies defaults; export omits null secondary sensitivity and false sparse per-key entries. | Missing values can change behavior; some re-export differences are representational. |
+| `QZ`, byte 1408821; `$Z`, byte 1408087 | Known advanced-key variants are converted; unknown variants throw, and unresolved key bindings can become null. | An array check does not validate AKC variants, nested bindings, positions or firmware limits. |
+| `nd` | Gamepad mapping structure is dereferenced; lightbar is passed through. | Object checks do not establish nested validity. A cloud-preserved `gamepad: {}` can still fail import. |
+| `xb`, byte 1612787; `ql`, byte 1448618 | Modal confirmation applies active device/firmware normalization, including supported counts/ranges and a 30-encoded-byte name limit. | The helper's 128-byte name allowance and generic layer bounds are not app/device guarantees. |
+
+`nd` does not retain description or target layout as internal profile identity.
+It generates a new internal UID and retains the target device as `createdFor`.
+`u$` writes description `~`; `wb` chooses the export target from device context.
+Keep provenance and human explanations outside a re-exported profile too.
+
+The import modal `yv` (byte 3793562) checks code length, maximum schema and known
+target device, and displays a compatibility warning for an incompatible device.
+This is not a universal exact-layout rejection. Its confirmation supplies active
+device/firmware context to `xb`. Protocol handler `tf` (byte 1616019) follows a
+different route without the same explicit modal checks/context. Prefer paste-code
+import through the modal; the emitted deeplink remains unvalidated convenience
+metadata, not an equivalent safety boundary.
+
+No supported offline native-profile import was established. The examined direct
+`nd` callers were the modal, protocol handler and cloud bulk-profile migration.
+A separate configuration JSON migration branch does not establish profile-file
+import. This is scoped negative evidence, not proof that every hidden, older or
+future integration is absent.
+
+### Current generated profile
+
+The reviewed work profile has device 10/layout 0, schema 15, two remap layers
+with 92 and 29 entries, actuation 4048, RT sensitivity 1638 and RT disabled.
+Every distinct remap value resolves in the basic, extended/media or special key
+tables used by this import path, including both Command/Option pairs and Fn.
+The analog values exceed the migration threshold 4. Legacy DKS, AKC, custom
+actuations, gamepad mappings and per-key RT lists are empty. RGB matrices have
+six rows of 21 cells; no malformed generated color was identified, and RGB
+effect layers are empty. These observations do not validate the physical key
+mask, firmware normalization or the lightbar effect on the device.
+
+Expected re-export differences include description replacement, new identity,
+white scroll/num-lock defaults where the input omits them, omission of disabled
+per-key RT entries, and row-major ordering of sparse position/value lists.
+Only justified representational differences should be normalized in a future
+semantic comparison. Remap **layer order**, advanced-key order and effect/layer
+ordering must not be discarded indiscriminately. Keep the current cloud
+comparison strict; app semantics need a separate check.
+
+### Recommended next work and remaining evidence
+
+Before treating the generic helper as a validator for arbitrary native JSON,
+validate actual key membership, schema-15 DKS policy, analog units/ranges,
+required nested structures and device/firmware limits. A complete isolated
+`u$(nd(profile), target)` comparison would require the original dependency
+closure and an explicit normalization policy; this investigation did not run
+that conversion and does not recommend shipping app-private code as a runtime
+dependency without further evidence.
+
+The best immediate operational check remains normal Wootility import into an
+inactive profile, review on the intended device/firmware, deliberate save, and
+reconnect verification. REA can support a future version-to-version audit using
+separately identified app artifacts; only one version was inspected here, so no
+upgrade compatibility conclusion is established. No cloud request, app-state
+import, keyboard write, OS activation or firmware update ran in this audit.
+
+## Import audit implementation
+
+Implemented 2026-11-17. The
+[feature-local validator](../../hosts/nixos/desktop/local/hardware/wooting-share/src/validation.rs)
+now enforces the explicit `ansi80he-typing-v2` subset before validation results,
+network requests or publication state writes. The Nix export build invokes the
+same offline validator as production input validation, so unsupported declarative
+edits fail before the bundle and its pinned-profile wrapper are produced.
+The earlier audit describes the
+pre-hardening implementation; its identified gaps are addressed by validation
+or explicit rejection of unreviewed features rather than a general claim to
+support every native profile setting.
+
+Known remap membership is the 169-value union of the first-party basic,
+extended/media and special all-lists. Reviewed coordinate coverage comes from
+the preserved native typing layout; it is not presented as a physical key mask.
+Both layers retain dedicated Fn, main coverage is complete, names fit 30 UTF-8
+bytes, and nested objects have closed field sets. Analog values are bounded
+raw 14-bit integers above the ambiguous migration threshold. Legacy DKS, AKC,
+custom/per-key actuation, RT/Tachyon, gamepad mappings and RGB effects are
+explicitly unsupported. The contract validates complete RGB matrices, the
+reviewed gamepad structure and an optional solid Caps Lock lightbar indicator.
+These are conservative adapter policies, not claims about all vendor-supported
+values. The operating guide lists the supported features.
+
+`compare-import` now compares a supplied native re-export or retrieves a supplied
+re-shared code through GET only, without modifying publication records. Both
+inputs must satisfy the closed contract. Its small normalization policy is
+separate from strict cloud read-back equality. It accepts only the observed
+`~` description replacement, root server identity, optional white indicator
+defaults, null/omitted secondary sensitivity and row-major sparse remap ordering.
+Unexpected settings differences fail with a JSON pointer. The user must obtain
+the supplied content from the actual imported profile; the command cannot
+attest its provenance, firmware normalization or device persistence. Automatic
+deeplink output was removed in favor of the modal's compatibility checks.
+
+### Controlled converter/serializer replay
+
+A private one-off Node VM harness parsed the original renderer and its original
+`vendor-modules-CQPzpkP_.js` dependency with Node's existing Acorn parser.
+The vendor chunk SHA-256 was
+`1db0fc2f50576b7d4042966c9a7c8ec0a21256220dab3b1a1dcf87ae54265a88`.
+The ASAR and renderer identities are recorded in the preceding audit.
+
+The harness made original top-level bindings available lazily in separate VM
+contexts, including their associated prototype/data assignments. It evaluated
+the original constant-table rotation, then called `u$(nd(profile), profile.target)`.
+The successful run accessed 267 original bindings across those two chunks;
+converter bodies and dependency implementations were not replaced with stubs.
+No renderer bootstrap, UI, USB code or network API was supplied or started.
+VM string-code generation and WASM were disabled, and evaluations were bounded.
+The browser-like `self` alias allowed lodash's ordinary global detection without
+its dynamic Function fallback. Identity generation used the VM's normal Date.
+
+This changed module initialization strategy intentionally avoids full-app side
+effects. It is a controlled replay of the selected path, not proof of equivalence
+to normal module startup or a full application session. Dynamic dependencies on
+unexecuted branches, firmware/device normalization and other profiles remain
+outside this evidence. The private harness and third-party source fragments
+are not shipped as runtime or build dependencies, and no retained behavior suite
+was introduced.
+
+The actual serialized result differed only in description replacement, addition
+of white scroll/num-lock colors, and sparse remap ordering. The new comparator
+accepted that result. Mutations changing bindings, actuation, colors and
+unexpected descriptions were rejected. One-off checks also rejected 31 malformed
+or unsupported profiles, including unknown keycodes, legacy DKS, ambiguous
+analog units, malformed nested objects, missing/duplicate mappings and overlong
+UTF-8 names. Validation/comparison created no release state in those checks.
+The previously published current profile was re-retrieved and verified under
+the stronger contract without a new POST; its canonical hash and share code
+were preserved. Rust formatting, Clippy and focused package validation ran on
+Linux. Normal app import/save, reconnect persistence and macOS execution remain
+unverified.

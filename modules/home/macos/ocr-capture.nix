@@ -1,12 +1,14 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   cfg = config.macos.ocrCapture;
+  sharedSigning = config.macos.applications.enable && config.macos.applications.manageAll;
   appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/OCR Capture.app";
   executablePath = "${appPath}/Contents/MacOS/hm-ocr-capture";
 
@@ -41,7 +43,10 @@ let
   launchCommand = lib.concatMapStringsSep " " lib.escapeShellArg ([ executablePath ] ++ arguments);
 in
 {
-  imports = [ ./application-capabilities.nix ];
+  imports = [
+    ./application-capabilities.nix
+    ./applications.nix
+  ];
   options.macos.ocrCapture = {
     enable = lib.mkEnableOption "native macOS region-screenshot OCR";
 
@@ -197,6 +202,10 @@ in
     };
 
     assertions = [
+      {
+        assertion = !sharedSigning || cfg.signingIdentity == null;
+        message = "Universal application signing owns OCR Capture; configure macos.applications.localSigning instead of macos.ocrCapture.signingIdentity.";
+      }
       (lib.hm.assertions.assertPlatform "macos.ocrCapture" pkgs lib.platforms.darwin)
       {
         assertion = !isDarwin || config.targets.darwin.copyApps.enable;
@@ -204,7 +213,7 @@ in
       }
     ];
 
-    warnings = lib.optional (isDarwin && cfg.signingIdentity == null) ''
+    warnings = lib.optional (isDarwin && !sharedSigning && cfg.signingIdentity == null) ''
       macos.ocrCapture uses a reproducible ad-hoc signature. Screen Recording
       permission may need approval again after an application update. Set
       macos.ocrCapture.signingIdentity to a local Apple signing identity for
@@ -218,14 +227,32 @@ in
       linkApps.enable = lib.mkDefault false;
     };
 
-    home.activation.signCopiedOCRCapture = lib.mkIf (isDarwin && cfg.signingIdentity != null) (
-      lib.hm.dag.entryAfter [ "copyApps" ] (
-        (import ../../../lib/templates/text.nix) ./scripts/sign-ocr-capture.sh {
-          lib_escapeShellArg_appPath = lib.escapeShellArg appPath;
-          lib_escapeShellArg_cfg_signingIdentity = lib.escapeShellArg cfg.signingIdentity;
-        }
-      )
-    );
+    home.activation.signCopiedOCRCapture =
+      lib.mkIf (isDarwin && !sharedSigning && cfg.signingIdentity != null)
+        (
+          lib.hm.dag.entryAfter [ "copyApps" ] (
+            myLib.writers.renderBashText { inherit pkgs; }
+              {
+                name = "sign-ocr-capture.sh";
+                text = ''
+                  # shellcheck shell=bash
+                  app=@lib_escapeShellArg_appPath@
+                  identity=@lib_escapeShellArg_cfg_signingIdentity@
+                  run /bin/wait4path "$app"
+                  if ! /usr/bin/security find-identity -v -p codesigning | /usr/bin/grep -Fq "$identity"; then
+                    printf 'OCR Capture signing identity is unavailable: %s\n' "$identity" >&2
+                    exit 1
+                  fi
+                  run /usr/bin/codesign --force --options runtime --sign "$identity" "$app"
+                  run /usr/bin/codesign --verify --strict --verbose=2 "$app"
+                '';
+              }
+              {
+                lib_escapeShellArg_appPath = lib.escapeShellArg appPath;
+                lib_escapeShellArg_cfg_signingIdentity = lib.escapeShellArg cfg.signingIdentity;
+              }
+          )
+        );
 
     programs.aerospace.settings.mode.main.binding = lib.mkIf (
       config.programs.aerospace.enable && cfg.shortcuts.copyRegion != null

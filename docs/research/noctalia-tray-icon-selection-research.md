@@ -101,12 +101,3 @@ it literally. Context-based classification and complete theme-metadata handling
 can be considered separately from these focused fixes.
 
 ## Implication for this repository
-
-The [archived downstream tray patch](https://github.com/nix-forge/nixpkgs-personal/blob/ec5a07115e8ee49f714613a9d0cb830a192399b7/pkgs/by-name/no/noctalia-personal/tray-icon-size.patch)
-at review start repeated the faulty selector atop the
-[5.2.1 pin](../../pkgs/pkgs/by-name/no/noctalia-personal/source.nix).
-Updating the source pin alone does not remove this implementation. The verified
-correction has been ported into the owning package, preserving its local override
-and advertised-name paths and its directory-content cache regression. Retire the backport when the selected
-upstream release includes the fix. Desktop builds and heavy checks must use
-the repository's workstation-task workflow.

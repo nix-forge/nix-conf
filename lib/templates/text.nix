@@ -2,7 +2,8 @@
 # Callers escape values for the destination language. Null retains a literal token.
 src: replacements:
 let
-  content = builtins.readFile src;
+  content = if builtins.isAttrs src then src.text else builtins.readFile src;
+  origin = if builtins.isAttrs src then src.name or "inline text" else toString src;
   names = builtins.attrNames replacements;
   marker = name: "@${name}@";
   value =
@@ -27,8 +28,8 @@ in
 if !(builtins.all validName names) then
   throw "renderText: invalid placeholder name"
 else if missing != [ ] then
-  throw "renderText: missing replacements in ${toString src}: ${builtins.concatStringsSep ", " missing}"
+  throw "renderText: missing replacements in ${origin}: ${builtins.concatStringsSep ", " missing}"
 else if extra != [ ] then
-  throw "renderText: unused replacements in ${toString src}: ${builtins.concatStringsSep ", " extra}"
+  throw "renderText: unused replacements in ${origin}: ${builtins.concatStringsSep ", " extra}"
 else
   builtins.replaceStrings (map marker names) (map value names) content

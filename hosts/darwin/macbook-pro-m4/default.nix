@@ -21,7 +21,6 @@
     ## Base
     determinate
     nix-settings
-    codex-runtime
     registry
     cache
     chromium-policies

@@ -1,263 +1,133 @@
-# Testing
+# Testing and static checks
 
-Use the framework that exercises the behavior at its owning repository. Root
-Python tests run through pytest. Nix evaluation, generated-file validation, and
-NixOS VM tests remain Nix checks. Package tests, Cargo tests, and Swift XCTest
-retain their own runners. The [framework research](research/testing-frameworks-research.md)
-explains the choice and alternatives.
-
-## Commands
-
-Run from the repository root with initialized submodules. New source files must
-be visible to Git before flake evaluation. `git add -N <file>` includes a new file
-in the source view without staging its contents.
+Use the pinned `nix-unit` runner for functions in `lib/`. Each repository owns
+its own library suite; nix-seal uses `nix/lib/tests` and also retains Rust tests.
+Other project-authored behavioral, integration, VM, snapshot and non-Rust fuzz
+suites are not part of this project. Upstream package test defaults remain intact.
 
 ```sh
-just test-python
-just test-python tests/codex -q
-just test-ci
-workstation-task nix build --no-link .#checks.x86_64-linux.python-tests
-workstation-task nix build --no-link .#checks.x86_64-linux.secret-templates
-workstation-task nix build --no-link .#checks.x86_64-linux.git-email-privacy
-workstation-task nix build --no-link .#checks.x86_64-linux.javascript-quality
-just generated-checks
+just test
+nix develop --command nix-unit --flake '.#libTests'
+nix build --no-link .#checks.x86_64-linux.lib-tests
+just check
 ```
 
-The named build examples use the desktop workload runner. On other hosts, run
-`nix` directly and replace the system for the supported platform. The focused
-`tests` development shell supplies Python and command dependencies without
-installing hooks. Both local and sandbox runs use the dependencies in
-[the Python environment](../flake/dev/test-python.nix) and settings in
-[pyproject.toml](../pyproject.toml). Tests time out after 120 seconds; a documented
-longer bound belongs on a specific test, rather than disabling the limit globally.
-Unexpected passes of tests marked `xfail` fail the suite.
+Replace the system for the native platform. New source files must be visible to
+Git before flake evaluation. `git add -N <file>` includes a new file in the source
+view without staging its contents. Tests under `lib/tests` import actual library
+functions explicitly; production imports must not recursively load their fixtures.
 
-The JavaScript check type-checks root-owned JavaScript and TypeScript tests,
-checks the caption regression source, and runs the Spotify integration
-suite against the compiled extension from the package repository. For a direct
-`npm test` invocation, set `METABRAINZ_EXTENSION` to that package's `metabrainz.js`;
-the root no longer owns or compiles a second copy of the extension.
+Cases use named `expr`/`expected` values and `expectedError` for library rejection
+contracts. The runner fails through its exit status; no hand-written assertion
+wrapper is needed. A derivation constructor in `lib/` does not authorize keeping
+an application runtime or package integration suite.
 
-Run `npm run check` at the root and `npm --prefix pkgs run check` for the
-package repository after installing each repository's locked development
-dependencies with `npm ci`. Both commands run strict compiler checks,
-type-aware lint, formatting, and their portable Node tests. `typecheck` discovers
-all standalone compiler projects in the owning source directories and rejects
-maintained source files outside their inputs. Coverage manifests explain the
-four CommonJS loader fixtures and map ReactFlux sources to their application
-build paths. Invalid types, uncovered sources, and weakened compiler policy have
-regression tests.
+Keep static formatting, lint, syntax, type, schema, documentation and security
+analysis. The authoritative configuration is in `flake/dev/formatter.nix`,
+`flake/dev/git-hooks.nix`, `flake/dev/checks.nix` and
+`flake/dev/javascript-checks.nix`. `nix develop --command javascript-check`
+runs compiler, lint and formatting checks with Nix-managed tools and declarations.
+`runtime-source-policy` rejects reintroducing root-owned Python, C, AWK and Tcl programs.
 
-Default pytest discovery selects `tests/**/test_*.py`. It excludes two explicit
-markers:
+## Rust workspaces
 
-- `nix_integration` needs generated inputs supplied by `secret-templates` or
-  `git-email-privacy`. Those checks run their complete selected suites and store
-  a JUnit report in the output directory. Missing inputs fail the check.
-- `nix_daemon` runs with `just test-ci`, outside a Nix build sandbox. These tests
-  use disposable Git history and Nix evaluation. The shell supplies immutable
-  Nixpkgs and framework input paths, avoiding repeated whole-flake resolution.
+Initialize the submodules with `git submodule update --init --recursive` when
+setting up a fresh checkout. `nix develop .#ciRust --command rust-workspaces list`
+shows the discovered workspace roots, including nix-seal's independent legacy
+and fuzz manifests.
 
-Deselection is a declared execution boundary, not evidence of a pass. Inspect
-all collected cases with `just test-python --collect-only -m ''`. Ordinary CI
-check discovery includes `python-tests`, secret and privacy integration, and
-platform-specific checks. The CI workflow runs daemon tests separately.
+| Command | Checks |
+| --- | --- |
+| `just rust-check` | rustfmt, native all-target Clippy, rustdoc, cargo-machete, cargo-deny bans/licenses/sources, and Semgrep on first-party Rust. CI runs the same command through the pinned shell. |
+| `just rust-audit` | Fresh RustSec advisory checks for each workspace using its own lockfile and policy. CI runs this separately. |
+| `just rust-analyze` | rust-analyzer batch statistics for each workspace. Cargo fetches locked dependencies before offline analysis. Add `--verbose` for per-item statistics or `--diagnostics` for IDE diagnostics. |
+| `just rust-test` | Nextest for native unit and integration tests, including nix-seal's legacy migration suite. Cargo runs doctests separately. The fuzz targets use their dedicated suite. |
 
-## Layout and ownership
+Open the root in VS Code from the development environment to use the pinned
+toolchain with all four linked projects. When adding a workspace, update
+`.vscode/settings.json` and run `just rust-check` to verify the list. Native
+compiler checks use the runtime registry's platform support. Run on Darwin for
+Darwin compiler diagnostics.
 
-| Location                                                                     | Contract and execution                                                                                                                                                     |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/browsers`, `tests/codex`, `tests/macos`                               | Public helper commands, unmanaged settings, permissions, and idempotence. Included in `python-tests`.                                                                      |
-| `tests/fonts`                                                                | Composition examples in pytest; real selection, shaping, and native rendering remain font checks.                                                                          |
-| `tests/hyprland/test_*.py`                                                   | Isolated runner environment, cleanup, and crash reporting. No compositor connection.                                                                                       |
-| `tests/storage/test_*.py`                                                    | Recovery receipts, backup preconditions, and real disposable Restic backup/restore. Included in `python-tests`.                                                            |
-| `tests/virtualisation`                                                       | Installer rendering and libvirt command contracts using temporary state. Real XML and JSON tools, with explicit guest adapters. Included in `python-tests`.                |
-| `tests/maintenance`                                                          | Root command delegation against disposable package scripts. Included in `python-tests`.                                                                                    |
-| `tests/secrets`, `tests/git_privacy`                                         | Identity rollback, policy evaluation, generated templates and generated Git hooks. Rollback is portable; generated inputs have dedicated checks.                           |
-| `tests/ci`                                                                   | Build selection, target discovery, and deployment exclusions using real Git/Nix.                                                                                           |
-| `tests/nix`                                                                  | Evaluated configuration, generated artifacts, writer rejection tests, and the ClamAV VM.                                                                                   |
-| `tests/storage/install.nix`                                                  | Disposable disk installation, boot and restoration. Requires native x86 Linux with virtualization.                                                                         |
-| `tests/{browsers,hyprland,noctalia,systemd,terminals,codex,vscode}/check_*`  | Explicit rendering and operator probes with their own arguments and environment requirements. Some run from dedicated Nix checks; none are implicitly collected by pytest. |
-| `tests/lua`, native font sources                                             | Native-language checks invoked by their owning Nix derivations.                                                                                                            |
-| Submodule `tests`, package-local `Tests`, Rust test modules and fuzz targets | Owned and validated in the submodule. Root pytest does not recurse into them.                                                                                              |
+Rust-analyzer reports limits in its own MIR lowering, layout and constant
+evaluation. Use the verbose output to identify the affected item and confirm
+suspected source errors with the locked Cargo checks.
+The diagnostics command returns failure when the analyzer reports errors. The
+vendored `age` localization wrapper preserves compile-time Fluent validation
+and works around an analyzer macro-expansion bug.
+[Upstream diagnostic report](https://github.com/rust-lang/rust-analyzer/issues/23502)
 
-Run manual Python probes from the repository root with
-`nix develop --command env PYTHONPATH=tests python3 <probe.py> <arguments>`.
-The declared interpreter includes their notification, browser and image libraries.
-The development shell also supplies Node 24 for emitting the TypeScript browser
-and host probe sources as JavaScript. The Python sandbox check declares the same
-Node runtime and includes the TypeScript fixture sources.
-Use the same environment for Node probes because their application supervisor is
-Python: `nix develop --command node <probe.mts> <arguments>`.
+The root flake also exposes the sandboxed `rust-quality` check through
+`just check`. It uses the Cargo member fileset, Nix-vendored dependencies and
+offline cargo-deny policy. Each submodule retains its own CI and native checks.
+When changing Rust policy in a submodule, publish its changes with the matching
+gitlink update so a fresh CI checkout sees the same policy.
 
-`flake/dev/python-checks.nix` defines the portable sandbox source and dependencies.
-The common [Python check builder](../tests/python-check.nix) copies selected
-sources to writable scratch space, supplies an isolated home, applies pytest
-policy, and writes JUnit output. It does not contain a second test runner.
-Add fixture files and production sources to the source set when a new test needs
-them. New Python tests under `tests/` are discovered automatically.
+See the [workspace research](research/rust-workspace-checks-research.md) for tool
+coverage and the [Rust design research](research/rust-quality-design-research.md)
+for the root packaging and runtime design.
 
-Python lint and type checks use a separate, broader import environment in
-[`quality-python.nix`](../flake/dev/quality-python.nix). The sandbox check and
-local Git hook share it, including the documentation builder's dependencies.
-On Darwin, build `javascript-quality` with `--option sandbox relaxed` to permit
-its declared FSEvents service lookup. Nix still sandboxes the check; this command
-allows its narrow native profile without changing machine-wide configuration.
+### Coverage, mutation, and inspection
 
-Keep fixtures next to their feature. Use a local `conftest.py` only for shared
-setup with a real consumer. The CI Git fixture clears inherited identity,
-signing, hook and repository settings. Avoid repository-wide implicit fixtures
-that change unrelated tests.
+Enter `nix develop .#rustAnalysis` for the stable analysis tools. It uses the same
+compiler and native libraries as the workspace checks.
 
-## What a test must prove
+| Tool | Use |
+| --- | --- |
+| cargo-llvm-cov | `just rust-coverage` runs nix-seal's regular Nextest suite and writes `nix-seal/target/coverage.lcov`. The shell supplies the LLVM profile readers from the compiler's LLVM release. |
+| cargo-mutants | `just rust-mutate-core "$(mktemp -d)"` and `just rust-mutate-policy "$(mktemp -d)"` run their respective campaigns on temporary source copies that exclude ignored files, including nested Cargo build directories. Kani proof code is checked separately with `just rust-kani`. |
+| cargo-geiger | Run `rust-unsafe-inventory path/to/package/Cargo.toml` with a concrete package manifest. It requires the existing workspace lockfile, uses fresh Cargo artifacts, and rejects incomplete scans. Unsafe counts are an inventory for review. |
+| cargo-expand | Run `cargo expand --locked --lib --package nix-conf-legacy-numbers` to inspect macro expansion for a selected crate. |
+| cargo-flamegraph | Profile a repeatable local workload with debug symbols. The nix-seal scale benchmark uses synthetic inputs. See the Linux example below. |
+| sccache | Run `just rust-cached check --locked --package nix-conf-legacy-numbers` and inspect `sccache --show-stats` in the analysis shell. This opts in for one Cargo command and disables incremental compilation for that command. |
 
-Start with a named behavior that can regress. Cross the same command or function
-interface as a caller. Compare outputs, exit status, parsed configuration, file
-state, or externally visible service behavior. Give negative cases an explicit
-expected failure and verify that protected state remains intact.
+For compiler diagnostics from one library build, run
+`cargo rustc --locked --manifest-path path/to/package/Cargo.toml --lib -- --force-warn unsafe_code`.
+This applies the lint to the selected library, including its expanded code.
+The warnings do not establish completeness of a Geiger inventory.
 
-Use an independent fixture for expected values. Do not assert properties of
-locally declared fixture constants, compare a function with itself, repeat a
-production inventory in the test, or search source text when execution can prove
-the requirement. Exact bytes remain appropriate for preservation, wire formats,
-signatures, and executable headers.
+For a Linux CPU profile, run the following from the checkout root inside the
+analysis shell. The output directory also contains the raw perf capture. Perf
+needs permission to sample user-space events on the host.
 
-Do not test a fixed host selection by reading the same option back from the
-evaluated host. Nix evaluation already checks that assignment. Test a module's
-merge or rejection rules beside the module, or test the generated file, command,
-unit, package, or runtime behavior that consumes the option.
-
-Keep configuration errors in the owning module's `assertions` block when an
-invalid combination would prevent correct or safe operation. A user's chosen
-value is not itself an error. Avoid CI checks for fixed values in rendered host
-files, especially when each configuration edit would require updating the check.
-Retain checks with an independent expected result, such as a failed invalid
-combination, a real command outcome, or a recovery transition.
-
-Prefer pytest functions, `tmp_path`, `monkeypatch`, and named parameter examples
-for new Python tests. Existing `unittest.TestCase` suites remain valid under
-pytest; converting assertion syntax alone adds no coverage. Mock an unavailable
-external service or unsafe effect, then use real local parsers and filesystem
-operations. Unexpected adapter calls must fail, not silently succeed.
-
-Use `lib.runTests` with named expressions and expected values for pure Nix
-contracts. Force and report its failure list. Nix module `config.assertions` are
-lazy: checks that only read selected options must explicitly force the relevant
-assertions. A derivation path alone does not prove those assertions passed.
-
-VM tests must wait for observable readiness, bound retries, and distinguish old
-state from recovery. Keep installer disks and service fixtures disposable. The
-ClamAV fixture tests systemd ordering and namespace visibility, not antivirus
-detection. Backup receipts alone do not prove restoration; retain the real
-Restic round trip.
-
-A passing scan must cover every candidate and surface read errors. Never use an
-early-exiting consumer under `pipefail` to decide whether a producer found a
-match. Scanner regression tests include clean input, many matches, binary files,
-missing input, and unreadable files.
-
-## Review decisions
-
-The September 2026 review retained behavior tests for writers, schema rejection,
-privacy hooks, backup restoration, native rendering, and VM integration. These
-test distinct contracts. Operational probes remain explicit because they require native applications, hardware, or a live session.
-
-The revision removed separate root unittest launchers and duplicate portable
-execution from font, generated-file and deployment checks. CI tests and the
-VM-host resolver fixture moved under `tests/`. Previously manual appearance
-configuration tests now run automatically through the production CLI.
-
-The review also removed fixture-only policy assertions, exact child-kill call
-ordering, a probabilistic race loop that accepted every read error, a fake XML
-parser, silent command substitutions, and Linux readiness source-string
-assertions. Their replacements exercise policy results, owned
-process cleanup, real parsing, failed unexpected calls, and generated preflight
-execution. Secret-template policy failures now report named Nix cases.
-
-Submodule fixes address an unchecked framework assertion, nix-seal's store-scan
-false negative and readiness control flow, and OCR test lock isolation. Rust
-canary checks now use the actual secret length. Batch replacement checks require
-both outputs and decrypt the expected destinations. Invalid-path and identity
-collision fixtures start from valid inputs, so an unrelated error cannot satisfy
-the test. Shell fixture assertions propagate failures. Removed assertions compared
-a function with itself or tested only standard-library behavior.
-
-Keep these patches with their owning repositories when committing. A root
-gitlink alone cannot represent uncommitted submodule changes.
-
-The review read root test suites and their Nix entry points, all package Python
-suites and native fixtures, the complete framework suite, nix-seal's Nix and VM
-checks, and every Rust test body under nix-seal's crates and the root filesystem
-helper. It also read the operational desktop probes. Cargo, interoperability,
-migration-golden and fuzz tests retain their existing structure.
-
-The filesystem helper tests call the actual reader and atomic writer to check
-symlink rejection and preservation of unsafe targets. Temporary fixture paths
-are canonicalized so macOS's `/tmp` compatibility symlink does not invalidate
-the fixture itself.
-
-Desktop probes bound debugger startup and IPC waits, clean up owned children on
-failure, and keep diagnostics from bypassing cleanup. The stopwatch fixture also
-clears shell startup environment variables. VS Code's CLI detaches its GUI;
-if startup fails before the debugger connects, its isolated test window may need
-to be closed manually. These probes remain opt-in.
-
-## Evidence boundaries
-
-Run focused tests before broad checks. Record evaluation, build, VM execution,
-and live activation separately. Full desktop builds must follow
-[AGENTS.md](../AGENTS.md). Native Darwin tests need Darwin; GUI, HDR and physical
-output probes need their declared environment. Neither a Linux pass nor an
-absent platform check establishes those results.
-
-Do not add tests for every configuration assignment or require a coverage
-percentage without a decision it supports. Add cases for meaningful failure
-modes and remove tests whose only effect is to freeze an implementation detail.
-For a repaired test that previously passed incorrectly, demonstrate that a
-controlled broken implementation now fails.
-
-### Native Darwin process inspection
-
-The `native_process` cases use Apple's `/bin/ps` to verify positive RSS and real
-owned-process drain after supervision faults. Darwin's Nix build sandbox denies
-that executable. The required Darwin CI job runs these same cases before its
-Nix check matrix, using the declared test Python environment:
-
-```sh
-nix develop .#tests --command python3 -m pytest -m native_process \
-  tests/workstation/test_workstation_faults.py \
-  tests/workstation/test_workstation_jobs.py
+```bash
+(
+  set -euo pipefail
+  perf stat -e cpu-clock:u -- true
+  profile_dir=$(mktemp -d)
+  cd nix-seal
+  export RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER=
+  export CARGO_PROFILE_BENCH_DEBUG=line-tables-only CARGO_PROFILE_BENCH_STRIP=none
+  benchmark=$(cargo bench --locked -p nix-seal-policy --bench scale --no-run \
+    --message-format=json-render-diagnostics |
+    jq -er 'select(.target.name == "scale" and .executable != null) | .executable')
+  cd "$profile_dir"
+  flamegraph --cmd 'record -e cpu-clock:u -F 99 -g' --deterministic \
+    --output scale.svg -- "$benchmark" --size 10000
+  printf '%s\n' "$profile_dir/scale.svg"
+)
 ```
 
-The Darwin sandboxed Python check excludes those five cases; Linux continues to
-run them inside its Nix check. Neither path substitutes process observations or
-changes cleanup assertions. Both native and sandboxed checks must pass in CI.
+### Miri and Kani
 
-## Hosted static gate and native proofs
+Use `nix develop .#rustVerification` for the verifiers. `just rust-miri` interprets
+`nix-seal-core` unit tests with the pinned nightly and matching standard-library
+source. Select other compatible tests explicitly with `cargo miri test`.
 
-The Python static/type gate runs `checks.x86_64-linux.python-quality` before
-native check jobs and optional native review proofs. The required Repository
-tests aggregate explicitly requires that gate to succeed, including when native
-jobs are skipped after a failure. Python source, stubs, source templates, nested
-Ruff/ty project configuration and ignore files invalidate its source; unrelated
-documentation and independently owned submodules do not.
+On Linux and macOS, `just rust-kani` checks all 256 byte values against the
+identifier alphabet using Kani and the compiler matched to that release.
+Unit tests cover the parser's segment structure and preservation of spelling.
 
-The hosted lint inventory omits `python-quality` and `pre-commit`: the gate owns
-the former, and the lint job runs the generated all-file hooks in the same pinned
-Linux CI shell, plus history/publication scanning. That hook invocation skips
-only the Python checks already performed by the gate with the same declared
-Python environment. Local hooks, `lintChecks` and `nix flake check` keep their
-complete checks. Other lint checks retain their existing coverage because their
-scope and environments have not been established as interchangeable.
+## Nix configuration and native verification
 
-The Darwin Handy host proof always realizes the current application, even when
-derivation comparison skipped its sandbox build. It separately times package
-realization, test-shell realization and native identity/signature execution. The
-proof retains the exact application with an output link and executes from the
-recorded Nix environment profile without a second flake evaluation or shell
-realization. Nix activates the profile with its compatible shell; the runner's
-system Bash does not source generated environment code. Native
-Darwin process supervision then reuses that environment before the remaining
-flake checks; the retained application is available to those checks too. These
-phase timings are diagnostics; cold/restored runtime savings require measurement
-on native runners.
+Module `assertions` reject invalid setting combinations at configuration evaluation.
+They must not freeze arbitrary host choices. Production input errors, strict
+rendering, activation preflight and runtime safety checks remain normal behavior.
+Assertions outside modules are not a substitute for the library runner.
+
+Run retained checks relevant to a change and report the tested platforms. Library
+and static checks do not prove service operation, VPN confinement or backup
+restoration. Native Darwin checks require Darwin. A full desktop closure build,
+when needed, must run on desktop as described in [AGENTS.md](../AGENTS.md).
+
+The [framework research](research/testing-frameworks-research.md) records the runner choice.

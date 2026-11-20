@@ -4,8 +4,5 @@
   homeDirectory = "/home/ianmh";
   uid = 1000;
   standalone = false;
-  modules = [
-    modules.xdg
-    modules.services-workstation-jobs
-  ];
+  modules = [ modules.xdg ];
 }

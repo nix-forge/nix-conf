@@ -1,9 +1,13 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
+let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+in
 {
   # nct6683 only monitors this MSI board; its PWM attributes are read-only.
   # The dedicated driver exposes controls and restores BIOS mode on unload.
@@ -25,10 +29,13 @@
       StateDirectoryMode = "0700";
       UMask = "0077";
     };
-    preStart = ''
-      if [ ! -e /var/lib/coolercontrol/config.toml ]; then
-        ${lib.getExe' pkgs.coreutils "install"} -m 0600 ${./fans.toml} /var/lib/coolercontrol/config.toml
-      fi
-    '';
+    preStart = checkedShellText {
+      name = "seed-coolercontrol-config";
+      text = ''
+        if [ ! -e /var/lib/coolercontrol/config.toml ]; then
+          ${lib.getExe' pkgs.coreutils "install"} -m 0600 ${./fans.toml} /var/lib/coolercontrol/config.toml
+        fi
+      '';
+    };
   };
 }

@@ -1,3 +1,0 @@
-# shellcheck shell=bash
-builtin source -- @source@
-ble-import integration/zoxide

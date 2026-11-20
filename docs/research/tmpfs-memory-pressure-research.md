@@ -44,21 +44,9 @@ build scratch workload.
   Evaluation confirms the NixOS default
   `boot.tmp.tmpfsSize` is `"50%"` and `boot.tmp.cleanOnBoot` is false, so the
   active configuration produces the observed 16 GiB capacity limit.
-- The background workload policy applies `MemoryHigh=8G`, `MemoryMax=10G`,
-  `MemorySwapMax=2G`, and
-  pressure-based `systemd-oomd` handling to `background-workload.slice`.
-  It does not limit unrelated application scopes.
 - The interactive application policy at measurement time gave the
   Chromium-named scope `OOMPolicy=continue`, but no memory or swap ceiling.
   The repository now adds a measured browser-family budget described below.
-- After a build had exited, the workload slice had no tasks but still showed
-  roughly 3.6 GiB of `shmem` or tmpfs charge. This is a redacted local
-  observation. It is consistent with cgroup-v2 accounting: `memory.stat`
-  reports tmpfs and shared memory as `file` and `shmem`, and memory ownership
-  is stateful per page until the page is released. It does not prove which
-  process created every retained page. [Kernel cgroup-v2 documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files)
-  and [kernel source documentation on memory ownership](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/cgroup-v2.rst)
-  support that interpretation.
 
 ### tmpfs is part of the memory problem
 

@@ -2,19 +2,16 @@
 
 nix-conf provides reusable NixOS, nix-darwin, and Home Manager modules, together
 with actively deployed Linux and Apple Silicon macOS configurations that serve
-as maintained examples. This guide starts with a small environment you can
-build without access to the deployed systems or their secrets.
+as maintained examples. This guide covers module reuse and a graphical practice
+VM that needs no access to the deployed systems or their secrets.
 
-[Start the tutorial](guide/start-here.md) · [Browse reusable recipes](guide/git.md) · [See the architecture](guide/architecture.md)
+[Check prerequisites](guide/start-here.md) · [Browse reusable recipes](guide/git.md) · [See the architecture](guide/architecture.md)
 
 ## Choose your starting point
 
 | You want to… | Start with |
 | --- | --- |
-| Try Nix configuration without changing your account | [Build the starter](guide/first-configuration.md) |
-| See a configured system boot | [Run the disposable NixOS VM](guide/virtual-machine.md) |
 | Practice in a graphical Linux session | [Run the Sway demo](guide/graphical-demo.md) |
-| Build a small Apple Silicon system configuration | [Try the Darwin example](guide/darwin-example.md) |
 | Improve an existing Home Manager environment | [Git](guide/git.md), [file search](guide/file-search.md), or [the prompt](guide/prompt.md) |
 | Understand the full workstation | [Architecture](guide/architecture.md) and [appearance](guide/appearance.md) |
 | Adapt this structure to your hardware | [Add a host](guide/add-host.md) |
@@ -22,9 +19,8 @@ build without access to the deployed systems or their secrets.
 
 ## Small examples, real configuration
 
-The starter has its own lockfile and a small set of public inputs. It does not
-import the deployed hosts, enable proprietary applications, or provision secrets.
-The recipes then show ordinary Home Manager modules from the actual repository.
+The recipes show ordinary Home Manager modules from the actual repository.
+The graphical demo provides a disposable environment for trying them.
 
 The deployed workstations go further, including shared appearance settings, font
 selection, desktop services, and host-managed secrets. Their hardware and

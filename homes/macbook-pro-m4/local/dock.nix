@@ -1,20 +1,16 @@
-{ config, ... }:
-let
-  zenAppName = config.programs.zen-browser.package.applicationName;
-in
-{
+{ config, pkgs, ... }: {
   macos.dockItems = {
     enable = true;
     mode = "authoritative";
 
     persistentApps = [
-      { hmApp = "Ghostty"; }
-      { hmApp = "Visual Studio Code"; }
-      { hmApp = "T3 Code (Beta)"; }
+      { package = config.programs.ghostty.package; }
+      { package = config.programs.vscode.package; }
+      { package = config.programs.t3code.package; }
 
       { spacer.small = true; }
 
-      { hmApp = zenAppName; }
+      { package = config.programs.zen-browser.package; }
 
       { spacer.small = true; }
 
@@ -22,13 +18,13 @@ in
       # { app = "/Applications/‎WhatsApp.app"; }
       { app = "/System/Applications/Phone.app"; }
       { app = "/System/Applications/FaceTime.app"; }
-      { hmApp = "Vesktop"; }
+      { package = config.programs.vesktop.package; }
 
       { spacer.small = true; }
 
-      { hmApp = "Spotify"; }
-      { hmApp = "Feishin"; }
-      { hmApp = "Moonfin"; }
+      { package = config.programs.spicetify.spicedSpotify; }
+      { package = pkgs.feishin; }
+      { package = pkgs.moonfin; }
       { app = "/System/Applications/Music.app"; }
 
       { spacer.small = true; }

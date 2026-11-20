@@ -211,7 +211,7 @@ results. [Shottr official site](https://www.shottr.cc/)
   result feedback, and success feedback that reveals only a character count.
 - The worktree test calls the installed-style helper interface instead of only
   importing an internal function. That is a useful start. [Current OCR cleanup
-  test](../../tests/macos/test_home_helpers.py#L78-L105)
+  test](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/tests/macos/test_home_helpers.py#L78-L105)
 
 ### Gaps that matter most
 

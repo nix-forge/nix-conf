@@ -2,9 +2,12 @@
   config,
   lib,
   pkgs,
+  utils,
   ...
 }:
 let
+  inherit (import ../storage/.storage-roles.nix) dataMount;
+  modelsDirectory = "${dataMount}/ollama-models";
   identityReady =
     builtins.pathExists ../secrets/homelab-identity-realm.age
     && builtins.pathExists ../secrets/homelab-identity-admin-env.age;
@@ -63,6 +66,8 @@ in
   services.ollama = lib.mkIf (identityReady && wardrowbeReady) {
     enable = true;
     package = pkgs.ollama-cuda;
+    user = "ollama";
+    modelsDir = modelsDirectory;
     loadModels = [ "llama3.2:3b" ];
     host = "127.0.0.1";
     environmentVariables = {
@@ -71,6 +76,10 @@ in
       OLLAMA_MAX_LOADED_MODELS = "1";
     };
   };
+
+  # The external model store needs a stable owner across boots and restores.
+  users.users.ollama.uid = lib.mkIf (identityReady && wardrowbeReady) 799;
+  users.groups.ollama.gid = lib.mkIf (identityReady && wardrowbeReady) 799;
 
   # Keep interactive desktop work responsive while image inference and the
   # local model process background wardrobe jobs.
@@ -92,6 +101,39 @@ in
       CPUWeight = 50;
       IOWeight = 25;
       MemoryMax = "8G";
+    };
+    ollama = {
+      requires = [ "ollama-models-ready.service" ];
+      after = [
+        "ollama-models-ready.service"
+        "srv-data.mount"
+      ];
+      bindsTo = [ "srv-data.mount" ];
+    };
+    ollama-models-ready = {
+      description = "Prepare Ollama model storage on the data SSD";
+      unitConfig.RequiresMountsFor = [ dataMount ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = map utils.escapeSystemdExecArgs [
+          [
+            (lib.getExe' pkgs.util-linux "mountpoint")
+            "-q"
+            dataMount
+          ]
+          [
+            (lib.getExe' pkgs.coreutils "install")
+            "-d"
+            "-m"
+            "0700"
+            "-o"
+            "ollama"
+            "-g"
+            "ollama"
+            modelsDirectory
+          ]
+        ];
+      };
     };
     # The upstream model loader already retries failures with exponential
     # systemd backoff; its API and registry failures must not hold boot open.

@@ -1,5 +1,74 @@
 # Upstream contribution roadmap: temporary repairs
 
+## November 2026 implementation update
+
+The audit compared current pinned sources with primary upstream sources and
+implemented the concrete maintenance repairs below. Existing personal UI,
+consent and credential behavior remains selected where no equivalent upstream
+implementation was established. This update supersedes present-tense status
+claims in the historical October investigation below.
+
+- Retired inactive Hyprshell workspace patches and bounded its initial modifier
+  reconciliation; release and focus notifications own subsequent snapshots.
+- Moved Helium hooks into an external launcher and distinct helper application.
+  The vendor app stays unchanged; its package disables stripping and shebang
+  rewriting, both of which otherwise invalidate its resource seal. Direct vendor
+  launches retain vendor behavior; select Helium Launcher for managed hooks.
+- Updated Rift to 0.8.3, replacing the native-switch backport with a small
+  autorepeat-intent filter. NH retains its smaller backport until the shared
+  input selects the verified containing 4.5.0 release; adding another source and
+  dependency override merely to remove that patch would increase maintenance.
+- Removed Handy's speculative future-version bypass, added an exact unique
+  copyApps replacement anchor, scoped/renamed the Azure Darwin dependency repair,
+  and bounded the HTTPX test fixture's close wait. The libgit2 repair now guards
+  its version and fixed-output source hash instead of an absolute store path;
+  the Darwin Sentry record links the actual published Nix source.
+- Separated GTK palette policy from upstream polarity repair and gave the
+  intentional LibreOffice writable-profile integration its own namespace.
+- Replaced blanket ARM nix-seal suppression with one fixture exclusion for
+  declared non-native deployment builders. The native package stays unchanged.
+  Removed PDF test suppression; CPU-only Whisper checks also passed before the
+  unused CLI module was retired. AudioMuse retains upstream Safetensors/Narwhals
+  checks, Tokenizers' offline suite and selected offline Hub/Transformers suites.
+- Removed inactive application compatibility fallbacks, orphan test-only dependency
+  records and unused harness artifacts. Static lifecycle schema/source/checksum
+  validation remains permitted and runs with source-pin checks. Developer-tool
+  dependency repairs remain: actual development-partition builds still require
+  the pkg-config/Zstd and AWS-LC fixes, even though the application package sets
+  already supply them.
+- Selected Blueair's exact merged log-redaction source while retaining reviewed
+  transitive dependency updates; the local redaction patch and copied package
+  manifest are gone.
+
+The [Spotify comparison](spotify-spotx-spicetify-research.md) evaluates current
+SpotX-Nix and alternatives. The local package retains safeguards and its selected
+macOS client; empty feature arguments still force noninteractive operation and
+obsolete old-UI arguments are rejected.
+
+Large Craft source migrations, shared font-catalog adoption and wholesale UI or
+renderer replacements remain separate migrations: current releases/heads change
+APIs, assets, dependency graphs and behavior. Existing current-pin security fixes
+and desired personal variants are retained. Font discovery now has a five-second
+query deadline, but still consumes line-delimited filenames and scans their
+parent directories; it does not claim full Fontconfig equivalence. Future
+catalog adoption must demonstrate equivalent configured-font coverage.
+
+Validation passed: `just os-build desktop` on the desktop; root `just check`;
+package `just check` across all three declared systems; retained source-pin,
+formatting and pre-commit check builds; native Darwin Rift and Helium builds;
+and strict recursive signature verification of both Helium bundles. Linux
+Hyprshell, Blueair and skill bundles built successfully. The full Darwin
+configuration and the non-native Pi deployment configuration also evaluated.
+Selected upstream Python offline suites, zero-fuzz Craft patch application and
+FilmCraft lock consistency checks passed. The ARM nix-seal package built under
+QEMU with its upstream suite enabled and only the reproduced ignored-SIGCHLD
+fixture excluded; native package selection and tests remain unchanged. Builds
+do not establish GUI interaction,
+account access, device behavior, recovery, or permission continuity. No
+configuration was activated by this work.
+
+## Historical October investigation
+
 Reviewed: 2026-10-16. Scope: all **38 registered temporary fixes** and **24 root patch artifacts** in the selected configuration snapshot. Read this with the [decision and priority roadmap](upstream-contribution-roadmap-research.md). Source/review observations do not establish new native acceptance.
 
 ## Desktop and tooling: 17 repairs
@@ -223,24 +292,24 @@ This inventory includes regression scaffolding; it does not imply one upstream P
 | Artifact | Registered repair or acceptance owner |
 | --- | --- |
 | [actual-redact-secret-log.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/actual-redact-secret-log.patch) | `actual-redact-secret-log` |
-| [deploy-confirmation-directory-tests.patch](../../overlays/temporary/patches/deploy-confirmation-directory-tests.patch) | `deploy-rs-confirmation-path / deploy-rs-darwin-tests regression scaffolding` |
+| [deploy-confirmation-directory-tests.patch](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/overlays/temporary/patches/deploy-confirmation-directory-tests.patch) | `deploy-rs-confirmation-path / deploy-rs-darwin-tests regression scaffolding` |
 | [deploy-confirmation-parent-path.patch](../../overlays/temporary/patches/deploy-confirmation-parent-path.patch) | `deploy-rs-confirmation-path` |
 | [determinate-darwin-sentry-registration.patch](../../overlays/temporary/patches/determinate-darwin-sentry-registration.patch) | `determinate-darwin-tests` |
 | [ghostty-bash-ble-prompt.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/ghostty-bash-ble-prompt.patch) | `ghostty-bash-prompt` |
 | [hypridle-condition-inhibitors.patch](../../overlays/temporary/patches/hypridle-condition-inhibitors.patch) | `hypridle-condition-inhibitors` |
 | [hyprland-subsurface-parent-lifetime.patch](../../overlays/temporary/patches/hyprland-subsurface-parent-lifetime.patch) | `hyprland-subsurface` |
 | [hyprland-subsurface-rounding.patch](../../overlays/temporary/patches/hyprland-subsurface-rounding.patch) | `hyprland-subsurface-rounding` |
-| [hyprshell-empty-special-workspace.patch](../../overlays/temporary/patches/hyprshell-empty-special-workspace.patch) | `hyprshell-workspace-schema` |
-| [hyprshell-full-workspace-identity.patch](../../overlays/temporary/patches/hyprshell-full-workspace-identity.patch) | `hyprshell-workspace-identity` |
+| hyprshell-empty-special-workspace.patch (`overlays/temporary/patches/hyprshell-empty-special-workspace.patch`, retired; see Git history) | `hyprshell-workspace-schema` |
+| hyprshell-full-workspace-identity.patch (`overlays/temporary/patches/hyprshell-full-workspace-identity.patch`, retired; see Git history) | `hyprshell-workspace-identity` |
 | [hyprshell-modifier-state.patch](../../overlays/temporary/patches/hyprshell-modifier-state.patch) | `hyprshell-modifiers` |
 | [jellyfin-caption-defaults.patch](../../overlays/temporary/patches/jellyfin-caption-defaults.patch) | `jellyfin-caption-defaults` |
 | [libgit2-trailing-slash.patch](../../overlays/temporary/patches/libgit2-trailing-slash.patch) | `determinate-libgit2-trailing-slash` |
 | [microsocks-credential-files.patch](../../overlays/temporary/patches/microsocks-credential-files.patch) | `microsocks-credential-files` |
-| [nh-darwin-home.patch](../../overlays/temporary/patches/nh-darwin-home.patch) | `nh-darwin-home` |
+| [nh-darwin-home.patch](https://github.com/nix-forge/nix-conf/blob/75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d/overlays/temporary/patches/nh-darwin-home.patch) | `nh-darwin-home` |
 | [nixf-flake-builtins.patch](../../overlays/temporary/patches/nixf-flake-builtins.patch) | `nixf-flake-builtins` |
 | [nom-named-activities-tests.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities-tests.patch) | `nom-named-activities` |
 | [nom-named-activities.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nom-named-activities.patch) | `nom-named-activities` |
-| [nom-quadratic-build-plan.patch](../../overlays/temporary/patches/nom-quadratic-build-plan.patch) | `nom-quadratic-build-plan` |
+| [nom-quadratic-build-plan.patch](https://github.com/nix-forge/nix-conf/blob/75b5bb62e1dd273b1647ab4fe56d2ef5948b4d0d/overlays/temporary/patches/nom-quadratic-build-plan.patch) | `nom-quadratic-build-plan` |
 | [nu-scripts-pytest-lists.patch](https://github.com/nix-forge/nix-conf/blob/ac25d4952fcc432a49a838fd3ba4e48a913fd00b/overlays/temporary/patches/nu-scripts-pytest-lists.patch) | `nu-scripts-pytest-lists` |
 | [prismlauncher-watch-test-capability.patch](../../overlays/temporary/patches/prismlauncher-watch-test-capability.patch) | `prismlauncher-darwin-tests` |
 | [prowlarr-torrentdownload.patch](../../overlays/temporary/patches/prowlarr-torrentdownload.patch) | `prowlarr-torrentdownload` |

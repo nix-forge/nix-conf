@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Wooting 80HE · Mac Work layout</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --foreground: light-dark(#20242b, #e6eaf2);
+        --muted-foreground: light-dark(#535c6c, #a6b0c0);
+        --card: light-dark(#f4f6f9, #171d28);
+        --border: light-dark(#cbd2dd, #354052);
+        --primary: light-dark(#284b91, #9ebcff);
+        --accent-surface: light-dark(#e5edff, #233453);
+        --info: light-dark(#285c74, #92d7ee);
+        --radius: 12px;
+        --font-sans: system-ui, sans-serif;
+        --font-mono: ui-monospace, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 5px;
+      }
+      p {
+        margin: 5px 0 16px;
+        color: var(--muted-foreground);
+      }
+      button {
+        font: inherit;
+        color: var(--foreground);
+        background: var(--card);
+        border: 1px solid var(--border);
+        padding: 7px 14px;
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: var(--accent-surface);
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .keyboard {
+        padding: 16px;
+        background: var(--card);
+        border-radius: var(--radius);
+        overflow: auto;
+      }
+      .board {
+        min-width: 610px;
+      }
+      .row {
+        display: flex;
+        gap: 0;
+        margin-bottom: 4px;
+      }
+      .row:first-child {
+        margin-bottom: 10px;
+      }
+      .key,
+      .row i {
+        flex: 0 0 calc(var(--units) / 17.25 * 100%);
+        min-width: 0;
+      }
+      .key {
+        padding: 0 2px;
+        position: relative;
+        height: 34px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: clamp(8px, 1.45vw, 11px);
+      }
+      .key:before {
+        content: "";
+        position: absolute;
+        inset: 0 2px;
+        border: 1px solid var(--border);
+        border-bottom-width: 3px;
+        border-radius: 5px;
+      }
+      .key span {
+        position: relative;
+        text-align: center;
+        padding: 0 3px;
+      }
+      .modifier {
+        color: var(--primary);
+        font-weight: 650;
+      }
+      .modifier:before {
+        background: var(--accent-surface);
+        border-color: var(--primary);
+      }
+      .fn {
+        display: none;
+      }
+      body.fn-view .main {
+        display: none;
+      }
+      body.fn-view .fn {
+        display: inline;
+      }
+      body.fn-view .navigation {
+        color: var(--info);
+        font-weight: 650;
+      }
+      .notes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 15px;
+      }
+      .note {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px;
+      }
+      .note strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .note p {
+        margin: 0;
+      }
+      kbd {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+      }
+      .bottom {
+        margin: 14px 0 0;
+        font-size: 12px;
+      }
+      @media (max-width: 450px) {
+        .notes {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 19px;
+        }
+      }
+      @media print {
+        .toolbar {
+          display: none;
+        }
+        .keyboard {
+          overflow: visible;
+        }
+        .board {
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Wooting 80HE · Mac Work</h1>
+    <p>
+      ANSI layout. Command sits beside Space on both sides, just as on the
+      MacBook.
+    </p>
+    <div class="toolbar" role="group" aria-label="Keyboard layer">
+      <button id="base" aria-pressed="true" onclick="setLayer(false)">
+        Main layer</button
+      ><button id="function" aria-pressed="false" onclick="setLayer(true)">
+        Hold Fn
+      </button>
+    </div>
+    <div
+      class="keyboard"
+      role="img"
+      aria-label="Wooting ANSI 80HE. Bottom row: Control, Option, Command, Space, Command, Option, Fn, then arrow keys."
+    >
+      <div class="board">
+        <div class="row">
+          <div class="key" style="--units: 1">
+            <span class="main">Esc</span><span class="fn">Esc</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key" style="--units: 1">
+            <span class="main">F1</span><span class="fn">F1</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">F2</span><span class="fn">F2</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">F3</span><span class="fn">F3</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">F4</span><span class="fn">F4</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F5</span><span class="fn">Light −</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F6</span><span class="fn">Light +</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F7</span><span class="fn">Previous</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F8</span><span class="fn">Play / Pause</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F9</span><span class="fn">Next</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F10</span><span class="fn">Mute</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F11</span><span class="fn">Volume −</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">F12</span><span class="fn">Volume +</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key" style="--units: 1">
+            <span class="main">Mode</span><span class="fn">Mode</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key" style="--units: 1">
+            <span class="main">Print</span><span class="fn">Print</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">Pause</span><span class="fn">Pause</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="key" style="--units: 1">
+            <span class="main">` ~</span><span class="fn">` ~</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">1</span><span class="fn">1</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">2</span><span class="fn">2</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">3</span><span class="fn">3</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">4</span><span class="fn">4</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">5</span><span class="fn">5</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">6</span><span class="fn">6</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">7</span><span class="fn">7</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">8</span><span class="fn">8</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">9</span><span class="fn">9</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">0</span><span class="fn">0</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">- _</span><span class="fn">- _</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">= +</span><span class="fn">= +</span>
+          </div>
+          <div class="key navigation" style="--units: 2">
+            <span class="main">Backspace</span><span class="fn">Delete</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key" style="--units: 1">
+            <span class="main">Insert</span><span class="fn">Insert</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">PgUp</span><span class="fn">PgUp</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="key" style="--units: 1.5">
+            <span class="main">Tab</span><span class="fn">Tab</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">Q</span><span class="fn">Q</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">W</span><span class="fn">W</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">E</span><span class="fn">E</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">R</span><span class="fn">R</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">T</span><span class="fn">T</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">Y</span><span class="fn">PgUp</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">U</span><span class="fn">Home</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">I</span><span class="fn">↑</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">O</span><span class="fn">End</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">P</span><span class="fn">P</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">[ {</span><span class="fn">[ {</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">] }</span><span class="fn">] }</span>
+          </div>
+          <div class="key" style="--units: 1.5">
+            <span class="main">\ |</span><span class="fn">\ |</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key" style="--units: 1">
+            <span class="main">Delete</span><span class="fn">Delete</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">PgDn</span><span class="fn">PgDn</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="key" style="--units: 1.75">
+            <span class="main">Caps</span><span class="fn">Caps</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">A</span><span class="fn">A</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">S</span><span class="fn">S</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">D</span><span class="fn">D</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">F</span><span class="fn">F</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">G</span><span class="fn">G</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">H</span><span class="fn">PgDn</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">J</span><span class="fn">←</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">K</span><span class="fn">↓</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">L</span><span class="fn">→</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">; :</span><span class="fn">; :</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">“ &#x27;</span><span class="fn">“ &#x27;</span>
+          </div>
+          <div class="key" style="--units: 2.25">
+            <span class="main">Enter</span><span class="fn">Enter</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="key" style="--units: 2.25">
+            <span class="main">Shift</span><span class="fn">Shift</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">Z</span><span class="fn">Z</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">X</span><span class="fn">X</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">C</span><span class="fn">C</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">V</span><span class="fn">V</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">B</span><span class="fn">B</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">N</span><span class="fn">N</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">M</span><span class="fn">M</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">, &lt;</span><span class="fn">, &lt;</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">. &gt;</span><span class="fn">. &gt;</span>
+          </div>
+          <div class="key" style="--units: 1">
+            <span class="main">/ ?</span><span class="fn">/ ?</span>
+          </div>
+          <div class="key" style="--units: 2.75">
+            <span class="main">Shift</span><span class="fn">Shift</span>
+          </div>
+          <i style="--units: 0.25" aria-hidden="true"></i>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">↑</span><span class="fn">PgUp</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Control</span><span class="fn">Control</span>
+          </div>
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Option</span><span class="fn">Option</span>
+          </div>
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Command</span><span class="fn">Command</span>
+          </div>
+          <div class="key" style="--units: 6.25">
+            <span class="main">Space</span><span class="fn">Space</span>
+          </div>
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Command</span><span class="fn">Command</span>
+          </div>
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Option</span><span class="fn">Option</span>
+          </div>
+          <div class="key modifier" style="--units: 1.25">
+            <span class="main">Fn</span><span class="fn">Fn</span>
+          </div>
+          <i style="--units: 0.5" aria-hidden="true"></i>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">←</span><span class="fn">Home</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">↓</span><span class="fn">PgDn</span>
+          </div>
+          <div class="key navigation" style="--units: 1">
+            <span class="main">→</span><span class="fn">End</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note">
+        <strong>Four positions change</strong>
+        <p>
+          Left Win → Option<br />Left Alt → Command<br />Right Alt → Command<br />Right
+          Ctrl → Option<br />Keep left Control and Fn in place.
+        </p>
+      </div>
+      <div class="note">
+        <strong>One set of shortcut roles</strong>
+        <p>
+          <kbd>Command</kbd> · application actions<br /><kbd>Control</kbd> ·
+          terminal commands<br /><kbd>Control + Option</kbd> · window/workspace
+          actions<br /><kbd>Fn</kbd> · navigation, media and lighting
+        </p>
+      </div>
+    </div>
+    <p class="bottom">
+      This is a keycap and mapping guide, not an RGB preview. The export
+      preserves typing actuation, lighting, Caps Lock and the existing Fn layer.
+      Right Control is replaced by Option; left Control remains available.
+      Firmware Fn is not Apple's Globe key. Use the Mac Work export on both
+      operating systems; do not apply another modifier swap in software.
+    </p>
+    <script>
+      function setLayer(fn) {
+        document.body.classList.toggle("fn-view", fn);
+        document
+          .getElementById("base")
+          .setAttribute("aria-pressed", String(!fn));
+        document
+          .getElementById("function")
+          .setAttribute("aria-pressed", String(fn));
+      }
+    </script>
+  </body>
+</html>

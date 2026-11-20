@@ -18,4 +18,4 @@ complete source so preferences stay inspectable.
 The Windows guest is an integration feature for a compatible Linux host. Its
 [runbook](https://github.com/nix-forge/nix-conf/blob/main/docs/operations/workstation-virtualization.md)
 explains installation, state ownership and native validation. It is not part of
-the public starter or graphical demonstration.
+the graphical demonstration.

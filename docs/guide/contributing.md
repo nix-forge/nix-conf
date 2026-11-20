@@ -6,7 +6,7 @@ can be a small pull request with a clear reader-visible result.
 
 ## Good first contributions
 
-- Follow the starter on a listed platform and report the exact failing step.
+- Follow a module recipe on a suitable platform and report the exact failing step.
 - Explain an error message you encountered, with the smallest reproduction.
 - Improve a recipe's expected output or prerequisite list.
 - Add a consumer fixture for an independently reusable module before advertising it.

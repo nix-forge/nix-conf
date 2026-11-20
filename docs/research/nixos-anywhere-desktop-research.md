@@ -113,7 +113,7 @@ of both disks. It remains the authority for the destructive operation.
   submodules, LUKS passphrases or recovery keys, and recovery USB until the
   physical boot and restored services pass. A key for the optional data
   volume is generated on encrypted root after first boot by the local
-  [enrollment helper](../../hosts/nixos/desktop/local/storage/enroll.sh); it
+  [enrollment helper](../../hosts/nixos/desktop/local/storage/runtime/src/bin/desktop-storage-enroll.rs); it
   should not be copied into an initrd.
 
 ## Validation and limits

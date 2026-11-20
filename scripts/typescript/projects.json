@@ -1,0 +1,4 @@
+{
+  "scopes": ["overlays", "modules", "lib", "flake", "scripts"],
+  "projects": ["modules/home/macos/scripts/tsconfig.json"]
+}

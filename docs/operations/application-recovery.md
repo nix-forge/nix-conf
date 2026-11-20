@@ -85,13 +85,13 @@ channel before relying on notifications while logged out.
 
 ## Validation limits
 
-The [Restic fixture](../../tests/storage/test_application_recovery.py) restores a
+The Restic fixture restores a
 SQLite database containing committed WAL records after deleting the source. It
 also checks a VM definition, disk-state bytes, firmware and vTPM fixture state.
 These artifacts test backup completeness and generation identity. They do not
 prove a real VM boots or that its TPM keys decrypt real guest storage.
 
-The [NixOS fixture](../../tests/recovery/application-recovery.nix) tests generated
+The NixOS fixture tests generated
 service lifecycle, writer restart after export failure, restoration after source
 deletion and rejection of writes to live directories during a drill. Delivery
 tests use local commands; they do not establish that a remote provider or device

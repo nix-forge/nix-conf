@@ -12,24 +12,25 @@
       resetBlock = "          # The TCC service required to modify notarised app bundles is `kTCCServiceSystemPolicyAppBundles`\n          # and we can reset it to ensure the user gets another prompt\n          tccutil reset SystemPolicyAppBundles > /dev/null\n";
       consentMessage = "            printf >&2 '`darwin-rebuild` requires permission to update your apps, please accept the notification\\n'\n            printf >&2 'and grant the permission for your terminal emulator in System Settings.\\n'\n";
       patched = builtins.toFile "darwin-app-management-consent.nix" (
-        assert lib.assertMsg (
+        if
           builtins.hashString "sha256" (builtins.readFile original)
-          == "89d23112a2a2ed3a29137d1aefc5ad8f81de2942bbbe91faf66c24792d7b5b6e"
-        ) "Review the exact upstream App Management module before applying the consent repair";
+          != "89d23112a2a2ed3a29137d1aefc5ad8f81de2942bbbe91faf66c24792d7b5b6e"
+        then
+          throw "Review the exact upstream App Management module before applying the consent repair"
+        else
 
-        assert lib.assertMsg (
-          builtins.length (lib.splitString resetBlock source) == 2
-        ) "Expected exactly one upstream automatic TCC reset block";
-        assert lib.assertMsg (
-          builtins.length (lib.splitString consentMessage source) == 2
-        ) "Expected exactly one upstream App Management consent message";
-        builtins.replaceStrings
-          [ resetBlock consentMessage ]
-          [
-            "          # App Management consent is user-owned; activation never resets TCC.\n"
-            "            printf >&2 '`darwin-rebuild` could not update your apps; App Management permissions were left unchanged.\\n'\n            printf >&2 'In System Settings > Privacy & Security > App Management, grant access to the terminal running this command, then rerun it.\\n'\n"
-          ]
-          source
+        if builtins.length (lib.splitString resetBlock source) != 2 then
+          throw "Expected exactly one upstream automatic TCC reset block"
+        else if builtins.length (lib.splitString consentMessage source) != 2 then
+          throw "Expected exactly one upstream App Management consent message"
+        else
+          builtins.replaceStrings
+            [ resetBlock consentMessage ]
+            [
+              "          # App Management consent is user-owned; activation never resets TCC.\n"
+              "            printf >&2 '`darwin-rebuild` could not update your apps; App Management permissions were left unchanged.\\n'\n            printf >&2 'In System Settings > Privacy & Security > App Management, grant access to the terminal running this command, then rerun it.\\n'\n"
+            ]
+            source
       );
     in
     {

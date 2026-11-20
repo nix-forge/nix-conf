@@ -2,7 +2,7 @@
 
 ## Scope
 
-This model covers the reusable modules, the public starter, deployed host
+This model covers the reusable modules, the graphical demo, deployed host
 examples, documentation build, and repository automation. A consumer's host,
 credentials, hardware, and external services remain outside this repository's
 control.

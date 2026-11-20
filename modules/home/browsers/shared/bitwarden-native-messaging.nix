@@ -2,6 +2,7 @@
   config,
   lib,
   options,
+  myLib,
   pkgs,
   ...
 }:
@@ -68,13 +69,24 @@ let
   install = if isDarwin then "/usr/bin/install" else lib.getExe' pkgs.coreutils "install";
   installManifest =
     source: target:
-    ((import ../../../../lib/templates/text.nix) ./scripts/install-native-messaging-manifest.sh {
-      inherit mkdir;
-      lib_escapeShellArg_dirOf_target = lib.escapeShellArg (dirOf target);
-      inherit install;
-      lib_escapeShellArg_source = lib.escapeShellArg source;
-      lib_escapeShellArg_target = lib.escapeShellArg target;
-    });
+    (myLib.templates.renderText
+      {
+        name = "install-native-messaging-manifest.sh";
+        text = ''
+          # shellcheck shell=bash
+          # Variables and functions are supplied by the owning activation or build phase.
+          run @mkdir@ -p @lib_escapeShellArg_dirOf_target@
+          run @install@ -m 0600 @lib_escapeShellArg_source@ @lib_escapeShellArg_target@
+        '';
+      }
+      {
+        inherit mkdir;
+        lib_escapeShellArg_dirOf_target = lib.escapeShellArg (dirOf target);
+        inherit install;
+        lib_escapeShellArg_source = lib.escapeShellArg source;
+        lib_escapeShellArg_target = lib.escapeShellArg target;
+      }
+    );
   activationDeps = [ "writeBoundary" ] ++ lib.optionals isDarwin [ "copyApps" ];
 in
 {

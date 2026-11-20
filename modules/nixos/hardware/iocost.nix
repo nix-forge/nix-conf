@@ -1,18 +1,25 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellScript = myLib.writers.writeShellScript { inherit pkgs; };
   cfg = config.hardware.ioCost;
-  enable = pkgs.writeShellScript "enable-iocost" (
-    (import ../../../lib/templates/text.nix) ./iocost-assets/enable.sh {
-      cgroupRoot = lib.escapeShellArg "/sys/fs/cgroup";
-    }
-  );
+  runtime = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).adaptiveIoCost;
+  policy = (pkgs.formats.json { }).generate "adaptive-iocost.json" {
+    patterns = cfg.kernelDevicePatterns;
+    cgroupRoot = "/sys/fs/cgroup";
+    deviceRoot = "/sys/block";
+    udevadm = lib.getExe' config.systemd.package "udevadm";
+  };
+  enable = writeShellScript "enable-iocost" ''
+    exec ${lib.getExe runtime} enable /sys/fs/cgroup "$@"
+  '';
   rules = lib.concatMapStringsSep "\n" (pattern: ''
-    ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", KERNEL=="${pattern}", ENV{IOCOST_SOLUTIONS}=="", RUN+="${enable} %M:%m"
+    ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", KERNEL=="${pattern}", ENV{IOCOST_SOLUTIONS}=="", RUN+="${lib.getExe runtime} enable /sys/fs/cgroup %M:%m"
   '') cfg.kernelDevicePatterns;
 in
 {
@@ -58,10 +65,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-      };
-      script = (import ../../../lib/templates/text.nix) ./iocost-assets/reconcile.sh {
-        inherit enable;
-        patterns = lib.escapeShellArgs cfg.kernelDevicePatterns;
+        ExecStart = "${lib.getExe runtime} reconcile ${policy}";
       };
     };
     system.build.ioCostPolicy = pkgs.linkFarm "iocost-policy" [

@@ -1,0 +1,16 @@
+--- a/src/actor/input.rs
++++ b/src/actor/input.rs
+@@ -812,7 +812,12 @@
+                 if event::is_rift_synthetic_event(event) {
+                     return true;
+                 }
+-                if event_type == CGEventType::KeyDown {
++                if event_type == CGEventType::KeyDown
++                    && CGEvent::integer_value_field(
++                        Some(event),
++                        CGEventField::KeyboardEventAutorepeat,
++                    ) == 0
++                {
+                     self.events_tx.send(Event::KeyboardInput);
+                 }
+                 if shortcut_recorder_is_frontmost() {

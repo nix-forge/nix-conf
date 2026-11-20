@@ -44,7 +44,7 @@ syntax checks did not catch:
 
 - `systemd-inhibit` removed the readiness child's `NOTIFY_SOCKET`. Pass that
   socket explicitly to the child after acquiring the sleep inhibitor. The
-  [native regression probe](../../tests/systemd/check-libvirt-sleep-inhibitor.sh)
+  native regression probe
   checks readiness and lock release.
 - `swtpm_localca` needed its packaged tmpfiles rule and the `tss` system account
   to create its certificate authority state. Register both without enabling

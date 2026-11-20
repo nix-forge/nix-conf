@@ -24,7 +24,9 @@ in
 
   config = {
     lib.vscode.catalogExtensions =
-      extensionIds: catalog.forVscodeVersion cfg.extensionCompatibilityVersion extensionIds;
+      # Nixpkgs can omit the patch component, which the catalog parser requires.
+      extensionIds:
+      catalog.forVscodeVersion (lib.versions.pad 3 cfg.extensionCompatibilityVersion) extensionIds;
 
     assertions = lib.mkIf cfg.enable [
       {

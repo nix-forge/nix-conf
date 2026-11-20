@@ -68,7 +68,7 @@ Nix evaluation of the Pi configuration confirms `advertiser = "avahi"`,
 `sessionTimeout = 3600`, `avahi-daemon.service` in Homebridge's `Requires` and
 `After`, `StateDirectoryMode = "0700"`, and Node 24.20.0 first in its service
 PATH. The Pi system closure built successfully on `desktop` with
-`workstation-task nix build` for the `aarch64-linux` configuration. These checks
+`nix build` for the `aarch64-linux` configuration. These checks
 do not establish service startup or HomeKit discovery. The plugin inventory and
 Matter use were not reviewed. After activation, verify Avahi and Homebridge startup,
 `_hap._tcp` discovery from intended VLANs, a real accessory in Apple Home,

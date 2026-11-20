@@ -6,39 +6,14 @@
   ...
 }:
 let
-  mkExtensionPolicies = import ../shared/extension-policies.nix { inherit lib; };
-  mkUblockPolicy = import ../shared/ublock-policy.nix { inherit lib; };
-  inherit (config.programs.browserSuite)
-    blocking
-    geckoPolicies
-    scrolling
-    systemResolverPolicy
-    ;
-  inherit (config.programs.browserSuite.shared) profile search ublock;
-  inherit (config.programs.browserSuite.shared.geckoInstallRegistry) reconciler;
-  extensionGroups = config.programs.browserSuite.extensions;
-  extensions = extensionGroups.shared // extensionGroups.zen;
-  defaultProfile = lib.findFirst (profileConfig: profileConfig.isDefault) null (
-    lib.attrValues config.programs.zen-browser.profiles
-  );
-  darwinConfigPath = "${config.home.homeDirectory}/Library/Application Support/Zen";
-  reconcileInstallRegistry = lib.escapeShellArgs [
-    (lib.getExe reconciler)
-    "--profiles-registry"
-    "${darwinConfigPath}/profiles.ini"
-    "--install-registry"
-    "${darwinConfigPath}/installs.ini"
-    "--default-profile"
-    "Profiles/${defaultProfile.path}"
-  ];
-  extensionPolicies = {
-    ExtensionSettings = mkExtensionPolicies extensions;
-  };
-  ublockPolicies = lib.optionalAttrs (extensions ? ublockOrigin) {
-    "3rdparty".Extensions.${extensions.ublockOrigin.id} = mkUblockPolicy {
-      inherit (blocking) customFilterLists;
-      inherit (ublock) defaultFilterLists settings;
-    };
+  suite = config.programs.browserSuite;
+  inherit (suite) scrolling;
+  inherit (suite.shared) profile search;
+  gecko = (import ../shared/.gecko.nix { inherit lib; }) {
+    inherit suite;
+    browser = "zen";
+    inherit (config.programs.zen-browser) profiles;
+    configDirectory = "${config.home.homeDirectory}/Library/Application Support/Zen";
   };
 in
 {
@@ -46,13 +21,24 @@ in
     inputs.zen-browser.homeModules.beta
     ../shared
     ./shopping.nix
+    {
+      options.programs.zen-browser.package = lib.mkOption {
+        apply =
+          package:
+          if pkgs.stdenv.hostPlatform.isDarwin && package != null then
+            (import ../../../../overlays/temporary { inherit inputs pkgs; }).apply "zen-darwin-app-metadata"
+              package
+          else
+            package;
+      };
+    }
   ];
 
   programs.zen-browser = {
     enable = true;
     enablePrivateDesktopEntry = true;
     darwin.packageMode = "signed";
-    policies = systemResolverPolicy // geckoPolicies // extensionPolicies // ublockPolicies;
+    inherit (gecko) policies;
 
     profiles.default = {
       id = 0;
@@ -81,7 +67,7 @@ in
   # install IDs, but make each one select the declared default profile.
   home.activation.reconcileZenInstallRegistry = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
     lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      run ${reconcileInstallRegistry}
+      run ${gecko.reconcileInstallRegistry}
     ''
   );
 }

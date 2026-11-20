@@ -75,7 +75,7 @@ remain distinct from website passwords. Passwordless applications keep their
 existing passkey or OIDC authentication.
 
 After preparing and activating the configuration, use the
-[homelab vault importer](../hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py)
+[homelab vault importer](../hosts/nixos/desktop/local/homelab/credentials/runtime/src/bin/homelab-to-bitwarden.rs)
 from the desktop terminal:
 
 ```sh

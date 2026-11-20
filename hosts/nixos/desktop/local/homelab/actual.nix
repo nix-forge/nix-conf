@@ -2,10 +2,14 @@
   config,
   inputs,
   lib,
+  myLib,
   pkgs,
+  utils,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   image = "/var/lib/actual-volume/actual.luks";
   mount = "/srv/actual";
   mapper = "actual-vault";
@@ -13,30 +17,42 @@ let
   identityOrigin = "https://identity.${config.homelab.operations.lanHttps.domain}";
   backupDestinations = config.hardware.storage.encryptedRoot.backup.destinations;
   actualCli = inputs.nixpkgs-personal.packages.${pkgs.stdenv.hostPlatform.system}.actual-cli;
-  actualCommand = pkgs.writeShellApplication {
+  inherit ((import ../../../../../flake/runtime-packages.nix { inherit pkgs; })) actualProtocols;
+  actualCommand = writeShellApplication {
     name = "actual";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.util-linux
-      pkgs.python3
-    ];
-    text = (import ../../../../../lib/templates/text.nix) ./actual/scripts/cli.sh {
-      lib_escapeShellArg_actualOrigin = lib.escapeShellArg actualOrigin;
-      lib_escapeShellArg_identityOrigin = lib.escapeShellArg identityOrigin;
-      scripts_actual_cli_login_py = ./actual/scripts/actual_cli_login.py;
-      inherit actualCli;
-    };
+    runtimeInputs = [ pkgs.util-linux ];
+    text =
+      myLib.templates.renderText
+        {
+          name = "cli.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @actualCommand@ @arguments@ "$@"
+          '';
+        }
+        {
+          actualCommand = lib.escapeShellArg (lib.getExe' actualProtocols "actual-command");
+          arguments = lib.escapeShellArgs [
+            actualOrigin
+            identityOrigin
+            (lib.getExe' actualCli "actual-cli")
+          ];
+        };
   };
-  actualVault = pkgs.writeShellApplication {
+  actualVault = writeShellApplication {
     name = "actual-vault";
     runtimeInputs = with pkgs; [
       cryptsetup
-      coreutils
-      e2fsprogs
       systemd
       util-linux
     ];
-    text = builtins.readFile ./actual/scripts/actual-vault.sh;
+    text = myLib.templates.renderText {
+      name = "actual-vault.sh";
+      text = ''
+        # shellcheck shell=bash
+        exec @actualVault@ "$@"
+      '';
+    } { actualVault = lib.escapeShellArg (lib.getExe' actualProtocols "actual-vault"); };
   };
 in
 {
@@ -119,7 +135,10 @@ in
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
-          ExecStart = "${pkgs.python3}/bin/python3 ${./actual/scripts/actual_identity.py} http://127.0.0.1:${toString config.services.keycloak.settings.http-port} ${lib.escapeShellArg actualOrigin}";
+          ExecStart = "${
+            lib.getExe' (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).actualProtocols
+              "actual-identity"
+          } http://127.0.0.1:${toString config.services.keycloak.settings.http-port} ${lib.escapeShellArg actualOrigin}";
           LoadCredential = [
             "admin:${config.nixSeal.secrets.homelab-identity-admin-env.path}"
             "username:${config.nixSeal.secrets.homelab-actual-username.path}"
@@ -142,7 +161,29 @@ in
       actual-vault-open = {
         description = "Open Actual storage using the desktop TPM";
         path = with pkgs; [ cryptsetup ];
-        script = builtins.readFile ./actual/scripts/actual-vault-open.sh;
+        script = checkedShellText {
+          name = "actual-vault-open";
+          text = ''
+            # shellcheck shell=bash
+            set -euo pipefail
+            image=/var/lib/actual-volume/actual.luks
+            mapper=actual-vault
+
+            if cryptsetup status "$mapper" >/dev/null 2>&1; then
+              exit 0
+            fi
+
+            # A missing or replaced image must fail closed. Initial provisioning is attended.
+            if [ ! -f "$image" ] || [ -L "$image" ]; then
+              echo "Actual vault image is missing or invalid: $image" >&2
+              exit 1
+            fi
+
+            # The enrolled TPM2 token unlocks locally. Headless mode forbids a boot prompt.
+            exec "$SYSTEMD_CRYPTSETUP" attach "$mapper" "$image" none \
+              tpm2-device=auto,headless=yes,tries=1
+          '';
+        };
         environment.SYSTEMD_CRYPTSETUP = "${pkgs.systemd}/lib/systemd/systemd-cryptsetup";
         serviceConfig = {
           Type = "oneshot";
@@ -159,10 +200,27 @@ in
           "srv-actual.mount"
           "nix-seal-activate.service"
         ];
-        script = (import ../../../../../lib/templates/text.nix) ./actual/scripts/prepare-runtime.sh {
-          pkgs_util_linux = pkgs.util-linux;
-          inherit mount;
-          inherit mapper;
+        script = checkedShellText {
+          name = "prepare-actual-runtime";
+          text =
+            myLib.templates.renderText
+              {
+                name = "prepare-runtime.sh";
+                text = ''
+                  # shellcheck shell=bash
+                  test "$(@pkgs_util_linux@/bin/findmnt -rn -o SOURCE --target @mount@)" = /dev/mapper/@mapper@
+                  chmod 0711 @mount@
+                  install -d -m 0700 -o actual -g actual @mount@/server
+                  install -d -m 0700 -o ianmh -g users @mount@/cli /run/nix-seal/actual-cli
+                  install -m 0400 -o ianmh -g users "$CREDENTIALS_DIRECTORY/username" /run/nix-seal/actual-cli/username
+                  install -m 0400 -o ianmh -g users "$CREDENTIALS_DIRECTORY/password" /run/nix-seal/actual-cli/password
+                '';
+              }
+              {
+                pkgs_util_linux = pkgs.util-linux;
+                inherit mount;
+                inherit mapper;
+              };
         };
         serviceConfig = {
           Type = "oneshot";
@@ -175,24 +233,24 @@ in
       };
       actual = {
         # systemctl start must wait until the HTTP server can answer requests.
-        postStart = (import ../../../../../lib/templates/text.nix) ./actual/scripts/wait-for-health.sh {
-          curl = lib.escapeShellArg (lib.getExe pkgs.curl);
-          readinessArgs = lib.escapeShellArgs [
-            "--silent"
-            "--show-error"
-            "--fail"
-            "--retry"
-            "30"
-            "--retry-delay"
-            "1"
-            "--retry-connrefused"
-            "--retry-max-time"
-            "60"
-            "--max-time"
-            "2"
-            "http://127.0.0.1:${toString config.services.actual.settings.port}/health"
-          ];
-        };
+        serviceConfig.ExecStartPost = utils.escapeSystemdExecArgs [
+          (lib.getExe pkgs.curl)
+          "--silent"
+          "--show-error"
+          "--fail"
+          "--retry"
+          "30"
+          "--retry-delay"
+          "1"
+          "--retry-connrefused"
+          "--retry-max-time"
+          "60"
+          "--max-time"
+          "2"
+          "--output"
+          "/dev/null"
+          "http://127.0.0.1:${toString config.services.actual.settings.port}/health"
+        ];
         serviceConfig.RestartSec = "5s";
         serviceConfig.LoadCredential = [
           "oidc-secret:${config.nixSeal.secrets.homelab-actual-oidc-secret.path}"
@@ -215,25 +273,52 @@ in
           RequiresMountsFor = mount;
           AssertPathIsMountPoint = mount;
         };
-        preStart = lib.mkBefore (
-          (import ../../../../../lib/templates/text.nix) ./actual/scripts/require-vault-mount.sh {
-            pkgs_util_linux = pkgs.util-linux;
-            inherit mount;
-            inherit mapper;
-          }
-        );
+        preStart = lib.mkBefore (checkedShellText {
+          name = "require-vault-mount";
+          text =
+            myLib.templates.renderText
+              {
+                name = "require-vault-mount.sh";
+                text = ''
+                  # shellcheck shell=bash
+                  test "$(@pkgs_util_linux@/bin/findmnt -rn -o SOURCE --target @mount@)" = /dev/mapper/@mapper@
+                  test -d @mount@/server
+                '';
+              }
+              {
+                pkgs_util_linux = pkgs.util-linux;
+                inherit mount;
+                inherit mapper;
+              };
+        });
       };
     }
     (lib.mapAttrs' (
       name: _:
       lib.nameValuePair "desktop-backup-cold-${name}" {
-        preStart = lib.optionalString (config.hardware.storage.encryptedRoot.backup.coldUnits == [ ]) (
-          (import ../../../../../lib/templates/text.nix) ./actual/scripts/require-locked-backup.sh {
-            inherit image;
-            pkgs_cryptsetup = pkgs.cryptsetup;
-            inherit mapper;
-          }
-        );
+        preStart =
+          lib.optionalString (config.hardware.storage.encryptedRoot.backup.coldUnits == [ ])
+            (checkedShellText {
+              name = "require-locked-backup";
+              text =
+                myLib.templates.renderText
+                  {
+                    name = "require-locked-backup.sh";
+                    text = ''
+                      # shellcheck shell=bash
+                      test -f @image@
+                      if @pkgs_cryptsetup@/bin/cryptsetup status @mapper@ >/dev/null 2>&1; then
+                        echo "Lock the Actual volume before its cold backup" >&2
+                        exit 1
+                      fi
+                    '';
+                  }
+                  {
+                    inherit image;
+                    pkgs_cryptsetup = pkgs.cryptsetup;
+                    inherit mapper;
+                  };
+            });
       }
     ) backupDestinations)
   ];

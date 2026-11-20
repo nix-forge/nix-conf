@@ -16,35 +16,27 @@ let
     )
     + lib.optionalString (cfg.preferences != { }) "\n"
   );
-  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
   spicePkgs = inputs.spicetify-nix.legacyPackages.${system};
-  awkExe = lib.getExe pkgs.gawk;
   spicetifyPackage = pkgs.spicetify-cli;
   spotifyPackage = self.packages.${system}.spotify-spotx;
   metabrainzExtension = pkgs.metabrainz-spicetify-extension;
   spotifyDarwinInstallDir = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   spotifyDarwinApp = "${spotifyDarwinInstallDir}/Spotify.app";
-  spotifyQuality = writeBashTemplate {
-    name = "configure-spotify-quality.sh";
-    src = ./spotify-assets/configure-spotify-quality.sh;
-    replacements = {
-      preferenceUpdater = ./spotify-assets/update-preferences.awk;
-      inherit managedPreferences;
-      pgrep = if isDarwin then "/usr/bin/pgrep" else lib.getExe' pkgs.procps "pgrep";
-      mktemp = lib.getExe' pkgs.coreutils "mktemp";
-      awk = awkExe;
-      mv = lib.getExe' pkgs.coreutils "mv";
-      rm = lib.getExe' pkgs.coreutils "rm";
-      cmp = lib.getExe' pkgs.diffutils "cmp";
-      spotifyPreferences =
-        if isDarwin then
-          "${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/prefs"} ${lib.escapeShellArg "${config.home.homeDirectory}/Library/Application Support/Spotify/Users"}/*-user/prefs"
-        else
-          "${lib.escapeShellArg "${config.xdg.configHome}/spotify/prefs"} ${lib.escapeShellArg "${config.xdg.configHome}/spotify/Users"}/*-user/prefs";
-    };
-  };
+  inherit ((import ../../flake/runtime-packages.nix { inherit pkgs; })) spotifyPreferences;
+  preferencesRoot =
+    if isDarwin then
+      "${config.home.homeDirectory}/Library/Application Support/Spotify"
+    else
+      "${config.xdg.configHome}/spotify";
+  configurePreferences = lib.escapeShellArgs [
+    (lib.getExe spotifyPreferences)
+    (toString managedPreferences)
+    preferencesRoot
+    (if isDarwin then "/usr/bin/pgrep" else lib.getExe' pkgs.procps "pgrep")
+  ];
+
 in
 {
   options.programs.spotify = {
@@ -90,26 +82,32 @@ in
       # in its sandboxed build. Register the copied path without mutating it.
       registerSpotifyDarwinApp = lib.mkIf isDarwin (
         lib.hm.dag.entryAfter [ "copyApps" ] (
-          (import ../../lib/templates/text.nix) ./spotify-assets/register-darwin-app.sh {
-            lib_escapeShellArg_spotifyDarwinApp = lib.escapeShellArg spotifyDarwinApp;
-          }
+          myLib.writers.renderBashText { inherit pkgs; } {
+            name = "register-darwin-app.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Sourced by Home Manager or the owning build phase.
+              spotifyApp=@lib_escapeShellArg_spotifyDarwinApp@
+              if [[ -d $spotifyApp ]]; then
+                run /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+                  -f "$spotifyApp"
+              fi
+            '';
+          } { lib_escapeShellArg_spotifyDarwinApp = lib.escapeShellArg spotifyDarwinApp; }
         )
       );
 
       # Spotify's account-specific prefs live beneath a runtime-created profile
       # directory. macOS also keeps startup policy in a parent `prefs` file.
-      configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-        (import ../../lib/templates/text.nix) ./spotify-assets/configure-quality.sh.in {
-          script = lib.escapeShellArg (toString spotifyQuality);
-        }
-      );
+      configureSpotifyQuality = lib.hm.dag.entryAfter [ "writeBoundary" ] "run ${configurePreferences}";
 
       # Spotify's preference above prevents StartUpHelper from being registered
       # again. Keep launchd's existing user-level registration disabled too.
       disableSpotifyDarwinAutostart = lib.mkIf (isDarwin && cfg.disableAutostart) (
-        lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] (
-          builtins.readFile ./spotify-assets/disable-autostart.sh
-        )
+        lib.hm.dag.entryAfter [ "configureSpotifyQuality" "copyApps" ] ''
+          # shellcheck shell=bash
+          run /bin/launchctl disable "gui/$(/usr/bin/id -u)/com.spotify.client.startuphelper"
+        ''
       );
     };
 

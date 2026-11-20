@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.macos.applicationCapabilities;
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
   keyType = lib.types.strMatching "[a-zA-Z0-9][a-zA-Z0-9_.-]*";
@@ -65,16 +67,11 @@ let
       }) (lib.filterAttrs (_: feature: feature.enable) app.features);
     }) apps;
   };
-  helper = pkgs.writers.writePython3Bin "hm-macos-readiness-helper" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./application_readiness.py;
-  package = pkgs.writeShellApplication {
+  helper = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).macosApplicationTools;
+  package = writeShellApplication {
     name = "hm-macos-readiness";
     text = ''
-      exec ${lib.getExe helper} --manifest ${manifest} "$@"
+      exec ${lib.getExe' helper "hm-macos-readiness"} --manifest ${manifest} "$@"
     '';
   };
 in

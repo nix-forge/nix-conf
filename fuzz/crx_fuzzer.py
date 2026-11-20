@@ -1,8 +1,9 @@
 """Fuzz CRX header handling and check the extracted payload byte for byte."""
 
-import importlib.util
+import os
 import pathlib
 import struct
+import subprocess
 import sys
 import tempfile
 
@@ -16,17 +17,7 @@ V3_HEADER_SIZE = 12
 MAX_INPUT_SIZE = 64 * 1024
 METADATA_SIZE = 32
 
-SCRIPT = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / "modules/home/browsers/helium/scripts/crx_to_zip.py"
-)
-with atheris.instrument_imports():
-    spec = importlib.util.spec_from_file_location("crx_to_zip", SCRIPT)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    atheris.instrument_func(module.convert)
+CONVERTER = pathlib.Path(os.environ["CRX_CONVERTER"]).resolve(strict=True)
 
 directory = tempfile.TemporaryDirectory(prefix="crx-fuzz-")
 source = pathlib.Path(directory.name) / "input.crx"
@@ -62,13 +53,15 @@ def check(raw: bytes) -> None:
         target.unlink()
     source.write_bytes(raw)
     expected = expected_payload(raw)
-    try:
-        module.convert(source, target)
-    except SystemExit:
-        assert expected is None
+    result = subprocess.run(
+        [str(CONVERTER), str(source), str(target)],
+        check=False, capture_output=True, timeout=5,
+    )
+    if expected is None:
+        assert result.returncode == 1
         assert not target.exists()
     else:
-        assert expected is not None
+        assert result.returncode == 0, result.stderr
         assert target.read_bytes() == expected
     assert source.read_bytes() == raw
 

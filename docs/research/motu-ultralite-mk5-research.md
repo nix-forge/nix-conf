@@ -325,7 +325,7 @@ exclusions. The next build passed evaluation and built dependencies, but the
 kernel terminated two build workloads during global memory exhaustion. Reducing
 build concurrency alone was insufficient. Separating evaluation from compilation
 reduced the waiting build client's resident memory from roughly 2.5 GiB to
-49 MiB while retaining the desktop resource protections and workstation queue.
+49 MiB while retaining the desktop resource protections.
 An unrelated icon dependency also had a source hash mismatch. Its archive files
 were verified against the pinned Git revision before using the corrected hash
 in a private build input. The package checkout's hash was subsequently corrected

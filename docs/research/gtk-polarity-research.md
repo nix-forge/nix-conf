@@ -52,7 +52,7 @@ Flatpak workaround, not a recommended global native-session setting.
 
 ## Validation and limits
 
-The [GTK check](../../tests/nix/gtk-polarity.nix) runs real GTK 3 dialogs under Xvfb
+The GTK check runs real GTK 3 dialogs under Xvfb
 against generated settings and the flattened theme's Flatpak environment. Its
 fixtures cover the four configured palettes, a light palette, `either`, absent
 variant metadata, and a renamed theme package with a light stylesheet. Module
@@ -63,7 +63,7 @@ dialog runs. The broader `theme-targets` and `temporary-package-fixes` checks
 also passed. The live GTK 3 session passed after restoring the configured base
 theme name and applying the generated preference file.
 
-The [dialog probe](../../tests/gtk/check_dialog_contrast.py) requires at least 4.5:1
+The dialog probe requires at least 4.5:1
 text contrast for ordinary enabled buttons in normal, hover, focused, and
 backdrop states. This adopts the WCAG normal-text threshold as a native UI
 regression criterion; it is not a claim of full accessibility conformance.

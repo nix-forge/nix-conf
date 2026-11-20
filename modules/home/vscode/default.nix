@@ -12,6 +12,7 @@ in
   imports = [
     ../macos/applications.nix
     ./settings.nix
+    ./remote.nix
     ./keybinds.nix
   ];
 

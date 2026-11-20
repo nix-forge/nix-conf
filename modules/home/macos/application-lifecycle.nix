@@ -1,32 +1,53 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   inputs,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.macos.applications;
   appsDirectory = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
   fixes = import ../../../overlays/temporary { inherit inputs lib; };
-  helper = pkgs.writers.writePython3Bin "hm-macos-app-lifecycle-helper" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./application_lifecycle.py;
+  helper = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).macosApplicationTools;
   manifest = pkgs.writeText "protected-macos-applications.json" (
     builtins.toJSON {
       inherit appsDirectory;
+      inherit (cfg) manageAll;
+      selectedApplications = "${
+        pkgs.buildEnv {
+          name = "selected-macos-applications";
+          # Commands referring back to this manifest are installers, not app
+          # inputs. Excluding them avoids a recursive derivation graph.
+          # A package can also declare that it has no app bundles. Its CLI
+          # still belongs to the home profile, outside the app inventory.
+          paths = lib.filter (
+            package:
+            (package.hasMacOSApplications or true)
+            && !(builtins.elem (lib.getName package) [
+              "hm-macos-app-lifecycle"
+              "macos-applications"
+              "hm-macos-network-test"
+            ])
+          ) config.home.packages;
+          pathsToLink = [ "/Applications" ];
+        }
+      }/Applications";
+      localSigning = {
+        inherit (cfg.localSigning) identity certificateSha256;
+        keychain = "${config.home.homeDirectory}/Library/Keychains/login.keychain-db";
+      };
       username = config.home.username;
       stateDirectory = "${config.xdg.stateHome}/macos-applications/lifecycle";
       queryScript = "${./scripts/application-paths.js}";
       rsync = lib.getExe pkgs.rsync;
-      registryHelper = lib.getExe cfg.registryHelperPackage;
+      registryHelper = lib.getExe' cfg.registryHelperPackage "hm-macos-applications-helper";
       apps = lib.attrValues cfg.protectedApps;
     }
   );
-  command = "${lib.getExe helper} --manifest ${manifest}";
+  command = "${lib.getExe' helper "hm-macos-app-lifecycle-helper"} --manifest ${manifest}";
   monitor = pkgs.stdenv.mkDerivation {
     name = "macos-application-lifecycle-monitor";
     src = ./application-monitor.swift;
@@ -39,7 +60,7 @@ let
     '';
     installPhase = ''mkdir -p "$out/bin"; cp monitor "$out/bin/hm-macos-app-monitor"; cp network-probe "$out/bin/hm-macos-network-probe"'';
   };
-  enabled = cfg.enable && cfg.protectedBundles != [ ];
+  enabled = cfg.enable && (cfg.manageAll || cfg.protectedBundles != [ ]);
 in
 {
   imports = [
@@ -49,15 +70,27 @@ in
     })
   ];
   options.macos.applications = {
+    manageAll = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Transactionally manage every top-level app selected by home.packages; preserve certificate signatures and locally sign ad-hoc/unsigned apps.";
+    };
+    localSigning = {
+      identity = lib.mkOption {
+        type = lib.types.nonEmptyStr;
+        default = "Nix Local Applications";
+        description = "Persistent Code Signing certificate name in the login Keychain. Create it once, then explicitly enroll it using the lifecycle command.";
+      };
+      certificateSha256 = lib.mkOption {
+        type = lib.types.nullOr (lib.types.strMatching "[a-fA-F0-9]{64}");
+        default = null;
+        description = "Optional public certificate pin. Without it, explicit enrollment pins the certificate in private local state; activation never generates or changes keys.";
+      };
+    };
     registryHelperPackage = lib.mkOption {
       type = lib.types.package;
       readOnly = true;
-      default = pkgs.writers.writePython3Bin "hm-macos-applications-helper" {
-        flakeIgnore = [
-          "E501"
-          "W503"
-        ];
-      } ./application_registry.py;
+      default = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).macosApplicationTools;
       description = "Native registration inventory and scoped reconciliation helper.";
     };
     protectedApps = lib.mkOption {
@@ -93,7 +126,7 @@ in
     lifecyclePackage = lib.mkOption {
       type = lib.types.package;
       readOnly = true;
-      default = pkgs.writeShellApplication {
+      default = writeShellApplication {
         name = "hm-macos-app-lifecycle";
         text = ''exec ${command} "$@"'';
       };
@@ -118,17 +151,18 @@ in
     home.packages = [
       cfg.lifecyclePackage
     ]
-    ++ lib.optional (cfg.protectedApps ? codex) (
-      pkgs.writeShellApplication {
-        name = "hm-macos-network-test";
-        text = ''
-          exec ${lib.getExe pkgs.python3} ${./application_network_test.py} \
-            --app ${lib.escapeShellArg (appsDirectory + "/" + cfg.protectedApps.codex.bundle)} \
-            --lifecycle ${lib.getExe cfg.lifecyclePackage} \
-            --probe ${monitor}/bin/hm-macos-network-probe "$@"
-        '';
-      }
-    );
+    ++ lib.optional (cfg.protectedApps ? codex) (writeShellApplication {
+      name = "hm-macos-network-test";
+      text = ''
+        exec ${
+          lib.getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).macosApplicationTools
+            "hm-macos-network-test"
+        } \
+          --app ${lib.escapeShellArg (appsDirectory + "/" + cfg.protectedApps.codex.bundle)} \
+          --lifecycle ${lib.getExe cfg.lifecyclePackage} \
+          --probe ${monitor}/bin/hm-macos-network-probe "$@"
+      '';
+    });
     home.activation = {
       preflightProtectedApps = lib.hm.dag.entryBefore [ "writeBoundary" ] ''
         ${command} --mode preflight

@@ -26,7 +26,7 @@ groups; it does not repeat the same full build after a successful queued merge.
 CodeQL retains its main-branch scan, and documentation retains its publish job.
 
 Shared queue regression tests live in [nix-forge/ci](https://github.com/nix-forge/ci).
-Run repository-specific selection tests separately when present.
+Repository-owned automated tests cover Nix library functions; nix-seal retains Rust tests.
 
 macOS jobs use the supported macos-26 image. nix-seal retains its legacy
 macos-14 matrix labels only as required-check identifiers; runs-on selects
@@ -50,3 +50,14 @@ required automatically, and removing a partition does not leave a required check
 named after a deleted file. Existing per-lockfile requirements migrate to this
 aggregate only after it passes PR and native merge-group validation. Other
 required checks and their GitHub Actions app binding remain unchanged.
+
+## Retiring check names
+
+Publish and validate replacement workflows before changing required contexts on
+`main`. The library-testing migration retires root legacy-symbol and CRX fuzz
+checks, framework selector fuzzing, package font-path fuzzing, homelab API fuzzing
+and its four x86 VM partitions, and nix-seal legacy-symbol and benchmark jobs.
+Replace homelab's four `Flake Check (x86_64-linux N/4)` contexts with
+`Flake Check (x86_64-linux)`. Keep the other required checks and their GitHub
+Actions app bindings. Live branch protection is administered separately from
+these source changes; removing a workflow file does not retire its requirement.

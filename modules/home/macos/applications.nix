@@ -1,13 +1,15 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   cfg = config.macos.applications;
   appsDirectory = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}";
-  render = import ../../../lib/templates/text.nix;
+  render = myLib.templates.renderText;
   manager = cfg.registryHelperPackage;
   managerArgs = lib.escapeShellArgs [
     "--apps-dir"
@@ -21,13 +23,38 @@ let
   ];
   commands = lib.mapAttrsToList (
     name: command:
-    pkgs.writeShellApplication {
+    writeShellApplication {
       inherit name;
-      text = render ./scripts/launch-managed-app.sh.in {
-        app = lib.escapeShellArg "${appsDirectory}/${command.bundle}";
-        executable = lib.escapeShellArg (command.executable or "");
-        open = "/usr/bin/open";
-      };
+      text =
+        render
+          {
+            name = "launch-managed-app.sh.in";
+            text = ''
+              # shellcheck shell=bash
+              app=@app@
+              executable=@executable@
+
+              if [[ ! -d "$app/Contents" ]]; then
+                printf 'Managed application is missing; activate Home Manager first: %s\n' "$app" >&2
+                exit 1
+              fi
+
+              if [[ -n $executable ]]; then
+                if [[ ! -x "$app/$executable" ]]; then
+                  printf 'Managed application CLI is missing: %s/%s\n' "$app" "$executable" >&2
+                  exit 1
+                fi
+                exec "$app/$executable" "$@"
+              fi
+
+              exec @open@ -a "$app" --args "$@"
+            '';
+          }
+          {
+            app = lib.escapeShellArg "${appsDirectory}/${command.bundle}";
+            executable = lib.escapeShellArg (command.executable or "");
+            open = "/usr/bin/open";
+          };
     }
   ) cfg.commands;
   commandAliases = lib.concatLists (
@@ -38,25 +65,49 @@ let
   package = pkgs.symlinkJoin {
     name = "macos-applications";
     paths = commands ++ [
-      (pkgs.writeShellApplication {
+      (writeShellApplication {
         name = "hm-macos-applications";
-        text = render ./scripts/reconcile-applications.sh.in {
-          lifecycleCheck = lib.optionalString (cfg.protectedBundles != [ ]) ''
-            if [[ " ''${*} " == *" --check "* ]]; then
-              ${lib.getExe cfg.lifecyclePackage} --mode check || exit "$?"
-            fi
-          '';
-          helper = lib.getExe manager;
-          args = managerArgs;
-        };
+        text =
+          render
+            {
+              name = "reconcile-applications.sh.in";
+              text = ''
+                # shellcheck shell=bash
+                @lifecycleCheck@
+                exec @helper@ @args@ "$@"
+              '';
+            }
+            {
+              lifecycleCheck = lib.optionalString (cfg.manageAll || cfg.protectedBundles != [ ]) ''
+                if [[ " ''${*} " == *" --check "* ]]; then
+                  ${lib.getExe cfg.lifecyclePackage} --mode check || exit "$?"
+                fi
+              '';
+              helper = lib.getExe' manager "hm-macos-applications-helper";
+              args = managerArgs;
+            };
       })
     ];
     postBuild = lib.concatMapStringsSep "\n" (
       item:
-      render ./scripts/link-command-alias.sh.in {
-        name = lib.escapeShellArg item.name;
-        alias = lib.escapeShellArg item.alias;
-      }
+      render
+        {
+          name = "link-command-alias.sh.in";
+          text = ''
+            # shellcheck shell=bash
+            command_name=@name@
+            alias_name=@alias@
+            : "''${out:?Nix must provide the output directory}"
+            # Case-insensitive stores already resolve case-only aliases to the original.
+            if [[ ! -e "$out/bin/$alias_name" ]]; then
+              ln -s "$command_name" "$out/bin/$alias_name"
+            fi
+          '';
+        }
+        {
+          name = lib.escapeShellArg item.name;
+          alias = lib.escapeShellArg item.alias;
+        }
     ) commandAliases;
     meta.mainProgram = "hm-macos-applications";
   };

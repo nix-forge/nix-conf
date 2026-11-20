@@ -35,4 +35,4 @@ Runbooks describe setup, deployment, recovery, and diagnosis for the configured 
 - [Workstation virtualization runbook](workstation-virtualization.md)
 - [Zen rendering and HDR on the desktop](zen-hdr.md)
 - [Zen web fonts blocked by an imported filter list](zen-webfont-blocking.md)
-- [Durable finite jobs across execution hosts](workstation-jobs.md)
+- [Shared macOS and Linux keyboard workflow](keyboard-workflow.md): work profile, key placement, application shortcuts and recovery.

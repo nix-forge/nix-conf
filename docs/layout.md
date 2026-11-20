@@ -20,8 +20,8 @@ records the inventory, source evidence, and reasons for this organization.
 | `lib/` | Algorithmic or mathematical helpers and explicitly exported functions with multiple callers |
 | `overlays/` | Input and package selection, permanent variants, registered temporary fixes |
 | `scripts/` | Repository operations and formatter support |
-| `tests/<domain>/` | Behavior suites, explicit native probes and nearby fixtures |
-| `templates/` | Independently usable public examples and installer source templates |
+| `lib/tests/` | Library cases and their fixtures |
+| `flake/public-demo/` | Disposable public practice configuration |
 | `site/` | Curated guide rendering and publishing configuration |
 
 Package recipes belong to `pkgs/`, discovery to `nix-config-framework/`, secret
@@ -37,17 +37,19 @@ Group local settings by the behavior they own. Existing desktop domains include
 `network/wireguard.nix`. Add a domain when several related files have a common
 owner; a single clear file can remain at the target root.
 
-Keep runtime sources with their owning feature. Music bootstrap and integration
-scripts live under `local/homelab/music/scripts/`. Actual's CLI and lifecycle
-scripts live under `local/homelab/actual/scripts/`. Credential importers and
-their sibling SSH workers live under `local/homelab/credentials/`. Host-wide
-activation helpers remain under `local/scripts/`.
+Keep runtime sources with their owning feature. Music bootstrap and
+integration crates live under `local/homelab/music/`. Actual's runtime code
+lives under `local/homelab/actual/protocols/`, and homelab credential helpers
+live under `local/homelab/credentials/`. Place templates and other assets
+beside the code that reads them.
 
-Every visible `.nix` file under `local/` is automatically imported as a module.
-A local `default.nix` is another module, not a directory import list. Keep
-helper expressions in the owning module's `let` or module `lib` exports as the
-contributor guide describes. Put non-Nix sources under `scripts/` or an assets
-directory; those names do not exclude a `.nix` file from discovery.
+The framework auto-imports visible Nix files recursively under a target's
+`local/`, including `default.nix`. Use module options for shared module
+settings and explicit imports for pure helpers. A feature-private Nix
+expression under a discovered tree can use a dot-prefixed filename, as
+`modules/nixos/virtualisation/.libvirt-artifacts.nix` does. Keep that file in
+Git and import it explicitly. A visible `assets/` or `scripts/` directory
+still participates in discovery.
 
 ## Reusable module paths
 
@@ -63,24 +65,17 @@ its own recursive rule described above.
 
 ## File names
 
-Use lowercase kebab-case for Nix modules, Markdown topics, shell commands and
-JavaScript probe files. Use lowercase snake_case for all Python sources, including executable helpers
-and test fixtures. This follows [PEP 8 module naming](https://peps.python.org/pep-0008/#package-and-module-names). Preserve native manifests and recognized entry
-names such as `flake.nix`, `default.nix`, `README.md`, `Cargo.toml`, and lockfiles.
-An installed command can retain its hyphenated name when its Python source uses
-underscores.
+Use lowercase kebab-case for Nix modules, Markdown topics, shell commands
+and standalone JavaScript filenames. Use lower camel case for private Nix
+bindings and include a unit in the name where it affects interpretation,
+such as `memoryMiB`. Use snake_case for private Rust bindings and modules
+and for Python sources in repositories that use Python. Keep recognized
+toolchain filenames and existing public executable names.
 
-Name a maintained source by what it does. `font-element-metrics.cjs` identifies
-a browser probe; an old extraction line number does not. Test files use the
-runner's `test_*.py` or native `*.test.mts` conventions. Explicit `check_*`
-programs are operational probes with arguments and prerequisites, not automatic
-pytest suites. Keep fixtures beside the suite that owns them, and give separate
-fake behaviors distinct names. Replace extraction ordinals, source line numbers,
-and interpolation fragments with a description of the actual behavior. Name
-module activation snippets by their action and package lifecycle scripts by
-their phase, such as `post-install.sh`. Use names such as
-`check_runtime_requirements.py` for Python checks. Retain real version numbers,
-numbered decisions, native language conventions, and discovery-test names.
+Name a source for its operation or the data it owns. Use names such as
+`backup_policy` and `source_manifest` where values cross phases. Name
+template variables for their purpose and escaping contract. Preserve real
+version numbers, native naming conventions and discovery fixture names.
 
 Use each language's real extension. Use `.in` for a source template that is
 incomplete before substitution; retain established writer-compatible source

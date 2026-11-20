@@ -15,10 +15,8 @@ Open `http://localhost:8000/` to read the built guide. Stop the local server wit
 Ctrl+C when finished. The static output does not need a JavaScript package manager,
 a server application, or a database.
 
-The build rejects missing internal pages and anchors. Embedded source examples
-use `include` markers around ordinary Markdown fences; the build compares them
-with their source. To refresh them deliberately after a source change, use the
-pinned documentation shell and the synchronization command in `site/README.md`.
+The build rejects missing internal pages and anchors. Review code examples
+against their linked module source when changing the guide.
 
 ## Prepare a guide release
 
@@ -32,7 +30,7 @@ only from the trusted default branch through the `github-pages` environment.
 GitHub Pages must use GitHub Actions as its publishing source. A local build does
 not mean the website has been deployed or a release has been published.
 
-A release should include the source revision, tested starter pins, supported
+A release should include the source revision, tested input pins, supported
 platforms, completed checks, known limitations, and upgrade guidance. Do not claim
 independent reader validation until real readers have attempted the tutorial.
 

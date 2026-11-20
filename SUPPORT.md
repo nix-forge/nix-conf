@@ -1,7 +1,7 @@
 # Support
 
 Start with the [documentation site](https://nix-forge.github.io/nix-conf/) and
-the [starter configuration](docs/guide/first-configuration.md). The guide
+the [module recipes](docs/guide/git.md). The guide
 separates reusable features from the deployed Linux and macOS examples.
 
 For a bug or a reproducible configuration problem, [open an issue](https://github.com/nix-forge/nix-conf/issues/new).

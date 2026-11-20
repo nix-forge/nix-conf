@@ -316,8 +316,8 @@ CodeMirror check supplies semantic tags directly and does not test its entire
 editing/parser workflow.
 
 The reusable checks are
-[configuration regression tests](../../tests/codex/test_appearance_config.py) and
-[native runtime checks](../../tests/codex/check-theme-runtime.mts). Build the
+configuration regression tests and
+native runtime checks. Build the
 appearance wrapper referenced by the home profile's activation entry when
 checking generated theme integration. Configuration regressions now run through
 pytest against the updater CLI with independent fixture settings. The runtime test needs a private

@@ -21,9 +21,11 @@ provided by nix-config-framework. A selector such as `shells-starship` correspon
 to `modules/home/shells/starship.nix`. Follow that file to the Home Manager option,
 then inspect the generated configuration after a build.
 
-The framework automatically imports Nix files beneath a target's `local/`.
-Those files must be modules. A reusable directory with a `default.nix` has an
-explicit aggregate; a directory without one selects its descendants together.
+The framework automatically imports visible Nix files beneath a target's
+`local/`. These files must be modules. A feature can use a dot-prefixed
+Nix helper and import it explicitly. A reusable directory with a
+`default.nix` has an explicit aggregate. A directory without one selects
+its descendants together.
 The [framework contract](https://github.com/nix-forge/nix-config-framework#layout-and-selectors)
 explains the details and collision behavior.
 
@@ -35,9 +37,17 @@ explains the details and collision behavior.
 | Reuse a preference across machines | A module under `modules/` |
 | Discover and compose targets | nix-config-framework |
 | Package an application or font | nixpkgs-personal |
+| Define reusable service defaults and operational endpoints | nix-homelab |
+| Set a deployment address, backup destination, or storage role | A target or explicitly shared target policy |
 | Implement secret delivery | nix-seal |
 
-The starter uses ordinary imports so you can first see how Home Manager works.
+Nix validates settings and generates immutable configuration and unit
+definitions. The service manager owns process lifecycle. Feature-local
+runtime helpers handle mutable application state and verify readiness at
+the application interface. Backup completion and a successful restore
+provide separate evidence.
+
+The module recipes use ordinary Home Manager imports.
 The framework becomes useful when multiple targets need named feature selection.
 It does not replace the Nix module system.
 

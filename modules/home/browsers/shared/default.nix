@@ -1,13 +1,12 @@
 {
   config,
   lib,
-  myLib,
   osConfig ? null,
+  myLib,
   pkgs,
   ...
 }:
 let
-  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.programs.browserSuite;
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
@@ -20,7 +19,6 @@ let
         appName = "Firefox";
         command = "firefox";
         desktopFile = "firefox.desktop";
-        handler = "firefox";
       }
     else if cfg.defaultBrowser == "zen" then
       let
@@ -30,7 +28,6 @@ let
         appName = package.applicationName or "Zen Browser (Beta)";
         command = package.meta.mainProgram or "zen-beta";
         desktopFile = "zen-beta.desktop";
-        handler = "zen";
       }
     else
       null;
@@ -56,33 +53,42 @@ let
   ++ lib.optionals (!config.targets.darwin.copyApps.enable) [ "linkGeneration" ];
 
   setDefaultBrowser =
-    pkgs.runCommandCC "set-default-browser" { nativeBuildInputs = [ pkgs.swift ]; }
+    pkgs.runCommandCC "hm-set-default-browser"
+      {
+        nativeBuildInputs = [ pkgs.swift ];
+        meta.mainProgram = "hm-set-default-browser";
+        meta.platforms = lib.platforms.darwin;
+      }
       (
-        (import ../../../../lib/templates/text.nix) ./scripts/build-default-browser-helper.sh {
-          set_default_browser_swift = ./set-default-browser.swift;
-          swiftTarget = lib.escapeShellArg "${pkgs.stdenv.hostPlatform.darwinArch}-apple-macosx${pkgs.stdenv.hostPlatform.darwinMinVersion}";
-        }
-      );
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "build-default-browser-helper.sh";
+            text = ''
+              # shellcheck shell=bash
+              # Variables and functions are supplied by the owning activation or build phase.
+              # shellcheck disable=SC2154
+              mkdir -p "$out/bin"
+              swiftc -target @swiftTarget@ -swift-version 6 -warnings-as-errors -parse-as-library -O @set_default_browser_swift@ -o "$out/bin/hm-set-default-browser"
 
-  defaultBrowserHelper = writeBashTemplate {
-    name = "hm-set-default-browser";
-    src = ./default-browser.sh;
-    dir = "bin";
-    replacements = {
-      bash = lib.getExe pkgs.bash;
-      awkExe = lib.getExe pkgs.gawk;
-      registeredBrowserAwk = "${./registered-browser.awk}";
-      defaultBrowserExe = lib.getExe pkgs.defaultbrowser;
-      setDefaultBrowserExe = "${setDefaultBrowser}/bin/set-default-browser";
-      appPath = lib.escapeShellArg darwinAppPath;
-      appLabel = lib.escapeShellArg (
-        if selectedBrowser == null then "browser" else selectedBrowser.appName
+              # Missing arguments return before the helper changes any browser registration.
+              if "$out/bin/hm-set-default-browser" >usage.log 2>&1; then
+                echo "Default browser helper unexpectedly accepted missing arguments" >&2
+                exit 1
+              else
+                status=$?
+              fi
+              if [[ $status != 2 || $(cat usage.log) != 'usage: hm-set-default-browser APP LABEL LSREGISTER' ]]; then
+                cat usage.log >&2
+                echo "Default browser helper failed its no-argument usage check" >&2
+                exit 1
+              fi
+            '';
+          }
+          {
+            set_default_browser_swift = ./set-default-browser.swift;
+            swiftTarget = lib.escapeShellArg "${pkgs.stdenv.hostPlatform.darwinArch}-apple-macosx${pkgs.stdenv.hostPlatform.darwinMinVersion}";
+          }
       );
-      handler = lib.escapeShellArg (if selectedBrowser == null then "none" else selectedBrowser.handler);
-      lsregisterExe = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
-      plistBuddyExe = "/usr/libexec/PlistBuddy";
-    };
-  };
 
   browserMimeAssociations =
     if selectedBrowser == null then
@@ -238,7 +244,14 @@ in
 
     (lib.mkIf (isDarwin && cfg.defaultBrowser != null) {
       home.activation.setDefaultBrowser = lib.hm.dag.entryAfter refreshDeps ''
-        ${lib.getExe' defaultBrowserHelper "hm-set-default-browser"}
+        run ${
+          lib.escapeShellArgs [
+            (lib.getExe setDefaultBrowser)
+            darwinAppPath
+            selectedBrowser.appName
+            "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          ]
+        }
       '';
     })
   ];

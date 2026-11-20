@@ -4,6 +4,18 @@ Choose script and substitution helpers by the job they perform. Using one
 function everywhere would weaken validation in some places and change runtime
 behavior in others.
 
+## Shared helpers
+
+`lib/default.nix` declares the shared helper interface. Request `myLib` in a
+NixOS, nix-darwin, Home Manager, or flake-parts module and use the named export,
+such as `myLib.templates.renderText` or `myLib.systemd.execArgs`. Pass `myLib`
+explicitly to plain Nix functions that need it. Relative paths still identify
+feature-local source files, including templates passed to the renderer.
+
+When importing a module that requests `myLib` from another flake, set
+`myLib = inputs.nix-conf.lib;` in the caller's `specialArgs` or Home Manager
+`extraSpecialArgs`.
+
 ## Templates and text replacement
 
 Use `pkgs.replaceVars` for a source file whose `@name@` placeholders need no
@@ -29,54 +41,79 @@ The [Nixpkgs build-support manual](https://nixos.org/manual/nixpkgs/stable/#sec-
 documents these helpers and the
 [`substitute` flags](https://nixos.org/manual/nixpkgs/stable/#fun-substitute).
 
-## Bash programs
+## Shell programs and fragments
 
-Use `pkgs.writeShellApplication` for a short installed Bash command. Put its
-command dependencies in `runtimeInputs`. The helper adds a Bash shebang,
-strict options, syntax validation, ShellCheck, and a runtime `PATH`. Do not add
-a second shebang. Set `inheritPath = false` only when every command dependency
-is declared and the program is not meant to call a user-selected or host-native
-command.
+Use native module options, Nix data generators, and direct service commands
+where they can express the operation. Keep shell for interfaces that require
+it and for small sequences of commands. Write that glue inline in the owning
+Nix expression. Keep a language source file when it also runs independently,
+is included by another language, or needs the tools and navigation of a
+standalone file.
 
-Use `myLib.writers.writeBashTemplate` for a repository Bash source file that
-contains `@name@` placeholders or benefits from living outside the Nix module.
-The writer performs strict replacement, removes a known Bash shebang, validates
-the rendered program, and supports `runtimeInputs`. A source file without a
-shebang must set its own shell options. This keeps its behavior visible when a
-maintainer reads the source by itself.
+Bind the writers from `myLib.writers` to the package set for the target. The
+writers use build-platform tools to check rendered output in the sandbox.
 
-Reserve `writeShellScript` for a store-path script used as a module or test
-implementation when direct executable paths or an intentional ambient `PATH`
-make a runtime wrapper unnecessary. Reserve `writeShellScriptBin` for the same
-small case when callers need a package-shaped `bin` directory, especially test
-doubles. New installed commands should normally use `writeShellApplication`.
+```nix
+let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+in
+writeShellApplication {
+  name = "print-formatted-date";
+  runtimeInputs = [ pkgs.coreutils ];
+  text = ''
+    exec date @format@ "$@"
+  '';
+  replacements.format = lib.escapeShellArg "+%F %T";
+}
+```
 
-The [Nixpkgs trivial-builder manual](https://nixos.org/manual/nixpkgs/stable/#trivial-builder-writeShellApplication)
-describes the shell writers and their checks.
+`writeShellApplication` keeps the Nixpkgs Bash shebang, strict options,
+`runtimeInputs`, and runtime `PATH` behavior. Use `writeShellScript` for an
+executable store path and `writeShellScriptBin` for a package with a named
+`bin` entry. These two writers leave shell options and `PATH` to their
+callers. `writeBashTemplate` uses strict placeholder substitution for
+inline Bash bodies, strips a supported Bash shebang if present, and adds any
+declared runtime dependencies. Set the shell options that the program needs.
 
-## Python programs
+`writeShellApplication`, `writeBashTemplate`, and `checkedShellText` accept
+`replacements` for inline `@name@` placeholders. Escape each value for the
+context where it appears. For ordinary arguments, use `lib.escapeShellArg` or
+`lib.escapeShellArgs`. Use ordinary Nix interpolation when an argument can
+be expressed directly. The shell checks see the rendered text in both forms.
+`renderBashText` adapts the same check for callers that provide a template and
+its replacement set separately.
 
-Use `pkgs.writers.writePython3Bin` for one small executable Python file and
-`pkgs.writers.writePython3` when a caller needs a single executable store path.
-Declare imported Python packages in `libraries`. Keep Ruff, type checks, and
-behavior tests as the repository's main checks. The writer's Flake8 run is an
-additional build-time check, so limit `flakeIgnore` to conflicts with the
-project formatter.
+These writers validate Bash syntax, format the final program with shfmt, and
+run ShellCheck on the formatted result. ShellCheck follows resolvable source
+references. Use a local source directive for code loaded from a runtime path
+or generated by another package.
 
-Use `buildPythonApplication` for a distributable Python application with a
-source tree, build backend or wheel, declared dependencies, entry points, and
-package tests. Script length alone is not a reason to switch builders. The
-[Nixpkgs Python manual](https://nixos.org/manual/nixpkgs/stable/#buildpythonapplication-function)
-documents the application builder.
+Use `checkedShellText { inherit pkgs; } { name = "..."; text = ...; }`
+for an activation hook, build phase, or shell initialization fragment that
+must remain in its surrounding shell scope. It preserves the text and
+validates shell syntax, shfmt parsing, and ShellCheck in a build dependency
+of the consumer. Set `shell = "sh"` for POSIX fragments. The check runs
+during the consuming build and requires no import-from-derivation.
 
-Use `python3Packages.buildPythonPackage` for an imported library, with its native
-source tree, build backend, import checks and package tests. Consumers declare
-the built library in a Python writer's `libraries` or `python3.withPackages`.
-Keep a library reused across repositories in the package repository, so each
-consumer can declare the same dependency. Standalone package updaters have a
-separate independence contract: they may carry a native helper copy when personal
-package dependencies are forbidden. The package layout and contract checks require
-those copies to match the canonical implementation byte for byte.
+## Runtime programs
+
+Use native Nix options, format generators, package combinators and service-manager
+commands for declarative configuration. Project-owned algorithms that inspect
+mutable state, credentials or IPC belong in feature-local Rust crates. Register
+them in the root Cargo workspace and `flake/runtime-packages.nix`; consumers use
+`lib.getExe` or `lib.getExe'` and pass Nix-generated policy as data. Small shell
+wrappers may establish a pinned `PATH` and execute the packaged command.
+
+The workspace inherits compiler, dependency and lint policy. Nix supplies the
+compiler, native libraries and offline Cargo dependencies. `rust-quality` checks
+rustfmt and Clippy with warnings denied. Keep shared libraries limited to real
+multi-caller algorithms; preserve feature ownership for one-off programs.
+
+Submodules and upstream application builds retain their own languages, builders
+and tests. A Python dependency used by an upstream application does not authorize
+a new root Python program. Supported extension interfaces, shell initialization,
+exact upstream patch fragments and native platform framework adapters retain
+their required language. See the [migration decision](research/nix-first-runtime-research.md).
 
 ## Configuration ownership
 
@@ -111,7 +148,7 @@ of duplicating output layout.
 
 ## Source files and language tooling
 
-Keep maintained programs in files with their language's extension. Nix owns
+Keep standalone programs in files with their language's extension. Nix owns
 package selection, dependencies, option values, and references to those files.
 This applies to installed commands, activation hooks, package phases, VM test
 drivers, and compiler fixtures. Keep deliberately invalid source inside the test
@@ -120,18 +157,15 @@ can remain beside their caller.
 
 | Source                                                             | Nix integration                                                                                            | Source checks                                            |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Bash `.sh` or `.sh.in`                                             | `writeShellApplication`, `writeBashTemplate`, or a package phase                                           | shfmt, ShellCheck, rendered Bash syntax                  |
-| Python `.py`                                                       | `writePython3`, `writePython3Bin`, `buildPythonApplication`, or a declared build interpreter               | Ruff, ty, compilation, behavior tests                    |
+| Inline shell in `.nix` or standalone Bash `.sh`                                             | Repository shell writers or `checkedShellText` in a phase                                           | shfmt, ShellCheck, rendered Bash syntax                  |
 | JavaScript `.js`, `.cjs`, `.mjs`; TypeScript `.ts`, `.cts`, `.mts` | `writeJS` for a small command; the package's Node builder and declared runtime for applications and checks | Prettier, Oxlint, TypeScript where applicable            |
 | Nushell `.nu` or `.nu.in`                                          | `writeNu` for commands; the existing Nu configuration checker for generated configuration                  | nufmt on valid source; `nu-check` on rendered templates  |
 | Lua `.lua`                                                         | `writeLua` for commands or a source reference for application configuration                                | StyLua and the consuming Lua runtime                     |
-| Rust `.rs`, Go `.go`                                               | `writeRust` for a small standalone program; `buildRustPackage` or `buildGoModule` for applications         | rustfmt or gofmt, compiler and package tests             |
-| C `.c`, C++ `.cc`, Swift `.swift`                                  | compiler inputs declared in the package recipe                                                             | clang-format or swift-format, native compilation         |
+| Rust `.rs` | Root Cargo workspace and feature-local `buildRustPackage` output | rustfmt, Clippy, native compilation |
+| Swift `.swift` | Declared Swift compiler and macOS SDK for programs that benefit from direct access to Apple frameworks | swift-format, native compilation |
 | PowerShell `.ps1`                                                  | `writePowerShell` with the declared PowerShell runtime                                                     | PowerShell parser, PSScriptAnalyzer, rendered checks     |
 | PHP `.php`                                                         | a declared PHP interpreter and native source reference                                                     | PHP syntax and runtime behavior checks                   |
 | JQ `.jq`                                                           | `writeText` for a rendered filter, or a source reference passed to the declared `jq` interpreter           | native parser and assertion checks                       |
-| AWK `.awk`                                                         | a source reference passed to the declared GNU awk interpreter                                              | GNU awk pretty printer and native parser/behavior checks |
-| Tcl or Expect `.tcl`, `.exp`                                       | the declared Tcl or Expect interpreter and a source reference                                              | tclfmt, tclint, protocol behavior checks                 |
 | Dart `.dart`                                                       | a source reference passed to the declared Dart SDK for a fixture or application build                      | Dart formatter and native execution of rendered fixtures |
 | macOS Seatbelt `.sb`                                               | a source reference for the check's `sandboxProfile`                                                        | the native sandbox parser during the check build         |
 | PostgreSQL `.sql`, CMake `.cmake`                                  | a source reference passed to the database client or build system                                           | SQL formatter or cmake-format, native integration checks |
@@ -180,9 +214,3 @@ keep a later rewrite from invalidating formatting. See the
 Spelling checks are read-only. Review corrections before applying them, and record
 valid protocol identifiers in the spelling configuration. Each repository owns
 its source checks; root hooks and formatters exclude submodule sources.
-
-Python fixture templates retain `.py.in` names. Their dedicated Ruff formatter
-maps the template extension to Python; their owning tests execute the rendered
-programs. SQLite fixture formatting uses the SQLite dialect separately from
-PostgreSQL service schemas. See [Ruff extension mappings](https://docs.astral.sh/ruff/settings/#extension)
-and the [SQL Formatter dialect options](https://github.com/sql-formatter-org/sql-formatter#usage).

@@ -178,14 +178,6 @@ execute native runtime checks. It does not certify every
 source file's correctness. It covers directory ownership and naming conventions
 across all root domains and the four submodule inventories.
 
-The coordinator should verify an explicit old-to-new path map, preserve existing
-working contents, scan for stale references, and run documentation links and
-focused Python/template checks. Evaluation must cover every affected target,
-including public module interfaces and generated configuration. On the desktop
-host, heavy checks run through `workstation-task`; a desktop closure builds only
-on the desktop host. Darwin-native checks require a Darwin host. Moving files
-without changing behavior does not require deployment or activation.
-
 New source files must enter the Nix source set deliberately. A default Git-based
 flake invocation does not automatically validate untracked moved files.
 

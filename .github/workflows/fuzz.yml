@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Build the CRX converter
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          cargo +1.99.0 build --locked --package helium-crx-to-zip
+          printf 'CRX_CONVERTER=%s/target/debug/helium-crx-to-zip\n' "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - uses: nix-forge/ci/actions/fuzz-atheris@4ab5625bc19dccae2adc7e1dcfb0c5d3661892f4 # v2.14.0
         with:
           target: fuzz/crx_fuzzer.py

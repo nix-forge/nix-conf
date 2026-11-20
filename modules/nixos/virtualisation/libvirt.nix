@@ -6,13 +6,21 @@
   ...
 }:
 let
-  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  writeShellScript = myLib.writers.writeShellScript { inherit pkgs; };
+  inherit
+    (import ./.libvirt-artifacts.nix {
+      inherit lib myLib pkgs;
+      libvirtPackage = config.virtualisation.libvirtd.package;
+    })
+    mkControl
+    validateXml
+    ;
   cfg = config.virtualisation.libvirtWorkstation;
 
   inherit (lib)
     concatMapStrings
     concatStringsSep
-    escapeShellArg
     getExe
     getExe'
     mkEnableOption
@@ -234,7 +242,7 @@ let
   rawNetworkDefinitions = lib.mapAttrs (
     name: network:
     pkgs.writeText "libvirt-${name}-network.xml" (
-      (import ../../../lib/templates/text.nix) ./scripts/network.xml {
+      myLib.templates.renderText ./scripts/network.xml {
         inherit name;
         optionalString_network_mode_nat_forward_mode_nat_nat_port_st =
           optionalString (network.mode == "nat")
@@ -262,22 +270,12 @@ let
     )
   ) cfg.networks;
 
-  validateLibvirtXml =
-    kind: name: source:
-    pkgs.runCommand "validated-libvirt-${name}-${kind}.xml" { } (
-      (import ../../../lib/templates/text.nix) ./scripts/validate-resource-xml.sh {
-        inherit source;
-        getExe_config_virtualisation_libvirtd_package_virt_xml_valid = getExe' config.virtualisation.libvirtd.package "virt-xml-validate";
-        inherit kind;
-      }
-    );
-
   networkDefinitions = lib.mapAttrs (
-    name: source: validateLibvirtXml "network" name source
+    name: source: validateXml "network" "libvirt-${name}" source
   ) rawNetworkDefinitions;
 
   rawStoragePoolDefinition = pkgs.writeText "libvirt-${cfg.storage.poolName}-storage-pool.xml" (
-    (import ../../../lib/templates/text.nix) ./scripts/storage-pool.xml {
+    myLib.templates.renderText ./scripts/storage-pool.xml {
       cfg_storage_poolName = cfg.storage.poolName;
       if_cfg_storage_nocow_then_no_else_yes = if cfg.storage.nocow then "no" else "yes";
       cfg_storage_root = cfg.storage.root;
@@ -285,7 +283,7 @@ let
     }
   );
   storagePoolDefinition =
-    validateLibvirtXml "storagepool" cfg.storage.poolName
+    validateXml "storagepool" "libvirt-${cfg.storage.poolName}"
       rawStoragePoolDefinition;
 
   networkManifest = pkgs.writeText "libvirt-workstation-networks.tsv" (
@@ -321,124 +319,116 @@ let
     ) vfioDeviceNames
   );
 
-  workstationSetup = writeBashTemplate {
-    name = "libvirt-workstation-setup";
-    src = ./scripts/libvirt-workstation-setup.sh.in;
-    replacements = {
-      bash = getExe pkgs.bash;
-      grep = getExe pkgs.gnugrep;
-      guestManifest = escapeShellArg guestManifest;
-      libvirtUri = escapeShellArg libvirtUri;
-      mktemp = getExe' pkgs.coreutils "mktemp";
-      networkManifest = escapeShellArg networkManifest;
-      python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt_xml.py;
-      poolDefinition = escapeShellArg storagePoolDefinition;
-      poolName = escapeShellArg cfg.storage.poolName;
-      poolPath = escapeShellArg cfg.storage.root;
-      rm = getExe' pkgs.coreutils "rm";
-      virsh = getExe' config.virtualisation.libvirtd.package "virsh";
-    };
+  workstationSetup = mkControl "libvirt-workstation-setup" null "setup" {
+    inherit guestManifest;
+    inherit libvirtUri;
+    inherit networkManifest;
+    xmlHelper =
+      getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtRuntimeTools
+        "libvirt-xml";
+    poolDefinition = storagePoolDefinition;
+    poolName = cfg.storage.poolName;
+    poolPath = cfg.storage.root;
+    rm = getExe' pkgs.coreutils "rm";
+    virsh = getExe' config.virtualisation.libvirtd.package "virsh";
   };
 
-  profileGuard = writeBashTemplate {
-    name = "libvirt-workstation-profile-guard";
-    src = ./scripts/libvirt-workstation-profile-guard.sh.in;
-    replacements = {
-      bash = getExe pkgs.bash;
-      basename = getExe' pkgs.coreutils "basename";
-      guestManifest = escapeShellArg guestManifest;
-      profileMarker = escapeShellArg profileMarker;
-      readlink = getExe' pkgs.coreutils "readlink";
-      vfioDeviceManifest = escapeShellArg vfioDeviceManifest;
-      vfioProfile = escapeShellArg cfg.vfio.specialisationName;
-    };
+  profileGuard = mkControl "libvirt-workstation-profile-guard" null "profile-guard" {
+    inherit guestManifest;
+    inherit profileMarker;
+    inherit vfioDeviceManifest;
+    vfioProfile = cfg.vfio.specialisationName;
   };
 
-  sleepInhibitorHook = writeBashTemplate {
-    name = "libvirt-workstation-sleep-inhibitor-hook";
-    src = ./scripts/libvirt-workstation-sleep-inhibitor-hook.sh.in;
-    replacements = {
-      bash = getExe pkgs.bash;
-      guestManifest = escapeShellArg guestManifest;
-      systemctl = getExe' pkgs.systemd "systemctl";
-      systemdEscape = getExe' pkgs.systemd "systemd-escape";
-    };
+  sleepInhibitorHook = mkControl "libvirt-workstation-sleep-inhibitor-hook" null "sleep-hook" {
+    inherit guestManifest;
+    systemctl = getExe' pkgs.systemd "systemctl";
+    systemdEscape = getExe' pkgs.systemd "systemd-escape";
   };
 
-  sleepInhibitorReady = pkgs.writeShellScript "libvirt-workstation-sleep-inhibitor-ready" (
-    (import ../../../lib/templates/text.nix) ./scripts/libvirt-workstation-sleep-inhibitor-ready.sh {
-      getExe_pkgs_systemd_systemd_notify = getExe' pkgs.systemd "systemd-notify";
-      getExe_pkgs_coreutils_sleep = getExe' pkgs.coreutils "sleep";
-    }
+  sleepInhibitorReady = writeShellScript "libvirt-workstation-sleep-inhibitor-ready" (
+    myLib.templates.renderText
+      {
+        name = "libvirt-workstation-sleep-inhibitor-ready.sh";
+        text = ''
+          # shellcheck shell=bash
+          set -euo pipefail
+          # systemd-inhibit invokes this only after logind grants the inhibitor.
+          @getExe_pkgs_systemd_systemd_notify@ --ready
+          exec @getExe_pkgs_coreutils_sleep@ infinity
+        '';
+      }
+      {
+        getExe_pkgs_systemd_systemd_notify = getExe' pkgs.systemd "systemd-notify";
+        getExe_pkgs_coreutils_sleep = getExe' pkgs.coreutils "sleep";
+      }
   );
 
-  sleepInhibitor = pkgs.writeShellScript "libvirt-workstation-sleep-inhibitor" (
-    (import ../../../lib/templates/text.nix) ./scripts/libvirt-workstation-sleep-inhibitor.sh {
-      getExe_pkgs_systemd_systemd_inhibit = getExe' pkgs.systemd "systemd-inhibit";
-      getExe_pkgs_coreutils_env = getExe' pkgs.coreutils "env";
-      inherit sleepInhibitorReady;
-    }
+  sleepInhibitor = writeShellScript "libvirt-workstation-sleep-inhibitor" (
+    myLib.templates.renderText
+      {
+        name = "libvirt-workstation-sleep-inhibitor.sh";
+        text = ''
+          # shellcheck shell=bash
+          set -euo pipefail
+          # systemd-inhibit clears notification state in its child. Preserve only
+          # this service's socket so readiness still follows acquisition of the lock.
+          exec @getExe_pkgs_systemd_systemd_inhibit@ \
+            --what=sleep --who="libvirt-guest-$1" \
+            --why=managed-guest-is-running --mode=block \
+            @getExe_pkgs_coreutils_env@ "NOTIFY_SOCKET=''${NOTIFY_SOCKET:?}" \
+            @sleepInhibitorReady@
+        '';
+      }
+      {
+        getExe_pkgs_systemd_systemd_inhibit = getExe' pkgs.systemd "systemd-inhibit";
+        getExe_pkgs_coreutils_env = getExe' pkgs.coreutils "env";
+        inherit sleepInhibitorReady;
+      }
   );
 
-  privilegedControl = writeBashTemplate {
-    name = "libvirt-workstation-control";
-    src = ./scripts/libvirt-workstation-control.sh.in;
-    dir = "libexec";
-    replacements = {
-      awk = getExe pkgs.gawk;
-      bash = getExe pkgs.bash;
-      basename = getExe' pkgs.coreutils "basename";
-      emulateAarch64 = if cfg.emulateAarch64 then "1" else "0";
-      findmnt = getExe' pkgs.util-linux "findmnt";
-      grep = getExe pkgs.gnugrep;
-      guestManifest = escapeShellArg guestManifest;
-      iommuEnabled = if cfg.vfio.enable then "1" else "0";
-      ip = getExe' pkgs.iproute2 "ip";
-      libvirtUri = escapeShellArg libvirtUri;
-      lsattr = getExe' pkgs.e2fsprogs "lsattr";
-      lspci = getExe pkgs.pciutils;
-      networkManifest = escapeShellArg networkManifest;
-      poolName = escapeShellArg cfg.storage.poolName;
-      poolPath = escapeShellArg cfg.storage.root;
-      profileMarker = escapeShellArg profileMarker;
-      ps = getExe' pkgs.procps "ps";
-      qemuAarch64 = "${qemuPackage}/bin/qemu-system-aarch64";
-      readlink = getExe' pkgs.coreutils "readlink";
-      ss = getExe' pkgs.iproute2 "ss";
-      storageNocow = if cfg.storage.nocow then "1" else "0";
-      systemctl = getExe' pkgs.systemd "systemctl";
-      systemdEscape = getExe' pkgs.systemd "systemd-escape";
-      vfioDeviceManifest = escapeShellArg vfioDeviceManifest;
-      vfioEnabled = if cfg.vfio.enable then "1" else "0";
-      vfioProfile = escapeShellArg cfg.vfio.specialisationName;
-      virsh = getExe' config.virtualisation.libvirtd.package "virsh";
-      virtHostValidate = getExe' config.virtualisation.libvirtd.package "virt-host-validate";
-      python = getExe pkgs.python3;
-      xmlHelper = ./scripts/libvirt_xml.py;
-    };
+  privilegedControl = mkControl "libvirt-workstation-control" "libexec" "control" {
+    inherit (cfg) emulateAarch64;
+    findmnt = getExe' pkgs.util-linux "findmnt";
+    inherit guestManifest;
+    iommuEnabled = cfg.vfio.enable;
+    ip = getExe' pkgs.iproute2 "ip";
+    inherit libvirtUri;
+    lsattr = getExe' pkgs.e2fsprogs "lsattr";
+    inherit networkManifest;
+    poolName = cfg.storage.poolName;
+    poolPath = cfg.storage.root;
+    inherit profileMarker;
+    ps = getExe' pkgs.procps "ps";
+    qemuAarch64 = "${qemuPackage}/bin/qemu-system-aarch64";
+    ss = getExe' pkgs.iproute2 "ss";
+    storageNocow = cfg.storage.nocow;
+    systemctl = getExe' pkgs.systemd "systemctl";
+    systemdEscape = getExe' pkgs.systemd "systemd-escape";
+    inherit vfioDeviceManifest;
+    vfioEnabled = cfg.vfio.enable;
+    vfioProfile = cfg.vfio.specialisationName;
+    virsh = getExe' config.virtualisation.libvirtd.package "virsh";
+    virtHostValidate = getExe' config.virtualisation.libvirtd.package "virt-host-validate";
+    xmlHelper =
+      getExe' (import ../../../flake/runtime-packages.nix { inherit pkgs; }).libvirtRuntimeTools
+        "libvirt-xml";
   };
 
-  vmCli = writeBashTemplate {
-    name = "vm";
-    src = ./scripts/vm.sh.in;
-    dir = "bin";
-    replacements = {
-      bash = getExe pkgs.bash;
-      guestManifest = escapeShellArg guestManifest;
-      privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
-      ssh = getExe pkgs.openssh;
-      # Store binaries cannot carry setuid permissions; use the NixOS wrapper.
-      sudo = "${config.security.wrapperDir}/sudo";
-      virtManager = getExe config.programs.virt-manager.package;
-    };
+  vmCli = mkControl "vm" "bin" "vm" {
+    inherit guestManifest;
+    privilegedControl = "${privilegedControl}/libexec/libvirt-workstation-control";
+    ssh = getExe pkgs.openssh;
+    # Store binaries cannot carry setuid permissions; use the NixOS wrapper.
+    sudo = "${config.security.wrapperDir}/sudo";
+    virtManager = getExe config.programs.virt-manager.package;
   };
 
-  hostAudit = pkgs.writeShellApplication {
+  hostAudit = writeShellApplication {
     name = "virt-host-audit";
-    text = (import ../../../lib/templates/text.nix) ./scripts/virt-host-audit.sh {
-      getExe_vmCli_vm = getExe' vmCli "vm";
-    };
+    text = ''
+      exec ${getExe' vmCli "vm"} doctor "$@"
+    '';
   };
 
   networkBridges = map (name: cfg.networks.${name}.bridge) networkNames;

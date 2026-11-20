@@ -57,6 +57,13 @@ let
     in
     if raw == "" || raw == "/" then "" else "/${lib.removeSuffix "/" (lib.removePrefix "/" raw)}";
   arrUrl = name: "http://127.0.0.1:${toString (arrPort name)}${arrBase name}";
+  libraryDir = config.homelab.storage.libraryDir;
+  musicLibraryDir = config.homelab.desktopMusic.libraryDir;
+  unpackerr = import ./.unpackerr.nix {
+    inherit arrUrl;
+    apiKeyFile = api;
+    inherit (config.homelab.storage) downloadsDir;
+  };
   mediaPolicy =
     name:
     {
@@ -168,7 +175,7 @@ let
     }
     // lib.optionalAttrs config.homelab.apps.sabnzbd.enable { sabnzbd = { inherit category; }; }
     // lib.optionalAttrs config.homelab.apps.nzbget.enable { nzbget = { inherit category; }; };
-  manager = name: folder: {
+  manager = name: libraryPath: {
     kind = name;
     url = arrUrl name;
     apiKeyFile = api name;
@@ -184,7 +191,7 @@ let
         autoRedownloadFailedFromInteractiveSearch = false;
       };
     };
-    rootFolders.main.path = "${config.homelab.storage.libraryDir}/${folder}";
+    rootFolders.main.path = libraryPath;
     downloadClients = clientReferences name;
   };
 in
@@ -346,9 +353,9 @@ lib.mkIf secretsReady {
     integrations = {
       downloadClients = clientDeclarations;
       servarr = {
-        sonarr = manager "sonarr" "tv";
-        radarr = manager "radarr" "movies";
-        lidarr = lib.recursiveUpdate (manager "lidarr" "music") {
+        sonarr = manager "sonarr" "${libraryDir}/tv";
+        radarr = manager "radarr" "${libraryDir}/movies";
+        lidarr = lib.recursiveUpdate (manager "lidarr" musicLibraryDir) {
           # Setgid directories and service umasks own permissions. Import-time
           # chmod/chown fails on hardlinks owned by other download services.
           settings.mediaManagement = {
@@ -371,7 +378,7 @@ lib.mkIf secretsReady {
             };
             defaultQualityProfileId._lookup = {
               endpoint = "qualityprofile";
-              name = "Aurral High Quality";
+              inherit (config.homelab.desktopAurral.qualityProfile) name;
             };
             defaultMonitorOption = "future";
             defaultNewItemMonitorOption = "none";
@@ -460,7 +467,7 @@ lib.mkIf secretsReady {
         libraries = {
           Music = {
             collectionType = "music";
-            paths = [ "${config.homelab.storage.libraryDir}/music" ];
+            paths = [ musicLibraryDir ];
             enableRealtimeMonitor = true;
             extraOptions = {
               # Shared sidecars have one writer. Jellyfin keeps fetched data in its state.
@@ -640,36 +647,12 @@ lib.mkIf secretsReady {
       };
     };
   };
-  services = {
-    unpackerr.settings = {
-      sonarr = [
-        {
-          url = arrUrl "sonarr";
-          api_key = "filepath:/run/credentials/unpackerr.service/sonarr-api";
-          paths = [ config.homelab.storage.downloadsDir ];
-          protocols = "torrent";
-          delete_orig = false;
-        }
-      ];
-      radarr = [
-        {
-          url = arrUrl "radarr";
-          api_key = "filepath:/run/credentials/unpackerr.service/radarr-api";
-          paths = [ config.homelab.storage.downloadsDir ];
-          protocols = "torrent";
-          delete_orig = false;
-        }
-      ];
-    };
-  };
+  services.unpackerr.settings = unpackerr.settings;
   # The HTTPS proxy forwards the public Host so qBittorrent can validate
   # browser Origin/Referer without trusting client-supplied forwarded headers.
   services.qbittorrent.serverConfig.Preferences.WebUI.ServerDomains =
     "qbittorrent.${config.homelab.operations.lanHttps.domain}";
-  systemd.services.unpackerr.serviceConfig.LoadCredential = [
-    "sonarr-api:${api "sonarr"}"
-    "radarr-api:${api "radarr"}"
-  ];
+  systemd.services.unpackerr.serviceConfig.LoadCredential = unpackerr.loadCredentials;
   # Bazarr's unit becomes active before its settings API finishes startup.
   # Reconcile again after a transient HTTP 500 without waiting for the timer.
   systemd.services.homelab-integrate-bazarr = {

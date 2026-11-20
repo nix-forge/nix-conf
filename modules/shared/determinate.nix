@@ -64,9 +64,16 @@ in
       # legacy multi-user installer plist is unmanaged once `nix.enable` is
       # disabled, so nix-darwin intentionally preserves it.  Remove that
       # redundant daemon after its activation step has completed.
-      system.activationScripts.postActivation.text = lib.mkAfter (
-        builtins.readFile ./determinate-assets/remove-legacy-nix-daemon.sh
-      );
+      system.activationScripts.postActivation.text = lib.mkAfter ''
+        # shellcheck shell=bash
+        legacyNixDaemonPlist=/Library/LaunchDaemons/org.nixos.nix-daemon.plist
+        determinateNixDaemonPlist=/Library/LaunchDaemons/systems.determinate.nix-daemon.plist
+
+        if [ -e "$legacyNixDaemonPlist" ] && [ -e "$determinateNixDaemonPlist" ]; then
+          launchctl bootout system/org.nixos.nix-daemon 2>/dev/null || true
+          rm -f "$legacyNixDaemonPlist"
+        fi
+      '';
 
     };
 

@@ -77,7 +77,7 @@ systemctl status audiobookshelf komga homelab-integrate-audiobookshelf homelab-b
 systemctl status restic-backups-desktop-<DESTINATION>
 ```
 
-The existing [Bitwarden importer](../../hosts/nixos/desktop/local/homelab/credentials/homelab_to_bitwarden.py)
+The existing [Bitwarden importer](../../hosts/nixos/desktop/local/homelab/credentials/runtime/src/bin/homelab-to-bitwarden.rs)
 recognizes all four book accounts. Run it with `--dry-run` first, then
 `--apply` when the deployed credentials and URLs are correct. It unlocks the
 vault locally and keeps passwords out of shell arguments and terminal output.

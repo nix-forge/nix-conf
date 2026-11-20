@@ -61,7 +61,7 @@ and [develop](https://nix.dev/manual/nix/2.32/command-ref/new-cli/nix3-develop).
 
 [The shared Nix module](../../modules/shared/nix-settings.nix) owns the system lookup
 policy. Standalone Home Manager is unchanged because it can need its user profile
-to install packages. [Platform contracts](../../flake/dev/platform-checks.nix)
+to install packages. Platform contracts
 assert both operating-system profile lists and integrated Home Manager paths.
 
 The platform-contracts check passed on x86_64 Linux, including evaluation of the

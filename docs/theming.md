@@ -139,7 +139,7 @@ configuration when a profile also selects `stylix`, which imports every target.
    Explain any forced override beside the setting. Keep generated files in
    derivations and avoid reading derivations during evaluation.
 5. Exercise the public controls in
-   [`tests/nix/theme-targets.nix`](../tests/nix/theme-targets.nix). For serialized
+   `tests/nix/theme-targets.nix`. For serialized
    files, extend the relevant generated-file check.
 
 No new daemon, privileged operation, telemetry, or update channel is introduced
@@ -150,9 +150,8 @@ mutable theme-template writers even when custom theming is off.
 Run the focused checks with:
 
 ```sh
-nix build .#checks.x86_64-linux.theme-targets \
-  .#checks.x86_64-linux.template-configs --no-link
-nix eval --raw .#checks.aarch64-darwin.theme-targets.drvPath
+just check
+just test
 ```
 
 The second command evaluates Darwin behavior; it does not run Darwin software.

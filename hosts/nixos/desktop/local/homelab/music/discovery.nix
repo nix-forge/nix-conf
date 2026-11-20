@@ -1,25 +1,39 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  writeShellScript = myLib.writers.writeShellScript { inherit pkgs; };
   network = builtins.fromJSON (builtins.readFile ../../../../../shared/local/network.json);
   mediaMounts = config.homelab.storage.requiredMounts;
-  musicFolder = "${config.homelab.storage.libraryDir}/music";
+  musicFolder = config.homelab.desktopMusic.libraryDir;
   musicDiscoveryRoot = "${config.homelab.storage.rootDir}/.services/music-discovery";
   backupRoot = "${musicDiscoveryRoot}/backups";
-  prepareDirectories = pkgs.writeShellApplication {
-    name = "prepare-music-discovery-directories";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = builtins.readFile ./scripts/prepare-music-discovery-directories.sh;
+  systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = { };
   };
-  resolvePluginUserIds = pkgs.writeShellApplication {
-    name = "resolve-navidrome-plugin-user-ids";
-    runtimeInputs = [ pkgs.jq ];
-    text = builtins.readFile ./scripts/resolve-navidrome-plugin-user-ids.sh;
-  };
+  installDirectory =
+    mode: owner: group: paths:
+    systemdUtils.escapeSystemdExecArgs (
+      [
+        (lib.getExe' pkgs.coreutils "install")
+        "-d"
+        "-m"
+        mode
+        "-o"
+        owner
+        "-g"
+        group
+        "--"
+      ]
+      ++ paths
+    );
   navidromePort = 4533;
   listenerPort = 4534;
   listenerIPv4 = network.desktopTrustedAddress;
@@ -127,59 +141,24 @@ let
           "lyrics.ovh"
         ];
   };
-  configureLyricsPlugin =
-    pkgs.writers.writePython3 "configure-lyrics-plugin"
-      {
-        flakeIgnore = [
-          "E501"
-          "W503"
-        ];
-      }
-      (
-        (import ../../../../../../lib/templates/text.nix) ./scripts/configure_lyrics_plugin.py {
-          toString_navidromePort = toString navidromePort;
-        }
-      );
-  linkListenBrainz =
-    pkgs.writers.writePython3 "link-listenbrainz"
-      {
-        flakeIgnore = [
-          "E501"
-          "W503"
-        ];
-      }
-      (
-        (import ../../../../../../lib/templates/text.nix) ./scripts/link_listenbrainz.py {
-          toString_navidromePort = toString navidromePort;
-        }
-      );
-  bootstrap = pkgs.writeShellApplication {
-    name = "music-discovery-bootstrap";
-    runtimeInputs = [
-      config.services.navidrome.finalPackage
-      pkgs.coreutils
-      pkgs.curl
-      pkgs.expect
-      pkgs.jq
-    ];
-    text = (import ../../../../../../lib/templates/text.nix) ./scripts/music-discovery-bootstrap.sh {
-      toString_navidromePort = toString navidromePort;
-      inherit navidromeConfig;
-      pkgs_writeText_create_navidrome_user_expect_set_timeout_30_l =
-        pkgs.writeText "create-navidrome-user.expect"
-          (
-            (import ../../../../../../lib/templates/text.nix) ./scripts/create-navidrome-user.exp {
-              inherit navidromeConfig;
-            }
-          );
-      lib_getExe_resolvePluginUserIds = lib.getExe resolvePluginUserIds;
-      inherit linkListenBrainz;
-      inherit configureLyricsPlugin;
-      inherit lyricsPluginConfig;
-      toString_audioMusePort = toString audioMusePort;
-      lib_escapeShellArg_audioMuseHouseholdApproval = lib.escapeShellArg audioMuseHouseholdApproval;
-    };
+  musicTools = (import ../../../../../../flake/runtime-packages.nix { inherit pkgs; }).musicApiTools;
+  bootstrapPolicy = (pkgs.formats.json { }).generate "music-discovery-bootstrap.json" {
+    port = navidromePort;
+    inherit audioMusePort navidromeConfig;
+    navidrome = lib.getExe config.services.navidrome.finalPackage;
+    linkListenBrainz = lib.getExe' musicTools "link-listenbrainz";
+    configureLyrics = lib.getExe' musicTools "configure-lyrics-plugin";
+    lyricsConfig = lyricsPluginConfig;
+    householdApproval = audioMuseHouseholdApproval;
   };
+  bootstrap = writeShellApplication {
+    name = "music-discovery-bootstrap";
+    runtimeInputs = [ config.services.navidrome.finalPackage ];
+    text = ''
+      exec ${lib.getExe' musicTools "music-discovery-bootstrap"} ${bootstrapPolicy}
+    '';
+  };
+
 in
 {
   # These dotenv bundles are generated and encrypted during repository
@@ -273,7 +252,19 @@ in
   # corrected units. Runtime unit definitions otherwise outrank /etc units.
   system.activationScripts.music-storage-mount-repair-cleanup = {
     deps = [ "etc" ];
-    text = builtins.readFile ./scripts/remove-stale-mount-repairs.sh;
+    text = checkedShellText {
+      name = "remove-stale-mount-repairs";
+      text = ''
+        for media_repair in /run/systemd/system.control/*.service; do
+          if [[ -f $media_repair && ! -L $media_repair ]]; then
+            IFS= read -r media_repair_header <"$media_repair" || true
+            if [[ $media_repair_header == '# desktop-media-mount-repair' ]]; then
+              rm -f -- "$media_repair"
+            fi
+          fi
+        done
+      '';
+    };
   };
 
   # Upstream's tmpfiles rule would create the library during early boot even
@@ -293,19 +284,17 @@ in
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "5s";
-      ExecStart = "${lib.getExe prepareDirectories} ${
-        lib.escapeShellArgs [
-          config.homelab.storage.rootDir
-          musicFolder
-          config.homelab.storage.group
-          "root"
-          "root"
-          "navidrome"
-          "navidrome"
-          "audiomuse"
-          "audiomuse"
-        ]
-      }";
+      # Keep these commands behind the unit's mount guards, including repairs
+      # of parent traversal permissions left by earlier configurations.
+      ExecStart = [
+        (installDirectory "2770" "root" config.homelab.storage.group [ musicFolder ])
+        (installDirectory "0711" "root" "root" [
+          musicDiscoveryRoot
+          backupRoot
+        ])
+        (installDirectory "0700" "navidrome" "navidrome" [ "${backupRoot}/navidrome" ])
+        (installDirectory "0700" "audiomuse" "audiomuse" [ "${backupRoot}/audiomuse" ])
+      ];
     };
   };
   users.users = {
@@ -330,12 +319,29 @@ in
     serviceConfig.ReadOnlyPaths = [ musicFolder ];
     # Version 0.64.0 rewrites every internal ID on first start. Keep a one-time
     # SQLite backup outside Navidrome's normal rotation before that migration.
-    serviceConfig.ExecStartPre = pkgs.writeShellScript "backup-navidrome-before-0.64" (
-      (import ../../../../../../lib/templates/text.nix) ./scripts/backup-navidrome-before-0-64.sh {
-        lib_escapeShellArg_backupRoot_navidrome_pre_0_64_0_db = lib.escapeShellArg "${backupRoot}/navidrome/pre-0.64.0.db";
-        pkgs_coreutils = pkgs.coreutils;
-        pkgs_sqlite = pkgs.sqlite;
-      }
+    serviceConfig.ExecStartPre = writeShellScript "backup-navidrome-before-0.64" (
+      myLib.templates.renderText
+        {
+          name = "backup-navidrome-before-0-64.sh";
+          text = ''
+            # shellcheck shell=bash
+            set -eu
+            database=/var/lib/navidrome/navidrome.db
+            backup=@lib_escapeShellArg_backupRoot_navidrome_pre_0_64_0_db@
+            if [ -f "$database" ] && [ ! -e "$backup" ]; then
+              partial="$backup.partial"
+              trap '@pkgs_coreutils@/bin/rm -f "$partial"' EXIT
+              @pkgs_sqlite@/bin/sqlite3 "$database" ".backup '$partial'"
+              @pkgs_coreutils@/bin/mv "$partial" "$backup"
+              trap - EXIT
+            fi
+          '';
+        }
+        {
+          lib_escapeShellArg_backupRoot_navidrome_pre_0_64_0_db = lib.escapeShellArg "${backupRoot}/navidrome/pre-0.64.0.db";
+          pkgs_coreutils = pkgs.coreutils;
+          pkgs_sqlite = pkgs.sqlite;
+        }
     );
   };
 
@@ -353,11 +359,26 @@ in
       RuntimeDirectory = "music-discovery-bootstrap-credential";
       RuntimeDirectoryMode = "0700";
       EnvironmentFile = audioMuseEnvironment;
-      ExecStart = pkgs.writeShellScript "project-audiomuse-api-token" (
-        (import ../../../../../../lib/templates/text.nix) ./scripts/project-audiomuse-api-token.sh {
-          lib_escapeShellArg_bootstrapAudioMuseCredential = lib.escapeShellArg bootstrapAudioMuseCredential;
-          pkgs_coreutils = pkgs.coreutils;
-        }
+      ExecStart = writeShellScript "project-audiomuse-api-token" (
+        myLib.templates.renderText
+          {
+            name = "project-audiomuse-api-token.sh";
+            text = ''
+              # shellcheck shell=bash
+              set -eu
+              target=@lib_escapeShellArg_bootstrapAudioMuseCredential@
+              partial="$target.partial"
+              trap '@pkgs_coreutils@/bin/rm -f "$partial"' EXIT
+              builtin printf '%s' "$API_TOKEN" >"$partial"
+              @pkgs_coreutils@/bin/chmod 0400 "$partial"
+              @pkgs_coreutils@/bin/mv "$partial" "$target"
+              trap - EXIT
+            '';
+          }
+          {
+            lib_escapeShellArg_bootstrapAudioMuseCredential = lib.escapeShellArg bootstrapAudioMuseCredential;
+            pkgs_coreutils = pkgs.coreutils;
+          }
       );
       NoNewPrivileges = true;
       PrivateTmp = true;
@@ -432,14 +453,7 @@ in
       User = "audiomuse";
       Group = "audiomuse";
       LoadCredential = [ "api-token:${bootstrapAudioMuseCredential}" ];
-      ExecStart = "${
-        pkgs.writers.writePython3 "configure-audiomuse" {
-          flakeIgnore = [
-            "E501"
-            "W503"
-          ];
-        } (builtins.readFile ./scripts/configure_audiomuse.py)
-      } http://127.0.0.1:${toString navidromePort}";
+      ExecStart = "${lib.getExe' musicTools "configure-audiomuse"} http://127.0.0.1:${toString navidromePort}";
       Restart = "on-failure";
       RestartSec = "10s";
       TimeoutStartSec = "2min";
@@ -479,11 +493,36 @@ in
       ProtectSystem = "strict";
       ReadWritePaths = [ "${backupRoot}/audiomuse" ];
     };
-    script = (import ../../../../../../lib/templates/text.nix) ./scripts/audiomuse-backup-script.sh {
-      pkgs_coreutils = pkgs.coreutils;
-      lib_escapeShellArg_backupRoot_audiomuse = lib.escapeShellArg "${backupRoot}/audiomuse";
-      config_services_postgresql_package = config.services.postgresql.package;
-      pkgs_findutils = pkgs.findutils;
+    script = checkedShellText {
+      name = "audiomuse-backup";
+      text =
+        myLib.templates.renderText
+          {
+            name = "audiomuse-backup-script.sh";
+            text = ''
+              # shellcheck shell=bash
+              set -eu
+              stamp="$(@pkgs_coreutils@/bin/date --utc +%Y%m%dT%H%M%SZ)"
+              partial=@lib_escapeShellArg_backupRoot_audiomuse@/audiomuse-$stamp.dump.partial
+              cleanup() {
+                @pkgs_coreutils@/bin/rm -f "$partial"
+              }
+              trap cleanup EXIT
+              @config_services_postgresql_package@/bin/pg_dump \
+                --host /run/postgresql --username audiomusedb --format custom \
+                --file "$partial" audiomusedb
+              @pkgs_coreutils@/bin/mv "$partial" "''${partial%.partial}"
+              trap - EXIT
+              @pkgs_findutils@/bin/find @lib_escapeShellArg_backupRoot_audiomuse@ \
+                -type f -name 'audiomuse-*.dump' -mtime +14 -delete
+            '';
+          }
+          {
+            pkgs_coreutils = pkgs.coreutils;
+            lib_escapeShellArg_backupRoot_audiomuse = lib.escapeShellArg "${backupRoot}/audiomuse";
+            config_services_postgresql_package = config.services.postgresql.package;
+            pkgs_findutils = pkgs.findutils;
+          };
     };
   };
   systemd.timers.audiomuse-backup = {

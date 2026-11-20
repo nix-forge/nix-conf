@@ -8,28 +8,25 @@ Reusable NixOS, nix-darwin, and Home Manager configuration modules with a guide
 to building your own system. The repository also contains actively deployed
 Linux and macOS configurations as maintained examples.
 
-[Read the guide](https://nix-forge.github.io/nix-conf/) · [Build the starter](docs/guide/first-configuration.md) · [Reuse a module](docs/guide/git.md)
+[Read the guide](https://nix-forge.github.io/nix-conf/) · [Reuse a module](docs/guide/git.md)
 
 ## Start small
 
-The [public starter](templates/starter/README.md) has its own pinned dependencies,
-Git and shell settings, and a disposable NixOS practice VM. It needs no personal
-credentials and does not activate anything on your account when you build it.
-The deployed workstations add desktop services, shared appearance, font
-selection, and host-managed secrets.
+Start with a [reusable module](docs/guide/git.md) in your own configuration or
+try the [graphical practice VM](docs/guide/graphical-demo.md). The deployed
+workstations add desktop services, shared appearance, font selection, and
+host-managed secrets.
 
 | Goal | Entry point |
 | --- | --- |
-| Learn through a working example | [First configuration](docs/guide/first-configuration.md) |
-| Boot a configured Linux system | [Console VM](docs/guide/virtual-machine.md) |
+| Boot a configured Linux system | [Graphical VM](docs/guide/graphical-demo.md) |
 | Improve an existing configuration | [Git](docs/guide/git.md), [file search](docs/guide/file-search.md), [prompt](docs/guide/prompt.md) |
 | Understand the desktop decisions | [Themes and fonts](docs/guide/appearance.md) |
 | Find an independent package or framework | [Related projects](docs/guide/projects.md) |
 
-The starter declares x86 Linux, ARM Linux, and Apple Silicon macOS. Its serial
-VM is x86 Linux only. The [support table](docs/guide/support.md) distinguishes
-evaluation, native builds, and runtime evidence. The host definitions are
-hardware-specific deployed examples, not installation templates.
+The graphical VM runs on x86 Linux. The [support table](docs/guide/support.md)
+distinguishes evaluation, native builds, and runtime evidence. The host
+definitions are hardware-specific deployed examples.
 
 ## Appearance with evidence
 
@@ -59,7 +56,7 @@ project helps you, consider starring it so you can find it again.
 | [`overlays/`](overlays/README.md) | Package selection and registered temporary upstream fixes |
 | [`lib/`](lib/default.nix) | Explicit shared helper exports, including checked script writers |
 | [`flake/`](flake/) | Deployment, development tools, and check composition |
-| [`tests/`](tests/) | Behavior tests, generated-output checks, and integration fixtures |
+| [`lib/tests/`](lib/tests/) | Nix library function tests |
 | [`docs/`](docs/) | Operational guides and reviewed technical evidence |
 | [`pkgs/`](pkgs/README.md) | Separate repository for package recipes |
 | [`nix-config-framework/`](nix-config-framework/README.md) | Separate repository for target discovery and module composition |

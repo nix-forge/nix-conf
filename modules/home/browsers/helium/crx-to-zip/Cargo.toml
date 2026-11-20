@@ -1,0 +1,16 @@
+[package]
+name = "helium-crx-to-zip"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+fs2.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["signal"] }
+nix-conf-process = { path = "../../../../../lib/runtime-process" }

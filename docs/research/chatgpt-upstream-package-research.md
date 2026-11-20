@@ -159,7 +159,7 @@ child-exit and SSH workaround at `overlays/temporary/codex-linux-child-exit.nix`
 Its reviewed source hashes and version boundary do not cover upstream's newer
 artifact. Replacing the bundled CLI does not automatically repair Electron's
 SSH command builder. Run the existing
-[startup probe](../../tests/codex/check_ssh_startup.py) and a fresh multiplexed
+startup probe and a fresh multiplexed
 SSH completion probe before dropping or porting the workaround. Earlier
 [SSH research](codex-linux-ssh-startup-research.md) documents why a connection
 that reuses an existing master can produce a misleading pass.
@@ -240,11 +240,6 @@ submitting anything. No PR or issue was opened.
   service file after initialization; the next launch did not repair it because
   `.complete` remained. This is a shell-level reproduction, not a full packaged
   Electron or browser test.
-- Requested an isolated x86_64 Linux build through `workstation-task`. It waited
-  behind unrelated workstation jobs and was cancelled before execution. No
-  package build result is claimed. No authenticated GUI launch, backend protocol
-  comparison, fresh remote SSH probe, native ARM build, macOS build, signature
-  comparison, system rebuild, or activation ran.
 - The research note passed rumdl, typos, relative-link and whitespace checks,
   and a focused Gitleaks scan using the repository publication policy.
 

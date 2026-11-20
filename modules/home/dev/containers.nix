@@ -1,65 +1,119 @@
 {
   lib,
+  myLib,
   pkgs,
   config,
   osConfig ? null,
   ...
 }:
 let
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   rootless = config.programs.docker-cli.rootless.enable;
   systemRootless =
     isLinux && osConfig != null && (osConfig.virtualisation.docker.rootless.enable or false);
 
-  dockerUp = pkgs.writeShellApplication {
+  dockerUp = writeShellApplication {
     name = "docker-up";
     runtimeInputs = lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ((import ../../../lib/templates/text.nix) ./scripts/start-colima.sh {
-          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
-        })
+        (myLib.templates.renderText {
+          name = "start-colima.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @lib_getExe_pkgs_colima@ start
+          '';
+        } { lib_getExe_pkgs_colima = lib.getExe pkgs.colima; })
       else
-        ((import ../../../lib/templates/text.nix) ./scripts/start-docker-service.sh {
-          lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
-        });
+        (myLib.templates.renderText {
+          name = "start-docker-service.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @lib_getExe_pkgs_systemd_systemctl@ --user start docker.service
+          '';
+        } { lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl"; });
   };
 
-  dockerDown = pkgs.writeShellApplication {
+  dockerDown = writeShellApplication {
     name = "docker-down";
     runtimeInputs = [ pkgs.docker ] ++ lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ((import ../../../lib/templates/text.nix) ./scripts/stop-colima.sh {
-          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
-        })
+        (myLib.templates.renderText {
+          name = "stop-colima.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @lib_getExe_pkgs_colima@ stop
+          '';
+        } { lib_getExe_pkgs_colima = lib.getExe pkgs.colima; })
       else
-        ((import ../../../lib/templates/text.nix) ./scripts/stop-docker-service.sh {
-          lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
-          lib_getExe_pkgs_docker = lib.getExe pkgs.docker;
-        });
+        (myLib.templates.renderText
+          {
+            name = "stop-docker-service.sh";
+            text = ''
+              # shellcheck shell=bash
+              if @lib_getExe_pkgs_systemd_systemctl@ --user is-active --quiet docker.service; then
+                mapfile -t container_ids < <(@lib_getExe_pkgs_docker@ container ls --quiet)
+                if [ "''${#container_ids[@]}" -gt 0 ]; then
+                  @lib_getExe_pkgs_docker@ container stop "''${container_ids[@]}"
+                fi
+                @lib_getExe_pkgs_systemd_systemctl@ --user stop docker.service
+              else
+                printf '%s\n' 'Docker is already stopped.'
+              fi
+            '';
+          }
+          {
+            lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
+            lib_getExe_pkgs_docker = lib.getExe pkgs.docker;
+          }
+        );
   };
 
-  dockerStatus = pkgs.writeShellApplication {
+  dockerStatus = writeShellApplication {
     name = "docker-status";
     runtimeInputs = lib.optionals isDarwin [ pkgs.colima ];
     text =
       if isDarwin then
-        ((import ../../../lib/templates/text.nix) ./scripts/show-colima-status.sh {
-          lib_getExe_pkgs_colima = lib.getExe pkgs.colima;
-        })
+        (myLib.templates.renderText {
+          name = "show-colima-status.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @lib_getExe_pkgs_colima@ status
+          '';
+        } { lib_getExe_pkgs_colima = lib.getExe pkgs.colima; })
       else
         ''
           ${lib.getExe' pkgs.systemd "systemctl"} --user status docker.service || true
         '';
   };
 
-  dockerClean = pkgs.writeShellApplication {
+  dockerClean = writeShellApplication {
     name = "docker-clean";
     runtimeInputs = [ pkgs.docker ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/docker-clean.sh {
-      lib_getExe_pkgs_docker = lib.getExe pkgs.docker;
-    };
+    text = myLib.templates.renderText {
+      name = "docker-clean.sh";
+      text = ''
+        # shellcheck shell=bash
+        case "''${1-}" in
+        "")
+          @lib_getExe_pkgs_docker@ system df
+          printf '%s\n' 'Pass --images to prune unused images and build cache, or --volumes to include unused volumes.'
+          ;;
+        --images)
+          exec @lib_getExe_pkgs_docker@ system prune --all --force
+          ;;
+        --volumes)
+          exec @lib_getExe_pkgs_docker@ system prune --all --volumes --force
+          ;;
+        *)
+          printf '%s\n' 'usage: docker-clean [--images|--volumes]' >&2
+          exit 64
+          ;;
+        esac
+      '';
+    } { lib_getExe_pkgs_docker = lib.getExe pkgs.docker; };
   };
 in
 {

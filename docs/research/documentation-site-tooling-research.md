@@ -109,7 +109,7 @@ revisions. Primary-source research covered official project documentation,
 release records, repositories, and GitHub Pages documentation.
 
 The implementation evaluation checks the flake output on x86 Linux. Full static
-site builds run through the desktop workload queue. No Pages deployment or
+site builds ran on the desktop. No Pages deployment or
 repository setting change is part of this work. Browser accessibility tests and
 scheduled external-link checks remain separate follow-up work; the presence of a
 framework or workflow is not evidence that those checks passed.

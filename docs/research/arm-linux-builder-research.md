@@ -24,7 +24,7 @@ Darwin builds on the Mac.
 
 The applied improvement is explicit build dispatch: `just arm-build PACKAGE`
 and `just arm-check CHECK` require the desktop, select ARM Linux outputs, disable
-remote builders for that invocation, and enter the workload queue with one
+remote builders for that invocation, and run directly with one
 local derivation and four compiler jobs. Invoke independent packages separately
 so the queue can serve other waiting work between them. This uses the existing
 four-core host budget without increasing simultaneous derivations or memory
@@ -269,7 +269,7 @@ execution support. Native Linux and Darwin targets retain their own platforms.
 
 The per-package dispatcher, experimental suffixes, pilot module and dedicated
 pilot-check commands were removed. `just arm-build PACKAGE [REPOSITORY]` is the
-single desktop entry point, preserving the workload queue and resource limits.
+single desktop entry point, preserving host placement and resource limits.
 No additional build or validation jobs were run for this change at the owner's
 request. Upstream cross-compilation support remains a package requirement; there
 is no automatic return to emulated compiler builds. See the package repository's

@@ -44,7 +44,7 @@ IME exists in the framework but this review has not exercised preedit/commit, de
 
 ## Validation and limits
 
-Read pinned upstream Cargo manifests and Cargo.lock files for all twelve apps. Inspected source at matching locked framework versions. Read current packaging recipes. No build, launch or interactive native Wayland test ran. [Existing GUI checks](../../pkgs/flake/dev/artcraft.nix) explicitly unset `WAYLAND_DISPLAY` and use Xvfb; their passes establish X11 smoke coverage only.
+Read pinned upstream Cargo manifests and Cargo.lock files for all twelve apps. Inspected source at matching locked framework versions. Read current packaging recipes. No build, launch or interactive native Wayland test ran. [Existing GUI checks](https://github.com/nix-forge/nixpkgs-personal/blob/322be5182e0f00b9dbe80640ed2822f50b811a35/flake/dev/artcraft.nix) explicitly unset `WAYLAND_DISPLAY` and use Xvfb; their passes establish X11 smoke coverage only.
 
 ## Implication for this repository
 

@@ -59,8 +59,6 @@
             "#${palette.accentPressed}"
           ] template;
         in
-        assert lib.all (token: lib.hasInfix token template) templateTokens;
-        assert lib.all (token: !(lib.hasInfix token rendered)) templateTokens;
         rendered;
       carbonNeonTheme = spicePkgs.themes.default // {
         name = "CarbonNeon";

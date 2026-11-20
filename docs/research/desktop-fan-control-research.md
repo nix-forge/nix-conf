@@ -165,7 +165,7 @@ reading alone as proof of cooling failure.
 [AMD temperature and power explanation](https://community.amd.com/t5/gaming/ryzen-7000-series-processors-let-s-talk-about-power-temperature/ba-p/554629).
 
 Following runtime validation, the full desktop build and activation passed on
-2026-11-05 through the normal daemon-backed workload queue and the existing
+2026-11-05 through the Nix daemon and the existing
 operational deployment wrapper. Its deployment identity and additional host
 settings were preserved. The activated generation is also the selected system
 profile and default boot configuration.

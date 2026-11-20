@@ -9,27 +9,40 @@
     let
       target = stylix + "/modules/gtk/hm.nix";
       source = builtins.readFile target;
+      # The generated module no longer shares the upstream relative directory.
+      template = builtins.toFile "stylix-gtk.css.mustache" (
+        builtins.readFile (stylix + "/modules/gtk/gtk.css.mustache")
+      );
       old = [
         "  options,\n"
-        "./gtk.css.mustache"
         "cat \${finalCss} | tee --append $out/gtk-{3,4}.0/gtk.css"
         "theme = config.gtk.theme.name;"
+        "template = ./gtk.css.mustache;"
       ];
       replacement = [
-        "  options,\n  gtkTemplate,\n  gtkPolarity,\n"
-        "gtkTemplate"
-        (builtins.readFile ./scripts/append-gtk-polarity-css.sh)
+        "  options,\n  gtkPolarity,\n"
+        ''
+          # shellcheck shell=bash
+          # Nix builder/activation callers and rendered fragments provide external variables.
+          # shellcheck disable=SC2154
+          for stylesheet in "$out"/gtk-{3,4}.0/gtk.css "$out"/gtk-{3,4}.0/gtk-dark.css "$out"/gtk-{3,4}.0/gtk-light.css; do
+            if [ -f "$stylesheet" ]; then
+              cat "''${finalCss}" >>"$stylesheet"
+            fi
+          done
+        ''
         ''
           preferDark = config.gtk.gtk3.extraConfig.gtk-application-prefer-dark-theme
             or (gtkPolarity == "dark");
           theme = "''${config.gtk.theme.name}:''${if preferDark then "dark" else "light"}";
         ''
+        "template = ${template};"
       ];
       patchedTarget = builtins.toFile "stylix-gtk-flatpak-polarity.nix" (
-        assert lib.assertMsg (builtins.all (
-          text: lib.hasInfix text source
-        ) old) "Stylix GTK Flatpak source changed; review the polarity repair";
-        builtins.replaceStrings old replacement source
+        if !(builtins.all (text: lib.hasInfix text source) old) then
+          throw "Stylix GTK Flatpak source changed; review the polarity repair"
+        else
+          builtins.replaceStrings old replacement source
       );
       mkTarget = import (stylix + "/stylix/mk-target.nix") {
         name = "gtk";
@@ -53,22 +66,11 @@
               inherit (config.stylix) polarity;
               colors = config.lib.stylix.colors;
             };
-            template = builtins.readFile (stylix + "/modules/gtk/gtk.css.mustache");
-            # Solarized Light's text on base01 is 4.39:1. Base00 reaches 4.99:1.
-            gtkTemplate =
-              if gtkPolarity == "light" then
-                builtins.replaceStrings
-                  [ "@define-color dialog_bg_color #{{base01-hex}};" ]
-                  [ "@define-color dialog_bg_color #{{base00-hex}};" ]
-                  template
-              else
-                template;
           in
           (import patchedTarget) {
             inherit
               config
               gtkPolarity
-              gtkTemplate
               lib
               pkgs
               options

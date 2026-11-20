@@ -1,5 +1,10 @@
 # Wooting 80HE typing setup
 
+For the declarative **Mac Work** profile, modifier placement and application
+steps, see the [shared keyboard workflow](keyboard-workflow.md). The factory-like
+Typing Profile described below remains the unchanged recovery export; adding
+the work export does not program onboard memory.
+
 The keyboard has one onboard **Typing Profile**, restored from Wootility's
 factory ANSI settings. Standard main-layer key positions, modifiers, and
 factory typing actuation are preserved. The Fn layer adds work shortcuts. The
@@ -62,7 +67,7 @@ Wootility writes onboard storage; activation does not reprogram the keyboard
 at login or boot. Wootility edits do not automatically change the Nix export.
 
 ```sh
-workstation-task nix build --no-link --print-out-paths \
+nix build --no-link --print-out-paths \
   .#nixosConfigurations.desktop.config.system.build.wootingProfiles
 ```
 

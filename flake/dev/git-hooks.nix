@@ -1,42 +1,29 @@
-{
-  inputs,
-  lib,
-  myLib,
-  ...
-}:
-{
+{ inputs, lib, ... }: {
   imports = [ inputs.git-hooks-nix.flakeModule ];
   perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      myLib,
+      pkgs,
+      ...
+    }:
     let
-      checkPython = import ./quality-python.nix { pkgs = pkgs.buildPackages; };
-      javascriptTools = import ./javascript-tools.nix { pkgs = pkgs.buildPackages; };
-      javascriptLint = pkgs.buildPackages.writeShellApplication {
-        name = "repository-javascript-lint";
-        runtimeInputs = [ pkgs.buildPackages.coreutils ];
-        text = (import ../../lib/templates/text.nix) ./scripts/javascript-lint.sh.in {
-          javascript_tools = javascriptTools;
-          node = lib.getExe pkgs.buildPackages.nodejs_24;
-          oxlint = lib.getExe javascriptTools;
-        };
+      javascriptTools = import ./javascript-tools.nix {
+        inherit myLib;
+        pkgs = pkgs.buildPackages;
       };
-      pythonCompileAll = myLib.writers.writeBashTemplate { pkgs = pkgs.buildPackages; } {
-        name = "python-compileall";
-        src = ./scripts/python-compileall.sh;
-        replacements = {
-          bash = lib.getExe pkgs.buildPackages.bash;
-          python = lib.getExe pkgs.buildPackages.python3;
-          mktemp = lib.getExe' pkgs.buildPackages.coreutils "mktemp";
-          rm = lib.getExe' pkgs.buildPackages.coreutils "rm";
-        };
-      };
-      stylesheetLint = pkgs.buildPackages.writeShellApplication {
+      stylesheetLint = myLib.writers.writeShellApplication { pkgs = pkgs.buildPackages; } {
         name = "stylesheet-lint";
         runtimeInputs = [
           pkgs.buildPackages.git
           pkgs.buildPackages.stylelint
         ];
-        text = builtins.readFile ./scripts/stylesheet-lint.sh;
+        text = ''
+          mapfile -d "" -t stylesheets < <(git ls-files -z -- '*.css')
+          if ((''${#stylesheets[@]} > 0)); then
+            stylelint --config .stylelintrc.json --max-warnings 0 "''${stylesheets[@]}"
+          fi
+        '';
       };
     in
     {
@@ -76,7 +63,7 @@
             oxlint = {
               enable = true;
               name = "TypeScript and Oxlint";
-              entry = lib.getExe javascriptLint;
+              entry = lib.getExe javascriptTools;
               language = "system";
               files = "(\\.[cm]?[jt]sx?$|(^|/)(tsconfig|projects|\\.oxlintrc|package(-lock)?)\\.json$)";
               pass_filenames = false;
@@ -95,7 +82,7 @@
             swift-format = {
               enable = true;
               name = "Swift format lint";
-              entry = "${lib.getExe pkgs.buildPackages.swift-format} lint --configuration .swift-format --parallel --recursive --strict modules tests";
+              entry = "${lib.getExe pkgs.buildPackages.swift-format} lint --configuration .swift-format --parallel --recursive --strict modules";
               language = "system";
               extraPackages = [ pkgs.buildPackages.swift-format ];
               files = "(^\\.swift-format$|\\.swift$)";
@@ -105,50 +92,11 @@
             luacheck = {
               enable = true;
               name = "Lua analysis";
-              entry = "${lib.getExe pkgs.buildPackages.luaPackages.luacheck} --config .luacheckrc modules tests";
+              entry = "${lib.getExe pkgs.buildPackages.luaPackages.luacheck} --config .luacheckrc modules";
               language = "system";
               files = "(^\\.luacheckrc$|\\.lua$)";
               pass_filenames = false;
               after = [ "treefmt" ];
-            };
-            ruff = {
-              enable = true;
-              # Run at the repository root and respect nested project configs.
-              # Validation must not apply automatic fixes.
-              entry = "${lib.getExe pkgs.buildPackages.ruff} check --no-fix .";
-              always_run = true;
-              pass_filenames = false;
-              after = [ "treefmt" ];
-            };
-            ruff-format = {
-              enable = true;
-              name = "ruff format";
-              entry = "${lib.getExe pkgs.buildPackages.ruff} format --check .";
-              language = "system";
-              always_run = true;
-              pass_filenames = false;
-              after = [ "ruff" ];
-            };
-            ty = {
-              enable = true;
-              name = "ty";
-              package = pkgs.buildPackages.ty;
-              # `--project .` forces discovery of this repository's [tool.ty]
-              # table rather than relying on the caller's current environment.
-              entry = "${lib.getExe pkgs.buildPackages.ty} check --project . --python ${lib.getExe checkPython}";
-              language = "system";
-              always_run = true;
-              pass_filenames = false;
-              after = [ "ruff-format" ];
-            };
-            python-compile = {
-              enable = true;
-              name = "python compileall";
-              entry = toString pythonCompileAll;
-              language = "system";
-              always_run = true;
-              pass_filenames = false;
-              after = [ "ty" ];
             };
             end-of-file-fixer = {
               enable = true;

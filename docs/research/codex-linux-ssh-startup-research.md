@@ -66,7 +66,7 @@ over SSH was not tested here.
 
 ## Validation and limits
 
-The [runtime regression probe](../../tests/codex/check_ssh_startup.py) loads the
+The runtime regression probe loads the
 package's actual shell-environment module inside a disposable Owl application,
 then checks command output and child completion. It uses a temporary home and
 requires no account, network connection, or configured SSH alias:

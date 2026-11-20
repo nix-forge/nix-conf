@@ -1,12 +1,13 @@
 {
   config,
   lib,
-  pkgs,
   myLib,
+  pkgs,
   ...
 }:
 let
-  python = pkgs.python3.withPackages (_: [ (myLib.python.notificationProcess { inherit pkgs; }) ]);
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  runner = (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).applicationRecovery;
   cfg = config.services.applicationRecovery;
   commandOption =
     description:
@@ -30,22 +31,23 @@ let
           stateDirectory = "/var/lib/application-recovery/${name}";
         }
         // lib.genAttrs phases (phase: [
-          (lib.getExe (
-            pkgs.writeShellApplication {
-              name = "recovery-${name}-${phase}";
-              runtimeInputs = application.packages;
-              text = application.${phase};
-            }
-          ))
+          (lib.getExe (writeShellApplication {
+            name = "recovery-${name}-${phase}";
+            runtimeInputs = application.packages;
+            text = application.${phase};
+          }))
         ])
       )
     );
   serviceFor = name: application: action: {
     description = "Application ${name} ${action}";
-    path = [ pkgs.systemd ];
+    path = [
+      pkgs.systemd
+      pkgs.util-linux
+    ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${lib.getExe python} ${./runner.py} ${policyFor name application} ${action}";
+      ExecStart = "${lib.getExe runner} ${policyFor name application} ${action}";
       StateDirectory = "application-recovery/${name}";
       StateDirectoryMode = "0700";
       UMask = "0077";
@@ -53,7 +55,7 @@ let
       # Enough time for every bounded hook plus writer shutdown and restart.
       TimeoutStartSec = application.timeoutSeconds * (7 + 4 * builtins.length application.units);
       TimeoutStopSec = application.timeoutSeconds * (2 + builtins.length application.units);
-      # SIGTERM reaches Python first, whose finally block resumes writers.
+      # SIGTERM reaches the runner first, which resumes writers during cleanup.
       KillMode = "mixed";
     }
     // lib.optionalAttrs (action == "drill") {

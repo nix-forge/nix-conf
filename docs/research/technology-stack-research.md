@@ -1,5 +1,8 @@
 # Technology choices for the workstation configuration
 
+The starter and Darwin templates discussed in this historical review have been
+removed. Template source links below refer to a revision before removal.
+
 Reviewed: 2026-09-10. Scope: the current root working tree and its three
 submodules, including existing uncommitted work. Root base:
 `7fd38c80a2aabdb16674fba7231496fa4a575bee`.
@@ -67,7 +70,7 @@ the same update schedule.
 
 The [development partition](../../flake/dev/flake.nix) adds `git-hooks-nix` and
 `treefmt-nix`, with its own Nixpkgs, Home Manager, and flake-compat inputs.
-The [starter](../../templates/starter/flake.nix) deliberately uses the 26.05 release
+The [starter](https://github.com/nix-forge/nix-conf/blob/bb481eb2fab6bb064cee8efef4c0ec0653cd44b8/templates/starter/flake.nix) deliberately uses the 26.05 release
 tracks. Its different track is appropriate for an introductory example.
 
 Observed locked source dates, read from the lockfiles rather than inferred from
@@ -476,9 +479,9 @@ writes to a caller-selected output, so both contracts need adaptation.
 [migration guide](https://zensical.org/docs/compatibility/mkdocs/migration/),
 [basic setup](https://zensical.org/docs/setup/basics/).
 
-This repository calls MkDocs's Python API directly in
-[site/build.py](../../site/build.py). Switching the executable name alone will not
-replace that integration. A pilot must adapt the build while preserving reviewed
+This repository composes reviewed pages and generated references through
+[Nix documentation builders](../../flake/documentation.nix), then invokes the
+upstream MkDocs CLI. An engine replacement must preserve that build interface. A pilot must adapt the build while preserving reviewed
 content staging and source-snippet verification. Compare mobile navigation,
 search, keyboard use, deep links, metadata, custom CSS, and offline behavior
 before deciding. First make it build reproducibly from the pinned Nix input, then

@@ -1,27 +1,12 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   ...
 }:
 let
   cfg = config.programs.chatgpt;
-  updater = pkgs.writers.writePython3Bin "configure-codex-desktop-settings" {
-    libraries = [ pkgs.python3Packages.tomlkit ];
-    flakeIgnore = [ "E501" ];
-  } ./configure_codex_desktop_settings.py;
-  managedSettings = pkgs.writeText "codex-desktop-settings.json" (builtins.toJSON cfg.settings);
-  configure = (myLib.writers.writeBashTemplate { inherit pkgs; }) {
-    name = "configure-codex-desktop-settings";
-    src = ./configure-codex-desktop-settings.sh.in;
-    replacements = {
-      shell = lib.getExe pkgs.bash;
-      inherit managedSettings;
-      updater = lib.getExe updater;
-      codexConfig = lib.escapeShellArg "${cfg.codexHome}/config.toml";
-    };
-  };
+
 in
 {
   options.programs.chatgpt = {
@@ -39,36 +24,25 @@ in
       inherit ((pkgs.formats.toml { })) type;
       default = { };
       description = ''
-        Declarative native Codex desktop settings. Home Manager merges these
+        Declarative native Codex desktop settings. Home Manager's native Codex module merges these
         fields into the writable Codex configuration on activation, preserving
         app-owned trust, session preferences, and unconfigured settings.
       '';
     };
-    settingsPackage = lib.mkOption {
-      type = lib.types.package;
-      readOnly = true;
-      default = configure;
-      description = "Command that applies the merged declarative desktop settings.";
-    };
+
   };
 
   config = {
-    assertions = [
-      {
-        assertion =
-          !config.programs.codex.enable
-          || builtins.elem config.programs.codex.settings [
-            null
-            { }
-          ];
-        message = "Shared writable Codex configuration is owned by programs.chatgpt.settings; move nonempty programs.codex.settings there to avoid competing config.toml writers.";
-      }
-    ];
-    # Core inheritance omits CODEX_HOME. This shared owner covers GUI-only
-    # profiles too, without broadening inheritance or credential exclusions.
+    # Home Manager owns both plugin-generated and declared native settings.
+    # Keep chatgpt.settings as the desktop policy interface, with one writable
+    # merger so CLI, desktop and T3 cannot race competing activation writers.
+    programs.codex = {
+      mutableSettings = true;
+      inherit (cfg) settings;
+    };
     programs.chatgpt.settings.shell_environment_policy.set.CODEX_HOME = cfg.codexHome;
-    home.activation.configureCodexDesktopSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${lib.getExe pkgs.bash} ${configure}
-    '';
+    programs.chatgpt.settings.desktop.git-worktree-root = lib.mkIf (config.programs.dev-worktree.enable
+      or false
+    ) (lib.mkDefault "${config.programs.dev-worktree.worktreeRoot}/codex");
   };
 }

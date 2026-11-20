@@ -5,40 +5,15 @@
   ...
 }:
 let
-  mkExtensionPolicies = import ../shared/extension-policies.nix { inherit lib; };
-  mkUblockPolicy = import ../shared/ublock-policy.nix { inherit lib; };
-  inherit (config.programs.browserSuite)
-    blocking
-    geckoPolicies
-    scrolling
-    systemResolverPolicy
-    ;
-  inherit (config.programs.browserSuite.shared) profile search ublock;
-  inherit (config.programs.browserSuite.shared.geckoInstallRegistry) reconciler;
+  suite = config.programs.browserSuite;
+  inherit (suite) scrolling;
+  inherit (suite.shared) profile search;
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
-  extensionGroups = config.programs.browserSuite.extensions;
-  extensions = extensionGroups.shared // extensionGroups.firefox;
-  defaultProfile = lib.findFirst (profileConfig: profileConfig.isDefault) null (
-    lib.attrValues config.programs.firefox.profiles
-  );
-  darwinConfigPath = "${config.home.homeDirectory}/Library/Application Support/Firefox";
-  reconcileInstallRegistry = lib.escapeShellArgs [
-    (lib.getExe reconciler)
-    "--profiles-registry"
-    "${darwinConfigPath}/profiles.ini"
-    "--install-registry"
-    "${darwinConfigPath}/installs.ini"
-    "--default-profile"
-    "Profiles/${defaultProfile.path}"
-  ];
-  extensionPolicies = {
-    ExtensionSettings = mkExtensionPolicies extensions;
-  };
-  ublockPolicies = lib.optionalAttrs (extensions ? ublockOrigin) {
-    "3rdparty".Extensions.${extensions.ublockOrigin.id} = mkUblockPolicy {
-      inherit (blocking) customFilterLists;
-      inherit (ublock) defaultFilterLists settings;
-    };
+  gecko = (import ../shared/.gecko.nix { inherit lib; }) {
+    inherit suite;
+    browser = "firefox";
+    inherit (config.programs.firefox) profiles;
+    configDirectory = "${config.home.homeDirectory}/Library/Application Support/Firefox";
   };
 in
 {
@@ -51,7 +26,7 @@ in
     # Policies live in the macOS defaults domain, so Darwin does not need a
     # wrapFirefox rebuild that strips Mozilla's application signature.
     package = lib.mkIf isDarwin pkgs.firefox-bin-unwrapped;
-    policies = systemResolverPolicy // geckoPolicies // extensionPolicies // ublockPolicies;
+    inherit (gecko) policies;
 
     profiles.default = {
       id = 0;
@@ -67,7 +42,7 @@ in
 
   home.activation.reconcileFirefoxInstallRegistry = lib.mkIf isDarwin (
     lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      run ${reconcileInstallRegistry}
+      run ${gecko.reconcileInstallRegistry}
     ''
   );
 }

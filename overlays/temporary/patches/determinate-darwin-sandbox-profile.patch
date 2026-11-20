@@ -1,0 +1,116 @@
+From 78ec1e09f95e29081e1ff1d1b73cfec1dc5f7c84 Mon Sep 17 00:00:00 2001
+From: Uluc Sengil <uluc.sengil@helsing.ai>
+Date: Thu, 15 Oct 2026 22:06:41 +0200
+Subject: [PATCH] Extend darwin sandbox by bucketing store paths
+
+Assisted-by: Claude Code + Claude Opus 5.5
+Co-Authored-By: Sergei Zimmerman <sergei@zimmerman.foo>
+(cherry picked from commit f566910ee81fbb76d075712c761a6be1d733e1a8)
+---
+
+Determinate 3.24.2 backport: bucket canonical derivation inputs only.
+Configured sandbox paths, including paths to store internals, retain their
+original filters without requiring a StorePath parse.
+
+--- a/darwin/build/darwin-derivation-builder.cc
++++ b/darwin/build/darwin-derivation-builder.cc
+@@ -1,6 +1,7 @@
+ #include "derivation-builder-impl.hh"
+ #include "darwin-derivation-builder.hh"
+ 
++#include <map>
+ #include <spawn.h>
+ #include <sys/sysctl.h>
+ #include <sandbox.h>
+@@ -100,15 +101,19 @@
+         sandboxProfile += ")\n";
+ 
+         /* Our inputs (transitive dependencies and any impurities computed above)
+-           without file-write* allowed, access() incorrectly returns EPERM */
+-        sandboxProfile += "(allow file-read* file-write* process-exec\n";
++           without file-write* allowed, access() incorrectly returns EPERM.
+ 
+-        // We create multiple allow lists, to avoid exceeding a limit in the darwin sandbox interpreter.
+-        // See https://github.com/NixOS/nix/issues/4119
+-        // We split our allow groups approximately at half the actual limit, 1 << 16
+-        const size_t breakpoint = sandboxProfile.length() + (1 << 14);
+-        for (auto & i : pathsInChroot) {
++           The sandbox compiler merges all path filters of an operation into a single
++           pattern table that must stay below 64 KiB, regardless of how many (allow ...)
++           forms they are spread over (see https://github.com/NixOS/nix/issues/4119).
++           A group guarded by a distinct (prefix ...) filter gets its own table, so we
++           bucket store paths by the first character of their hash. The guard is a
++           superset of every filter in its group, so it does not change what is allowed. */
+ 
++        std::map<char, std::string> bucketedStorePathProfiles;
++        std::string otherSandboxPathsProfile;
++
++        for (auto & i : pathsInChroot) {
+             if (i.first != i.second.source)
+                 throw Error(
+                     "can't map %1% to %2%: mismatched impure paths not supported on Darwin",
+@@ -123,24 +128,52 @@
+                 throw SysError("getting attributes of required path '%s", path);
+             }
+ 
+-            /* Only open a new allow form once we know this path will actually
+-             * contribute a selector. Opening it before resolving the path
+-             * leaves an unqualified (allow ...) form behind when an optional
+-             * path is missing, and an unqualified allow form render the sandbox useless. */
+-            if (sandboxProfile.length() >= breakpoint) {
+-                debug("Sandbox break: %d %d", sandboxProfile.length(), breakpoint);
+-                sandboxProfile += ")\n(allow file-read* file-write* process-exec\n";
++            /* Store paths are bucketed by the store path hash'es first
++               character, creating 32 buckets. This allows us to fit around 10k
++               store paths into the sandbox. Everything else (impure deps or
++               manually specified sandbox-paths) is bundled into a separate
++               clause.
++
++               One step further would be to use two characters for the prefix, yielding
++               1024 buckets. However, we're already seeing the "profile too large" error
++               instead of the "data object length <> exceeds maximum (65535)" error at 12k
++               paths, so we aren't bottlenecked by the number of buckets. */
++
++            /* For future: One additional trick we can pull here is to reduce the path to a
++               (prefix "$storePrefix/<hash>-"), which is shorter than either a subpath, or
++               a literal value. It should be safe as hashes are unique. */
++            std::string profileRule =
++                S_ISDIR(optSt->st_mode) ? fmt("\t\t(subpath \"%s\")\n", path) : fmt("\t\t(literal \"%s\")\n", path);
++
++            /* Only group canonical derivation inputs. Explicit sandbox paths can
++               refer to store internals, aliases or subdirectories and keep their
++               original unqualified filters. */
++            if (auto storePath = store.maybeParseStorePath(path);
++                storePath && store.printStorePath(*storePath) == path && inputPaths.contains(*storePath)) {
++                bucketedStorePathProfiles[storePath->hashPart().front()] += profileRule;
++            } else {
++                otherSandboxPathsProfile += profileRule;
+             }
++        }
++
++        if (!otherSandboxPathsProfile.empty()) /* Avoid a repeat of CVE-2026-110451. */
++            sandboxProfile += fmt("(allow file-read* file-write* process-exec\n%s)\n", otherSandboxPathsProfile);
+ 
+-            if (S_ISDIR(optSt->st_mode))
+-                sandboxProfile += fmt("\t(subpath \"%s\")\n", path);
+-            else
+-                sandboxProfile += fmt("\t(literal \"%s\")\n", path);
++        const auto storePrefix = store.storeDir + '/';
++        for (const auto & [bucket, filters] : bucketedStorePathProfiles) {
++            assert(!filters.empty()); /* Just to be safe. */
++            const auto prefix = storePrefix + bucket;
++            sandboxProfile +=
++                fmt("(allow file-read* file-write* process-exec\n"
++                    "\t(require-all (prefix \"%s\")\n"
++                    "\t\t(require-any\n%s)))\n",
++                    prefix,
++                    filters);
+         }
+-        sandboxProfile += ")\n";
+ 
+         /* Allow file-read* on full directory hierarchy to self. Allows realpath() */
+         sandboxProfile += "(allow file-read*\n";
++        assert(!ancestry.empty()); /* Just to be safe. */
+         for (auto & i : ancestry) {
+             sandboxProfile += fmt("\t(literal \"%s\")\n", i);
+         }

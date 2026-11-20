@@ -4,6 +4,7 @@
   partitionedAttrs = {
     apps = "dev";
     checks = "dev";
+    libTests = "dev";
     devShells = "dev";
     formatter = "dev";
   };

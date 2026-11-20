@@ -1,8 +1,4 @@
 _: {
-  lib.targetPackagePolicy = inputs: {
-    overlays = [ (import ../../../../overlays { inherit inputs; }) ];
-    config = {
-      allowUnfree = true;
-    };
-  };
+  lib.targetPackagePolicy =
+    inputs: (import ../../../shared/local/package-policy.nix) inputs { allowUnfree = true; };
 }

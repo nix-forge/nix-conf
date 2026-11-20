@@ -11,9 +11,10 @@
       source = builtins.readFile target;
       oldOption = "programs.rofi.font =";
       patchedTarget = builtins.toFile "stylix-rofi.nix" (
-        assert lib.assertMsg (lib.hasInfix oldOption source)
-          "Stylix no longer defines the expected deprecated Rofi option";
-        builtins.replaceStrings [ oldOption ] [ "programs.rofi.settings.font =" ] source
+        if !(lib.hasInfix oldOption source) then
+          throw "Stylix no longer defines the expected deprecated Rofi option"
+        else
+          builtins.replaceStrings [ oldOption ] [ "programs.rofi.settings.font =" ] source
       );
       mkTarget = import (stylix + "/stylix/mk-target.nix") {
         name = "rofi";

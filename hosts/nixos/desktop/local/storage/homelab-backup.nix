@@ -1,4 +1,8 @@
-{ config, lib, ... }: {
+{ config, lib, ... }:
+let
+  roles = import ./.storage-roles.nix;
+in
+{
   # Enable the local repository only after both the encrypted system and the
   # separately provisioned USB disk are active. The connected HDD is one
   # failure domain and does not claim offline or off-site protection.
@@ -13,7 +17,7 @@
           destinations.homelab = {
             repositoryFile = "/var/lib/desktop-storage/keys/homelab-restic-repository";
             passwordFile = config.nixSeal.secrets.homelab-restic-password.path;
-            requiredMounts = [ "/mnt/homelab" ];
+            requiredMounts = [ roles.homelabMount ];
             medium = "hdd";
             failureDomain = "homelab-usb-hdd";
             schedule = "Sat *-*-* 03:00:00";
@@ -27,7 +31,7 @@
             "/home"
             "/etc"
             "/var/lib"
-            "/srv/data"
+            roles.dataMount
             "/root"
           ];
           exclude = lib.mkAfter (
@@ -59,7 +63,7 @@
                 [
                   "/home/*/Developer"
                   "/home/*/Worktrees"
-                  "/srv/data/work"
+                  roles.workMount
                   "/home/*/.local/state/package-refresh-*"
                 ]
           );

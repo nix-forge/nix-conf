@@ -1,5 +1,6 @@
 {
   config,
+  myLib,
   pkgs,
   lib,
   osConfig ? null,
@@ -275,9 +276,14 @@ in
     # cursor package or theme name on every host.
     xdg.configFile."uwsm/env".text = lib.mkIf (usingUWSMHyprland && cfg.enable && cursorCfg.enable) (
       lib.mkAfter (
-        (import ../../../../lib/templates/text.nix) ./scripts/set-cursor-size.sh {
-          toString_derivedCursorSize = toString derivedCursorSize;
-        }
+        myLib.writers.renderBashText { inherit pkgs; } {
+          name = "set-cursor-size.sh";
+          text = ''
+            # shellcheck shell=bash
+            export XCURSOR_SIZE=@toString_derivedCursorSize@
+            export HYPRCURSOR_SIZE=@toString_derivedCursorSize@
+          '';
+        } { toString_derivedCursorSize = toString derivedCursorSize; }
       )
     );
 

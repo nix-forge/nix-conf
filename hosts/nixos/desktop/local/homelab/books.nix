@@ -38,12 +38,8 @@ let
       "-/var/run/dbus/system_bus_socket"
     ];
   };
-  bootstrap = pkgs.writers.writePython3Bin "bootstrap-books" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./scripts/bootstrap_books.py);
+  bootstrap =
+    (import ../../../../../flake/runtime-packages.nix { inherit pkgs; }).homelabServiceProtocols;
 in
 {
   options.homelab.desktopBooks.enable = lib.mkOption {

@@ -1,18 +1,16 @@
 {
   lib,
+  myLib,
   pkgs,
   config,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   sessionRoot = "/etc/greetd/sessions";
   defaultSession = config.services.displayManager.defaultSession;
   normalUsers = builtins.attrNames (lib.filterAttrs (_: user: user.isNormalUser) config.users.users);
-  prepareCache = pkgs.writeShellApplication {
-    name = "prepare-tuigreet-cache";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = builtins.readFile ./scripts/prepare-tuigreet-cache.sh;
-  };
+  prepareCache = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).tuigreetCache;
 in
 {
   options.services.greetd.tuigreet.defaultCommand = lib.mkOption {
@@ -51,20 +49,38 @@ in
       };
     };
 
-    systemd.services.greetd.preStart = lib.mkIf (defaultSession != null) (
-      (import ../../../lib/templates/text.nix) ./scripts/prepare-greeter-cache.sh {
-        pkgs_coreutils = pkgs.coreutils;
-        pkgs_util_linux = pkgs.util-linux;
-        lib_escapeShellArgs_lib_getExe_prepareCache_var_cache_tuigre = lib.escapeShellArgs (
-          [
-            (lib.getExe prepareCache)
-            "/var/cache/tuigreet"
-            sessionRoot
-            "${defaultSession}.desktop"
-          ]
-          ++ normalUsers
-        );
-      }
-    );
+    systemd.services.greetd.preStart = lib.mkIf (defaultSession != null) (checkedShellText {
+      name = "prepare-greeter-cache";
+      text =
+        myLib.templates.renderText
+          {
+            name = "prepare-greeter-cache.sh";
+            text = ''
+              # shellcheck shell=bash
+              @pkgs_coreutils@/bin/install -d -m 0755 -o greeter -g greeter /var/cache/tuigreet
+              # Repair ownership after numeric UID changes without following symlinks.
+              # Read and rewrite the user-writable cache only as the greeter account.
+              for cache in /var/cache/tuigreet/last*; do
+                if [[ -e $cache || -L $cache ]]; then
+                  @pkgs_coreutils@/bin/chown --no-dereference greeter:greeter -- "$cache"
+                fi
+              done
+              @pkgs_util_linux@/bin/runuser -u greeter -- @lib_escapeShellArgs_lib_getExe_prepareCache_var_cache_tuigre@
+            '';
+          }
+          {
+            pkgs_coreutils = pkgs.coreutils;
+            pkgs_util_linux = pkgs.util-linux;
+            lib_escapeShellArgs_lib_getExe_prepareCache_var_cache_tuigre = lib.escapeShellArgs (
+              [
+                (lib.getExe prepareCache)
+                "/var/cache/tuigreet"
+                sessionRoot
+                "${defaultSession}.desktop"
+              ]
+              ++ normalUsers
+            );
+          };
+    });
   };
 }

@@ -1,28 +1,13 @@
 {
   config,
   lib,
-  myLib,
   pkgs,
   ...
 }:
 let
-  writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
-  pairingPolicy = pkgs.writers.writePython3 "disable-bluetooth-pairing" {
-    libraries = [ pkgs.python3Packages.dbus-next ];
-    # Match Ruff's line wrapping and leading binary operators.
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/disable_bluetooth_pairing.py;
-  disableBluetoothPairing = writeBashTemplate {
-    name = "disable-bluetooth-pairing";
-    src = ./scripts/disable-bluetooth-pairing.sh;
-    replacements = {
-      bash = lib.getExe pkgs.bash;
-      policyScript = pairingPolicy;
-    };
-  };
+  disableBluetoothPairing =
+    (import ../../../flake/runtime-packages.nix { inherit pkgs; }).bluetoothPairing;
+
 in
 {
   hardware.bluetooth = {
@@ -89,7 +74,7 @@ in
       Type = "oneshot";
       # BlueZ may publish its D-Bus adapter well after bluetoothd starts while
       # USB firmware initializes. The helper blocks on InterfacesAdded.
-      ExecStart = "${disableBluetoothPairing} --timeout 45";
+      ExecStart = "${lib.getExe disableBluetoothPairing} --timeout 45";
       TimeoutStartSec = "50s";
       Restart = "on-failure";
       RestartSec = "10s";

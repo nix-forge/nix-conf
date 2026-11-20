@@ -1,0 +1,19 @@
+[package]
+name = "desktop-clipboard-lock"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+zbus.workspace = true
+futures-util.workspace = true
+tokio.workspace = true
+rustix.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies.nix-conf-process]
+path = "../../../../lib/runtime-process"

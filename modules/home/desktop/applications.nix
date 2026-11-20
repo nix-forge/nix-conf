@@ -5,6 +5,8 @@
   ...
 }:
 let
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
+  desktopMod = if macShortcuts then "CTRL + ALT + SUPER" else "SUPER";
   cfg = config.desktop.applications;
   inherit (pkgs.stdenv.hostPlatform) isLinux;
   graphicalCommand =
@@ -95,7 +97,7 @@ in
 
     wayland.windowManager.hyprland.settings.bind =
       lib.mkIf config.wayland.windowManager.hyprland.enable
-        (lib.mkAfter [ (hyprBind "SUPER + E" (graphicalCommand (lib.getExe pkgs.nautilus))) ]);
+        (lib.mkAfter [ (hyprBind "${desktopMod} + E" (graphicalCommand (lib.getExe pkgs.nautilus))) ]);
 
     xdg.mimeApps = {
       enable = true;

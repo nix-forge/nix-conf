@@ -44,7 +44,13 @@ let
 
   actualOpen = writeBashTemplate {
     name = "actual-open";
-    src = ./actual-assets/actual-open.sh;
+    text = ''
+      #!@bash@
+      # shellcheck shell=bash
+      set -euo pipefail
+
+      exec @openCommand@ @url@
+    '';
     dir = "bin";
     replacements = {
       bash = lib.getExe pkgs.bash;
@@ -55,7 +61,15 @@ let
 
   actualSetup = writeBashTemplate {
     name = "actual-setup.sh";
-    src = ./actual-assets/actual-setup.sh;
+    text = ''
+      # shellcheck shell=sh
+      set -eu
+
+      umask 0077
+      @mkdir@ -p @configDir@ @stateDir@ @dataDir@ @serverFiles@ @userFiles@
+      @chmod@ 700 @configDir@ @stateDir@ @dataDir@ @serverFiles@ @userFiles@
+      @install@ -m 600 @generatedConfig@ @configFile@
+    '';
     replacements = {
       mkdir = lib.getExe' pkgs.coreutils "mkdir";
       chmod = lib.getExe' pkgs.coreutils "chmod";

@@ -203,7 +203,7 @@ any necessary secret-dependent validation in the runtime flow.
 ## Implementation follow-up
 
 SwayOSD now uses `pkgs.formats.toml`; both obsolete TOML source files were removed.
-The [module regression check](../../tests/nix/generated-configs.nix) parses its actual
+The module regression check parses its actual
 generated file with Python's TOML parser and checks every setting, including a
 style path containing spaces, quotes and a backslash.
 
@@ -295,7 +295,7 @@ generator belongs to Home Manager's `lib.hm`, not Nixpkgs' `lib.generators`.
 
 Exact parsed-value comparisons passed for both converted Noctalia files,
 Ironbar and SwayNC, preserving all arrays and distinct palette values. The
-[template regression check](../../tests/nix/template-configs.nix) also exercises the
+template regression check also exercises the
 actual Home Manager modules with a quoted/backslash-containing font, repeated
 Hypridle listeners, multiple Hyprpaper monitors and bounded clipboard settings.
 The existing Ironbar check covers quoted theme names and command strings.
@@ -379,7 +379,7 @@ saved configuration independently with
 | --- | --- |
 | Fontconfig XML | The duplicate-emoji filter and its XML writer check were removed. The [Google design package](../../pkgs/pkgs/by-name/go/google-fonts-design/filter_font_providers.py) already removes the duplicate emoji providers before installation. |
 | Electron flags and modprobe options | Ordered Nix lists and `lib.concatLines` preserve the native lines, including repeated Electron flags. No application-specific parser is implied by this generator. |
-| GTK CSS | The five desktop templates remain CSS. A [GTK 4 parser](../../lib/desktop/check-gtk-css.c) checks their rendered output in `postCheck`, including `parsing-error` signals. The pinned consumers all use GTK 4. Warnings are reported; parser errors fail the build. Hyprshell font names now escape quotes and backslashes before substitution. |
+| GTK CSS | The five desktop templates remain CSS. A [GTK 4 parser](../../lib/desktop/gtk-css-validator/src/main.rs) checks their rendered output in `postCheck`, including `parsing-error` signals. The pinned consumers all use GTK 4. Warnings are reported; parser errors fail the build. Hyprshell font names now escape quotes and backslashes before substitution. |
 | PowerShell | The [file writer](../../lib/writers/powershell.nix) parses both rendered Windows guest scripts and runs pinned PSScriptAnalyzer rules, including Windows PowerShell 5.1 syntax compatibility. It fails on errors and warnings without executing the scripts. Native Windows cmdlet behavior still requires runtime tests. |
 | Windows unattended XML | Retains the existing runtime seed renderer and escaping checks because credentials are substituted outside the Nix store. |
 | Libvirt XML | Retains the existing version-matched `virt-xml-validate` checks. |
@@ -484,7 +484,7 @@ CSS, XML, Caddyfile, PowerShell guest files, and sourced shell fragments retain
 their format-specific handling. A script writer that adds a Unix shebang is not
 appropriate for every file produced by substitution.
 
-The [Bash writer checks](../../tests/nix/bash-writers.nix) cover the three output
+The Bash writer checks cover the three output
 layouts, quoted replacement values and arguments, a single interpreter line,
 metadata, invocation through a named symlink, preservation of shell options,
 and non-executing validation. Negative
@@ -574,7 +574,7 @@ their consumers. `formats.xml` checks well-formedness; Libvirt's selected schema
 provide additional application validation. Browser CSS cannot use GTK's grammar.
 These files gain nothing from an executable script writer.
 
-The [non-Bash checks](../../tests/nix/non-bash-writers.nix) exercise CRX v2 and v3
+The non-Bash checks exercise CRX v2 and v3
 payload extraction, one-time preference initialization, Python CLI entry points,
 Lua byte preservation and non-execution, unknown Lua globals, and invalid syntax
 in Lua and substituted Nushell. Nushell fixtures exercise generated imports,

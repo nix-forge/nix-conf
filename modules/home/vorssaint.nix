@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   cfg = config.programs.vorssaint;
 
   appPath = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${
@@ -98,7 +100,11 @@ in
         ProgramArguments = [
           "/bin/sh"
           "-c"
-          "/bin/wait4path ${lib.escapeShellArg appPath} && exec /usr/bin/open -gj -a ${lib.escapeShellArg appPath}"
+          (checkedShellText {
+            name = "launch-vorssaint";
+            shell = "sh";
+            text = "/bin/wait4path ${lib.escapeShellArg appPath} && exec /usr/bin/open -gj -a ${lib.escapeShellArg appPath}";
+          })
         ];
         RunAtLoad = true;
         KeepAlive = false;

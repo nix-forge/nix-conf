@@ -7,6 +7,7 @@ _: {
       ...
     }:
     let
+      roles = import ./.storage-roles.nix;
       # Installed mounts use partition labels and mapper names. Physical disk IDs
       # are supplied only to the offline installer, never required for a rebuild.
       # These deliberately nonexistent defaults cannot select a physical drive.
@@ -74,88 +75,90 @@ _: {
         settings.allowDiscards = true;
       };
     in
-    assert systemDisk != dataDisk;
-    {
-      disko.devices.disk = {
-        system = {
-          type = "disk";
-          device = checkedDisk systemDisk;
-          content = {
-            type = "gpt";
-            partitions = {
-              ESP = {
-                priority = 1;
-                label = "NIXOS-ESP";
-                size = "2G";
-                type = "EF00";
-                content = {
-                  type = "filesystem";
-                  format = "vfat";
-                  mountpoint = "/boot";
-                  mountOptions = [
-                    "fmask=0077"
-                    "dmask=0077"
-                  ];
+    if systemDisk == dataDisk then
+      throw "System and data disks must differ"
+    else
+      {
+        disko.devices.disk = {
+          system = {
+            type = "disk";
+            device = checkedDisk systemDisk;
+            content = {
+              type = "gpt";
+              partitions = {
+                ESP = {
+                  priority = 1;
+                  label = "NIXOS-ESP";
+                  size = "2G";
+                  type = "EF00";
+                  content = {
+                    type = "filesystem";
+                    format = "vfat";
+                    mountpoint = "/boot";
+                    mountOptions = [
+                      "fmask=0077"
+                      "dmask=0077"
+                    ];
+                  };
                 };
-              };
-              swap = {
-                priority = 2;
-                label = "NIXOS-SWAP";
-                size = "16G";
-                type = "8200";
-                content = {
-                  type = "swap";
-                  randomEncryption = true;
-                  priority = -1;
-                  mountOptions = [ "nofail" ];
+                swap = {
+                  priority = 2;
+                  label = "NIXOS-SWAP";
+                  size = "16G";
+                  type = "8200";
+                  content = {
+                    type = "swap";
+                    randomEncryption = true;
+                    priority = -1;
+                    mountOptions = [ "nofail" ];
+                  };
                 };
-              };
-              cryptroot = {
-                label = "NIXOS-CRYPTROOT";
-                size = "100%";
-                content = luks "cryptroot" (
-                  btrfs "nixos" {
-                    "@root" = subvolume "/";
-                    "@home" = subvolume "/home";
-                    "@home/.snapshots" = { };
-                    "@nix" = subvolume "/nix";
-                    "@var" = subvolume "/var";
-                    "@log" = subvolume "/var/log";
-                    "@cache" = subvolume "/var/cache";
-                    "@docker" = subvolume "/var/lib/docker";
-                    "@containerd" = subvolume "/var/lib/containerd";
-                  }
-                );
+                cryptroot = {
+                  label = "NIXOS-CRYPTROOT";
+                  size = "100%";
+                  content = luks "cryptroot" (
+                    btrfs "nixos" {
+                      "@root" = subvolume "/";
+                      "@home" = subvolume "/home";
+                      "@home/.snapshots" = { };
+                      "@nix" = subvolume "/nix";
+                      "@var" = subvolume "/var";
+                      "@log" = subvolume "/var/log";
+                      "@cache" = subvolume "/var/cache";
+                      "@docker" = subvolume "/var/lib/docker";
+                      "@containerd" = subvolume "/var/lib/containerd";
+                    }
+                  );
+                };
               };
             };
           };
-        };
-        data = {
-          type = "disk";
-          device = checkedDisk dataDisk;
-          content = {
-            type = "gpt";
-            partitions.cryptdata = {
-              label = "NIXOS-CRYPTDATA";
-              size = "100%";
-              content =
-                (luks "cryptdata" (
-                  btrfs "desktop-data" {
-                    "@data" = dataSubvolume "/srv/data";
-                    "@data/.snapshots" = { };
-                    "@work" = dataSubvolume "/srv/data/work";
-                    "@work/.snapshots" = { };
-                    "@games" = dataSubvolume "/mnt/games";
-                    "@vms" = dataSubvolume "/var/lib/libvirt/images";
-                  }
-                ))
-                // {
-                  # Its key lives on encrypted root. Never copy it into the initrd.
-                  initrdUnlock = false;
-                };
+          data = {
+            type = "disk";
+            device = checkedDisk dataDisk;
+            content = {
+              type = "gpt";
+              partitions.cryptdata = {
+                label = "NIXOS-CRYPTDATA";
+                size = "100%";
+                content =
+                  (luks "cryptdata" (
+                    btrfs "desktop-data" {
+                      "@data" = dataSubvolume roles.dataMount;
+                      "@data/.snapshots" = { };
+                      "@work" = dataSubvolume roles.workMount;
+                      "@work/.snapshots" = { };
+                      "@games" = dataSubvolume roles.gamesMount;
+                      "@vms" = dataSubvolume roles.vmImagesMount;
+                    }
+                  ))
+                  // {
+                    # Its key lives on encrypted root. Never copy it into the initrd.
+                    initrdUnlock = false;
+                  };
+              };
             };
           };
         };
       };
-    };
 }

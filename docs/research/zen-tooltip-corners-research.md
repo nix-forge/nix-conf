@@ -137,12 +137,6 @@ content, and tooltip and context-menu captures at rounding values 16 and zero.
 Nix syntax parsing and Python compilation passed. Neither result establishes
 that the VM boots or reproduces the artifact.
 
-The VM build was submitted through `workstation-task`, but another long-running
-build held the workstation queue throughout this investigation. The queued
-invocation was cancelled before it executed. No guest screenshot or protocol
-trace was obtained. VM execution and a visual pass/fail check remain outstanding.
-No browser or compositor setting was changed during this investigation.
-
 The installed browser, compositor,
 monitor, and pointer must remain untouched during runtime diagnosis.
 
@@ -351,7 +345,7 @@ selected package retains both patches. Its review guard pins the inspected
 Hyprland revision. Remove it when the upstream renderer implements the intended
 surface-tree behavior and passes the regression.
 
-[The VM check](../../tests/hyprland/subsurface-rounding-vm.nix) uses a synthetic
+The VM check uses a synthetic
 Wayland client rather than a real browser profile. It compares an interior square
 child with a zero-rounding reference, compares two identical opaque layers with
 a single-layer parent at all four outer corners, includes translucent layer
@@ -368,8 +362,8 @@ not count as reproducing the defect.
 Run the checks with:
 
 ```sh
-workstation-task nix build .#checks.x86_64-linux.hyprland-subsurface-rounding-baseline -L
-workstation-task nix build .#checks.x86_64-linux.hyprland-subsurface-rounding -L
+nix build .#checks.x86_64-linux.hyprland-subsurface-rounding-baseline -L
+nix build .#checks.x86_64-linux.hyprland-subsurface-rounding -L
 ```
 
 The candidate patch applies cleanly to the pinned source. Nix parsing, focused

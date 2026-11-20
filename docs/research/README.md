@@ -7,8 +7,11 @@ Source-backed investigations record the evidence, decision, and limits of a conf
 Add reviewed notes as `<topic>-research.md` and link them here. Use the
 [research workflow](../agents/research.md) and [publication policy](../publication.md).
 
+- [REA harness integration on demand](rea-harness-integration-research.md)
+
 ## A to F
 
+- [Additional command-line tools for coding agents](agent-cli-tools-research.md)
 - [Quiet desktop fan control](desktop-fan-control-research.md)
 - [Scheduled Restic backup performance](restic-backup-performance-research.md)
 - [Security keys, password storage, and account recovery](account-security-research.md)
@@ -35,7 +38,6 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [Book discovery and requests](books-discovery-research.md)
 - [Brawlhalla keyboard and desktop settings](brawlhalla-research.md)
 - [Browser shopping profile research](browser-shopping-profile-research.md)
-- [Efficient Nix build queues](build-queue-efficiency-research.md)
 - [Carbon Neon: choosing a primary accent](carbon-neon-accent-color-research.md)
 - [Themes closest to Vira Carbon](carbon-theme-similarity-research.md)
 - [US cashback service comparison](cashback-service-comparison-research.md)
@@ -51,7 +53,9 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [Codex computer use on Linux](codex-linux-computer-use-research.md)
 - [Codex Linux SSH startup](codex-linux-ssh-startup-research.md)
 - [Cross-platform font compatibility research](cross-platform-font-compatibility-research.md)
+- [Consistent keyboard placement and shortcuts on macOS and Linux](cross-platform-keyboard-research.md)
 - [Darwin application settings and privacy permissions](darwin-application-permissions-research.md)
+- [MDM alongside nix-darwin](macos-mdm-nix-research.md)
 - [Darwin font audit](darwin-font-research.md)
 - [Declarative package lookup](declarative-profiles-research.md)
 - [Deploying nix-darwin from Linux with deploy-rs](deploy-rs-darwin-research.md)
@@ -178,6 +182,7 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [Fonts for the Stylix desktop](stylix-font-research.md)
 - [Extending Stylix with repository theme targets](stylix-target-layer-research.md)
 - [Stylix themes worth using across a desktop](stylix-theme-research.md)
+- [Where can the workstation configuration own each decision once?](system-design-research.md)
 - [System font audit research](system-font-audit-research.md)
 - [systemd-bless-boot stale-entry research](systemd-bless-boot-upstream-research.md)
 
@@ -217,7 +222,12 @@ Add reviewed notes as `<topic>-research.md` and link them here. Use the
 - [Zen Browser voice-dictation research](zen-voice-dictation-research.md)
 - [Zoom on NixOS with Hyprland](zoom-research.md)
 - [Noctalia tray icon selection review](noctalia-tray-icon-selection-research.md)
-- [Resource-aware queues across Linux and macOS](workload-scheduler-research.md)
-- [Adaptive memory admission for workstation jobs](elastic-workstation-memory-research.md)
+- [Voice dictation models and Handy integration](voice-dictation-models-research.md)
+- [Automatic dictation model updates and low-latency cleanup](voice-dictation-updates-research.md)
 - [Modular VS Code configuration](vscode-configuration-research.md)
 - [VS Code extension sources and dependency ownership](vscode-extension-sources-research.md)
+- [Writable VS Code Remote SSH settings through Nix](vscode-remote-settings-research.md)
+- [Agent skill catalogs and harness integration](agent-skills-catalogs-research.md)
+- [Nix-first configuration and Rust runtime helpers](nix-first-runtime-research.md)
+- [Rust quality gates and Nix-first runtime design](rust-quality-design-research.md)
+- [Rust checks across independent workspaces](rust-workspace-checks-research.md)

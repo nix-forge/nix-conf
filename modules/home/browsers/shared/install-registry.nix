@@ -3,12 +3,7 @@
     type = lib.types.package;
     internal = true;
     readOnly = true;
-    default = pkgs.writers.writePython3Bin "hm-reconcile-gecko-install-registry" {
-      flakeIgnore = [
-        "E501"
-        "W503"
-      ];
-    } ./reconcile_install_registry.py;
+    default = (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).geckoInstallRegistry;
     description = "Helper that points Gecko installation IDs at a managed profile.";
   };
 }

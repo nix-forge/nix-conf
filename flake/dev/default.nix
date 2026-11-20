@@ -1,25 +1,12 @@
 {
   imports = [
-    ./authentication-checks.nix
-    ./cache-checks.nix
     ./checks.nix
-    ./configuration-context.nix
-    ./configurations.nix
-    ./fonts.nix
     ./formatter.nix
-    ./generated-config-checks.nix
     ./git-hooks.nix
-    ./git-privacy-checks.nix
     ./javascript-checks.nix
-    ./memory-checks.nix
-    ./noogle-checks.nix
-    ./platform-checks.nix
-    ./python-checks.nix
+    ./lib-tests.nix
+    ./runtime-source-policy.nix
+    ./rust-checks.nix
     ./shell.nix
-    ./security-checks.nix
-    ./storage-checks.nix
-    ./theme-checks.nix
-    ./temporary-fix-checks.nix
-    ./virtualisation-checks.nix
   ];
 }

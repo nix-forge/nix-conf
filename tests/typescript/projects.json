@@ -1,5 +1,0 @@
-{
-  "scopes": ["tests", "overlays", "modules", "lib", "flake", "scripts"],
-  "fixtures": {},
-  "application": {}
-}

@@ -1,2 +1,0 @@
-# shellcheck shell=bash
-builtin source -- @blesh@ --attach=none --rcfile @rcFile@

@@ -1,51 +1,67 @@
-{ inputs, lib, ... }: {
+{ lib, inputs, ... }: {
   perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      myLib,
+      pkgs,
+      ...
+    }:
     let
       inherit (config.pre-commit.settings) enabledPackages package shellHook;
-      probePython = import ./quality-python.nix { pkgs = pkgs.buildPackages; };
-      javascriptTools = import ./javascript-tools.nix { pkgs = pkgs.buildPackages; };
-    in
-    {
-      # Hook validation needs the configured tools, not the interactive shell's
-      # built seal CLI. Native secret-template checks exercise that binary.
-      devShells.tests = pkgs.buildPackages.mkShellNoCC {
-        PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1";
-        NIX_TEST_NIXPKGS = inputs.nixpkgs.outPath;
-        NIX_TEST_FRAMEWORK = inputs.nix-config-framework.outPath;
-        packages = [
-          (import ./test-python.nix { pkgs = pkgs.buildPackages; })
-        ]
-        ++ (with pkgs.buildPackages; [
-          bash
-          coreutils
-          curl
-          dbus
-          file
-          findutils
-          imagemagick
-          gawk
-          git
-          gnugrep
-          jq
-          just
-          libxml2
-          nix
-          openssh
-          perl
-          restic
-          util-linux
-        ])
-        ++ lib.optionals pkgs.buildPackages.stdenv.hostPlatform.isLinux [ pkgs.buildPackages.systemd ];
+      rustWorkspaces = import ./rust-workspaces.nix {
+        inherit myLib;
+        pkgs = pkgs.buildPackages;
       };
-      # A retained profile for the early Python gate warms only its exact tools.
-      devShells.ciPython = pkgs.buildPackages.mkShellNoCC {
-        packages = [
-          probePython
-          pkgs.buildPackages.ruff
-          pkgs.buildPackages.ty
+      workspace = import ../rust-workspace.nix { pkgs = pkgs.buildPackages; };
+      preferShellCargoTools = ''
+        # Cargo prepends its home bin directory when it is absent from PATH.
+        export PATH="$PATH:''${CARGO_HOME:-$HOME/.cargo}/bin"
+      '';
+      # rust-analyzer may invoke Cargo through a Rustup proxy. Give the proxy
+      # a complete Nix toolchain rather than the rustc-only sysroot.
+      rustToolchain = pkgs.buildPackages.symlinkJoin {
+        name = "nix-conf-rust-toolchain";
+        paths = with pkgs.buildPackages; [
+          cargo
+          rustc
+          rustfmt
+          clippy
         ];
       };
+      rustTooling = import ./rust-tooling.nix {
+        inherit myLib;
+        pkgs = pkgs.buildPackages;
+        rustOverlay = inputs.rust-overlay;
+        inherit (config.devShells) ciRust;
+      };
+      javascriptTools = import ./javascript-tools.nix {
+        inherit myLib;
+        pkgs = pkgs.buildPackages;
+      };
+    in
+    {
+      # Warm the exact compiler/lint toolchain used by the Rust gate.
+      devShells.ciRust = pkgs.buildPackages.mkShell {
+        shellHook = preferShellCargoTools;
+        RUSTUP_TOOLCHAIN = "${rustToolchain}";
+        buildInputs =
+          workspace.buildInputs
+          ++ lib.optionals pkgs.buildPackages.stdenv.hostPlatform.isDarwin [ pkgs.buildPackages.libiconv ];
+        packages = with pkgs.buildPackages; [
+          cargo
+          cargo-deny
+          cargo-nextest
+          rust-analyzer
+          rustc
+          rustfmt
+          clippy
+          pkg-config
+          semgrep
+          rustWorkspaces
+        ];
+      };
+      devShells.rustAnalysis = rustTooling.rustAnalysis;
+      devShells.rustVerification = rustTooling.rustVerification;
       devShells.ci = pkgs.buildPackages.mkShellNoCC {
         inherit shellHook;
         packages = enabledPackages ++ [
@@ -54,16 +70,18 @@
           pkgs.buildPackages.gitleaks
         ];
       };
-      devShells.default = pkgs.buildPackages.mkShellNoCC {
-        inherit shellHook;
+      devShells.default = pkgs.buildPackages.mkShell {
+        shellHook = shellHook + preferShellCargoTools;
+        RUSTUP_TOOLCHAIN = "${rustToolchain}";
+        inherit (workspace) buildInputs;
         LIBRARY_PATH = lib.optionalString pkgs.buildPackages.stdenv.hostPlatform.isDarwin "${pkgs.buildPackages.libiconv}/lib";
         NIX_LDFLAGS = lib.optionalString pkgs.buildPackages.stdenv.hostPlatform.isDarwin "-L${pkgs.buildPackages.libiconv}/lib";
         packages =
           enabledPackages
           ++ [
             package
-            probePython
             javascriptTools
+            rustWorkspaces
           ]
           ++ (with pkgs.buildPackages; [
             actionlint
@@ -81,8 +99,9 @@
             nixd
             nixf-diagnose
             nixfmt
-            nodejs_24
+            nix-unit
             pinact
+            pkg-config
             prek
             rumdl
             rust-analyzer

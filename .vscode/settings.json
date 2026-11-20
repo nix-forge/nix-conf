@@ -91,5 +91,16 @@
   "editor.rulers": [100],
   "eslint.enable": false,
   "oxc.enable.oxlint": true,
-  "oxc.enable.oxfmt": false
+  "oxc.enable.oxfmt": false,
+  "rust-analyzer.linkedProjects": [
+    "Cargo.toml",
+    "nix-seal/Cargo.toml",
+    "nix-seal/fuzz/Cargo.toml",
+    "nix-seal/legacy/Cargo.toml"
+  ],
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.allTargets": true,
+  "rust-analyzer.check.extraArgs": ["--", "-D", "warnings"],
+  "rust-analyzer.cargo.extraArgs": ["--locked"],
+  "rust-analyzer.cargo.features": "all"
 }

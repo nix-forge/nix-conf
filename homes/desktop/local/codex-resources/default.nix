@@ -2,10 +2,37 @@
   config,
   lib,
   osConfig,
+  myLib,
   pkgs,
   ...
 }:
 let
+  retirePreview = pkgs.writeText "retire-swap-preview.sh" (
+    myLib.writers.checkedShellText { inherit pkgs; } {
+      name = "retire-swap-preview";
+      text = ''
+        # shellcheck shell=bash
+        # Sourced by activation, which supplies newGenPath and nixProfileRemove.
+        (
+          set -euo pipefail
+          swap_preview_unit=''${1:?unit path required}
+          swap_preview_relative=''${2:?generation-relative unit path required}
+          if [[ -z ''${newGenPath:-} || $swap_preview_relative == /* ||
+            $swap_preview_relative == ../* || $swap_preview_relative == */../* ]]; then
+            exit 0
+          fi
+          swap_preview_expected="$newGenPath/home-files/$swap_preview_relative"
+          # Keep the root if managed-link installation failed or an unexpected link won.
+          if [[ -L $swap_preview_unit && -f $swap_preview_unit &&
+            -f $swap_preview_expected &&
+            $(readlink -f -- "$swap_preview_unit") == "$(readlink -f -- "$swap_preview_expected")" ]]; then
+            nixProfileRemove workstation-swap-preview
+          fi
+        )
+      '';
+    }
+  );
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
   # A 14 GiB trial reclaimed active UI pages during tool/cache bursts despite
   # host headroom. The 16 GiB threshold leaves slack below the unchanged hard
   # ceiling. Shared containment limits do not reserve physical RAM.
@@ -20,14 +47,27 @@ let
     MemorySwapMax = 22 * 1024 * 1024 * 1024;
   };
   original = pkgs.chatgpt;
-  supervisor = pkgs.writers.writePython3 "codex-desktop-supervisor" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/codex_launch.py;
-  forwardEnvironment = builtins.readFile ./scripts/forward-environment.sh;
-  managedLaunch = pkgs.writeShellApplication {
+  supervisor =
+    lib.getExe
+      (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).codexDesktopSupervisor;
+  forwardEnvironment = ''
+    # shellcheck shell=bash
+    # Copy values inside systemd-run; only variable names appear in its argv.
+    forward_environment() {
+      local entry name
+      environment=()
+      while IFS= read -r -d ''' entry; do
+        name=''${entry%%=*}
+        # systemd accepts ordinary environment names, not exported Bash functions.
+        if [[ ! $name =~ ^[a-zA-Z_][a-zA-Z_0-9]*$ ]]; then continue; fi
+        case "$name" in
+        INVOCATION_ID | JOURNAL_STREAM | SYSTEMD_EXEC_PID | NOTIFY_SOCKET | WATCHDOG_* | LISTEN_* | RUNTIME_DIRECTORY | STATE_DIRECTORY | CACHE_DIRECTORY | LOGS_DIRECTORY | CONFIGURATION_DIRECTORY | CREDENTIALS_DIRECTORY | CODEX_LAUNCH_UNIT) continue ;;
+        esac
+        environment+=("--setenv=$name")
+      done < <(env -0)
+    }
+  '';
+  managedLaunch = writeShellApplication {
     name = "codex-desktop-launch";
     runtimeInputs = [
       pkgs.systemd
@@ -51,7 +91,7 @@ let
         -- ${supervisor} "$@"
     '';
   };
-  launcher = pkgs.writeShellApplication {
+  launcher = writeShellApplication {
     name = "chatgpt";
     text = ''
       exec ${lib.getExe managedLaunch} ${lib.getExe original} "$@"
@@ -69,23 +109,31 @@ let
     '';
     meta.mainProgram = "chatgpt";
   };
-  task = pkgs.writeShellApplication {
+  task = writeShellApplication {
     name = "codex-task";
-    runtimeInputs = [
-      pkgs.systemd
-      pkgs.coreutils
-    ];
-    text = forwardEnvironment + builtins.readFile ./scripts/codex-task.sh;
+    runtimeInputs = [ pkgs.systemd ];
+    text =
+      myLib.templates.renderText
+        {
+          name = "codex-task.sh";
+          text = ''
+            # shellcheck shell=bash
+            exec @runtime@ "$@"
+          '';
+        }
+        {
+          runtime =
+            lib.getExe' (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).codexDesktopSupervisor
+              "codex-task";
+        };
   };
-  monitor = pkgs.writers.writePython3 "codex-pressure-monitor" {
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } ./scripts/codex_pressure.py;
-  uid = toString osConfig.users.users.ianmh.uid;
+  monitor =
+    lib.getExe
+      (import ../../../../flake/runtime-packages.nix { inherit pkgs; }).codexPressureMonitor;
+  uid = toString osConfig.users.users.${config.home.username}.uid;
+  userManagerCgroup = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service";
   monitorConfig = (pkgs.formats.json { }).generate "codex-pressure.json" {
-    cgroup = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-codex.slice";
+    cgroup = "${userManagerCgroup}/app.slice/app-codex.slice";
     systemPressure = "/proc/pressure/memory";
     state = "${config.xdg.stateHome}/codex-resources/pressure.json";
     database = "${config.xdg.stateHome}/codex-resources/pressure-history.sqlite";
@@ -95,16 +143,15 @@ let
     rawSeconds = 24 * 60 * 60;
     summarySeconds = 14 * 24 * 60 * 60;
     observedGroups = {
-      zen = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-zen.slice";
-      t3-agents = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-t3code.slice";
-      t3-server = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/t3code.service";
+      zen = "${userManagerCgroup}/app.slice/app-zen.slice";
+      t3-agents = "${userManagerCgroup}/app.slice/app-t3code.slice";
+      t3-server = "${userManagerCgroup}/app.slice/t3code.service";
       virtual-machines = "/sys/fs/cgroup/machine.slice";
-      desktop-portal = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/session.slice/xdg-desktop-portal.service";
+      desktop-portal = "${userManagerCgroup}/session.slice/xdg-desktop-portal.service";
       nix-daemon = "/sys/fs/cgroup/system.slice/nix-daemon.service";
-      queued-work = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/background.slice/background-workload.slice";
     };
     observedPatterns.t3-desktop = {
-      root = "/sys/fs/cgroup/user.slice/user-${uid}.slice/user@${uid}.service/app.slice/app-graphical.slice";
+      root = "${userManagerCgroup}/app.slice/app-graphical.slice";
       pattern = "app-Hyprland-*t3code*.scope";
     };
     notify = lib.getExe pkgs.libnotify;
@@ -122,10 +169,9 @@ let
 in
 {
   programs.chatgpt.package = desktop;
-  programs.codex.context = lib.mkAfter (builtins.readFile ./lifecycle.md);
   home.packages = [
     task
-    (pkgs.writeShellApplication {
+    (writeShellApplication {
       name = "workstation-memory-history";
       text = ''
         exec ${monitor} ${monitorConfig} --history "$@"
@@ -141,7 +187,7 @@ in
   '';
 
   home.activation.workstationSwapPreview = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-    source ${./scripts/retire-swap-preview.sh} \
+    source ${retirePreview} \
       ${lib.escapeShellArg "${config.xdg.configHome}/systemd/user/app-codex.slice"} \
       ${lib.escapeShellArg "${lib.removePrefix "${config.home.homeDirectory}/" config.xdg.configHome}/systemd/user/app-codex.slice"}
   '';

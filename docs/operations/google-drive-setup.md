@@ -49,7 +49,7 @@ The encrypted `.age` file is the only repository input.
 Export the integrated home's pending creation plan on the desktop:
 
 ```sh
-workstation-task nix build --no-link --print-out-paths \
+nix build --no-link --print-out-paths \
   '.#nixosConfigurations.desktop.config.home-manager.users.<USER>.nixSeal.bootstrapPlanFile'
 ```
 

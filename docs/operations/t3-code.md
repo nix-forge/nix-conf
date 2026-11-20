@@ -9,19 +9,16 @@ interactive settings.
 
 ## Package and configuration ownership
 
-T3 is selected from the official Nixpkgs recipe through the separately locked
-`nixpkgs-t3code` input. Update that input deliberately, review the Darwin override
+T3 is selected from the official recipe in the shared `nixpkgs` input.
+When updating that input, review the Darwin override
 guards, then validate the resulting package. Do not run the curl installer,
 `t3 update`, or `t3 service install` over a Nix-managed installation. Those
 commands own their own binaries and units and can compete with Home Manager.
 
-As checked on 2026-11-08, upstream's latest stable release is
-[0.1.7](https://github.com/pingdotgg/t3code/releases/tag/v0.1.7), while the reviewed
-official Nixpkgs recipe still packages 0.1.6. This integration uses the official
-recipe's supported package and current upstream configuration methods. It does
-not silently bump source/dependency hashes or replace the signed Darwin app
-with an unqualified release. Updating to 0.1.7 requires a separate package and
-native identity/continuity check, including both temporary Darwin fixes.
+The shared pin packages T3 Code 0.1.8. On ARM Darwin, the GUI integration
+selects the matching signed vendor archive while preserving the official
+Nixpkgs CLI and server. Package updates require review of both temporary
+Darwin fixes and native identity, encrypted-data continuity and connection checks.
 
 The upstream [Home Manager module](https://github.com/nix-community/home-manager/blob/6750249c69969d09d952efaf3fab88a2bdac7ec6/modules/programs/t3code.nix)
 already provides mutable merging for `userdata/settings.json`, keybindings and
@@ -123,16 +120,8 @@ Upstream [background-service guidance](https://github.com/pingdotgg/t3code/blob/
 explains lifecycle and platform limits; Home Manager owns the equivalent service
 installation here.
 
-`checks.<system>.t3code` exercises the real Home Manager module with a finite
-backend fixture. It verifies provider-wrapper selection, CLI homes and config
-selectors, extra tool availability, argv, disabled-server behavior, and stable
-backend identity across GUI-only changes. It also executes the native settings
-merger against private fixture state to check preservation of enabled flags,
-models, shadow homes, other instances and private file mode. It does not start
-another real T3 server or touch account state.
-
 Native rollout additionally needs provider login/discovery under the service
 environment, continuation of an existing thread, expected logout/boot behavior,
 authenticated reconnection, and a deliberate graceful restart. Darwin also needs
 the existing signed-app, Keychain/catalog and Local Network acceptance checks.
-Schema, evaluation and fixture passes do not establish those runtime results.
+Schema and evaluation passes do not establish those runtime results.

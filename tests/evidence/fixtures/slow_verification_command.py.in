@@ -1,4 +1,0 @@
-#!__fixture_0__
-import time
-
-time.sleep(30)

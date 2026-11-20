@@ -220,7 +220,7 @@ Before a code change, capture a recurrence in the desktop app's own runner:
 
 ## Implication for this repository
 
-The existing [application reconciler](../../modules/home/macos/application_registry.py)
+The existing [application reconciler](../../modules/home/macos/application-runtime/src/bin/hm-macos-applications-helper.rs)
 registers the canonical app without recursively registering helpers. The
 [Home Manager integration](../../modules/home/macos/applications.nix) uses copied
 applications; the [packaging documentation](https://github.com/nix-forge/nixpkgs-personal/blob/d199632c9727bd2ed2ff8782c2ac7fcd69d27254/pkgs/by-name/ch/chatgpt-latest/README.md)

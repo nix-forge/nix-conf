@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
 let
+  checkedShellText = myLib.writers.checkedShellText { inherit pkgs; };
   cfg = config.xdg.directoryBookmarks;
   dirs = config.xdg.userDirs;
   paths = lib.unique (
@@ -24,14 +26,7 @@ let
     )
   );
   policy = pkgs.writeText "directory-bookmarks.json" (builtins.toJSON cfg.entries);
-  command = pkgs.writers.writePython3Bin "sync-directory-bookmarks" {
-    libraries = [ pkgs.python3Packages.defusedxml ];
-    # Ruff owns style checks; the writer's Flake8 check retains syntax checks.
-    flakeIgnore = [
-      "E501"
-      "W503"
-    ];
-  } (builtins.readFile ./sync_directory_bookmarks.py);
+  command = (import ../../../flake/runtime-packages.nix { inherit pkgs; }).directoryBookmarks;
 in
 {
   options.xdg.directoryBookmarks = {
@@ -81,14 +76,21 @@ in
     home.packages = [ command ];
     home.activation.syncDirectoryBookmarks =
       lib.hm.dag.entryAfter [ "createXdgUserDirectories" "linkGeneration" ]
-        (
-          (import ../../../lib/templates/text.nix) ./scripts/sync-directory-bookmarks.sh {
-            lib_getExe_command = lib.getExe command;
-            lib_escapeShellArg_toString_policy = lib.escapeShellArg (toString policy);
-            lib_escapeShellArg_config_home_homeDirectory = lib.escapeShellArg config.home.homeDirectory;
-            lib_escapeShellArg_config_xdg_configHome = lib.escapeShellArg config.xdg.configHome;
-            lib_escapeShellArg_config_xdg_dataHome = lib.escapeShellArg config.xdg.dataHome;
-          }
-        );
+        (checkedShellText {
+          name = "sync-directory-bookmarks";
+          text = "run ${
+            lib.escapeShellArgs [
+              (lib.getExe command)
+              "--config"
+              policy
+              "--home"
+              config.home.homeDirectory
+              "--config-home"
+              config.xdg.configHome
+              "--data-home"
+              config.xdg.dataHome
+            ]
+          }";
+        });
   };
 }

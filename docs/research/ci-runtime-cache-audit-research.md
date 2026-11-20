@@ -209,16 +209,16 @@ results without treating them as proof that a current native runtime check ran.
 
 ## What can be consolidated safely?
 
-Assign one CI owner to provably identical static invocations. Root hooks and
-`python-quality` both execute Ruff, `ty` and compileall; compare their source scope,
+Assign one CI owner to provably identical static invocations. The earlier overlapping Python gates have been retired. Root hooks and
+`rust-quality` both check Rust formatting; compare their source scope,
 configuration and execution environment before consolidating them. Keep history
 scanning, publication canaries and distinct sandbox/native assertions.
-[Python quality script](../../flake/dev/scripts/python-quality.sh),
+[Rust quality checks](../../flake/dev/rust-checks.nix),
 [hook definitions](../../flake/dev/git-hooks.nix).
 
 Improve source filtering where a derivation consumes the entire repository for
 a narrower check. Verify that new source files, schemas and configuration remain
-included. Existing filtered Python tests and stylesheet checks supply patterns;
+included. The restricted Rust workspace fileset and stylesheet checks supply patterns;
 this is an invalidation improvement, not permission to omit relevant files.
 
 Keep the existing same-derivation skip mechanism. In the current sampled x86

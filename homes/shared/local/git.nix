@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  myLib,
   pkgs,
   ...
 }:
@@ -35,12 +36,28 @@
   home.activation.gitPrivacyBootstrap =
     lib.hm.dag.entryAfter [ "nixSeal" "linkGeneration" "jujutsuLocalIdentity" ]
       (
-        (import ../../../lib/templates/text.nix) ./scripts/remove-legacy-git-privacy-config.sh {
-          lib_escapeShellArg_config_xdg_stateHome_git_privacy_bootstra = lib.escapeShellArg "${config.xdg.stateHome}/git-privacy/bootstrap/config";
-          lib_escapeShellArg_config_home_homeDirectory_gitconfig = lib.escapeShellArg "${config.home.homeDirectory}/.gitconfig";
-          lib_getExe_pkgs_git_git = lib.getExe' pkgs.git "git";
-          lib_getExe_pkgs_coreutils_rm = lib.getExe' pkgs.coreutils "rm";
-          lib_escapeShellArg_config_xdg_configHome_jj_conf_d_99_git_pr = lib.escapeShellArg "${config.xdg.configHome}/jj/conf.d/99-git-privacy-bootstrap.toml";
-        }
+        myLib.writers.renderBashText { inherit pkgs; }
+          {
+            name = "remove-legacy-git-privacy-config.sh";
+            text = ''
+              # shellcheck shell=bash
+              bootstrap=@lib_escapeShellArg_config_xdg_stateHome_git_privacy_bootstra@
+              global_config=@lib_escapeShellArg_config_home_homeDirectory_gitconfig@
+              if test -f "$global_config" && @lib_getExe_pkgs_git_git@ config --file "$global_config" \
+                --fixed-value --get-all include.path "$bootstrap" >/dev/null; then
+                run @lib_getExe_pkgs_git_git@ config --file "$global_config" \
+                  --fixed-value --unset-all include.path "$bootstrap"
+              fi
+              run @lib_getExe_pkgs_coreutils_rm@ -f -- \
+                @lib_escapeShellArg_config_xdg_configHome_jj_conf_d_99_git_pr@
+            '';
+          }
+          {
+            lib_escapeShellArg_config_xdg_stateHome_git_privacy_bootstra = lib.escapeShellArg "${config.xdg.stateHome}/git-privacy/bootstrap/config";
+            lib_escapeShellArg_config_home_homeDirectory_gitconfig = lib.escapeShellArg "${config.home.homeDirectory}/.gitconfig";
+            lib_getExe_pkgs_git_git = lib.getExe' pkgs.git "git";
+            lib_getExe_pkgs_coreutils_rm = lib.getExe' pkgs.coreutils "rm";
+            lib_escapeShellArg_config_xdg_configHome_jj_conf_d_99_git_pr = lib.escapeShellArg "${config.xdg.configHome}/jj/conf.d/99-git-privacy-bootstrap.toml";
+          }
       );
 }

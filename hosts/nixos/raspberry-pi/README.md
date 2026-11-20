@@ -214,6 +214,11 @@ just raspberry-pi-build
 just raspberry-pi-deploy
 ```
 
+The board-specific system constructor keeps an ARM package set even when
+deploy-rs requests a different build system. The requested system also
+informs scoped compatibility settings. The Pi configuration currently runs
+without Home Manager. The inventory retains the declared attachment metadata.
+
 The deploy-rs node uses the reserved address and `remoteBuild = false`. Direct
 closure transfer avoids destination substitution from caches outside the Pi's
 narrow trust set. The Pi's one-job, two-core limit applies only to manual local
@@ -226,7 +231,7 @@ pre-1.0 and has not completed its external security audit.
 Nixos-anywhere is pinned and available as a package:
 
 ```sh
-workstation-task nix run .#raspberry-pi-provision -- \
+nix run .#raspberry-pi-provision -- \
   --flake .#raspberry-pi --build-on local --target-host root@<INSTALLER_ADDRESS>
 ```
 

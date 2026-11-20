@@ -51,5 +51,4 @@ installed-font inventory alone cannot establish.
 
 See the [font guide and recorded results](https://github.com/nix-forge/nix-conf/blob/main/docs/font-configuration.md)
 for the selected families, provenance, checks, and platform differences. Some
-optional font packages have separate upstream licensing requirements. The small
-public starter requires none of them.
+optional font packages have separate upstream licensing requirements.

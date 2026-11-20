@@ -1,0 +1,21 @@
+[package]
+name = "helium-preference-defaults"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json = { workspace = true, features = [
+  "arbitrary_precision",
+  "float_roundtrip",
+] }
+tempfile.workspace = true
+sha2.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies.nix-conf-legacy-numbers]
+path = "../../../../../lib/legacy-number-format"

@@ -1,0 +1,53 @@
+[package]
+name = "macos-application-tools"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+base64 = "0.22"
+sha1 = "0.10"
+serde_json.workspace = true
+regex.workspace = true
+tempfile.workspace = true
+fs2.workspace = true
+tokio.workspace = true
+clap = { version = "4.5", features = ["derive"] }
+plist.workspace = true
+ipnet = "2.11"
+unicode-casefold = "0.2"
+sha2.workspace = true
+rustix = { workspace = true, features = ["param"] }
+time.workspace = true
+
+[dependencies.nix-conf-process]
+path = "../../../../lib/runtime-process"
+
+# Darwin process identity and atomic exchange use the audited platform boundary.
+[lints.rust]
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+unfulfilled_lint_expectations = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -2 }
+correctness = { level = "deny", priority = -1 }
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+let_underscore_must_use = "deny"
+unused_result_ok = "deny"
+await_holding_lock = "deny"
+allow_attributes_without_reason = "warn"
+ignore_without_reason = "deny"
+undocumented_unsafe_blocks = "deny"
+disallowed_methods = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[dependencies.nix-conf-legacy-numbers]
+path = "../../../../lib/legacy-number-format"

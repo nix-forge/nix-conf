@@ -1,4 +1,0 @@
-#!@bash@
-# shellcheck shell=bash disable=SC2239
-test "$(command -v hello)" = @hello@
-test "$PATH" = @runtimePath@

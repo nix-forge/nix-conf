@@ -1,4 +1,0 @@
-import json, sys
-
-print(json.dumps(sys.argv[1:]))
-raise SystemExit(__fixture_0__)

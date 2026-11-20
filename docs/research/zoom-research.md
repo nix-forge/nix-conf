@@ -27,8 +27,7 @@ after a 12-second check. After an authenticated
 
 ## October 1, 2026 update: Zoom Workplace 7.2.1 for Linux
 
-Before this update, the desktop evaluated to Zoom `7.1.5.4332` (`workstation-task
-nix eval --raw .#nixosConfigurations.desktop.pkgs.zoom-us.version`). Zoom's
+Before this update, the desktop evaluated to Zoom `7.1.5.4332` (`nix eval --raw .#nixosConfigurations.desktop.pkgs.zoom-us.version`). Zoom's
 [Workplace release notes][releases] list Linux `7.2.0 (5705)` on September 18
 and `7.2.1 (5760)` on September 21. The September 24 `7.2.2` release is
 macOS-only. That day's Linux `7.1.9` is for slow/prompted tracks; Zoom says

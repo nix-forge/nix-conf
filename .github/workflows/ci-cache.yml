@@ -7,7 +7,10 @@ on:
       - flake.lock
       - flake/dev/**
       - flake/lint-checks.nix
-      - lib/python/notification-process/**
+      - Cargo.toml
+      - Cargo.lock
+      - flake/runtime-packages.nix
+      - flake/rust-workspace.nix
   workflow_dispatch:
 permissions: {}
 concurrency:
@@ -26,8 +29,8 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - scope: ci-python
-            shell: ciPython
+          - scope: ci-rust
+            shell: ciRust
           - scope: ci-lint
             shell: ci
     steps:
@@ -46,4 +49,4 @@ jobs:
         env:
           DEV_SHELL: ${{ matrix.shell }}
           CACHE_SCOPE: ${{ matrix.scope }}
-        run: bash .github/scripts/seed-ci-cache.sh
+        run: nix run .#seed-ci-cache

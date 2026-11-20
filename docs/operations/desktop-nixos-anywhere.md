@@ -55,7 +55,8 @@ replace any Windows installation before selecting a data drive.
 5. Generate a private installer flake on storage that will survive formatting:
 
    ```sh
-   python3 hosts/nixos/desktop/local/storage/scripts/prepare_desktop_installer.py \
+   "$(nix build --no-link --print-out-paths \
+     .#nixosConfigurations.desktop.config.system.build.desktopInstallerPreparation)/bin/prepare-desktop-installer" \
      --source "$external_checkout" \
      --output "$external_checkout_parent/desktop-installer" \
      --system-disk "$system_disk" --data-disk "$data_disk"
@@ -70,23 +71,17 @@ replace any Windows installation before selecting a data drive.
 
    ```sh
    plan="path:$external_checkout_parent/desktop-installer"
-   workstation-task nix eval --raw "$plan#nixosConfigurations.desktop.config.disko.devices.disk.system.device"
-   workstation-task nix eval --raw "$plan#nixosConfigurations.desktop.config.disko.devices.disk.data.device"
-   workstation-task nix eval --json "$plan#nixosConfigurations.desktop.config.hardware.storage.encryptedRoot.enable"
+   nix eval --raw "$plan#nixosConfigurations.desktop.config.disko.devices.disk.system.device"
+   nix eval --raw "$plan#nixosConfigurations.desktop.config.disko.devices.disk.data.device"
+   nix eval --json "$plan#nixosConfigurations.desktop.config.hardware.storage.encryptedRoot.enable"
    ```
 
-6. Build the installation system, Disko script, and Restic recovery tool **on
-   the running desktop** through `workstation-task`, then save their store
-   closures outside the target
-   drives. The installer configuration forces passphrase unlock and leaves
-   Secure Boot, measured boot, and the optional removable HDD layout disabled.
-
    ```sh
-   disko_script=$(workstation-task nix build --no-link --print-out-paths \
+   disko_script=$(nix build --no-link --print-out-paths \
      "$plan#nixosConfigurations.desktop.config.system.build.diskoScript")
-   system=$(workstation-task nix build --no-link --print-out-paths \
+   system=$(nix build --no-link --print-out-paths \
      "$plan#nixosConfigurations.desktop.config.system.build.toplevel")
-   restic=$(workstation-task nix build --no-link --print-out-paths \
+   restic=$(nix build --no-link --print-out-paths \
      "$plan#nixosConfigurations.desktop.pkgs.restic")
    nix path-info -S "$disko_script" "$system" "$restic"
    ```

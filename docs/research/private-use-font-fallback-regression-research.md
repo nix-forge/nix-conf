@@ -46,7 +46,7 @@ predicates. The practical high-quality boundary is therefore a generated
 family-stack rule with an installed-family boundary. The rule rendered from the
 [`private-use-fallback.conf.in`](../../modules/shared/fonts/private-use-fallback.conf.in)
 template receives a generated include from
-[`private-use-family-aliases.sh.in`](../../modules/shared/fonts/private-use-family-aliases.sh.in).
+[`private-use-family-aliases.sh.in`](../../modules/shared/fonts/alias-tools/src/main.rs).
 That include contains weak exact-first-family rules only for font families
 found in the selected package directories, excludes generic and Apple protocol
 names, and therefore leaves an unavailable first family untouched. A small

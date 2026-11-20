@@ -41,8 +41,7 @@ CI scans Git history and the complete committed tree with the same policy. Six
 reviewed immutable historical commits have exceptions for the four publication
 metadata rules only. Credential rules still scan those commits, and the full
 publication policy still checks their surviving files in the current tree.
-Canary tests verify both scopes and that the historical exceptions cannot hide
-credentials. This cleanup does not rewrite published history.
+Both scopes retain credential scanning. This cleanup does not rewrite published history.
 
 Set a repository-local public identity when making a new checkout:
 

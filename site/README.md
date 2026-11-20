@@ -11,19 +11,12 @@ nix build .#documentation
 python3 -m http.server 8000 --directory result
 ```
 
-The source Markdown remains ordinary GitHub-readable Markdown. Where a complete
-starter source file appears in a guide, an explicit include marker lets the build
-reject drift. Update those fences deliberately with:
+The source Markdown remains ordinary GitHub-readable Markdown.
 
-```sh
-nix develop .#docs --command python site/build.py --update-snippets
-```
-
-For a quick local documentation build without generated reference insertion:
-
-```sh
-nix develop .#docs --command python site/build.py --output dist
-```
+Nix composes the curated source tree and generated references. There is no
+project-owned documentation renderer executable. The `docs` development shell
+provides the pinned upstream MkDocs and Pygments tools for inspection; use the
+`documentation` package for complete builds.
 
 `site/mkdocs.yml` owns the navigation and strict validation. Use normal relative
 Markdown links between guide pages. Links to source or research outside the
@@ -38,7 +31,9 @@ See [implementation research](../docs/research/public-guide-implementation-resea
 for the primary sources and [release guidance](../docs/guide/maintaining.md).
 
 Use the Nix `documentation` build when checking the complete release artifact.
-It supplies `feature-catalog` and `feature-options` to the renderer, so changed
-module defaults appear in the reference. The source-page markers remain readable
+It renders the feature catalog from Nix data and inserts the native
+`nixosOptionsDoc` Markdown output, so changed module defaults appear in the reference.
+`feature-options` retains the JSON interface; `feature-options-markdown` exposes
+the generated Markdown. The source-page markers remain readable
 on GitHub and explain how to obtain generated output. The build rejects missing
-or duplicated markers, and renders regular-expression option types as code.
+or duplicated markers, and preserves literal regular-expression option types.

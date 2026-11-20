@@ -6,9 +6,10 @@
   ...
 }:
 let
-  fetchPython = pkgs.python3.withPackages (_: [
-    (myLib.python.notificationProcess { inherit pkgs; })
-  ]);
+  writeShellApplication = myLib.writers.writeShellApplication { inherit pkgs; };
+  macShortcuts = config.keyboard.macosShortcuts.enable or false;
+  desktopMod = if macShortcuts then "CTRL + ALT" else "SUPER";
+  inherit ((import ../../../flake/runtime-packages.nix { inherit pkgs; })) wallpaperTools;
   writeBashTemplate = myLib.writers.writeBashTemplate { inherit pkgs; };
   cfg = config.desktop.wallpaper;
   systemdUtils = import (pkgs.path + "/nixos/lib/utils.nix") {
@@ -29,24 +30,28 @@ let
       inherit (cfg) categories personal;
     }
   );
-  wallpaperPolicy = pkgs.writeShellApplication {
+  wallpaperPolicy = writeShellApplication {
     name = "desktop-wallpaper-policy";
-    runtimeInputs = [ pkgs.python3 ];
-    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-policy.sh {
-      scripts_wallpaper_policy_py = ./scripts/wallpaper_policy.py;
-      wallpaper_catalog_json = ./wallpaper-catalog.json;
-      inherit policyDefaults;
-      lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper_pr = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper/preferences.json";
-      lib_getExe_pkgs_systemd_systemctl = lib.getExe' pkgs.systemd "systemctl";
-    };
+    text = ''
+      ${lib.getExe' wallpaperTools "wallpaper-policy"} \
+        --catalog ${./wallpaper-catalog.json} --config ${policyDefaults} \
+        --preferences ${lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper/preferences.json"} "$@"
+      case "''${1:-}" in
+      connection | category | source | personal)
+        ${lib.getExe' pkgs.systemd "systemctl"} --user start --no-block desktop-wallpaper-rotate.service || true
+        ;;
+      esac
+    '';
   };
   # The small launcher follows the managed command file across activations.
   # Its interface stays stable while the policy and Nix defaults change.
-  wallpaperSettings = pkgs.writeShellApplication {
+  wallpaperSettings = writeShellApplication {
     name = "desktop-wallpaper-settings";
-    text = (import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-settings.sh {
-      policyCommand = lib.escapeShellArg "${config.xdg.configHome}/desktop-wallpaper/policy-command";
-    };
+    text = ''
+      # The configured, shell-quoted path can contain literal dollar signs.
+      # shellcheck disable=SC2016
+      exec ${lib.escapeShellArg "${config.xdg.configHome}/desktop-wallpaper/policy-command"} "$@"
+    '';
   };
   sourceOverrides = lib.mapAttrs (
     _: _:
@@ -92,43 +97,52 @@ let
       description = "Maximum retained wallpapers for this connection.";
     };
   };
-  astronomyFetchers = lib.genAttrs [ "esaHubble" "esaWebb" ] (
-    connection:
-    let
-      slug = if connection == "esaHubble" then "esa-hubble" else "esa-webb";
-    in
-    pkgs.writeShellApplication {
-      name = "desktop-wallpaper-fetch-${slug}";
+  astronomyFetcher =
+    name: connection:
+    writeShellApplication {
+      inherit name;
       runtimeInputs = [
-        fetchPython
         pkgs.curl
         pkgs.imagemagick
       ];
-      text = (import ../../../lib/templates/text.nix) ./scripts/fetch-wallpaper-collection.sh {
-        lib_getExe_wallpaperPolicy = lib.getExe wallpaperPolicy;
-        inherit connection;
-        scripts_wallpaper_fetch_d2d_py = ./scripts/wallpaper_fetch_d2d.py;
-        lib_escapeShellArg_cfg_directory = lib.escapeShellArg cfg.directory;
-        lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
-        toString_cfg_rotation_width = toString cfg.rotation.width;
-        toString_cfg_rotation_height = toString cfg.rotation.height;
-        toString_cfg_connections_connection_maxImages = toString cfg.connections.${connection}.maxImages;
-        toString_cfg_connections_connection_maxCandidatePages =
-          toString
-            cfg.connections.${connection}.maxCandidatePages;
-        toString_cfg_connections_connection_maxCandidateDownloads =
-          toString
-            cfg.connections.${connection}.maxCandidateDownloads;
-      };
-    }
-  );
-  # Install every reviewed connection so runtime switches also work when the
-  # declarative default is off. An empty effective plan performs no network I/O.
-  fetcherUnits = [
-    "desktop-wallpaper-fetch-wikimedia-commons.service"
-    "desktop-wallpaper-fetch-esa-hubble.service"
-    "desktop-wallpaper-fetch-esa-webb.service"
-  ];
+      text =
+        myLib.templates.renderText
+          {
+            name = "fetch-wallpaper-collection.sh";
+            text = ''
+              # shellcheck shell=bash
+              plan=$(mktemp)
+              trap 'rm -f -- "$plan"' EXIT
+              @lib_getExe_wallpaperPolicy@ plan @connection@ >"$plan"
+              # Configuration paths are escaped literals, including dollar signs.
+              # shellcheck disable=SC2016
+              @fetchExecutable@ \
+                --connection @connection@ --plan "$plan" \
+                --directory @lib_escapeShellArg_cfg_directory@ \
+                --state @lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper@ \
+                --width @toString_cfg_rotation_width@ --height @toString_cfg_rotation_height@ \
+                --max-images @toString_cfg_connections_connection_maxImages@ \
+                --max-pages @toString_cfg_connections_connection_maxCandidatePages@ \
+                --max-downloads @toString_cfg_connections_connection_maxCandidateDownloads@
+            '';
+          }
+          {
+            lib_getExe_wallpaperPolicy = lib.getExe wallpaperPolicy;
+            inherit connection;
+            fetchExecutable = lib.getExe' wallpaperTools "wallpaper-fetch-d2d";
+            lib_escapeShellArg_cfg_directory = lib.escapeShellArg cfg.directory;
+            lib_escapeShellArg_config_xdg_stateHome_desktop_wallpaper = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
+            toString_cfg_rotation_width = toString cfg.rotation.width;
+            toString_cfg_rotation_height = toString cfg.rotation.height;
+            toString_cfg_connections_connection_maxImages = toString cfg.connections.${connection}.maxImages;
+            toString_cfg_connections_connection_maxCandidatePages =
+              toString
+                cfg.connections.${connection}.maxCandidatePages;
+            toString_cfg_connections_connection_maxCandidateDownloads =
+              toString
+                cfg.connections.${connection}.maxCandidateDownloads;
+          };
+    };
 
   awwwOutputs = lib.concatStringsSep "," cfg.rotation.outputs;
   hyprBind = key: command: {
@@ -139,83 +153,195 @@ let
   };
   wallpaperChooser = writeBashTemplate {
     name = "desktop-wallpaper-next";
-    src = ./scripts/wallpaper-next.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export PATH="@runtimePath@"
+      exec @executable@ @policy@ "$@"
+    '';
     dir = "bin";
     replacements = {
       runtimePath = lib.makeBinPath [
         pkgs.awww
-        pkgs.coreutils
-        pkgs.findutils
         pkgs.imagemagick
       ];
-      minWidth = toString cfg.rotation.width;
-      minHeight = toString cfg.rotation.height;
-      minAspectRatioScaled = toString (builtins.div (cfg.rotation.width * 990) cfg.rotation.height);
-      maxAspectRatioScaled = toString (builtins.div (cfg.rotation.width * 1010) cfg.rotation.height);
-      policyCommand = lib.getExe wallpaperPolicy;
-      wallpaperDirectory = lib.escapeShellArg cfg.directory;
-      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
-      awwwOutputs = lib.optionalString (awwwOutputs != "") "--outputs ${lib.escapeShellArg awwwOutputs}";
-      transition = cfg.rotation.transition;
-      transitionDuration = toString cfg.rotation.transitionDuration;
-      transitionFps = toString cfg.rotation.transitionFps;
+      executable = lib.getExe' wallpaperTools "wallpaper-next";
+      policy = pkgs.writeText "wallpaper-rotation-policy.json" (
+        builtins.toJSON {
+          inherit (cfg) directory;
+          state = "${config.xdg.stateHome}/desktop-wallpaper";
+          policyCommand = lib.getExe wallpaperPolicy;
+          width = cfg.rotation.width;
+          height = cfg.rotation.height;
+          minAspectRatioScaled = builtins.div (cfg.rotation.width * 990) cfg.rotation.height;
+          maxAspectRatioScaled = builtins.div (cfg.rotation.width * 1010) cfg.rotation.height;
+          outputs = awwwOutputs;
+          transition = cfg.rotation.transition;
+          transitionDuration = toString cfg.rotation.transitionDuration;
+          transitionFps = toString cfg.rotation.transitionFps;
+        }
+      );
     };
   };
-  wallpaperImporter = pkgs.writeShellApplication {
+
+  wallpaperImporter = writeShellApplication {
     name = "desktop-wallpaper-add";
     runtimeInputs = [
       pkgs.coreutils
       pkgs.file
     ];
     inheritPath = false;
-    text =
-      ((import ../../../lib/templates/text.nix) ./scripts/desktop-wallpaper-add.sh {
-        lib_escapeShellArg_cfg_directory = lib.escapeShellArg cfg.directory;
-      })
-      + builtins.readFile ./scripts/wallpaper-add.sh;
+    text = ''
+      exec ${lib.getExe' wallpaperTools "wallpaper-add"} ${lib.escapeShellArg cfg.directory} "$@"
+    '';
   };
-  wallpaperDirectories = writeBashTemplate {
-    name = "desktop-wallpaper-directories";
-    src = ./scripts/wallpaper-directories.sh.in;
-    dir = "bin";
-    replacements = {
-      runtimePath = lib.makeBinPath [ pkgs.coreutils ];
-      wallpaperDirectory = lib.escapeShellArg cfg.directory;
-      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
+  wikimediaCommonsFetcher =
+    name: connection:
+    writeBashTemplate {
+      inherit name;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+        export PATH="@runtimePath@"
+        exec @executable@ @policy@ "$@"
+      '';
+      dir = "bin";
+      replacements = {
+        runtimePath = lib.makeBinPath [
+          pkgs.curl
+          pkgs.file
+          pkgs.imagemagick
+        ];
+        executable = lib.getExe' wallpaperTools "wallpaper-fetch-commons";
+        policy = pkgs.writeText "wallpaper-commons-policy.json" (
+          builtins.toJSON {
+            inherit (cfg) directory;
+            state = "${config.xdg.stateHome}/desktop-wallpaper";
+            policyCommand = lib.getExe wallpaperPolicy;
+            quality = catalog.commonsQuality;
+            maxCandidatePages = cfg.connections.${connection}.maxCandidatePages;
+            maxCandidateDownloads = cfg.connections.${connection}.maxCandidateDownloads;
+            licenses = cfg.connections.${connection}.licenses;
+            width = cfg.rotation.width;
+            height = cfg.rotation.height;
+            userAgent = cfg.connections.${connection}.userAgent;
+            maxFileSizeBytes = cfg.connections.${connection}.maxFileSizeMiB * 1024 * 1024;
+            maxImages = cfg.connections.${connection}.maxImages;
+          }
+        );
+      };
     };
-  };
-  wikimediaCommonsFetcher = writeBashTemplate {
-    name = "desktop-wallpaper-fetch-wikimedia-commons";
-    src = ./scripts/wallpaper-fetch-wikimedia-commons.sh.in;
-    dir = "bin";
-    replacements = {
-      bash = lib.getExe pkgs.bash;
-      runtimePath = lib.makeBinPath [
-        pkgs.coreutils
-        pkgs.curl
-        pkgs.file
-        pkgs.findutils
-        pkgs.imagemagick
-        pkgs.jq
-        pkgs.util-linux
+
+  wikimediaCommonsOptions = {
+    enable = lib.mkEnableOption "a daily, bounded Wikimedia Commons photography wallpaper fetch";
+
+    maxCandidatePages = lib.mkOption {
+      type = lib.types.ints.between 1 10;
+      default = 3;
+      description = "Maximum sequential category pages scanned per fetch. Continuation is saved between runs so rejected or cached files cannot trap discovery on the first page.";
+    };
+
+    maxCandidateDownloads = lib.mkOption {
+      type = lib.types.ints.between 1 5;
+      default = 3;
+      description = "Maximum original-image download attempts per fetch; at most one accepted wallpaper is installed.";
+    };
+
+    licenses = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "CC0"
+        "Public domain"
+        "Public Domain"
       ];
-      wallpaperDirectory = lib.escapeShellArg cfg.directory;
-      stateDirectory = lib.escapeShellArg "${config.xdg.stateHome}/desktop-wallpaper";
-      qualityJson = lib.escapeShellArg (builtins.toJSON catalog.commonsQuality);
-      categoriesJson = "\"$(${lib.getExe wallpaperPolicy} plan wikimediaCommons)\"";
-      maxCandidatePages = toString cfg.connections.wikimediaCommons.maxCandidatePages;
-      maxCandidateDownloads = toString cfg.connections.wikimediaCommons.maxCandidateDownloads;
-      licensesJson = lib.escapeShellArg (builtins.toJSON cfg.connections.wikimediaCommons.licenses);
-      targetWidth = toString cfg.rotation.width;
-      targetHeight = toString cfg.rotation.height;
-      userAgent = lib.escapeShellArg cfg.connections.wikimediaCommons.userAgent;
-      maxFileSizeBytes = toString (cfg.connections.wikimediaCommons.maxFileSizeMiB * 1024 * 1024);
-      maxImages = toString cfg.connections.wikimediaCommons.maxImages;
+      description = "Exact accepted Commons LicenseShortName values. Attribution, licence URL and source metadata are retained beside each cropped derivative.";
+    };
+
+    interval = lib.mkOption {
+      type = lib.types.str;
+      default = "daily";
+      description = "Systemd calendar expression for the low-frequency Wikimedia Commons fetch.";
+    };
+
+    userAgent = lib.mkOption {
+      type = lib.types.str;
+      default = "nix-conf-wallpaper/1.0 (https://github.com/nix-forge/nix-conf)";
+      description = "Descriptive User-Agent sent to the Wikimedia API.";
+    };
+
+    maxFileSizeMiB = lib.mkOption {
+      type = lib.types.ints.between 5 512;
+      default = 150;
+      description = "Maximum accepted Commons original-image size, in MiB. This matches the other wallpaper sources so a source does not silently lower image quality.";
+    };
+
+    maxImages = lib.mkOption {
+      type = lib.types.ints.between 1 120;
+      default = 30;
+      description = "Maximum Commons images retained in the local private cache.";
     };
   };
+
+  # Install every reviewed connection so runtime switches also work when the
+  # declarative default is off. An empty effective plan performs no network I/O.
+  # Keep the source order for serial seeding.
+  fetchers =
+    map
+      (
+        source:
+        let
+          name = "desktop-wallpaper-fetch-${source.slug}";
+        in
+        source
+        // {
+          inherit name;
+          package = source.build name source.connection;
+        }
+      )
+      [
+        {
+          connection = "wikimediaCommons";
+          slug = "wikimedia-commons";
+          label = "Wikimedia Commons";
+          build = wikimediaCommonsFetcher;
+          options = wikimediaCommonsOptions;
+        }
+        {
+          connection = "esaHubble";
+          slug = "esa-hubble";
+          label = "ESA/Hubble";
+          build = astronomyFetcher;
+          options = astronomyOptions;
+        }
+        {
+          connection = "esaWebb";
+          slug = "esa-webb";
+          label = "ESA/Webb";
+          build = astronomyFetcher;
+          options = astronomyOptions;
+        }
+      ];
+  fetcherUnits = map (fetcher: "${fetcher.name}.service") fetchers;
+  fetcherTimeoutMinutes = 5;
+
   wallpaperSeed = writeBashTemplate {
     name = "desktop-wallpaper-seed";
-    src = ./scripts/wallpaper-seed.sh.in;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export PATH="@runtimePath@"
+
+      # Run each source serially. The source services retain their individual
+      # sandbox, network policy, image validation, and cache limits.
+      source_units=(@sourceUnits@)
+      for source_unit in "''${source_units[@]}"; do
+        for _ in $(seq 1 @initialFetches@); do
+          # A source can legitimately reject an oversized or non-wallpaper asset.
+          # Continue seeding the other source libraries in that case.
+          @systemctl@ --user start "$source_unit" || true
+        done
+      done
+    '';
     dir = "bin";
     replacements = {
       systemctl = lib.getExe' pkgs.systemd "systemctl";
@@ -365,57 +491,9 @@ in
       default = true;
       description = "Include manually imported images without a source connection, subject to the display geometry checks.";
     };
-    connections.esaHubble = astronomyOptions;
-    connections.esaWebb = astronomyOptions;
-    connections.wikimediaCommons = {
-      enable = lib.mkEnableOption "a daily, bounded Wikimedia Commons photography wallpaper fetch";
-
-      maxCandidatePages = lib.mkOption {
-        type = lib.types.ints.between 1 10;
-        default = 3;
-        description = "Maximum sequential category pages scanned per fetch. Continuation is saved between runs so rejected or cached files cannot trap discovery on the first page.";
-      };
-
-      maxCandidateDownloads = lib.mkOption {
-        type = lib.types.ints.between 1 5;
-        default = 3;
-        description = "Maximum original-image download attempts per fetch; at most one accepted wallpaper is installed.";
-      };
-
-      licenses = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [
-          "CC0"
-          "Public domain"
-          "Public Domain"
-        ];
-        description = "Exact accepted Commons LicenseShortName values. Attribution, licence URL and source metadata are retained beside each cropped derivative.";
-      };
-
-      interval = lib.mkOption {
-        type = lib.types.str;
-        default = "daily";
-        description = "Systemd calendar expression for the low-frequency Wikimedia Commons fetch.";
-      };
-
-      userAgent = lib.mkOption {
-        type = lib.types.str;
-        default = "nix-conf-wallpaper/1.0 (https://github.com/nix-forge/nix-conf)";
-        description = "Descriptive User-Agent sent to the Wikimedia API.";
-      };
-
-      maxFileSizeMiB = lib.mkOption {
-        type = lib.types.ints.between 5 512;
-        default = 150;
-        description = "Maximum accepted Commons original-image size, in MiB. This matches the other wallpaper sources so a source does not silently lower image quality.";
-      };
-
-      maxImages = lib.mkOption {
-        type = lib.types.ints.between 1 120;
-        default = 30;
-        description = "Maximum Commons images retained in the local private cache.";
-      };
-    };
+    connections = builtins.listToAttrs (
+      map (fetcher: lib.nameValuePair fetcher.connection fetcher.options) fetchers
+    );
 
     initialFetches = lib.mkOption {
       type = lib.types.ints.between 0 8;
@@ -501,7 +579,7 @@ in
           lib.mkIf config.wayland.windowManager.hyprland.enable
             (
               lib.mkAfter [
-                (hyprBind "SUPER + SHIFT + W" "${lib.getExe' pkgs.systemd "systemctl"} --user start desktop-wallpaper-rotate.service")
+                (hyprBind "${desktopMod} + SHIFT + W" "${lib.getExe' pkgs.systemd "systemctl"} --user start desktop-wallpaper-rotate.service")
               ]
             );
 
@@ -515,7 +593,15 @@ in
             Service = {
               Type = "oneshot";
               RemainAfterExit = true;
-              ExecStart = lib.getExe' wallpaperDirectories "desktop-wallpaper-directories";
+              ExecStart = systemdUtils.escapeSystemdExecArgs [
+                (lib.getExe' pkgs.coreutils "install")
+                "-d"
+                "-m"
+                "0700"
+                "--"
+                cfg.directory
+                "${config.xdg.stateHome}/desktop-wallpaper"
+              ];
               UMask = "0077";
               NoNewPrivileges = true;
               PrivateTmp = true;
@@ -581,146 +667,60 @@ in
       })
 
       (lib.mkIf (cfg.mode == "rotate") {
-        home.packages = [ wikimediaCommonsFetcher ];
+        home.packages = map (fetcher: fetcher.package) fetchers;
 
         systemd.user = {
-          services.desktop-wallpaper-fetch-wikimedia-commons = {
-            Unit = {
-              Description = "Fetch one reviewed Wikimedia Commons wallpaper";
-              After = [
-                "network-online.target"
-                "awww.service"
-                "desktop-wallpaper-directories.service"
-              ];
-              Wants = [ "awww.service" ];
-              Requires = [ "desktop-wallpaper-directories.service" ];
-            };
-            Service = {
-              Type = "oneshot";
-              ExecStart = lib.getExe' wikimediaCommonsFetcher "desktop-wallpaper-fetch-wikimedia-commons";
-              TimeoutStartSec = "5min";
-              UMask = "0077";
-              NoNewPrivileges = true;
-              PrivateTmp = true;
-              ProtectHome = "read-only";
-              ProtectSystem = "strict";
-              ReadWritePaths = [
-                cfg.directory
-                "${config.xdg.stateHome}/desktop-wallpaper"
-              ];
-              RestrictAddressFamilies = [
-                "AF_UNIX"
-                "AF_INET"
-                "AF_INET6"
-              ];
-            };
-          };
+          services = builtins.listToAttrs (
+            map (
+              fetcher:
+              lib.nameValuePair fetcher.name {
+                Unit = {
+                  Description = "Fetch one reviewed ${fetcher.label} wallpaper";
+                  After = [
+                    "network-online.target"
+                    "awww.service"
+                    "desktop-wallpaper-directories.service"
+                  ];
+                  Wants = [ "awww.service" ];
+                  Requires = [ "desktop-wallpaper-directories.service" ];
+                };
+                Service = {
+                  Type = "oneshot";
+                  ExecStart = lib.getExe' fetcher.package fetcher.name;
+                  TimeoutStartSec = "${toString fetcherTimeoutMinutes}min";
+                  UMask = "0077";
+                  NoNewPrivileges = true;
+                  PrivateTmp = true;
+                  ProtectHome = "read-only";
+                  ProtectSystem = "strict";
+                  ReadWritePaths = [
+                    cfg.directory
+                    "${config.xdg.stateHome}/desktop-wallpaper"
+                  ];
+                  RestrictAddressFamilies = [
+                    "AF_UNIX"
+                    "AF_INET"
+                    "AF_INET6"
+                  ];
+                };
+              }
+            ) fetchers
+          );
 
-          timers.desktop-wallpaper-fetch-wikimedia-commons = {
-            Unit.Description = "Fetch a new Wikimedia Commons wallpaper at low frequency";
-            Timer = {
-              OnCalendar = cfg.connections.wikimediaCommons.interval;
-              RandomizedDelaySec = "2h";
-              Persistent = true;
-            };
-            Install.WantedBy = [ "graphical-session.target" ];
-          };
-        };
-      })
-
-      (lib.mkIf (cfg.mode == "rotate") {
-        home.packages = [ astronomyFetchers.esaHubble ];
-
-        systemd.user = {
-          services.desktop-wallpaper-fetch-esa-hubble = {
-            Unit = {
-              Description = "Fetch one reviewed ESA/Hubble wallpaper";
-              After = [
-                "network-online.target"
-                "awww.service"
-                "desktop-wallpaper-directories.service"
-              ];
-              Wants = [ "awww.service" ];
-              Requires = [ "desktop-wallpaper-directories.service" ];
-            };
-            Service = {
-              Type = "oneshot";
-              ExecStart = lib.getExe' astronomyFetchers.esaHubble "desktop-wallpaper-fetch-esa-hubble";
-              TimeoutStartSec = "5min";
-              UMask = "0077";
-              NoNewPrivileges = true;
-              PrivateTmp = true;
-              ProtectHome = "read-only";
-              ProtectSystem = "strict";
-              ReadWritePaths = [
-                cfg.directory
-                "${config.xdg.stateHome}/desktop-wallpaper"
-              ];
-              RestrictAddressFamilies = [
-                "AF_UNIX"
-                "AF_INET"
-                "AF_INET6"
-              ];
-            };
-          };
-
-          timers.desktop-wallpaper-fetch-esa-hubble = {
-            Unit.Description = "Fetch a new ESA/Hubble wallpaper at low frequency";
-            Timer = {
-              OnCalendar = cfg.connections.esaHubble.interval;
-              RandomizedDelaySec = "2h";
-              Persistent = true;
-            };
-            Install.WantedBy = [ "graphical-session.target" ];
-          };
-        };
-      })
-
-      (lib.mkIf (cfg.mode == "rotate") {
-        home.packages = [ astronomyFetchers.esaWebb ];
-
-        systemd.user = {
-          services.desktop-wallpaper-fetch-esa-webb = {
-            Unit = {
-              Description = "Fetch one reviewed ESA/Webb wallpaper";
-              After = [
-                "network-online.target"
-                "awww.service"
-                "desktop-wallpaper-directories.service"
-              ];
-              Wants = [ "awww.service" ];
-              Requires = [ "desktop-wallpaper-directories.service" ];
-            };
-            Service = {
-              Type = "oneshot";
-              ExecStart = lib.getExe' astronomyFetchers.esaWebb "desktop-wallpaper-fetch-esa-webb";
-              TimeoutStartSec = "5min";
-              UMask = "0077";
-              NoNewPrivileges = true;
-              PrivateTmp = true;
-              ProtectHome = "read-only";
-              ProtectSystem = "strict";
-              ReadWritePaths = [
-                cfg.directory
-                "${config.xdg.stateHome}/desktop-wallpaper"
-              ];
-              RestrictAddressFamilies = [
-                "AF_UNIX"
-                "AF_INET"
-                "AF_INET6"
-              ];
-            };
-          };
-
-          timers.desktop-wallpaper-fetch-esa-webb = {
-            Unit.Description = "Fetch a new ESA/Webb wallpaper at low frequency";
-            Timer = {
-              OnCalendar = cfg.connections.esaWebb.interval;
-              RandomizedDelaySec = "2h";
-              Persistent = true;
-            };
-            Install.WantedBy = [ "graphical-session.target" ];
-          };
+          timers = builtins.listToAttrs (
+            map (
+              fetcher:
+              lib.nameValuePair fetcher.name {
+                Unit.Description = "Fetch a new ${fetcher.label} wallpaper at low frequency";
+                Timer = {
+                  OnCalendar = cfg.connections.${fetcher.connection}.interval;
+                  RandomizedDelaySec = "2h";
+                  Persistent = true;
+                };
+                Install.WantedBy = [ "graphical-session.target" ];
+              }
+            ) fetchers
+          );
         };
       })
 
@@ -738,7 +738,9 @@ in
             Service = {
               Type = "oneshot";
               ExecStart = lib.getExe' wallpaperSeed "desktop-wallpaper-seed";
-              TimeoutStartSec = "${toString (cfg.initialFetches * builtins.length fetcherUnits * 5 + 1)}min";
+              TimeoutStartSec = "${
+                toString (cfg.initialFetches * builtins.length fetcherUnits * fetcherTimeoutMinutes + 1)
+              }min";
               UMask = "0077";
             };
           };
