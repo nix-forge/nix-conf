@@ -340,7 +340,7 @@ fn fingerprint_readonly(path: &Path) -> Result<Value> {
         }
         h.update(&b[..got]);
     }
-    Ok(json!(format!("{:x}", h.finalize())))
+    Ok(json!(format!("{}", base16ct::HexDisplay(&h.finalize()))))
 }
 fn native_backup(p: &Value, name: &str) -> Result<()> {
     // Policies without this field used the workstation-wide lock.

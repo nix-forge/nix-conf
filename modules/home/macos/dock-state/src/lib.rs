@@ -88,5 +88,8 @@ pub fn fingerprint() -> Result<String> {
             }
         }
     }
-    Ok(format!("{:x}", Sha256::digest(ascii.as_bytes())))
+    Ok(format!(
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(ascii.as_bytes()))
+    ))
 }

@@ -87,7 +87,7 @@ pub fn save(path: impl AsRef<Path>, value: &Value, mode: u32) -> Result<()> {
     Ok(())
 }
 pub fn hash(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!("{}", base16ct::HexDisplay(&Sha256::digest(bytes)))
 }
 /// Preserve the sorted, ASCII JSON encoding used by existing reviewed plans
 /// and delivery receipts, so the migration does not invalidate their hashes.
@@ -149,7 +149,7 @@ pub fn fingerprint(path: &Path) -> Result<Value> {
         h.update(&buf[..got]);
     }
     Ok(
-        json!({"file": path.file_name().ok_or("Missing name")?.to_string_lossy(), "bytes": f.metadata()?.len(), "sha256": format!("{:x}",h.finalize())}),
+        json!({"file": path.file_name().ok_or("Missing name")?.to_string_lossy(), "bytes": f.metadata()?.len(), "sha256": format!("{}",base16ct::HexDisplay(&h.finalize()))}),
     )
 }
 pub fn state(p: &Value, name: &str) -> PathBuf {

@@ -96,7 +96,10 @@ fn common(repo: &Path) -> Result<PathBuf> {
     ))
 }
 fn key(path: &Path) -> String {
-    format!("{:x}", Sha256::digest(path.as_os_str().as_bytes()))
+    format!(
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(path.as_os_str().as_bytes()))
+    )
 }
 fn private_dir(path: &Path) -> Result<()> {
     DirBuilder::new().recursive(true).mode(0o700).create(path)?;

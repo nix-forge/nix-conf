@@ -360,7 +360,10 @@ impl Bootstrap {
         if token.is_empty() || username.is_empty() {
             return Ok(());
         }
-        let fingerprint = format!("{:x}", Sha256::digest(format!("{username}\0{token}")));
+        let fingerprint = format!(
+            "{}",
+            base16ct::HexDisplay(&Sha256::digest(format!("{username}\0{token}")))
+        );
         let receipt: Value =
             serde_json::from_slice(&fs::read(env::var("LISTENBRAINZ_IDENTITY_RECEIPT")?)?)?;
         if receipt["username"] != username || receipt["fingerprint"] != fingerprint {
@@ -453,8 +456,8 @@ impl Bootstrap {
             .filter(|v| !v.is_empty())
             .ok_or("Missing slskd key")?;
         let fingerprint = format!(
-            "{:x}",
-            Sha256::digest(format!("{}\0{slskd_key}", self.slskd))
+            "{}",
+            base16ct::HexDisplay(&Sha256::digest(format!("{}\0{slskd_key}", self.slskd)))
         );
         let slskd_marker = self.state.join("slskd-profile");
         let configure_slskd =

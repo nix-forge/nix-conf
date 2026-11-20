@@ -94,6 +94,7 @@ dependencies = [
 name = "application-recovery"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "rustix",
  "serde_json",
  "sha2",
@@ -123,6 +124,12 @@ name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
+name = "base16ct"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd307490d624467aa6f74b0eabb77633d1f758a7b25f12bceb0b22e08d9726f6"
 
 [[package]]
 name = "base64"
@@ -155,6 +162,7 @@ dependencies = [
 name = "bootstrap-aurral"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "reqwest",
  "serde_json",
  "sha2",
@@ -274,6 +282,7 @@ checksum = "e0921b3876b3a1df8a1c9f912e7f94342458022c2e84288015893d83c4d62a79"
 name = "codex-desktop-supervisor"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "nix-conf-process",
  "rustix",
  "serde_json",
@@ -434,6 +443,7 @@ dependencies = [
 name = "desktop-idle-inhibitor"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "nix-conf-process",
  "rustix",
@@ -446,6 +456,7 @@ dependencies = [
 name = "desktop-storage-runtime"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "regex",
  "rustix",
@@ -459,6 +470,7 @@ dependencies = [
 name = "desktop-wallpaper-tools"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "nix-conf-process",
  "rand",
@@ -476,6 +488,7 @@ dependencies = [
 name = "dev-worktree-internal"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "clap",
  "fs2",
  "regex",
@@ -780,6 +793,7 @@ dependencies = [
 name = "helium-preference-defaults"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "nix-conf-legacy-numbers",
  "serde_json",
  "sha2",
@@ -796,6 +810,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 name = "hm-dock-state"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "plist",
  "serde_json",
@@ -1190,6 +1205,7 @@ checksum = "4050469837a6ff301cd14c1f8f24f88549e6d548f24f64e2148eb0f72cebc51f"
 name = "mac-source"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "rustix",
  "serde_json",
@@ -1202,6 +1218,7 @@ dependencies = [
 name = "macos-application-tools"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "base64 0.23.1",
  "clap",
  "fs2",
@@ -1279,6 +1296,7 @@ dependencies = [
 name = "music-api-tools"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "nix-conf-process",
  "reqwest",
  "rustix",
@@ -2768,6 +2786,7 @@ dependencies = [
 name = "wooting-profile-share"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "fs2",
  "reqwest",
  "serde_json",
@@ -2788,6 +2807,7 @@ dependencies = [
 name = "workstation-evidence"
 version = "0.1.0"
 dependencies = [
+ "base16ct",
  "nix",
  "regex",
  "serde_json",

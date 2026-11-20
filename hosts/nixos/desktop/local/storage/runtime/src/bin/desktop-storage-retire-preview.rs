@@ -30,7 +30,8 @@ fn retire_entry(entry: &Value) -> Result<bool> {
     }
     if path.is_symlink()
         || !path.is_file()
-        || format!("{:x}", Sha256::digest(fs::read(path)?)) != field(entry, "sha256")?
+        || format!("{}", base16ct::HexDisplay(&Sha256::digest(fs::read(path)?)))
+            != field(entry, "sha256")?
     {
         return Ok(false);
     }

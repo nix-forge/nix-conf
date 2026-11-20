@@ -65,6 +65,7 @@ plist = "1.10.4"
 scraper = "0.29"
 time = { version = "0.3.47", features = ["formatting", "parsing"] }
 base64 = "0.23"
+base16ct = "1"
 zbus = { version = "6.3", default-features = false, features = [
   "tokio",
   "proxy",

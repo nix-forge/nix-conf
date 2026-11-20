@@ -335,14 +335,14 @@ fn enroll(m: &V) -> Result<V> {
     {
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(c[1].split_whitespace().collect::<String>())?;
-        if format!("{:x}", sha1::Sha1::digest(&bytes)) == digest {
+        if format!("{}", base16ct::HexDisplay(&sha1::Sha1::digest(&bytes))) == digest {
             candidates.push(bytes);
         }
     }
     if candidates.len() != 1 {
         return fail("Could not uniquely match signing certificate to private key identity");
     }
-    let identity = json!({"name":policy["identity"],"keychain":policy["keychain"],"sha1":digest,"sha256":format!("{:x}",Sha256::digest(&candidates[0]))});
+    let identity = json!({"name":policy["identity"],"keychain":policy["keychain"],"sha1":digest,"sha256":format!("{}",base16ct::HexDisplay(&Sha256::digest(&candidates[0])))});
     if !s(policy, "certificateSha256").is_empty()
         && s(policy, "certificateSha256").to_lowercase() != s(&identity, "sha256")
     {
@@ -372,7 +372,10 @@ fn verify_certificate(path: &Path, identity: &V) -> Result<()> {
         prefix.to_str().ok_or("Invalid path")?,
         path.to_str().ok_or("Invalid path")?,
     ])?;
-    if format!("{:x}", Sha256::digest(fs::read(dir.path().join("cert0"))?)) != s(identity, "sha256")
+    if format!(
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(fs::read(dir.path().join("cert0"))?))
+    ) != s(identity, "sha256")
     {
         return fail("Unexpected local signing certificate");
     }

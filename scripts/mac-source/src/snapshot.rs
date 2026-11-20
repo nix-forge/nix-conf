@@ -31,7 +31,7 @@ pub(super) fn encoded(v: &Value) -> Result<Vec<u8>> {
     Ok(s.into_bytes())
 }
 fn hash(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!("{}", base16ct::HexDisplay(&Sha256::digest(bytes)))
 }
 fn digest(v: &Value) -> Result<String> {
     Ok(hash(&encoded(v)?))

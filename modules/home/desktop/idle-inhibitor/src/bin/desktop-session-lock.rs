@@ -46,7 +46,7 @@ fn lock_file(domain: &str, key: &str) -> Result<File> {
     if metadata.uid() != uid || metadata.mode() & 0o077 != 0 {
         return Err("Runtime directory must be private and owned by this user".into());
     }
-    let hash = format!("{:x}", Sha256::digest(key.as_bytes()));
+    let hash = format!("{}", base16ct::HexDisplay(&Sha256::digest(key.as_bytes())));
     let file = OpenOptions::new()
         .read(true)
         .write(true)

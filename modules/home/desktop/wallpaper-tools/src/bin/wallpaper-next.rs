@@ -64,7 +64,7 @@ async fn run() -> Result<()> {
         .filter(|s| !s.is_empty())
         .map(|s| PathBuf::from(std::ffi::OsString::from_vec(s.to_vec())))
         .collect();
-    paths.shuffle(&mut rand::thread_rng());
+    paths.shuffle(&mut rand::rng());
     let number = |key: &str| -> Result<u128> {
         policy[key]
             .as_u64()

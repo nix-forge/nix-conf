@@ -46,8 +46,8 @@ async fn run() -> Result<()> {
         return Err("ListenBrainz token owner mismatch".into());
     }
     let fingerprint = format!(
-        "{:x}",
-        Sha256::digest(format!("{username}\0{token}").as_bytes())
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(format!("{username}\0{token}").as_bytes()))
     );
     let mut file = OpenOptions::new()
         .write(true)

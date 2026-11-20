@@ -327,7 +327,7 @@ async fn run(args: &Args) -> Result<Value> {
     validation::validate(&profile)?;
     let mut body = Vec::new();
     canonical(&profile, &mut body)?;
-    let digest = format!("{:x}", Sha256::digest(&body));
+    let digest = format!("{}", base16ct::HexDisplay(&Sha256::digest(&body)));
     if args.action == "validate" {
         return Ok(
             json!({"status":"valid", "profile_sha256":digest, "adapter":ADAPTER,"validation_contract":validation::CONTRACT}),

@@ -88,5 +88,8 @@ pub(super) fn journal(dir: &Path, status: &str, evidence: &Value) -> Result<()> 
     save(&dir.join("transaction.json"), &v)
 }
 pub(super) fn record_path(state_directory: &Path, bundle: &str) -> PathBuf {
-    state_directory.join(format!("{:x}.json", Sha256::digest(bundle.as_bytes())))
+    state_directory.join(format!(
+        "{}.json",
+        base16ct::HexDisplay(&Sha256::digest(bundle.as_bytes()))
+    ))
 }
