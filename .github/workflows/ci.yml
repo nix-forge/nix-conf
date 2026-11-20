@@ -172,7 +172,7 @@ jobs:
           '
   flake:
     needs: [static]
-    name: Flake checks (${{ matrix.system }})
+    name: Flake checks (${{ matrix.label }})
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -184,10 +184,39 @@ jobs:
         include:
           - system: x86_64-linux
             runner: ubuntu-24.04
+            label: x86_64-linux 1/3
+            partition-count: 3
+            partition-index: 0
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            label: x86_64-linux 2/3
+            partition-count: 3
+            partition-index: 1
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            label: x86_64-linux 3/3
+            partition-count: 3
+            partition-index: 2
           - system: aarch64-linux
             runner: ubuntu-24.04-arm
+            label: aarch64-linux 1/3
+            partition-count: 3
+            partition-index: 0
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+            label: aarch64-linux 2/3
+            partition-count: 3
+            partition-index: 1
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+            label: aarch64-linux 3/3
+            partition-count: 3
+            partition-index: 2
           - system: aarch64-darwin
             runner: macos-26
+            label: aarch64-darwin
+            partition-count: 1
+            partition-index: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -206,6 +235,8 @@ jobs:
         with:
           system: ${{ matrix.system }}
           checks-output: ciChecks
+          partition-count: ${{ matrix.partition-count }}
+          partition-index: ${{ matrix.partition-index }}
   native:
     needs: [static]
     name: Native packages (${{ matrix.label }})
