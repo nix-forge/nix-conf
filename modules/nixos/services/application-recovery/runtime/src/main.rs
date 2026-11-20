@@ -153,7 +153,7 @@ fn python_json(value: &Value) -> String {
     }
 }
 fn receipt(directory: &Path, action: &str, success: bool, policy: &Value) -> Result<()> {
-    let record = json!({"completed": SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64(), "action": action, "result": if success { "success" } else { "failure" }, "policySha256": format!("{:x}", Sha256::digest(python_json(policy))), "scope": if action == "drill" { "isolated-application-drill" } else { "application-backup" }});
+    let record = json!({"completed": SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64(), "action": action, "result": if success { "success" } else { "failure" }, "policySha256": format!("{}", base16ct::HexDisplay(&Sha256::digest(python_json(policy)))), "scope": if action == "drill" { "isolated-application-drill" } else { "application-backup" }});
     for suffix in if success {
         vec!["attempt", "success"]
     } else {

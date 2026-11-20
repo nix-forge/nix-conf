@@ -89,7 +89,10 @@ fn run() -> Result<()> {
         return Err("usage: helium-preference-defaults POLICY PREFERENCES".into());
     }
     let policy: Value = serde_json::from_slice(&fs::read(&args[0])?)?;
-    let revision = format!("{:x}", Sha256::digest(canonical(&policy)?.as_bytes()));
+    let revision = format!(
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(canonical(&policy)?.as_bytes()))
+    );
     let path = Path::new(&args[1]);
     let mut prefs: Value = match fs::read(path) {
         Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_else(|_| serde_json::json!({})),

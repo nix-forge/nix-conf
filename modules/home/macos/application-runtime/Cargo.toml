@@ -7,8 +7,9 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-base64 = "0.22"
-sha1 = "0.10"
+base16ct.workspace = true
+base64 = "0.23"
+sha1 = "0.11"
 serde_json.workspace = true
 regex.workspace = true
 tempfile.workspace = true

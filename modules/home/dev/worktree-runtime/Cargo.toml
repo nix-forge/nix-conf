@@ -7,6 +7,7 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
+base16ct.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 regex.workspace = true
@@ -15,7 +16,7 @@ fs2.workspace = true
 rustix.workspace = true
 clap = { version = "4.5", features = ["derive"] }
 uuid = { version = "1", features = ["v4"] }
-signal-hook = "0.3"
+signal-hook = "0.4"
 
 [lints]
 workspace = true

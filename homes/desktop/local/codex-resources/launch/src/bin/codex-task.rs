@@ -62,7 +62,10 @@ async fn main_result() -> Result<i32> {
         .ok_or("codex-task requires the owning CODEX_THREAD_ID")?;
     let prefix = format!(
         "codex-task-{}",
-        &format!("{:x}", Sha256::digest(thread.as_bytes()))[..32]
+        &format!(
+            "{}",
+            base16ct::HexDisplay(&Sha256::digest(thread.as_bytes()))
+        )[..32]
     );
     let args: Vec<_> = env::args_os().skip(1).collect();
     let action = args.first().and_then(|s| s.to_str()).unwrap_or("");

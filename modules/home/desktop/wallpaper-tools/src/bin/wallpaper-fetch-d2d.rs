@@ -424,7 +424,7 @@ impl Fetcher {
             if !self.feed_url(&next) {
                 return Err("invalid Data2Dome continuation URL".into());
             }
-            candidates.shuffle(&mut rand::thread_rng());
+            candidates.shuffle(&mut rand::rng());
             for item in candidates {
                 let Some(resource) = self.resource(&item) else {
                     continue;
@@ -492,7 +492,7 @@ impl Fetcher {
                     }
                     hash.update(&buffer[..size]);
                 }
-                let checksum = format!("{:x}", hash.finalize());
+                let checksum = format!("{}", base16ct::HexDisplay(&hash.finalize()));
                 let destination = self.args.directory.join(format!("{prefix}{checksum}.jpg"));
                 let sidecar = PathBuf::from(format!("{}.json", destination.display()));
                 let metadata = json!({"connection":self.args.connection,"wallpaper_categories":categories.iter().map(|s|format!("space/{s}")).collect::<Vec<_>>(),"source":item.get("Creator").cloned().unwrap_or_else(||Value::String(self.args.connection.clone())),"source_id":id,"source_page":item["ReferenceURL"],"title":item["Title"],"credit":item["Credit"],"license":"CC BY 4.0","license_url":"https://creativecommons.org/licenses/by/4.0/","url":resource["URL"],"original_width":resource["Dimensions"][0],"original_height":resource["Dimensions"][1],"width":self.args.width,"height":self.args.height,"sha256":checksum,"retrieved_at":time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339)?,"conversion":"Centered crop and downsample to sRGB JPEG"});

@@ -11,7 +11,7 @@ use std::{
 };
 
 pub(super) fn hash(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!("{}", base16ct::HexDisplay(&Sha256::digest(bytes)))
 }
 // Preserve Python's canonical JSON fingerprints, including ASCII escapes and spaces.
 fn canonical(v: &V) -> String {

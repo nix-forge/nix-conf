@@ -11,5 +11,5 @@ workspace = true
 
 [dependencies]
 tempfile.workspace = true
-roxmltree = "0.20"
+roxmltree = "0.21"
 uuid = "1"

@@ -203,8 +203,8 @@ fn canonical(value: &Value) -> Result<String> {
 }
 fn digest(value: &Value) -> Result<String> {
     Ok(format!(
-        "{:x}",
-        Sha256::digest(canonical(value)?.as_bytes())
+        "{}",
+        base16ct::HexDisplay(&Sha256::digest(canonical(value)?.as_bytes()))
     ))
 }
 async fn native(program: &str, args: &[&str]) -> Result<String> {

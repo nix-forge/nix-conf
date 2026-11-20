@@ -357,7 +357,10 @@ impl Fetcher {
         {
             return Ok(false);
         }
-        let checksum = format!("{:x}", Sha256::digest(fs::read(&display)?));
+        let checksum = format!(
+            "{}",
+            base16ct::HexDisplay(&Sha256::digest(fs::read(&display)?))
+        );
         let id = candidate["id"].as_str().ok_or("invalid id")?.to_owned();
         let destination = self.directory.join(format!(
             "wikimedia-commons-{id}-{}x{}-{checksum}.jpg",
@@ -530,7 +533,7 @@ impl Fetcher {
                 break;
             }
             let mut candidates = self.candidates(&page, route, category)?;
-            candidates.shuffle(&mut rand::thread_rng());
+            candidates.shuffle(&mut rand::rng());
             for candidate in candidates {
                 let id = candidate["id"].as_str().ok_or("missing id")?;
                 if state["seen"]

@@ -10,8 +10,9 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+base16ct.workspace = true
 serde_json.workspace = true
-sha2 = "0.10"
+sha2 = "0.11"
 fs2.workspace = true
 tempfile.workspace = true
 regex.workspace = true
